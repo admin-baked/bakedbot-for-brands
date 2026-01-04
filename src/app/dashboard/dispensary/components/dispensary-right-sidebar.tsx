@@ -22,9 +22,15 @@ import { EzalSnapshotCard } from '@/components/dashboard/ezal-snapshot-card';
 
 interface DispensaryRightRailProps {
     userState?: string;
+    alerts?: {
+        productsNearOOS: number;
+        promosBlocked: number;
+        menuSyncDelayed: boolean;
+        criticalErrors: number;
+    };
 }
 
-export function DispensaryRightRail({ userState = 'Michigan' }: DispensaryRightRailProps) {
+export function DispensaryRightRail({ userState = 'Michigan', alerts }: DispensaryRightRailProps) {
     const { toast } = useToast();
 
     const handleAction = (action: string) => {
@@ -46,21 +52,30 @@ export function DispensaryRightRail({ userState = 'Michigan' }: DispensaryRightR
                 </CardHeader>
                 <CardContent className="space-y-3">
                     <div className="flex items-center gap-2 text-sm">
-                        <span className="h-2 w-2 rounded-full bg-red-500" />
-                        <span className="font-medium">3 products near OOS</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                        <span className="h-2 w-2 rounded-full bg-amber-500" />
-                        <span>2 promos blocked by compliance</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                        <span className="h-2 w-2 rounded-full bg-yellow-500" />
-                        <span>Menu sync delayed (POS)</span>
+                        <span className={`h-2 w-2 rounded-full ${(alerts?.productsNearOOS || 0) > 0 ? 'bg-red-500' : 'bg-green-500'}`} />
+                        <span className="font-medium text-xs truncate">
+                            {alerts?.productsNearOOS || 0} products near OOS
+                        </span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <CheckCircle2 className="h-3 w-3 text-green-500" />
-                        <span>No critical errors</span>
+                         <span className={`h-2 w-2 rounded-full ${(alerts?.promosBlocked || 0) > 0 ? 'bg-amber-500' : 'bg-muted'}`} />
+                        <span className="text-xs truncate">{alerts?.promosBlocked || 0} promos blocked</span>
                     </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className={`h-2 w-2 rounded-full ${alerts?.menuSyncDelayed ? 'bg-yellow-500' : 'bg-green-500'}`} />
+                        <span className="text-xs truncate">Menu sync: {alerts?.menuSyncDelayed ? 'Delayed' : 'Healthy'}</span>
+                    </div>
+                    {(alerts?.criticalErrors || 0) === 0 ? (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <CheckCircle2 className="h-3 w-3 text-green-500" />
+                            <span>No critical errors</span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 text-xs text-red-500">
+                            <ShieldAlert className="h-3 w-3" />
+                            <span>{alerts?.criticalErrors} critical errors</span>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

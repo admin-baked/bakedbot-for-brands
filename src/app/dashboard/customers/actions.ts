@@ -58,7 +58,7 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
     let ordersQuery = firestore.collection('orders') as FirebaseFirestore.Query;
     
     if (locationId) {
-        ordersQuery = ordersQuery.where('dispensaryId', '==', locationId);
+        ordersQuery = ordersQuery.where('retailerId', '==', locationId);
     } else {
         ordersQuery = ordersQuery.where('brandId', '==', brandId);
     }

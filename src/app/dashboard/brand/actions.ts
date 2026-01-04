@@ -146,3 +146,136 @@ export async function getBrandDashboardData(brandId: string) {
         return null;
     }
 }
+
+export type NextBestAction = {
+    id: string;
+    title: string;
+    description: string;
+    priority: 'high' | 'medium' | 'low';
+    type: 'compliance' | 'growth' | 'inventory' | 'pricing' | 'intel';
+    cta: string;
+    href?: string;
+};
+
+/**
+ * Get dynamic "Next Best Actions" for a brand based on live data
+ */
+export async function getNextBestActions(brandId: string): Promise<NextBestAction[]> {
+    try {
+        const { firestore } = await createServerClient();
+        await requireUser();
+
+        const actions: NextBestAction[] = [];
+        
+        // 1. Check for low product count (needs to add products)
+        const productRepo = makeProductRepo(firestore);
+        const products = await productRepo.getAllByBrand(brandId);
+        
+        if (products.length === 0) {
+            actions.push({
+                id: 'add-products',
+                title: 'Add Products',
+                description: 'Your catalog is empty. Add products to enable customer discovery and recommendations.',
+                priority: 'high',
+                type: 'growth',
+                cta: 'Add Products',
+                href: '/dashboard/products'
+            });
+        }
+        
+        // 2. Check for missing dispensary connections
+        const { getBrandDispensaries } = await import('@/app/dashboard/dispensaries/actions');
+        let dispensaryCount = 0;
+        try {
+            const dispensaries = await getBrandDispensaries();
+            dispensaryCount = dispensaries.length;
+        } catch { /* ignore */ }
+        
+        if (dispensaryCount === 0) {
+            actions.push({
+                id: 'connect-retailers',
+                title: 'Connect Retailers',
+                description: 'No retail partners connected. Find and onboard dispensaries carrying your products.',
+                priority: 'high',
+                type: 'growth',
+                cta: 'Find Retailers',
+                href: '/dashboard/dispensaries'
+            });
+        }
+        
+        // 3. Check for competitor intel gaps
+        let competitorCount = 0;
+        try {
+            const compSnap = await firestore.collection('organizations').doc(brandId).collection('competitors').count().get();
+            competitorCount = compSnap.data().count;
+        } catch { /* ignore */ }
+        
+        if (competitorCount === 0) {
+            actions.push({
+                id: 'setup-intel',
+                title: 'Set Up Competitive Intel',
+                description: 'Track competitor pricing and promotions to stay ahead in your market.',
+                priority: 'medium',
+                type: 'intel',
+                cta: 'Configure Intel',
+                href: '/dashboard/intelligence'
+            });
+        }
+        
+        // 4. Check for active playbooks
+        const playbookSnap = await firestore.collection('organizations').doc(brandId)
+            .collection('playbooks')
+            .where('status', '==', 'active')
+            .limit(1)
+            .get();
+        
+        if (playbookSnap.empty) {
+            actions.push({
+                id: 'activate-playbook',
+                title: 'Activate a Playbook',
+                description: 'Automate your operations with AI-powered playbooks for intel, marketing, and more.',
+                priority: 'medium',
+                type: 'growth',
+                cta: 'View Playbooks',
+                href: '/dashboard/playbooks'
+            });
+        }
+
+        // 5. Check promotional activity gap (if competitors have more promos)
+        try {
+            const orgDoc = await firestore.collection('organizations').doc(brandId).get();
+            const brandState = orgDoc.data()?.marketState || orgDoc.data()?.state || 'IL';
+            const activeIntel = await import('@/server/services/leafly-connector').then(m => m.getLocalCompetition(brandState, undefined));
+            
+            if (activeIntel.activeDeals > 0) {
+                const campaignSnap = await firestore.collection('campaigns')
+                    .where('brandId', '==', brandId)
+                    .where('status', '==', 'active')
+                    .limit(1)
+                    .get();
+                
+                if (campaignSnap.empty) {
+                    actions.push({
+                        id: 'promo-gap',
+                        title: 'Promo Gap Detected',
+                        description: `Competitors have ${activeIntel.activeDeals} active promotions. Consider launching a campaign.`,
+                        priority: 'medium',
+                        type: 'pricing',
+                        cta: 'Create Campaign',
+                        href: '/dashboard/marketing'
+                    });
+                }
+            }
+        } catch { /* ignore intel errors */ }
+        
+        // Sort by priority (high first)
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        actions.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+        
+        return actions.slice(0, 5); // Return top 5 actions
+    } catch (error) {
+        console.error('Failed to get next best actions:', error);
+        return [];
+    }
+}
+

@@ -1,0 +1,35 @@
+
+> nextn@0.1.0 test
+> jest src/app/dashboard/orders/__tests__
+
+FAIL src/app/dashboard/orders/__tests__/actions.test.ts
+  Orders Management Actions
+    getOrders
+      √ scopes by retailerId for dispensary users (5 ms)
+      √ scopes by brandId for brand users (1 ms)
+    updateOrderStatus
+      × validates status transitions via transaction (6 ms)
+      √ blocks invalid transitions and returns error message (2 ms)
+
+  ● Orders Management Actions › updateOrderStatus › validates status transitions via transaction
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 120 |[39m             [36mconst[39m result [33m=[39m [36mawait[39m updateOrderStatus({ message[33m:[39m [32m''[39m[33m,[39m error[33m:[39m [36mfalse[39m }[33m,[39m formData)[33m;[39m
+     [90m 121 |[39m
+    [31m[1m>[22m[39m[90m 122 |[39m             expect(result[33m.[39merror)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                  [31m[1m^[22m[39m
+     [90m 123 |[39m             expect(result[33m.[39mmessage)[33m.[39mtoContain([32m'updated to \'confirmed\''[39m)[33m;[39m
+     [90m 124 |[39m             expect(mockTransaction[33m.[39mupdate)[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 125 |[39m         })[33m;[39m[0m
+
+      at Object.toBe (src/app/dashboard/orders/__tests__/actions.test.ts:122:34)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 3 passed, 4 total
+Snapshots:   0 total
+Time:        4.083 s
+Ran all test suites matching /src\\app\\dashboard\\orders\\__tests__/i.

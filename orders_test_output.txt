@@ -1,0 +1,34 @@
+
+> nextn@0.1.0 test
+> jest src/app/dashboard/orders/__tests__
+
+FAIL src/app/dashboard/orders/__tests__/actions.test.ts
+  ● Test suite failed to run
+
+    ReferenceError: Request is not defined
+
+    [0m [90m 21 |[39m   ready[33m:[39m [[32m'completed'[39m[33m,[39m [32m'cancelled'[39m][33m,[39m
+     [90m 22 |[39m   completed[33m:[39m [][33m,[39m
+    [31m[1m>[22m[39m[90m 23 |[39m   cancelled[33m:[39m [][33m,[39m
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 24 |[39m }[33m;[39m
+     [90m 25 |[39m
+     [90m 26 |[39m [36mconst[39m [33mStatusUpdateSchema[39m [33m=[39m z[33m.[39mobject({[0m
+
+      at Object.Request (node_modules/next/src/server/web/spec-extension/request.ts:14:34)
+      at Object.<anonymous> (node_modules/next/dist/server/web/spec-extension/adapters/next-request.js:37:18)
+      at Object.<anonymous> (node_modules/next/dist/server/pipe-readable.js:23:22)
+      at Object.<anonymous> (node_modules/next/dist/server/render-result.js:12:23)
+      at Object.<anonymous> (node_modules/next/dist/server/response-cache/utils.js:28:62)
+      at Object.<anonymous> (node_modules/next/dist/server/response-cache/index.js:14:16)
+      at Object.<anonymous> (node_modules/next/dist/server/lib/patch-fetch.js:42:24)
+      at Object.<anonymous> (node_modules/next/dist/server/web/spec-extension/unstable-cache.js:12:21)
+      at Object.<anonymous> (node_modules/next/cache.js:2:19)
+      at Object.<anonymous> (src/app/dashboard/orders/actions.ts:23:16)
+      at Object.<anonymous> (src/app/dashboard/orders/__tests__/actions.test.ts:12:18)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        16.386 s
+Ran all test suites matching /src\\app\\dashboard\\orders\\__tests__/i.

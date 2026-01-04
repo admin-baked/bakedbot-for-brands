@@ -7,6 +7,8 @@ import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { NewProjectButton } from "@/app/dashboard/projects/components/new-project-button";
 
+export const dynamic = 'force-dynamic';
+
 export default async function CeoProjectsPage() {
     const projects = await getProjects();
 

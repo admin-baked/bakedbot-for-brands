@@ -6,7 +6,7 @@
  * Internal playbook management for the BakedBot team
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +31,19 @@ import {
 } from 'lucide-react';
 import { executePlaybook } from '../agents/actions';
 import { useToast } from '@/hooks/use-toast';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SuperAdminRightSidebar } from './super-admin-right-sidebar';
+import { PuffChat } from './puff-chat';
+import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 
 
 interface InternalPlaybook {
@@ -150,35 +163,44 @@ const categoryColors: Record<string, string> = {
 };
 
 
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-    DialogFooter,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-import { SuperAdminRightSidebar } from './super-admin-right-sidebar';
-
-import { PuffChat } from './puff-chat';
-import { useAgentChatStore } from '@/lib/store/agent-chat-store';
-import { useEffect } from 'react';
-
-// ... (existing imports)
+import { 
+    getSystemPlaybooks, 
+    toggleSystemPlaybook, 
+    syncSystemPlaybooks, 
+    type SystemPlaybook 
+} from '../actions';
 
 export default function SuperAdminPlaybooksTab() {
-    // ... (existing state)
-    const [playbooks, setPlaybooks] = useState(INTERNAL_PLAYBOOKS);
+    const [playbooks, setPlaybooks] = useState<SystemPlaybook[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
-    const [selectedPlaybook, setSelectedPlaybook] = useState<InternalPlaybook | null>(null);
+    const [selectedPlaybook, setSelectedPlaybook] = useState<SystemPlaybook | null>(null);
 
     // Chat State
     const { activeSessionId, createSession } = useAgentChatStore();
     const [chatKey, setChatKey] = useState(0);
+
+    const fetchPlaybooks = async () => {
+        setLoading(true);
+        try {
+            let data = await getSystemPlaybooks();
+            if (data.length === 0) {
+                // Bootstrap if empty
+                await syncSystemPlaybooks(INTERNAL_PLAYBOOKS);
+                data = await getSystemPlaybooks();
+            }
+            setPlaybooks(data);
+        } catch (error) {
+            console.error('Failed to fetch playbooks:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchPlaybooks();
+    }, []);
 
     useEffect(() => {
         setChatKey(prev => prev + 1);
@@ -192,11 +214,21 @@ export default function SuperAdminPlaybooksTab() {
         return matchesSearch && matchesCategory;
     });
 
-    const togglePlaybook = (id: string, e: React.MouseEvent) => {
+    const togglePlaybook = async (id: string, active: boolean, e: React.MouseEvent) => {
         e.stopPropagation();
-        setPlaybooks(prev => prev.map(pb =>
-            pb.id === id ? { ...pb, active: !pb.active } : pb
-        ));
+        try {
+            const result = await toggleSystemPlaybook(id, active);
+            if (result.success) {
+                setPlaybooks(prev => prev.map(pb =>
+                    pb.id === id ? { ...pb, active } : pb
+                ));
+                toast({ title: active ? 'Playbook Activated' : 'Playbook Paused' });
+            } else {
+                toast({ title: 'Error', description: result.message, variant: 'destructive' });
+            }
+        } catch (err) {
+            toast({ title: 'Error', description: 'Failed to update playbook status.', variant: 'destructive' });
+        }
     };
 
     const { toast } = useToast();
@@ -365,9 +397,9 @@ export default function SuperAdminPlaybooksTab() {
                                     </div>
                                     <Switch
                                         checked={playbook.active}
-                                        onCheckedChange={(c) => {
+                                        onCheckedChange={(checked) => {
                                             const syntheticEvent = { stopPropagation: () => { } } as React.MouseEvent;
-                                            togglePlaybook(playbook.id, syntheticEvent);
+                                            togglePlaybook(playbook.id, checked, syntheticEvent);
                                         }}
                                         onClick={(e) => e.stopPropagation()}
                                     />
@@ -402,7 +434,7 @@ export default function SuperAdminPlaybooksTab() {
                                 </div>
                                 {playbook.lastRun && (
                                     <p className="text-xs text-muted-foreground mt-2" suppressHydrationWarning>
-                                        Last run: {playbook.lastRun.toLocaleString()}
+                                        Last run: {new Date(playbook.lastRun).toLocaleString()}
                                     </p>
                                 )}
                             </CardContent>
@@ -451,11 +483,15 @@ export default function SuperAdminPlaybooksTab() {
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-sm font-medium text-muted-foreground">Last Run</p>
-                                                <p className="text-sm" suppressHydrationWarning>{selectedPlaybook.lastRun?.toLocaleString() || 'Never'}</p>
+                                                <p className="text-sm" suppressHydrationWarning>
+                                                    {selectedPlaybook.lastRun ? new Date(selectedPlaybook.lastRun).toLocaleString() : 'Never'}
+                                                </p>
                                             </div>
                                             <div className="space-y-1">
                                                 <p className="text-sm font-medium text-muted-foreground">Next Run</p>
-                                                <p className="text-sm" suppressHydrationWarning>{selectedPlaybook.nextRun?.toLocaleString() || 'Not scheduled'}</p>
+                                                <p className="text-sm" suppressHydrationWarning>
+                                                    {selectedPlaybook.nextRun ? new Date(selectedPlaybook.nextRun).toLocaleString() : 'Not scheduled'}
+                                                </p>
                                             </div>
                                         </div>
 
@@ -500,7 +536,9 @@ ${selectedPlaybook.agents.map(a => `  - ${a}`).join('\n')}
                                                         <div className="h-2 w-2 rounded-full bg-green-500" />
                                                         <div className="space-y-0.5">
                                                             <p className="text-sm font-medium">Execution Success</p>
-                                                            <p className="text-xs text-muted-foreground" suppressHydrationWarning>{selectedPlaybook.lastRun.toLocaleString()}</p>
+                                                            <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+                                                                {new Date(selectedPlaybook.lastRun).toLocaleString()}
+                                                            </p>
                                                         </div>
                                                     </div>
                                                     <Button variant="ghost" size="sm">View Output</Button>
@@ -517,9 +555,9 @@ ${selectedPlaybook.agents.map(a => `  - ${a}`).join('\n')}
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setSelectedPlaybook(null)}>Close</Button>
                             {selectedPlaybook?.active ? (
-                                <Button variant="destructive" onClick={(e) => selectedPlaybook && togglePlaybook(selectedPlaybook.id, e as any)}>Pause Playbook</Button>
+                                <Button variant="destructive" onClick={(e) => selectedPlaybook && togglePlaybook(selectedPlaybook.id, false, e as any)}>Pause Playbook</Button>
                             ) : (
-                                <Button onClick={(e) => selectedPlaybook && togglePlaybook(selectedPlaybook.id, e as any)}>Activate Playbook</Button>
+                                <Button onClick={(e) => selectedPlaybook && togglePlaybook(selectedPlaybook.id, true, e as any)}>Activate Playbook</Button>
                             )}
                         </DialogFooter>
                     </DialogContent>

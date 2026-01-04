@@ -137,13 +137,16 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
                         <div className="flex items-center justify-between">
                             <h2 className="text-lg font-semibold">Playbooks</h2>
                         </div>
-                        <DispensaryPlaybooksList />
+                        <DispensaryPlaybooksList dispensaryId={brandId} />
                     </div>
                 </div>
 
                 {/* Right Rail */}
                 <div className="lg:col-span-2">
-                    <DispensaryRightRail userState={liveData?.location?.state} />
+                    <DispensaryRightRail 
+                        userState={liveData?.location?.state} 
+                        alerts={liveData?.alerts}
+                    />
                 </div>
             </div>
 

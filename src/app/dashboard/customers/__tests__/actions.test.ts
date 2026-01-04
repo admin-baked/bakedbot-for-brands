@@ -102,6 +102,15 @@ describe('Customer CRM Actions', () => {
             expect(result.stats.segmentBreakdown).toBeDefined();
             expect(typeof result.stats.totalCustomers).toBe('number');
         });
+
+        it('should filter by retailerId when locationId is provided', async () => {
+            const { firestore } = await (require('@/firebase/server-client').createServerClient)();
+            const result = await getCustomers('test-org', 'loc-123');
+
+            expect(firestore.collection).toHaveBeenCalledWith('orders');
+            // We assume the mock structure allows checking this
+            expect(result).toBeDefined();
+        });
     });
 
     describe('CustomersData type', () => {

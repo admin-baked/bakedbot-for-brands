@@ -360,11 +360,16 @@ export function BrandKpisWidget({ onRemove, data }: { onRemove?: () => void, dat
     );
 }
 
+import { useUser } from '@/firebase/auth/use-user';
+
 export function NextBestActionsWidget({ onRemove }: { onRemove?: () => void }) {
+    const { user } = useUser();
+    const brandId = (user as any)?.brandId || (user as any)?.currentOrgId || '';
+    
     return (
         <WidgetWrapper title="Next Best Actions" icon={<Zap className="h-4 w-4" />} onRemove={onRemove}>
             <div className="h-full overflow-auto">
-                <NextBestActions />
+                <NextBestActions brandId={brandId} />
             </div>
         </WidgetWrapper>
     );
