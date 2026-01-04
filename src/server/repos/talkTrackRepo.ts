@@ -769,6 +769,551 @@ const DEFAULT_TRACKS: TalkTrack[] = [
                 message: "✅ **Connection Successful!**\n\nI've verified the API connection and stored your credentials securely.\n\n**Available Actions:**\n*   Make GET/POST requests\n*   Set up scheduled data pulls\n*   Trigger actions from other workflows\n\nWhat would you like to do with this connection?"
             }
         ]
+    },
+    // ==========================================
+    // DISPENSARY TALK TRACKS
+    // ==========================================
+    
+    // --- Menu & Inventory ---
+    {
+        id: 'dispensary-menu-sync',
+        name: 'Menu Sync from POS',
+        role: 'dispensary',
+        triggerKeywords: ['sync menu', 'sync from dutchie', 'connect pos', 'import menu', 'update menu from'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-pos-selection',
+                order: 1,
+                type: 'question',
+                thought: "Checking POS integrations... Identifying available connectors...",
+                message: "I can sync your menu from your POS system! 🔄\n\n**Which POS are you using?**\n*   Dutchie\n*   Flowhub\n*   Jane\n*   Treez\n*   Other\n\nOnce connected, I'll keep your menu automatically updated."
+            },
+            {
+                id: 'step-sync-execute',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['dutchie', 'flowhub', 'jane', 'treez'],
+                thought: "Connecting to POS API... Fetching product catalog... Mapping categories...",
+                steps: [
+                    "Connecting: POS API...",
+                    "Fetching: Product catalog...",
+                    "Mapping: Categories & pricing...",
+                    "Syncing: 250 products..."
+                ],
+                message: "✅ **Menu Synced Successfully!**\n\n**Summary:**\n*   📦 Products imported: 250\n*   🏷️ Categories: 8\n*   💰 Prices updated: All current\n\nYour menu will auto-sync every 15 minutes. Want me to set up **low stock alerts**?"
+            }
+        ]
+    },
+    {
+        id: 'dispensary-inventory-alerts',
+        name: 'Low Stock Inventory Alerts',
+        role: 'dispensary',
+        triggerKeywords: ['low stock', 'running low', 'inventory alerts', 'out of stock', 'stock levels'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-check-inventory',
+                order: 1,
+                type: 'action',
+                thought: "Scanning inventory levels... Checking reorder points... Identifying critical items...",
+                steps: [
+                    "Scanning: Current inventory...",
+                    "Checking: Reorder thresholds...",
+                    "Identifying: Critical items..."
+                ],
+                message: "📦 **Inventory Alert Report**\n\n**⚠️ Low Stock (Order Soon):**\n*   Stiiizy OG Kush 1g - 5 units left\n*   Cookies Gary Payton 3.5g - 3 units\n*   Select Elite Cart 0.5g - 8 units\n\n**🚨 Out of Stock:**\n*   Raw Garden Live Resin 1g\n\nWould you like me to **draft a reorder** or **set up automatic alerts**?"
+            },
+            {
+                id: 'step-setup-alerts',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['set up alerts', 'automatic alerts', 'notify me'],
+                thought: "Configuring alert thresholds... Setting notification preferences...",
+                message: "✅ **Low Stock Alerts Activated!**\n\nI'll notify you when any product drops below 10 units.\n\n**Delivery:**\n*   📧 Email: Daily summary\n*   📱 SMS: Critical (below 3 units)\n\nYou can adjust thresholds in Settings anytime."
+            }
+        ]
+    },
+    {
+        id: 'dispensary-bulk-pricing',
+        name: 'Bulk Price Update',
+        role: 'dispensary',
+        triggerKeywords: ['update prices', 'bulk pricing', 'change prices', 'price increase', 'price decrease', 'adjust prices'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-pricing-scope',
+                order: 1,
+                type: 'question',
+                thought: "Preparing bulk pricing tool... Need to identify scope...",
+                message: "I can update prices in bulk! 💰\n\n**What would you like to adjust?**\n1.  All products by X%\n2.  Specific brand (e.g., \"All Stiiizy +10%\")\n3.  Specific category (e.g., \"All Edibles -5%\")\n4.  Match competitor pricing\n\nTell me the scope and I'll preview the changes before applying."
+            },
+            {
+                id: 'step-preview-changes',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['stiiizy', 'cookies', 'all products', 'edibles', 'flower', 'by 10%', 'by 5%'],
+                thought: "Calculating new prices... Generating preview... Checking margins...",
+                steps: [
+                    "Calculating: New prices...",
+                    "Generating: Preview...",
+                    "Checking: Margin impact..."
+                ],
+                message: "📊 **Price Update Preview**\n\n| Product | Current | New | Change |\n|---------|---------|-----|--------|\n| Stiiizy OG 1g | $45 | $49.50 | +10% |\n| Stiiizy Blue Dream | $40 | $44 | +10% |\n| ... 12 more products |\n\n**Margin Impact**: +$2.50 avg per unit\n\n✅ **Apply these changes?** (Type \"confirm\" to proceed)"
+            },
+            {
+                id: 'step-apply-changes',
+                order: 3,
+                type: 'action',
+                triggerKeywords: ['confirm', 'yes', 'apply'],
+                thought: "Applying price updates... Syncing to POS... Updating menu...",
+                message: "✅ **Prices Updated!**\n\n14 products updated successfully. Changes are now live on your menu and synced to your POS."
+            }
+        ]
+    },
+    {
+        id: 'dispensary-dead-stock',
+        name: 'Dead Stock Analysis',
+        role: 'dispensary',
+        triggerKeywords: ['dead stock', 'slow sellers', 'not selling', 'sitting inventory', 'stale products'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-analyze-stock',
+                order: 1,
+                type: 'action',
+                thought: "Analyzing sales velocity... Identifying slow movers... Calculating days on shelf...",
+                steps: [
+                    "Analyzing: 90-day sales velocity...",
+                    "Identifying: Slow movers...",
+                    "Calculating: Days on shelf..."
+                ],
+                message: "📉 **Dead Stock Report**\n\n**Products with 0 sales in 30+ days:**\n| Product | Days on Shelf | Units | Tied Capital |\n|---------|--------------|-------|---------------|\n| Kushy Punch 100mg | 45 days | 24 | $480 |\n| Old Pal Shake 14g | 38 days | 12 | $180 |\n| Wyld Marionberry | 32 days | 18 | $270 |\n\n**Total Capital Tied**: $930\n\n**Recommendations:**\n1.  Bundle with popular items\n2.  Flash sale (20% off)\n3.  Return to vendor (if possible)\n\nWant me to **create a clearance promotion**?"
+            }
+        ]
+    },
+    
+    // --- Competitive Intelligence ---
+    {
+        id: 'dispensary-competitor-pricing',
+        name: 'Competitor Price Comparison',
+        role: 'dispensary',
+        triggerKeywords: ['competitor prices', 'what are competitors charging', 'price comparison', 'compare prices', 'market prices'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-gather-intel',
+                order: 1,
+                type: 'action',
+                thought: "Scanning competitor menus... Aggregating pricing data... Comparing categories...",
+                steps: [
+                    "Scanning: 5 nearby competitors...",
+                    "Aggregating: Pricing data...",
+                    "Comparing: Key categories..."
+                ],
+                message: "🕵️ **Competitor Price Analysis**\n\n**1/8oz Flower Comparison:**\n| Dispensary | Avg Price | vs You |\n|------------|-----------|--------|\n| Green Thumb | $38 | -$7 |\n| The Dispensary | $42 | -$3 |\n| **You** | $45 | — |\n| Harvest | $48 | +$3 |\n\n**Insights:**\n*   You're 8% above market average\n*   Green Thumb is undercutting on premium flower\n*   Opportunity: Match on top sellers, premium on exclusive\n\nWant a **full category breakdown** or **price alert setup**?"
+            }
+        ]
+    },
+    {
+        id: 'dispensary-deals-monitor',
+        name: 'Competitor Deals Monitor',
+        role: 'dispensary',
+        triggerKeywords: ['competitor deals', 'deals near me', 'what deals', 'promotions nearby', 'competitor specials'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-scan-deals',
+                order: 1,
+                type: 'action',
+                thought: "Crawling competitor websites... Extracting promotions... Categorizing deals...",
+                steps: [
+                    "Crawling: Competitor websites...",
+                    "Extracting: Current promotions...",
+                    "Categorizing: By type..."
+                ],
+                message: "🔥 **Active Competitor Deals**\n\n**Green Thumb (2.3 mi)**\n*   🏷️ 20% off all Stiiizy today\n*   🎁 BOGO 50% off edibles\n\n**The Dispensary (3.1 mi)**\n*   💨 $25 1/8ths (house brand)\n*   👤 First-time: 25% off\n\n**Harvest (4.5 mi)**\n*   📅 Happy Hour 4-7pm: 15% off\n\n**Recommendation**: Consider a counter-offer on Stiiizy or highlight your exclusive strains.\n\nWant me to **set up daily deal alerts**?"
+            }
+        ]
+    },
+    {
+        id: 'dispensary-market-snapshot',
+        name: 'Market Competitive Snapshot',
+        role: 'dispensary',
+        triggerKeywords: ['competitive snapshot', 'market analysis', 'market overview', 'competition report', 'competitive analysis'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-full-analysis',
+                order: 1,
+                type: 'action',
+                thought: "Compiling market data... Analyzing positioning... Identifying opportunities...",
+                steps: [
+                    "Compiling: Market data...",
+                    "Analyzing: Competitive positioning...",
+                    "Identifying: Opportunities & threats..."
+                ],
+                dataView: 'competitor_map',
+                message: "📊 **Competitive Market Snapshot**\n\n**Your Market Position**: #3 of 8 dispensaries in 5-mile radius\n\n**Strengths:**\n✅ Best selection of live resin\n✅ Highest Google rating (4.7⭐)\n✅ Only store with same-day delivery\n\n**Vulnerabilities:**\n⚠️ Flower prices 8% above average\n⚠️ No loyalty program visible\n⚠️ Limited edible variety\n\n**Opportunities:**\n💡 Green Thumb has 23 out-of-stock items\n💡 No competitor offers CBD-only products\n💡 Weekend traffic peak (capture with deals)\n\nWant me to **dive deeper** into any area?"
+            }
+        ]
+    },
+    
+    // --- Marketing & Customer Engagement ---
+    {
+        id: 'dispensary-sms-campaign',
+        name: 'SMS Text Blast Campaign',
+        role: 'dispensary',
+        triggerKeywords: ['text blast', 'sms campaign', 'send text', 'mass text', 'text customers'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-campaign-setup',
+                order: 1,
+                type: 'question',
+                thought: "Preparing SMS campaign builder... Loading customer segments...",
+                message: "📱 **SMS Campaign Builder**\n\nLet's set up your text blast!\n\n**Who should receive this?**\n1.  All customers (2,340 contacts)\n2.  VIP customers (180 contacts)\n3.  Inactive 30+ days (420 contacts)\n4.  Recent purchasers (890 contacts)\n5.  Custom segment\n\nAnd briefly, **what's the message about?** (e.g., \"4/20 sale 30% off\")"
+            },
+            {
+                id: 'step-draft-message',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['all customers', 'vip', '4/20', 'sale', 'discount', 'deal'],
+                thought: "Drafting compliant SMS... Checking character count... Adding opt-out...",
+                steps: [
+                    "Drafting: SMS content...",
+                    "Checking: Compliance (TCPA)...",
+                    "Adding: Opt-out language..."
+                ],
+                message: "📝 **Draft SMS** (156 chars)\n\n```\n🔥 4/20 SALE! 30% off storewide this weekend only! Shop now: [link]\n\nReply STOP to opt out.\n```\n\n**Audience**: All customers (2,340)\n**Est. Cost**: $23.40\n\n✅ **Send now** or **schedule for later**?"
+            },
+            {
+                id: 'step-send-confirm',
+                order: 3,
+                type: 'action',
+                triggerKeywords: ['send now', 'schedule', 'confirm'],
+                thought: "Queuing messages... Sending via Twilio... Tracking delivery...",
+                message: "✅ **SMS Campaign Sent!**\n\n*   📤 Messages queued: 2,340\n*   ⏱️ Est. delivery: 5 minutes\n*   📊 Tracking: Real-time in dashboard\n\nI'll send you a delivery report when complete!"
+            }
+        ]
+    },
+    {
+        id: 'dispensary-vip-customers',
+        name: 'VIP Customer Report',
+        role: 'dispensary',
+        triggerKeywords: ['vip customers', 'top customers', 'best customers', 'highest spenders', 'loyal customers'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-vip-report',
+                order: 1,
+                type: 'action',
+                thought: "Analyzing customer LTV... Ranking by spend... Identifying VIPs...",
+                steps: [
+                    "Analyzing: Customer lifetime value...",
+                    "Ranking: By total spend...",
+                    "Identifying: Top performers..."
+                ],
+                dataView: 'lead_list',
+                message: "👑 **Top 10 VIP Customers**\n\n| Rank | Customer | Total Spend | Visits | Avg Order |\n|------|----------|-------------|--------|------------|\n| 1 | Sarah M. | $4,250 | 45 | $94 |\n| 2 | James K. | $3,890 | 38 | $102 |\n| 3 | Mike T. | $3,420 | 52 | $66 |\n| ... | ... | ... | ... | ... |\n\n**VIP Insights:**\n*   Average VIP visits: 3.2x/month\n*   Preferred category: Flower (62%)\n*   Best day: Saturday\n\nWant to **send them a special offer** or **export this list**?"
+            }
+        ]
+    },
+    {
+        id: 'dispensary-winback-campaign',
+        name: 'Customer Win-Back Campaign',
+        role: 'dispensary',
+        triggerKeywords: ['win-back', 'winback', 'inactive customers', 're-engage', 'bring back customers', 'lapsed customers'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-identify-lapsed',
+                order: 1,
+                type: 'action',
+                thought: "Identifying lapsed customers... Segmenting by last visit... Preparing offers...",
+                steps: [
+                    "Identifying: Inactive customers...",
+                    "Segmenting: By days since last visit...",
+                    "Calculating: Potential revenue..."
+                ],
+                message: "🎯 **Win-Back Opportunity**\n\n**Inactive Customers (30+ days):**\n*   30-60 days: 180 customers (avg LTV: $340)\n*   60-90 days: 95 customers (avg LTV: $420)\n*   90+ days: 145 customers (avg LTV: $280)\n\n**Potential Recovery**: $142,000 in annual value\n\n**Recommended Campaign:**\n\"We miss you! Here's 20% off your next visit.\"\n\nShould I **create this campaign**?"
+            },
+            {
+                id: 'step-create-campaign',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['create', 'yes', 'do it', 'set up'],
+                thought: "Creating multi-touch campaign... Scheduling touchpoints... Setting up tracking...",
+                message: "✅ **Win-Back Campaign Created!**\n\n**Campaign Flow:**\n1.  Day 1: Email \"We miss you\" + 20% offer\n2.  Day 3: SMS reminder (if no open)\n3.  Day 7: Final chance email\n\n**Targeting**: 420 inactive customers\n**Launch**: Tomorrow 10:00 AM\n\nI'll report results in your weekly digest!"
+            }
+        ]
+    },
+    {
+        id: 'dispensary-loyalty-bonus',
+        name: 'Loyalty Point Bonus Setup',
+        role: 'dispensary',
+        triggerKeywords: ['loyalty bonus', 'double points', 'loyalty points', 'rewards bonus', 'points promotion'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-bonus-setup',
+                order: 1,
+                type: 'question',
+                thought: "Loading loyalty program settings... Checking current multiplier...",
+                message: "🎁 **Loyalty Point Bonus**\n\nYour current rate: 1 point per $1 spent\n\n**What type of bonus?**\n1.  Double points (all purchases)\n2.  Triple points (specific category)\n3.  Bonus points (minimum spend)\n4.  Birthday bonus\n\n**Duration?** (e.g., \"this weekend\", \"Friday only\")"
+            },
+            {
+                id: 'step-activate-bonus',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['double', 'triple', 'weekend', 'friday', 'today'],
+                thought: "Configuring bonus multiplier... Setting date range... Activating...",
+                message: "✅ **Loyalty Bonus Activated!**\n\n**Details:**\n*   🎯 2X Points on all purchases\n*   📅 This weekend (Sat-Sun)\n*   📢 Auto-notify: Enabled\n\nI'll send an SMS/email to 2,340 members announcing the bonus!"
+            }
+        ]
+    },
+    
+    // --- Compliance ---
+    {
+        id: 'dispensary-compliance-check',
+        name: 'Marketing Compliance Check',
+        role: 'dispensary',
+        triggerKeywords: ['compliance check', 'is this compliant', 'check my copy', 'legal review', 'marketing compliance'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-check-content',
+                order: 1,
+                type: 'question',
+                thought: "Loading compliance rules for your state... Ready for review...",
+                message: "✅ **Compliance Checker Ready**\n\nI'll review your marketing content against:\n*   State cannabis advertising laws\n*   CTIA SMS regulations\n*   Platform-specific policies\n\n**Paste your marketing copy below** and I'll flag any issues."
+            },
+            {
+                id: 'step-analyze-content',
+                order: 2,
+                type: 'action',
+                thought: "Scanning for prohibited claims... Checking age-gate requirements... Reviewing health claims...",
+                steps: [
+                    "Scanning: Prohibited claims...",
+                    "Checking: Age-gate requirements...",
+                    "Reviewing: Health claims..."
+                ],
+                dataView: 'compliance_checklist',
+                message: "📋 **Compliance Review Results**\n\n**⚠️ Issues Found:**\n1.  ❌ \"Cures anxiety\" - Remove health claims\n2.  ❌ Missing age disclaimer\n3.  ⚠️ \"Best prices\" - Needs substantiation\n\n**✅ Compliant:**\n*   No appeals to minors\n*   Proper THC disclaimers\n*   No prohibited imagery\n\n**Suggested Revision:**\n\"May help with relaxation\" + Age 21+ disclaimer\n\nWant me to **rewrite this for you**?"
+            }
+        ]
+    },
+    {
+        id: 'dispensary-menu-audit',
+        name: 'Menu Compliance Audit',
+        role: 'dispensary',
+        triggerKeywords: ['menu audit', 'audit menu', 'menu compliance', 'check my menu', 'product compliance'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-audit-menu',
+                order: 1,
+                type: 'action',
+                thought: "Scanning menu items... Checking labeling requirements... Validating THC/CBD info...",
+                steps: [
+                    "Scanning: 250 menu items...",
+                    "Checking: Labeling requirements...",
+                    "Validating: THC/CBD accuracy..."
+                ],
+                message: "📋 **Menu Compliance Audit**\n\n**Summary**: 250 products scanned\n\n**🚨 Critical Issues (3):**\n*   Missing THC % on 2 products\n*   Incorrect unit size on 1 edible\n\n**⚠️ Warnings (8):**\n*   Product descriptions need strain type\n*   Missing batch numbers on 5 items\n\n**✅ Passing**: 239 products (96%)\n\nWant me to **generate a fix list** or **auto-correct** where possible?"
+            }
+        ]
+    },
+    {
+        id: 'dispensary-metrc-report',
+        name: 'METRC Sales Report',
+        role: 'dispensary',
+        triggerKeywords: ['metrc report', 'state report', 'compliance report', 'sales report metrc', 'regulatory report'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-generate-report',
+                order: 1,
+                type: 'action',
+                thought: "Compiling sales data... Formatting for METRC... Validating entries...",
+                steps: [
+                    "Compiling: Sales transactions...",
+                    "Formatting: METRC template...",
+                    "Validating: Entry accuracy..."
+                ],
+                message: "📊 **METRC Sales Report Generated**\n\n**Period**: Last 7 days\n**Transactions**: 842\n**Total Sales**: $47,230\n\n**Validation**: ✅ All entries compliant\n\n**Download Options:**\n*   📄 CSV (METRC format)\n*   📄 PDF (internal records)\n\nI can also **set up automatic weekly reports** for your team."
+            }
+        ]
+    },
+    
+    // --- Analytics ---
+    {
+        id: 'dispensary-best-sellers',
+        name: 'Best Sellers Report',
+        role: 'dispensary',
+        triggerKeywords: ['best sellers', 'top sellers', 'what sold most', 'popular products', 'top products'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-sales-analysis',
+                order: 1,
+                type: 'action',
+                thought: "Analyzing sales data... Ranking by revenue... Identifying trends...",
+                steps: [
+                    "Analyzing: Last 7 days sales...",
+                    "Ranking: By units & revenue...",
+                    "Identifying: Trends..."
+                ],
+                dataView: 'price_chart',
+                message: "🏆 **Best Sellers (Last 7 Days)**\n\n| Rank | Product | Units | Revenue |\n|------|---------|-------|----------|\n| 1 | Stiiizy OG Kush 1g | 145 | $6,525 |\n| 2 | Cookies Gary Payton 3.5g | 98 | $5,390 |\n| 3 | Select Elite 0.5g | 87 | $3,915 |\n| 4 | Wyld Gummies | 76 | $1,900 |\n| 5 | Raw Garden LR 1g | 71 | $4,260 |\n\n**Insights:**\n*   📈 Stiiizy up 23% vs last week\n*   📉 Edibles down 8% (seasonal?)\n*   💡 Consider bundling #4 with #1\n\nWant to see **category breakdown** or **compare to last month**?"
+            }
+        ]
+    },
+    {
+        id: 'dispensary-sales-comparison',
+        name: 'Sales Period Comparison',
+        role: 'dispensary',
+        triggerKeywords: ['compare sales', 'this week vs last', 'sales comparison', 'performance comparison', 'week over week'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-compare-periods',
+                order: 1,
+                type: 'action',
+                thought: "Fetching period data... Calculating deltas... Identifying drivers...",
+                steps: [
+                    "Fetching: This week vs last week...",
+                    "Calculating: Growth/decline...",
+                    "Identifying: Key drivers..."
+                ],
+                message: "📊 **Sales Comparison: This Week vs Last**\n\n| Metric | This Week | Last Week | Change |\n|--------|-----------|-----------|--------|\n| Revenue | $52,340 | $48,120 | +8.8% 📈 |\n| Orders | 412 | 389 | +5.9% |\n| Avg Ticket | $127 | $124 | +2.4% |\n| New Customers | 45 | 38 | +18.4% 🎉 |\n\n**Top Growth Drivers:**\n*   Weekend promo: +$3,200\n*   New Cookies drop: +$1,800\n\n**Declines:**\n*   Edibles: -12% (restock needed)\n\nWant a **deeper dive** into any category?"
+            }
+        ]
+    },
+    {
+        id: 'dispensary-sales-forecast',
+        name: 'Sales Forecasting',
+        role: 'dispensary',
+        triggerKeywords: ['forecast sales', 'predict sales', 'next month sales', 'sales projection', 'demand forecast'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-generate-forecast',
+                order: 1,
+                type: 'action',
+                thought: "Running forecast model... Analyzing trends... Adjusting for seasonality...",
+                steps: [
+                    "Analyzing: 90-day sales history...",
+                    "Modeling: Growth trajectory...",
+                    "Adjusting: Seasonality factors..."
+                ],
+                message: "🔮 **Sales Forecast: Next 30 Days**\n\n**Projected Revenue**: $198,000 - $215,000\n**Confidence**: 85%\n\n**Weekly Breakdown:**\n| Week | Projected | Key Factor |\n|------|-----------|------------|\n| 1 | $48,000 | Normal week |\n| 2 | $52,000 | 4/20 buildup |\n| 3 | $68,000 | 4/20 weekend 🔥 |\n| 4 | $45,000 | Post-holiday dip |\n\n**Recommendations:**\n*   📦 Stock up on top sellers by Week 2\n*   👥 Schedule extra staff for Week 3\n*   💰 Reserve $5k for 4/20 marketing\n\nWant me to **create a prep checklist**?"
+            }
+        ]
+    },
+    
+    // --- Operations ---
+    {
+        id: 'dispensary-pending-orders',
+        name: 'Pending Orders Dashboard',
+        role: 'dispensary',
+        triggerKeywords: ['pending orders', 'open orders', 'orders to fulfill', 'order queue', 'fulfillment queue'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-order-status',
+                order: 1,
+                type: 'action',
+                thought: "Fetching order queue... Categorizing by status... Calculating wait times...",
+                steps: [
+                    "Fetching: Active orders...",
+                    "Categorizing: By status...",
+                    "Calculating: Wait times..."
+                ],
+                message: "📦 **Order Queue Status**\n\n**Pending Fulfillment**: 12 orders\n\n| Order # | Type | Items | Wait Time | Status |\n|---------|------|-------|-----------|--------|\n| #4521 | Pickup | 3 | 45 min ⚠️ | Ready |\n| #4520 | Delivery | 5 | 30 min | Packing |\n| #4519 | Pickup | 2 | 15 min | Ready |\n| ... | ... | ... | ... | ... |\n\n**Alerts:**\n*   ⚠️ 2 orders waiting 30+ min\n*   🚗 3 deliveries scheduled next hour\n\nWant to **notify customers** or **reassign orders**?"
+            }
+        ]
+    },
+    {
+        id: 'dispensary-daily-summary',
+        name: 'Daily Sales Summary Email',
+        role: 'dispensary',
+        triggerKeywords: ['daily summary', 'daily report', 'end of day report', 'eod summary', 'sales summary email'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-setup-summary',
+                order: 1,
+                type: 'question',
+                thought: "Configuring daily report... Setting up schedule...",
+                message: "📧 **Daily Summary Setup**\n\nI'll send you a daily sales summary!\n\n**What time should I send it?**\n*   End of business (e.g., 9 PM)\n*   Next morning (e.g., 7 AM)\n*   Custom time\n\n**Who should receive it?** (You can add multiple emails)"
+            },
+            {
+                id: 'step-confirm-setup',
+                order: 2,
+                type: 'action',
+                triggerKeywords: ['9pm', '7am', 'morning', 'evening', 'end of day'],
+                thought: "Creating scheduled report... Configuring recipients... Activating...",
+                message: "✅ **Daily Summary Activated!**\n\n**Schedule**: Every day at 9:00 PM\n**Recipients**: You\n\n**Report Includes:**\n*   💰 Total revenue & orders\n*   🏆 Top 5 sellers\n*   📈 vs yesterday comparison\n*   ⚠️ Any alerts (low stock, issues)\n\nYour first report arrives tonight!"
+            }
+        ]
     }
 ];
 
