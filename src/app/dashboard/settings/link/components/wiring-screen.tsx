@@ -31,18 +31,18 @@ type WiringPhase = 'init' | 'smokey_crawl' | 'ezal_crawl' | 'building' | 'comple
 
 const DISPENSARY_LOGS = [
     "Initializing secure environment...",
-    "Connecting to CannMenus API...",
-    "Verifying dispensary credentials...",
-    "Searching local inventory sources...",
-    "Found 142 products in catalog.",
+    "🔍 Checking POS system integration...",
+    "📡 Connecting to CannMenus API...",
+    "Searching inventory sources...",
+    "✅ Found products in catalog.",
     "Mapping categories to standard taxonomy...",
     "Syncing product images...",
     "Inventory sync complete.",
-    "Starting BakedBot Discovery agent...",
-    "Scanning radius: 5 miles",
-    "Identified 4 competitor locations.",
-    "Crawling https://leafly.com/dispensaries/...",
-    "Crawling https://weedmaps.com/...",
+    "🧠 Starting BakedBot Discovery agent...",
+    "Scanning competitor radius: 5 miles",
+    "🔎 Checking Leafly for market data...",
+    "🌐 Running website discovery fallback...",
+    "Identified nearby competitors.",
     "Extracting pricing data...",
     "Analyzing gap opportunities...",
     "Competitor intelligence index built.",
@@ -50,29 +50,31 @@ const DISPENSARY_LOGS = [
     "Compiling Next.js routes...",
     "Optimizing assets...",
     "Deploying to edge...",
-    "Wiring complete."
+    "✨ Wiring complete!"
 ];
 
 const BRAND_LOGS = [
     "Initializing brand workspace...",
-    "Connecting to product catalog...",
+    "🔍 Checking POS integration...",
+    "📡 Connecting to CannMenus catalog...",
     "Verifying GTIN/UPC codes...",
     "Indexing product metadata...",
-    "Found 12 active SKUs.",
+    "✅ Found active SKUs.",
     "Syncing high-res assets from cloud...",
-    " optimizing images for web...",
+    "Optimizing images for web...",
     "Catalog import complete.",
-    "Starting Market Scanner agent...",
+    "🧠 Starting Market Scanner agent...",
+    "🔎 Checking Leafly for retailer data...",
+    "🌐 Running website discovery fallback...",
     "Scanning retailers for brand presence...",
-    "Checking Weedmaps/Leafly listings...",
-    "Found 28 retailer matches.",
+    "Found retailer matches.",
     "Analyzing shelf placement...",
     "Calculating share of voice...",
     "Market intelligence index built.",
     "Generating brand portal...",
     "Configuring wholesale dashboard...",
     "Deploying analytics suite...",
-    "Wiring complete."
+    "✨ Wiring complete!"
 ];
 
 export function WiringScreen({ dispensaryName, role = 'dispensary', onComplete, checkStatus }: WiringScreenProps) {
