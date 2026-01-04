@@ -23,9 +23,10 @@ import { useToast } from "@/hooks/use-toast";
 
 interface NewProjectButtonProps {
     asCard?: boolean;
+    baseUrl?: string;
 }
 
-export function NewProjectButton({ asCard = false }: NewProjectButtonProps) {
+export function NewProjectButton({ asCard = false, baseUrl = "/dashboard/projects" }: NewProjectButtonProps) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [name, setName] = useState('');
@@ -57,7 +58,7 @@ export function NewProjectButton({ asCard = false }: NewProjectButtonProps) {
                 setDescription('');
                 setSystemInstructions('');
                 
-                router.push(`/dashboard/projects/${project.id}`);
+                router.push(`${baseUrl}/${project.id}`);
             } catch (error) {
                 toast({
                     variant: "destructive",

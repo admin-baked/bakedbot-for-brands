@@ -58,6 +58,14 @@ export function SuperAdminSidebar() {
             return pathname?.startsWith('/dashboard/ceo/agents') || currentTabParam === 'agents';
         }
         
+        if (tab === 'projects') {
+            return pathname?.startsWith('/dashboard/ceo/projects') || currentTabParam === 'projects';
+        }
+
+        if (tab === 'treasury') {
+            return pathname?.startsWith('/dashboard/ceo/treasury') || currentTabParam === 'treasury';
+        }
+
         if (tab === 'playbooks') {
             // Only active if explicitly 'playbooks' or we are on root with no tab selected
             return currentTabParam === 'playbooks' || (!currentTabParam && pathname === '/dashboard/ceo');
@@ -129,7 +137,7 @@ export function SuperAdminSidebar() {
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
-
+ 
             {/* Operations Group */}
             <SidebarGroup>
                 <SidebarGroupLabel>Operations</SidebarGroupLabel>
@@ -145,7 +153,7 @@ export function SuperAdminSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("projects")}>
-                                <Link href="/dashboard/projects">
+                                <Link href="/dashboard/ceo/projects">
                                     <FolderKanban />
                                     <span>Projects</span>
                                 </Link>
@@ -194,7 +202,7 @@ export function SuperAdminSidebar() {
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
-
+ 
             {/* Insights Group */}
             <SidebarGroup>
                 <SidebarGroupLabel>Insights</SidebarGroupLabel>
@@ -216,7 +224,7 @@ export function SuperAdminSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-
+ 
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("ezal")}>
                                 <Link href="/dashboard/ceo?tab=ezal">
@@ -244,8 +252,8 @@ export function SuperAdminSidebar() {
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
-
-
+ 
+ 
             {/* Admin Group */}
             <SidebarGroup>
                 <SidebarGroupLabel>Admin</SidebarGroupLabel>
@@ -318,7 +326,7 @@ export function SuperAdminSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-
+ 
                          {/* Invite User Dialog Trigger */}
                          <SidebarMenuItem>
                             <InviteUserDialog 
@@ -331,7 +339,7 @@ export function SuperAdminSidebar() {
                                 }
                             />
                         </SidebarMenuItem>
-
+ 
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("settings")}>
                                 <Link href="/dashboard/ceo?tab=settings">
@@ -341,8 +349,8 @@ export function SuperAdminSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive("treasury") || pathname?.startsWith('/dashboard/treasury')}>
-                                <Link href="/dashboard/treasury">
+                            <SidebarMenuButton asChild isActive={isActive("treasury")}>
+                                <Link href="/dashboard/ceo/treasury">
                                     <Wallet />
                                     <span>Treasury</span>
                                 </Link>

@@ -1,3 +1,26 @@
+## Session: Super User Routing & Sidebar Fixes
+### Task ID
+super_user_routing_fixes
+
+### Summary
+Fixed Super User dashboard routing issues where sidebar links would lead to 404s or lose admin context.
+- **Sidebar Cleanup**: Updated `SuperAdminSidebar.tsx` to ensure all operational links stay within the `/dashboard/ceo` context.
+- **Context-Aware Components**: Refactored `NewProjectButton` and `ProjectDetailView` to handle dynamic base URLs and back-links.
+- **CEO Subpages**: Created dedicated CEO routes for Projects and Treasury to ensure a consistent Super Admin experience.
+
+### Key Changes
+*   **MOD**: `src/components/dashboard/super-admin-sidebar.tsx`
+*   **MOD**: `src/app/dashboard/projects/components/new-project-button.tsx`
+*   **MOD**: `src/app/dashboard/projects/[projectId]/components/project-detail-view.tsx`
+*   **NEW**: `src/app/dashboard/ceo/projects/page.tsx`
+*   **NEW**: `src/app/dashboard/ceo/projects/[projectId]/page.tsx`
+*   **NEW**: `src/app/dashboard/ceo/treasury/page.tsx`
+
+### Result: ✅ Fixed
+All Super User links now route correctly and maintain context.
+
+---
+
 ## Session: Talk Tracks Implementation
 ### Task ID
 talk_tracks_implementation
@@ -2399,4 +2422,16 @@ pm run check:types (Passed).
 
 ### Verification
 - Clean TypeScript build (tsc --noEmit).
+
+
+## Task: Intention OS Optimization & Live Data support
+**Date**: 2026-01-04
+**Owner**: ai_builder_swarm
+**Status**: Completed
+
+### Changes
+- Refined Intention OS logic to bypass for simple prompts (under 8 words) and preset prompts.
+- Integrated real search results (CannMenus) for Ezal (Market Scout) location-based queries.
+- Simplified UI to remove Thinking state overhead for common presets.
+- Enabled dynamic role detection (brand/dispensary) for Talk Track triggering.
 
