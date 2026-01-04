@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateImageFromPrompt } from '@/ai/flows/generate-social-image';
 import { generateVideoFromPrompt } from '@/ai/flows/generate-video';
 import { analyzeQuery } from '@/ai/chat-query-handler';
+import { blackleafService } from '@/lib/notifications/blackleaf-service';
+import { sendGenericEmail } from '@/lib/email/dispatcher';
 
 // Demo responses per agent - pre-generated for speed
 const DEMO_RESPONSES: Record<string, {
@@ -61,19 +63,19 @@ const DEMO_RESPONSES: Record<string, {
     ezal: {
         items: [
             {
-                title: "Competitive Intelligence: Setup Required",
-                description: "To get real competitor insights for your area, I need you to configure your watchlist. Go to Settings → Competitive Intel → Add Competitors by name or URL.",
-                meta: "Status: Awaiting configuration"
+                title: "Market Scout Report: Ready",
+                description: "I've analyzed 50 local competitors. 3 are undercutting you on Edibles. I have the full pricing breakdown ready.",
+                meta: "Status: Analysis Complete"
             },
             {
-                title: "What I Can Do",
-                description: "Once configured, I'll monitor competitor pricing, promotions, menu changes, and identify market gaps. I use Discovery to scrape and analyze real-time data.",
-                meta: "Capabilities: Price tracking, Gap analysis, Alert system"
+                title: "Competitor Alert",
+                description: "Green Leaf Dispensary just dropped prices on Stiiizy pods by 15%. This is 5% below your current floor price.",
+                meta: "Impact: High Risk"
             },
             {
-                title: "Quick Start",
-                description: "Tell me a competitor URL like 'analyze https://competitor.com/menu' and I'll discover their current offerings using BakedBot Discovery.",
-                meta: "Tip: Provide a URL to get started"
+                title: "Want this Report?",
+                description: "Reply with your email address (e.g. 'send to name@example.com') and I'll send you the full PDF report instantly.",
+                meta: "Action: Awaiting Email"
             }
         ],
         totalCount: 3
@@ -81,14 +83,14 @@ const DEMO_RESPONSES: Record<string, {
     deebo: {
         items: [
             {
-                title: "Compliance Check: Passed ✓",
-                description: "Your content complies with state regulations. No prohibited health claims detected. Age-gating requirements met.",
-                meta: "Jurisdiction: Illinois | Last checked: Just now"
+                title: "Compliance Shield: Active",
+                description: "Monitoring all marketing channels. I can alert your team via SMS the second I detect a violation (e.g., health claims, appeals to minors).",
+                meta: "Status: 24/7 Watch"
             },
             {
-                title: "Label Audit Ready",
-                description: "Product labels meet THC/CBD disclosure requirements. Batch tracking IDs verified. Child-resistant packaging confirmed.",
-                meta: "Compliance Score: 98%"
+                title: "Test My Reaction Time",
+                description: "Reply with your phone number (e.g. 'alert 555-0199') and I'll send you a sample compliance alert via SMS.",
+                meta: "Action: Awaiting Phone Number"
             }
         ],
         totalCount: 5
@@ -145,7 +147,79 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // 1. Analyze Intent using Real Logic
+        // --- CONTACT EXTRACTION LOGIC ---
+        const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/;
+        const phoneRegex = /(\+?1?[-.]?)?\(?([0-9]{3})\)?[-.]?([0-9]{3})[-.]?([0-9]{4})/;
+
+        const emailMatch = prompt.match(emailRegex);
+        const phoneMatch = prompt.match(phoneRegex);
+
+        let actionTakenResponse = null;
+
+        // HANDLE EMAIL ACTION
+        if (emailMatch) {
+            const email = emailMatch[0];
+            try {
+                await sendGenericEmail({
+                    to: email,
+                    subject: 'Your BakedBot Market Scout Report',
+                    htmlBody: `
+                        <div style="font-family: sans-serif; padding: 20px;">
+                            <h1>🔍 Market Scout Report</h1>
+                            <p>Here is the competitive intelligence snapshot you requested from the Agent Playground.</p>
+                            <hr />
+                            <h3>Executive Summary</h3>
+                            <ul>
+                                <li><strong>Analyzed:</strong> 5 Local Competitors</li>
+                                <li><strong>Pricing Alert:</strong> 3 competitors are undercutting you on Edibles category.</li>
+                                <li><strong>Opportunity:</strong> "Blue Dream" search volume is up 200% in your area, but stock is low nearby.</li>
+                            </ul>
+                            <p><a href="https://bakedbot.ai/join" style="background: #059669; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Claim Your Dispensary Page to See Full Data</a></p>
+                        </div>
+                    `,
+                    textBody: 'Your Market Scout Report is ready. Sign up at https://bakedbot.ai/join to view full competitor data.'
+                });
+                
+                actionTakenResponse = [{
+                    title: 'Report Sent! 📧',
+                    description: `I've sent the Market Scout Report to ${email}. Check your inbox (and spam folder) in a moment.`,
+                    meta: 'Status: Delivered'
+                }];
+            } catch (error) {
+                console.error('Failed to send demo email:', error);
+                actionTakenResponse = [{
+                    title: 'Delivery Failed',
+                    description: 'I tried to email the report but hit a snag. Please ensure the email address is valid.',
+                    meta: 'Status: Error'
+                }];
+            }
+        }
+
+        // HANDLE SMS ACTION
+        else if (phoneMatch) {
+            const phone = phoneMatch[0];
+            try {
+                await blackleafService.sendCustomMessage(
+                    phone,
+                    '🛡️ BakedBot Alert (Deebo): Detected a potential compliance risk in your latest draft post. "Best Buds" might appeal to minors. Reply STOP to opt out.'
+                );
+
+                actionTakenResponse = [{
+                    title: 'Alert Sent! 📱',
+                    description: `I've sent a sample compliance alert to ${phone}. That's how fast I catch risks before they go live.`,
+                    meta: 'Status: Delivered'
+                }];
+            } catch (error) {
+                console.error('Failed to send demo SMS:', error);
+                 actionTakenResponse = [{
+                    title: 'Delivery Failed',
+                    description: 'I tried to send the SMS alert but hit a snag. Please ensure the number is valid.',
+                    meta: 'Status: Error'
+                }];
+            }
+        }
+        // -------------------------------
+
         // 1. Analyze Intent using Real Logic
         
         // --- INTENTION OS (V2) ---
@@ -179,6 +253,8 @@ export async function POST(request: NextRequest) {
         // 2. Intelligent Routing based on Analysis (override if specific intent detected)
         // Check platform/HQ questions FIRST (before product search fallback)
         if (requestedAgent === 'moneymike') {
+             targetAgent = 'moneymike';
+        } else if (prompt.toLowerCase().includes('pricing') || prompt.toLowerCase().includes('cost') || prompt.toLowerCase().includes('subscription') || prompt.toLowerCase().includes('price')) {
              targetAgent = 'moneymike';
         } else if (requestedAgent === 'hq' || prompt.toLowerCase().includes('bakedbot') || prompt.toLowerCase().includes('how does') || (prompt.toLowerCase().includes('work') && prompt.toLowerCase().includes('bakedbot'))) {
             // General questions about the platform
@@ -232,10 +308,12 @@ export async function POST(request: NextRequest) {
         // 4. Construct Response
         // Use pre-canned items for stability in demo, but select based on routed agent
         const demoResponse = DEMO_RESPONSES[targetAgent as keyof typeof DEMO_RESPONSES] || FALLBACK_RESPONSE;
-        let items = [...demoResponse.items];
+        
+        // IF ACTION TAKEN (Email/SMS sent), override the response
+        let items = actionTakenResponse ? actionTakenResponse : [...demoResponse.items];
 
-        // If we generated media, make it the primary focus
-        if (generatedMediaResult) {
+        // If we generated media, make it the primary focus (unless action taken)
+        if (generatedMediaResult && !actionTakenResponse) {
             items = [{
                 title: generatedMediaResult.type === 'image' ? 'Generated Image' : 'Generated Video',
                 description: `Created based on: "${prompt}"`,
@@ -244,7 +322,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Inject Real Data context if applicable (e.g. Ezal)
-        if (targetAgent === 'ezal') {
+        if (targetAgent === 'ezal' && !actionTakenResponse) {
             const urlMatch = prompt.match(/https?:\/\/[^\s]+/);
             
             // 1. Live BakedBot Discovery Demo (if URL present)

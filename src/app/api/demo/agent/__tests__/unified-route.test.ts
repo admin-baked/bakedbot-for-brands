@@ -45,8 +45,21 @@ jest.mock('@/ai/flows/generate-video', () => ({
   generateVideoFromPrompt: jest.fn().mockResolvedValue('http://mock.url/video.mp4')
 }));
 
+// Mock Email and SMS services
+jest.mock('@/lib/notifications/blackleaf-service', () => ({
+    blackleafService: {
+        sendCustomMessage: jest.fn().mockResolvedValue(true)
+    }
+}));
+
+jest.mock('@/lib/email/dispatcher', () => ({
+    sendGenericEmail: jest.fn().mockResolvedValue({ success: true })
+}));
+
 import { POST } from '../route';
 const { analyzeQuery } = require('@/ai/chat-query-handler');
+const { blackleafService } = require('@/lib/notifications/blackleaf-service');
+const { sendGenericEmail } = require('@/lib/email/dispatcher');
 
 describe('Unified Demo API - New Features', () => {
     beforeEach(() => {
@@ -81,5 +94,43 @@ describe('Unified Demo API - New Features', () => {
         expect(res.generatedMedia).toBeDefined();
         expect(res.generatedMedia.type).toBe('image');
         expect(res.generatedMedia.url).toBe('http://mock.url/image.png');
+    });
+
+    it('detects email in prompt and triggers EmailDispatcher', async () => {
+        analyzeQuery.mockResolvedValue({ searchType: 'general' });
+        const req = {
+            json: async () => ({ prompt: 'Send report to test@example.com please', agent: 'ezal' })
+        } as any;
+
+        const res = await POST(req);
+
+        // Verify Email Sent
+        expect(sendGenericEmail).toHaveBeenCalledWith(expect.objectContaining({
+            to: 'test@example.com',
+            subject: expect.stringContaining('Market Scout Report')
+        }));
+
+        // Verify special response
+        expect(res.items[0].title).toContain('Report Sent');
+        expect(res.items[0].description).toContain('test@example.com');
+    });
+
+    it('detects phone number in prompt and triggers BlackleafService', async () => {
+        analyzeQuery.mockResolvedValue({ searchType: 'general' });
+        const req = {
+            json: async () => ({ prompt: 'Alert me at 555-123-4567 regarding compliance', agent: 'deebo' })
+        } as any;
+
+        const res = await POST(req);
+
+        // Verify SMS Sent
+        expect(blackleafService.sendCustomMessage).toHaveBeenCalledWith(
+            expect.stringContaining('555-123-4567'),
+            expect.stringContaining('BakedBot Alert')
+        );
+
+        // Verify special response
+        expect(res.items[0].title).toContain('Alert Sent');
+        expect(res.items[0].description).toContain('555-123-4567');
     });
 });
