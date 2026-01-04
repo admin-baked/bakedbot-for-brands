@@ -262,7 +262,7 @@ export async function POST(request: NextRequest) {
             targetAgent = 'hq';
         } else if (analysis.searchType === 'marketing') {
             targetAgent = 'craig'; // Marketing -> Craig
-        } else if (analysis.searchType === 'products' || analysis.searchType === 'brands') {
+        } else if ((analysis.searchType as string) === 'products' || (analysis.searchType as string) === 'brands') {
              // Smokey handles products
              targetAgent = 'smokey';
         } else if (analysis.searchType === 'competitive') {
@@ -284,25 +284,31 @@ export async function POST(request: NextRequest) {
             const talkTrack = await findTalkTrackByTrigger(prompt, 'dispensary'); // Defaulting to dispensary for now
             
             if (talkTrack) {
-                // Found a matching talk track! 
+                // Found a matching talk track (or step match)! 
                 const firstStep = talkTrack.steps[0];
                 
+                // Map string steps to ToolCallStep format for UI
+                const thinkingSteps = firstStep.steps?.map((stepStr, idx) => ({
+                    id: `tt-step-${firstStep.id}-${idx}`,
+                    toolName: stepStr, // Use the string as the tool/action name
+                    description: stepStr,
+                    status: 'completed',
+                    durationMs: 2000 + (Math.random() * 1000) // Fake duration
+                }));
+
                 return NextResponse.json({
                     agent: targetAgent, 
                     items: [{
-                        id: `tt-${talkTrack.id}`,
+                        id: `tt-${talkTrack.id}-${firstStep.id}`,
                         title: `Process: ${talkTrack.name}`,
                         description: firstStep.message,
                         type: 'text',
+                        steps: thinkingSteps, // Pass steps for ThinkingWindow
                         meta: {
                             thoughtProcess: firstStep.thought,
                             isTalkTrack: true
                         }
-                    }],
-                    analysis: {
-                        ...analysis,
-                        intention: `Executing Talk Track: ${talkTrack.name}`
-                    }
+                    }]
                 });
             }
         } catch (e) {

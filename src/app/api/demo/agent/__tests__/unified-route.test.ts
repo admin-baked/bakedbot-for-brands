@@ -52,9 +52,57 @@ jest.mock('@/lib/notifications/blackleaf-service', () => ({
     }
 }));
 
-jest.mock('@/lib/email/dispatcher', () => ({
-    sendGenericEmail: jest.fn().mockResolvedValue({ success: true })
+
+jest.mock('@/server/repos/talkTrackRepo', () => ({
+    findTalkTrackByTrigger: jest.fn().mockImplementation(async (prompt) => {
+        if (prompt.includes('ezal') || prompt.includes('competitor')) {
+            return {
+                id: 'ezal-competitive-intelligence',
+                steps: [{
+                    id: 'step-multi-vertical-research',
+                    type: 'response',
+                    message: 'Ezal Competitive Engine Initialized',
+                    thought: 'Simulated thought'
+                }]
+            };
+        }
+         if (prompt.includes('investor demo')) {
+            return {
+                 id: 'ezal-competitive-intelligence',
+                steps: [{
+                    id: 'step-investor-demo',
+                    type: 'response',
+                    message: 'Investor Demo Mode Active',
+                    thought: 'Simulated thought'
+                }]
+            };
+        }
+        if (prompt.includes('competitor intel')) {
+            return {
+                id: 'smokey-competitive-outreach',
+                steps: [{
+                    id: 'step-lead-source',
+                    type: 'response',
+                    message: 'found your lead sources',
+                    thought: 'Simulated thought'
+                }]
+            };
+        }
+        if (prompt.includes('media outreach') || prompt.includes('find podcasts')) {
+             return {
+                id: 'media-outreach-automation',
+                steps: [{
+                    id: 'step-media-research',
+                    type: 'response',
+                    message: 'Daily Lead Research (25/25)',
+                    thought: 'Simulated thought'
+                }]
+            };
+        }
+        return null; // Return null for other cases to allow normal flow
+    })
 }));
+
 
 import { POST } from '../route';
 const { analyzeQuery } = require('@/ai/chat-query-handler');
@@ -132,5 +180,57 @@ describe('Unified Demo API - New Features', () => {
         // Verify special response
         expect(res.items[0].title).toContain('Alert Sent');
         expect(res.items[0].description).toContain('555-123-4567');
+    });
+    });
+
+    it('intercepts "ezal research" triggers and returns the Ezal Talk Track', async () => {
+        analyzeQuery.mockResolvedValue({ searchType: 'general' });
+        const req = {
+            json: async () => ({ prompt: 'Start ezal research on competitors', agent: 'hq' })
+        } as any;
+
+        const res = await POST(req);
+        // Expecting 'step-multi-vertical-research' or similar from Ezal track
+        expect(res.id).toBeDefined();
+        // The id returned is the step id, which we defined as 'step-multi-vertical-research' in talkTrackRepo.ts
+        expect(res.id).toBe('step-multi-vertical-research');
+        expect(res.message).toContain('Ezal Competitive Engine');
+    });
+
+    it('intercepts "investor demo" trigger for Ezal Investor mode', async () => {
+        analyzeQuery.mockResolvedValue({ searchType: 'general' });
+        const req = {
+            json: async () => ({ prompt: 'show me an investor demo', agent: 'hq' })
+        } as any;
+
+        const res = await POST(req);
+        
+        expect(res.id).toBe('step-investor-demo');
+        expect(res.message).toContain('Investor Demo Mode Active');
+    });
+
+    it('intercepts "competitor intel" for Smokey Lead Gen', async () => {
+         analyzeQuery.mockResolvedValue({ searchType: 'general' });
+         const req = {
+             json: async () => ({ prompt: 'get me some competitor intel', agent: 'hq' })
+         } as any;
+ 
+         const res = await POST(req);
+         // Expecting 'step-lead-source' from Smokey track (first step)
+         // Wait, 'competitor intel' triggers 'smokey-competitive-outreach' track.
+         // First step in that track is 'step-lead-source'
+         expect(res.id).toBe('step-lead-source');
+         expect(res.message).toContain('found your lead sources');
+    });
+    it('intercepts "media outreach" trigger for Media Automation track', async () => {
+         analyzeQuery.mockResolvedValue({ searchType: 'general' });
+         const req = {
+             json: async () => ({ prompt: 'start media outreach', agent: 'hq' })
+         } as any;
+ 
+         const res = await POST(req);
+         // Expecting 'step-media-research'
+         expect(res.id).toBe('step-media-research');
+         expect(res.message).toContain('Daily Lead Research');
     });
 });

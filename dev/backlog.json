@@ -936,6 +936,36 @@
             "owner": "ai_builder_swarm",
             "area": "frontend",
             "created_at": "2026-01-01T09:00:00Z"
+        },
+        {
+            "id": "feat_slack_integration",
+            "title": "Slack Integration (Global Connections Hub)",
+            "status": "backlog",
+            "priority": "high",
+            "description": "Implement Slack integration to allow agents to broadcast updates to channels (e.g. #execmode). Part of the Global Connections Hub.",
+            "acceptance_tests": [
+                "test_slack_auth_flow",
+                "test_slack_message_post",
+                "test_channel_selection_ui"
+            ],
+            "owner": "antigravity",
+            "area": "backend",
+            "created_at": "2026-01-04T06:00:00Z"
+        },
+        {
+            "id": "feat_apify_weedmaps_scraper",
+            "title": "Apify WeedMaps Scraper Integration",
+            "status": "backlog",
+            "priority": "high",
+            "description": "Integrate Apify WeedMaps scraper for the 'Cannabis Menu Scraper' Talk Track. Enable fast, daily menu extraction versus browser automation.",
+            "acceptance_tests": [
+                "test_apify_weedmaps_run",
+                "test_menu_data_mapping",
+                "test_integration_with_talk_track"
+            ],
+            "owner": "antigravity",
+            "area": "backend",
+            "created_at": "2026-01-04T06:00:00Z"
         }
     ]
 }
