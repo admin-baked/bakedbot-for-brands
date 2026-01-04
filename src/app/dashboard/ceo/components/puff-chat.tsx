@@ -147,6 +147,25 @@ export type AvailableTool = 'gmail' | 'calendar' | 'drive' | 'search';
 
 // ModelSelector is imported
 
+const PRESET_RESPONSES: Record<string, { content: string, steps?: { toolName: string, description: string }[] }> = {
+    "Hire a Market Scout (audit my competition)": {
+        content: "I'm deploying a Market Scout now. I'll scan public menus, pricing data, and social signals for dispensaries in your area. This usually takes about 2 minutes to generate a full report.",
+        steps: [{ toolName: "Active Recon", description: "Scanning local dispensary menus and pricing..." }]
+    },
+    "Send Deebo (compliance check)": {
+        content: "Deebo is on it. I'm scanning your latest campaign assets against state regulations. I'm checking for prohibited terms (e.g., 'candy', 'kids'), age-gating compliance, and required health warnings.",
+        steps: [{ toolName: "Compliance Scan", description: "Analyzing content against state regulations..." }]
+    },
+    "See my Digital Budtender in action": {
+        content: "**Meet Smokey.** \n\nI'm connected to the **40 Tons Brand** live menu. I know their inventory in real-time and can recommend products based on effect, terpene profile, or customer mood.\n\nTry asking me: _'What do you have for sleep?'_ or _'Show me verified genetics.'_",
+        steps: [{ toolName: "Inventory Sync", description: "Loading 40 Tons live catalog..." }]
+    },
+    "What are the pricing plans?": {
+        content: "We have plans for every stage of growth:\n\n*   **Claim Pro ($99/mo)**: Own your brand page, edit details, and capture leads.\n*   **The Specialist ($499/mo)**: Hire one dedicated digital worker (choose Smokey, Ezal, or Deebo).\n*   **The Empire ($1,499/mo)**: Deploy the full fleet of 7 agents for total automation.\n\nClick the **Pricing** tab above for the full feature breakdown!",
+        steps: []
+    }
+};
+
 
 function PersonaSelector({ value, onChange, isSuperUser = false, isAuthenticated = true }: { value: AgentPersona, onChange: (v: AgentPersona) => void, isSuperUser?: boolean, isAuthenticated?: boolean }) {
     // Core agents visible to all
@@ -736,6 +755,73 @@ export function PuffChat({
 
         const userInput = textInput;
         const displayContent = audioBase64 ? '🎤 Voice Message' : (userInput || (attachments.length > 0 ? `Sent ${attachments.length} attachment(s)` : ''));
+
+        // Detect Preset / Intercept Logic (Client-Side Demo Optimization)
+        const demoIntercept = PRESET_RESPONSES[textInput.trim()];
+        
+        if (demoIntercept) {
+            // 1. Add User Message
+            const userMsgId = `user-${Date.now()}`;
+            addMessage({
+                id: userMsgId,
+                type: 'user',
+                content: displayContent,
+                timestamp: new Date(),
+            });
+            setInput('');
+            setAttachments([]);
+            setIsProcessing(true);
+
+            // 2. Add Thinking/Agent Message Placeholder
+            const thinkingId = `thinking-${Date.now()}`;
+            addMessage({
+                id: thinkingId,
+                type: 'agent',
+                content: '',
+                timestamp: new Date(),
+                thinking: { isThinking: true, steps: [], plan: [] }
+            });
+            setStreamingMessageId(null);
+
+            // 3. Simulate "Work" (Animation) then deliver pre-canned response
+            setTimeout(async () => {
+                // If the preset has simulated tool steps, show them one by one
+                if (demoIntercept.steps) {
+                   const stepId = Math.random().toString(36).substr(2, 9);
+                   // Show the first step
+                    updateMessage(thinkingId, {
+                        thinking: {
+                            isThinking: true,
+                            steps: [{
+                                id: stepId,
+                                toolName: demoIntercept.steps[0].toolName,
+                                description: demoIntercept.steps[0].description,
+                                status: 'in-progress',
+                                durationMs: 0
+                            }],
+                            plan: []
+                        }
+                    });
+                    
+                    // Wait a bit for "processing" feel
+                    await new Promise(r => setTimeout(r, 1500));
+                }
+
+                // Deliver Final Content
+                updateMessage(thinkingId, {
+                    content: demoIntercept.content,
+                    thinking: {
+                        isThinking: false,
+                        steps: demoIntercept.steps ? demoIntercept.steps.map(s => ({...s, status: 'completed'})) : [],
+                        plan: []
+                    }
+                });
+                setIsProcessing(false);
+                setStreamingMessageId(thinkingId);
+            }, 800); // Slight initial delay for realism
+
+            return; // EXIT EARLY - Do not hit backend
+        }
 
         const userMsgId = `user-${Date.now()}`;
         addMessage({

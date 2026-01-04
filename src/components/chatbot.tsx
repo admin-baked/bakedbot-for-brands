@@ -22,6 +22,19 @@ import { useAuth } from '@/hooks/use-auth';
 import { useChatbotContext } from '@/contexts/chatbot-context';
 
 import { logger } from '@/lib/logger';
+
+const PRESET_WIDGET_RESPONSES: Record<string, { content: string }> = {
+    "How does BakedBot work?": {
+        content: "I'm the AI engine behind the platform. \n\nI connect brands, dispensaries, and customers to automate growth. I can:\n\n1.  **Sync Inventories**: Real-time menus across 40 Tons and other partners.\n2.  **Recommend Products**: I know terpenes, effects, and lab data.\n3.  **Automate Compliance**: I check marketing content against state laws.\n\nWant to see me check a competitor's menu?"
+    },
+    "Explain the pricing models": {
+        content: "Here's the breakdown:\n\n*   **Claim Pro ($99/mo)**: Claim your brand page and get discovered.\n*   **Specialist ($499/mo)**: Hire one AI agent (like me, or Ezal for scouting).\n*   **Empire ($1,499/mo)**: Full automation suite.\n\nCheck the **Pricing** page for details!"
+    },
+     "Try the Product Demo": { // Button click text
+        content: "**Welcome to the 40 Tons Demo!** 🌿\n\nI'm connected to the 40 Tons live inventory. Ask me anything, like:\n\n*   _\"Do you have anything for sleep?\"_\n*   _\"Show me your pre-rolls.\"_\n*   _\"What's fresh today?\"_"
+    }
+};
+
 type Message = {
   id: number;
   text: string;
@@ -562,20 +575,30 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
       setIsOnboarding(false);
       const userMessage: Message = { id: Date.now(), text, sender: 'user' };
       setMessages(prev => [...prev, userMessage]);
-      setInputValue(text); // Set input so handleSendMessage picks it up? No, handleClick calls handleSendMessage directly usually, or we simulate it.
-                           // Actually handleSendMessage takes an event. 
-                           // I should refactor handleSendMessage or just invoke the API call logic.
-                           // Since handleSendMessage resets input and is complex, let's just use a dedicated effect
-                           // OR simpler: setInputValue(text) and then trigger a submit? 
-                           // Or better: Re-use the API call logic.
-                           
-      // Trigger the search
+      setInputValue(''); // Clear input if it was typed
+      
+      // Detect Preset / Intercept Logic (Client-Side Demo Optimization)
+      const demoIntercept = PRESET_WIDGET_RESPONSES[text.trim()];
+
+      if (demoIntercept) {
+          setIsBotTyping(true);
+          
+          // Simulate "Thinking" delay
+          setTimeout(() => {
+              const botMessage: Message = {
+                  id: Date.now() + 1,
+                  text: demoIntercept.content,
+                  sender: 'bot'
+              };
+              setMessages(prev => [...prev, botMessage]);
+              setIsBotTyping(false);
+          }, 1200); // 1.2s delay for realism
+
+          return; // EXIT EARLY
+      }
+                               
+      // Normal API Fallback
       setIsBotTyping(true);
-      // We need to call the API. I'll break out the API call into a function 'processQuery(text)' 
-      // but for now, to avoid big refactor, I will just replicate the API call here 
-      // or modify handleSendMessage to accept text optional.
-      // Modifying handleSendMessage to be cleaner is better but 'multireplace' is risky if I duplicate code.
-      // I will just invoke the logical equivalent here.
       
       (async () => {
         try {
