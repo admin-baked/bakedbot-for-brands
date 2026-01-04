@@ -185,24 +185,24 @@ describe('TalkTrack Repository', () => {
     describe('Dispensary Talk Track Triggers', () => {
         const dispensaryTracks: Partial<TalkTrack>[] = [
             {
-                id: 'dispensary-menu-sync',
+                id: 'dispensary-inventory-audit',
                 role: 'dispensary',
-                triggerKeywords: ['sync menu', 'update menu', 'refresh inventory'],
-                steps: [{ id: 'step-1', order: 1, type: 'action', message: 'Syncing now...', thought: '' }],
+                triggerKeywords: ['dead stock', 'low stock', 'inventory report', 'stock audit'],
+                steps: [{ id: 'step-1', order: 1, type: 'action', message: 'Auditing...', thought: '' }],
                 isActive: true,
             },
             {
-                id: 'dispensary-low-stock',
+                id: 'dispensary-competitor-pulse',
                 role: 'dispensary',
-                triggerKeywords: ['low stock', 'running low', 'stock alerts'],
-                steps: [{ id: 'step-1', order: 1, type: 'action', message: 'Checking stock...', thought: '' }],
+                triggerKeywords: ['competitor prices', 'price check', 'market pricing'],
+                steps: [{ id: 'step-1', order: 1, type: 'action', message: 'Checking prices...', thought: '' }],
                 isActive: true,
             },
             {
-                id: 'dispensary-competitor-prices',
+                id: 'dispensary-seo-health',
                 role: 'dispensary',
-                triggerKeywords: ['competitor prices', 'price comparison'],
-                steps: [{ id: 'step-1', order: 1, type: 'action', message: 'Analyzing prices...', thought: '' }],
+                triggerKeywords: ['seo status', 'listing health', 'google ranking'],
+                steps: [{ id: 'step-1', order: 1, type: 'action', message: 'Analyzing SEO...', thought: '' }],
                 isActive: true,
             },
         ];
@@ -216,16 +216,22 @@ describe('TalkTrack Repository', () => {
             });
         });
 
-        it('should match menu sync trigger', async () => {
-            const track = await findTalkTrackByTrigger('please sync menu from POS', 'dispensary');
+        it('should match inventory audit trigger', async () => {
+            const track = await findTalkTrackByTrigger('show me products with low stock', 'dispensary');
             expect(track).toBeDefined();
-            expect(track?.id).toBe('dispensary-menu-sync');
+            expect(track?.id).toBe('dispensary-inventory-audit');
         });
 
-        it('should match low stock trigger', async () => {
-            const track = await findTalkTrackByTrigger('show me products running low', 'dispensary');
+        it('should match competitor pulse trigger', async () => {
+            const track = await findTalkTrackByTrigger('check competitor prices near me', 'dispensary');
             expect(track).toBeDefined();
-            expect(track?.id).toBe('dispensary-low-stock');
+            expect(track?.id).toBe('dispensary-competitor-pulse');
+        });
+
+        it('should match seo health trigger', async () => {
+            const track = await findTalkTrackByTrigger('how is my seo status', 'dispensary');
+            expect(track).toBeDefined();
+            expect(track?.id).toBe('dispensary-seo-health');
         });
     });
 
@@ -236,24 +242,24 @@ describe('TalkTrack Repository', () => {
     describe('Brand Talk Track Triggers', () => {
         const brandTracks: Partial<TalkTrack>[] = [
             {
-                id: 'brand-find-retailers',
+                id: 'brand-performance-overview',
                 role: 'brand',
-                triggerKeywords: ['find retailers', 'distribution partners', 'expand distribution'],
-                steps: [{ id: 'step-1', order: 1, type: 'question', message: 'Which market?', thought: '' }],
+                triggerKeywords: ['sales report', 'how is my brand doing', 'revenue info'],
+                steps: [{ id: 'step-1', order: 1, type: 'response', message: 'Sales are up!', thought: '' }],
                 isActive: true,
             },
             {
-                id: 'brand-sell-through',
+                id: 'brand-retailer-check',
                 role: 'brand',
-                triggerKeywords: ['sell through', 'sell-through analytics', 'velocity report'],
-                steps: [{ id: 'step-1', order: 1, type: 'action', message: 'Analyzing...', thought: '' }],
+                triggerKeywords: ['who stocks me', 'inventory check', 'retailer list'],
+                steps: [{ id: 'step-1', order: 1, type: 'response', message: 'Scanning retailers...', thought: '' }],
                 isActive: true,
             },
             {
-                id: 'brand-competitor-watch',
+                id: 'brand-marketing-launch',
                 role: 'brand',
-                triggerKeywords: ['competitor watch', 'track competitors', 'competitive analysis'],
-                steps: [{ id: 'step-1', order: 1, type: 'action', message: 'Scanning...', thought: '' }],
+                triggerKeywords: ['start campaign', 'create promo', 'launch marketing'],
+                steps: [{ id: 'step-1', order: 1, type: 'question', message: 'Whats the goal?', thought: '' }],
                 isActive: true,
             },
         ];
@@ -267,22 +273,22 @@ describe('TalkTrack Repository', () => {
             });
         });
 
-        it('should match find retailers trigger', async () => {
-            const track = await findTalkTrackByTrigger('help me find retailers in Colorado', 'brand');
+        it('should match performance overview trigger', async () => {
+            const track = await findTalkTrackByTrigger('show me my sales report', 'brand');
             expect(track).toBeDefined();
-            expect(track?.id).toBe('brand-find-retailers');
+            expect(track?.id).toBe('brand-performance-overview');
         });
 
-        it('should match sell-through analytics trigger', async () => {
-            const track = await findTalkTrackByTrigger('show me sell-through analytics', 'brand');
+        it('should match retailer check trigger', async () => {
+            const track = await findTalkTrackByTrigger('who stocks me in Denver', 'brand');
             expect(track).toBeDefined();
-            expect(track?.id).toBe('brand-sell-through');
+            expect(track?.id).toBe('brand-retailer-check');
         });
 
-        it('should match competitor watch trigger', async () => {
-            const track = await findTalkTrackByTrigger('set up competitor watch for Cookies', 'brand');
+        it('should match marketing launch trigger', async () => {
+            const track = await findTalkTrackByTrigger('I want to start a new campaign', 'brand');
             expect(track).toBeDefined();
-            expect(track?.id).toBe('brand-competitor-watch');
+            expect(track?.id).toBe('brand-marketing-launch');
         });
     });
 
