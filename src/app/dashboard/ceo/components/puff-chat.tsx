@@ -148,14 +148,8 @@ export type AvailableTool = 'gmail' | 'calendar' | 'drive' | 'search';
 // ModelSelector is imported
 
 const PRESET_RESPONSES: Record<string, { content: string, steps?: { toolName: string, description: string }[] }> = {
-    // Market Scout is handled dynamically below
-    "Send Deebo (compliance check)": {
-        content: "**Compliance Scan Initiated.** 🛡️\n\nI'm auditing your latest campaign assets against **21 CFR 111** and local state regulations.\n\n*   **Prohibited Terms**: `Scanning...` 🟢 Clean.\n*   **Age-Gating**: `Verifying...` 🟢 Active.\n*   **Health Claims**: `Analyzing...` ⚠️ flag: 'Cures insomnia' (Recommend change: 'Supports sleep').\n\nI've generated a corrected version for your review.",
-        steps: [
-            { toolName: "Regulation OS", description: "Loading state compliance framework..." },
-            { toolName: "Visual Analysis", description: "Scanning creative assets for prohibited imagery..." }
-        ]
-    },
+    // Market Scout is handled dynamically
+    // Deebo is handled dynamically
     "See my Digital Budtender in action": {
         content: "**Meet Smokey.** 🌿\n\nI'm live-connected to the **40 Tons Brand** inventory. I don't just list products; I sell them based on effect, terpene profile, and mood.\n\nTry asking me:\n*   _\"What do you have for deep sleep?\"_\n*   _\"Show me high-limonene sativas.\"_\n*   _\"Who carries your pre-rolls nearby?\"_",
         steps: [{ toolName: "Inventory Sync", description: "Hydrating 40 Tons live catalog..." }]
@@ -865,11 +859,105 @@ export function PuffChat({
                     setStreamingMessageId(thinkingId);
                  }, 800);
              }
+// ... (Top of file modifications handled by removing from PRESET_RESPONSES below)
+
+// Inside submitMessage function, before PRESET_RESPONSES check:
+
+        // ---------------------------------------------------------
+        // DYNAMIC PRESET: DEEBO (Compliance Scan)
+        // ---------------------------------------------------------
+        if (trimmedInput.includes("Send Deebo") || trimmedInput.includes("compliance check")) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `thinking-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+             setStreamingMessageId(null);
+             
+             setTimeout(() => {
+                 updateMessage(thinkingId, {
+                     content: "Deebo is on it. I can audit any webpage for compliance risks.\n\n**Paste the URL you want me to scan.**",
+                     thinking: { isThinking: false, steps: [], plan: [] }
+                 });
+                 setIsProcessing(false);
+             }, 800);
              return;
         }
 
-        // DETECT ZIP CODE / LOCATION RESPONSE
-        const zipRegex = /^\d{5}$/;
+        // DETECT URL (Context: Compliance)
+        // Simple URL regex for demo (http/https optional)
+        const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+        
+        // Check if last bot message asked for URL (context)
+        const lastBot = currentMessages[currentMessages.length - 1];
+        const isUrlInput = urlRegex.test(trimmedInput);
+        const askedForUrl = lastBot?.type === 'agent' && lastBot.content.includes("Paste the URL");
+
+        if (askedForUrl && isUrlInput) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `thinking-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{id: 'init', toolName: 'Deebo', description: 'Initializing...', status: 'in-progress'}], plan: [] } });
+             setStreamingMessageId(null);
+
+             // Dynamic Import
+             const { scanDemoCompliance } = await import('@/app/dashboard/intelligence/actions/demo-compliance');
+             const targetUrl = trimmedInput;
+
+             // Thinking Animation
+             const step1Id = Math.random().toString(36).substr(2,9);
+             updateMessage(thinkingId, {
+                thinking: { isThinking: true, steps: [
+                    { id: step1Id, toolName: "Site Visitor", description: `Visiting ${targetUrl} (BakedBot Discovery)...`, status: 'in-progress', durationMs: 0 }
+                ], plan: [] }
+             });
+
+             const result = await scanDemoCompliance(targetUrl);
+             
+             // Visual pacing for "Reading"
+             await new Promise(r => setTimeout(r, 1500));
+             
+             if (result.success) {
+                  updateMessage(thinkingId, {
+                    thinking: { isThinking: true, steps: [
+                        { id: step1Id, toolName: "Site Visitor", description: `Scraped ${targetUrl}`, status: 'completed', durationMs: 1200 },
+                        { id: 'audit', toolName: "Compliance Engine", description: "Checking against 21 CFR 111 & State Rules...", status: 'in-progress' }
+                    ], plan: [] }
+                 });
+                 
+                 await new Promise(r => setTimeout(r, 1000));
+
+                 const color = result.riskScore === 'High' ? '🔴' : (result.riskScore === 'Medium' ? '🟡' : '🟢');
+                 const report = `**Compliance Audit: ${targetUrl}**\n\n` +
+                 `**Risk Level**: ${color} **${result.riskScore}**\n\n` +
+                 `**Findings**:\n` +
+                 result.details.violations.map((v:string) => `*   ❌ **VIOLATION**: ${v}`).join('\n') + '\n' +
+                 result.details.warnings.map((w:string) => `*   ⚠️ **Warning**: ${w}`).join('\n') + '\n' +
+                 result.details.passing.map((p:string) => `*   ✅ ${p}`).join('\n') + 
+                 `\n\n**Recommendation**: ${result.riskScore === 'Low' ? 'Assets appear compliant.' : 'Review flagged items immediately before publishing.'}`;
+
+                 updateMessage(thinkingId, {
+                     content: report,
+                     thinking: { isThinking: false, steps: [
+                         { id: step1Id, toolName: "Site Visitor", description: "Site scanned", status: 'completed' },
+                         { id: 'audit', toolName: "Compliance Engine", description: "Audit complete", status: 'completed' }
+                     ], plan: [] }
+                 });
+
+             } else {
+                 updateMessage(thinkingId, {
+                     content: "I couldn't access that URL. Please make sure it's public and try again.",
+                     thinking: { isThinking: false, steps: [{id: 'err', toolName: 'Error', description: 'Access denied', status: 'failed'}], plan: [] }
+                 });
+             }
+             
+             setIsProcessing(false);
+             setStreamingMessageId(thinkingId);
+             return;
+        }
         const isZipOrCity = zipRegex.test(trimmedInput) || (trimmedInput.length > 3 && trimmedInput.length < 20 && !trimmedInput.includes(' ')); // Simple city heuristic
         
         // If last message asked for location (We can check if last bot message contains "What City or Zip")
