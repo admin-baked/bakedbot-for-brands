@@ -78,8 +78,12 @@ export async function POST(request: NextRequest) {
                     case 'competitor_discovery':
                         result = await processCompetitorDiscovery(job, firestore);
                         break;
+                    case 'website_discover':
+                        result = await processWebsiteDiscover(job, firestore);
+                        break;
                     default:
                         throw new Error(`Unknown job type: ${job.type}`);
+
                 }
 
                 // Mark as complete
@@ -130,42 +134,148 @@ export async function POST(request: NextRequest) {
 // Job Handlers
 
 async function processProductSync(job: any, firestore: any) {
-    const { entityId, entityType, orgId } = job;
+    const { entityId, entityName, entityType, orgId } = job;
     const metadata = job.metadata || {};
+    const marketState = metadata.marketState;
 
-    // 1. Try POS Sync if provider is present (Dispensary Focus)
+    logger.info('Starting waterfall product sync', { entityId, entityName, entityType });
+
+    // Update progress helper
+    const updateProgress = async (message: string, progress: number) => {
+        await firestore.collection('data_jobs').doc(job.id || entityId).update({
+            message,
+            progress,
+            updatedAt: FieldValue.serverTimestamp()
+        }).catch(() => { }); // Non-fatal
+    };
+
+    // ========================================
+    // WATERFALL LEVEL 1: POS SYNC (Highest Priority)
+    // ========================================
     if (metadata.provider && metadata.provider !== 'none') {
         try {
+            await updateProgress(`Syncing from ${metadata.provider}...`, 10);
             const { syncPOSProducts } = await import('@/server/actions/pos-sync');
-            // For dispensaries, entityId is the locationId
             const count = await syncPOSProducts(entityId, orgId);
-            return {
-                message: `Synced ${count} products from ${metadata.provider}`,
-                data: { productCount: count, provider: metadata.provider }
-            };
+            if (count > 0) {
+                return {
+                    message: `Synced ${count} products from ${metadata.provider}`,
+                    data: { productCount: count, provider: metadata.provider, source: 'pos' }
+                };
+            }
+            logger.info('POS returned 0 products, falling through to CannMenus');
         } catch (error) {
-            console.error('[JOB_PROCESS] POS sync failed:', error);
-            // Fallback to CannMenus if it's also a CannMenus entity
-            if (!metadata.isCannMenus) throw error;
+            logger.warn('POS sync failed, falling through to CannMenus', { error });
         }
     }
 
-    // 2. Fallback to CannMenus (Original Logic)
-    if (metadata.isCannMenus) {
-        const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
-        const count = await syncCannMenusProducts(entityId, entityType, orgId);
-
-        return {
-            message: `Synced ${count} products from CannMenus`,
-            data: { productCount: count, source: 'cannmenus' }
-        };
+    // ========================================
+    // WATERFALL LEVEL 2: CANNMENUS (Primary for Cannabis)
+    // ========================================
+    if (entityId.startsWith('cm_') || metadata.isCannMenus) {
+        try {
+            await updateProgress('Importing from CannMenus...', 25);
+            const { syncCannMenusProducts } = await import('@/server/actions/cannmenus');
+            const count = await syncCannMenusProducts(entityId, entityType, orgId);
+            if (count > 0) {
+                return {
+                    message: `Synced ${count} products from CannMenus`,
+                    data: { productCount: count, source: 'cannmenus' }
+                };
+            }
+            logger.info('CannMenus returned 0 products, falling through to Leafly');
+        } catch (error) {
+            logger.warn('CannMenus sync failed, falling through to Leafly', { error });
+        }
     }
 
+    // ========================================
+    // WATERFALL LEVEL 3: LEAFLY (Competitive Intel Source)
+    // ========================================
+    if (marketState) {
+        try {
+            await updateProgress('Searching Leafly...', 50);
+            const { isApifyConfigured, triggerStateDiscovery, checkRunStatus, ingestDataset } = 
+                await import('@/server/services/leafly-connector');
+
+            const configured = await isApifyConfigured();
+            if (configured) {
+                // Trigger a focused state discovery for this brand
+                const run = await triggerStateDiscovery(marketState, 10);
+                
+                // Wait briefly for run to complete (max 30 seconds for quick jobs)
+                let attempts = 0;
+                while (attempts < 6) {
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    const status = await checkRunStatus(run.id);
+                    if (status === 'SUCCEEDED') {
+                        const result = await ingestDataset(run.id);
+                        if (result.products > 0) {
+                            return {
+                                message: `Discovered ${result.products} products via Leafly`,
+                                data: { productCount: result.products, source: 'leafly' }
+                            };
+                        }
+                        break;
+                    } else if (status === 'FAILED' || status === 'ABORTED') {
+                        break;
+                    }
+                    attempts++;
+                }
+                logger.info('Leafly discovery did not yield products, falling through to website scrape');
+            } else {
+                logger.info('Leafly/Apify not configured, skipping');
+            }
+        } catch (error) {
+            logger.warn('Leafly discovery failed, falling through to website scrape', { error });
+        }
+    }
+
+    // ========================================
+    // WATERFALL LEVEL 4: BAKEDBOT DISCOVER (Website Scrape - Last Resort)
+    // ========================================
+    if (metadata.websiteUrl || entityName) {
+        try {
+            await updateProgress('Discovering from website...', 75);
+            
+            // Queue a separate website scrape job (handled asynchronously)
+            const discoverJobRef = await firestore.collection('data_jobs').add({
+                type: 'website_discover',
+                entityId,
+                entityName,
+                entityType,
+                orgId,
+                status: 'pending',
+                message: `Queued website discovery for ${entityName}`,
+                progress: 0,
+                createdAt: FieldValue.serverTimestamp(),
+                updatedAt: FieldValue.serverTimestamp(),
+                attempts: 0,
+                metadata: {
+                    ...metadata,
+                    parentJobType: 'product_sync',
+                    websiteUrl: metadata.websiteUrl || `https://www.google.com/search?q=${encodeURIComponent(entityName + ' cannabis')}`
+                }
+            });
+
+            return {
+                message: `Queued website discovery for ${entityName} (Job: ${discoverJobRef.id})`,
+                data: { source: 'discover_queued', discoverJobId: discoverJobRef.id }
+            };
+        } catch (error) {
+            logger.warn('Failed to queue website discovery', { error });
+        }
+    }
+
+    // ========================================
+    // FALLBACK: No data sources available
+    // ========================================
     return {
-        message: 'Non-POS and non-CannMenus products require manual import',
-        data: { skipped: true }
+        message: 'No data sources available. Products require manual import.',
+        data: { skipped: true, reason: 'no_sources' }
     };
 }
+
 
 
 async function processDispensaryImport(job: any, firestore: any) {
@@ -282,4 +392,119 @@ async function processCompetitorDiscovery(job: any, firestore: any) {
         message: `Discovered ${result.discovered} competitors`,
         data: { competitorsFound: result.discovered }
     };
+}
+
+/**
+ * Website Discovery Handler (Level 4 Fallback)
+ * Uses Firecrawl/Agent Discovery to scrape brand/dispensary websites
+ */
+async function processWebsiteDiscover(job: any, firestore: any) {
+    const { entityId, entityName, entityType, orgId } = job;
+    const metadata = job.metadata || {};
+    const websiteUrl = metadata.websiteUrl;
+
+    logger.info('Starting website discovery', { entityName, websiteUrl });
+
+    if (!websiteUrl && !entityName) {
+        return {
+            message: 'Website URL or entity name required for discovery',
+            data: { skipped: true, reason: 'no_url' }
+        };
+    }
+
+    try {
+        // Try to use Firecrawl for website scraping
+        const firecrawlApiKey = process.env.FIRECRAWL_API_KEY;
+        
+        if (firecrawlApiKey && websiteUrl && !websiteUrl.includes('google.com')) {
+            const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${firecrawlApiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: websiteUrl,
+                    formats: ['markdown', 'extract'],
+                    extract: {
+                        schema: {
+                            type: 'object',
+                            properties: {
+                                products: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            name: { type: 'string' },
+                                            category: { type: 'string' },
+                                            description: { type: 'string' },
+                                            price: { type: 'string' }
+                                        }
+                                    }
+                                },
+                                brandInfo: {
+                                    type: 'object',
+                                    properties: {
+                                        name: { type: 'string' },
+                                        tagline: { type: 'string' },
+                                        description: { type: 'string' }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const extracted = data.data?.extract || {};
+                const products = extracted.products || [];
+
+                // Store discovered products
+                if (products.length > 0) {
+                    const batch = firestore.batch();
+                    const productsRef = firestore.collection('organizations').doc(orgId).collection('products');
+
+                    for (const product of products.slice(0, 50)) {
+                        const productDoc = productsRef.doc();
+                        batch.set(productDoc, {
+                            name: product.name || 'Unknown Product',
+                            category: product.category || 'other',
+                            description: product.description || '',
+                            price: product.price || null,
+                            source: 'website_discover',
+                            discoveredAt: new Date(),
+                            entityType,
+                            orgId,
+                        });
+                    }
+
+                    await batch.commit();
+
+                    return {
+                        message: `Discovered ${products.length} products from website`,
+                        data: { productCount: products.length, source: 'firecrawl' }
+                    };
+                }
+            }
+        }
+
+        // Fallback: Create placeholder indicating manual setup needed
+        return {
+            message: `Website discovery complete. ${entityName} requires manual product setup.`,
+            data: { 
+                source: 'discover_manual', 
+                reason: 'Products not automatically extractable',
+                suggestedAction: 'manual_import'
+            }
+        };
+
+    } catch (error) {
+        logger.warn('Website discovery failed', { error, entityName });
+        return {
+            message: `Discovery failed for ${entityName}. Manual setup recommended.`,
+            data: { skipped: true, error: error instanceof Error ? error.message : String(error) }
+        };
+    }
 }
