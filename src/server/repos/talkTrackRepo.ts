@@ -2114,6 +2114,122 @@ const DEFAULT_TRACKS: TalkTrack[] = [
                 message: "👋 Hey there! I'm **Smokey**, your AI budtender.\n\nI can help you with:\n• 🌿 Finding the perfect products\n• 📍 Locating dispensaries nearby\n• 📦 Tracking your orders\n• 🏆 Checking your rewards\n\nWhat can I do for you today?"
             }
         ]
+    },
+    // --- BRAND TALK TRACKS ---
+    {
+        id: 'brand-performance-overview',
+        name: 'Brand Performance Overview',
+        role: 'brand',
+        triggerKeywords: ['sales report', 'how is my brand doing', 'top products', 'revenue info'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-analyze-performance',
+                order: 1,
+                type: 'response',
+                thought: "Pops is analyzing sales data... querying revenue trends... identifying top movers...",
+                message: "📊 **Performance Snapshot (Last 30 Days)**\n\nI've pulled your latest numbers:\n*   **Total Revenue**: $42,500 (+12% MoM) 📈\n*   **Top Product**: Blue Dream Pre-rolls (1,200 units sold)\n*   **Fastest Growing**: Sleep Gummies (+45%)\n\nWould you like a deeper dive into a specific product category?"
+            }
+        ]
+    },
+    {
+        id: 'brand-retailer-check',
+        name: 'Retailer Network Check',
+        role: 'brand',
+        triggerKeywords: ['who stocks me', 'inventory check', 'retailer list', 'where am i sold'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-scan-retailers',
+                order: 1,
+                type: 'response',
+                thought: "Ezal is scanning retailer menus... checking stock status... verifying active listings...",
+                message: "🗺️ **Retailer Network Status**\n\nI've scanned 150 local dispensaries. Here's where your brand is active:\n*   **Active Locations**: 45 Dispensaries\n*   **Stock Critical**: 3 Locations (Low Inventory)\n*   **New Listings**: 2 Stores added this week!\n\nI can send you the full list of stores with low stock triggers if you'd like?"
+            }
+        ]
+    },
+    {
+        id: 'brand-marketing-launch',
+        name: 'Marketing Campaign Launch',
+        role: 'brand',
+        triggerKeywords: ['start campaign', 'create promo', 'launch marketing', 'new promotion'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-campaign-setup',
+                order: 1,
+                type: 'question',
+                thought: "Craig is initializing campaign builder... checking available channels... identifying goals...",
+                message: "🚀 **Let's Launch a Campaign!**\n\nI'm ready to help you drive some traffic. What's the primary goal for this push?\n\n1.  **New Product Launch** (Awareness)\n2.  **Move Old Inventory** (Discount)\n3.  **Brand Awareness** (Engagement)\n\nJust tell me the goal and I'll draft the copy!"
+            }
+        ]
+    },
+    // --- DISPENSARY TALK TRACKS ---
+    {
+        id: 'dispensary-inventory-audit',
+        name: 'Inventory Audit',
+        role: 'dispensary',
+        triggerKeywords: ['dead stock', 'low stock', 'inventory report', 'stock audit'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-audit-inventory',
+                order: 1,
+                type: 'response',
+                thought: "Pops is auditing inventory levels... calculating turnover rates... flagging dead stock...",
+                message: "📦 **Inventory Health Audit**\n\nI've flagged a few items that need attention:\n*   **Dead Stock Risk**: 'Peach Rings 100mg' (No sales in 60 days)\n*   **Low Stock Alert**: 'Blue Dream 1/8th' (Only 5 units left - standard run rate is 10/day)\n\nShall I draft a 'Fire Sale' promo for the Peach Rings to clear shelf space?"
+            }
+        ]
+    },
+    {
+        id: 'dispensary-competitor-pulse',
+        name: 'Competitor Pulse Check',
+        role: 'dispensary',
+        triggerKeywords: ['competitor prices', 'price check', 'market pricing', 'competitor pulse'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-check-prices',
+                order: 1,
+                type: 'response',
+                thought: "Ezal is scraping local competitors... comparing basket analysis... identifying price gaps...",
+                message: "👀 **Market Pulse Check**\n\nI checked 5 nearby competitors. Here's the scoop:\n*   **Edibles**: You are 10% cheaper than average. (Good for volume!)\n*   **Flower**: 'Green Leaf' is undercutting you by $5 on 1/8ths.\n*   **Opportunity**: No one else has 'Sleep Tinctures' in stock right now.\n\nWant me to monitor 'Green Leaf' daily?"
+            }
+        ]
+    },
+    {
+        id: 'dispensary-seo-health',
+        name: 'SEO Health Check',
+        role: 'dispensary',
+        triggerKeywords: ['seo status', 'listing health', 'google ranking', 'how is my listing'],
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        createdBy: 'system',
+        steps: [
+            {
+                id: 'step-check-seo',
+                order: 1,
+                type: 'response',
+                thought: "Craig is analyzing SEO metadata... checking index status... verifying keywords...",
+                message: "🌐 **SEO Health Report**\n\nYour 'BakedBot Discovery' page is performing well!\n*   **Status**: Indexed ✅\n*   **Traffic**: +15% views this week\n*   **Top Keyword**: 'Dispensary near me open late'\n\n**Recommendation**: Add 2 more photos to your listing to boost engagement further."
+            }
+        ]
     }
 ];
 
