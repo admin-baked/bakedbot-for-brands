@@ -4,7 +4,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import type { DomainUserProfile } from '@/types/domain';
 
-export type Role = 'brand' | 'dispensary' | 'customer' | 'owner' | 'super_admin';
+export type Role = 'brand' | 'dispensary' | 'customer' | 'budtender' | 'owner' | 'super_admin';
 
 /**
  * Hook for accessing user role and checking permissions.
@@ -57,7 +57,7 @@ export function useUserRole() {
     }, [role]);
 
     const canAccessDashboard = useMemo(() => {
-        return role === 'brand' || role === 'dispensary' || role === 'owner';
+        return role === 'brand' || role === 'dispensary' || role === 'owner' || role === 'customer' || role === 'budtender';
     }, [role]);
 
     const canAccessAdminFeatures = useMemo(() => {
@@ -69,6 +69,7 @@ export function useUserRole() {
             case 'brand':
             case 'dispensary':
             case 'customer':
+            case 'budtender':
                 return '/dashboard'; // All dashboards on Overview now
             case 'owner':
                 return '/dashboard/playbooks';

@@ -9,6 +9,7 @@ import DispensaryDashboardClient from '../dispensary/dashboard-client';
 import BrandDashboardClient from '../brand/dashboard-client';
 import CustomerDashboardClient from '../customer/dashboard-client';
 import SpecialistDashboardClient from '../specialist/dashboard-client';
+import BudtenderDashboardClient from '../budtender/dashboard-client';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
@@ -83,6 +84,11 @@ export default function DashboardSwitcher() {
     // 5. Customer View
     if (role === 'customer') {
         return <CustomerDashboardClient />;
+    }
+
+    // 6. Budtender View (FREE co-pilot for dispensary employees)
+    if (role === 'budtender') {
+        return <BudtenderDashboardClient />;
     }
 
     // 6. Default Fallback

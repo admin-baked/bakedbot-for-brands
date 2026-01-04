@@ -15,7 +15,7 @@ export type Permission =
     | 'sync:menus'
     | 'admin:all';
 
-export type UserRole = 'brand' | 'dispensary' | 'customer' | 'owner' | 'super_admin' | 'super_user';
+export type UserRole = 'brand' | 'dispensary' | 'customer' | 'budtender' | 'owner' | 'super_admin' | 'super_user';
 
 /**
  * Role-based permission matrix
@@ -40,6 +40,13 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
         'read:orders',
         'write:orders',
         'read:analytics',
+    ],
+    // Budtender: FREE role - dispensary employees with limited access
+    // They can read products for recommendations and manage orders at their location
+    budtender: [
+        'read:products',  // For AI recommendations
+        'read:orders',    // For their dispensary only
+        'write:orders',   // To update order status
     ],
     customer: [
         'read:products',
@@ -144,6 +151,11 @@ export function canAccessOrder(
 
     // Dispensaries can access orders for their location
     if (user.role === 'dispensary' && order.retailerId) {
+        return user.locationId === order.retailerId;
+    }
+
+    // Budtenders can access orders for their dispensary
+    if (user.role === 'budtender' && order.retailerId) {
         return user.locationId === order.retailerId;
     }
 
