@@ -2005,3 +2005,4 @@ function ThinkingIndicator({ level = 'balanced', duration }: { level?: 'fast' | 
         </div>
     );
 }
+
