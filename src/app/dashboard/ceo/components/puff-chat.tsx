@@ -935,7 +935,7 @@ export function PuffChat({
             // 3. Simulate "Work" (Animation) then deliver pre-canned response
             setTimeout(async () => {
                 // If the preset has simulated tool steps, show them one by one
-                if (demoIntercept.steps) {
+                if (demoIntercept.steps && demoIntercept.steps.length > 0) {
                    const stepId = Math.random().toString(36).substr(2, 9);
                    // Show the first step
                     updateMessage(thinkingId, {
