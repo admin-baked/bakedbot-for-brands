@@ -71,102 +71,63 @@ const DEFAULT_TRACKS: TalkTrack[] = [
                 id: 'step-integration-start',
                 order: 1,
                 type: 'question',
-                triggerKeywords: ['setup a new integration', 'connect app', 'new integration'],
-                thought: "Checking integration catalog... Identifying common connectors...",
-                message: "I'd love to help you set up a new integration! 🎉\n\nWhat service or application would you like to connect? For example:\n\n*   **Email/Communication**: Gmail, Slack\n*   **Project Management**: Asana, Jira\n*   **Data**: Google Sheets, HubSpot\n*   **Payment**: Stripe\n\nJust let me know what you're trying to connect to!"
+                triggerKeywords: ['setup a new integration', 'connect app', 'new integration', 'connect to linkedin'],
+                thought: "Checking integration catalog... Identifying common connectors... Found: LinkedIn API (Basic)...",
+                message: "I'd love to help you set up a new integration! 🚀\n\nTo point you in the right direction, could you tell me:\n\n**1. What service or app would you like to connect to?** (e.g., LinkedIn, Slack, Gmail)\n**2. What task are you trying to automate?**"
             },
             {
-                id: 'step-instagram-limitations',
+                id: 'step-linkedin-limitations',
                 order: 2,
                 type: 'response',
-                triggerKeywords: ['instagram', 'instagram integration'],
-                thought: "checking instagram api docs... verifying deprecation status... checking graph api limitations...",
+                triggerKeywords: ['linkedin', 'connect linkedin', 'message on linkedin', 'engage on linkedin'],
+                thought: "checking linkedin api capabilities... verifying messaging access... identifying limitations (no feed search)...",
                 steps: [
-                     "Checking Instagram Basic Display API...",
-                     "Verifying Graph API permissions..."
+                    "Checking: LinkedIn Marketing Developer Platform...",
+                    "Verifying: r_liteprofile, w_member_social...",
+                    "Notice: 'Feed Search' not supported via API."
                 ],
-                message: "I don't see a pre-built Instagram integration available at the moment. However, I can still help you connect to Instagram in a couple of ways:\n\n1.  **Direct API Connection** - (Meta API) Good for posting & analytics.\n2.  **Browser/Computer Access** - Slower but more flexible.\n\nWhat would you like to do? (Post content? Fetch analytics? Manage comments?)"
+                message: "I found a LinkedIn integration, but I have some news: the available LinkedIn API doesn't support **browsing the feed** or **searching for posts** directly. 😅\n\nThe current integration supports:\n*   Creating posts\n*   Viewing specific member profiles\n*   Liking/Commenting (if we have the URL)\n\n**Here are your options:**\n\n1.  **Weekly Intelligence Report (Recommended)**: I manually review your top 20 targets and email you a digest.\n2.  **Direct Scraping**: More hands-on setup, fully automated.\n3.  **Hybrid**: Weekly digest + you send me specific URLs for real-time commenting.\n\nWhich approach feels right for you?"
             },
             {
-                id: 'step-lead-generation-pivot',
+                id: 'step-intelligence-report',
                 order: 3,
-                type: 'question',
-                triggerKeywords: ['generate leads', 'liking and commenting', 'find dispensaries'],
-                thought: "analyzing intent: lead generation... checking instagram tos... identifying risk factors...",
+                type: 'response',
+                triggerKeywords: ['option 3', 'weekly report', 'intelligence report', 'monitor competitors'],
+                thought: "analyzing bakedbot linkedin intelligence report... prioritizing 30+ targets... identifying social equity dispensaries...",
                 steps: [
-                    "Reviewing Instagram Terms of Service...",
-                    "Analyzing 'liking and commenting' automation feasibility...",
-                    "Identifying safer alternatives..."
+                    "Analyzing Report: 'BakedBot AI LinkedIn Intelligence'...",
+                    "Prioritizing Tier A: Grasshopper Club (IL), Socíale (IL), Sway (IL)...",
+                    "Prioritizing Tier B: Pure Oasis (MA), Planted Provisioning (MI)...",
+                    "Strategy: 'Value-First Engagement'..."
                 ],
-                message: "Perfect! Lead generation is a solid use case.\n\n**Honest note:** Instagram's Terms of Service prohibit automated liking/commenting (it's considered bot activity). \n\nHowever, **LinkedIn** is fantastic for this B2B use case. Would you be open to exploring **LinkedIn** for finding dispensary owners and brands?"
+                message: "Perfect! I've reviewed your **LinkedIn Intelligence Report** – it's excellently researched. 🧠\n\n**Primary Targets Identification:**\n*   **Tier 1 (Social Equity)**: Grasshopper Club, Socíale, SWAY, Pure Oasis.\n*   **Strategy**: Engage with company pages first, then founders (e.g., Matthew Brewer, Edie Moore).\n\nI'll set up **Option 3 (Hybrid)**:\n1.  **Weekly Digest**: I'll monitor these 20+ priorities.\n2.  **Real-Time**: You send me a URL -> I draft a comment -> You approve.\n\nShall I configure the **Weekly Digest for Wednesday mornings**?"
             },
             {
-                id: 'step-linkedin-setup',
+                id: 'step-rotation-setup',
                 order: 4,
                 type: 'action',
-                triggerKeywords: ['setup linkedin', 'linkedin integration', 'look at linkedin'],
-                thought: "provisioning linkedin connection... checking auth scopes...",
+                triggerKeywords: ['rotate accounts', 'every 2 weeks', 'expand list'],
+                thought: "configuring rotation logic... setting pool size to 20... scheduling bi-weekly cycle...",
                 steps: [
-                    "Creating new connection: LinkedIn...",
-                    "Requesting scopes: r_liteprofile, w_member_social...",
-                    "Verifying connection status..."
+                    "Configuring Pool: 20 Accounts (Tier A + Tier B)...",
+                    "Logic: Rotate 5 targets every Monday...",
+                    "Goal: 'Stay on radar without being obvious'..."
                 ],
-                message: "Perfect! ✅ Your LinkedIn integration is all set up and ready to go!\n\nI've activated: **Search Organizations, Get Profiles, Create Posts**.\n\nHere's what we can now do:\n*   Find potential leads (Dispensaries/Brands)\n*   Research prospects\n*   Engage authentically\n\nWhat would you like to do next?"
+                message: "Brilliant strategy! I'll implement a **Rotating Priority Pool** to keep engagement authentic. 🔄\n\n**The Plan:**\n*   **Pool Size**: 20 Priority Accounts.\n*   **Rotation**: I'll cycle through 5 different targets every week (e.g., Week 1: Grasshopper/Socíale -> Week 2: High Haven/Calyxeum).\n*   **Goal**: Continuous subtle touches across your entire network.\n\nI've updated the scheduler to pull from this dynamic pool."
             },
-             {
-                id: 'step-sheets-setup',
+            {
+                id: 'step-final-activation',
                 order: 5,
                 type: 'action',
-                triggerKeywords: ['create google sheet', 'google sheet', 'keywords like cannabis'],
-                thought: "connecting to google drive... creating spreadsheet... defining headers...",
+                triggerKeywords: ['activate', 'start now', 'monday 9am', 'add to slack'],
+                thought: "finalizing monday trigger... connecting to slack... tagging jack allen...",
                 steps: [
-                    "Authenticating Google Drive...",
-                    "Creating spreadsheet: 'Cannabis B2B Lead Generation'...",
-                    "Adding headers: Business Name, LinkedIn URL, Status, Email...",
-                    "Format: Bold Headers"
+                    "Creating Trigger: Monday @ 09:00 AM ET...",
+                    "Action: Generate Weekly Intelligence Digest...",
+                    "Channel: #execmode (Tagging @Jack Allen)...",
+                    "Status: LIVE."
                 ],
-                message: "Excellent! ✅ I've created your Google Sheet: **\"Cannabis B2B Lead Generation - LinkedIn Engagement\"**\n\nI'm ready to search for companies like *GTL, Ascend, 4front* and populate the sheet. Shall I start the search?"
-            },
-            {
-                id: 'step-browser-automation',
-                order: 6,
-                type: 'action',
-                triggerKeywords: ['browser search', 'virtual computer', 'option 3'],
-                thought: "provisioning virtual desktop... launching chrome... navigating to linkedin...",
-                steps: [
-                    "Provisioning: Cannabis Lead Research Computer...",
-                    "Booting environment...",
-                    "Launching Chrome...",
-                    "Navigating to linkedin.com/search..."
-                ],
-                message: "Virtual computer ready! 🖥️\n\nI'm browsing LinkedIn now. I've found about **1,800 cannabis dispensary results**.\n\nInstead of manual clicking, I propose:\n1.  **Daily Automation**: I find 3-5 new targets daily.\n2.  **Add to Sheet**: Populate the 'Daily Targets' tab.\n3.  **You Engage**: You like/comment on the specific posts I find.\n\nShould I set up this daily automation?"
-            },
-             {
-                id: 'step-email-setup',
-                order: 7,
-                type: 'action',
-                triggerKeywords: ['setup email', 'email sequence', 'gmail trigger', 'get emails'],
-                thought: "configuring email finder... setting up gmail trigger... mapping sequence logic...",
-                steps: [
-                    "Connecting: QuickEmailVerification...",
-                    "Connecting: Gmail...",
-                    "Configuring Trigger: 'New Reply Received'...",
-                    "Mapping A/B Path Logic..."
-                ],
-                message: "Perfect! 🎉 Your complete B2B outreach system is now set up!\n\n**✅ Active Components:**\n*   **Daily Discovery** (8am): Finds 3-5 new targets.\n*   **Email Finder**: Extracts emails when you mark 'Connected'.\n*   **Sequences**: A-Path (7 emails) vs B-Path (3 emails).\n*   **Reply Guard**: STOPS sequence immediately if they reply.\n\nReady to launch?"
-            },
-            {
-                id: 'step-analytics-setup',
-                order: 8,
-                type: 'action',
-                triggerKeywords: ['google analytics', 'utm', 'analytics'],
-                thought: "connecting ga4... generating utm tags... configuring verified reporting...",
-                steps: [
-                    "Connecting: Google Analytics 4...",
-                    "Generating UTMs: source=email, medium=sequence...",
-                    "Creating conversion event: 'book_call'..."
-                ],
-                message: "🎉 **Google Analytics Integration COMPLETE!**\n\nI've generated unique UTM-tracked links for your **SEO Audit**, **Pricing Report**, and **Calendly**.\n\nYou can now see exactly which email drives the most bookings in your GA4 dashboard under `campaign: cannabis_b2b_linkedin`.\n\nThe system is LIVE. 🚀"
+                message: "✅ **Upgrade successful! Your LinkedIn Intelligence Agent is LIVE.**\n\n**System Configuration:**\n*   **Schedule**: Mondays @ 9:00 AM ET.\n*   **Workflow**: Rotating Digest + Optimization Review.\n*   **Delivery**: Email + Slack (#execmode).\n*   **Real-Time**: Ready for your post URLs any time.\n\nI'll send the first digest this coming Monday. 🚀"
             }
         ]
     },
@@ -694,7 +655,7 @@ export async function getAllTalkTracks(): Promise<TalkTrack[]> {
  * This is an inefficient linear scan but acceptable for small number of tracks.
  * In a real system, we'd use a dedicated search service or map.
  */
-export async function findTalkTrackByTrigger(prompt: string, role: string): Promise<TalkTrack | null> {
+export async function findTalkTrackByTrigger(prompt: string, role: TalkTrack['role']): Promise<TalkTrack | null> {
     const tracks = await getAllTalkTracks();
     const normalize = (s: string) => s.toLowerCase().trim();
     const p = normalize(prompt);
