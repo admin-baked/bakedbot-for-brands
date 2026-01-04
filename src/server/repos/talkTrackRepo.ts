@@ -444,13 +444,12 @@ const DEFAULT_TRACKS: TalkTrack[] = [
                 message: "Behavioral Intelligence Active. 🧠\n\nI'm tracking **Investment Signals** vs just opens:\n*   **Signal**: Clicks High Times link -> They're validating credibility.\n*   **Hot Lead**: Uses Free Audit Tool + Views Calendar -> **I'll Slack you immediately.**\n\nI'll send you a **Daily Report** every evening at 6PM with your stats. Good luck! 💸"
             }
         ]
-        ]
     },
     {
         id: 'dispensary-deal-scout',
         name: 'Dispensary Deal Scout',
         role: 'dispensary', // Targeted at dispensary operators/analysts
-        triggerKeywords: ['monitor competitors', 'deal scout', 'price watch', 'daily scrape', 'competitor intel'],
+        triggerKeywords: ['monitor competitors', 'monitor competitor pricing', 'price drop', 'deal scout', 'price watch', 'daily scrape', 'competitor pricing'],
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),

@@ -55,7 +55,18 @@ jest.mock('@/lib/notifications/blackleaf-service', () => ({
 
 jest.mock('@/server/repos/talkTrackRepo', () => ({
     findTalkTrackByTrigger: jest.fn().mockImplementation(async (prompt) => {
-        if (prompt.includes('ezal') || prompt.includes('competitor')) {
+        if (prompt.includes('monitor competitor') || prompt.includes('price drop')) {
+            return {
+                id: 'dispensary-deal-scout',
+                steps: [{
+                    id: 'step-deal-hunt',
+                    type: 'response',
+                    message: "I've completed the Daily Deal Hunt",
+                    thought: 'Simulated thought'
+                }]
+            };
+        }
+        if (prompt.includes('ezal') || prompt.includes('competitor') && !prompt.includes('monitor')) {
             return {
                 id: 'ezal-competitive-intelligence',
                 steps: [{
@@ -232,5 +243,16 @@ describe('Unified Demo API - New Features', () => {
          // Expecting 'step-media-research'
          expect(res.id).toBe('step-media-research');
          expect(res.message).toContain('Daily Lead Research');
+    });
+    it('intercepts "monitor competitor pricing" trigger for Deal Scout track', async () => {
+         analyzeQuery.mockResolvedValue({ searchType: 'competitive' });
+         const req = {
+             json: async () => ({ prompt: 'Monitor competitor pricing and alert me when any competitor drops their prices more than 10%', agent: 'hq' })
+         } as any;
+ 
+         const res = await POST(req);
+         // Expecting 'step-deal-hunt'
+         expect(res.id).toBe('step-deal-hunt');
+         expect(res.message).toContain('Daily Deal Hunt');
     });
 });
