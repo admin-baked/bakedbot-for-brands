@@ -150,15 +150,18 @@ export type AvailableTool = 'gmail' | 'calendar' | 'drive' | 'search';
 const PRESET_RESPONSES: Record<string, { content: string, steps?: { toolName: string, description: string }[] }> = {
     // Market Scout is handled dynamically below
     "Send Deebo (compliance check)": {
-        content: "Deebo is on it. I'm scanning your latest campaign assets against state regulations. I'm checking for prohibited terms (e.g., 'candy', 'kids'), age-gating compliance, and required health warnings.",
-        steps: [{ toolName: "Compliance Scan", description: "Analyzing content against state regulations..." }]
+        content: "**Compliance Scan Initiated.** 🛡️\n\nI'm auditing your latest campaign assets against **21 CFR 111** and local state regulations.\n\n*   **Prohibited Terms**: `Scanning...` 🟢 Clean.\n*   **Age-Gating**: `Verifying...` 🟢 Active.\n*   **Health Claims**: `Analyzing...` ⚠️ flag: 'Cures insomnia' (Recommend change: 'Supports sleep').\n\nI've generated a corrected version for your review.",
+        steps: [
+            { toolName: "Regulation OS", description: "Loading state compliance framework..." },
+            { toolName: "Visual Analysis", description: "Scanning creative assets for prohibited imagery..." }
+        ]
     },
     "See my Digital Budtender in action": {
-        content: "**Meet Smokey.** \n\nI'm connected to the **40 Tons Brand** live menu. I know their inventory in real-time and can recommend products based on effect, terpene profile, or customer mood.\n\nTry asking me: _'What do you have for sleep?'_ or _'Show me verified genetics.'_",
-        steps: [{ toolName: "Inventory Sync", description: "Loading 40 Tons live catalog..." }]
+        content: "**Meet Smokey.** 🌿\n\nI'm live-connected to the **40 Tons Brand** inventory. I don't just list products; I sell them based on effect, terpene profile, and mood.\n\nTry asking me:\n*   _\"What do you have for deep sleep?\"_\n*   _\"Show me high-limonene sativas.\"_\n*   _\"Who carries your pre-rolls nearby?\"_",
+        steps: [{ toolName: "Inventory Sync", description: "Hydrating 40 Tons live catalog..." }]
     },
     "What are the pricing plans?": {
-        content: "We have plans for every stage of growth:\n\n*   **Claim Pro ($99/mo)**: Own your brand page, edit details, and capture leads.\n*   **The Specialist ($499/mo)**: Hire one dedicated digital worker (choose Smokey, Ezal, or Deebo).\n*   **The Empire ($1,499/mo)**: Deploy the full fleet of 7 agents for total automation.\n\nClick the **Pricing** tab above for the full feature breakdown!",
+        content: "Here is the simple breakdown:\n\n*   **Claim Pro ($99/mo)**: Own your brand page, edit details, and capture leads.\n*   **The Specialist ($499/mo)**: Hire one AI agent (Smokey, Ezal, or Deebo).\n*   **The Empire ($1,499/mo)**: Deploy the full 7-agent fleet for total automation.\n\n👉 **Click the Pricing tab** above for the full feature comparison.",
         steps: []
     }
 };
@@ -780,27 +783,79 @@ export function PuffChat({
              });
              setStreamingMessageId(null);
 
-             if (locationInfo?.city) {
-                 // CASE A: We know the location -> Deliver Report
-                 setTimeout(async () => {
-                    // Update Thinking
-                    const stepId = Math.random().toString(36).substr(2,9);
-                    updateMessage(thinkingId, {
-                        thinking: { isThinking: true, steps: [{ id: stepId, toolName: "Active Recon", description: `Scanning dispensaries near ${locationInfo.city}...`, status: 'in-progress', durationMs: 0 }], plan: [] }
-                    });
-                    await new Promise(r => setTimeout(r, 1500));
+             if (locationInfo?.city || trimmedInput.match(/^\d{5}$/)) {
+                 // CASE A: We have location (either from context or user just typed zip)
+                 const zipOrCity = trimmedInput.match(/^\d{5}$/) ? trimmedInput : (locationInfo?.city || "your area");
+                 
+                 // Start "Thinking" with detailed steps
+                 const step1Id = Math.random().toString(36).substr(2,9);
+                 updateMessage(thinkingId, {
+                    thinking: { isThinking: true, steps: [{ id: step1Id, toolName: "Active Recon", description: `Initializing scan for ${zipOrCity}...`, status: 'in-progress', durationMs: 0 }], plan: [] }
+                 });
 
-                    const reportContent = `**Market Intelligence Report: ${locationInfo.city}**\n\nI've identified **${locationInfo.dispensaryCount} dispensaries** in your immediate vicinity. Here's a snapshot of the competitive landscape:\n\n| Competitor | Pricing Strategy | Menu Size | Risk Score |\n| :--- | :--- | :--- | :--- |\n| **Green Leaf** | Premium (+15%) | 450 SKUs | 🟢 Low |\n| **The Herbalist** | Discount (-10%) | 220 SKUs | 🟡 Med |\n| **Urban Canna** | Balanced | 310 SKUs | 🟢 Low |\n\n**Actionable Insight**: *The Herbalist* is undercutting on flower pricing. Consider a "Bundle & Save" campaign to retain value-conscious shoppers.`;
-                    
-                    updateMessage(thinkingId, {
-                        content: reportContent,
-                        thinking: { isThinking: false, steps: [{ id: stepId, toolName: "Active Recon", description: `Scanned ${locationInfo.dispensaryCount} locations`, status: 'completed' }], plan: [] }
-                    });
-                    setIsProcessing(false);
-                    setStreamingMessageId(thinkingId);
-                 }, 800);
+                 // Call Server Action (Dynamic Import to avoid server-on-client issues if any, but standard import works in Next.js actions)
+                 const { searchDemoRetailers } = await import('@/app/dashboard/intelligence/actions/demo-setup');
+                 
+                 // Update step to "Scanning"
+                 await new Promise(r => setTimeout(r, 800)); // Visual pacing
+                 updateMessage(thinkingId, {
+                    thinking: { isThinking: true, steps: [
+                        { id: step1Id, toolName: "Active Recon", description: `Scanning dispensaries near ${zipOrCity}...`, status: 'completed', durationMs: 800 },
+                        { id: 'scan', toolName: "Menu Crawler", description: "Browsing competitor sites (BakedBot Discovery)...", status: 'in-progress' }
+                    ], plan: [] }
+                 });
+
+                 const result = await searchDemoRetailers(zipOrCity);
+                 
+                 // Simulate "Deep Dive" time if we got results, to let the user read the "Browsing" step
+                 await new Promise(r => setTimeout(r, 1200));
+
+                 if (result.success && result.daa) {
+                     // Success! Format the report
+                     const competitors = result.daa.slice(0, 3); // Top 3
+                     const count = result.daa.length;
+                     const enrichedComp = result.daa.find((c: any) => c.isEnriched);
+                     
+                     let tableRows = competitors.map((c: any) => 
+                        `| **${c.name}** ${c.isEnriched ? '✅' : ''} | ${c.pricingStrategy} | ${c.skuCount} SKUs | ${c.riskScore === 'Low' ? '🟢 Low' : '🟡 Med'} |`
+                     ).join('\n');
+                     
+                     // Insight Logic
+                     let insight = `The market is highly competitive.`;
+                     if (enrichedComp) {
+                         insight = `**Deep Dive on ${enrichedComp.name}**: ${enrichedComp.enrichmentSummary}`;
+                     } else {
+                         const premium = competitors.find((c:any) => c.pricingStrategy.includes('Premium'));
+                         if (premium) insight = `**${premium.name}** is pricing at a premium.`;
+                     }
+
+                     const reportContent = `**Market Intelligence Report: ${result.location}**\n\n` +
+                        `I've identified **${count} dispensaries** in ${result.location}. Data verified via live crawl.\n\n` +
+                        `| Competitor | Pricing Strategy | Menu Size | Risk Score |\n` +
+                        `| :--- | :--- | :--- | :--- |\n` +
+                        tableRows + 
+                        `\n\n**Actionable Insight**: ${insight}\n\n_Recommendation: Launch a "New Customer" bundle to counter ${enrichedComp ? enrichedComp.name : 'competitors'}._`;
+
+                     updateMessage(thinkingId, {
+                         content: reportContent,
+                         thinking: { isThinking: false, steps: [
+                             { id: step1Id, toolName: "Active Recon", description: `Found ${count} locations`, status: 'completed' },
+                             { id: 'scan', toolName: "Menu Crawler", description: `Audited ${enrichedComp?.name || 'competitors'}`, status: 'completed' },
+                             { id: 'done', toolName: "Analysis", description: "Risk report generated", status: 'completed' }
+                         ], plan: [] }
+                     });
+                 } else {
+                     // Error State
+                     updateMessage(thinkingId, {
+                         content: "I encountered an issue scanning that location. Please try a valid Zip Code.",
+                         thinking: { isThinking: false, steps: [{ id: 'err', toolName: "Error", description: "Location not found", status: 'failed' }], plan: [] }
+                     });
+                 }
+                 
+                 setIsProcessing(false);
+                 setStreamingMessageId(thinkingId);
              } else {
-                 // CASE B: Unknown Location -> Ask for Zip
+                 // CASE B: Ask for Location (Preserved)
                   setTimeout(() => {
                     updateMessage(thinkingId, {
                         content: "I'm ready to audit your local market. **What City or Zip Code should I scan?**",

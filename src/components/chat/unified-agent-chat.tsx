@@ -202,6 +202,7 @@ export function UnifiedAgentChat({
                     hideHeader={showHeader} // Hide PuffChat's internal header if we show our own
                     isAuthenticated={isAuthenticated}
                     isSuperUser={isSuperUser}
+                    locationInfo={locationInfo} // Pass location context
                     className="h-full"
                 />
             </div>
