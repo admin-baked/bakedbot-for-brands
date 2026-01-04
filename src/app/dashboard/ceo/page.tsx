@@ -50,14 +50,24 @@ import { RoleSwitcher } from '@/components/debug/role-switcher';
 import { MockDataToggle } from '@/components/debug/mock-data-toggle';
 import { DataImportDropdown } from '@/components/dashboard/data-import-dropdown';
 
+import { useAgentChatStore } from '@/lib/store/agent-chat-store';
+
 function CeoDashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const pathname = usePathname();
     const { isSuperAdmin, isLoading, superAdminEmail, logout } = useSuperAdmin();
+    const { clearCurrentSession } = useAgentChatStore();
 
     // Sync tabs with URL ?tab=...
     const currentTab = searchParams?.get('tab') || 'boardroom'; // Default to Boardroom
+
+    // Clear chat session on mount to prevent leakage from public/customer context
+    useEffect(() => {
+        if (isSuperAdmin) {
+            clearCurrentSession();
+        }
+    }, [isSuperAdmin, clearCurrentSession]);
 
 
 
