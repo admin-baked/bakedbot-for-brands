@@ -1719,10 +1719,20 @@ export function PuffChat({
                                         />
                                     )}
 
+
                                     {/* CREATIVE LOADER - Shows when "Creative Engine" step is active */}
                                     {message.isThinking && message.steps && message.steps.some(s => s.toolName === 'Creative Engine' && s.status === 'in-progress') && (
                                         <CreativeLoader 
                                             label={message.steps.find(s => s.toolName === 'Creative Engine')?.description || 'Generating...'} 
+                                        />
+                                    )}
+
+                                    {/* THINKING WINDOW - Shows for heavy "Agentic" tasks (Scraping, Recon, Search) */}
+                                    {message.isThinking && message.steps && message.steps.length > 0 && !message.steps.some(s => s.toolName === 'Creative Engine') && (
+                                        <ThinkingWindow 
+                                            steps={message.steps} 
+                                            isThinking={true} 
+                                            agentName={message.metadata?.agentName || (message.steps[0].subagentId || 'smokey')} 
                                         />
                                     )}
                                     

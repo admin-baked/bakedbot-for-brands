@@ -4,6 +4,7 @@ import { generateVideoFromPrompt } from '@/ai/flows/generate-video';
 import { analyzeQuery } from '@/ai/chat-query-handler';
 import { blackleafService } from '@/lib/notifications/blackleaf-service';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { findTalkTrackByTrigger } from '@/server/repos/talkTrackRepo';
 
 // Demo responses per agent - pre-generated for speed
 const DEMO_RESPONSES: Record<string, {
@@ -250,7 +251,7 @@ export async function POST(request: NextRequest) {
         const analysis = await analyzeQuery(prompt);
         let targetAgent = requestedAgent || 'smokey'; // Use requested agent as default
 
-        // 2. Intelligent Routing based on Analysis (override if specific intent detected)
+        // 2. Intelligent Routing based on Analysis
         // Check platform/HQ questions FIRST (before product search fallback)
         if (requestedAgent === 'moneymike') {
              targetAgent = 'moneymike';
@@ -260,7 +261,10 @@ export async function POST(request: NextRequest) {
             // General questions about the platform
             targetAgent = 'hq';
         } else if (analysis.searchType === 'marketing') {
-            targetAgent = 'craig';
+            targetAgent = 'craig'; // Marketing -> Craig
+        } else if (analysis.searchType === 'products' || analysis.searchType === 'brands') {
+             // Smokey handles products
+             targetAgent = 'smokey';
         } else if (analysis.searchType === 'competitive') {
             targetAgent = 'ezal';
         } else if (analysis.searchType === 'analytics') {
@@ -271,6 +275,43 @@ export async function POST(request: NextRequest) {
             // Default to Smokey for product-related queries
             targetAgent = 'smokey';
         }
+        
+        // ---------------------------------------------------------
+        // 2.5 Talk Track (Live Playbook) Interception
+        // Check if this prompt triggers a pre-defined Talk Track
+        // ---------------------------------------------------------
+        try {
+            const talkTrack = await findTalkTrackByTrigger(prompt, 'dispensary'); // Defaulting to dispensary for now
+            
+            if (talkTrack) {
+                // Found a matching talk track! 
+                const firstStep = talkTrack.steps[0];
+                
+                return NextResponse.json({
+                    agent: targetAgent, 
+                    items: [{
+                        id: `tt-${talkTrack.id}`,
+                        title: `Process: ${talkTrack.name}`,
+                        description: firstStep.message,
+                        type: 'text',
+                        meta: {
+                            thoughtProcess: firstStep.thought,
+                            isTalkTrack: true
+                        }
+                    }],
+                    analysis: {
+                        ...analysis,
+                        intention: `Executing Talk Track: ${talkTrack.name}`
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn('Talk Track lookup failed', e);
+        }
+        
+        // ---------------------------------------------------------
+
+        // 3. Generate Agent Response (Standard Fallback)
 
         // 3. Executing Creative Actions (Real Tools)
         // If the user explicitly asks for creation, we run the generators regardless of agent

@@ -124,7 +124,7 @@ export function ThinkingWindow({ steps, isThinking, agentName = 'puff', query }:
             <div className="h-32 bg-slate-950 border-t border-slate-800 p-3 font-mono text-[10px] overflow-hidden flex flex-col">
                 <div className="flex items-center gap-2 mb-2 text-slate-500 border-b border-slate-900 pb-1">
                     <Terminal className="h-3 w-3" />
-                    <span>Live Execution Logs</span>
+                    <span>Episodic Thinking</span>
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-1 scrollbar-none">
                     {steps.map((step, i) => (
