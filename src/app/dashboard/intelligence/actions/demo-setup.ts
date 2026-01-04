@@ -19,7 +19,10 @@ export async function searchDemoRetailers(zip: string) {
         }
         
         // Match user request of ~12 results
-            limit: 12
+        const results = await service.findRetailers({ 
+            lat: coords.lat, 
+            lng: coords.lng, 
+            limit: 12 
         });
         
         let mapped = results.map((r: any) => ({
