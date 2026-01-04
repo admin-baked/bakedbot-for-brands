@@ -22,9 +22,10 @@ import { formatDistanceToNow } from "date-fns";
 interface ProjectDetailViewProps {
     project: Project;
     chats: ProjectChat[];
+    backHref?: string;
 }
 
-export function ProjectDetailView({ project, chats }: ProjectDetailViewProps) {
+export function ProjectDetailView({ project, chats, backHref = "/dashboard/projects" }: ProjectDetailViewProps) {
     const [message, setMessage] = useState('');
 
     return (
@@ -32,7 +33,7 @@ export function ProjectDetailView({ project, chats }: ProjectDetailViewProps) {
             {/* Header */}
             <div className="border-b px-6 py-4 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 <div className="flex items-center gap-4">
-                    <Link href="/dashboard/projects">
+                    <Link href={backHref}>
                         <Button variant="ghost" size="sm" className="gap-1">
                             <ArrowLeft className="h-4 w-4" />
                             All Projects
