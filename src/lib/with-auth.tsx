@@ -78,7 +78,7 @@ export function withAuth<P extends object>(
 
             // Role check for non-super admins (skip if Firebase is still syncing)
             if (allowedRoles && allowedRoles.length > 0 && user) {
-                if (!role || !allowedRoles.includes(role)) {
+                if (!role || !allowedRoles.includes(role as Role)) {
                     router.push(redirectTo || defaultRoute);
                     return;
                 }
@@ -108,7 +108,7 @@ export function withAuth<P extends object>(
         }
 
         // Regular users need correct role
-        if (allowedRoles && allowedRoles.length > 0 && (!role || !allowedRoles.includes(role))) {
+        if (allowedRoles && allowedRoles.length > 0 && (!role || !allowedRoles.includes(role as Role))) {
             return null;
         }
 

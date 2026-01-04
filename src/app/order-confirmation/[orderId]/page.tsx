@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import type { OrderStatus } from "@/types/domain";
+import { OrderQR } from "@/components/checkout/order-qr";
 
 const statusSteps: OrderStatus[] = ['submitted', 'confirmed', 'ready', 'completed'];
 
@@ -172,6 +173,25 @@ export default function OrderConfirmationPage({ params }: { params: { orderId: s
                          )}
                     </div>
                 </CardContent>
+                
+                {/* Order Pickup QR Code */}
+                {order.status !== 'completed' && order.status !== 'cancelled' && (
+                    <div className="border-t px-6 py-6 bg-gradient-to-b from-emerald-50 to-white dark:from-emerald-950/20 dark:to-background">
+                        <div className="text-center space-y-4">
+                            <h3 className="font-semibold text-lg">Show This at Pickup</h3>
+                            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                                Present this QR code to the budtender when you arrive. They'll scan it to complete your order.
+                            </p>
+                            <div className="flex justify-center">
+                                <OrderQR orderId={order.id} size={180} />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Order #{order.id.substring(0, 7)}
+                            </p>
+                        </div>
+                    </div>
+                )}
+                
                 <CardFooter>
                     <Link href="/menu/default" passHref>
                         <Button className="w-full">Continue Shopping</Button>
