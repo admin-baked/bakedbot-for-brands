@@ -226,6 +226,8 @@ export async function POST(request: NextRequest) {
         // 1. Analyze Intent using Real Logic
         
         // --- INTENTION OS (V2) ---
+        // DISABLED globally per user request.
+        /*
         // Optimization: Only check for complex queries to speed up simple interactions and bypass preset prompts
         const PRESET_PROMPTS = [
             "hire a market scout",
@@ -275,6 +277,8 @@ export async function POST(request: NextRequest) {
         } catch (e) {
             console.warn('[Demo/Chat] Intention Analyzer failed (Shadow Mode)', e);
         }
+        */
+        const isComplex = false; // Forced off
         // -------------------------
 
         const analysis = await analyzeQuery(prompt);
