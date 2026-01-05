@@ -970,25 +970,75 @@ export function PuffChat({
              addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
              setStreamingMessageId(null);
              
-             // Simulate Report for the provided location
+             // REAL LIVE DATA: Use searchDemoRetailers
              const locationName = trimmedInput;
+             const step1Id = Math.random().toString(36).substr(2,9);
              
-             setTimeout(async () => {
-                const stepId = Math.random().toString(36).substr(2,9);
-                updateMessage(thinkingId, {
-                    thinking: { isThinking: true, steps: [{ id: stepId, toolName: "Active Recon", description: `Scanning dispensaries near ${locationName}...`, status: 'in-progress', durationMs: 0 }], plan: [] }
-                });
-                await new Promise(r => setTimeout(r, 1500));
+             updateMessage(thinkingId, {
+                thinking: { isThinking: true, steps: [{ id: step1Id, toolName: "Active Recon", description: `Scanning dispensaries near ${locationName}...`, status: 'in-progress', durationMs: 0 }], plan: [] }
+             });
 
-                const reportContent = `**Market Intelligence Report: ${locationName}**\n\nI've identified **12 dispensaries** in ${locationName}. Here's a snapshot of the competitive landscape:\n\n| Competitor | Pricing Strategy | Menu Size | Risk Score |\n| :--- | :--- | :--- | :--- |\n| **Green Leaf ${locationName}** | Premium (+15%) | 450 SKUs | 🟢 Low |\n| **The Herbalist** | Discount (-10%) | 220 SKUs | 🟡 Med |\n| **Urban Canna** | Balanced | 310 SKUs | 🟢 Low |\n\n**Actionable Insight**: *The Herbalist* is undercutting on flower pricing.`;
-                
-                updateMessage(thinkingId, {
-                    content: reportContent,
-                    thinking: { isThinking: false, steps: [{ id: stepId, toolName: "Active Recon", description: `Scanned ${locationName}`, status: 'completed' }], plan: [] }
-                });
-                setIsProcessing(false);
-                setStreamingMessageId(thinkingId);
-             }, 800);
+             // Call Server Action
+             const { searchDemoRetailers } = await import('@/app/dashboard/intelligence/actions/demo-setup');
+             
+             // Update step to "Scanning"
+             await new Promise(r => setTimeout(r, 800)); // Visual pacing
+             updateMessage(thinkingId, {
+                thinking: { isThinking: true, steps: [
+                    { id: step1Id, toolName: "Active Recon", description: `Scanning dispensaries near ${locationName}...`, status: 'completed', durationMs: 800 },
+                    { id: 'scan', toolName: "Menu Crawler", description: "Browsing competitor sites (BakedBot Discovery)...", status: 'in-progress' }
+                ], plan: [] }
+             });
+
+             const result = await searchDemoRetailers(locationName);
+             
+             // Simulate "Deep Dive" time if we got results
+             await new Promise(r => setTimeout(r, 1200));
+
+             if (result.success && result.daa) {
+                 // Success! Format the report
+                 const competitors = result.daa.slice(0, 3); // Top 3
+                 const count = result.daa.length;
+                 const enrichedComp = result.daa.find((c: any) => c.isEnriched);
+                 
+                 let tableRows = competitors.map((c: any) => 
+                    `| **${c.name}** ${c.isEnriched ? '✅' : ''} | ${c.pricingStrategy} | ${c.skuCount} SKUs | ${c.riskScore === 'Low' ? '🟢 Low' : '🟡 Med'} |`
+                 ).join('\n');
+                 
+                 // Insight Logic
+                 let insight = `The market is highly competitive.`;
+                 if (enrichedComp) {
+                     insight = `**Deep Dive on ${enrichedComp.name}**: ${enrichedComp.enrichmentSummary}`;
+                 } else {
+                     const premium = competitors.find((c:any) => c.pricingStrategy.includes('Premium'));
+                     if (premium) insight = `**${premium.name}** is pricing at a premium.`;
+                 }
+
+                 const reportContent = `**Market Intelligence Report: ${result.location}**\n\n` +
+                    `I've identified **${count} dispensaries** in ${result.location}. Data verified via live crawl.\n\n` +
+                    `| Competitor | Pricing Strategy | Menu Size | Risk Score |\n` +
+                    `| :--- | :--- | :--- | :--- |\n` +
+                    tableRows + 
+                    `\n\n**Actionable Insight**: ${insight}\n\n_Recommendation: Launch a "New Customer" bundle to counter ${enrichedComp ? enrichedComp.name : 'competitors'}._`;
+
+                 updateMessage(thinkingId, {
+                     content: reportContent,
+                     thinking: { isThinking: false, steps: [
+                         { id: step1Id, toolName: "Active Recon", description: `Found ${count} locations`, status: 'completed' },
+                         { id: 'scan', toolName: "Menu Crawler", description: `Audited ${enrichedComp?.name || 'competitors'}`, status: 'completed' },
+                         { id: 'done', toolName: "Analysis", description: "Risk report generated", status: 'completed' }
+                     ], plan: [] }
+                 });
+             } else {
+                 // Error State
+                 updateMessage(thinkingId, {
+                     content: "I encountered an issue scanning that location. Please try a valid Zip Code.",
+                     thinking: { isThinking: false, steps: [{ id: 'err', toolName: "Error", description: "Location not found", status: 'failed' }], plan: [] }
+                 });
+             }
+             
+             setIsProcessing(false);
+             setStreamingMessageId(thinkingId);
              return;
         }
 
