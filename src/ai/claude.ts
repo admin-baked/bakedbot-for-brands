@@ -21,6 +21,7 @@ export interface ClaudeContext {
     brandId?: string;
     role?: string;
     maxIterations?: number; // Default: 10
+    model?: string; // Allow model override
 }
 
 export interface ToolExecution {
@@ -40,8 +41,8 @@ export interface ClaudeResult {
     outputTokens: number;
 }
 
-// Default model for tool calling - Claude Sonnet 4 is optimized for agentic tasks
-export const CLAUDE_TOOL_MODEL = 'claude-sonnet-4-20250514';
+// Default model for tool calling - Claude Opus 4.5 (User Specified)
+export const CLAUDE_TOOL_MODEL = 'claude-opus-4-5-20251101';
 
 // Maximum iterations to prevent infinite loops
 const MAX_ITERATIONS = 10;
@@ -95,7 +96,7 @@ export async function executeWithTools(
     
     for (let iteration = 0; iteration < maxIterations; iteration++) {
         const response = await client.messages.create({
-            model: CLAUDE_TOOL_MODEL,
+            model: context.model || CLAUDE_TOOL_MODEL,
             max_tokens: 4096,
             tools,
             messages,

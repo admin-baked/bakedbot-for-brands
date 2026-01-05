@@ -110,6 +110,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
             `;
 
             const plan = await ai.generate({
+                model: 'googleai/gemini-3-pro-preview',
                 prompt: planPrompt,
                 output: {
                     schema: z.object({
@@ -148,6 +149,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
 
             // 4. SYNTHESIZE
             const final = await ai.generate({
+                model: 'googleai/gemini-3-pro-preview',
                 prompt: `
                     User Request: "${userQuery}"
                     Action Taken: ${decision.thought}

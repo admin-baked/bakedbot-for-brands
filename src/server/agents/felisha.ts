@@ -53,68 +53,35 @@ export const felishaAgent: AgentImplementation<AgentMemory, FelishaTools> = {
             ];
 
             try {
-                // Planner
-                const plan = await ai.generate({
-                    prompt: `
-                        ${agentMemory.system_instructions}
-                        USER REQUEST: "${userQuery}"
-                        TOOLS: ${JSON.stringify(toolsDef)}
-                        
-                        Decide next step. JSON: { thought, toolName, args }
-                    `,
-                    output: {
-                        schema: z.object({
-                            thought: z.string(),
-                            toolName: z.enum(['processMeetingTranscript', 'triageError', 'null']),
-                            args: z.record(z.any())
-                        })
-                    }
-                });
-
-                const decision = plan.output;
-
-                if (!decision || decision.toolName === 'null') {
-                    return {
-                        updatedMemory: agentMemory,
-                        logEntry: {
-                            action: 'chat_response',
-                            result: decision?.thought || "I'm here to coordinate. Upload a transcript or paste an error.",
-                            metadata: {}
-                        }
-                    };
-                }
-
-                // Executor
-                let output: any;
-                if (decision.toolName === 'processMeetingTranscript') {
-                    output = await tools.processMeetingTranscript(decision.args.transcript);
-                } else if (decision.toolName === 'triageError') {
-                    output = await tools.triageError(decision.args.errorLog);
-                }
-
-                // Synthesizer
-                const final = await ai.generate({
-                    prompt: `Summarize Felisha's action: ${userQuery}. Tool: ${decision.toolName}. Output: ${JSON.stringify(output)}`
+                // === MULTI-STEP PLANNING (Run by Harness + Claude) ===
+                const { runMultiStepTask } = await import('./harness');
+                
+                const result = await runMultiStepTask({
+                    userQuery,
+                    systemInstructions: agentMemory.system_instructions || '',
+                    toolsDef,
+                    tools,
+                    model: 'claude',
+                    maxIterations: 5
                 });
 
                 return {
                     updatedMemory: agentMemory,
                     logEntry: {
-                        action: 'tool_execution',
-                        result: final.text,
-                        metadata: { tool: decision.toolName, output }
+                        action: 'triage_complete',
+                        result: result.finalResult,
+                        metadata: { steps: result.steps }
                     }
                 };
 
             } catch (e: any) {
-                return {
+                 return {
                     updatedMemory: agentMemory,
-                    logEntry: { action: 'error', result: `Felisha Error: ${e.message}` }
+                    logEntry: { action: 'error', result: `Felisha Task failed: ${e.message}`, metadata: { error: e.message } }
                 };
             }
         }
-
-        return { updatedMemory: agentMemory, logEntry: { action: 'idle', result: 'No action.' } };
+        return { updatedMemory: agentMemory, logEntry: { action: 'idle', result: 'Felisha organizing tickets.' } };
     }
 };
 

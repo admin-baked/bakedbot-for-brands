@@ -125,84 +125,31 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         ];
 
         try {
-            // 2. PLAN
-            const planPrompt = `
-                ${agentMemory.system_instructions}
-                
-                USER REQUEST: "${userQuery}"
-                
-                Available Tools:
-                ${toolsDef.map(t => `- ${t.name}: ${t.description}`).join('\n')}
-                
-                Decide the SINGLE best tool to use first.
-                If asking for copy, use 'generateCopy'.
-                If asking to check rules, use 'validateCompliance'.
-                
-                Return JSON: { "thought": string, "toolName": string, "args": object }
-            `;
-
-            const plan = await ai.generate({
-                prompt: planPrompt,
-                output: {
-                    schema: z.object({
-                        thought: z.string(),
-                        toolName: z.enum(['generateCopy', 'validateCompliance', 'sendSms', 'lettaSaveFact', 'null']),
-                        args: z.record(z.any())
-                    })
-                }
-            });
-
-            const decision = plan.output;
-
-            if (!decision || decision.toolName === 'null') {
-                 // Fallback to simple chat
-                 return {
-                    updatedMemory: agentMemory,
-                    logEntry: {
-                        action: 'chat_response',
-                        result: decision?.thought || "I'm listening. How can I help with your marketing?",
-                        metadata: { thought: decision?.thought }
-                    }
-                };
-            }
-
-            // 3. EXECUTE
-            let output: any = "Tool failed";
-            if (decision.toolName === 'generateCopy') {
-                output = await tools.generateCopy(decision.args.prompt, decision.args.context || { brandName: brandMemory.brand_profile.name });
-            } else if (decision.toolName === 'validateCompliance') {
-                output = await tools.validateCompliance(decision.args.content, decision.args.jurisdictions || ['CA']);
-            } else if (decision.toolName === 'sendSms') {
-                output = await tools.sendSms(decision.args.to, decision.args.body);
-            } else if (decision.toolName === 'lettaSaveFact') {
-                // @ts-ignore - Assuming tools has it via default-tools
-                output = await (tools as any).lettaSaveFact(decision.args.fact, decision.args.category);
-            }
-
-            // 4. SYNTHESIZE
-            const final = await ai.generate({
-                prompt: `
-                    User Request: "${userQuery}"
-                    Action Taken: ${decision.thought}
-                    Tool Output: ${JSON.stringify(output)}
-                    
-                    Respond to the user with the result. If text was generated, present it clearly.
-                `
+            // === MULTI-STEP PLANNING (Run by Harness + Claude) ===
+            const { runMultiStepTask } = await import('./harness');
+            
+            const result = await runMultiStepTask({
+                userQuery,
+                systemInstructions: agentMemory.system_instructions || '',
+                toolsDef,
+                tools,
+                model: 'claude', // Use Claude for high-quality copy & compliance
+                maxIterations: 5
             });
 
             return {
                 updatedMemory: agentMemory,
                 logEntry: {
-                    action: 'tool_execution',
-                    result: final.text,
-                    metadata: { tool: decision.toolName, output }
+                    action: 'campaign_task_complete',
+                    result: result.finalResult,
+                    metadata: { steps: result.steps }
                 }
             };
 
         } catch (e: any) {
-            return {
+             return {
                 updatedMemory: agentMemory,
-                logEntry: { action: 'error', result: `Planning failed: ${e.message}`, metadata: { error: e.message } }
+                logEntry: { action: 'error', result: `Craig Task failed: ${e.message}`, metadata: { error: e.message } }
             };
         }
     }

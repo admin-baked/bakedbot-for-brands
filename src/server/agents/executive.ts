@@ -130,6 +130,7 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                 systemInstructions: agentMemory.system_instructions || '',
                 toolsDef,
                 tools,
+                model: 'googleai/gemini-3-pro-preview', // High-level strategy needs big context
                 maxIterations: 5,
                 onStepComplete: async (step, toolName, result) => {
                     // Persist each step to Letta

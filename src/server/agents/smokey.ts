@@ -134,80 +134,31 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             ];
 
             try {
-                // 2. PLAN
-                const planPrompt = `
-                    ${agentMemory.system_instructions}
-                    
-                    USER REQUEST: "${userQuery}"
-                    
-                    Available Tools:
-                    ${toolsDef.map(t => `- ${t.name}: ${t.description}`).join('\n')}
-                    
-                    Decide the SINGLE best tool to use first.
-                    If the user wants product recommendations, use 'rankProductsForSegment'.
-                    
-                    Return JSON: { "thought": string, "toolName": string, "args": object }
-                `;
-
-                const plan = await ai.generate({
-                    prompt: planPrompt,
-                    output: {
-                        schema: z.object({
-                            thought: z.string(),
-                            toolName: z.enum(['rankProductsForSegment', 'analyzeExperimentResults', 'delegateTask', 'lettaSaveFact', 'lettaAsk', 'null']),
-                            args: z.record(z.any())
-                        })
+                const { runMultiStepTask } = await import('./harness');
+                const result = await runMultiStepTask({
+                    userQuery,
+                    systemInstructions: agentMemory.system_instructions || '',
+                    toolsDef,
+                    tools: tools, // Harness injects 'tools'
+                    model: 'claude',
+                    maxIterations: 5,
+                    onStepComplete: async (step, toolName, res) => {
+                         // Optional: persist if needed, though harness logs usually cover it.
+                         // Keeping logic simple as Smokey usually logs via result.
+                         if (toolName === 'lettaSaveFact' && (tools as any).lettaSaveFact) {
+                             // Double log? Or just trust the tool?
+                             // Trust the tool side effects.
+                         }
                     }
-                });
-
-                const decision = plan.output;
-
-                if (!decision || decision.toolName === 'null') {
-                     // Fallback to simple chat
-                     return {
-                        updatedMemory: agentMemory,
-                        logEntry: {
-                            action: 'chat_response',
-                            result: decision?.thought || "I'm looking through the menu. What kind of effects are you looking for?",
-                            metadata: { thought: decision?.thought }
-                        }
-                    };
-                }
-
-                // 3. EXECUTE
-                let output: any = "Tool failed";
-                if (decision.toolName === 'rankProductsForSegment') {
-                    // Mock segment inference if not explicit
-                    const segment = decision.args.segmentId || 'general_exploration'; 
-                    output = await tools.rankProductsForSegment(segment, decision.args.products || []);
-                } else if (decision.toolName === 'analyzeExperimentResults') {
-                    output = await tools.analyzeExperimentResults(decision.args.experimentId, decision.args.data || []);
-                } else if (decision.toolName === 'delegateTask') {
-                    output = await tools.delegateTask(decision.args.personaId, decision.args.task, decision.args.context);
-                } else if (decision.toolName === 'lettaSaveFact') {
-                    output = await tools.lettaSaveFact(decision.args.fact, decision.args.category);
-                } else if (decision.toolName === 'lettaAsk') {
-                    output = await tools.lettaAsk(decision.args.question);
-                }
-
-                // 4. SYNTHESIZE
-                const final = await ai.generate({
-                    prompt: `
-                        User Request: "${userQuery}"
-                        Action Taken: ${decision.thought}
-                        Tool Output: ${JSON.stringify(output)}
-                        
-                        Respond to the user with the recommendation or insight in a friendly "Budtender" voice.
-                    `
                 });
 
                 return {
-                    updatedMemory: agentMemory,
-                    logEntry: {
-                        action: 'tool_execution',
-                        result: final.text,
-                        metadata: { tool: decision.toolName, output }
-                    }
+                     updatedMemory: agentMemory,
+                     logEntry: {
+                         action: 'task_completed',
+                         result: result.finalResult,
+                         metadata: { steps: result.steps }
+                     }
                 };
 
             } catch (e: any) {

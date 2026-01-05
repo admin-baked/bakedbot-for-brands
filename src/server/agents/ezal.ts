@@ -125,6 +125,7 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                 systemInstructions: agentMemory.system_instructions || '',
                 toolsDef,
                 tools,
+                model: 'googleai/gemini-3-pro-preview',
                 maxIterations: 5,
                 onStepComplete: async (step, toolName, result) => {
                     // Persist each step to Letta
