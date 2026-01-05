@@ -12,6 +12,11 @@ export interface SmokeyTools {
     analyzeExperimentResults(experimentId: string, data: any[]): Promise<{ winner: string; confidence: number }>;
     // Get recommendation ranking (Genkit powered for semantic matching)
     rankProductsForSegment(segmentId: string, products: any[]): Promise<string[]>;
+    // Delegate task to another agent
+    delegateTask(personaId: string, task: string, context?: any): Promise<any>;
+    // Memory tools
+    lettaSaveFact(fact: string, category?: string): Promise<any>;
+    lettaAsk(question: string): Promise<any>;
 }
 
 // --- Smokey Agent Implementation ---
@@ -32,12 +37,17 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
         
         agentMemory.system_instructions = `
             You are Smokey, the Digital Budtender & Product Expert.
-            Your job is to guide customers to the perfect product and optimize the menu.
+            You are also the **Front Desk Greeter**. If a user asks for something outside your expertise (like "Audit my competition", "Check compliance", "Draft email"), YOU MUST DELEGATE IT.
             
             CORE PRINCIPLES:
             1. **Empathy First**: Understand the "vibe" or medical need before recommending.
             2. **Strain Science**: Know your terps and cannabinoids.
             3. **Inventory Aware**: Don't recommend out-of-stock items.
+            4. **Team Player**: Delegate tasks to specialists:
+               - Market/Competition -> Ezal ('ezal')
+               - Compliance/Legal -> Deebo ('deebo')
+               - Marketing/Campaigns -> Craig ('craig')
+               - Analytics -> Pops ('pops')
             
             Tone: Friendly, knowledgeable, chill but professional.
         `;
@@ -96,6 +106,30 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                         experimentId: z.string(),
                         data: z.array(z.any()).optional()
                     })
+                },
+                {
+                    name: "delegateTask",
+                    description: "Delegate a task to a specialist agent (Ezal, Deebo, Craig, Pops).",
+                    schema: z.object({
+                        personaId: z.enum(['ezal', 'deebo', 'craig', 'pops', 'leo']),
+                        task: z.string().describe("The user's original request or specific subtask"),
+                        context: z.any().optional()
+                    })
+                },
+                {
+                    name: "lettaSaveFact",
+                    description: "Save a fact to long-term memory.",
+                    schema: z.object({
+                        fact: z.string(),
+                        category: z.string().optional()
+                    })
+                },
+                {
+                    name: "lettaAsk",
+                    description: "Ask long-term memory a question.",
+                    schema: z.object({
+                        question: z.string()
+                    })
                 }
             ];
 
@@ -120,7 +154,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                     output: {
                         schema: z.object({
                             thought: z.string(),
-                            toolName: z.enum(['rankProductsForSegment', 'analyzeExperimentResults', 'null']),
+                            toolName: z.enum(['rankProductsForSegment', 'analyzeExperimentResults', 'delegateTask', 'lettaSaveFact', 'lettaAsk', 'null']),
                             args: z.record(z.any())
                         })
                     }
@@ -148,6 +182,12 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                     output = await tools.rankProductsForSegment(segment, decision.args.products || []);
                 } else if (decision.toolName === 'analyzeExperimentResults') {
                     output = await tools.analyzeExperimentResults(decision.args.experimentId, decision.args.data || []);
+                } else if (decision.toolName === 'delegateTask') {
+                    output = await tools.delegateTask(decision.args.personaId, decision.args.task, decision.args.context);
+                } else if (decision.toolName === 'lettaSaveFact') {
+                    output = await tools.lettaSaveFact(decision.args.fact, decision.args.category);
+                } else if (decision.toolName === 'lettaAsk') {
+                    output = await tools.lettaAsk(decision.args.question);
                 }
 
                 // 4. SYNTHESIZE

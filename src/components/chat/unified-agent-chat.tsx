@@ -100,7 +100,7 @@ const PUBLIC_CONFIG: RoleChatConfig = {
     placeholder: 'Ask about BakedBot...',
     iconName: 'sparkles',
     themeColor: 'emerald',
-    agentPersona: 'leo',
+    agentPersona: 'smokey',
     promptSuggestions: [
         'Hire a Market Scout (audit my competition)',
         'Send Deebo (compliance check)',
