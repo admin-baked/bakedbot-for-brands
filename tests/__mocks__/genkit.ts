@@ -1,9 +1,6 @@
-
-import { jest } from '@jest/globals';
-
-export const ai = {
-  generate: jest.fn().mockResolvedValue({ text: 'Mock AI Response' }),
+export const ai = { 
+  generate: jest.fn().mockResolvedValue({ text: "mock response" }),
+  defineFlow: jest.fn(),
+  startFlow: jest.fn() 
 };
-
-export const defineTool = jest.fn();
-export const secureDefineTool = jest.fn();
+export const genkit = jest.fn();

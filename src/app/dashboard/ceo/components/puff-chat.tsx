@@ -753,7 +753,7 @@ export function PuffChat({
         
         // SPECIAL CASE: Market Scout needs location context
         // DISABLED: Refactored to use Real Agent
-        // if (trimmedInput.includes("Hire a Market Scout")) { ... }
+        if (trimmedInput.includes("Hire a Market Scout")) {
              const userMsgId = `user-${Date.now()}`;
              addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
              setInput(''); setAttachments([]); setIsProcessing(true);
@@ -1946,8 +1946,6 @@ export function PuffChat({
     </div>
     );
 }
-
-
 
 // --- Helper Components ---
 
