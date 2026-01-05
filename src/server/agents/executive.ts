@@ -18,6 +18,7 @@ export interface ExecutiveTools {
   
   // Digital Worker / Playbooks
   createPlaybook?(name: string, description: string, steps: any[], schedule?: string): Promise<any>;
+  use_mcp_tool?(serverName: string, toolName: string, args: any): Promise<any>;
 }
 
 /**
@@ -99,6 +100,15 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                     steps: z.array(z.any()), 
                     schedule: z.string().optional().describe("CRON string e.g. '0 9 * * *'")
                 })
+            },
+            {
+                name: "use_mcp_tool",
+                description: "Call an external tool provided by a connected Model Context Protocol (MCP) server.",
+                schema: z.object({
+                    serverName: z.string().describe("ID of the MCP server (e.g., 'filesystem', 'github')"),
+                    toolName: z.string(),
+                    args: z.record(z.any())
+                })
             }
         ];
 
@@ -155,6 +165,8 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                 output = await tools.rtrvrScrape(decision.args.url);
             } else if (decision.toolName === 'createPlaybook' && tools.createPlaybook) {
                 output = await tools.createPlaybook(decision.args.name, decision.args.description, decision.args.steps, decision.args.schedule);
+            } else if (decision.toolName === 'use_mcp_tool' && tools.use_mcp_tool) {
+                output = await tools.use_mcp_tool(decision.args.serverName, decision.args.toolName, decision.args.args);
             }
 
             // 4. SYNTHESIZE
