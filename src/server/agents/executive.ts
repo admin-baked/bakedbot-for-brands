@@ -109,94 +109,45 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                     toolName: z.string(),
                     args: z.record(z.any())
                 })
+            },
+            {
+                name: "lettaSaveFact",
+                description: "Save a strategic insight or directive to memory.",
+                schema: z.object({
+                    fact: z.string(),
+                    category: z.string().optional()
+                })
             }
         ];
 
         try {
-            // 2. PLAN
-            const planPrompt = `
-                ${agentMemory.system_instructions}
-                
-                USER REQUEST: "${userQuery}"
-                
-                Available Tools:
-                ${toolsDef.map(t => `- ${t.name}: ${t.description}`).join('\n')}
-                
-                Decide the SINGLE best tool to use first.
-                - Use 'delegateTask' if another agent is better suited.
-                - Use 'rtrvrAgent' for complex web interactions (e.g. 'Log in to LinkedIn and post this').
-                - Use 'rtrvrScrape' for reading a webpage.
-                
-                Return JSON: { "thought": string, "toolName": string, "args": object }
-            `;
-
-            // 2. CONTEXT CACHING
-            // We leverage the Gemini Context Cache for the heavy system instructions
-            const { contextCache } = await import('@/server/services/ai/context-cache');
-            const cacheName = await contextCache.getOrCreateCache(
-                `executive-${targetId}`, 
-                agentMemory.system_instructions || "Default Executive Instructions"
-            );
+            // === MULTI-STEP PLANNING ===
+            // Import the helper
+            const { runMultiStepTask } = await import('./harness');
             
-            // Note: Once Genkit fully supports 'cachedContent' param, we pass cacheName here.
-            // For now, this call ensures the cache is warm/exists for the underlying model.
-            
-            const plan = await ai.generate({
-                prompt: planPrompt,
-                output: {
-                    schema: z.object({
-                        thought: z.string(),
-                        toolName: z.enum(['generateSnapshot', 'delegateTask', 'rtrvrAgent', 'rtrvrScrape', 'createPlaybook', 'null']),
-                        args: z.record(z.any())
-                    })
-                }
-            });
-
-            const decision = plan.output;
-
-            if (!decision || decision.toolName === 'null') {
-                 return {
-                    updatedMemory: agentMemory,
-                    logEntry: {
-                        action: 'chat_response',
-                        result: decision?.thought || "I'm assessing the boardroom strategy. How can I assist?",
-                        metadata: { thought: decision?.thought }
+            const result = await runMultiStepTask({
+                userQuery,
+                systemInstructions: agentMemory.system_instructions || '',
+                toolsDef,
+                tools,
+                maxIterations: 5,
+                onStepComplete: async (step, toolName, result) => {
+                    // Persist each step to Letta
+                    if ((tools as any).lettaSaveFact) {
+                        await (tools as any).lettaSaveFact(
+                            `Executive Step ${step}: ${toolName} -> ${JSON.stringify(result).slice(0, 200)}`,
+                            'task_log'
+                        );
                     }
-                };
-            }
-
-            // 3. EXECUTE
-            let output: any = "Tool failed";
-            if (decision.toolName === 'generateSnapshot' && tools.generateSnapshot) {
-                output = await tools.generateSnapshot(decision.args.query, {});
-            } else if (decision.toolName === 'delegateTask' && tools.delegateTask) {
-                output = await tools.delegateTask(decision.args.personaId, decision.args.task);
-                output = await tools.rtrvrAgent(decision.args.prompt);
-            } else if (decision.toolName === 'rtrvrScrape' && tools.rtrvrScrape) {
-                output = await tools.rtrvrScrape(decision.args.url);
-            } else if (decision.toolName === 'createPlaybook' && tools.createPlaybook) {
-                output = await tools.createPlaybook(decision.args.name, decision.args.description, decision.args.steps, decision.args.schedule);
-            } else if (decision.toolName === 'use_mcp_tool' && tools.use_mcp_tool) {
-                output = await tools.use_mcp_tool(decision.args.serverName, decision.args.toolName, decision.args.args);
-            }
-
-            // 4. SYNTHESIZE
-            const final = await ai.generate({
-                prompt: `
-                    User Request: "${userQuery}"
-                    Action Taken: ${decision.thought}
-                    Tool Output: ${JSON.stringify(output)}
-                    
-                    Respond to the user as an Executive.
-                `
+                }
             });
 
             return {
                 updatedMemory: agentMemory,
                 logEntry: {
-                    action: 'tool_execution',
-                    result: final.text,
-                    metadata: { tool: decision.toolName, output }
+                    action: 'multi_step_execution',
+                    result: result.finalResult,
+                    metadata: { steps: result.steps.length, tools_used: result.steps.map(s => s.tool) }
                 }
             };
 

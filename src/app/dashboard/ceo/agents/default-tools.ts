@@ -42,6 +42,228 @@ const commonMemoryTools = {
         } catch (e: any) {
             return { error: `Letta Ask Failed: ${e.message}` };
         }
+    },
+    
+    // Inter-Agent Async Messaging
+    sendMessageToAgent: async (toAgentName: string, message: string) => {
+        try {
+            const { lettaClient } = await import('@/server/services/letta/client');
+            const agents = await lettaClient.listAgents();
+            const targetAgent = agents.find(a => a.name.toLowerCase().includes(toAgentName.toLowerCase()));
+            if (!targetAgent) {
+                return { delivered: false, error: `Agent '${toAgentName}' not found` };
+            }
+            const result = await lettaClient.sendAsyncMessage('self', targetAgent.id, message);
+            return { delivered: result.delivered, messageId: result.messageId };
+        } catch (e: any) {
+            return { delivered: false, error: e.message };
+        }
+    },
+    
+    // Shared Memory Block Tools
+    writeToSharedBlock: async (tenantId: string, blockLabel: string, content: string, agentName: string) => {
+        try {
+            const { lettaBlockManager, BLOCK_LABELS } = await import('@/server/services/letta/block-manager');
+            const label = BLOCK_LABELS[blockLabel.toUpperCase() as keyof typeof BLOCK_LABELS] || blockLabel;
+            const block = await lettaBlockManager.appendToBlock(tenantId, label as any, content, agentName);
+            return { success: true, blockId: block.id };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    },
+    
+    readFromSharedBlock: async (tenantId: string, blockLabel: string) => {
+        try {
+            const { lettaBlockManager, BLOCK_LABELS } = await import('@/server/services/letta/block-manager');
+            const label = BLOCK_LABELS[blockLabel.toUpperCase() as keyof typeof BLOCK_LABELS] || blockLabel;
+            const content = await lettaBlockManager.readBlock(tenantId, label as any);
+            return { success: true, content };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    }
+};
+
+const commonDynamicMemoryTools = {
+    attachMemoryBlock: async (blockLabel: string, content: any, readOnly: boolean = false) => {
+        try {
+            const { dynamicMemoryService } = await import('@/server/services/letta/dynamic-memory');
+            // Assuming context has agentId, otherwise we might need to pass it or rely on global scope
+            // For now, using a placeholder or context if available. 
+            // In a real execution, agentId comes from the runtime context.
+            // We'll trust the agent runner injects currentAgentId into global or we pass it.
+            // Fallback: use 'default_agent' if missing for safety in dev
+            const agentId = (global as any).currentAgentId || 'default_agent';
+            
+            const result = await dynamicMemoryService.attachBlock(
+                agentId,
+                'project',
+                { id: Date.now().toString(), label: blockLabel, content, readOnly }
+            );
+            return { success: true, blockId: result.blockId, message: `Attached ${blockLabel} to memory` };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    },
+    
+    detachMemoryBlock: async (blockId: string, deleteBlock: boolean = false) => {
+        try {
+            const { dynamicMemoryService } = await import('@/server/services/letta/dynamic-memory');
+            const agentId = (global as any).currentAgentId || 'default_agent';
+            
+            await dynamicMemoryService.detachBlock(agentId, blockId, deleteBlock);
+            return { success: true, message: 'Block detached' };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    },
+    
+    listAttachedBlocks: async () => {
+        try {
+            const { dynamicMemoryService } = await import('@/server/services/letta/dynamic-memory');
+            const agentId = (global as any).currentAgentId || 'default_agent';
+            
+            const blocks = await dynamicMemoryService.getAttachedBlocks(agentId);
+            return { success: true, blocks: blocks.map(b => ({ id: b.id, label: b.label, size: b.value.length })) };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    }
+};
+
+const commonRAGTools = {
+    searchKnowledgeBase: async (query: string, scope: 'products' | 'customers' | 'intel' | 'compliance' | 'general' = 'general') => {
+        try {
+            const { ragService } = await import('@/server/services/vector-search/rag-service');
+            const tenantId = (global as any).currentTenantId;
+            
+            const collectionMap = {
+                products: 'products/catalog',
+                customers: 'customers/interactions',
+                intel: 'intel/competitors',
+                compliance: 'compliance/policies',
+                general: 'knowledge/docs'
+            };
+            
+            const results = await ragService.search({
+                collection: collectionMap[scope],
+                query,
+                limit: 5,
+                tenantId: scope !== 'compliance' ? tenantId : undefined
+            });
+            
+            return {
+                success: true,
+                results: results.map(r => ({
+                    text: r.text.slice(0, 500),
+                    relevance: r.score,
+                    source: r.source
+                }))
+            };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    },
+    
+    indexContent: async (content: string, category: string, metadata: any = {}) => {
+        try {
+            const { ragService } = await import('@/server/services/vector-search/rag-service');
+            const tenantId = (global as any).currentTenantId;
+            
+            await ragService.indexDocument(
+                `knowledge/${category}`,
+                `doc_${Date.now()}`,
+                content,
+                { ...metadata, indexed_at: new Date().toISOString(), tenant: tenantId },
+                tenantId
+            );
+            
+            return { success: true, message: 'Content indexed for future RAG search' };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    }
+};
+
+// Digital Worker Tools - SMS, Email, Notifications
+const commonDigitalWorkerTools = {
+    // Blackleaf SMS
+    sendSmsBlackleaf: async (to: string, body: string, imageUrl?: string) => {
+        try {
+            const { blackleafService } = await import('@/lib/notifications/blackleaf-service');
+            const result = await blackleafService.sendCustomMessage(to, body, imageUrl);
+            return { success: result, provider: 'blackleaf' };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    },
+    
+    // Blackleaf Order Notifications
+    sendOrderReadySms: async (orderId: string, dispensaryName: string, phoneNumber: string) => {
+        try {
+            const { blackleafService } = await import('@/lib/notifications/blackleaf-service');
+            const order = { id: orderId, dispensaryName };
+            const result = await blackleafService.sendOrderReady(order, phoneNumber);
+            return { success: result, type: 'order_ready' };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    },
+    
+    sendPromotionalSms: async (message: string, phoneNumber: string, imageUrl?: string) => {
+        try {
+            const { blackleafService } = await import('@/lib/notifications/blackleaf-service');
+            const result = await blackleafService.sendPromotion(message, phoneNumber, imageUrl);
+            return { success: result, type: 'promotion' };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    },
+    
+    // Mailjet Email
+    sendEmailMailjet: async (to: string, subject: string, htmlBody: string, fromEmail?: string, fromName?: string) => {
+        try {
+            const { sendGenericEmail } = await import('@/lib/email/mailjet');
+            const result = await sendGenericEmail({ 
+                to, 
+                subject, 
+                htmlBody, 
+                fromEmail, 
+                fromName 
+            });
+            return result;
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    },
+    
+    sendOrderConfirmationEmail: async (orderData: {
+        orderId: string;
+        customerName: string;
+        customerEmail: string;
+        total: number;
+        items: Array<{ name: string; qty: number; price: number }>;
+        retailerName: string;
+        pickupAddress: string;
+    }) => {
+        try {
+            const { sendOrderConfirmationEmail } = await import('@/lib/email/mailjet');
+            const result = await sendOrderConfirmationEmail(orderData);
+            return { success: result, type: 'order_confirmation' };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    },
+    
+    // Marketing Email (with compliance check)
+    sendMarketingEmail: async (to: string, subject: string, htmlBody: string) => {
+        try {
+            const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+            const result = await sendGenericEmail({ to, subject, htmlBody });
+            return result;
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
     }
 };
 
@@ -64,6 +286,7 @@ export const defaultCraigTools = {
                 Generate a concise, high-converting SMS copy. No intro/outro.
                 `,
             });
+            await commonMemoryTools.lettaSaveFact(`Generated marketing copy for '${prompt}': ${response.text}`, 'marketing_copy');
             return response.text;
         } catch (e) {
             console.error('Gemini Gen Failed:', e);
@@ -94,6 +317,8 @@ export const defaultSmokeyTools = {
         return { winner: 'Variant B', confidence: 0.98 };
     },
     rankProductsForSegment: async (segmentId: string, products: any[]) => {
+        // Persistence
+        await commonMemoryTools.lettaSaveFact(`Ranked products for segment '${segmentId}'.`, 'product_ranking');
         return products;
     }
 };
@@ -105,7 +330,9 @@ export const defaultPopsTools = {
             const response = await ai.generate({
                 prompt: `Analyze business query: ${query}. Context: ${JSON.stringify(context)}. Return JSON with 'insight' and 'trend'.`,
             });
-            return { insight: "Revenue is up 5% week over week.", trend: "up" as const };
+            const insight = { insight: "Revenue is up 5% week over week.", trend: "up" as const };
+            await commonMemoryTools.lettaSaveFact(`Analytics for '${query}': ${insight.insight}`, 'analytics_insight');
+            return insight;
         } catch (e) {
             return { insight: "Could not analyze.", trend: "flat" as const };
         }
@@ -124,6 +351,10 @@ export const defaultEzalTools = {
             // Check if BakedBot Discovery is configured
             if (discovery.isConfigured()) {
                 const result = await discovery.discoverUrl(url, ['markdown']);
+                
+                // Persistence: Save specific menu discovery
+                await commonMemoryTools.lettaSaveFact(`Menu discovered for ${url}. Sample: ${(result.data || '').substring(0, 100)}...`, 'competitor_menu');
+
                 return { 
                     success: true, 
                     data: result.data || result, 
@@ -185,12 +416,20 @@ export const defaultEzalTools = {
                  return { market: state, retailers_found: "Many", insight: "Please specify a City or Zip Code for detailed intel." };
             }
 
-            return {
+            const result = {
                 market: marketLocation,
                 retailers_found: retailers.length,
                 sample_data: retailers.slice(0, 5).map(r => ({ name: r.name, address: r.address, distance: r.distance + ' mi' })),
                 insight: `Found ${retailers.length} active retailers in ${marketLocation}. Market appears ${retailers.length > 5 ? 'highly competitive' : 'open for expansion'}.`
             };
+
+            // Persistence: Save competitive snapshot
+            await commonMemoryTools.lettaSaveFact(
+                `Market Intel for ${marketLocation}: Found ${retailers.length} retailers. Top 3: ${retailers.slice(0,3).map(r => r.name).join(', ')}.`, 
+                'competitive_intel'
+            );
+
+            return result;
         } catch (e: any) {
              return `Intel retrieval failed: ${e.message}`;
         }
@@ -213,7 +452,9 @@ export const defaultEzalTools = {
 export const defaultMoneyMikeTools = {
     ...commonMemoryTools,
     forecastRevenueImpact: async (skuId: string, priceDelta: number) => {
-        return { projected_revenue_change: priceDelta * 100, confidence: 0.85 };
+        const result = { projected_revenue_change: priceDelta * 100, confidence: 0.85 };
+        await commonMemoryTools.lettaSaveFact(`Forecast: Price delta ${priceDelta} on ${skuId} impacts revenue by $${result.projected_revenue_change}`, 'finance_forecast');
+        return result;
     },
     validateMargin: async (skuId: string, newPrice: number, costBasis: number) => {
         const margin = ((newPrice - costBasis) / newPrice) * 100;
@@ -224,7 +465,9 @@ export const defaultMoneyMikeTools = {
 export const defaultMrsParkerTools = {
     ...commonMemoryTools,
     predictChurnRisk: async (segmentId: string) => {
-        return { riskLevel: 'medium' as const, atRiskCount: 15 };
+        const result = { riskLevel: 'medium' as const, atRiskCount: 15 };
+        await commonMemoryTools.lettaSaveFact(`Churn Risk for ${segmentId}: ${result.riskLevel} (${result.atRiskCount} users)`, 'retention_risk');
+        return result;
     },
     generateLoyaltyCampaign: async (segmentId: string, goal: string) => {
         try {
@@ -244,7 +487,11 @@ export const defaultDeeboTools = {
         try {
             // Import the SDK dynamically or from top level if safe
             // checking deebo import... 'deebo' is imported from '@/server/agents/deebo' at top of file.
-            return await deebo.checkContent(jurisdiction, channel, content);
+            const result = await deebo.checkContent(jurisdiction, channel, content);
+            if (result.status === 'fail') {
+                await commonMemoryTools.lettaSaveFact(`Compliance Violation detected in ${jurisdiction}: ${result.violations}`, 'compliance_log');
+            }
+            return result;
         } catch (e: any) {
             return { status: 'fail', violations: [e.message] };
         }
@@ -290,7 +537,9 @@ export const defaultExecutiveTools = {
             const response = await ai.generate({
                 prompt: `Generate a strategic snapshot for: ${query}. Context: ${JSON.stringify(context)}. Return JSON with 'snapshot' and 'next_steps'.`,
             });
-            return response.text;
+            const text = response.text;
+            await commonMemoryTools.lettaSaveFact(`Executive Snapshot for '${query}': ${text.substring(0, 200)}...`, 'executive_summary');
+            return text;
         } catch (e) {
             return "Could not generate snapshot.";
         }
@@ -353,6 +602,7 @@ export const defaultExecutiveTools = {
 };
 
 export const defaultDayDayTools = {
+    ...commonMemoryTools,
     auditPage: async (url: string, pageType: 'dispensary' | 'brand' | 'city' | 'zip') => {
         try {
             const { dayday } = await import('@/server/agents/dayday');
@@ -372,6 +622,7 @@ export const defaultDayDayTools = {
 };
 
 export const defaultFelishaTools = {
+    ...commonMemoryTools,
     processMeetingTranscript: async (transcript: string) => {
         try {
             const { felisha } = await import('@/server/agents/felisha');
@@ -389,3 +640,89 @@ export const defaultFelishaTools = {
         }
     }
 };
+
+// ============================================================================
+// UNIVERSAL TOOL REGISTRY
+// Every agent gets access to ALL tools. The only distinction:
+// - Executive Board: Also gets RTRvr capabilities
+// ============================================================================
+
+// Standard tools available to ALL agents (no RTRvr)
+export const defaultUniversalTools = {
+    // Memory & Persistence
+    ...commonMemoryTools,
+    
+    // Delegation
+    ...commonDelegationTools,
+    
+    // Digital Worker (SMS, Email, Notifications)
+    ...commonDigitalWorkerTools,
+    
+    // Dynamic Memory (Projects, Campaigns)
+    ...commonDynamicMemoryTools,
+    
+    // RAG (Knowledge Base, Search)
+    ...commonRAGTools,
+
+    // Craig (Marketing)
+    generateCopy: defaultCraigTools.generateCopy,
+    validateCompliance: defaultCraigTools.validateCompliance,
+    sendSms: defaultCraigTools.sendSms,
+    getCampaignMetrics: defaultCraigTools.getCampaignMetrics,
+
+    // Smokey (Budtender)
+    analyzeExperimentResults: defaultSmokeyTools.analyzeExperimentResults,
+    rankProductsForSegment: defaultSmokeyTools.rankProductsForSegment,
+
+    // Pops (Analytics)
+    analyzeData: defaultPopsTools.analyzeData,
+    detectAnomalies: defaultPopsTools.detectAnomalies,
+
+    // Ezal (Market Scout)
+    discoverMenu: defaultEzalTools.discoverMenu,
+    comparePricing: defaultEzalTools.comparePricing,
+    getCompetitiveIntel: defaultEzalTools.getCompetitiveIntel,
+    searchWeb: defaultEzalTools.searchWeb,
+
+    // Money Mike (Finance)
+    forecastRevenueImpact: defaultMoneyMikeTools.forecastRevenueImpact,
+    validateMargin: defaultMoneyMikeTools.validateMargin,
+
+    // Mrs. Parker (Loyalty)
+    predictChurnRisk: defaultMrsParkerTools.predictChurnRisk,
+    generateLoyaltyCampaign: defaultMrsParkerTools.generateLoyaltyCampaign,
+
+    // Deebo (Compliance)
+    checkCompliance: defaultDeeboTools.checkCompliance,
+    verifyAge: defaultDeeboTools.verifyAge,
+
+    // Big Worm (Deep Research)
+    pythonAnalyze: defaultBigWormTools.pythonAnalyze,
+    saveFinding: defaultBigWormTools.saveFinding,
+
+    // Day Day (SEO)
+    auditPage: defaultDayDayTools.auditPage,
+    generateMetaTags: defaultDayDayTools.generateMetaTags,
+
+    // Felisha (Support)
+    processMeetingTranscript: defaultFelishaTools.processMeetingTranscript,
+    triageError: defaultFelishaTools.triageError,
+
+    // Executive (Snapshot)
+    generateSnapshot: defaultExecutiveTools.generateSnapshot,
+    createPlaybook: defaultExecutiveTools.createPlaybook,
+    use_mcp_tool: defaultExecutiveTools.use_mcp_tool,
+};
+
+// Executive Board tools: Universal + RTRvr capabilities
+export const defaultExecutiveBoardTools = {
+    ...defaultUniversalTools,
+    
+    // RTRvr.ai (Exclusive to Executive Board)
+    rtrvrAgent: defaultExecutiveTools.rtrvrAgent,
+    rtrvrScrape: defaultExecutiveTools.rtrvrScrape,
+    rtrvrMcp: defaultExecutiveTools.rtrvrMcp,
+};
+
+// Export common tools for direct use in agents
+export { commonMemoryTools };

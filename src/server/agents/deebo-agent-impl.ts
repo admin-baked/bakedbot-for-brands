@@ -67,6 +67,14 @@ export const deeboAgent: AgentImplementation<DeeboMemory, DeeboTools> = {
                         dob: z.string().describe("YYYY-MM-DD"),
                         jurisdiction: z.string()
                     })
+                },
+                {
+                    name: "lettaSaveFact",
+                    description: "Save a compliance violation or legal precedent to memory.",
+                    schema: z.object({
+                        fact: z.string(),
+                        category: z.string().optional()
+                    })
                 }
             ];
 
@@ -90,7 +98,7 @@ export const deeboAgent: AgentImplementation<DeeboMemory, DeeboTools> = {
                     output: {
                         schema: z.object({
                             thought: z.string(),
-                            toolName: z.enum(['checkCompliance', 'verifyAge', 'null']),
+                            toolName: z.enum(['checkCompliance', 'verifyAge', 'lettaSaveFact', 'null']),
                             args: z.record(z.any())
                         })
                     }
@@ -119,6 +127,9 @@ export const deeboAgent: AgentImplementation<DeeboMemory, DeeboTools> = {
                     );
                 } else if (decision.toolName === 'verifyAge') {
                     output = await tools.verifyAge(decision.args.dob, decision.args.jurisdiction || 'WA');
+                } else if (decision.toolName === 'lettaSaveFact') {
+                    // @ts-ignore
+                    output = await (tools as any).lettaSaveFact(decision.args.fact, decision.args.category);
                 }
 
                 // 4. SYNTHESIZE

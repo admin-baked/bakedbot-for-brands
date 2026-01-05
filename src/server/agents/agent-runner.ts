@@ -11,6 +11,10 @@ import { moneyMikeAgent } from '@/server/agents/moneyMike';
 import { mrsParkerAgent } from '@/server/agents/mrsParker';
 import { dayday } from '@/server/agents/dayday';
 import { felisha } from '@/server/agents/felisha';
+import { executiveAgent } from '@/server/agents/executive';
+import { bigWormAgent } from '@/server/agents/bigworm';
+import { deeboAgent } from '@/server/agents/deebo/deebo-agent-impl';
+import { linusAgent } from '@/server/agents/linus';
 import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { httpRequest, HttpRequestOptions } from '@/server/tools/http-client';
 import { browserAction, BrowserActionParams } from '@/server/tools/browser';
@@ -80,6 +84,15 @@ const AGENT_MAP = {
     mrs_parker: mrsParkerAgent,
     day_day: dayday,
     felisha: felisha,
+    // Executive Boardroom
+    executive_base: executiveAgent,
+    leo: executiveAgent, // COO
+    jack: executiveAgent, // CRO
+    glenda: executiveAgent, // CMO
+    mike: executiveAgent, // CFO
+    linus: linusAgent, // CTO
+    deebo: deeboAgent, // Regulation Enforcement
+    bigworm: bigWormAgent,
 };
 
 // Tools Mocks (Simplified for Runner - ideally these would be in a shared 'tools-registry' file)
@@ -94,7 +107,12 @@ import {
     defaultMoneyMikeTools, 
     defaultMrsParkerTools,
     defaultDayDayTools,
-    defaultFelishaTools
+    defaultFelishaTools,
+    defaultExecutiveTools,
+    defaultBigWormTools,
+    defaultDeeboTools,
+    defaultUniversalTools,
+    defaultExecutiveBoardTools
 } from '@/app/dashboard/ceo/agents/default-tools';
 
 async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOverride?: string) {
@@ -104,14 +122,15 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
 
     // Tools setup
     let tools: any = {};
-    if (agentName === 'craig') tools = defaultCraigTools;
-    else if (agentName === 'smokey') tools = defaultSmokeyTools;
-    else if (agentName === 'pops') tools = defaultPopsTools;
-    else if (agentName === 'ezal') tools = defaultEzalTools;
-    else if (agentName === 'money_mike') tools = defaultMoneyMikeTools;
-    else if (agentName === 'mrs_parker') tools = defaultMrsParkerTools;
-    else if (agentName === 'day_day') tools = defaultDayDayTools;
-    else if (agentName === 'felisha') tools = defaultFelishaTools;
+    // Universal Tool Access: All agents get defaultUniversalTools
+    // Executive Board (leo, jack, glenda, mike, linus) get RTRVR access
+    const EXECUTIVE_BOARD = ['executive_base', 'leo', 'jack', 'glenda', 'mike', 'linus'];
+    
+    if (EXECUTIVE_BOARD.includes(agentName)) {
+        tools = defaultExecutiveBoardTools;
+    } else {
+        tools = defaultUniversalTools;
+    }
 
     // --- SKILL INJECTION ---
     const personaConfig = PERSONAS[agentName as AgentPersona];
@@ -270,63 +289,7 @@ export async function runAgentCore(
     let finalMessage = userMessage;
 
     // --- INTENTION OS (V2) ---
-    // Pre-flight check: specific vs ambiguous?
-    // We only run this for complex requests, but for now we run it for everything to test the loop.
-    if (!extraOptions?.attachments?.length) { // Skip if attachments are present (often implies context)
-        try {
-            const { analyzeIntent } = await import('@/server/agents/intention/analyzer');
-            await emitThought(jobId, 'Analyzing Intent', 'Determining semantic intent and ambiguity...');
-            
-            // Gather basic context for the analyzer
-            const { requireUser } = await import('@/server/auth/auth');
-            const user = injectedUser || await requireUser().catch(() => null);
-            const contextStr = user ? `User Role: ${user.role}, Brand: ${user.brandId || 'none'}` : 'Guest User';
-            
-            const analysis = await analyzeIntent(userMessage, contextStr);
-
-            if (analysis.isAmbiguous && analysis.clarification?.clarificationQuestion) {
-                // STOP: Ask Clarification
-                await emitThought(jobId, 'Ambiguity Detected', 'Requesting user clarification...');
-                return {
-                    content: `**Clarification Needed:** ${analysis.clarification.clarificationQuestion}\n\n*Possible Interpretations:*\n${analysis.clarification.possibleIntents.map(i => `- ${i}`).join('\n')}`,
-                    metadata: {
-                        type: 'session_context', // Or new 'clarification' type
-                        data: {
-                            isClarification: true,
-                            options: analysis.clarification.possibleIntents
-                        }
-                    },
-                    logs: ['Intention Analyzer: Ambiguity Detected', `Question: ${analysis.clarification.clarificationQuestion}`]
-                };
-            } else if (analysis.commit) {
-                // GO: Commit & Execute
-                await emitThought(jobId, 'Intent Committed', `Goal: ${analysis.commit.goal}`);
-                
-                // Save the commit to DB (Fire & Forget)
-                const { saveIntentCommit } = await import('@/server/agents/intention/storage');
-                const { requireUser } = await import('@/server/auth/auth');
-                const user = await requireUser().catch(() => ({ uid: 'system' })); // Fallback
-                
-                // Hydrate the commit with runtime IDs
-                const commit = {
-                    ...analysis.commit,
-                    id: crypto.randomUUID(),
-                    agentId: personaId || 'puff',
-                    timestamp: Date.now(),
-                    userQuery: userMessage,
-                    status: 'committed' as const
-                };
-                saveIntentCommit(injectedUser?.uid || user.uid, commit as any).catch(e => console.error('Failed to save commit', e));
-
-                // Inject Commit into Context
-                finalMessage = `[SEMANTIC COMMIT]\nGoal: ${commit.goal}\nPlan: ${JSON.stringify(commit.plan)}\nAssumptions: ${JSON.stringify(commit.assumptions)}\n\n[USER REQUEST]\n${userMessage}`;
-            }
-
-        } catch (e) {
-            console.warn('[runAgentCore] Intention Analyzer failed (Shadow Mode):', e);
-            // Fallback to normal execution
-        }
-    }
+    // DISABLED globally per user request.
     // -------------------------
 
     // Handle Attachments
