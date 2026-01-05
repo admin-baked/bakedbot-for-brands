@@ -37,7 +37,7 @@ export class DynamicMemoryService {
                 contentStr,
                 { 
                     limit: 8000, 
-                    read_only: blockData.readOnly || false 
+                    readOnly: blockData.readOnly || false 
                 }
             );
         } else {

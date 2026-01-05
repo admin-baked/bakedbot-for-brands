@@ -1,5 +1,5 @@
 
-import { db } from "@/firebase/server-client";
+import { createServerClient } from "@/firebase/server-client";
 import { generateEmbedding } from "@/ai/utils/generate-embedding";
 import { FieldValue } from "firebase-admin/firestore";
 
@@ -55,7 +55,8 @@ export const firestoreVectorSearch = {
   async index(options: IndexOptions) {
     const embedding = await generateEmbedding(options.content);
     
-    await db.collection(options.collection).doc(options.docId).set({
+    const { firestore } = await createServerClient();
+    await firestore.collection(options.collection).doc(options.docId).set({
       content: options.content,
       metadata: options.metadata || {},
       embedding: FieldValue.vector(embedding), // Support for Firestore native vector type if enabled
@@ -78,7 +79,8 @@ export const firestoreVectorSearch = {
     
     // Let's fetch documents from the collection. 
     // Optimization: Apply filters first to reduce set.
-    let query = db.collection(options.collection);
+    const { firestore } = await createServerClient();
+    let query = firestore.collection(options.collection);
     
     if (options.filters) {
       Object.entries(options.filters).forEach(([key, value]) => {
@@ -103,9 +105,9 @@ export const firestoreVectorSearch = {
         metadata: data.metadata || {},
         score
       };
-    }).filter(r => r !== null) as VectorSearchResult[];
+    }).filter((r): r is VectorSearchResult => r !== null);
 
     // Sort by score descending and take top K
-    return results.sort((a, b) => b.score - a.score).slice(0, options.limit || 5);
+    return results.sort((a: VectorSearchResult, b: VectorSearchResult) => b.score - a.score).slice(0, options.limit || 5);
   }
 };
