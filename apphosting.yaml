@@ -166,7 +166,7 @@ env:
     availability:
       - RUNTIME
   - variable: LETTA_API_KEY
-    secret: LETTA_API_KEY
+    secret: LETTA_API_KEY@1
     availability:
       - RUNTIME
 
