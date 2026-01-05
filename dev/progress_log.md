@@ -2593,3 +2593,21 @@ Refactored the 'Hire a Market Scout' demo to eliminate hallucinations by replaci
 ### Result:  Complete
 Market Scout now performs live discovery, and Agent Chat UI is cleaner and more informative. Code pushed to 'main'.
 
+
+## Session: Market Scout Filtering & Unit Tests
+### Task ID
+market_scout_filtering_tests
+
+### Summary
+Refined Market Scout search logic to filter out directory sites (Yelp, Weedmaps) and added comprehensive unit tests to ensure reliability.
+
+### Key Changes
+*   **MOD**: 'src/app/dashboard/intelligence/actions/demo-setup.ts' - Added filter to remove directory sites from search results.
+*   **NEW**: 'tests/app/dashboard/intelligence/actions/demo-setup.test.ts' - Added 4 unit tests verifying search, filtering, and enrichment logic.
+
+### Tests Run
+*   'npm test tests/app/dashboard/intelligence/actions/demo-setup.test.ts' (4/4 Passed )
+
+### Result:  Complete
+Market Scout logic is now resilient and verified. Code pushed to 'main'.
+
