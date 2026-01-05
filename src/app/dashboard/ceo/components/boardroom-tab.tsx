@@ -167,9 +167,8 @@ export default function BoardroomTab() {
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1 p-0 overflow-hidden relative">
-                        }>
-                            <DiscoveryBrowserStatus />
-                            <PuffChat 
+                        <DiscoveryBrowserStatus />
+                        <PuffChat 
                                 persona={selectedAgent as any}
                                 hideHeader={true}
                                 className="h-full border-0 shadow-none"
