@@ -137,6 +137,21 @@ We systematically improve tools in 5 layers. **"Measure. Version. Learn."**
 | **Universal Delegation** | `agent.delegate` (All core agents can spawn sub-tasks) |
 | **Broadcasting** | `agent.broadcast` (Multi-channel Slack/Email updates) |
 
+## 16. The "Plan & Execute" Mandate (Architecture V3)
+**Requirement**: All core agents MUST implement an LLM-driven "Planner/Executor/Synthesizer" loop for user requests.
+**Goal**: Move from rigid functional logic to dynamic, context-aware problem solving.
+
+### The Agent Loop Protocol:
+1.  **Orient**: Detect `user_request`.
+2.  **Define Tools**: Instantiate Zod-schema tools relevant to the request.
+3.  **Plan**: Use `ai.generate` to select the *single best tool* (or sequence) based on the user's intent and agent's system instructions.
+4.  **Execute**: Run the selected tool logic (or fallback).
+5.  **Synthesize**: Use `ai.generate` to craft a persona-matched response using the tool output.
+
+### Hardcoded Interactions:
+*   **Prohibited**: Hardcoded string matching for complex tasks ("If user says X, return Y").
+*   **Allowed**: Only for high-speed, zero-cost routing or safety overrides (e.g. emergency stop).
+
 ---
 
 ## 📋 Critical Protocols

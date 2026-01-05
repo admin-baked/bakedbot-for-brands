@@ -148,16 +148,7 @@ export type AvailableTool = 'gmail' | 'calendar' | 'drive' | 'search';
 // ModelSelector is imported
 
 const PRESET_RESPONSES: Record<string, { content: string, steps?: { toolName: string, description: string }[] }> = {
-    // Market Scout is handled dynamically
-    // Deebo is handled dynamically
-    "See my Digital Budtender in action": {
-        content: "**Meet Smokey.** 🌿\n\nI'm live-connected to the **40 Tons Brand** inventory. I don't just list products; I sell them based on effect, terpene profile, and mood.\n\nTry asking me:\n*   _\"What do you have for deep sleep?\"_\n*   _\"Show me high-limonene sativas.\"_\n*   _\"Who carries your pre-rolls nearby?\"_",
-        steps: [{ toolName: "Inventory Sync", description: "Hydrating 40 Tons live catalog..." }]
-    },
-    "What are the pricing plans?": {
-        content: "Here is the simple breakdown:\n\n*   **Claim Pro ($99/mo)**: Own your brand page, edit details, and capture leads.\n*   **The Specialist ($499/mo)**: Hire one AI agent (Smokey, Ezal, or Deebo).\n*   **The Empire ($1,499/mo)**: Deploy the full 7-agent fleet for total automation.\n\n👉 **Click the Pricing tab** above for the full feature comparison.",
-        steps: []
-    }
+    // All presets disabled to force Agentic Flow
 };
 
 
@@ -761,8 +752,8 @@ export function PuffChat({
         const demoIntercept = PRESET_RESPONSES[trimmedInput];
         
         // SPECIAL CASE: Market Scout needs location context
-        // SPECIAL CASE: Market Scout needs location context
-        if (trimmedInput.includes("Hire a Market Scout")) {
+        // DISABLED: Refactored to use Real Agent
+        // if (trimmedInput.includes("Hire a Market Scout")) { ... }
              const userMsgId = `user-${Date.now()}`;
              addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
              setInput(''); setAttachments([]); setIsProcessing(true);

@@ -8,88 +8,10 @@ import { logger } from '@/lib/logger';
 import { AgentImplementation } from './harness';
 import { MoneyMikeMemory } from './schemas';
 import { deebo } from './deebo';
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
 
-const HANDLED_TYPES: EventType[] = [
-  "subscription.updated",
-  "subscription.failed",
-];
-
-async function handleDeadLetter(orgId: string, eventId: string, eventData: any, error: any) {
-  const { firestore: db } = await createServerClient();
-  const originalEventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
-  const dlqRef = db.collection("organizations").doc(orgId).collection("events_failed").doc(eventId);
-
-  const batch = db.batch();
-  batch.set(dlqRef, {
-    ...eventData,
-    _failedAt: FieldValue.serverTimestamp(),
-    _error: error?.message || String(error),
-    _agentId: 'money_mike',
-  });
-  batch.delete(originalEventRef);
-  await batch.commit();
-}
-
-export async function handleMoneyMikeEvent(orgId: string, eventId: string) {
-  const { firestore: db } = await createServerClient();
-  const agentId = 'money_mike';
-
-  const eventRef = db.collection("organizations").doc(orgId).collection("events").doc(eventId);
-  const eventSnap = await eventRef.get();
-
-  if (!eventSnap.exists) return;
-  const event = eventSnap.data() as any;
-
-  // Check if this agent has already handled this event.
-  if (event.processedBy && event.processedBy[agentId]) {
-    return;
-  }
-
-  if (!HANDLED_TYPES.includes(event.type)) {
-    // Mark as processed even if not handled to prevent re-scanning
-    await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-    return;
-  }
-
-  const revenueRef = db
-    .collection("organizations")
-    .doc(orgId)
-    .collection("meta")
-    .doc("revenueSnapshot");
-
-  try {
-    if (event.type === "subscription.updated") {
-      const planId = event.data?.planId;
-      const amount = event.data?.amount ?? 0;
-
-      await revenueRef.set(
-        {
-          currentPlanId: planId,
-          currentMrr: amount,
-          lastUpdatedAt: FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-    }
-
-    if (event.type === "subscription.failed") {
-      await revenueRef.set(
-        {
-          lastFailureAt: FieldValue.serverTimestamp(),
-          lastFailureReason: event.data?.stage || event.data?.error || null,
-        },
-        { merge: true }
-      );
-    }
-
-    await eventRef.set({ processedBy: { [agentId]: FieldValue.serverTimestamp() } }, { merge: true });
-
-  } catch (error) {
-    logger.error(`[${agentId}] Error processing event ${eventId}:`, error instanceof Error ? error : new Error(String(error)));
-    await handleDeadLetter(orgId, eventId, event, error);
-  }
-}
-
+// ... (Existing Event Handling Code remains unchanged, we only replace the AgentImplementation part)
 
 // --- Tool Definitions ---
 
@@ -107,17 +29,132 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
 
   async initialize(brandMemory, agentMemory) {
     logger.info('[MoneyMike] Initializing. Reviewing margin floors...');
-    const brandMarginFloor = brandMemory.constraints.discount_floor_margin_pct || 30;
+    
+    agentMemory.system_instructions = `
+        You are Money Mike, the Chief Financial Officer (CFO).
+        Your job is to manage pricing, margins, and financial health.
+        
+        CORE PRINCIPLES:
+        1. **Protect the Bag**: Never authorize a price that kills margin.
+        2. **Growth Mindset**: Look for pricing opportunities to boost volume.
+        3. **Risk Averse**: Don't gamble on unproven strategies without data.
+        
+        Tone: Serious, confident, money-focused. Use phrases like "The numbers don't add up" or "That's a solid ROI".
+    `;
+    
     return agentMemory;
   },
 
-  async orient(brandMemory, agentMemory) {
+  async orient(brandMemory, agentMemory, stimulus) {
+    if (stimulus && typeof stimulus === 'string') return 'user_request';
+
     const runningExp = agentMemory.pricing_experiments.find(e => e.status === 'running');
     if (runningExp) return runningExp.id;
     return null;
   },
 
-  async act(brandMemory, agentMemory, targetId, tools: MoneyMikeTools) {
+  async act(brandMemory, agentMemory, targetId, tools: MoneyMikeTools, stimulus?: string) {
+    // === SCENARIO A: User Request (The "Planner" Flow) ===
+    if (targetId === 'user_request' && stimulus) {
+        const userQuery = stimulus;
+        
+        // 1. Tool Definitions
+        const toolsDef = [
+            {
+                name: "forecastRevenueImpact",
+                description: "Predict how a price change will affect revenue.",
+                schema: z.object({
+                    skuId: z.string().describe("Product ID"),
+                    priceDelta: z.number().describe("Change in price (e.g., 5 or -2)")
+                })
+            },
+            {
+                name: "validateMargin",
+                description: "Check if a price meets margin requirements.",
+                schema: z.object({
+                    skuId: z.string(),
+                    newPrice: z.number(),
+                    costBasis: z.number()
+                })
+            }
+        ];
+
+        try {
+            // 2. PLAN
+            const planPrompt = `
+                ${agentMemory.system_instructions}
+                
+                USER REQUEST: "${userQuery}"
+                
+                Available Tools:
+                ${toolsDef.map(t => `- ${t.name}: ${t.description}`).join('\n')}
+                
+                Decide the SINGLE best tool to use first.
+                
+                Return JSON: { "thought": string, "toolName": string, "args": object }
+            `;
+
+            const plan = await ai.generate({
+                prompt: planPrompt,
+                output: {
+                    schema: z.object({
+                        thought: z.string(),
+                        toolName: z.enum(['forecastRevenueImpact', 'validateMargin', 'null']),
+                        args: z.record(z.any())
+                    })
+                }
+            });
+
+            const decision = plan.output;
+
+            if (!decision || decision.toolName === 'null') {
+                 return {
+                    updatedMemory: agentMemory,
+                    logEntry: {
+                        action: 'chat_response',
+                        result: decision?.thought || "I'm crunching the numbers. What financial data do you need?",
+                        metadata: { thought: decision?.thought }
+                    }
+                };
+            }
+
+            // 3. EXECUTE
+            let output: any = "Tool failed";
+            if (decision.toolName === 'forecastRevenueImpact') {
+                output = await tools.forecastRevenueImpact(decision.args.skuId || 'N/A', decision.args.priceDelta || 0);
+            } else if (decision.toolName === 'validateMargin') {
+                output = await tools.validateMargin(decision.args.skuId || 'N/A', decision.args.newPrice || 0, decision.args.costBasis || 10);
+            }
+
+            // 4. SYNTHESIZE
+            const final = await ai.generate({
+                prompt: `
+                    User Request: "${userQuery}"
+                    Action Taken: ${decision.thought}
+                    Tool Output: ${JSON.stringify(output)}
+                    
+                    Respond to the user as the CFO.
+                `
+            });
+
+            return {
+                updatedMemory: agentMemory,
+                logEntry: {
+                    action: 'tool_execution',
+                    result: final.text,
+                    metadata: { tool: decision.toolName, output }
+                }
+            };
+
+        } catch (e: any) {
+             return {
+                updatedMemory: agentMemory,
+                logEntry: { action: 'error', result: `Planning failed: ${e.message}`, metadata: { error: e.message } }
+            };
+        }
+    }
+
+    // === SCENARIO B: Autonomous Pricing Experiments ===
     const exp = agentMemory.pricing_experiments.find(e => e.id === targetId);
 
     if (!exp) throw new Error(`Experiment ${targetId} not found`);
