@@ -13,68 +13,58 @@ import { getZipCodeCoordinates } from '@/server/services/geo-discovery';
 // ============================================================
 // SMOKEY: Digital Budtender Demo (Product Recommendations)
 // ============================================================
+// ============================================================
+// SMOKEY: Digital Budtender Demo (Product Recommendations)
+// ============================================================
 export async function getDemoProductRecommendations(locationOrQuery: string) {
     try {
-        const service = new CannMenusService();
+        // Use 40 Tons Demo Data directly
+        const { demoProducts } = await import('@/lib/demo/demo-data');
         
-        // Try to interpret as ZIP for geo-based results
-        const isZip = /^\d{5}$/.test(locationOrQuery);
-        let coords = null;
+        // Filter for 40 Tons products (though all currently are)
+        const fortyTonsProducts = demoProducts.filter(p => p.name.includes('40 Tons'));
         
-        if (isZip) {
-            coords = await getZipCodeCoordinates(locationOrQuery);
+        // Simple "AI" recommendation logic - just shuffle or filter if query matches
+        const queryLower = locationOrQuery.toLowerCase();
+        let recommended = fortyTonsProducts;
+
+        if (queryLower.includes('sleep') || queryLower.includes('relax')) {
+             recommended = fortyTonsProducts.filter(p => 
+                p.category === 'Indica' || p.name.includes('Indica') || p.description.toLowerCase().includes('sleep') || p.description.toLowerCase().includes('relax')
+             );
+        } else if (queryLower.includes('focus') || queryLower.includes('energy') || queryLower.includes('sativa')) {
+             recommended = fortyTonsProducts.filter(p => 
+                p.category === 'Sativa' || p.name.includes('Sativa') || p.description.toLowerCase().includes('energy')
+             );
         }
 
-        // Get products from CannMenus
-        // Note: This is a simplified demo; real implementation would use user's dispensary inventory
-        const searchResult = await service.searchProducts({
-            search: isZip ? '' : locationOrQuery,
-            limit: 6
-        });
-        const products = searchResult.products || [];
-
-        if (products.length === 0) {
-            // Fallback: Generate AI recommendations
-            const response = await ai.generate({
-                prompt: `As a budtender, recommend 3 cannabis products for someone looking for: "${locationOrQuery}". 
-                Format as JSON array with objects having: name, type (Indica/Sativa/Hybrid), effects, description.`
-            });
-            
-            try {
-                const parsed = JSON.parse(response.text);
-                return {
-                    success: true,
-                    products: parsed,
-                    source: 'ai_generated'
-                };
-            } catch {
-                return {
-                    success: true,
-                    products: [
-                        { name: "Blue Dream", type: "Hybrid", effects: "Uplifting, Creative", thc: "22%", description: "Great for daytime creativity" },
-                        { name: "Granddaddy Purple", type: "Indica", effects: "Relaxing, Sleepy", thc: "20%", description: "Perfect for evening wind-down" },
-                        { name: "Jack Herer", type: "Sativa", effects: "Focused, Energetic", thc: "19%", description: "Clear-headed focus" }
-                    ],
-                    source: 'fallback'
-                };
-            }
-        }
+        // If filter was too aggressive, fall back to all
+        if (recommended.length === 0) recommended = fortyTonsProducts;
 
         return {
             success: true,
-            products: products.slice(0, 6).map((p: any) => ({
+            products: recommended.slice(0, 4).map((p: any) => ({
                 name: p.name,
-                type: p.category || p.type || 'Hybrid',
-                effects: p.effects || 'Balanced',
-                thc: p.thc || 'Varies',
-                price: p.price ? `$${p.price}` : 'Market price',
-                description: p.description || 'Quality cannabis product'
+                type: p.category,
+                effects: p.description.includes('relax') ? 'Relaxing' : (p.description.includes('energy') ? 'Energetic' : 'Balanced'),
+                thc: '18-24%', // Demo data doesn't have THC %, adding mock range
+                price: `$${p.price}`,
+                description: p.description
             })),
-            source: 'cannmenus'
+            source: 'demo_data'
         };
     } catch (e: any) {
         console.error('[Demo] Product recommendations failed:', e);
-        return { success: false, error: e.message };
+        // Fallback to static 40 Tons data if import fails
+        return { 
+            success: true, 
+            products: [
+                { name: "40 Tons Gorilla Glue #4", type: "Flower", effects: "Relaxing", thc: "24%", price: "$45.00" },
+                { name: "40 Tons Runtz Vape", type: "Vape", effects: "Balanced", thc: "85%", price: "$50.00" },
+                { name: "40 Tons Cookies", type: "Edible", effects: "Calm", thc: "10mg/unit", price: "$25.00" }
+            ], 
+            source: 'fallback' 
+        };
     }
 }
 
