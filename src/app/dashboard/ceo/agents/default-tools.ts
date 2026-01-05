@@ -235,10 +235,6 @@ export const defaultExecutiveTools = {
         return await runAgentChat(`DELEGATED TASK: ${task}`, personaId as any, { modelLevel: 'advanced' });
     },
     // --- RTRvr.ai Capabilities ---
-    rtrvrAgent: async (prompt: string, options?: any) => {
-        try {
-            const { getRTRVRClient } = await import('@/server/services/rtrvr/client');
-            const client = getRTRVRClient();
     rtrvrAgent: async (message: string, sessionId?: string) => {
         try {
             const { getRTRVRClient } = await import('@/server/services/rtrvr');
