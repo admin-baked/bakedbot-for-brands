@@ -279,6 +279,19 @@ export const defaultExecutiveTools = {
             return { success: false, error: e.message };
         }
     },
+    use_mcp_tool: async (serverName: string, toolName: string, args: any) => {
+        try {
+            const { getMcpClient } = await import('@/server/services/mcp/client');
+            const client = getMcpClient(serverName);
+            if (!client) {
+                return { success: false, error: `MCP Server '${serverName}' not found or not connected.` };
+            }
+            const result = await client.callTool(toolName, args);
+            return { success: true, result };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    }
 };
 
 export const defaultDayDayTools = {
