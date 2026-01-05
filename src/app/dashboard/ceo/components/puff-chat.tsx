@@ -811,23 +811,31 @@ export function PuffChat({
                      if (enrichedComp) {
                          insight = `**Deep Dive on ${enrichedComp.name}**: ${enrichedComp.enrichmentSummary}`;
                      } else {
-                         const premium = competitors.find((c:any) => c.pricingStrategy.includes('Premium'));
+                         const premium = competitors.find((c:any) => c.pricingStrategy?.includes('Premium'));
                          if (premium) insight = `**${premium.name}** is pricing at a premium.`;
                      }
 
-                     const reportContent = `**Market Intelligence Report: ${result.location}**\n\n` +
-                        `I've identified **${count} dispensaries** in ${result.location}. Data verified via live crawl.\n\n` +
+                     const reportContent = `**🔍 Market Intelligence Report: ${result.location}**\n\n` +
+                        `I've identified **${count} dispensaries** in ${result.location}. Intel gathered via **BakedBot Discovery**.\n\n` +
                         `| Competitor | Pricing Strategy | Menu Size | Risk Score |\n` +
                         `| :--- | :--- | :--- | :--- |\n` +
                         tableRows + 
-                        `\n\n**Actionable Insight**: ${insight}\n\n_Recommendation: Launch a "New Customer" bundle to counter ${enrichedComp ? enrichedComp.name : 'competitors'}._`;
+                        `\n\n**Actionable Insight**: ${insight}\n\n` +
+                        `---\n\n` +
+                        `### 🚀 Want Daily Competitive Intel?\n\n` +
+                        `Create a **Free Account** and launch the **Daily Competitive Intelligence Report** playbook. Get automated alerts when competitors change pricing or run promotions.\n\n` +
+                        `**Playbook: Daily Competitive Intel**\n` +
+                        `- ✅ Monitor ${count}+ competitors automatically\n` +
+                        `- ✅ Daily pricing change alerts\n` +
+                        `- ✅ Weekly market summary report\n\n` +
+                        `[**Create Free Account →**](/claim)`;
 
                      updateMessage(thinkingId, {
                          content: reportContent,
                          thinking: { isThinking: false, steps: [
                              { id: step1Id, toolName: "Active Recon", description: `Found ${count} locations`, status: 'completed' },
-                             { id: 'scan', toolName: "Menu Crawler", description: `Audited ${enrichedComp?.name || 'competitors'}`, status: 'completed' },
-                             { id: 'done', toolName: "Analysis", description: "Risk report generated", status: 'completed' }
+                             { id: 'scan', toolName: "BakedBot Discovery", description: `Analyzed ${enrichedComp?.name || 'competitors'}`, status: 'completed' },
+                             { id: 'done', toolName: "Intel Report", description: "Risk analysis complete", status: 'completed' }
                          ], plan: [] }
                      });
                  } else {
@@ -1224,23 +1232,31 @@ export function PuffChat({
                  if (enrichedComp) {
                      insight = `**Deep Dive on ${enrichedComp.name}**: ${enrichedComp.enrichmentSummary}`;
                  } else {
-                     const premium = competitors.find((c:any) => c.pricingStrategy.includes('Premium'));
+                     const premium = competitors.find((c:any) => c.pricingStrategy?.includes('Premium'));
                      if (premium) insight = `**${premium.name}** is pricing at a premium.`;
                  }
 
-                 const reportContent = `**Market Intelligence Report: ${result.location}**\n\n` +
-                    `I've identified **${count} dispensaries** in ${result.location}. Data verified via live crawl.\n\n` +
+                 const reportContent = `**🔍 Market Intelligence Report: ${result.location}**\n\n` +
+                    `I've identified **${count} dispensaries** in ${result.location}. Intel gathered via **BakedBot Discovery**.\n\n` +
                     `| Competitor | Pricing Strategy | Menu Size | Risk Score |\n` +
                     `| :--- | :--- | :--- | :--- |\n` +
                     tableRows + 
-                    `\n\n**Actionable Insight**: ${insight}\n\n_Recommendation: Launch a "New Customer" bundle to counter ${enrichedComp ? enrichedComp.name : 'competitors'}._`;
+                    `\n\n**Actionable Insight**: ${insight}\n\n` +
+                    `---\n\n` +
+                    `### 🚀 Want Daily Competitive Intel?\n\n` +
+                    `Create a **Free Account** and launch the **Daily Competitive Intelligence Report** playbook. Get automated alerts when competitors change pricing or run promotions.\n\n` +
+                    `**Playbook: Daily Competitive Intel**\n` +
+                    `- ✅ Monitor ${count}+ competitors automatically\n` +
+                    `- ✅ Daily pricing change alerts\n` +
+                    `- ✅ Weekly market summary report\n\n` +
+                    `[**Create Free Account →**](/claim)`;
 
                  updateMessage(thinkingId, {
                      content: reportContent,
                      thinking: { isThinking: false, steps: [
                          { id: step1Id, toolName: "Active Recon", description: `Found ${count} locations`, status: 'completed' },
-                         { id: 'scan', toolName: "Menu Crawler", description: `Audited ${enrichedComp?.name || 'competitors'}`, status: 'completed' },
-                         { id: 'done', toolName: "Analysis", description: "Risk report generated", status: 'completed' }
+                         { id: 'scan', toolName: "BakedBot Discovery", description: `Analyzed ${enrichedComp?.name || 'competitors'}`, status: 'completed' },
+                         { id: 'done', toolName: "Intel Report", description: "Risk analysis complete", status: 'completed' }
                      ], plan: [] }
                  });
              } else {
