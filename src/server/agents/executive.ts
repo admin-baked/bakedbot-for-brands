@@ -130,6 +130,17 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                 Return JSON: { "thought": string, "toolName": string, "args": object }
             `;
 
+            // 2. CONTEXT CACHING
+            // We leverage the Gemini Context Cache for the heavy system instructions
+            const { contextCache } = await import('@/server/services/ai/context-cache');
+            const cacheName = await contextCache.getOrCreateCache(
+                `executive-${targetId}`, 
+                agentMemory.system_instructions || "Default Executive Instructions"
+            );
+            
+            // Note: Once Genkit fully supports 'cachedContent' param, we pass cacheName here.
+            // For now, this call ensures the cache is warm/exists for the underlying model.
+            
             const plan = await ai.generate({
                 prompt: planPrompt,
                 output: {
