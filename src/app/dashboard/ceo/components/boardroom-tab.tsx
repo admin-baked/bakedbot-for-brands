@@ -74,20 +74,21 @@ export default function BoardroomTab() {
         <div className="flex flex-col gap-6 animate-in fade-in duration-500">
             {/* Roundtable Header */}
             <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight">Executive Boardroom</h2>
-                        <p className="text-muted-foreground flex items-center gap-2 mt-0.5">
-                            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1 animate-pulse">
+                        <p className="text-muted-foreground flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-0.5">
+                            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1 animate-pulse w-fit">
                                 <Zap className="h-3 w-3 fill-primary" />
                                 Roundtable Active
                             </Badge>
-                            • Collaborative alignment for $100k MRR target (Jan 2027)
+                            <span className="hidden sm:inline">•</span>
+                            <span className="text-sm sm:text-base">Collaborative alignment for $100k MRR target (Jan 2027)</span>
                         </p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
                     {EXECUTIVE_TEAM.map((agent) => (
                         <Card 
                             key={agent.id}
@@ -97,9 +98,9 @@ export default function BoardroomTab() {
                             )}
                             onClick={() => setSelectedAgent(agent.id)}
                         >
-                            <CardContent className="flex flex-col items-center justify-center p-4 gap-3">
-                                <div className={cn("p-3 rounded-full shadow-inner", agent.color)}>
-                                    <agent.icon className="h-6 w-6" />
+                            <CardContent className="flex flex-col items-center justify-center p-3 sm:p-4 gap-2 sm:gap-3">
+                                <div className={cn("p-2 sm:p-3 rounded-full shadow-inner", agent.color)}>
+                                    <agent.icon className="h-5 w-5 sm:h-6 sm:w-6" />
                                 </div>
                                 <div className="text-center">
                                     <p className="font-bold text-sm leading-tight">{agent.name}</p>
