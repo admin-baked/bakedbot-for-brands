@@ -29,7 +29,21 @@ export async function searchDemoRetailers(zip: string) {
         
         // 2. Map Results to our standardized format
         // Firecrawl search returns { title, url, description, ... }
-        let mapped = searchResults.slice(0, 8).map((r: any, idx: number) => {
+        
+        // FILTER: Remove directories and "Best of" lists
+        const directories = ['yelp', 'weedmaps', 'leafly', 'potguide', 'yellowpages', 'tripadvisor', 'thc', 'dispensaries.com', 'wikipedia', 'mapquest'];
+        
+        let mapped = searchResults
+            .filter((r: any) => {
+                const lower = (r.title + r.url + r.description).toLowerCase();
+                const isDirectory = directories.some(d => lower.includes(d));
+                const isBestOfList = lower.includes('best dispensaries') || lower.includes('top 10') || lower.includes('top 20');
+                
+                // If it's a directory, skip it UNLESS it looks like a specific menu page (rare for search results, but safe to excl)
+                return !isDirectory && !isBestOfList;
+            })
+            .slice(0, 8)
+            .map((r: any, idx: number) => {
              return {
                 name: r.title || `Dispensary ${idx + 1}`,
                 address: r.description || 'Address not listed', // Search often puts address in snippet

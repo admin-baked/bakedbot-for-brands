@@ -21,7 +21,7 @@ export default function SuperAdminAgentChat() {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
             {/* CENTER - PuffChat (Expanded) */}
-            <div className="lg:col-span-5 h-[600px]">
+            <div className="lg:col-span-5 h-[calc(100dvh-220px)] lg:h-[800px] min-h-[400px]">
                 <UnifiedAgentChat
                     key={chatKey}
                     role="super_admin"
