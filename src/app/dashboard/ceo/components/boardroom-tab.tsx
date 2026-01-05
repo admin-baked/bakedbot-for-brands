@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils';
 import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
 import { DiscoveryBrowserStatus } from '@/app/dashboard/ceo/components/discovery-browser-status';
 import { useUser } from '@/firebase/auth/use-user';
+import { getPlatformAnalytics, type PlatformAnalyticsData } from '../actions';
+import { useEffect } from 'react';
 
 // Mock KPI Widgets
 function BoardroomWidget({ title, value, subtext, icon: Icon, trend, color }: any) {
@@ -57,6 +59,16 @@ const EXECUTIVE_TEAM = [
 export default function BoardroomTab() {
     const { user } = useUser();
     const [selectedAgent, setSelectedAgent] = useState('leo');
+    const [analytics, setAnalytics] = useState<PlatformAnalyticsData | null>(null);
+
+    useEffect(() => {
+        getPlatformAnalytics().then(setAnalytics).catch(console.error);
+    }, []);
+
+    const mrr = analytics?.revenue.mrr || 0;
+    const leads = analytics?.signups.total || 0;
+    const activeUsers = analytics?.activeUsers.monthly || 0;
+    const goalPct = (mrr / 100000) * 100;
 
     return (
         <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -104,8 +116,8 @@ export default function BoardroomTab() {
                 <div className="lg:col-span-4 grid grid-cols-1 gap-4">
                     <BoardroomWidget 
                         title="Revenue Growth (MRR)" 
-                        value="$34,250" 
-                        subtext="34.25% of $100k Goal" 
+                        value={`$${mrr.toLocaleString()}`} 
+                        subtext={`${goalPct.toFixed(1)}% of $100k Goal`} 
                         icon={TrendingUp} 
                         trend={true}
                         color="bg-green-100 text-green-700"
@@ -125,10 +137,10 @@ export default function BoardroomTab() {
                         color="bg-emerald-100 text-emerald-700"
                     />
                     <BoardroomWidget 
-                        title="Marketing Funnel" 
-                        value="1.2k Leads" 
-                        subtext="Claim Pro conversion at 12%" 
-                        icon={Sparkles} 
+                        title="Total Users" 
+                        value={`${leads.toLocaleString()}`} 
+                        subtext="Registered Accounts" 
+                        icon={Users} 
                         color="bg-purple-100 text-purple-700"
                     />
                     {/* Discovery Browser Status */}
