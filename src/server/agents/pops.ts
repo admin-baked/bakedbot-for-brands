@@ -2,6 +2,8 @@ import { AgentImplementation } from './harness';
 import { PopsMemory, HypothesisSchema } from './schemas';
 import { logger } from '@/lib/logger';
 import { detectAnomaly } from '../algorithms/pops-algo';
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
 
 // --- Tool Definitions ---
 
@@ -19,11 +21,30 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
 
   async initialize(brandMemory, agentMemory) {
     logger.info('[Pops] Initializing. Checking data freshness...');
+    
     // Stub: In reality, we'd check if our connections to POS/Ecommerce are live
+    
+    agentMemory.system_instructions = `
+        You are Pops, the Lead Data Analyst.
+        Your job is to track revenue, retention, and funnel analytics to find growth opportunities.
+        
+        CORE PRINCIPLES:
+        1. **Numbers Don't Lie**: Be precise with data.
+        2. **Proactive Insights**: Don't just report numbers, explain WHY they matter.
+        3. **Revenue Focus**: Prioritize insights that impact the bottom line.
+        
+        Tone: Wise, concise, mathematically minded.
+    `;
+
     return agentMemory;
   },
 
-  async orient(brandMemory, agentMemory) {
+  async orient(brandMemory, agentMemory, stimulus) {
+    // 0. Chat / Direct Command Override
+    if (stimulus && typeof stimulus === 'string') {
+      return 'user_request';
+    }
+
     // Priority: Validate running hypotheses
     const runningHypothesis = agentMemory.hypotheses_backlog.find(h => h.status === 'running');
     if (runningHypothesis) {
@@ -40,9 +61,111 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
     return null;
   },
 
-  async act(brandMemory, agentMemory, targetId, tools: PopsTools) {
-    const hypothesis = agentMemory.hypotheses_backlog.find(h => h.id === targetId);
+  async act(brandMemory, agentMemory, targetId, tools: PopsTools, stimulus?: string) {
+    // === SCENARIO A: User Request (The "Planner" Flow) ===
+    if (targetId === 'user_request' && stimulus) {
+        const userQuery = stimulus;
+        
+        // 1. Tool Definitions
+        const toolsDef = [
+            {
+                name: "analyzeData",
+                description: "Query business data to get insights and trends.",
+                schema: z.object({
+                    query: z.string().describe("Natural language question about data"),
+                    context: z.any().optional()
+                })
+            },
+            {
+                name: "detectAnomalies",
+                description: "Check if a specific metric has statistically significant anomalies.",
+                schema: z.object({
+                    metric: z.string(),
+                    history: z.array(z.number()).describe("Array of historical values") // In real flow, agent would fetch this first
+                })
+            }
+        ];
 
+        try {
+            // 2. PLAN
+            const planPrompt = `
+                ${agentMemory.system_instructions}
+                
+                USER REQUEST: "${userQuery}"
+                
+                Available Tools:
+                ${toolsDef.map(t => `- ${t.name}: ${t.description}`).join('\n')}
+                
+                Decide the SINGLE best tool to use first.
+                
+                Return JSON: { "thought": string, "toolName": string, "args": object }
+            `;
+
+            const plan = await ai.generate({
+                prompt: planPrompt,
+                output: {
+                    schema: z.object({
+                        thought: z.string(),
+                        toolName: z.enum(['analyzeData', 'detectAnomalies', 'null']),
+                        args: z.record(z.any())
+                    })
+                }
+            });
+
+            const decision = plan.output;
+
+            if (!decision || decision.toolName === 'null') {
+                 // Fallback to simple chat
+                 return {
+                    updatedMemory: agentMemory,
+                    logEntry: {
+                        action: 'chat_response',
+                        result: decision?.thought || "I'm crunching the numbers. What data do you need?",
+                        metadata: { thought: decision?.thought }
+                    }
+                };
+            }
+
+            // 3. EXECUTE
+            let output: any = "Tool failed";
+            if (decision.toolName === 'analyzeData') {
+                output = await tools.analyzeData(decision.args.query, decision.args.context || {});
+            } else if (decision.toolName === 'detectAnomalies') {
+                // Mock history if not provided in args (Agent would usually chain this: fetch -> analyze)
+                const mockHistory = decision.args.history || [100, 110, 105, 120, 115, 130]; 
+                output = await tools.detectAnomalies(decision.args.metric, mockHistory);
+            }
+
+            // 4. SYNTHESIZE
+            const final = await ai.generate({
+                prompt: `
+                    User Request: "${userQuery}"
+                    Action Taken: ${decision.thought}
+                    Tool Output: ${JSON.stringify(output)}
+                    
+                    Respond to the user with the insight. Be precise.
+                `
+            });
+
+            return {
+                updatedMemory: agentMemory,
+                logEntry: {
+                    action: 'tool_execution',
+                    result: final.text,
+                    metadata: { tool: decision.toolName, output }
+                }
+            };
+
+        } catch (e: any) {
+             return {
+                updatedMemory: agentMemory,
+                logEntry: { action: 'error', result: `Planning failed: ${e.message}`, metadata: { error: e.message } }
+            };
+        }
+    }
+
+    // === SCENARIO B: Autonomous Hypothesis Testing ===
+    const hypothesis = agentMemory.hypotheses_backlog.find(h => h.id === targetId);
     if (!hypothesis) throw new Error(`Hypothesis ${targetId} not found`);
 
     let resultMessage = '';

@@ -277,6 +277,24 @@ export const ExecutiveMemorySchema = AgentMemorySchema.extend({
 
 export type ExecutiveMemory = z.infer<typeof ExecutiveMemorySchema>;
 
+// --- Deebo (Compliance) Schemas ---
+
+export const DeeboMemorySchema = AgentMemorySchema.extend({
+    pending_reviews: z.array(z.object({
+        id: z.string(),
+        content: z.string(),
+        source: z.string(),
+        status: z.enum(['pending', 'approved', 'rejected']),
+    })),
+    rule_packs: z.array(z.object({
+        jurisdiction: z.string(),
+        version: z.string(),
+        status: z.enum(['active', 'deprecated']),
+    })),
+});
+
+export type DeeboMemory = z.infer<typeof DeeboMemorySchema>;
+
 // --- Agent Log Schema ---
 
 

@@ -2,6 +2,8 @@ import { AgentImplementation } from './harness';
 import { SmokeyMemory, RecPolicySchema, UXExperimentSchema } from './schemas';
 import { logger } from '@/lib/logger';
 import { computeSkuScore } from '../algorithms/smokey-algo';
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
 
 // --- Tool Definitions ---
 
@@ -19,29 +21,41 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
     async initialize(brandMemory, agentMemory) {
         logger.info('[Smokey] Initializing. Checking experiment hygiene...');
-
         // Sanity Check: Ensure only one UX experiment is running per domain to avoid interference
         const runningExperiments = agentMemory.ux_experiments.filter(e => e.status === 'running');
         if (runningExperiments.length > 1) {
             logger.warn(`[Smokey] Multiple UX experiments running! Pausing all except the first one.`);
-            // Logic to pause others...
             for (let i = 1; i < runningExperiments.length; i++) {
                 runningExperiments[i].status = 'queued'; // Push back to queue
             }
         }
+        
+        agentMemory.system_instructions = `
+            You are Smokey, the Digital Budtender & Product Expert.
+            Your job is to guide customers to the perfect product and optimize the menu.
+            
+            CORE PRINCIPLES:
+            1. **Empathy First**: Understand the "vibe" or medical need before recommending.
+            2. **Strain Science**: Know your terps and cannabinoids.
+            3. **Inventory Aware**: Don't recommend out-of-stock items.
+            
+            Tone: Friendly, knowledgeable, chill but professional.
+        `;
+        
         return agentMemory;
     },
 
     async orient(brandMemory, agentMemory, stimulus) {
-        // 0. Chat Override
-        if (stimulus && typeof stimulus === 'string') return 'chat_response';
+        // 0. Chat / User Request
+        if (stimulus && typeof stimulus === 'string') return 'user_request';
+        
         // Priority 1: Running UX Experiment near decision
         const runningExp = agentMemory.ux_experiments.find(e => e.status === 'running');
         if (runningExp) {
-            // Check if we have enough sessions to make a call (Stub: > 100 sessions)
+            // Check if we have enough sessions (Stub: > 100)
             const totalSessions = runningExp.variants.reduce((sum, v) => sum + v.sessions, 0);
             if (totalSessions > 100) {
-                return runningExp.id; // Target this for decision making
+                return runningExp.id; 
             }
         }
 
@@ -51,28 +65,117 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             return experimentalPolicy.id;
         }
 
-        // Priority 3: Queued UX Experiment (if no running one)
+        // Priority 3: Queued UX Experiment
         if (!runningExp) {
             const queuedExp = agentMemory.ux_experiments.find(e => e.status === 'queued');
             if (queuedExp) return queuedExp.id;
         }
 
-        return null; // Nothing urgent
+        return null; 
     },
 
     async act(brandMemory, agentMemory, targetId, tools: SmokeyTools, stimulus?: string) {
-        // Handle chat/conversational requests
-        if (targetId === 'chat_response' && stimulus) {
-            // Smokey handles product recommendations and menu questions
-            return {
-                updatedMemory: agentMemory,
-                logEntry: {
-                    action: 'chat_response',
-                    result: `I'm Smokey, your Budtender & Product Intelligence engine! 🌿💨\n\nI can help you with:\n1. **Product Discovery**: Finding specific strains, effects, or price points.\n2. **Inventory Optimization**: Identifying match confidence and stock levels.\n3. **Education**: Deep dives into cannabinoids and terpenes.\n\nWhat are you looking to discover today?`,
-                    next_step: 'await_user_input',
-                    metadata: { stimulus }
+        // === SCENARIO A: User Request (The "Planner" Flow) ===
+        if (targetId === 'user_request' && stimulus) {
+             const userQuery = stimulus;
+        
+            // 1. Tool Definitions
+            const toolsDef = [
+                {
+                    name: "rankProductsForSegment",
+                    description: "Find and rank products matching a specific customer segment or need.",
+                    schema: z.object({
+                        segmentId: z.string().describe("User segment e.g. 'sleep_seekers', 'value_shoppers'"),
+                        products: z.array(z.string()).optional().describe("Optional list of specific product IDs to re-rank")
+                    })
+                },
+                {
+                    name: "analyzeExperimentResults",
+                    description: "Check the status of a specific A/B test or experiment.",
+                    schema: z.object({
+                        experimentId: z.string(),
+                        data: z.array(z.any()).optional()
+                    })
                 }
-            };
+            ];
+
+            try {
+                // 2. PLAN
+                const planPrompt = `
+                    ${agentMemory.system_instructions}
+                    
+                    USER REQUEST: "${userQuery}"
+                    
+                    Available Tools:
+                    ${toolsDef.map(t => `- ${t.name}: ${t.description}`).join('\n')}
+                    
+                    Decide the SINGLE best tool to use first.
+                    If the user wants product recommendations, use 'rankProductsForSegment'.
+                    
+                    Return JSON: { "thought": string, "toolName": string, "args": object }
+                `;
+
+                const plan = await ai.generate({
+                    prompt: planPrompt,
+                    output: {
+                        schema: z.object({
+                            thought: z.string(),
+                            toolName: z.enum(['rankProductsForSegment', 'analyzeExperimentResults', 'null']),
+                            args: z.record(z.any())
+                        })
+                    }
+                });
+
+                const decision = plan.output;
+
+                if (!decision || decision.toolName === 'null') {
+                     // Fallback to simple chat
+                     return {
+                        updatedMemory: agentMemory,
+                        logEntry: {
+                            action: 'chat_response',
+                            result: decision?.thought || "I'm looking through the menu. What kind of effects are you looking for?",
+                            metadata: { thought: decision?.thought }
+                        }
+                    };
+                }
+
+                // 3. EXECUTE
+                let output: any = "Tool failed";
+                if (decision.toolName === 'rankProductsForSegment') {
+                    // Mock segment inference if not explicit
+                    const segment = decision.args.segmentId || 'general_exploration'; 
+                    output = await tools.rankProductsForSegment(segment, decision.args.products || []);
+                } else if (decision.toolName === 'analyzeExperimentResults') {
+                    output = await tools.analyzeExperimentResults(decision.args.experimentId, decision.args.data || []);
+                }
+
+                // 4. SYNTHESIZE
+                const final = await ai.generate({
+                    prompt: `
+                        User Request: "${userQuery}"
+                        Action Taken: ${decision.thought}
+                        Tool Output: ${JSON.stringify(output)}
+                        
+                        Respond to the user with the recommendation or insight in a friendly "Budtender" voice.
+                    `
+                });
+
+                return {
+                    updatedMemory: agentMemory,
+                    logEntry: {
+                        action: 'tool_execution',
+                        result: final.text,
+                        metadata: { tool: decision.toolName, output }
+                    }
+                };
+
+            } catch (e: any) {
+                 return {
+                    updatedMemory: agentMemory,
+                    logEntry: { action: 'error', result: `Planning failed: ${e.message}`, metadata: { error: e.message } }
+                };
+            }
         }
 
         let resultMessage = '';
