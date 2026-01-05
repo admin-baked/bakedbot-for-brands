@@ -49,9 +49,46 @@ export async function createInvitationAction(input: z.infer<typeof CreateInvitat
 
         await firestore.collection('invitations').doc(newInvitation.id).set(newInvitation);
 
+        // Send Invitation Email via Mailjet/SendGrid
+        const inviteLink = `https://bakedbot.ai/join/${token}`;
+        const roleName = input.role.replace('_', ' ').toUpperCase();
+        
+        try {
+            const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+            await sendGenericEmail({
+                to: input.email,
+                name: input.email.split('@')[0],
+                subject: `You're invited to join BakedBot as ${roleName}`,
+                htmlBody: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2 style="color: #16a34a;">You've Been Invited! 🎉</h2>
+                        <p>You've been invited to join <strong>BakedBot</strong> as a <strong>${roleName}</strong>.</p>
+                        <p style="margin: 24px 0;">
+                            <a href="${inviteLink}" 
+                               style="background: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                                Accept Invitation
+                            </a>
+                        </p>
+                        <p style="color: #666; font-size: 14px;">
+                            This invitation expires in 7 days. If you didn't expect this email, you can safely ignore it.
+                        </p>
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+                        <p style="color: #999; font-size: 12px;">
+                            BakedBot • AI-Powered Commerce for Cannabis
+                        </p>
+                    </div>
+                `,
+                textBody: `You've been invited to join BakedBot as ${roleName}. Accept here: ${inviteLink}`
+            });
+            console.log(`[createInvitationAction] Email sent to ${input.email}`);
+        } catch (emailError) {
+            console.warn('[createInvitationAction] Email sending failed, but invitation was created:', emailError);
+            // Don't fail the whole operation if email fails
+        }
+
         return { 
             success: true, 
-            message: 'Invitation created.', 
+            message: 'Invitation created and email sent.', 
             invitation: newInvitation,
             link: `/join/${token}` // Frontend can prepend domain
         };

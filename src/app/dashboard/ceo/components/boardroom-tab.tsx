@@ -172,6 +172,15 @@ export default function BoardroomTab() {
                             <PuffChat 
                                 persona={selectedAgent as any}
                                 hideHeader={true}
+                                isSuperUser={true}
+                                isHired={true}
+                                promptSuggestions={[
+                                    "Run Weekly KPI Report",
+                                    "Check System Health Status",
+                                    "Review Recent Signups",
+                                    "Generate Competitive Intel Summary",
+                                    "Audit Compliance Status"
+                                ]}
                                 className="h-full border-0 shadow-none"
                             />
                         </Suspense>
