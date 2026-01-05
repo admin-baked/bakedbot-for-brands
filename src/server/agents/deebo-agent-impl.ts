@@ -79,77 +79,24 @@ export const deeboAgent: AgentImplementation<DeeboMemory, DeeboTools> = {
             ];
 
             try {
-                // 2. PLAN
-                const planPrompt = `
-                    ${agentMemory.system_instructions}
-                    
-                    USER REQUEST: "${userQuery}"
-                    
-                    Available Tools:
-                    ${toolsDef.map(t => `- ${t.name}: ${t.description}`).join('\n')}
-                    
-                    Decide the SINGLE best tool to use first.
-                    
-                    Return JSON: { "thought": string, "toolName": string, "args": object }
-                `;
-
-                const plan = await ai.generate({
-                    prompt: planPrompt,
-                    output: {
-                        schema: z.object({
-                            thought: z.string(),
-                            toolName: z.enum(['checkCompliance', 'verifyAge', 'lettaSaveFact', 'null']),
-                            args: z.record(z.any())
-                        })
-                    }
-                });
-
-                const decision = plan.output;
-
-                if (!decision || decision.toolName === 'null') {
-                     return {
-                        updatedMemory: agentMemory,
-                        logEntry: {
-                            action: 'chat_response',
-                            result: decision?.thought || "I'm watching. Keep it legal.",
-                            metadata: { thought: decision?.thought }
-                        }
-                    };
-                }
-
-                // 3. EXECUTE
-                let output: any = "Tool failed";
-                if (decision.toolName === 'checkCompliance') {
-                    output = await tools.checkCompliance(
-                        decision.args.content, 
-                        decision.args.jurisdiction || 'WA', 
-                        decision.args.channel || 'general'
-                    );
-                } else if (decision.toolName === 'verifyAge') {
-                    output = await tools.verifyAge(decision.args.dob, decision.args.jurisdiction || 'WA');
-                } else if (decision.toolName === 'lettaSaveFact') {
-                    // @ts-ignore
-                    output = await (tools as any).lettaSaveFact(decision.args.fact, decision.args.category);
-                }
-
-                // 4. SYNTHESIZE
-                const final = await ai.generate({
-                    prompt: `
-                        User Request: "${userQuery}"
-                        Action Taken: ${decision.thought}
-                        Tool Output: ${JSON.stringify(output)}
-                        
-                        Respond to the user as Deebo. If there are violations, list them CLEARLY.
-                    `
+                const { runMultiStepTask } = await import('./harness');
+                
+                const result = await runMultiStepTask({
+                    userQuery,
+                    systemInstructions: agentMemory.system_instructions || '',
+                    toolsDef,
+                    tools: tools,
+                    model: 'claude', // Use Claude for strict compliance logic
+                    maxIterations: 3
                 });
 
                 return {
-                    updatedMemory: agentMemory,
-                    logEntry: {
-                        action: 'tool_execution',
-                        result: final.text,
-                        metadata: { tool: decision.toolName, output }
-                    }
+                     updatedMemory: agentMemory,
+                     logEntry: {
+                         action: 'task_completed',
+                         result: result.finalResult,
+                         metadata: { steps: result.steps }
+                     }
                 };
 
             } catch (e: any) {

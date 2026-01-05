@@ -88,78 +88,31 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
         ];
 
         try {
-            // 2. PLAN
-            const planPrompt = `
-                ${agentMemory.system_instructions}
-                
-                USER REQUEST: "${userQuery}"
-                
-                Available Tools:
-                ${toolsDef.map(t => `- ${t.name}: ${t.description}`).join('\n')}
-                
-                Decide the SINGLE best tool to use first.
-                
-                Return JSON: { "thought": string, "toolName": string, "args": object }
-            `;
-
-            const plan = await ai.generate({
-                prompt: planPrompt,
-                output: {
-                    schema: z.object({
-                        thought: z.string(),
-                        toolName: z.enum(['forecastRevenueImpact', 'validateMargin', 'lettaSaveFact', 'null']),
-                        args: z.record(z.any())
-                    })
-                }
-            });
-
-            const decision = plan.output;
-
-            if (!decision || decision.toolName === 'null') {
-                 return {
-                    updatedMemory: agentMemory,
-                    logEntry: {
-                        action: 'chat_response',
-                        result: decision?.thought || "I'm crunching the numbers. What financial data do you need?",
-                        metadata: { thought: decision?.thought }
-                    }
-                };
-            }
-
-            // 3. EXECUTE
-            let output: any = "Tool failed";
-            if (decision.toolName === 'forecastRevenueImpact') {
-                output = await tools.forecastRevenueImpact(decision.args.skuId || 'N/A', decision.args.priceDelta || 0);
-            } else if (decision.toolName === 'validateMargin') {
-                output = await tools.validateMargin(decision.args.skuId || 'N/A', decision.args.newPrice || 0, decision.args.costBasis || 10);
-            } else if (decision.toolName === 'lettaSaveFact') {
-                output = await (tools as any).lettaSaveFact(decision.args.fact, decision.args.category);
-            }
-
-            // 4. SYNTHESIZE
-            const final = await ai.generate({
-                prompt: `
-                    User Request: "${userQuery}"
-                    Action Taken: ${decision.thought}
-                    Tool Output: ${JSON.stringify(output)}
-                    
-                    Respond to the user as the CFO.
-                `
+            // === MULTI-STEP PLANNING (Run by Harness + Claude) ===
+            const { runMultiStepTask } = await import('./harness');
+            
+            const result = await runMultiStepTask({
+                userQuery,
+                systemInstructions: agentMemory.system_instructions || '',
+                toolsDef,
+                tools,
+                model: 'claude', // Use Claude for precise math logic
+                maxIterations: 5
             });
 
             return {
                 updatedMemory: agentMemory,
                 logEntry: {
-                    action: 'tool_execution',
-                    result: final.text,
-                    metadata: { tool: decision.toolName, output }
+                    action: 'financial_task_complete',
+                    result: result.finalResult,
+                    metadata: { steps: result.steps }
                 }
             };
 
         } catch (e: any) {
              return {
                 updatedMemory: agentMemory,
-                logEntry: { action: 'error', result: `Planning failed: ${e.message}`, metadata: { error: e.message } }
+                logEntry: { action: 'error', result: `Money Mike Task failed: ${e.message}`, metadata: { error: e.message } }
             };
         }
     }

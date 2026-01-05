@@ -90,82 +90,31 @@ export const bigWormAgent: AgentImplementation<BigWormMemory, BigWormTools> = {
             ];
 
             try {
-                // 2. PLAN
-                const planPrompt = `
-                    ${agentMemory.system_instructions}
-                    
-                    USER REQUEST: "${userQuery}"
-                    
-                    Available Tools:
-                    ${toolsDef.map(t => `- ${t.name}: ${t.description}`).join('\n')}
-                    
-                    Decide the SINGLE best tool to use first.
-                    - Use 'pythonAnalyze' for trends, heavy math, or if user asks for "Deep Analysis".
-                    - Use 'saveFinding' if you have confirmed data to store.
-                    
-                    Return JSON: { "thought": string, "toolName": string, "args": object }
-                `;
-
-                const plan = await ai.generate({
-                    prompt: planPrompt,
-                    output: {
-                        schema: z.object({
-                            thought: z.string(),
-                            toolName: z.enum(['pythonAnalyze', 'saveFinding', 'lettaSaveFact', 'null']),
-                            args: z.record(z.any())
-                        })
-                    }
-                });
-
-                const decision = plan.output;
-
-                if (!decision || decision.toolName === 'null') {
-                     return {
-                        updatedMemory: agentMemory,
-                        logEntry: {
-                            action: 'chat_response',
-                            result: decision?.thought || "I'm listening. What do you need supplied?",
-                            metadata: { thought: decision?.thought }
-                        }
-                    };
-                }
-
-                // 3. EXECUTE
-                let output: any = "Tool failed";
-                if (decision.toolName === 'pythonAnalyze') {
-                    // Call the Python Sidecar
-                    output = await tools.pythonAnalyze(decision.args.action, decision.args.data);
-                } else if (decision.toolName === 'saveFinding') {
-                    output = await tools.saveFinding(decision.args.researchId, decision.args.finding);
-                } else if (decision.toolName === 'lettaSaveFact') {
-                    // @ts-ignore
-                    output = await (tools as any).lettaSaveFact(decision.args.fact, decision.args.category);
-                }
-
-                // 4. SYNTHESIZE
-                const final = await ai.generate({
-                    prompt: `
-                        User Request: "${userQuery}"
-                        Action Taken: ${decision.thought}
-                        Tool Output: ${JSON.stringify(output)}
-                        
-                        Respond to the user as Big Worm.
-                    `
+                // === MULTI-STEP PLANNING (Run by Harness + Claude) ===
+                const { runMultiStepTask } = await import('./harness');
+                
+                const result = await runMultiStepTask({
+                    userQuery,
+                    systemInstructions: agentMemory.system_instructions || '',
+                    toolsDef,
+                    tools,
+                    model: 'claude', // Uses default CLAUDE_TOOL_MODEL (Opus 4.5)
+                    maxIterations: 10 // Deep research needs depth
                 });
 
                 return {
                     updatedMemory: agentMemory,
                     logEntry: {
-                        action: 'tool_execution',
-                        result: final.text,
-                        metadata: { tool: decision.toolName, output }
+                        action: 'deep_research_complete',
+                        result: result.finalResult,
+                        metadata: { steps: result.steps }
                     }
                 };
 
             } catch (e: any) {
                  return {
                     updatedMemory: agentMemory,
-                    logEntry: { action: 'error', result: `Planning failed: ${e.message}`, metadata: { error: e.message } }
+                    logEntry: { action: 'error', result: `Big Worm Task failed: ${e.message}`, metadata: { error: e.message } }
                 };
             }
         }

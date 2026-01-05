@@ -55,68 +55,36 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
             ];
 
             try {
-                // Planner
-                const plan = await ai.generate({
-                    prompt: `
-                        ${agentMemory.system_instructions}
-                        USER REQUEST: "${userQuery}"
-                        TOOLS: ${JSON.stringify(toolsDef)}
-                        
-                        Decide next step. JSON: { thought, toolName, args }
-                    `,
-                    output: {
-                        schema: z.object({
-                            thought: z.string(),
-                            toolName: z.enum(['auditPage', 'generateMetaTags', 'null']),
-                            args: z.record(z.any())
-                        })
-                    }
-                });
-
-                const decision = plan.output;
-
-                if (!decision || decision.toolName === 'null') {
-                    return {
-                        updatedMemory: agentMemory,
-                        logEntry: {
-                            action: 'chat_response',
-                            result: decision?.thought || "I'm ready to optimize. Give me a URL or content.",
-                            metadata: {}
-                        }
-                    };
-                }
-
-                // Executor
-                let output: any;
-                if (decision.toolName === 'auditPage') {
-                    output = await tools.auditPage(decision.args.url, decision.args.pageType);
-                } else if (decision.toolName === 'generateMetaTags') {
-                    output = await tools.generateMetaTags(decision.args.contentSample);
-                }
-
-                // Synthesizer
-                const final = await ai.generate({
-                    prompt: `Summarize this Day Day action for user: ${userQuery}. Action: ${decision.toolName}. Result: ${JSON.stringify(output)}`
+                // === MULTI-STEP PLANNING (Run by Harness + Claude) ===
+                const { runMultiStepTask } = await import('./harness');
+                
+                const result = await runMultiStepTask({
+                    userQuery,
+                    systemInstructions: agentMemory.system_instructions || '',
+                    toolsDef,
+                    tools,
+                    model: 'claude',
+                    maxIterations: 5
                 });
 
                 return {
                     updatedMemory: agentMemory,
                     logEntry: {
-                        action: 'tool_execution',
-                        result: final.text,
-                        metadata: { tool: decision.toolName, output }
+                        action: 'seo_task_complete',
+                        result: result.finalResult,
+                        metadata: { steps: result.steps }
                     }
                 };
 
             } catch (e: any) {
-                return {
+                 return {
                     updatedMemory: agentMemory,
-                    logEntry: { action: 'error', result: `Day Day Error: ${e.message}` }
+                    logEntry: { action: 'error', result: `DayDay Task failed: ${e.message}`, metadata: { error: e.message } }
                 };
             }
         }
         
-        return { updatedMemory: agentMemory, logEntry: { action: 'idle', result: 'No action.' } };
+        return { updatedMemory: agentMemory, logEntry: { action: 'idle', result: 'Day Day analytics checking in.' } };
     }
 };
 

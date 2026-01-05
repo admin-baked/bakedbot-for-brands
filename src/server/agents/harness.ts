@@ -143,12 +143,16 @@ export interface MultiStepPlan {
     args: Record<string, any>;
 }
 
+import { executeWithTools } from '@/ai/claude';
+import { zodToClaudeSchema } from '@/server/utils/zod-to-json';
+
 export interface MultiStepContext {
     userQuery: string;
     systemInstructions: string;
-    toolsDef: Array<{ name: string; description: string; schema: z.ZodObject<any> }>;
+    toolsDef: Array<{ name: string; description: string; schema: z.ZodType<any> }>;
     tools: any;
     maxIterations?: number;
+    model?: string;
     onStepComplete?: (step: number, toolName: string, result: any) => Promise<void>;
     onHITLRequired?: (params: { tool: string; args: any; reason: string }) => Promise<{ approved: boolean; reason?: string }>;
     onReplanRequired?: (toolName: string, error: string) => Promise<void>;
@@ -163,7 +167,82 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
     finalResult: string;
     steps: Array<{ tool: string; args: any; result: any }>;
 }> {
-    const { userQuery, systemInstructions, toolsDef, tools, maxIterations = 5, onStepComplete } = context;
+    const { userQuery, systemInstructions, toolsDef, tools, maxIterations = 5, onStepComplete, model = 'gemini' } = context;
+    
+    // === CLAUDE EXECUTION PATH (LOGIC MASTER) ===
+    // Routing: Trigger if model is explicitly 'claude' OR if it's a specific Anthropic model string
+    if (model === 'claude' || (model && model.startsWith('claude-'))) {
+        const { executeWithTools } = await import('@/ai/claude');
+        const { zodToClaudeSchema } = await import('@/server/utils/zod-to-json');
+
+        // Convert Tools
+        const claudeTools = toolsDef.map(t => ({
+            name: t.name,
+            description: t.description,
+            input_schema: zodToClaudeSchema(t.schema)
+        }));
+
+        // Executor Wrapper to bridge Harness -> Claude
+        const steps: Array<{ tool: string; args: any; result: any }> = [];
+        
+        const executor = async (toolName: string, args: Record<string, unknown>) => {
+            // HITL Check
+            const HITL_TOOLS = ['sendSms', 'rtrvrAgent', 'createPlaybook', 'sendEmail'];
+            if (HITL_TOOLS.includes(toolName) && context.onHITLRequired) {
+                const approval = await context.onHITLRequired({
+                    tool: toolName,
+                    args,
+                    reason: "Automated tool call by Claude"
+                });
+                
+                if (!approval.approved) {
+                    const result = { blocked: true, reason: approval.reason || 'User denied action' };
+                    // Log step via callback
+                    if (onStepComplete) {
+                        // Step counting is fuzzy here, simple mapping to indicate a step occurred
+                        await onStepComplete(context.maxIterations ? context.maxIterations - 1 : 1, toolName, result); 
+                    }
+                    return result; // Return blockage to Claude
+                }
+            }
+
+            // Lookup the tool function
+            const toolFn = (tools as any)[toolName];
+            let result: any = { error: 'Tool not found' };
+
+            if (typeof toolFn === 'function') {
+                try {
+                    const argValues = Object.values(args);
+                    // Match argument order is tricky with Object.values if schema order matters. 
+                    // Better to rely on Zod schema keys if possible, but existing 'tools' map likely expects spread args.
+                    // Assuming implementations use destructuring or consistent order.
+                    // For safety in this hybrid mode, we might need adapter if toolfns demand specific arg order.
+                    // Let's assume toolFn takes a single object OR spread args. 
+                    // Most existing tools in default-tools.ts seem to take (arg1, arg2).
+                    // We will try spread. If fails, we might need a safer assumption.
+                    result = await toolFn(...argValues);
+                } catch (e: any) {
+                    result = { error: e.message };
+                     if (context.onReplanRequired) await context.onReplanRequired(toolName, e.message);
+                }
+            }
+
+            steps.push({ tool: toolName, args, result });
+            if (onStepComplete) await onStepComplete(steps.length, toolName, result);
+            return result;
+        };
+
+        const result = await executeWithTools(
+            `${systemInstructions}\n\nUser Request: ${userQuery}`,
+            claudeTools,
+            executor,
+            { maxIterations }
+        );
+
+        return { finalResult: result.content, steps };
+    }
+
+    // === GEMINI EXECUTION PATH (DEFAULT) ===
     
     const steps: Array<{ tool: string; args: any; result: any }> = [];
     let iteration = 0;
@@ -198,6 +277,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
         `;
         
         const plan = await ai.generate({
+            model: model !== 'claude' && model !== 'gemini' ? model : undefined,
             prompt: planPrompt,
             output: {
                 schema: z.object({
@@ -214,6 +294,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
         if (decision.status === 'COMPLETE' || decision.status === 'BLOCKED') {
             // Synthesize final response
             const final = await ai.generate({
+                model: model !== 'claude' && model !== 'gemini' ? model : undefined,
                 prompt: `
                     User Request: "${userQuery}"
                     Steps Taken: ${steps.length}
@@ -295,6 +376,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
     
     // Hit max iterations
     const final = await ai.generate({
+        model: model !== 'claude' && model !== 'gemini' ? model : undefined,
         prompt: `
             User Request: "${userQuery}"
             Steps Taken: ${steps.length} (reached max iterations)

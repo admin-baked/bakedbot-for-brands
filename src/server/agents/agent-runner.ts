@@ -13,7 +13,7 @@ import { dayday } from '@/server/agents/dayday';
 import { felisha } from '@/server/agents/felisha';
 import { executiveAgent } from '@/server/agents/executive';
 import { bigWormAgent } from '@/server/agents/bigworm';
-import { deeboAgent } from '@/server/agents/deebo/deebo-agent-impl';
+import { deeboAgent } from '@/server/agents/deebo-agent-impl';
 import { linusAgent } from '@/server/agents/linus';
 import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { httpRequest, HttpRequestOptions } from '@/server/tools/http-client';
