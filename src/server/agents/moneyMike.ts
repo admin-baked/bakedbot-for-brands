@@ -190,4 +190,8 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
   }
 };
 
+export async function handleMoneyMikeEvent(orgId: string, eventId: string) {
+  logger.info(`[MoneyMike] Handled event ${eventId} for org ${orgId} (Stub)`);
+}
+
 

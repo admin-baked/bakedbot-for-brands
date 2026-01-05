@@ -20,7 +20,7 @@ import {
     Loader2
 } from 'lucide-react';
 import Link from 'next/link';
-import { getScanOrderData, updateScanOrderStatus, type ScanOrderData } from './actions';
+import { getScanOrderData, updateScanOrderStatus, type ScanOrderData } from '../actions';
 import { cn } from '@/lib/utils';
 
 interface ScanPageClientProps {
