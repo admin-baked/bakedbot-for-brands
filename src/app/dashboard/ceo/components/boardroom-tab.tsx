@@ -113,7 +113,7 @@ export default function BoardroomTab() {
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 {/* Left Sidebar: KPIs */}
-                <div className="lg:col-span-4 grid grid-cols-1 gap-4">
+                <div className="lg:col-span-4 lg:order-1 grid grid-cols-1 gap-4 hidden lg:grid">
                     <BoardroomWidget 
                         title="Revenue Growth (MRR)" 
                         value={`$${mrr.toLocaleString()}`} 
@@ -143,12 +143,10 @@ export default function BoardroomTab() {
                         icon={Users} 
                         color="bg-purple-100 text-purple-700"
                     />
-                    {/* Discovery Browser Status */}
-                    <DiscoveryBrowserStatus />
                 </div>
 
                 {/* Main: Unified Chat */}
-                <Card className="lg:col-span-8 shadow-xl border-border/50 overflow-hidden h-[700px] flex flex-col bg-slate-50/30 backdrop-blur-sm">
+                <Card className="lg:col-span-8 lg:order-2 shadow-xl border-border/50 overflow-hidden h-[85vh] lg:h-[700px] flex flex-col bg-slate-50/30 backdrop-blur-sm order-first">
                     <CardHeader className="bg-background border-b py-3 px-6 flex flex-row items-center justify-between shadow-sm z-10">
                         <div className="flex items-center gap-3">
                             <div className={cn("p-1.5 rounded-lg", EXECUTIVE_TEAM.find(a => a.id === selectedAgent)?.color)}>
@@ -169,11 +167,8 @@ export default function BoardroomTab() {
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1 p-0 overflow-hidden relative">
-                        <Suspense fallback={
-                            <div className="flex h-full items-center justify-center">
-                                <Rocket className="h-10 w-10 text-muted-foreground animate-bounce opacity-30" />
-                            </div>
                         }>
+                            <DiscoveryBrowserStatus />
                             <PuffChat 
                                 persona={selectedAgent as any}
                                 hideHeader={true}
