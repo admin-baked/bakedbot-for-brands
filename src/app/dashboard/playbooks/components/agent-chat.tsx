@@ -384,13 +384,6 @@ function ThinkingIndicator({ duration }: { duration?: number }) {
 
 
 
-import {
-    // ... existing imports ...
-    ChevronRight, // Ensure this is imported
-} from 'lucide-react';
-
-// ... existing code ...
-
 const LIVE_TOOLS = ['Site Visitor', 'Google Search', 'Search', 'Browser', 'Deebo', 'Compliance Engine', 'Market Scout'];
 
 function EpisodicThinking({ steps }: { steps: ToolCallStep[] }) {
