@@ -16,6 +16,8 @@ export interface EzalTools {
   getCompetitiveIntel(state: string, city?: string): Promise<any>;
   // NEW: Search the web for general research
   searchWeb(query: string): Promise<string>;
+  // NEW: Save insights to memory
+  lettaSaveFact?(fact: string, category?: string): Promise<any>;
 }
 
 // --- Ezal Agent Implementation ---
@@ -90,95 +92,57 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                 })
             },
             {
+                name: "comparePricing",
+                description: "Compare my products against a competitor's to find price gaps.",
+                schema: z.object({
+                    myProducts: z.array(z.any()).describe("List of my products"),
+                    competitorProducts: z.array(z.any()).describe("List of competitor products")
+                })
+            },
+            {
                 name: "searchWeb",
                 description: "General web search for news, laws, or broad market trends.",
                 schema: z.object({
                     query: z.string().describe("The search query"),
                 })
+            },
+            {
+                name: "lettaSaveFact",
+                description: "Save a market insight or competitor fact to memory.",
+                schema: z.object({
+                    fact: z.string(),
+                    category: z.string().optional()
+                })
             }
         ];
 
-        // 2. PLAN & DECIDE (The "Planner")
-        // We ask Gemini to select the best tool.
+        // === MULTI-STEP PLANNING ===
         try {
-            const prompt = `
-                ${agentMemory.system_instructions}
-                
-                USER REQUEST: "${userQuery}"
-                
-                You have access to these tools:
-                ${toolsDef.map(t => `- ${t.name}: ${t.description}`).join('\n')}
-                
-                Decide the SINGLE best tool to call to address this request.
-                If the user didn't provide a location but the tool needs one, ask for it in the response (without calling a tool).
-                
-                Return a valid JSON object with:
-                {
-                    "thought": "Your reasoning here...",
-                    "toolName": "name_of_tool_or_null",
-                    "args": { ...arguments }
-                }
-            `;
-
-            const plan = await ai.generate({
-                prompt: prompt,
-                output: {
-                    schema: z.object({
-                        thought: z.string(),
-                        toolName: z.enum(['getCompetitiveIntel', 'discoverMenu', 'searchWeb', 'null']),
-                        args: z.record(z.any())
-                    })
-                }
-            });
-
-            const decision = plan.output;
-            logger.info(`[Ezal] Planner Decision:`, decision || {});
-
-            if (!decision || decision.toolName === 'null') {
-                return {
-                    updatedMemory: agentMemory,
-                    logEntry: {
-                        action: 'chat_response',
-                        result: decision?.thought || "I'm ready to help. What market should we scout?",
-                        metadata: { thought: decision?.thought }
-                    }
-                };
-            }
-
-            // 3. EXECUTE (The "Claude/Executor" role)
-            let resultData: any = "Tool execution failed";
+            const { runMultiStepTask } = await import('./harness');
             
-            if (decision.toolName === 'getCompetitiveIntel') {
-                 resultData = await tools.getCompetitiveIntel(decision.args.state || 'CA', decision.args.city);
-            } else if (decision.toolName === 'discoverMenu') {
-                 resultData = await tools.discoverMenu(decision.args.url);
-            } else if (decision.toolName === 'searchWeb') {
-                 resultData = await tools.searchWeb(decision.args.query);
-            }
-
-            // 4. SYNTHESIZE (Final Response)
-            const finalResponse = await ai.generate({
-                prompt: `
-                    User Request: "${userQuery}"
-                    Tool Used: ${decision.toolName}
-                    Tool Output: ${JSON.stringify(resultData).slice(0, 5000)}
-                    
-                    Summarize these findings for the user. Be concise, insightful, and formatted in Markdown.
-                    Use a table if comparing retailers.
-                    Highlight any "Market Opportunities" or "Risks".
-                `
+            const result = await runMultiStepTask({
+                userQuery,
+                systemInstructions: agentMemory.system_instructions || '',
+                toolsDef,
+                tools,
+                maxIterations: 5,
+                onStepComplete: async (step, toolName, result) => {
+                    // Persist each step to Letta
+                    if ((tools as any).lettaSaveFact) {
+                        await (tools as any).lettaSaveFact(
+                            `Ezal Step ${step}: ${toolName} -> ${JSON.stringify(result).slice(0, 200)}`,
+                            'market_research_log'
+                        );
+                    }
+                }
             });
 
             return {
                 updatedMemory: agentMemory,
                 logEntry: {
-                    action: 'tool_execution',
-                    result: finalResponse.text,
-                    metadata: { 
-                        tool: decision.toolName, 
-                        args: decision.args,
-                        raw_data: typeof resultData === 'object' ? JSON.stringify(resultData).slice(0, 500) : resultData 
-                    }
+                    action: 'multi_step_execution',
+                    result: result.finalResult,
+                    metadata: { steps: result.steps.length, tools_used: result.steps.map(s => s.tool) }
                 }
             };
             

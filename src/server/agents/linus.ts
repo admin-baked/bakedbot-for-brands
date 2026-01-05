@@ -13,6 +13,9 @@
 
 import { executeWithTools, isClaudeAvailable, ClaudeTool, ClaudeResult } from '@/ai/claude';
 import { z } from 'zod';
+import { AgentImplementation } from './harness';
+import { AgentMemory } from './schemas';
+import { logger } from '@/lib/logger';
 
 // ============================================================================
 // LINUS TOOLS - Code Eval & Deployment
@@ -158,6 +161,24 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: ['report_type', 'summary']
         }
+    },
+    {
+        name: 'letta_save_fact',
+        description: 'Save a critical development insight, architectural decision, or rule to long-term memory.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                fact: {
+                    type: 'string',
+                    description: 'The knowledge to persist'
+                },
+                category: {
+                    type: 'string',
+                    description: 'Category: architecture, bug_report, deployment_rule'
+                }
+            },
+            required: ['fact']
+        }
     }
 ];
 
@@ -285,6 +306,18 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
             
             return { success: true, reportId: `linus-${Date.now()}`, ...report };
         }
+
+        case 'letta_save_fact': {
+            const { fact, category } = input as { fact: string; category?: string };
+            try {
+                // Dynamically import common tools to avoid circular deps if any
+                const { commonMemoryTools } = await import('@/app/dashboard/ceo/agents/default-tools');
+                await commonMemoryTools.lettaSaveFact(fact, category || 'linus_memory');
+                return { success: true, message: 'Fact saved to memory.' };
+            } catch (e) {
+                return { success: false, error: (e as Error).message };
+            }
+        }
         
         default:
             throw new Error(`Unknown tool: ${toolName}`);
@@ -359,3 +392,42 @@ export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
 }
 
 export { LINUS_TOOLS, linusToolExecutor };
+
+// --- Linus Agent Implementation (Standard Harness) ---
+export const linusAgent: AgentImplementation<AgentMemory, any> = {
+    agentName: 'linus',
+
+    async initialize(brandMemory, agentMemory) {
+        agentMemory.system_instructions = LINUS_SYSTEM_PROMPT;
+        return agentMemory;
+    },
+
+    async orient(brandMemory, agentMemory, stimulus) {
+        if (stimulus) return 'user_request';
+        return null; // Linus is usually reactive or triggered by Cron
+    },
+
+    async act(brandMemory, agentMemory, targetId, tools, stimulus) {
+        if (targetId === 'user_request' && stimulus) {
+            try {
+                // Wrapper around the specific runLinus implementation
+                const result = await runLinus({ prompt: stimulus });
+                
+                return {
+                    updatedMemory: agentMemory,
+                    logEntry: {
+                        action: 'linus_execution',
+                        result: result.content,
+                        metadata: { decision: result.decision, model: result.model }
+                    }
+                };
+            } catch (e: any) {
+                 return {
+                    updatedMemory: agentMemory,
+                    logEntry: { action: 'error', result: `Linus Error: ${e.message}` }
+                };
+            }
+        }
+        return { updatedMemory: agentMemory, logEntry: { action: 'idle', result: 'Linus standing by.' } };
+    }
+};

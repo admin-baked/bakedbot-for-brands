@@ -1,48 +1,126 @@
+import { AgentImplementation } from './harness';
+import { AgentMemory } from './schemas';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
-import { reviewSEOPage } from '@/server/actions/dayday-seo-review';
 
-/**
- * Day Day: SEO & Growth Manager
- * 
- * Responsibilities:
- * - Audit Pages for SEO
- * - Generate meta tags and content
- * - Monitor search rankings
- */
+export interface DayDayTools {
+    auditPage(url: string, pageType: 'dispensary' | 'brand' | 'city' | 'zip'): Promise<any>;
+    generateMetaTags(contentSample: string): Promise<any>;
+    lettaSaveFact(fact: string): Promise<any>;
+}
 
-export const DayDayAuditSchema = z.object({
-  url: z.string(),
-  score: z.number(),
-  issues: z.array(z.string()),
-  opportunities: z.array(z.string())
-});
+export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
+    agentName: 'day_day',
 
-export const dayday = {
-  
-  /**
-   * Run a full SEO audit on a target URL
-   */
-  async auditPage(url: string, pageType: 'dispensary' | 'brand' | 'city' | 'zip') {
-    // Re-use our server action logic
-    // In future, this could be more complex agentic flow
-    return await reviewSEOPage(url, pageType, url);
-  },
+    async initialize(brandMemory, agentMemory) {
+        agentMemory.system_instructions = `
+            You are Day Day, the SEO & Growth Manager.
+            Your job is to ensure every page is optimized for search engines and conversion.
+            
+            CORE SKILLS:
+            1. **Technical SEO**: Audit pages for tags, speed, and structure.
+            2. **Content Optimization**: Write click-worthy meta tags.
+            
+            Tone: Technical, precise, growth-hacking.
+        `;
+        return agentMemory;
+    },
 
-  /**
-   * Generate optimized meta tags for a page
-   */
-  async generateMetaTags(contentSample: string) {
-    const prompt = `
-    You are Day Day, an expert SEO strategist for the cannabis industry.
-    Generate a title tag (max 60 chars) and meta description (max 160 chars) for this content:
-    "${contentSample.slice(0, 500)}..."
-    
-    Return JSON: { "title": "...", "description": "..." }
-    `;
+    async orient(brandMemory, agentMemory, stimulus) {
+        if (stimulus && typeof stimulus === 'string') return 'user_request';
+        return null; // No background loop for now
+    },
 
-    // Genkit call stub
-    const result = await ai.generate({ prompt });
-    return JSON.parse(result.text); 
-  }
+    async act(brandMemory, agentMemory, targetId, tools, stimulus) {
+        if (targetId === 'user_request' && stimulus) {
+            const userQuery = stimulus;
+
+            const toolsDef = [
+                {
+                    name: "auditPage",
+                    description: "Run an SEO audit on a specific URL.",
+                    schema: z.object({
+                        url: z.string(),
+                        pageType: z.enum(['dispensary', 'brand', 'city', 'zip'])
+                    })
+                },
+                {
+                    name: "generateMetaTags",
+                    description: "Generate optimized title and description tags for content.",
+                    schema: z.object({
+                        contentSample: z.string()
+                    })
+                }
+            ];
+
+            try {
+                // Planner
+                const plan = await ai.generate({
+                    prompt: `
+                        ${agentMemory.system_instructions}
+                        USER REQUEST: "${userQuery}"
+                        TOOLS: ${JSON.stringify(toolsDef)}
+                        
+                        Decide next step. JSON: { thought, toolName, args }
+                    `,
+                    output: {
+                        schema: z.object({
+                            thought: z.string(),
+                            toolName: z.enum(['auditPage', 'generateMetaTags', 'null']),
+                            args: z.record(z.any())
+                        })
+                    }
+                });
+
+                const decision = plan.output;
+
+                if (!decision || decision.toolName === 'null') {
+                    return {
+                        updatedMemory: agentMemory,
+                        logEntry: {
+                            action: 'chat_response',
+                            result: decision?.thought || "I'm ready to optimize. Give me a URL or content.",
+                            metadata: {}
+                        }
+                    };
+                }
+
+                // Executor
+                let output: any;
+                if (decision.toolName === 'auditPage') {
+                    output = await tools.auditPage(decision.args.url, decision.args.pageType);
+                } else if (decision.toolName === 'generateMetaTags') {
+                    output = await tools.generateMetaTags(decision.args.contentSample);
+                }
+
+                // Synthesizer
+                const final = await ai.generate({
+                    prompt: `Summarize this Day Day action for user: ${userQuery}. Action: ${decision.toolName}. Result: ${JSON.stringify(output)}`
+                });
+
+                return {
+                    updatedMemory: agentMemory,
+                    logEntry: {
+                        action: 'tool_execution',
+                        result: final.text,
+                        metadata: { tool: decision.toolName, output }
+                    }
+                };
+
+            } catch (e: any) {
+                return {
+                    updatedMemory: agentMemory,
+                    logEntry: { action: 'error', result: `Day Day Error: ${e.message}` }
+                };
+            }
+        }
+        
+        return { updatedMemory: agentMemory, logEntry: { action: 'idle', result: 'No action.' } };
+    }
 };
+
+// Export strictly named export to match import expectation if needed, 
+// or default. The previous file used named export 'dayday'. 
+// We will export 'dayday' as the agent implementation to minimize breakage.
+export const dayday = dayDayAgent;

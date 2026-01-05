@@ -128,3 +128,236 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
     }
 }
 
+// ============================================================================
+// MULTI-STEP PLANNING HELPER
+// Enables agents to execute complex tasks requiring multiple tool calls
+// ============================================================================
+
+import { ai } from '@/ai/genkit';
+import { z } from 'zod';
+
+export interface MultiStepPlan {
+    thought: string;
+    status: 'CONTINUE' | 'COMPLETE' | 'BLOCKED';
+    toolName: string | null;
+    args: Record<string, any>;
+}
+
+export interface MultiStepContext {
+    userQuery: string;
+    systemInstructions: string;
+    toolsDef: Array<{ name: string; description: string; schema: z.ZodObject<any> }>;
+    tools: any;
+    maxIterations?: number;
+    onStepComplete?: (step: number, toolName: string, result: any) => Promise<void>;
+}
+
+/**
+ * Execute a multi-step task with iterative planning.
+ * The agent will continue calling tools until it declares COMPLETE or hits max iterations.
+ */
+export async function runMultiStepTask(context: MultiStepContext): Promise<{
+    finalResult: string;
+    steps: Array<{ tool: string; args: any; result: any }>;
+}> {
+    const { userQuery, systemInstructions, toolsDef, tools, maxIterations = 5, onStepComplete } = context;
+    
+    const steps: Array<{ tool: string; args: any; result: any }> = [];
+    let iteration = 0;
+    
+    // Build tool names enum dynamically
+    const toolNames = [...toolsDef.map(t => t.name), 'null'] as const;
+    
+    while (iteration < maxIterations) {
+        iteration++;
+        
+        // Build history from prior steps
+        const historyPrompt = steps.length > 0 
+            ? `\n\nPRIOR STEPS:\n${steps.map((s, i) => `${i + 1}. ${s.tool}(${JSON.stringify(s.args)}) -> ${JSON.stringify(s.result).slice(0, 300)}`).join('\n')}`
+            : '';
+        
+        // PLAN
+        const planPrompt = `
+            ${systemInstructions}
+            
+            USER REQUEST: "${userQuery}"
+            ${historyPrompt}
+            
+            Available Tools:
+            ${toolsDef.map(t => `- ${t.name}: ${t.description}`).join('\n')}
+            
+            Based on the user request and prior steps, decide your next action:
+            - If more work is needed, select a tool.
+            - If the task is complete, set status to 'COMPLETE'.
+            - If blocked (e.g., missing info), set status to 'BLOCKED'.
+            
+            Return JSON: { "thought": string, "status": "CONTINUE" | "COMPLETE" | "BLOCKED", "toolName": string | null, "args": object }
+        `;
+        
+        const plan = await ai.generate({
+            prompt: planPrompt,
+            output: {
+                schema: z.object({
+                    thought: z.string(),
+                    status: z.enum(['CONTINUE', 'COMPLETE', 'BLOCKED']),
+                    toolName: z.string().nullable(),
+                    args: z.record(z.any())
+                })
+            }
+        });
+        
+        const decision = plan.output as MultiStepPlan;
+        
+        if (decision.status === 'COMPLETE' || decision.status === 'BLOCKED') {
+            // Synthesize final response
+            const final = await ai.generate({
+                prompt: `
+                    User Request: "${userQuery}"
+                    Steps Taken: ${steps.length}
+                    Final Thought: ${decision.thought}
+                    All Results: ${JSON.stringify(steps.map(s => s.result)).slice(0, 2000)}
+                    
+                    Synthesize a comprehensive response for the user.
+                `
+            });
+            
+            return { finalResult: final.text, steps };
+        }
+        
+        if (!decision.toolName) {
+            break; // No tool selected, exit loop
+        }
+
+        // =========================================================
+        // HITL (Human-in-the-Loop) CHECKPOINT
+        // High-risk actions require approval before execution
+        // =========================================================
+        const HITL_TOOLS = ['sendSms', 'rtrvrAgent', 'createPlaybook', 'sendEmail'];
+        
+        if (HITL_TOOLS.includes(decision.toolName) && context.onHITLRequired) {
+            const approval = await context.onHITLRequired({
+                tool: decision.toolName,
+                args: decision.args,
+                reason: decision.thought
+            });
+            
+            if (!approval.approved) {
+                steps.push({ 
+                    tool: decision.toolName, 
+                    args: decision.args, 
+                    result: { blocked: true, reason: approval.reason || 'User denied action' } 
+                });
+                continue; // Re-plan without executing
+            }
+        }
+        
+        // EXECUTE
+        const toolFn = tools[decision.toolName];
+        let result: any = { error: 'Tool not found' };
+        
+        if (typeof toolFn === 'function') {
+            try {
+                // Call the tool with appropriate args
+                const argValues = Object.values(decision.args);
+                result = await toolFn(...argValues);
+            } catch (e: any) {
+                result = { error: e.message };
+                
+                // =========================================================
+                // RE-PLANNING ON ERROR
+                // If tool fails, trigger re-planning
+                // =========================================================
+                if (context.onReplanRequired) {
+                    await context.onReplanRequired(decision.toolName, e.message);
+                }
+            }
+        }
+        
+        steps.push({ tool: decision.toolName, args: decision.args, result });
+        
+        // =========================================================
+        // PEI (Planning Efficiency Index) CHECK
+        // Detect behavioral drift and trigger self-correction
+        // =========================================================
+        const pei = calculatePEI(steps);
+        if (pei.driftDetected && context.onDriftDetected) {
+            await context.onDriftDetected(pei);
+        }
+        
+        // Callback for persistence
+        if (onStepComplete) {
+            await onStepComplete(iteration, decision.toolName, result);
+        }
+    }
+    
+    // Hit max iterations
+    const final = await ai.generate({
+        prompt: `
+            User Request: "${userQuery}"
+            Steps Taken: ${steps.length} (reached max iterations)
+            All Results: ${JSON.stringify(steps.map(s => s.result)).slice(0, 2000)}
+            
+            Synthesize the best possible response given the work completed.
+        `
+    });
+    
+    return { finalResult: final.text, steps };
+}
+
+// ============================================================================
+// PEI (Planning Efficiency Index) - Behavioral Drift Detection
+// ============================================================================
+
+export interface PEI {
+    stepsCompleted: number;
+    errorCount: number;
+    successRate: number;
+    driftDetected: boolean;
+}
+
+function calculatePEI(steps: Array<{ tool: string; args: any; result: any }>): PEI {
+    const errorCount = steps.filter(s => s.result?.error || s.result?.blocked).length;
+    const successRate = steps.length > 0 ? (steps.length - errorCount) / steps.length : 1;
+    
+    // Drift detected if:
+    // 1. More than 2 errors in sequence
+    // 2. Success rate drops below 50%
+    // 3. Same tool called 3+ times (potential loop)
+    const toolCounts = steps.reduce((acc, s) => {
+        acc[s.tool] = (acc[s.tool] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+    
+    const hasLoop = Object.values(toolCounts).some(count => count >= 3);
+    const driftDetected = errorCount > 2 || successRate < 0.5 || hasLoop;
+    
+    return {
+        stepsCompleted: steps.length,
+        errorCount,
+        successRate,
+        driftDetected
+    };
+}
+
+// ============================================================================
+// HITL (Human-in-the-Loop) Types
+// ============================================================================
+
+export interface HITLRequest {
+    tool: string;
+    args: Record<string, any>;
+    reason: string;
+}
+
+export interface HITLResponse {
+    approved: boolean;
+    reason?: string;
+}
+
+// Extended context with HITL and PEI callbacks
+export interface MultiStepContextExtended extends MultiStepContext {
+    onHITLRequired?: (request: HITLRequest) => Promise<HITLResponse>;
+    onReplanRequired?: (failedTool: string, error: string) => Promise<void>;
+    onDriftDetected?: (pei: PEI) => Promise<void>;
+}
+

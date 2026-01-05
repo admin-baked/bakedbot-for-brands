@@ -7,13 +7,29 @@ if (!LETTA_API_KEY) {
     console.warn('LETTA_API_KEY is not set. Letta integration will fail if used.');
 }
 
-// Minimal types for Letta interaction
-interface LettaAgent {
+// Types for Letta interaction
+export interface LettaAgent {
     id: string;
     name: string;
     created_at: string;
     memory: any;
-    // Add other fields as needed
+    block_ids?: string[];
+}
+
+export interface LettaBlock {
+    id: string;
+    label: string;
+    value: string;
+    limit: number;
+    read_only: boolean;
+    created_at: string;
+}
+
+export interface LettaMessage {
+    id: string;
+    role: 'user' | 'assistant' | 'system';
+    content: string;
+    created_at: string;
 }
 
 export class LettaClient {
@@ -47,19 +63,23 @@ export class LettaClient {
         return response.json();
     }
 
+    // ============================================================================
+    // AGENTS API
+    // ============================================================================
+
     async listAgents(): Promise<LettaAgent[]> {
         return this.request('/agents');
     }
 
-    async createAgent(name: string, systemInstructions: string): Promise<LettaAgent> {
+    async createAgent(name: string, systemInstructions: string, blockIds?: string[]): Promise<LettaAgent> {
         return this.request('/agents', {
             method: 'POST',
             body: JSON.stringify({
                 name,
                 system: systemInstructions,
-                // Default settings for standard Letta agent
+                block_ids: blockIds || [],
                 llm_config: {
-                    model: 'gpt-4', // Or desired default
+                    model: 'gpt-4o-mini',
                     model_endpoint_type: 'openai',
                     context_window: 128000
                 },
@@ -75,19 +95,123 @@ export class LettaClient {
         return this.request(`/agents/${agentId}`);
     }
 
-    async sendMessage(agentId: string, message: string, role: 'user' | 'system' = 'user') {
+    async deleteAgent(agentId: string): Promise<void> {
+        await this.request(`/agents/${agentId}`, { method: 'DELETE' });
+    }
+
+    // ============================================================================
+    // MESSAGES API
+    // ============================================================================
+
+    async sendMessage(agentId: string, message: string, role: 'user' | 'system' = 'user'): Promise<any> {
         return this.request(`/agents/${agentId}/messages`, {
             method: 'POST',
             body: JSON.stringify({
-                role,
-                message
+                messages: [{ role, content: message }]
             })
         });
     }
 
+    async getMessages(agentId: string, limit: number = 100): Promise<LettaMessage[]> {
+        return this.request(`/agents/${agentId}/messages?limit=${limit}`);
+    }
+
+    // ============================================================================
+    // BLOCKS API (Shared Memory)
+    // ============================================================================
+
+    async createBlock(label: string, value: string, options?: { 
+        limit?: number; 
+        readOnly?: boolean 
+    }): Promise<LettaBlock> {
+        return this.request('/blocks', {
+            method: 'POST',
+            body: JSON.stringify({
+                label,
+                value,
+                limit: options?.limit || 4000,
+                read_only: options?.readOnly || false
+            })
+        });
+    }
+
+    async getBlock(blockId: string): Promise<LettaBlock> {
+        return this.request(`/blocks/${blockId}`);
+    }
+
+    async updateBlock(blockId: string, value: string): Promise<LettaBlock> {
+        return this.request(`/blocks/${blockId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ value })
+        });
+    }
+
+    async deleteBlock(blockId: string): Promise<void> {
+        await this.request(`/blocks/${blockId}`, { method: 'DELETE' });
+    }
+
+    async listBlocks(): Promise<LettaBlock[]> {
+        return this.request('/blocks');
+    }
+
+    async attachBlockToAgent(agentId: string, blockId: string): Promise<void> {
+        await this.request(`/agents/${agentId}/blocks/${blockId}/attach`, {
+            method: 'POST'
+        });
+    }
+
+    async detachBlockFromAgent(agentId: string, blockId: string): Promise<void> {
+        await this.request(`/agents/${agentId}/blocks/${blockId}/detach`, {
+            method: 'POST'
+        });
+    }
+
+    async getAgentBlocks(agentId: string): Promise<LettaBlock[]> {
+        return this.request(`/agents/${agentId}/blocks`);
+    }
+
+    // ============================================================================
+    // ASYNC AGENT-TO-AGENT MESSAGING
+    // ============================================================================
+
+    /**
+     * Send an async message from one agent to another.
+     * The sending agent receives a "delivery receipt" but doesn't wait for response.
+     */
+    async sendAsyncMessage(
+        fromAgentId: string, 
+        toAgentId: string, 
+        message: string
+    ): Promise<{ delivered: boolean; messageId: string }> {
+        // First, send the message to the target agent as if from a user
+        // with metadata indicating it's from another agent
+        const result = await this.sendMessage(
+            toAgentId, 
+            `[INTER-AGENT MESSAGE from ${fromAgentId}]: ${message}`,
+            'user'
+        );
+        
+        return {
+            delivered: true,
+            messageId: result?.id || `msg-${Date.now()}`
+        };
+    }
+
+    // ============================================================================
+    // CORE MEMORY (Legacy API)
+    // ============================================================================
+
     async getCoreMemory(agentId: string): Promise<any> {
         return this.request(`/agents/${agentId}/core-memory`);
+    }
+
+    async updateCoreMemory(agentId: string, section: string, content: string): Promise<any> {
+        return this.request(`/agents/${agentId}/core-memory/${section}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ content })
+        });
     }
 }
 
 export const lettaClient = new LettaClient();
+

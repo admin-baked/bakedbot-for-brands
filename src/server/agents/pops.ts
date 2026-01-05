@@ -83,6 +83,14 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
                     metric: z.string(),
                     history: z.array(z.number()).describe("Array of historical values") // In real flow, agent would fetch this first
                 })
+            },
+            {
+                name: "lettaSaveFact",
+                description: "Save a key business insight to memory.",
+                schema: z.object({
+                    fact: z.string(),
+                    category: z.string().optional()
+                })
             }
         ];
 
@@ -106,7 +114,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
                 output: {
                     schema: z.object({
                         thought: z.string(),
-                        toolName: z.enum(['analyzeData', 'detectAnomalies', 'null']),
+                        toolName: z.enum(['analyzeData', 'detectAnomalies', 'lettaSaveFact', 'null']),
                         args: z.record(z.any())
                     })
                 }
@@ -134,6 +142,8 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
                 // Mock history if not provided in args (Agent would usually chain this: fetch -> analyze)
                 const mockHistory = decision.args.history || [100, 110, 105, 120, 115, 130]; 
                 output = await tools.detectAnomalies(decision.args.metric, mockHistory);
+            } else if (decision.toolName === 'lettaSaveFact') {
+                output = await (tools as any).lettaSaveFact(decision.args.fact, decision.args.category);
             }
 
             // 4. SYNTHESIZE

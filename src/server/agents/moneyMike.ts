@@ -76,6 +76,14 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
                     newPrice: z.number(),
                     costBasis: z.number()
                 })
+            },
+            {
+                name: "lettaSaveFact",
+                description: "Save a financial rule or insight to memory.",
+                schema: z.object({
+                    fact: z.string(),
+                    category: z.string().optional()
+                })
             }
         ];
 
@@ -99,7 +107,7 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
                 output: {
                     schema: z.object({
                         thought: z.string(),
-                        toolName: z.enum(['forecastRevenueImpact', 'validateMargin', 'null']),
+                        toolName: z.enum(['forecastRevenueImpact', 'validateMargin', 'lettaSaveFact', 'null']),
                         args: z.record(z.any())
                     })
                 }
@@ -124,6 +132,8 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
                 output = await tools.forecastRevenueImpact(decision.args.skuId || 'N/A', decision.args.priceDelta || 0);
             } else if (decision.toolName === 'validateMargin') {
                 output = await tools.validateMargin(decision.args.skuId || 'N/A', decision.args.newPrice || 0, decision.args.costBasis || 10);
+            } else if (decision.toolName === 'lettaSaveFact') {
+                output = await (tools as any).lettaSaveFact(decision.args.fact, decision.args.category);
             }
 
             // 4. SYNTHESIZE

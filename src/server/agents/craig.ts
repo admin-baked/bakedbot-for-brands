@@ -106,12 +106,20 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
                     jurisdictions: z.array(z.string()).describe("State codes e.g. ['CA', 'IL']")
                 })
             },
-             {
+            {
                 name: "sendSms",
                 description: "Dispatch an SMS message to a phone number.",
                 schema: z.object({
                     to: z.string(),
                     body: z.string()
+                })
+            },
+            {
+                name: "lettaSaveFact",
+                description: "Save a marketing insight or rule to memory.",
+                schema: z.object({
+                    fact: z.string(),
+                    category: z.string().optional()
                 })
             }
         ];
@@ -138,7 +146,7 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
                 output: {
                     schema: z.object({
                         thought: z.string(),
-                        toolName: z.enum(['generateCopy', 'validateCompliance', 'sendSms', 'null']),
+                        toolName: z.enum(['generateCopy', 'validateCompliance', 'sendSms', 'lettaSaveFact', 'null']),
                         args: z.record(z.any())
                     })
                 }
@@ -166,6 +174,9 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
                 output = await tools.validateCompliance(decision.args.content, decision.args.jurisdictions || ['CA']);
             } else if (decision.toolName === 'sendSms') {
                 output = await tools.sendSms(decision.args.to, decision.args.body);
+            } else if (decision.toolName === 'lettaSaveFact') {
+                // @ts-ignore - Assuming tools has it via default-tools
+                output = await (tools as any).lettaSaveFact(decision.args.fact, decision.args.category);
             }
 
             // 4. SYNTHESIZE

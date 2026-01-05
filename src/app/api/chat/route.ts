@@ -40,46 +40,9 @@ export const POST = withProtection(
                 }
             }
 
+
             // 2️⃣ Analyze the natural language query with context
-            
-            // --- INTENTION OS (V2) ---
-            // Homepage Chat Integration
-            try {
-                const { analyzeIntent } = await import('@/server/agents/intention/analyzer');
-                const analysis = await analyzeIntent(query, conversationContext.map(c => `${c.role}: ${c.content}`).join('\n'));
-
-                if (analysis.isAmbiguous && analysis.clarification?.clarificationQuestion) {
-                    // Return clarification immediately
-                    const clarificationMsg = `**Clarification Needed:** ${analysis.clarification.clarificationQuestion}\n\n*Options:*\n${analysis.clarification.possibleIntents.map(i => `- ${i}`).join('\n')}`;
-                    
-                     if (userId && currentSessionId) {
-                        await addMessageToSession(userId, currentSessionId, { role: 'user', content: query });
-                        await addMessageToSession(userId, currentSessionId, { role: 'assistant', content: clarificationMsg });
-                    }
-
-                    return NextResponse.json({ 
-                        ok: true, 
-                        message: clarificationMsg, 
-                        products: [], 
-                        sessionId: currentSessionId,
-                        metadata: { isClarification: true }
-                    });
-                }
-                
-                // If committed, inject intent into the query for the standard analyzer
-                if (analysis.commit) {
-                     // We don't change 'query' because we want the exact text for search, 
-                     // but we could prepend the goal to help the legacy analyzer.
-                     // For now, we trust the legacy analyzer to handle the specific query, 
-                     // knowing that the Intention Analyzer has already vetted it as "Specific".
-                }
-
-            } catch (e) {
-                console.warn('[API/Chat] Intention Analyzer failed (Shadow Mode)', e);
-            }
-            // -------------------------
-
-            const analysis = await analyzeQuery(query, conversationContext);
+             const analysis = await analyzeQuery(query, conversationContext);
 
             // 2.5️⃣ Handle Competitive Intelligence Requests (Ezal)
             if (analysis.searchType === 'competitive') {

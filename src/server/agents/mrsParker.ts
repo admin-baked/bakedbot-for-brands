@@ -74,6 +74,23 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
                     segmentId: z.string(),
                     goal: z.string().describe("e.g. 'Winback', 'Birthday'")
                 })
+            },
+            {
+                name: "sendPersonalizedEmail",
+                description: "Send a personalized, compliance-checked email to a specific customer using their Agent.",
+                schema: z.object({
+                    customerId: z.string(),
+                    emailType: z.enum(['welcome', 'onboarding', 'promotion', 'winback']),
+                    context: z.record(z.any()).describe("Context triggers e.g. { day: 1, promo: 'birthday' }")
+                })
+            },
+            {
+                name: "lettaSaveFact",
+                description: "Save a customer preference or segment insight to memory.",
+                schema: z.object({
+                    fact: z.string(),
+                    category: z.string().optional()
+                })
             }
         ];
 
@@ -97,7 +114,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
                 output: {
                     schema: z.object({
                         thought: z.string(),
-                        toolName: z.enum(['predictChurnRisk', 'generateLoyaltyCampaign', 'null']),
+                        toolName: z.enum(['predictChurnRisk', 'generateLoyaltyCampaign', 'sendPersonalizedEmail', 'lettaSaveFact', 'null']),
                         args: z.record(z.any())
                     })
                 }
@@ -122,6 +139,15 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
                 output = await tools.predictChurnRisk(decision.args.segmentId || 'all');
             } else if (decision.toolName === 'generateLoyaltyCampaign') {
                 output = await tools.generateLoyaltyCampaign(decision.args.segmentId || 'all', decision.args.goal || 'Retention');
+            } else if (decision.toolName === 'sendPersonalizedEmail') {
+                const { customerAgentManager } = await import('@/server/services/letta/customer-agent-manager');
+                output = await customerAgentManager.sendPersonalizedEmail(
+                    decision.args.customerId,
+                    decision.args.emailType,
+                    decision.args.context || {}
+                );
+            } else if (decision.toolName === 'lettaSaveFact') {
+                output = await (tools as any).lettaSaveFact(decision.args.fact, decision.args.category);
             }
 
             // 4. SYNTHESIZE

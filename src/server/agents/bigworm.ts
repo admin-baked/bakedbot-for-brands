@@ -78,6 +78,14 @@ export const bigWormAgent: AgentImplementation<BigWormMemory, BigWormTools> = {
                         researchId: z.string(),
                         finding: z.string()
                     })
+                },
+                {
+                    name: "lettaSaveFact",
+                    description: "Save a general fact to memory.",
+                    schema: z.object({
+                        fact: z.string(),
+                        category: z.string().optional()
+                    })
                 }
             ];
 
@@ -103,7 +111,7 @@ export const bigWormAgent: AgentImplementation<BigWormMemory, BigWormTools> = {
                     output: {
                         schema: z.object({
                             thought: z.string(),
-                            toolName: z.enum(['pythonAnalyze', 'saveFinding', 'null']),
+                            toolName: z.enum(['pythonAnalyze', 'saveFinding', 'lettaSaveFact', 'null']),
                             args: z.record(z.any())
                         })
                     }
@@ -129,6 +137,9 @@ export const bigWormAgent: AgentImplementation<BigWormMemory, BigWormTools> = {
                     output = await tools.pythonAnalyze(decision.args.action, decision.args.data);
                 } else if (decision.toolName === 'saveFinding') {
                     output = await tools.saveFinding(decision.args.researchId, decision.args.finding);
+                } else if (decision.toolName === 'lettaSaveFact') {
+                    // @ts-ignore
+                    output = await (tools as any).lettaSaveFact(decision.args.fact, decision.args.category);
                 }
 
                 // 4. SYNTHESIZE
