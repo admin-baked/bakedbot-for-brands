@@ -145,7 +145,7 @@ function CeoDashboardContent() {
     return (
         <div className="space-y-6">
             {/* Super Admin Header */}
-            <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 p-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 rounded-lg border border-green-200 bg-green-50 p-4">
                 <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
                         <Shield className="h-5 w-5 text-green-600" />
@@ -155,9 +155,9 @@ function CeoDashboardContent() {
                         <p className="text-sm text-green-700">{superAdminEmail}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
                     <Link href="?tab=email">
-                        <Button variant="ghost" size="sm">Email Tester</Button>
+                        <Button variant="ghost" size="sm" className="w-full sm:w-auto">Email Tester</Button>
                     </Link>
                     <DataImportDropdown />
                     <MockDataToggle />

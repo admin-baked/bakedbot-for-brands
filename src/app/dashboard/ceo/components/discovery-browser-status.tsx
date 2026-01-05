@@ -79,7 +79,7 @@ export function DiscoveryBrowserStatus() {
 
     return (
         <Card className="overflow-hidden">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardHeader className="pb-2 flex flex-row flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                     <div className={cn(
                         "p-1.5 rounded-lg",
