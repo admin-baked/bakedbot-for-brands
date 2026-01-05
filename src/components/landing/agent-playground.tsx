@@ -45,7 +45,7 @@ export function AgentPlayground() {
     } : null;
 
     const prompts = demoMode === 'dispensary' ? [
-        "Hire a Market Scout (Audit my local competition)",
+        "Hire a Market Scout (Spy on Competitors)",
         "Send Deebo (Check my compliance)", 
         "See my Digital Budtender in action",
         "What are the pricing plans?"

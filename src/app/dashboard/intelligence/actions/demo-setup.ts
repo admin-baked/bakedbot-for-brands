@@ -25,12 +25,12 @@ export async function searchDemoRetailers(zip: string) {
             limit: 12 
         });
         
-        let mapped = results.map((r: any) => ({
-            name: r.name,
+        let mapped = results.map((r: any, idx: number) => ({
+            name: r.name || r.business_name || r.store_name || `Dispensary #${idx + 1}`,
             address: r.address,
             city: r.city || coords.city,
-            distance: r.distance,
-            menuUrl: r.website || r.url,
+            distance: r.distance || 0,
+            menuUrl: r.website || r.url || r.menu_url,
             skuCount: Math.floor(Math.random() * (500 - 150) + 150),
             riskScore: 'Low' as 'Low' | 'Med' | 'High',
             pricingStrategy: 'Standard',
