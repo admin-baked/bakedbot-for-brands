@@ -213,9 +213,19 @@ export const defaultBigWormTools = {
         }
     },
     saveFinding: async (researchId: string, finding: string) => {
-        // Stub for now - in real life would write to Firestore subcollection
-        console.log(`[BigWorm] Saved finding for ${researchId}: ${finding}`);
-        return { success: true, id: Math.random().toString(36).substring(7) };
+        try {
+            const { lettaClient } = await import('@/server/services/letta/client');
+            const agents = await lettaClient.listAgents();
+            let agent = agents.find(a => a.name === 'BakedBot Research Memory');
+            if (!agent) {
+                agent = await lettaClient.createAgent('BakedBot Research Memory', 'Long-term memory for BakedBot.');
+            }
+            await lettaClient.sendMessage(agent.id, `Research ID ${researchId}: ${finding}`);
+            return { success: true, id: researchId, status: 'saved_to_letta' };
+        } catch (e: any) {
+            console.error('Letta Save Error:', e);
+            return { success: false, error: e.message };
+        }
     }
 };
 
@@ -286,6 +296,47 @@ export const defaultExecutiveTools = {
             return { success: true, result };
         } catch (e: any) {
             return { success: false, error: e.message };
+        }
+    },
+    lettaSaveFact: async (fact: string, category?: string) => {
+        try {
+            // We reuse the logic from the tool definition by importing the client directly
+            // This ensures consistent behavior between tool usage and direct calls
+            const { lettaClient } = await import('@/server/services/letta/client');
+            // We use the same 'BakedBot Research Memory' agent convention
+            const agents = await lettaClient.listAgents();
+            let agent = agents.find(a => a.name === 'BakedBot Research Memory');
+            if (!agent) {
+                agent = await lettaClient.createAgent('BakedBot Research Memory', 'Long-term memory for BakedBot.');
+            }
+            
+            const message = category 
+                ? `Remember this fact under category '${category}': ${fact}`
+                : `Remember this fact: ${fact}`;
+            
+            await lettaClient.sendMessage(agent.id, message);
+            return { success: true, message: `Saved to memory: ${fact}` };
+        } catch (e: any) {
+            return { success: false, error: `Letta Save Failed: ${e.message}` };
+        }
+    },
+    lettaAsk: async (question: string) => {
+        try {
+            const { lettaClient } = await import('@/server/services/letta/client');
+            const agents = await lettaClient.listAgents();
+            const agent = agents.find(a => a.name === 'BakedBot Research Memory');
+            
+            if (!agent) return { response: "Memory is empty or not initialized." };
+            
+            const result: any = await lettaClient.sendMessage(agent.id, question);
+             // Extract assistant response (simplified)
+            if (result.messages && Array.isArray(result.messages)) {
+                 const last = result.messages.filter((m:any) => m.role === 'assistant').pop();
+                 return { response: last ? last.content : "No recall." };
+            }
+            return { response: "No clear memory found." };
+        } catch (e: any) {
+            return { error: `Letta Ask Failed: ${e.message}` };
         }
     }
 };
