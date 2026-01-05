@@ -1004,46 +1004,15 @@ export function PuffChat({
              addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
              setStreamingMessageId(null);
              
-             const step1Id = Math.random().toString(36).substr(2,9);
-             updateMessage(thinkingId, {
-                thinking: { isThinking: true, steps: [{ id: step1Id, toolName: "Ezal", description: "Scanning retail partnerships...", status: 'in-progress' }], plan: [] }
-             });
-
-             const { getDemoBrandFootprint } = await import('@/app/dashboard/intelligence/actions/demo-presets');
-             const result = await getDemoBrandFootprint('Your Brand');
-             
-             await new Promise(r => setTimeout(r, 1200));
-
-             if (result.success && result.audit) {
-                 const a = result.audit;
-                 const reportContent = `**👁️ Ezal's Brand Footprint Audit**\n\n` +
-                    `**Estimated Retail Partners**: ${a.estimatedRetailers}\n\n` +
-                    `**Top Markets**\n` +
-                    a.topMarkets.map((m: string) => `- ✅ ${m}`).join('\n') + `\n\n` +
-                    `**Coverage Gaps** (Opportunities)\n` +
-                    a.coverageGaps.map((m: string) => `- ⚠️ ${m}`).join('\n') + `\n\n` +
-                    `**SEO Opportunities**\n` +
-                    a.seoOpportunities.map((k: string) => `- 🔍 "${k}"`).join('\n') + `\n\n` +
-                    `**Key Competitors**\n` +
-                    a.competitorOverlap.map((c: string) => `- 🏷️ ${c}`).join('\n') + `\n\n` +
-                    `_Want a deeper competitive analysis? Hire Ezal full-time._`;
-
+             // ASK FOR BRAND NAME instead of hallucinating results immediately
+             setTimeout(() => {
                  updateMessage(thinkingId, {
-                     content: reportContent,
-                     thinking: { isThinking: false, steps: [
-                         { id: step1Id, toolName: "Ezal", description: `Found ${a.estimatedRetailers} partners`, status: 'completed' },
-                         { id: 'seo', toolName: "SEO Scanner", description: "Keywords analyzed", status: 'completed' }
-                     ], plan: [] }
-                 });
-             } else {
-                 updateMessage(thinkingId, {
-                     content: "I had trouble analyzing your brand footprint. What's your brand name?",
+                     content: "I can definitely audit your brand's digital footprint.\n\n**What is the name of your brand?**",
                      thinking: { isThinking: false, steps: [], plan: [] }
                  });
-             }
-             
-             setIsProcessing(false);
-             setStreamingMessageId(thinkingId);
+                 setIsProcessing(false);
+                 setStreamingMessageId(thinkingId);
+             }, 800);
              return;
         }
 
