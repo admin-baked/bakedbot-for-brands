@@ -100,7 +100,7 @@ const PUBLIC_CONFIG: RoleChatConfig = {
     placeholder: 'Ask about BakedBot...',
     iconName: 'sparkles',
     themeColor: 'emerald',
-    agentPersona: 'smokey',
+    agentPersona: 'leo',
     promptSuggestions: [
         'Hire a Market Scout (audit my competition)',
         'Send Deebo (compliance check)',
@@ -203,6 +203,7 @@ export function UnifiedAgentChat({
                     isAuthenticated={isAuthenticated}
                     isSuperUser={isSuperUser}
                     locationInfo={locationInfo} // Pass location context
+                    persona={config.agentPersona as any}
                     className="h-full"
                 />
             </div>
