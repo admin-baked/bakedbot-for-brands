@@ -1,7 +1,7 @@
 
 import { LettaAgent } from './client';
 import { CustomerAgentManager } from './customer-agent-manager';
-import { db } from '@/firebase/server-client';
+import { createServerClient } from '@/firebase/server-client';
 
 export class RolePermissionService {
     /*
@@ -51,7 +51,8 @@ export class RolePermissionService {
     }
 
     private async getCustomerData(customerId: string): Promise<any> {
-        const doc = await db.collection('customers').doc(customerId).get();
+        const { firestore } = await createServerClient();
+        const doc = await firestore.collection('customers').doc(customerId).get();
         if (!doc.exists) {
             throw new Error(`Customer ${customerId} not found`);
         }

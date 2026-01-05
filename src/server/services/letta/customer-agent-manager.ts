@@ -1,7 +1,7 @@
 
 import { lettaClient } from '@/server/services/letta/client';
 import { LettaAgent } from '@/server/services/letta/client';
-import { db } from '@/firebase/server-client';
+import { createServerClient } from '@/firebase/server-client';
 import { deebo } from '@/server/agents/deebo';
 import { sendGenericEmail } from '@/lib/email/mailjet';
 import { ragService } from '@/server/services/vector-search/rag-service';
@@ -79,13 +79,13 @@ Customer Email: ${customerData.email}
 Customer Type: ${customerData.type}
 Loyalty Tier: ${customerData.tier || 'New Customer'}
 Preferences: (To be learned over time)`,
-            { limit: 4000, read_only: false }
+            { limit: 4000, readOnly: false }
         );
         
         const historyBlock = await lettaClient.createBlock(
             `interaction_history_${customerId}`,
             `Interaction History for ${customerData.name}:\n---\n(No interactions yet)`,
-            { limit: 8000, read_only: false }
+            { limit: 8000, readOnly: false }
         );
 
         // 3. Create Agent
@@ -117,7 +117,8 @@ Preferences: (To be learned over time)`,
         context: any
     ): Promise<{ success: boolean; emailSent: string; agentResponse: any }> {
         // Fetch customer data
-        const customerDoc = await db.collection('customers').doc(customerId).get();
+        const { firestore } = await createServerClient();
+        const customerDoc = await firestore.collection('customers').doc(customerId).get();
         if (!customerDoc.exists) throw new Error(`Customer ${customerId} not found`);
         const customerData = customerDoc.data() as any;
 

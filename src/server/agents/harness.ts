@@ -150,6 +150,9 @@ export interface MultiStepContext {
     tools: any;
     maxIterations?: number;
     onStepComplete?: (step: number, toolName: string, result: any) => Promise<void>;
+    onHITLRequired?: (params: { tool: string; args: any; reason: string }) => Promise<{ approved: boolean; reason?: string }>;
+    onReplanRequired?: (toolName: string, error: string) => Promise<void>;
+    onDriftDetected?: (pei: any) => Promise<void>;
 }
 
 /**
