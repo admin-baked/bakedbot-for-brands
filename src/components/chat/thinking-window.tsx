@@ -16,7 +16,16 @@ import {
     BarChart3,
     Megaphone,
     ShieldAlert,
-    RefreshCw
+    RefreshCw,
+    Lock,
+    ChevronLeft,
+    ChevronRight,
+    RotateCw,
+    Maximize2,
+    Minus,
+    MessageSquare,
+    Link,
+    AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ToolCallStep } from '@/app/dashboard/ceo/components/puff-chat';
@@ -54,6 +63,23 @@ export function ThinkingWindow({ steps, isThinking, agentName = 'puff', query }:
     const config = getAgentConfig();
     const activeStep = steps.find(s => s.status === 'in-progress') || steps[steps.length - 1];
 
+    // URL Parsing Logic for Address Bar
+    const getActiveUrl = () => {
+        if (!activeStep) return 'about:blank';
+        // Try to find a URL in the description
+        const urlMatch = activeStep.description?.match(/https?:\/\/[^\s]+/);
+        if (urlMatch) return urlMatch[0];
+        
+        // Fallback based on step name
+        if (activeStep.toolName.toLowerCase().includes('google')) return 'https://google.com/search?q=dispensaries';
+        if (activeStep.toolName.toLowerCase().includes('crawler')) return 'https://dutchesscanna.com/menu'; // Example simulation
+        if (activeStep.toolName.toLowerCase().includes('search')) return 'https://google.com';
+        
+        return `agent://${agentName}/${activeStep.toolName.toLowerCase().replace(/\s/g, '-')}`;
+    };
+
+    const currentUrl = getActiveUrl();
+
     if (!isThinking && (!steps || steps.length === 0)) return null;
 
     return (
@@ -61,100 +87,179 @@ export function ThinkingWindow({ steps, isThinking, agentName = 'puff', query }:
             initial={{ opacity: 0, y: 10, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="w-full max-w-3xl mx-auto my-4 rounded-xl overflow-hidden shadow-2xl border border-border/50 font-sans"
+            className="w-full max-w-3xl mx-auto my-4 rounded-xl overflow-hidden shadow-2xl border border-slate-800 font-sans bg-slate-950"
         >
-            {/* Header / Browser Bar */}
-            <div className="h-9 bg-slate-900 border-b border-slate-800 flex items-center px-3 space-x-2">
-                <div className="flex space-x-1.5 opacity-80">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+            {/* --- BROWSER CHROME --- */}
+            
+            {/* Tab Bar */}
+            <div className="h-9 bg-[#1e1e1e] flex items-center px-4 pt-2 space-x-2 select-none">
+                {/* Traffic Lights */}
+                <div className="flex space-x-1.5 mr-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#FF5F56]" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E]" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#27C93F]" />
                 </div>
-                <div className="flex-1 ml-2 flex justify-center">
-                    <div className="bg-slate-800/80 rounded px-2 py-0.5 text-[10px] text-slate-400 font-mono w-2/3 flex items-center justify-between border border-slate-700/50">
-                        <span className="truncate flex items-center gap-1.5">
-                            <config.icon className={cn("h-3 w-3", `text-${config.color}-400`)} />
-                            {activeStep?.toolName ? `agent://${agentName}/${activeStep.toolName.toLowerCase().replace(/\s/g, '-')}` : `agent://${agentName}/idle`}
-                        </span>
-                        {isThinking && <RefreshCw className="h-2.5 w-2.5 animate-spin opacity-50" />}
-                    </div>
-                </div>
-            </div>
-
-            {/* Main Content Area */}
-            <div className="relative h-48 bg-slate-950 overflow-hidden flex flex-col">
                 
-                {/* Background Grid/Effect */}
-                <div className="absolute inset-0 opacity-10 pointer-events-none">
-                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
+                {/* Active Tab */}
+                <div className="flex-1 max-w-[200px] h-full bg-[#3c3c3c] rounded-t-lg flex items-center px-3 text-[10px] text-slate-200 gap-2 relative group">
+                    <div className={cn("w-2 h-2 rounded-full animate-pulse", `bg-${config.color}-500`)} />
+                    <span className="truncate">{activeStep?.toolName || 'New Tab'}</span>
+                    <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#3c3c3c] to-transparent" />
                 </div>
-
-                {/* Agent Visuals */}
-                <div className="absolute inset-0 overflow-hidden p-4">
-                    <AnimatePresence mode="wait">
-                        {agentName === 'ezal' ? (
-                            <EzalVisual key="ezal" isThinking={isThinking} />
-                        ) : agentName === 'smokey' ? (
-                            <SmokeyVisual key="smokey" isThinking={isThinking} />
-                        ) : (
-                            <GenericVisual key="generic" config={config} isThinking={isThinking} />
-                        )}
-                    </AnimatePresence>
+                
+                {/* Inactive Tab */}
+                <div className="max-w-[150px] h-full bg-transparent flex items-center px-3 text-[10px] text-slate-500 gap-2">
+                     <span className="truncate">agent://logs</span>
                 </div>
-
-                {/* Floating Stats / Info */}
-                <div className="absolute top-3 right-3 flex flex-col gap-2 pointer-events-none select-none">
-                    <motion.div 
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="bg-slate-900/90 backdrop-blur text-xs text-slate-300 border border-slate-800 rounded px-2 py-1 shadow-sm font-mono flex items-center gap-2"
-                    >
-                        <Server className="h-3 w-3 text-blue-500" />
-                        <span>Latency: {Math.floor(Math.random() * 40 + 20)}ms</span>
-                    </motion.div>
-                </div>
-
-                {/* Agent Cursor (Simulated Movement) */}
-                {isThinking && (
-                    <AgentCursor color={config.color} />
-                )}
             </div>
 
-            {/* Terminal / Logs Footer */}
-            <div className="h-32 bg-slate-950 border-t border-slate-800 p-3 font-mono text-[10px] overflow-hidden flex flex-col">
-                <div className="flex items-center gap-2 mb-2 text-slate-500 border-b border-slate-900 pb-1">
-                    <Terminal className="h-3 w-3" />
-                    <span>Episodic Thinking</span>
+            {/* Address Bar Navigation */}
+            <div className="h-10 bg-[#2d2d2d] border-b border-black/20 flex items-center px-3 gap-3">
+                <div className="flex gap-2 text-slate-500">
+                    <ChevronLeft className="h-4 w-4 opacity-50" />
+                    <ChevronRight className="h-4 w-4 opacity-50" />
+                    <RotateCw className={cn("h-3.5 w-3.5", isThinking && "animate-spin text-emerald-500")} />
                 </div>
-                <div className="flex-1 overflow-y-auto space-y-1 scrollbar-none">
-                    {steps.map((step, i) => (
+                
+                {/* URL Input */}
+                <div className="flex-1 h-7 bg-[#1e1e1e] rounded flex items-center px-3 text-[10px] text-slate-400 font-mono gap-2 relative">
+                    <Lock className="h-2.5 w-2.5 text-emerald-500" />
+                    <span className="text-emerald-500/50">https://</span>
+                    <span className="text-slate-300 truncate">{currentUrl.replace('https://', '')}</span>
+                    
+                    {/* Loading Bar */}
+                    {isThinking && activeStep.status === 'in-progress' && (
                         <motion.div 
+                            initial={{ width: "0%" }}
+                            animate={{ width: "70%" }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                            className="absolute bottom-0 left-0 h-[2px] bg-emerald-500/50" 
+                        />
+                    )}
+                </div>
+
+                <div className="flex gap-2 text-slate-500">
+                    <Maximize2 className="h-3.5 w-3.5 hover:text-slate-300 cursor-pointer" />
+                </div>
+            </div>
+
+
+            {/* --- VIEWPORT --- */}
+            <div className="relative h-64 bg-[#121212] overflow-hidden flex flex-col p-4">
+                
+                {/* Grid of Agent Actions (The "Visual Browser") */}
+                <div className="grid grid-cols-3 gap-4 h-full">
+                    
+                    {/* Main Agent Focus Card */}
+                    <div className="col-span-2 row-span-2 bg-[#1e1e1e] rounded-lg border border-white/5 p-4 flex flex-col relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-50" />
+                        
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-4 z-10">
+                            <div className="flex items-center gap-2">
+                                <span className={cn("h-2 w-2 rounded-full", isThinking ? `bg-${config.color}-500 animate-pulse` : "bg-slate-500")} />
+                                <span className="text-xs font-semibold text-slate-300">{activeStep?.toolName || 'Idle'}</span>
+                            </div>
+                            <span className="text-[10px] bg-white/5 px-2 py-0.5 rounded text-slate-400 font-mono">
+                                PID: {Math.floor(Math.random() * 8000 + 1000)}
+                            </span>
+                        </div>
+
+                        {/* Content Simulation */}
+                        <div className="flex-1 flex flex-col gap-2 z-10">
+                             <div className="w-3/4 h-3 bg-white/10 rounded animate-pulse" />
+                             <div className="w-1/2 h-3 bg-white/10 rounded animate-pulse delay-75" />
+                             <div className="w-full h-32 mt-2 bg-black/40 rounded border border-white/5 p-3 font-mono text-[9px] text-green-400 overflow-hidden relative">
+                                 <div className="absolute top-2 right-2 flex gap-1">
+                                     <div className="w-2 h-2 rounded-full bg-red-500/20" />
+                                     <div className="w-2 h-2 rounded-full bg-yellow-500/20" />
+                                     <div className="w-2 h-2 rounded-full bg-green-500/20" />
+                                 </div>
+                                 <p className="text-slate-400 mb-1"># Target: {currentUrl}</p>
+                                 <p className="text-slate-500">$ parsing_dom_structure...</p>
+                                 {isThinking && (
+                                     <>
+                                         <p className="text-slate-500">$ extracting_metadata...</p>
+                                         <p className="text-emerald-500/80">$ found_elements: {Math.floor(Math.random() * 50 + 10)}</p>
+                                         <p className="text-emerald-500/80">$ extracting_pricing_data...</p>
+                                         <motion.span 
+                                            animate={{ opacity: [0, 1, 0] }}
+                                            transition={{ duration: 1, repeat: Infinity }}
+                                            className="text-emerald-500"
+                                         >_</motion.span>
+                                     </>
+                                 )}
+                             </div>
+                        </div>
+                    </div>
+
+                    {/* Secondary Stats Card */}
+                    <div className="bg-[#1e1e1e] rounded-lg border border-white/5 p-3 flex flex-col justify-center items-center gap-2 relative overflow-hidden">
+                         <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold z-10">Network Latency</div>
+                         <div className="text-2xl font-mono text-emerald-400 z-10">{Math.floor(Math.random() * 40 + 20)}<span className="text-sm text-slate-600">ms</span></div>
+                         <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden z-10">
+                             <div className="h-full bg-emerald-500 w-[60%]" />
+                         </div>
+                         <div className="absolute inset-0 bg-emerald-500/5 z-0" />
+                    </div>
+
+                    {/* Threat/Status Card */}
+                    <div className="bg-[#1e1e1e] rounded-lg border border-white/5 p-3 flex flex-col justify-center items-center gap-2">
+                        {agentName === 'deebo' ? (
+                            <>
+                                <ShieldAlert className="h-6 w-6 text-red-500" />
+                                <span className="text-[10px] text-slate-400 text-center">Audit Status: <span className="text-red-400 font-bold">ACTIVE</span></span>
+                            </>
+                        ) : (
+                            <>
+                                <Globe className="h-6 w-6 text-blue-500" />
+                                <span className="text-[10px] text-slate-400 text-center">Proxy Status: <span className="text-blue-400 font-bold">ROTATING</span></span>
+                            </>
+                        )}
+                        <span className="text-[9px] text-slate-600 font-mono">IP: 192.168.x.x</span>
+                    </div>
+
+                </div>
+
+                {/* Agent Cursor Overlay */}
+                {isThinking && <AgentCursor color={config.color} />}
+            </div>
+
+            {/* --- TERMINAL --- */}
+            <div className="h-40 bg-[#0c0c0c] border-t border-white/10 p-2 font-mono text-[10px] flex flex-col">
+                <div className="flex items-center gap-2 mb-1 px-2 text-slate-500 select-none pb-1 border-b border-white/5">
+                    <Terminal className="h-3 w-3" />
+                    <span>Agent Console Output</span>
+                    <span className="ml-auto text-xs opacity-50">bash --login</span>
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-1.5 scrollbar-thin scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20">
+                    {steps.map((step, i) => (
+                        <div 
                             key={step.id}
-                            initial={{ opacity: 0, x: -5 }}
-                            animate={{ opacity: 1, x: 0 }}
                             className={cn(
-                                "flex items-start gap-2",
-                                step.status === 'in-progress' ? `text-${config.color}-400` : "text-slate-400"
+                                "flex items-start gap-3 pl-1 transition-all duration-300 font-mono group",
+                                step.status === 'in-progress' ? "opacity-100" : "opacity-60 hover:opacity-100"
                             )}
                         >
-                            <span className="opacity-50 min-w-[30px]">[{new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })}]</span>
-                            <span>
-                                <span className={cn("font-bold mr-1", step.status === 'completed' ? "text-green-500" : "")}>
-                                    {step.status === 'completed' ? '✓' : '>'}
-                                </span>
-                                {step.description || step.toolName}
+                            <span className="text-slate-600 min-w-[65px] shrink-0 select-none">
+                                [{new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })}]
                             </span>
-                        </motion.div>
+                            <span className="flex-1 break-all">
+                                <span className={cn(
+                                    "font-bold mr-2", 
+                                    step.status === 'in-progress' ? `text-${config.color}-400` : 
+                                    step.status === 'completed' ? "text-emerald-500" : "text-slate-400"
+                                )}>
+                                    {step.status === 'completed' ? '✔' : '❯'} {step.toolName}
+                                </span>
+                                <span className="text-slate-400 group-hover:text-slate-300">{step.description}</span>
+                            </span>
+                        </div>
                     ))}
                     {isThinking && (
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 0.5 }}
-                            className={`text-${config.color}-500 animate-pulse`}
-                        >
-                            <span className="opacity-50 min-w-[30px]">...</span>
-                            <span>_</span>
-                        </motion.div>
+                        <div className="pl-[75px] animate-pulse text-emerald-500/80">
+                            _
+                        </div>
                     )}
                     <div ref={logsEndRef} />
                 </div>
@@ -163,118 +268,28 @@ export function ThinkingWindow({ steps, isThinking, agentName = 'puff', query }:
     );
 }
 
-// --- Visual Sub-Components ---
-
-function EzalVisual({ isThinking }: { isThinking: boolean }) {
-    return (
-        <div className="w-full h-full relative">
-            {/* Radar / Scanner Visual */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                <div className="relative w-48 h-48">
-                    {/* Ripple Rings */}
-                    <div className="absolute inset-0 border border-purple-500/20 rounded-full" />
-                    <div className="absolute inset-4 border border-purple-500/20 rounded-full" />
-                    <div className="absolute inset-8 border border-purple-500/20 rounded-full" />
-                    <div className="absolute inset-12 border border-purple-500/20 rounded-full" />
-                    
-                    {/* Scanning Line */}
-                    {isThinking && (
-                        <div className="absolute inset-0 rounded-full border-t border-purple-500/50 bg-[conic-gradient(from_0deg,transparent_0deg,rgba(168,85,247,0.1)_180deg,transparent_360deg)] animate-[spin_3s_linear_infinite]" />
-                    )}
-
-                    {/* Detected Points */}
-                    <motion.div 
-                        animate={{ opacity: [0, 1, 0] }} 
-                        transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                        className="absolute top-8 right-10 w-2 h-2 bg-red-400 rounded-full shadow-[0_0_8px_rgba(248,113,113,0.8)]" 
-                    />
-                    <motion.div 
-                        animate={{ opacity: [0, 1, 0] }} 
-                        transition={{ duration: 2, repeat: Infinity, delay: 1.2 }}
-                        className="absolute bottom-12 left-14 w-2 h-2 bg-red-400 rounded-full shadow-[0_0_8px_rgba(248,113,113,0.8)]" 
-                    />
-                </div>
-            </div>
-            <div className="absolute bottom-0 right-0">
-                <div className="flex items-center gap-2 bg-purple-950/50 border border-purple-500/30 text-purple-200 px-2 py-1 rounded text-[10px]">
-                    <Globe className="h-3 w-3" />
-                    <span>BakedBot Discovery Active</span>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function SmokeyVisual({ isThinking }: { isThinking: boolean }) {
-    return (
-        <div className="w-full h-full relative p-4">
-             <div className="grid grid-cols-4 gap-2 opacity-50">
-                 {[...Array(12)].map((_, i) => (
-                    <motion.div 
-                        key={i}
-                        initial={{ opacity: 0.3, scale: 0.9 }}
-                        animate={isThinking ? { 
-                            opacity: [0.3, 0.8, 0.3],
-                            scale: [0.9, 1, 0.9]
-                        } : {}}
-                        transition={{ duration: 2, delay: i * 0.1, repeat: Infinity }}
-                        className="aspect-square bg-emerald-500/10 border border-emerald-500/20 rounded-md"
-                    />
-                 ))}
-             </div>
-             {/* Center Focus */}
-             <div className="absolute inset-0 flex items-center justify-center">
-                 <div className="bg-slate-900/80 backdrop-blur p-4 rounded-xl border border-emerald-500/30 shadow-xl flex flex-col items-center">
-                    <Leaf className={cn("h-8 w-8 text-emerald-500", isThinking && "animate-pulse")} />
-                    <span className="text-xs text-emerald-200 mt-2 font-mono">Catalog Sync</span>
-                 </div>
-             </div>
-        </div>
-    );
-}
-
-function GenericVisual({ config, isThinking }: { config: any, isThinking: boolean }) {
-    const Icon = config.icon;
-    return (
-        <div className="w-full h-full flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4">
-                <div className="relative">
-                    <div className={cn("absolute inset-0 rounded-full opacity-20 animate-ping", `bg-${config.color}-500`)} />
-                    <div className={cn("relative p-4 rounded-full bg-slate-800 border", `border-${config.color}-500/50`)}>
-                        <Icon className={cn("h-8 w-8", `text-${config.color}-400`)} />
-                    </div>
-                </div>
-                <div className="text-center space-y-1">
-                    <h4 className="text-sm font-medium text-slate-200">{config.label}</h4>
-                    {isThinking && (
-                        <p className={cn("text-xs font-mono animate-pulse", `text-${config.color}-400`)}>Processing request...</p>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-}
-
 function AgentCursor({ color = 'slate' }: { color?: string }) {
     return (
         <motion.div
-            initial={{ x: "50%", y: "50%", opacity: 0 }}
+            initial={{ x: "10%", y: "10%", opacity: 0 }}
             animate={{ 
-                x: ["40%", "60%", "30%", "70%", "50%"], 
-                y: ["40%", "60%", "70%", "30%", "50%"],
+                x: ["10%", "85%", "40%", "70%", "50%"], 
+                y: ["20%", "40%", "70%", "80%", "50%"],
                 opacity: 1 
             }}
             transition={{ 
-                duration: 4, 
+                duration: 8, 
                 ease: "easeInOut",
                 repeat: Infinity,
                 repeatType: "mirror"
             }}
-            className="absolute z-20 pointer-events-none"
+            className="absolute z-50 pointer-events-none top-0 left-0 w-full h-full"
         >
-            <MousePointer2 className={cn("h-5 w-5 drop-shadow-md", `text-${color}-500 fill-${color}-500/20`)} />
-            <div className={cn("ml-4 -mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm text-white", `bg-${color}-600`)}>
-                Agent
+            <div className="relative">
+                <MousePointer2 className={cn("h-6 w-6 drop-shadow-xl filter", `text-${color}-500 fill-black/50`)} />
+                <div className={cn("absolute left-4 top-4 text-[9px] font-bold px-2 py-0.5 rounded shadow-lg text-white whitespace-nowrap backdrop-blur-sm", `bg-${color}-600/90`)}>
+                    Agent
+                </div>
             </div>
         </motion.div>
     );
