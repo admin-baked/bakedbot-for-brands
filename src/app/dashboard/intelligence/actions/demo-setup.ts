@@ -25,18 +25,38 @@ export async function searchDemoRetailers(zip: string) {
             limit: 12 
         });
         
-        let mapped = results.map((r: any, idx: number) => ({
-            name: r.name || r.business_name || r.store_name || `Dispensary #${idx + 1}`,
-            address: r.address,
-            city: r.city || coords.city,
-            distance: r.distance || 0,
-            menuUrl: r.website || r.url || r.menu_url,
-            skuCount: Math.floor(Math.random() * (500 - 150) + 150),
-            riskScore: 'Low' as 'Low' | 'Med' | 'High',
-            pricingStrategy: 'Standard',
-            isEnriched: false,
-            enrichmentSummary: ''
-        }));
+        // Map results - CannMenus returns various field names for retailer info
+        let mapped = results.map((r: any, idx: number) => {
+            // Try multiple possible field names for the dispensary name
+            const retailerName = r.name 
+                || r.retailer_name 
+                || r.dba_name 
+                || r.business_name 
+                || r.store_name 
+                || r.legal_name
+                || r.title
+                || `Unknown Dispensary ${idx + 1}`;
+            
+            console.log(`[Demo] Retailer ${idx}: raw data:`, JSON.stringify(r).slice(0, 300));
+            
+            return {
+                name: retailerName,
+                address: r.address || r.street_address || r.full_address || '',
+                city: r.city || coords.city,
+                state: r.state || '',
+                distance: r.distance || r.distance_miles || 0,
+                menuUrl: r.website || r.url || r.menu_url || r.homepage_url || '',
+                skuCount: Math.floor(Math.random() * (500 - 150) + 150),
+                riskScore: 'Low' as 'Low' | 'Med' | 'High',
+                pricingStrategy: 'Standard',
+                isEnriched: false,
+                enrichmentSummary: '',
+                // Additional fields for richer reports
+                phone: r.phone || '',
+                rating: r.rating || r.google_rating || null,
+                hours: r.hours || r.business_hours || null
+            };
+        });
 
         // SPOT CHECK: Pick top result with a URL
         const topCompIndex = mapped.findIndex((m: any) => m.menuUrl);
