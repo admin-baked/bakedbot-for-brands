@@ -1,10 +1,17 @@
 // src/components/smokey-widget.tsx
 'use client';
 
-import { useState } from 'react';
+  import { useState, useEffect } from 'react';
 
 export function SmokeyWidget() {
   const [open, setOpen] = useState(false);
+
+  // Auto-open listener for demo interactions
+  useEffect(() => {
+    const handleOpen = () => setOpen(true);
+    window.addEventListener('open-smokey-widget', handleOpen);
+    return () => window.removeEventListener('open-smokey-widget', handleOpen);
+  }, []);
 
   return (
     <>

@@ -750,6 +750,12 @@ export function PuffChat({
         // Detect Preset / Intercept Logic (Client-Side Demo Optimization)
         const trimmedInput = textInput.trim();
         const demoIntercept = PRESET_RESPONSES[trimmedInput];
+
+        // SPECIAL INTERCEPT: Open Smokey Widget for Budtender Demo
+        if (trimmedInput.includes("See my Digital Budtender")) {
+            // Dispatch event for smokey-widget.tsx to listen to
+            window.dispatchEvent(new Event('open-smokey-widget'));
+        }
         
         // SPECIAL CASE: Market Scout needs location context
         // DISABLED: Refactored to use Real Agent
