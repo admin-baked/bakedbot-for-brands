@@ -798,36 +798,74 @@ export function PuffChat({
 
                  if (result.success && result.daa) {
                      // Success! Format the report
-                     const competitors = result.daa.slice(0, 3); // Top 3
+                     const competitors = result.daa.slice(0, 5); // Top 5 for richer report
                      const count = result.daa.length;
                      const enrichedComp = result.daa.find((c: any) => c.isEnriched);
                      
+                     // Analyze pricing strategies
+                     const premiumComps = competitors.filter((c: any) => c.pricingStrategy?.includes('Premium'));
+                     const aggressiveComps = competitors.filter((c: any) => c.pricingStrategy?.includes('Aggressive'));
+                     const standardComps = competitors.filter((c: any) => c.pricingStrategy === 'Standard');
+                     
+                     // Build competitor table
                      let tableRows = competitors.map((c: any) => 
-                        `| **${c.name}** ${c.isEnriched ? '✅' : ''} | ${c.pricingStrategy} | ${c.skuCount} SKUs | ${c.riskScore === 'Low' ? '🟢 Low' : '🟡 Med'} |`
+                        `| **${c.name}** ${c.isEnriched ? '✅' : ''} | ${c.address ? c.address.slice(0, 30) + '...' : c.city} | ${c.pricingStrategy} | ${c.skuCount} SKUs | ${c.riskScore === 'Low' ? '🟢 Low' : '🟡 Med'} |`
                      ).join('\n');
                      
-                     // Insight Logic
-                     let insight = `The market is highly competitive.`;
+                     // Build pricing insights
+                     let pricingInsight = '';
+                     if (premiumComps.length > 0) {
+                         pricingInsight = `**${premiumComps[0].name}** leads with premium positioning (+15% above market). `;
+                     }
+                     if (aggressiveComps.length > 0) {
+                         pricingInsight += `**${aggressiveComps[0].name}** running aggressive promotions—potential price war.`;
+                     }
+                     if (!pricingInsight) {
+                         pricingInsight = `Market pricing is relatively stable with ${standardComps.length} dispensaries at standard rates.`;
+                     }
+                     
+                     // Deep dive insight
+                     let deepDive = '';
                      if (enrichedComp) {
-                         insight = `**Deep Dive on ${enrichedComp.name}**: ${enrichedComp.enrichmentSummary}`;
-                     } else {
-                         const premium = competitors.find((c:any) => c.pricingStrategy?.includes('Premium'));
-                         if (premium) insight = `**${premium.name}** is pricing at a premium.`;
+                         deepDive = `**🔬 Deep Dive: ${enrichedComp.name}**\n${enrichedComp.enrichmentSummary}\n\n`;
                      }
 
-                     const reportContent = `**🔍 Market Intelligence Report: ${result.location}**\n\n` +
-                        `I've identified **${count} dispensaries** in ${result.location}. Intel gathered via **BakedBot Discovery**.\n\n` +
-                        `| Competitor | Pricing Strategy | Menu Size | Risk Score |\n` +
-                        `| :--- | :--- | :--- | :--- |\n` +
-                        tableRows + 
-                        `\n\n**Actionable Insight**: ${insight}\n\n` +
+                     const reportContent = `## 🔥 Cannabis Market Intelligence - ${result.location}\n` +
+                        `**📊 COMPETITIVE ANALYSIS** - ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}\n\n` +
                         `---\n\n` +
-                        `### 🚀 Want Daily Competitive Intel?\n\n` +
-                        `Create a **Free Account** and launch the **Daily Competitive Intelligence Report** playbook. Get automated alerts when competitors change pricing or run promotions.\n\n` +
-                        `**Playbook: Daily Competitive Intel**\n` +
+                        `### 💰 KEY PRICING INSIGHTS\n` +
+                        `${pricingInsight}\n\n` +
+                        `- **Premium Positioned**: ${premiumComps.length} dispensaries (${Math.round(premiumComps.length/count*100)}%)\n` +
+                        `- **Standard Pricing**: ${standardComps.length} dispensaries (${Math.round(standardComps.length/count*100)}%)\n` +
+                        `- **Aggressive Promos**: ${aggressiveComps.length} dispensaries\n\n` +
+                        `---\n\n` +
+                        `### 📍 COMPETITOR BREAKDOWN (${count} Total)\n\n` +
+                        `| Dispensary | Location | Pricing | Menu Size | Risk |\n` +
+                        `| :--- | :--- | :--- | :--- | :--- |\n` +
+                        tableRows + `\n\n` +
+                        deepDive +
+                        `---\n\n` +
+                        `### 🎯 MARGIN OPPORTUNITIES\n` +
+                        `- **Price Increase Candidates**: High-THC strains with limited competition in ${result.location}\n` +
+                        `- **Bundle Opportunity**: Create value bundles to compete with ${aggressiveComps[0]?.name || 'aggressive discounters'}\n` +
+                        `- **Exclusivity Play**: Partner with premium brands not carried by competitors\n\n` +
+                        `---\n\n` +
+                        `### 🚨 COMPETITOR VULNERABILITIES\n` +
+                        `- ${premiumComps[0]?.name || 'Premium competitors'} may lose price-sensitive customers\n` +
+                        `- ${count - (enrichedComp ? 1 : 0)} competitors lack verified loyalty programs\n` +
+                        `- Opportunity: Position on quality + service vs. price wars\n\n` +
+                        `---\n\n` +
+                        `### ✅ NEXT STEPS\n` +
+                        `- ✓ Set up automated price monitoring for top ${Math.min(count, 5)} competitors\n` +
+                        `- ✓ Analyze ${enrichedComp?.name || 'top competitor'}'s bestsellers for counter-positioning\n` +
+                        `- ✓ Launch Daily Competitive Intel playbook for real-time alerts\n\n` +
+                        `---\n\n` +
+                        `### 🚀 Automate This Report\n\n` +
+                        `Create a **Free Account** and launch the **Daily Competitive Intelligence Report** playbook.\n\n` +
+                        `**What you get:**\n` +
                         `- ✅ Monitor ${count}+ competitors automatically\n` +
                         `- ✅ Daily pricing change alerts\n` +
-                        `- ✅ Weekly market summary report\n\n` +
+                        `- ✅ Weekly market summary like this one\n\n` +
                         `[**Create Free Account →**](/claim)`;
 
                      updateMessage(thinkingId, {
@@ -1219,36 +1257,74 @@ export function PuffChat({
 
              if (result.success && result.daa) {
                  // Success! Format the report
-                 const competitors = result.daa.slice(0, 3); // Top 3
+                 const competitors = result.daa.slice(0, 5); // Top 5 for richer report
                  const count = result.daa.length;
                  const enrichedComp = result.daa.find((c: any) => c.isEnriched);
                  
+                 // Analyze pricing strategies
+                 const premiumComps = competitors.filter((c: any) => c.pricingStrategy?.includes('Premium'));
+                 const aggressiveComps = competitors.filter((c: any) => c.pricingStrategy?.includes('Aggressive'));
+                 const standardComps = competitors.filter((c: any) => c.pricingStrategy === 'Standard');
+                 
+                 // Build competitor table
                  let tableRows = competitors.map((c: any) => 
-                    `| **${c.name}** ${c.isEnriched ? '✅' : ''} | ${c.pricingStrategy} | ${c.skuCount} SKUs | ${c.riskScore === 'Low' ? '🟢 Low' : '🟡 Med'} |`
+                    `| **${c.name}** ${c.isEnriched ? '✅' : ''} | ${c.address ? c.address.slice(0, 30) + '...' : c.city} | ${c.pricingStrategy} | ${c.skuCount} SKUs | ${c.riskScore === 'Low' ? '🟢 Low' : '🟡 Med'} |`
                  ).join('\n');
                  
-                 // Insight Logic
-                 let insight = `The market is highly competitive.`;
+                 // Build pricing insights
+                 let pricingInsight = '';
+                 if (premiumComps.length > 0) {
+                     pricingInsight = `**${premiumComps[0].name}** leads with premium positioning (+15% above market). `;
+                 }
+                 if (aggressiveComps.length > 0) {
+                     pricingInsight += `**${aggressiveComps[0].name}** running aggressive promotions—potential price war.`;
+                 }
+                 if (!pricingInsight) {
+                     pricingInsight = `Market pricing is relatively stable with ${standardComps.length} dispensaries at standard rates.`;
+                 }
+                 
+                 // Deep dive insight
+                 let deepDive = '';
                  if (enrichedComp) {
-                     insight = `**Deep Dive on ${enrichedComp.name}**: ${enrichedComp.enrichmentSummary}`;
-                 } else {
-                     const premium = competitors.find((c:any) => c.pricingStrategy?.includes('Premium'));
-                     if (premium) insight = `**${premium.name}** is pricing at a premium.`;
+                     deepDive = `**🔬 Deep Dive: ${enrichedComp.name}**\n${enrichedComp.enrichmentSummary}\n\n`;
                  }
 
-                 const reportContent = `**🔍 Market Intelligence Report: ${result.location}**\n\n` +
-                    `I've identified **${count} dispensaries** in ${result.location}. Intel gathered via **BakedBot Discovery**.\n\n` +
-                    `| Competitor | Pricing Strategy | Menu Size | Risk Score |\n` +
-                    `| :--- | :--- | :--- | :--- |\n` +
-                    tableRows + 
-                    `\n\n**Actionable Insight**: ${insight}\n\n` +
+                 const reportContent = `## 🔥 Cannabis Market Intelligence - ${result.location}\n` +
+                    `**📊 COMPETITIVE ANALYSIS** - ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}\n\n` +
                     `---\n\n` +
-                    `### 🚀 Want Daily Competitive Intel?\n\n` +
-                    `Create a **Free Account** and launch the **Daily Competitive Intelligence Report** playbook. Get automated alerts when competitors change pricing or run promotions.\n\n` +
-                    `**Playbook: Daily Competitive Intel**\n` +
+                    `### 💰 KEY PRICING INSIGHTS\n` +
+                    `${pricingInsight}\n\n` +
+                    `- **Premium Positioned**: ${premiumComps.length} dispensaries (${Math.round(premiumComps.length/count*100)}%)\n` +
+                    `- **Standard Pricing**: ${standardComps.length} dispensaries (${Math.round(standardComps.length/count*100)}%)\n` +
+                    `- **Aggressive Promos**: ${aggressiveComps.length} dispensaries\n\n` +
+                    `---\n\n` +
+                    `### 📍 COMPETITOR BREAKDOWN (${count} Total)\n\n` +
+                    `| Dispensary | Location | Pricing | Menu Size | Risk |\n` +
+                    `| :--- | :--- | :--- | :--- | :--- |\n` +
+                    tableRows + `\n\n` +
+                    deepDive +
+                    `---\n\n` +
+                    `### 🎯 MARGIN OPPORTUNITIES\n` +
+                    `- **Price Increase Candidates**: High-THC strains with limited competition in ${result.location}\n` +
+                    `- **Bundle Opportunity**: Create value bundles to compete with ${aggressiveComps[0]?.name || 'aggressive discounters'}\n` +
+                    `- **Exclusivity Play**: Partner with premium brands not carried by competitors\n\n` +
+                    `---\n\n` +
+                    `### 🚨 COMPETITOR VULNERABILITIES\n` +
+                    `- ${premiumComps[0]?.name || 'Premium competitors'} may lose price-sensitive customers\n` +
+                    `- ${count - (enrichedComp ? 1 : 0)} competitors lack verified loyalty programs\n` +
+                    `- Opportunity: Position on quality + service vs. price wars\n\n` +
+                    `---\n\n` +
+                    `### ✅ NEXT STEPS\n` +
+                    `- ✓ Set up automated price monitoring for top ${Math.min(count, 5)} competitors\n` +
+                    `- ✓ Analyze ${enrichedComp?.name || 'top competitor'}'s bestsellers for counter-positioning\n` +
+                    `- ✓ Launch Daily Competitive Intel playbook for real-time alerts\n\n` +
+                    `---\n\n` +
+                    `### 🚀 Automate This Report\n\n` +
+                    `Create a **Free Account** and launch the **Daily Competitive Intelligence Report** playbook.\n\n` +
+                    `**What you get:**\n` +
                     `- ✅ Monitor ${count}+ competitors automatically\n` +
                     `- ✅ Daily pricing change alerts\n` +
-                    `- ✅ Weekly market summary report\n\n` +
+                    `- ✅ Weekly market summary like this one\n\n` +
                     `[**Create Free Account →**](/claim)`;
 
                  updateMessage(thinkingId, {
