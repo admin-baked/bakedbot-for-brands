@@ -854,6 +854,220 @@ export function PuffChat({
              return;
         }
 
+        // ---------------------------------------------------------
+        // DYNAMIC PRESET: SMOKEY (Digital Budtender Demo)
+        // ---------------------------------------------------------
+        if (trimmedInput.includes("Digital Budtender") || trimmedInput.includes("See my")) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `agent-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+             setStreamingMessageId(null);
+             
+             const step1Id = Math.random().toString(36).substr(2,9);
+             updateMessage(thinkingId, {
+                thinking: { isThinking: true, steps: [{ id: step1Id, toolName: "Smokey", description: "Loading product recommendations...", status: 'in-progress' }], plan: [] }
+             });
+
+             const { getDemoProductRecommendations } = await import('@/app/dashboard/intelligence/actions/demo-presets');
+             const result = await getDemoProductRecommendations(locationInfo?.city || 'cannabis');
+             
+             await new Promise(r => setTimeout(r, 800));
+
+             if (result.success && result.products) {
+                 const products = result.products;
+                 let tableRows = products.slice(0, 3).map((p: any) => 
+                    `| **${p.name}** | ${p.type} | ${p.effects} | ${p.thc || 'Varies'} |`
+                 ).join('\n');
+                 
+                 const reportContent = `**🌿 Smokey's Top Picks**\n\n` +
+                    `Here are my recommendations based on your area:\n\n` +
+                    `| Product | Type | Effects | THC |\n` +
+                    `| :--- | :--- | :--- | :--- |\n` +
+                    tableRows + 
+                    `\n\n_Want personalized recommendations? Tell me what effects you're looking for!_`;
+
+                 updateMessage(thinkingId, {
+                     content: reportContent,
+                     thinking: { isThinking: false, steps: [
+                         { id: step1Id, toolName: "Smokey", description: `Found ${products.length} products`, status: 'completed' }
+                     ], plan: [] }
+                 });
+             } else {
+                 updateMessage(thinkingId, {
+                     content: "I had trouble finding products. What effects are you looking for? (e.g., relaxing, uplifting, focused)",
+                     thinking: { isThinking: false, steps: [], plan: [] }
+                 });
+             }
+             
+             setIsProcessing(false);
+             setStreamingMessageId(thinkingId);
+             return;
+        }
+
+        // ---------------------------------------------------------
+        // DYNAMIC PRESET: CRAIG (Draft Campaign)
+        // ---------------------------------------------------------
+        if (trimmedInput.includes("Draft a New Drop") || trimmedInput.includes("Draft Campaign")) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `agent-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+             setStreamingMessageId(null);
+             
+             const step1Id = Math.random().toString(36).substr(2,9);
+             updateMessage(thinkingId, {
+                thinking: { isThinking: true, steps: [{ id: step1Id, toolName: "Craig", description: "Drafting compliant campaign copy...", status: 'in-progress' }], plan: [] }
+             });
+
+             const { getDemoCampaignDraft } = await import('@/app/dashboard/intelligence/actions/demo-presets');
+             const result = await getDemoCampaignDraft('New Drop');
+             
+             await new Promise(r => setTimeout(r, 1000));
+
+             if (result.success && result.campaign) {
+                 const c = result.campaign;
+                 const reportContent = `**📱 Craig's Campaign Draft: New Drop**\n\n` +
+                    `### SMS Message\n` +
+                    `> ${c.sms.text}\n\n` +
+                    `${c.sms.compliance} | ${c.sms.chars} chars\n\n` +
+                    `### Social Media Post\n` +
+                    `> ${c.social.text}\n\n` +
+                    `${c.social.compliance} | ${c.social.chars} chars\n\n` +
+                    `### Email Subject\n` +
+                    `**${c.emailSubject}**\n\n` +
+                    `_All copy is compliance-checked. Ready to launch?_`;
+
+                 updateMessage(thinkingId, {
+                     content: reportContent,
+                     thinking: { isThinking: false, steps: [
+                         { id: step1Id, toolName: "Craig", description: "Campaign drafted", status: 'completed' },
+                         { id: 'deebo', toolName: "Deebo", description: "Compliance verified", status: 'completed' }
+                     ], plan: [] }
+                 });
+             } else {
+                 updateMessage(thinkingId, {
+                     content: "I had trouble generating the campaign. What kind of promotion are you running?",
+                     thinking: { isThinking: false, steps: [], plan: [] }
+                 });
+             }
+             
+             setIsProcessing(false);
+             setStreamingMessageId(thinkingId);
+             return;
+        }
+
+        // ---------------------------------------------------------
+        // DYNAMIC PRESET: EZAL (Brand Footprint Audit)
+        // ---------------------------------------------------------
+        if (trimmedInput.includes("Audit my Brand") || trimmedInput.includes("Brand Footprint")) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `agent-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+             setStreamingMessageId(null);
+             
+             const step1Id = Math.random().toString(36).substr(2,9);
+             updateMessage(thinkingId, {
+                thinking: { isThinking: true, steps: [{ id: step1Id, toolName: "Ezal", description: "Scanning retail partnerships...", status: 'in-progress' }], plan: [] }
+             });
+
+             const { getDemoBrandFootprint } = await import('@/app/dashboard/intelligence/actions/demo-presets');
+             const result = await getDemoBrandFootprint('Your Brand');
+             
+             await new Promise(r => setTimeout(r, 1200));
+
+             if (result.success && result.audit) {
+                 const a = result.audit;
+                 const reportContent = `**👁️ Ezal's Brand Footprint Audit**\n\n` +
+                    `**Estimated Retail Partners**: ${a.estimatedRetailers}\n\n` +
+                    `**Top Markets**\n` +
+                    a.topMarkets.map((m: string) => `- ✅ ${m}`).join('\n') + `\n\n` +
+                    `**Coverage Gaps** (Opportunities)\n` +
+                    a.coverageGaps.map((m: string) => `- ⚠️ ${m}`).join('\n') + `\n\n` +
+                    `**SEO Opportunities**\n` +
+                    a.seoOpportunities.map((k: string) => `- 🔍 "${k}"`).join('\n') + `\n\n` +
+                    `**Key Competitors**\n` +
+                    a.competitorOverlap.map((c: string) => `- 🏷️ ${c}`).join('\n') + `\n\n` +
+                    `_Want a deeper competitive analysis? Hire Ezal full-time._`;
+
+                 updateMessage(thinkingId, {
+                     content: reportContent,
+                     thinking: { isThinking: false, steps: [
+                         { id: step1Id, toolName: "Ezal", description: `Found ${a.estimatedRetailers} partners`, status: 'completed' },
+                         { id: 'seo', toolName: "SEO Scanner", description: "Keywords analyzed", status: 'completed' }
+                     ], plan: [] }
+                 });
+             } else {
+                 updateMessage(thinkingId, {
+                     content: "I had trouble analyzing your brand footprint. What's your brand name?",
+                     thinking: { isThinking: false, steps: [], plan: [] }
+                 });
+             }
+             
+             setIsProcessing(false);
+             setStreamingMessageId(thinkingId);
+             return;
+        }
+
+        // ---------------------------------------------------------
+        // DYNAMIC PRESET: MONEY MIKE (Pricing Plans)
+        // ---------------------------------------------------------
+        if (trimmedInput.toLowerCase().includes("pricing plan") || trimmedInput.toLowerCase().includes("what are the price")) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `agent-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+             setStreamingMessageId(null);
+             
+             const step1Id = Math.random().toString(36).substr(2,9);
+             updateMessage(thinkingId, {
+                thinking: { isThinking: true, steps: [{ id: step1Id, toolName: "Money Mike", description: "Pulling pricing data...", status: 'in-progress' }], plan: [] }
+             });
+
+             const { getDemoPricingPlans } = await import('@/app/dashboard/intelligence/actions/demo-presets');
+             const result = await getDemoPricingPlans();
+             
+             await new Promise(r => setTimeout(r, 600));
+
+             if (result.success && result.plans) {
+                 const plans = result.plans;
+                 let planBlocks = plans.map((p: any) => 
+                    `### ${p.name} ${p.badge || ''}\n**${p.price}**\n` +
+                    p.features.map((f: string) => `- ${f}`).join('\n') +
+                    (p.recommended ? '\n\n> 💎 **Recommended**' : '')
+                 ).join('\n\n');
+                 
+                 const reportContent = `**💰 BakedBot Pricing Plans**\n\n` +
+                    planBlocks + `\n\n` +
+                    `---\n${result.roiNote}`;
+
+                 updateMessage(thinkingId, {
+                     content: reportContent,
+                     thinking: { isThinking: false, steps: [
+                         { id: step1Id, toolName: "Money Mike", description: "Plans loaded", status: 'completed' }
+                     ], plan: [] }
+                 });
+             } else {
+                 updateMessage(thinkingId, {
+                     content: "Visit bakedbot.ai/pricing for our latest plans!",
+                     thinking: { isThinking: false, steps: [], plan: [] }
+                 });
+             }
+             
+             setIsProcessing(false);
+             setStreamingMessageId(thinkingId);
+             return;
+        }
+
 // ... (Top of file modifications handled by removing from PRESET_RESPONSES below)
 
 // Inside submitMessage function, before PRESET_RESPONSES check:
