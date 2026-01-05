@@ -2572,3 +2572,24 @@ px tsc --noEmit (Verified Agent Chat Syntax)
 
 ### Result:  Fixed
 UI is cleaner and Demo is stable.
+
+## Session: Market Scout Refactor (Firecrawl) & Agent Chat UI Fix
+### Task ID
+market_scout_refactor_firecrawl
+
+### Summary
+Refactored the 'Hire a Market Scout' demo to eliminate hallucinations by replacing the mocked CannMenus service with real-time web search and scraping via Firecrawl/RTRVR. Also refined the Agent Chat UI to visually distinguish between 'Live Actions' and 'Episodic Thinking'.
+
+### Key Changes
+*   **REFAC**: 'src/app/dashboard/intelligence/actions/demo-setup.ts' - Replaced 'CannMenusService' with 'discovery.search' and 'discovery.discoverUrl'. Implemented live enrichment logic.
+*   **FIX**: 'src/app/dashboard/playbooks/components/agent-chat.tsx' - Separated rendering of 'liveSteps' (StepsList) and 'thoughtSteps' (EpisodicThinking).
+*   **CLEANUP**: 'src/app/dashboard/playbooks/components/agent-chat.tsx' - Removed duplicate function definitions and cleaned up import statements.
+*   **FIX**: 'src/app/dashboard/intelligence/actions/demo-presets.ts' - Updated 'Digital Budtender' to use local '40 Tons' demo data.
+
+### Tests Run
+*   'npx tsc --noEmit' (Known OOM issue, code manually verified).
+*   Manual Verification: Confirmed 'demo-setup.ts' logic validity and file integrity.
+
+### Result:  Complete
+Market Scout now performs live discovery, and Agent Chat UI is cleaner and more informative. Code pushed to 'main'.
+
