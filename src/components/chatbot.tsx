@@ -35,6 +35,48 @@ const PRESET_WIDGET_RESPONSES: Record<string, { content: string }> = {
     }
 };
 
+const DEMO_PRODUCTS: Product[] = [
+    {
+        id: '40t-1',
+        name: '40 Tons - Black Market (Indica)',
+        description: 'A potent indica strain enforcing relaxation. Known for its earthy tones and heavy effects.',
+        price: 45,
+        imageUrl: 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&w=400&q=80',
+        category: 'Flower',
+        thcPercent: 28,
+        cbdPercent: 0.5,
+        strainType: 'Indica',
+        brandId: '40tons',
+        variants: []
+    },
+    {
+        id: '40t-2',
+        name: '40 Tons - Justice (Sativa)',
+        description: 'Uplifting sativa dominant strain. Perfect for creativity and advocacy work.',
+        price: 55,
+        imageUrl: 'https://images.unsplash.com/photo-1556928045-16f7f50be0f3?auto=format&fit=crop&w=400&q=80',
+        category: 'Flower',
+        thcPercent: 24,
+        cbdPercent: 0.1,
+        strainType: 'Sativa',
+        brandId: '40tons',
+        variants: []
+    },
+    {
+        id: '40t-3',
+        name: 'Freedom Gummies (Berry)',
+        description: 'Sweet berry flavored gummies for a balanced hybrid effect. 10mg per piece.',
+        price: 25,
+        imageUrl: 'https://images.unsplash.com/photo-1581006198904-7a93c4ca3476?auto=format&fit=crop&w=400&q=80',
+        category: 'Edibles',
+        thcPercent: 10,  // mg
+        cbdPercent: 0,
+        strainType: 'Hybrid',
+        brandId: '40tons',
+        variants: []
+    }
+];
+
 type Message = {
   id: number;
   text: string;
@@ -147,17 +189,7 @@ const ChatWindow = ({
                     variant="outline" 
                     className="w-full justify-start text-left h-auto py-3 px-4 border-emerald-100 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
                     onClick={() => {
-                        setHasStartedChat(true);
-                        setIsOnboarding(false);
-                        const msg = "How does BakedBot work?";
-                        setMessages([{ id: Date.now(), text: msg, sender: 'user' }]);
-                        setIsBotTyping(true);
-                        // Trigger API call via state change effect or separate handler? 
-                        // Using a direct simulated delayed response or calling handleSendMessage would be better.
-                        // I'll reuse handleSendMessage logic manually or trigger a "suggested question/chip" flow.
-                        // For now, I'll allow the user to see the question sent, then I need to ensure the API answers it.
-                        // I will define a helper `askQuestion(text)`
-                        handleQuickQuestion(msg);
+                        handleQuickQuestion("How does BakedBot work?");
                     }}
                   >
                     <Sparkles className="mr-2 h-4 w-4 text-emerald-500" /> 
@@ -691,7 +723,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
 
       {isOpen && (
         <ChatWindow
-          products={products}
+          products={pathname === '/' && products.length === 0 ? DEMO_PRODUCTS : products}
           onAskSmokey={handleAskSmokey}
           onAddToCart={handleAddToCart}
           hasStartedChat={hasStartedChat}
