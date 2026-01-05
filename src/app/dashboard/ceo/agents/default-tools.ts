@@ -45,6 +45,13 @@ const commonMemoryTools = {
     }
 };
 
+const commonDelegationTools = {
+    delegateTask: async (personaId: string, task: string, context?: any) => {
+        const { runAgentChat } = await import('@/app/dashboard/ceo/agents/actions');
+        return await runAgentChat(`DELEGATED TASK: ${task}`, personaId as any, { modelLevel: 'advanced' });
+    }
+};
+
 export const defaultCraigTools = {
     ...commonMemoryTools,
     generateCopy: async (prompt: string, context: any) => {
@@ -82,6 +89,7 @@ export const defaultCraigTools = {
 
 export const defaultSmokeyTools = {
     ...commonMemoryTools,
+    ...commonDelegationTools,
     analyzeExperimentResults: async (experimentId: string, data: any[]) => {
         return { winner: 'Variant B', confidence: 0.98 };
     },
@@ -276,6 +284,7 @@ export const defaultBigWormTools = {
 
 export const defaultExecutiveTools = {
     ...commonMemoryTools,
+    ...commonDelegationTools,
     generateSnapshot: async (query: string, context: any) => {
         try {
             const response = await ai.generate({
@@ -286,10 +295,7 @@ export const defaultExecutiveTools = {
             return "Could not generate snapshot.";
         }
     },
-    delegateTask: async (personaId: string, task: string, context?: any) => {
-        const { runAgentChat } = await import('@/app/dashboard/ceo/agents/actions');
-        return await runAgentChat(`DELEGATED TASK: ${task}`, personaId as any, { modelLevel: 'advanced' });
-    },
+
     // --- RTRvr.ai Capabilities ---
     rtrvrAgent: async (message: string, sessionId?: string) => {
         try {
