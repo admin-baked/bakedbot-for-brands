@@ -367,6 +367,13 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
     }
   }, [isOpen]);
 
+  // Listen for external open events (e.g. from Landing Page demo actions)
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener('open-smokey-widget', handleOpen);
+    return () => window.removeEventListener('open-smokey-widget', handleOpen);
+  }, []);
+
   const handleMagicImageClick = () => {
     const newChatMode = chatMode === 'image' ? 'chat' : 'image';
     setChatMode(newChatMode);
