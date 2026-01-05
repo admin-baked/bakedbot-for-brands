@@ -343,7 +343,6 @@ export const defaultExecutiveTools = {
         } catch (e: any) {
             return { success: false, error: e.message };
         }
-    },
     }
 };
 
