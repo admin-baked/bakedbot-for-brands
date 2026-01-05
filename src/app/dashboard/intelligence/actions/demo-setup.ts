@@ -33,25 +33,58 @@ export async function searchDemoRetailers(zip: string) {
         // FILTER: Remove directories and "Best of" lists
         const directories = ['yelp', 'weedmaps', 'leafly', 'potguide', 'yellowpages', 'tripadvisor', 'thc', 'dispensaries.com', 'wikipedia', 'mapquest'];
         
+        // DEDUPLICATION TRACKERS
+        const seenDomains = new Set<string>();
+        const seenNames = new Set<string>();
+
         let mapped = searchResults
             .filter((r: any) => {
-                const lower = (r.title + r.url + r.description).toLowerCase();
-                const isDirectory = directories.some(d => lower.includes(d));
-                const isBestOfList = lower.includes('best dispensaries') || lower.includes('top 10') || lower.includes('top 20');
+                const lowerTitle = r.title.toLowerCase();
+                const lowerDesc = r.description.toLowerCase();
+                const lowerUrl = r.url.toLowerCase();
+                const combined = lowerTitle + lowerUrl + lowerDesc;
                 
-                // If it's a directory, skip it UNLESS it looks like a specific menu page (rare for search results, but safe to excl)
-                return !isDirectory && !isBestOfList;
+                // 1. Directory Filter
+                const isDirectory = directories.some(d => combined.includes(d));
+                const isBestOfList = combined.includes('best dispensaries') || combined.includes('top 10') || combined.includes('top 20');
+                if (isDirectory || isBestOfList) return false;
+
+                // 2. Domain Deduplication
+                try {
+                    const hostname = new URL(r.url).hostname.replace('www.', '');
+                    if (seenDomains.has(hostname)) return false;
+                    seenDomains.add(hostname);
+                } catch (e) {
+                    // Invalid URL, safer to skip or allow? Allow, but title check will be last line of defense
+                }
+
+                // 3. Name Deduplication (Simple fuzzy check)
+                // Remove common noise: "dispensary", "cannabis", "recreational", "menu"
+                const cleanName = lowerTitle
+                    .replace(/dispensary|cannabis|marijuana|recreational|medical|menu|store|shop/g, '')
+                    .replace(/[^a-z0-9]/g, '');
+                
+                // If this clean name is a substring of an existing one (or vice versa), skip
+                // This is aggressive but needed for "Body and Mind" vs "Body and Mind Markham"
+                for (const existing of seenNames) {
+                    if (existing.includes(cleanName) || cleanName.includes(existing)) {
+                        return false;
+                    }
+                }
+                seenNames.add(cleanName);
+
+                return true;
             })
-            .slice(0, 8)
+            .slice(0, 8) // Take top 8 unique
             .map((r: any, idx: number) => {
              return {
                 name: r.title || `Dispensary ${idx + 1}`,
-                address: r.description || 'Address not listed', // Search often puts address in snippet
+                address: r.description || 'Address not listed',
                 city: coords?.city || '',
                 state: coords?.state || '',
-                distance: 0, // Search results don't give distance usually
+                distance: 0,
                 menuUrl: r.url,
-                skuCount: Math.floor(Math.random() * (500 - 150) + 150), // Estimate
+                skuCount: Math.floor(Math.random() * (500 - 150) + 150),
                 riskScore: 'Low' as 'Low' | 'Med' | 'High',
                 pricingStrategy: 'Standard',
                 isEnriched: false,
