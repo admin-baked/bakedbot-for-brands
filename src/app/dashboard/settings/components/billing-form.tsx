@@ -10,23 +10,9 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
+import { useAcceptJs } from "@/hooks/useAcceptJs";
 
-import { logger } from '@/lib/logger';
-type BillingFormProps = {
-  organizationId: string;
-  locationCount: number;
-  customerEmail?: string;
-  customerName?: string;
-  customerCompany?: string;
-  customerZip?: string;
-};
-
-declare global {
-  interface Window {
-    Accept: any; // Authorize.Net Accept.js global
-  }
-}
+// ... existing imports ...
 
 export function BillingForm(props: BillingFormProps) {
   const { organizationId, locationCount } = props;
@@ -35,6 +21,12 @@ export function BillingForm(props: BillingFormProps) {
   const [planId, setPlanId] = useState<PlanId>("claim_pro");
   const [selectedPacks, setSelectedPacks] = useState<CoveragePackId[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Initialize Accept.js
+  const { isLoaded: isAcceptLoaded, tokenizeCard, error: acceptError } = useAcceptJs({
+    clientKey: process.env.NEXT_PUBLIC_AUTHNET_CLIENT_KEY || "",
+    apiLoginId: process.env.NEXT_PUBLIC_AUTHNET_API_LOGIN_ID || "",
+  });
 
   const amount = useMemo(() => {
     try {
@@ -101,7 +93,7 @@ export function BillingForm(props: BillingFormProps) {
     }
 
     // Paid plans require card + Accept.js
-    if (!window.Accept) {
+    if (!isAcceptLoaded) {
       toast({
         title: "Payment library not loaded",
         description: "Please wait a moment and try again.",
@@ -119,80 +111,60 @@ export function BillingForm(props: BillingFormProps) {
       return;
     }
 
-    const [expMonth, expYear] = [expiry.slice(0, 2), expiry.slice(2)];
-
-    const authData = {
-      clientKey: process.env.NEXT_PUBLIC_AUTHNET_CLIENT_KEY,
-      apiLoginID: process.env.NEXT_PUBLIC_AUTHNET_API_LOGIN_ID,
-    };
-
-    const cardData = {
-      cardNumber,
-      month: expMonth,
-      year: expYear,
-      cardCode: cvv,
-    };
-
     setIsSubmitting(true);
 
-    window.Accept.dispatchData(
-      { authData, cardData },
-      async (response: any) => {
-        if (response.messages.resultCode === "Error") {
-          logger.error("Accept.js error", response);
-          setIsSubmitting(false);
-          toast({
-            title: "Card error",
-            description: response.messages.message[0]?.text || "Payment error",
-            variant: "destructive",
-          });
-          return;
-        }
+    try {
+      // 1. Tokenize Card
+      const [expMonth, expYear] = [expiry.slice(0, 2), expiry.slice(2)];
+      
+      const opaqueData = await tokenizeCard({
+        cardNumber,
+        expirationMonth: expMonth,
+        expirationYear: expYear,
+        cvv,
+      });
 
-        const opaqueData = response.opaqueData;
+      // 2. Send to Backend
+      const resp = await fetch("/api/billing/authorize-net", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId,
+          planId,
+          locationCount,
+          coveragePackIds: selectedPacks,
+          opaqueData,
+          customer: {
+            fullName: props.customerName || "",
+            email: props.customerEmail || "",
+            company: props.customerCompany || "",
+            zip: props.customerZip || "",
+          },
+        }),
+      });
 
-        try {
-          const resp = await fetch("/api/billing/authorize-net", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              organizationId,
-              planId,
-              locationCount,
-              coveragePackIds: selectedPacks,
-              opaqueData,
-              customer: {
-                fullName: props.customerName || "",
-                email: props.customerEmail || "",
-                company: props.customerCompany || "",
-                zip: props.customerZip || "",
-              },
-            }),
-          });
+      const json = await resp.json();
 
-          const json = await resp.json();
-
-          if (!resp.ok || !json.success) {
-            throw new Error(json.error || "Subscription setup failed");
-          }
-
-          toast({
-            title: "Subscription active",
-            description: `You’re now on the ${PLANS[planId].name} plan – $${amount}/month.`,
-          });
-
-          // TODO: after Firestore save, re-fetch subscription info
-        } catch (err: any) {
-          toast({
-            title: "Error",
-            description: err?.message || "Failed to create subscription",
-            variant: "destructive",
-          });
-        } finally {
-          setIsSubmitting(false);
-        }
+      if (!resp.ok || !json.success) {
+        throw new Error(json.error || "Subscription setup failed");
       }
-    );
+
+      toast({
+        title: "Subscription active",
+        description: `You’re now on the ${PLANS[planId].name} plan – $${amount}/month.`,
+      });
+
+      // TODO: after Firestore save, re-fetch subscription info
+    } catch (err: any) {
+      logger.error("Subscription error", err);
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to create subscription",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -277,6 +249,7 @@ export function BillingForm(props: BillingFormProps) {
                 <Label htmlFor="cardNumber">Card number</Label>
                 <Input
                   id="cardNumber"
+                  data-testid="card-input"
                   value={cardNumber}
                   onChange={(e) => setCardNumber(e.target.value)}
                   placeholder="4111 1111 1111 1111"
@@ -286,6 +259,7 @@ export function BillingForm(props: BillingFormProps) {
                 <Label htmlFor="expiry">Expiry (MMYY)</Label>
                 <Input
                   id="expiry"
+                  data-testid="expiry-input"
                   value={expiry}
                   onChange={(e) => setExpiry(e.target.value.replace(/\D/g, ""))}
                   maxLength={4}
@@ -297,6 +271,7 @@ export function BillingForm(props: BillingFormProps) {
                 <Input
                   id="cvv"
                   type="password"
+                  data-testid="cvv-input"
                   value={cvv}
                   onChange={(e) => setCvv(e.target.value.replace(/\D/g, ""))}
                   maxLength={4}
