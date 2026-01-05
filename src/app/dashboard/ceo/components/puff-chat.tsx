@@ -752,10 +752,7 @@ export function PuffChat({
         const demoIntercept = PRESET_RESPONSES[trimmedInput];
 
         // SPECIAL INTERCEPT: Open Smokey Widget for Budtender Demo
-        if (trimmedInput.includes("See my Digital Budtender")) {
-            // Dispatch event for smokey-widget.tsx to listen to
-            window.dispatchEvent(new Event('open-smokey-widget'));
-        }
+
         
         // SPECIAL CASE: Market Scout needs location context
         // DISABLED: Refactored to use Real Agent
@@ -909,53 +906,35 @@ export function PuffChat({
         // ---------------------------------------------------------
         // DYNAMIC PRESET: SMOKEY (Digital Budtender Demo)
         // ---------------------------------------------------------
+        // ---------------------------------------------------------
+        // DYNAMIC PRESET: SMOKEY (Digital Budtender Demo)
+        // ---------------------------------------------------------
         if (trimmedInput.includes("Digital Budtender") || trimmedInput.includes("See my")) {
+             // Dispatch event to open widget
+             window.dispatchEvent(new Event('open-smokey-widget'));
+
              const userMsgId = `user-${Date.now()}`;
              addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
-             setInput(''); setAttachments([]); setIsProcessing(true);
-
-             const thinkingId = `agent-${Date.now()}`;
-             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
-             setStreamingMessageId(null);
+             setInput(''); setAttachments([]); 
              
-             const step1Id = Math.random().toString(36).substr(2,9);
-             updateMessage(thinkingId, {
-                thinking: { isThinking: true, steps: [{ id: step1Id, toolName: "Smokey", description: "Loading product recommendations...", status: 'in-progress' }], plan: [] }
+             // Immediate Agent Response (No Thinking Window)
+             const agentMsgId = `agent-${Date.now()}`;
+             
+             const responseContent = `**🌿 Smokey Activated**\n\n` +
+                `I've opened the Digital Budtender widget for you (look for the popup).\n\n` +
+                `It's currently showcasing **40 Tons** products to demonstrate our semantic search capabilities.\n\n` +
+                `[**View Full Demo Experience →**](https://bakedbot.ai/shop/demo)`;
+
+             addMessage({ 
+                 id: agentMsgId, 
+                 type: 'agent', 
+                 content: responseContent, 
+                 timestamp: new Date(), 
+                 thinking: { isThinking: false, steps: [], plan: [] } 
              });
-
-             const { getDemoProductRecommendations } = await import('@/app/dashboard/intelligence/actions/demo-presets');
-             const result = await getDemoProductRecommendations(locationInfo?.city || 'cannabis');
-             
-             await new Promise(r => setTimeout(r, 800));
-
-             if (result.success && result.products) {
-                 const products = result.products;
-                 let tableRows = products.slice(0, 3).map((p: any) => 
-                    `| **${p.name}** | ${p.type} | ${p.effects} | ${p.thc || 'Varies'} |`
-                 ).join('\n');
-                 
-                 const reportContent = `**🌿 Smokey's Top Picks**\n\n` +
-                    `Here are my recommendations based on your area:\n\n` +
-                    `| Product | Type | Effects | THC |\n` +
-                    `| :--- | :--- | :--- | :--- |\n` +
-                    tableRows + 
-                    `\n\n_Want personalized recommendations? Tell me what effects you're looking for!_`;
-
-                 updateMessage(thinkingId, {
-                     content: reportContent,
-                     thinking: { isThinking: false, steps: [
-                         { id: step1Id, toolName: "Smokey", description: `Found ${products.length} products`, status: 'completed' }
-                     ], plan: [] }
-                 });
-             } else {
-                 updateMessage(thinkingId, {
-                     content: "I had trouble finding products. What effects are you looking for? (e.g., relaxing, uplifting, focused)",
-                     thinking: { isThinking: false, steps: [], plan: [] }
-                 });
-             }
              
              setIsProcessing(false);
-             setStreamingMessageId(thinkingId);
+             setStreamingMessageId(agentMsgId);
              return;
         }
 
