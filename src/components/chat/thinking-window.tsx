@@ -101,7 +101,7 @@ export function ThinkingWindow({ steps, isThinking, agentName = 'puff', query }:
                 </div>
                 
                 {/* Active Tab */}
-                <div className="flex-1 max-w-[200px] h-full bg-[#3c3c3c] rounded-t-lg flex items-center px-3 text-[10px] text-slate-200 gap-2 relative group">
+                <div data-testid="active-tab" className="flex-1 max-w-[200px] h-full bg-[#3c3c3c] rounded-t-lg flex items-center px-3 text-[10px] text-slate-200 gap-2 relative group">
                     <div className={cn("w-2 h-2 rounded-full animate-pulse", `bg-${config.color}-500`)} />
                     <span className="truncate">{activeStep?.toolName || 'New Tab'}</span>
                     <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#3c3c3c] to-transparent" />
@@ -125,7 +125,7 @@ export function ThinkingWindow({ steps, isThinking, agentName = 'puff', query }:
                 <div className="flex-1 h-7 bg-[#1e1e1e] rounded flex items-center px-3 text-[10px] text-slate-400 font-mono gap-2 relative">
                     <Lock className="h-2.5 w-2.5 text-emerald-500" />
                     <span className="text-emerald-500/50">https://</span>
-                    <span className="text-slate-300 truncate">{currentUrl.replace('https://', '')}</span>
+                    <span data-testid="browser-url" className="text-slate-300 truncate">{currentUrl.replace('https://', '')}</span>
                     
                     {/* Loading Bar */}
                     {isThinking && activeStep.status === 'in-progress' && (
