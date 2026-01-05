@@ -8,7 +8,45 @@ import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 // Wrapper to avoid cirular dependency issues if any
 // but these tools mostly depend on external services or leaf nodes.
 
+// Shared Memory Tools (Letta) - available to all agents
+const commonMemoryTools = {
+    lettaSaveFact: async (fact: string, category?: string) => {
+        try {
+            const { lettaClient } = await import('@/server/services/letta/client');
+            const agents = await lettaClient.listAgents();
+            let agent = agents.find(a => a.name === 'BakedBot Research Memory');
+            if (!agent) {
+                agent = await lettaClient.createAgent('BakedBot Research Memory', 'Long-term memory for BakedBot.');
+            }
+            const message = category 
+                ? `Remember this fact under category '${category}': ${fact}`
+                : `Remember this fact: ${fact}`;
+            await lettaClient.sendMessage(agent.id, message);
+            return { success: true, message: `Saved to memory: ${fact}` };
+        } catch (e: any) {
+            return { success: false, error: `Letta Save Failed: ${e.message}` };
+        }
+    },
+    lettaAsk: async (question: string) => {
+        try {
+            const { lettaClient } = await import('@/server/services/letta/client');
+            const agents = await lettaClient.listAgents();
+            const agent = agents.find(a => a.name === 'BakedBot Research Memory');
+            if (!agent) return { response: "Memory is empty or not initialized." };
+            const result: any = await lettaClient.sendMessage(agent.id, question);
+            if (result.messages && Array.isArray(result.messages)) {
+                 const last = result.messages.filter((m:any) => m.role === 'assistant').pop();
+                 return { response: last ? last.content : "No recall." };
+            }
+            return { response: "No clear memory found." };
+        } catch (e: any) {
+            return { error: `Letta Ask Failed: ${e.message}` };
+        }
+    }
+};
+
 export const defaultCraigTools = {
+    ...commonMemoryTools,
     generateCopy: async (prompt: string, context: any) => {
         try {
             const response = await ai.generate({
@@ -43,6 +81,7 @@ export const defaultCraigTools = {
 };
 
 export const defaultSmokeyTools = {
+    ...commonMemoryTools,
     analyzeExperimentResults: async (experimentId: string, data: any[]) => {
         return { winner: 'Variant B', confidence: 0.98 };
     },
@@ -52,6 +91,7 @@ export const defaultSmokeyTools = {
 };
 
 export const defaultPopsTools = {
+    ...commonMemoryTools,
     analyzeData: async (query: string, context: any) => {
         try {
             const response = await ai.generate({
@@ -68,6 +108,7 @@ export const defaultPopsTools = {
 };
 
 export const defaultEzalTools = {
+    ...commonMemoryTools,
     discoverMenu: async (url: string, context?: any) => {
         try {
             const { discovery } = await import('@/server/services/firecrawl');
@@ -162,6 +203,7 @@ export const defaultEzalTools = {
 };
 
 export const defaultMoneyMikeTools = {
+    ...commonMemoryTools,
     forecastRevenueImpact: async (skuId: string, priceDelta: number) => {
         return { projected_revenue_change: priceDelta * 100, confidence: 0.85 };
     },
@@ -172,6 +214,7 @@ export const defaultMoneyMikeTools = {
 };
 
 export const defaultMrsParkerTools = {
+    ...commonMemoryTools,
     predictChurnRisk: async (segmentId: string) => {
         return { riskLevel: 'medium' as const, atRiskCount: 15 };
     },
@@ -188,6 +231,7 @@ export const defaultMrsParkerTools = {
 };
 
 export const defaultDeeboTools = {
+    ...commonMemoryTools,
     checkCompliance: async (content: string, jurisdiction: string, channel: string) => {
         try {
             // Import the SDK dynamically or from top level if safe
@@ -204,6 +248,7 @@ export const defaultDeeboTools = {
 };
 
 export const defaultBigWormTools = {
+    ...commonMemoryTools,
     pythonAnalyze: async (action: string, data: any) => {
         try {
             const { sidecar } = await import('@/server/services/python-sidecar');
@@ -230,6 +275,7 @@ export const defaultBigWormTools = {
 };
 
 export const defaultExecutiveTools = {
+    ...commonMemoryTools,
     generateSnapshot: async (query: string, context: any) => {
         try {
             const response = await ai.generate({
@@ -298,46 +344,6 @@ export const defaultExecutiveTools = {
             return { success: false, error: e.message };
         }
     },
-    lettaSaveFact: async (fact: string, category?: string) => {
-        try {
-            // We reuse the logic from the tool definition by importing the client directly
-            // This ensures consistent behavior between tool usage and direct calls
-            const { lettaClient } = await import('@/server/services/letta/client');
-            // We use the same 'BakedBot Research Memory' agent convention
-            const agents = await lettaClient.listAgents();
-            let agent = agents.find(a => a.name === 'BakedBot Research Memory');
-            if (!agent) {
-                agent = await lettaClient.createAgent('BakedBot Research Memory', 'Long-term memory for BakedBot.');
-            }
-            
-            const message = category 
-                ? `Remember this fact under category '${category}': ${fact}`
-                : `Remember this fact: ${fact}`;
-            
-            await lettaClient.sendMessage(agent.id, message);
-            return { success: true, message: `Saved to memory: ${fact}` };
-        } catch (e: any) {
-            return { success: false, error: `Letta Save Failed: ${e.message}` };
-        }
-    },
-    lettaAsk: async (question: string) => {
-        try {
-            const { lettaClient } = await import('@/server/services/letta/client');
-            const agents = await lettaClient.listAgents();
-            const agent = agents.find(a => a.name === 'BakedBot Research Memory');
-            
-            if (!agent) return { response: "Memory is empty or not initialized." };
-            
-            const result: any = await lettaClient.sendMessage(agent.id, question);
-             // Extract assistant response (simplified)
-            if (result.messages && Array.isArray(result.messages)) {
-                 const last = result.messages.filter((m:any) => m.role === 'assistant').pop();
-                 return { response: last ? last.content : "No recall." };
-            }
-            return { response: "No clear memory found." };
-        } catch (e: any) {
-            return { error: `Letta Ask Failed: ${e.message}` };
-        }
     }
 };
 

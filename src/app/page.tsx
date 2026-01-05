@@ -449,9 +449,11 @@ export default function HomePage() {
           <div className="mx-auto max-w-3xl text-center">
             <Badge className="mb-4">Try it right now — no signup required</Badge>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight">
-              Get found on Google. Convert shoppers. Stay compliant.
-              <span className="block text-xl sm:text-2xl md:text-3xl mt-2 text-muted-foreground font-normal">(For Brands & Dispensaries)</span>
+              The Future of Cannabis Work is Here.
             </h1>
+            <p className="mt-4 text-lg sm:text-xl md:text-2xl text-muted-foreground">
+              Hire a suite of AI Digital Workers to find your customers, drive your revenue, and protect your license. <span className="text-emerald-500 font-medium">(Made for Dispensaries &amp; Brands)</span>
+            </p>
 
             {/* Agent Playground - Interactive Demo */}
             <div className="mt-8 mb-8 text-left">
