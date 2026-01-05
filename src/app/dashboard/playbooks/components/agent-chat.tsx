@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import {
     Upload,
     ChevronDown,
     ChevronUp,
+    ChevronRight,
     Check,
     CheckCircle2,
     Loader2,
@@ -381,31 +382,91 @@ function ThinkingIndicator({ duration }: { duration?: number }) {
     );
 }
 
+
+
+import {
+    // ... existing imports ...
+    ChevronRight, // Ensure this is imported
+} from 'lucide-react';
+
+// ... existing code ...
+
+const LIVE_TOOLS = ['Site Visitor', 'Google Search', 'Search', 'Browser', 'Deebo', 'Compliance Engine', 'Market Scout'];
+
+function EpisodicThinking({ steps }: { steps: ToolCallStep[] }) {
+    const [isOpen, setIsOpen] = useState(false);
+    if (!steps || steps.length === 0) return null;
+
+    return (
+        <div className="mb-3">
+             <button 
+                onClick={() => setIsOpen(!isOpen)}
+                className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full p-2 rounded-lg hover:bg-muted/50"
+            >
+                {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                <Brain className="h-3 w-3" />
+                <span className="font-medium">Thought Process</span>
+            </button>
+            
+            {isOpen && (
+                <div className="mt-2 pl-4 border-l-2 border-muted ml-2 space-y-3 pb-2 animate-in fade-in slide-in-from-top-1">
+                    {steps.map(step => (
+                        <div key={step.id} className="text-xs space-y-1">
+                             <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal text-muted-foreground">
+                                    {step.toolName}
+                                </Badge>
+                                {step.status === 'in-progress' && <Loader2 className="h-3 w-3 animate-spin text-blue-500" />}
+                            </div>
+                            <p className="text-muted-foreground">{step.description}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function StepsList({ steps }: { steps: ToolCallStep[] }) {
     if (!steps || steps.length === 0) return null;
 
     return (
-        <div className="flex flex-col gap-2 mb-3 bg-muted/30 p-2 rounded-lg text-xs">
-            <div className="font-semibold text-muted-foreground flex items-center gap-1">
-                <Brain className="h-3 w-3" />
-                <span>Thought Process</span>
+        <div className="flex flex-col gap-2 mb-3 bg-muted/30 p-3 rounded-xl border border-border/50 shadow-sm text-xs">
+            <div className="font-semibold text-primary flex items-center gap-2 pb-2 border-b border-border/50">
+                <Globe className="h-3.5 w-3.5" />
+                <span>Live Activity</span>
             </div>
             {steps.map(step => (
-                <div key={step.id} className="flex items-center gap-2">
-                    {step.status === 'completed' ? (
-                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                <div key={step.id} className="flex items-center gap-3 py-1">
+                     {step.status === 'completed' ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                     ) : step.status === 'failed' ? (
-                        <div className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                        <div className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
                     ) : (
-                        <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500 shrink-0" />
                     )}
-                    <span className="font-medium">{step.toolName}</span>
-                    <span className="text-muted-foreground truncate max-w-[200px]">- {step.description}</span>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                             <span className="font-medium text-foreground">{step.toolName}</span>
+                             {step.durationMs && <span className="text-[10px] text-muted-foreground">({step.durationMs}ms)</span>}
+                        </div>
+                        <p className="text-muted-foreground truncate">{step.description}</p>
+                    </div>
                 </div>
             ))}
         </div>
     );
 }
+
+
+
+
+
+                                    
+
+                                        
+
+
 
 
 // ============ Main Component ============
@@ -734,7 +795,7 @@ export function AgentChat({
         if ((!textInput.trim() && !audioBase64 && attachments.length === 0) || isProcessing) return;
 
         const userInput = textInput;
-        const displayContent = audioBase64 ? '🎤 Voice Message' : (userInput || (attachments.length > 0 ? `Sent ${attachments.length} attachment(s)` : ''));
+        const displayContent = audioBase64 ? 'ðŸŽ¤ Voice Message' : (userInput || (attachments.length > 0 ? `Sent ${attachments.length} attachment(s)` : ''));
 
         const userMsgId = `user-${Date.now()}`;
         addMessage({
@@ -1019,26 +1080,26 @@ export function AgentChat({
                                 // Owner Quick Actions
                                 <>
                                     <Button variant="outline" size="sm" onClick={() => submitMessage('Help me claim and verify this page')}>
-                                        ✓ Claim This Page
+                                        âœ“ Claim This Page
                                     </Button>
                                     <Button variant="outline" size="sm" onClick={() => submitMessage('How do I edit my page info?')}>
-                                        ✏️ Edit Info
+                                        âœï¸ Edit Info
                                     </Button>
                                     <Button variant="outline" size="sm" onClick={() => submitMessage('Show me my page analytics')}>
-                                        📊 View Analytics
+                                        ðŸ“Š View Analytics
                                     </Button>
                                 </>
                             ) : (
                                 // Customer Quick Actions
                                 <>
                                     <Button variant="outline" size="sm" onClick={() => submitMessage(`Set up a drop alert for ${pageContext.name || 'this brand'}`)}>
-                                        🔔 Set Drop Alert
+                                        ðŸ”” Set Drop Alert
                                     </Button>
                                     <Button variant="outline" size="sm" onClick={() => submitMessage(`I want to follow ${pageContext.name || 'this brand'}`)}>
-                                        ❤️ Follow Brand
+                                        â¤ï¸ Follow Brand
                                     </Button>
                                     <Button variant="outline" size="sm" onClick={() => submitMessage('Find dispensaries near me that carry this brand')}>
-                                        📍 Find Nearby
+                                        ðŸ“ Find Nearby
                                     </Button>
                                 </>
                             )}
@@ -1088,7 +1149,7 @@ export function AgentChat({
                         {state.isConnected && (
                             <Badge variant="outline" className="bg-white">
                                 <span className="text-xs">Connected</span>
-                                <span className="ml-1">🎨🌿</span>
+                                <span className="ml-1">ðŸŽ¨ðŸŒ¿</span>
                             </Badge>
                         )}
                     </div>
@@ -1123,9 +1184,17 @@ export function AgentChat({
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
-                                        {message.steps && message.steps.length > 0 && (
-                                            <StepsList steps={message.steps} />
-                                        )}
+                                        {message.steps && message.steps.length > 0 && (() => {
+                                            const liveSteps = message.steps.filter(s => LIVE_TOOLS.includes(s.toolName) || LIVE_TOOLS.some(t => s.toolName.includes(t)) || s.isComputerUse);
+                                            const thoughtSteps = message.steps.filter(s => !liveSteps.includes(s));
+                                            
+                                            return (
+                                                <>
+                                                    <StepsList steps={liveSteps} />
+                                                    <EpisodicThinking steps={thoughtSteps} />
+                                                </>
+                                            );
+                                        })()}
                                         {message.isThinking ? (
                                             <ThinkingIndicator duration={message.workDuration} />
                                         ) : (
