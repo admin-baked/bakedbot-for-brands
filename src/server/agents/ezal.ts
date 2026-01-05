@@ -132,7 +132,7 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
             });
 
             const decision = plan.output;
-            logger.info(`[Ezal] Planner Decision:`, decision);
+            logger.info(`[Ezal] Planner Decision:`, decision || {});
 
             if (!decision || decision.toolName === 'null') {
                 return {

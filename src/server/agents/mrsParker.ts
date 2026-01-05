@@ -183,4 +183,8 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
   }
 };
 
+export async function handleMrsParkerEvent(orgId: string, eventId: string) {
+  logger.info(`[MrsParker] Handled event ${eventId} for org ${orgId} (Stub)`);
+}
+
 
