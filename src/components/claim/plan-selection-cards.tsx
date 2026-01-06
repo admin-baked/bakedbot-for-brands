@@ -123,7 +123,7 @@ export function PlanSelectionCards({
                         selectedPlan === 'free' ? "text-primary underline" : "text-muted-foreground"
                     )}
                 >
-                    Continue with Free Listing (limited features)
+                    Continue with The Scout (Free)
                 </button>
             </div>
         </div>

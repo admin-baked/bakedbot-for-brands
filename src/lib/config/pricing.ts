@@ -19,18 +19,22 @@ export interface PricingPlan {
 export const DIRECTORY_PLANS: PricingPlan[] = [
     {
         id: "free",
-        name: "Free Listing",
+        name: "The Scout",
+        badge: "Free Forever",
         price: 0,
         priceDisplay: "$0",
-        period: "/ mo",
-        setup: "Best for: getting discovered",
-        desc: "Best for: getting discovered",
+        period: "forever",
+        setup: "Best for: getting discovered + market intel",
+        desc: "Public listing + Digital Worker Briefing anytime.",
         features: [
-            "Public brand/dispensary listing pages (SEO indexed)",
-            "Basic info display (hours, location, links if available)",
+            "Public brand/dispensary listing page (SEO indexed)",
+            "1 Discovery Audit / Month (Deep Scan)",
+            "Smokey 'Light' (Learns 20 products)",
+            "Ezal Market Scout (Public Data)",
+            "Deebo Compliance (Basic Scan)",
             "“Request update” + “Report issue” flows"
         ],
-        pill: "Create Free Listing",
+        pill: "Hire a Scout",
         highlight: false,
         tier: "directory"
     },
@@ -80,26 +84,6 @@ export const DIRECTORY_PLANS: PricingPlan[] = [
 ];
 
 export const PLATFORM_PLANS: PricingPlan[] = [
-    {
-        id: "scout",
-        name: "The Scout",
-        badge: "Free Tier",
-        price: 0,
-        priceDisplay: "Free",
-        period: "forever",
-        highlight: "Try before you hire.",
-        setup: "Best for: Auditing your market.",
-        desc: "Get a Digital Worker Briefing anytime.",
-        features: [
-            "1 Discovery Audit / Month (Deep Scan)",
-            "Smokey 'Light' (Learns 20 products)",
-            "Ezal Market Scout (Public Data)",
-            "Deebo Compliance (Basic Scan)",
-            "Public Data Only (No POS Sync)"
-        ],
-        pill: "Hire a Scout",
-        tier: "platform"
-    },
     {
         id: "specialist",
         name: "The Specialist",
