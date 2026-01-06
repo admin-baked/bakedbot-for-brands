@@ -143,7 +143,7 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                     category: z.string().optional()
                 })
             },
-            },
+
             {
                 name: "browse",
                 description: "Navigate to a URL to inspect it, take a screenshot, or discover text content.",
@@ -151,9 +151,9 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                     url: z.string().describe("Target URL"),
                     action: z.enum(['goto', 'screenshot', 'discover']).optional().describe("Action to perform. Default: discover"),
                     selector: z.string().optional().describe("CSS Selector for 'discover' action (to extract text).")
-                })
+                }),
             },
-            },
+
             {
                 name: "searchProducts",
                 description: "Search for products using CannMenus API. Maps to 'domain.cannmenus' commands.",

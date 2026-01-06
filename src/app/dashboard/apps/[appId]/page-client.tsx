@@ -84,6 +84,7 @@ export default function AppConfigPageClient({ appId }: AppConfigProps) {
                     </div>
 
                     {provider === 'dutchie' && (
+                        <>
                         <div className="space-y-2">
                             <Label>API Key (Optional)</Label>
                             <Input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="sk_live_..." />
@@ -104,7 +105,7 @@ export default function AppConfigPageClient({ appId }: AppConfigProps) {
                                 <Input type="password" value={orderAheadClientToken} onChange={e => setOrderAheadClientToken(e.target.value)} placeholder="Token" />
                             </div>
                         </div>
-                    </>
+                        </>
                     )}
                 </CardContent>
                 <CardFooter className="flex justify-between border-t pt-6">

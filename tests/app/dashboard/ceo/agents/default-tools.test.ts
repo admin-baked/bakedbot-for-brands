@@ -1,5 +1,5 @@
 
-import { defaultEzalTools } from '@/app/dashboard/ceo/agents/default-tools';
+import { defaultEzalTools, defaultSmokeyTools } from '@/app/dashboard/ceo/agents/default-tools';
 
 // Mock dependencies
 jest.mock('@/server/services/firecrawl', () => ({
@@ -48,6 +48,22 @@ jest.mock('@/server/services/cannmenus', () => {
 const mockBrowserAction = jest.fn();
 jest.mock('@/server/tools/browser', () => ({
     browserAction: mockBrowserAction
+}));
+
+// Mock Firebase & Auth & Repos for Smokey
+const mockGetAllByLocation = jest.fn();
+jest.mock('@/firebase/server-client', () => ({
+    createServerClient: jest.fn().mockResolvedValue({ firestore: { collection: jest.fn() } })
+}));
+
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn().mockResolvedValue({ locationId: 'loc_123', uid: 'user_123' })
+}));
+
+jest.mock('@/server/repos/productRepo', () => ({
+    makeProductRepo: jest.fn().mockReturnValue({
+        getAllByLocation: mockGetAllByLocation
+    })
 }));
 
 describe('defaultEzalTools', () => {
@@ -132,6 +148,41 @@ describe('defaultEzalTools', () => {
 
             expect(result.success).toBe(false);
             expect(result.error).toBe('Timeout');
+        });
+    });
+    });
+});
+
+describe('defaultSmokeyTools', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    describe('searchMenu', () => {
+        it('should search products by name/brand/category and return top results', async () => {
+            mockGetAllByLocation.mockResolvedValue([
+                { name: 'Sativa Gummies', brandName: 'Wana', category: 'Edibles', inStock: true, price: 20, description: 'Yummy' },
+                { name: 'Indica Gummies', brandName: 'Kiva', category: 'Edibles', inStock: false, price: 22 },
+                { name: 'Sleep Vape', brandName: 'Pax', category: 'Vape', inStock: true, price: 50 },
+                { name: 'Blue Dream', brandName: 'Wana', category: 'Flower', inStock: true, price: 35 }
+            ]);
+
+            const result = await defaultSmokeyTools.searchMenu('gummies');
+
+            // Should find only Sativa Gummies (Indica Gummies is out of stock)
+            expect(result.success).toBe(true);
+            expect(result.count).toBe(1);
+            expect(result.products[0].name).toBe('Sativa Gummies');
+        });
+
+        it('should return empty result if no matches', async () => {
+             mockGetAllByLocation.mockResolvedValue([
+                { name: 'Sativa Gummies', brandName: 'Wana', category: 'Edibles', inStock: true, price: 20 }
+             ]);
+             
+             const result = await defaultSmokeyTools.searchMenu('topical');
+             expect(result.success).toBe(true);
+             expect(result.count).toBe(0);
         });
     });
 });
