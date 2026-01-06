@@ -15,12 +15,30 @@ import { DomainUserProfile } from "@/types/domain";
 let app: App;
 
 function getServiceAccount() {
-  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  let serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   console.log('Initializing Firebase Admin. Key present:', !!serviceAccountKey);
 
   if (!serviceAccountKey) {
+    try {
+        // Fallback for local development
+        const fs = require('fs');
+        const path = require('path');
+        const localSaPath = path.resolve(process.cwd(), 'service-account.json');
+        console.log(`[server-client] Checking for SA at: ${localSaPath}`);
+        if (fs.existsSync(localSaPath)) {
+            serviceAccountKey = fs.readFileSync(localSaPath, 'utf-8');
+            console.log('[server-client] Loaded credentials from local service-account.json');
+        } else {
+            console.log('[server-client] SA file not found at path.');
+        }
+    } catch (e) {
+        console.warn('[server-client] Failed to check for local service-account.json:', e);
+    }
+  }
+
+  if (!serviceAccountKey) {
     throw new Error(
-      "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set. " +
+      "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set and no local service-account.json found. " +
       "Please refer to DEPLOYMENT_INSTRUCTIONS.md to create and set this secret."
     );
   }
@@ -85,15 +103,20 @@ function getServiceAccount() {
  */
 export async function createServerClient() {
   if (getApps().length === 0) {
-    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    let serviceAccount;
+    try {
+        serviceAccount = getServiceAccount();
+    } catch (e) {
+        console.log('No service account loaded, falling back to ADC');
+    }
 
-    if (serviceAccountKey) {
-      const serviceAccount = getServiceAccount();
+    if (serviceAccount) {
       app = initializeApp({
         credential: cert(serviceAccount)
       });
+      console.log('Firebase initialized with Service Account config');
     } else {
-      console.log('FIREBASE_SERVICE_ACCOUNT_KEY not found, using Application Default Credentials');
+      console.log('Using Application Default Credentials');
       app = initializeApp({
         credential: applicationDefault(),
         projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8'
