@@ -17,6 +17,8 @@ export interface SmokeyTools {
     // Memory tools
     lettaSaveFact(fact: string, category?: string): Promise<any>;
     lettaAsk(question: string): Promise<any>;
+    // Search local menu
+    searchMenu(query: string): Promise<any>;
 }
 
 // --- Smokey Agent Implementation ---
@@ -97,6 +99,13 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                     schema: z.object({
                         segmentId: z.string().describe("User segment e.g. 'sleep_seekers', 'value_shoppers'"),
                         products: z.array(z.string()).optional().describe("Optional list of specific product IDs to re-rank")
+                    })
+                },
+                {
+                    name: "searchMenu",
+                    description: "Search the dispensary's menu for products by name, category, or effect. Use this to check stock and find items.",
+                    schema: z.object({
+                        query: z.string().describe("Search keywords e.g. 'sativa gummies', 'sleep', 'pre-rolls'")
                     })
                 },
                 {
