@@ -33,20 +33,38 @@ export async function GET(request: Request) {
             });
         }
         
-        // Also check the dispensaries collection
+        // Check POS Connection (Location based first, then dispensary)
+        let posConnected = false;
+        
+        // 1. Check Location Config (Preferred)
+        // Need to resolve locationId. userData might have it.
+        const locationId = userData?.locationId; // Assuming saved on profile
+        if (locationId) {
+            const locDoc = await firestore.collection('locations').doc(locationId).get();
+            if (locDoc.exists && locDoc.data()?.posConfig?.status === 'active') {
+                posConnected = true;
+            }
+        }
+
+        // 2. Check Dispensary Config (Fallback)
         const dispensaryDoc = await firestore.collection('dispensaries').doc(userId).get();
         if (dispensaryDoc.exists) {
             const dispensaryData = dispensaryDoc.data();
-            return NextResponse.json({
+            const legacyPos = dispensaryData?.posConfig?.provider || dispensaryData?.posConfig?.active;
+            if (legacyPos) posConnected = true;
+
+            // Return combined result
+             return NextResponse.json({
                 linkedDispensary: {
                     id: userId,
                     name: dispensaryData?.name || 'My Dispensary',
                     source: dispensaryData?.source || 'manual'
-                }
+                },
+                posConnected
             });
         }
         
-        return NextResponse.json({ linkedDispensary: null });
+        return NextResponse.json({ linkedDispensary: null, posConnected: false });
     } catch (error) {
         console.error('[API] linked-dispensary error:', error);
         return NextResponse.json({ linkedDispensary: null }, { status: 200 });

@@ -20,6 +20,9 @@ export default function AppConfigPageClient({ appId }: AppConfigProps) {
     const router = useRouter();
     const [storeId, setStoreId] = useState('');
     const [apiKey, setApiKey] = useState('');
+    const [clientId, setClientId] = useState('');
+    const [orderAheadClientId, setOrderAheadClientId] = useState('');
+    const [orderAheadClientToken, setOrderAheadClientToken] = useState('');
     const [loading, setLoading] = useState(false);
 
     // Filter provider based on appId
@@ -33,7 +36,8 @@ export default function AppConfigPageClient({ appId }: AppConfigProps) {
     const handleTest = async () => {
         setLoading(true);
         try {
-            const result = await testConnection(provider, { storeId, apiKey });
+            const config = { storeId, apiKey, clientId, orderAheadClientId, orderAheadClientToken };
+            const result = await testConnection(provider, config);
             if (result.success) {
                 toast({ title: 'Connection Successful', description: `Found ${result.count} products.` });
             } else {
@@ -47,7 +51,8 @@ export default function AppConfigPageClient({ appId }: AppConfigProps) {
     const handleSave = async () => {
         setLoading(true);
         try {
-            await saveIntegrationConfig(provider, { storeId, apiKey });
+            const config = { storeId, apiKey, clientId, orderAheadClientId, orderAheadClientToken };
+            await saveIntegrationConfig(provider, config);
             toast({ title: 'App Installed & Saved' });
             router.push('/dashboard/apps');
         } catch (e) {
@@ -83,6 +88,23 @@ export default function AppConfigPageClient({ appId }: AppConfigProps) {
                             <Label>API Key (Optional)</Label>
                             <Input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="sk_live_..." />
                         </div>
+                        
+                        <div className="space-y-2">
+                            <Label>Client ID (Platform)</Label>
+                            <Input value={clientId} onChange={e => setClientId(e.target.value)} placeholder="UUID" />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Order Ahead Client ID</Label>
+                                <Input value={orderAheadClientId} onChange={e => setOrderAheadClientId(e.target.value)} placeholder="Legacy ID" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Order Ahead Token</Label>
+                                <Input type="password" value={orderAheadClientToken} onChange={e => setOrderAheadClientToken(e.target.value)} placeholder="Token" />
+                            </div>
+                        </div>
+                    </>
                     )}
                 </CardContent>
                 <CardFooter className="flex justify-between border-t pt-6">

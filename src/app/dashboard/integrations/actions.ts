@@ -12,12 +12,38 @@ export async function saveIntegrationConfig(provider: POSProvider | string, conf
 
     // Determine target ID (dispensary ID or brand's reference to a retailer)
     // For simplicity, assuming user is a Dispensary Admin configuring their own store
-    const targetId = user.uid; // Or user.dispensaryId if that existed
+    // Determine target ID (dispensary ID or brand's reference to a retailer)
+    // For simplicity, assuming user is a Dispensary Admin configuring their own store
+    const targetId = user.uid; // legacy
 
     // Grant permission for this tool/provider
     await grantPermission(user.uid, provider);
 
-    // In a real app, strict validation of permissions here
+    // 1. Resolve Location ID (Primary for Sync)
+    let locationId = user.locationId;
+    const orgId = (user as any).orgId || user.customClaims?.orgId;
+
+    if (!locationId && orgId) {
+        const locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
+        if (!locSnap.empty) {
+            locationId = locSnap.docs[0].id;
+        }
+    }
+
+    if (locationId) {
+        // Save to Locations (New Source of Truth)
+        await firestore.collection('locations').doc(locationId).update({
+            posConfig: {
+                provider,
+                ...config,
+                updatedAt: new Date(),
+                status: 'active'
+            }
+        });
+    }
+
+    // 2. Legacy Support: Save to Dispensary/User Profile
+    // Some older components might look here
     await firestore.collection('dispensaries').doc(targetId).set({
         posConfig: {
             provider,

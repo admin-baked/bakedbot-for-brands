@@ -155,17 +155,20 @@ const DISPENSARY_CHECKLIST: ChecklistItem[] = [
 /**
  * Get linked dispensary status from Firestore
  */
-async function getLinkedDispensaryStatus(): Promise<{ isLinked: boolean; dispensaryName?: string }> {
+async function getLinkedDispensaryStatus(): Promise<{ isLinked: boolean; posConnected: boolean }> {
     try {
         const response = await fetch('/api/user/linked-dispensary');
         if (response.ok) {
             const data = await response.json();
-            return { isLinked: !!data.linkedDispensary, dispensaryName: data.linkedDispensary?.name };
+            return { 
+                isLinked: !!data.linkedDispensary, 
+                posConnected: !!data.posConnected 
+            };
         }
     } catch (error) {
         console.error('Failed to check linked dispensary:', error);
     }
-    return { isLinked: false };
+    return { isLinked: false, posConnected: false };
 }
 
 export function SetupChecklist() {
@@ -185,11 +188,20 @@ export function SetupChecklist() {
                 baseItems = [...DISPENSARY_CHECKLIST];
                 
                 // Check if dispensary is linked
-                const { isLinked } = await getLinkedDispensaryStatus();
+                // Check if dispensary is linked and POS connected
+                const { isLinked, posConnected } = await getLinkedDispensaryStatus();
+                
                 if (isLinked) {
-                    // Mark 'link-dispensary' as done
                     baseItems = baseItems.map(item => 
                         item.id === 'link-dispensary' 
+                            ? { ...item, status: 'done' as const }
+                            : item
+                    );
+                }
+
+                if (posConnected) {
+                     baseItems = baseItems.map(item => 
+                        item.id === 'connect-pos' 
                             ? { ...item, status: 'done' as const }
                             : item
                     );
