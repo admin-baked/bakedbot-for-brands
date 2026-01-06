@@ -320,6 +320,46 @@ export const defaultSmokeyTools = {
         // Persistence
         await commonMemoryTools.lettaSaveFact(`Ranked products for segment '${segmentId}'.`, 'product_ranking');
         return products;
+    },
+    searchMenu: async (query: string) => {
+        try {
+            const { firestore } = await createServerClient();
+            const user = await requireUser();
+            
+            let locationId = user.locationId;
+             // Fallback logic similar to syncMenu
+             if (!locationId && (user as any).orgId) {
+                const locSnap = await firestore.collection('locations').where('orgId', '==', (user as any).orgId).limit(1).get();
+                if (!locSnap.empty) locationId = locSnap.docs[0].id;
+             }
+
+            if (!locationId) return { success: false, error: "No location linked." };
+
+            const productRepo = makeProductRepo(firestore);
+            const products = await productRepo.getAllByLocation(locationId);
+
+            // In-memory simplistic fuzzy search
+            const lowerQ = query.toLowerCase();
+            const results = products.filter(p => {
+                const content = `${p.name} ${p.brandName} ${p.category} ${p.description || ''}`.toLowerCase();
+                return content.includes(lowerQ) && p.inStock;
+            }).slice(0, 15);
+
+            return { 
+                success: true, 
+                count: results.length, 
+                products: results.map(p => ({
+                    name: p.name,
+                    brand: p.brandName,
+                    price: p.price, 
+                    thc: p.thcPercent,
+                    stock: p.stockCount,
+                    category: p.category
+                }))
+            };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
     }
 };
 
@@ -737,6 +777,7 @@ export const defaultUniversalTools = {
     // Smokey (Budtender)
     analyzeExperimentResults: defaultSmokeyTools.analyzeExperimentResults,
     rankProductsForSegment: defaultSmokeyTools.rankProductsForSegment,
+    searchMenu: defaultSmokeyTools.searchMenu,
 
     // Pops (Analytics)
     analyzeData: defaultPopsTools.analyzeData,

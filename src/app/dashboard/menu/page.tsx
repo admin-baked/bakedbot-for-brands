@@ -13,7 +13,10 @@ import Image from 'next/image';
 import { logger } from '@/lib/logger';
 // Product type is now dynamic or imported from actions/domain if needed
 
-import { getMenuData } from './actions';
+// Product type is now dynamic or imported from actions/domain if needed
+import { getMenuData, syncMenu } from './actions';
+import { RefreshCw } from 'lucide-react'; // Import icon
+import { useToast } from '@/hooks/use-toast'; 
 
 export default function MenuPage() {
     const [products, setProducts] = useState<any[]>([]);
@@ -22,6 +25,36 @@ export default function MenuPage() {
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
     const [source, setSource] = useState<string>('none');
     const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const { toast } = useToast();
+
+    const handleSync = async () => {
+        setIsSyncing(true);
+        try {
+            const result = await syncMenu();
+            if (result.success) {
+                toast({
+                    title: "Sync Complete",
+                    description: `Synced ${result.count} products from Dutchie POS.`,
+                });
+                await loadProducts(); // Reload local data
+            } else {
+                toast({
+                    title: "Sync Failed",
+                    description: result.error,
+                    variant: "destructive"
+                });
+            }
+        } catch (e) {
+            toast({
+                title: "Error", 
+                description: "An unexpected error occurred.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsSyncing(false);
+        }
+    };
 
     const loadProducts = useCallback(async () => {
         setLoading(true);
@@ -77,8 +110,19 @@ export default function MenuPage() {
                         {lastSyncedAt && ` • Last sync: ${lastSyncedAt}`}
                     </p>
                 </div>
-                <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                    SOT: POS &gt; CannMenus &gt; Discovery
+                <div className="flex items-center gap-2">
+                    <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                        SOT: POS &gt; CannMenus &gt; Discovery
+                    </div>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleSync} 
+                        disabled={isSyncing}
+                    >
+                        <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                        {isSyncing ? 'Syncing...' : 'Sync with Dutchie'}
+                    </Button>
                 </div>
             </div>
 
