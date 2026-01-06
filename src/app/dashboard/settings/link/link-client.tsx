@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * Link Dispensary Page Client
+ * Link Dispensary Page Client (Discovery Powered)
  * 
  * Allows dispensary users to search for and link their business
- * from CannMenus, or create a new dispensary manually.
+ * using BakedBot Discovery (FireCrawl).
  */
 
 import { useState } from 'react';
@@ -14,20 +14,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Search, Store, MapPin, Package, Loader2, CheckCircle, Plus, ExternalLink } from 'lucide-react';
-import { searchDispensariesAction, linkDispensaryAction, createManualDispensaryAction } from '@/server/actions/link-dispensary';
+import { ArrowLeft, Search, Store, MapPin, Package, Loader2, CheckCircle, Plus, ExternalLink, Globe } from 'lucide-react';
+import { searchEntities, linkEntity, type DiscoveryEntity } from '@/server/actions/discovery-search';
 import { WiringScreen } from './components/wiring-screen';
-
-interface DispensaryResult {
-    id: string;
-    name: string;
-    address?: string;
-    city?: string;
-    state?: string;
-    zip?: string;
-    source: 'cannmenus' | 'leafly' | 'discovery' | 'manual';
-    productCount?: number;
-}
 
 export default function LinkDispensaryPageClient() {
     const { toast } = useToast();
@@ -37,21 +26,13 @@ export default function LinkDispensaryPageClient() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchZip, setSearchZip] = useState('');
     const [isSearching, setIsSearching] = useState(false);
-    const [results, setResults] = useState<DispensaryResult[]>([]);
+    const [results, setResults] = useState<DiscoveryEntity[]>([]);
     const [hasSearched, setHasSearched] = useState(false);
 
     // Linking state
     const [isLinking, setIsLinking] = useState(false);
     const [wiringStatus, setWiringStatus] = useState<'idle' | 'active'>('idle');
-    const [linkedDispensaryName, setLinkedDispensaryName] = useState('');
-
-    // Manual entry state
-    const [showManualForm, setShowManualForm] = useState(false);
-    const [manualName, setManualName] = useState('');
-    const [manualAddress, setManualAddress] = useState('');
-    const [manualCity, setManualCity] = useState('');
-    const [manualState, setManualState] = useState('');
-    const [manualZip, setManualZip] = useState('');
+    const [linkedEntityName, setLinkedEntityName] = useState('');
 
     const handleSearch = async () => {
         if (!searchQuery && !searchZip) {
@@ -63,14 +44,16 @@ export default function LinkDispensaryPageClient() {
         setHasSearched(true);
 
         try {
-            const result = await searchDispensariesAction(searchQuery, searchZip);
+            // Use new Discovery Search
+            const result = await searchEntities(searchQuery, 'dispensary', searchZip);
+            
             if (result.success && result.data) {
-                setResults(result.data.dispensaries);
-                if (result.data.dispensaries.length === 0) {
-                    toast({ title: 'No results found', description: 'Try a different search or create manually.' });
+                setResults(result.data);
+                if (result.data.length === 0) {
+                    toast({ title: 'No results found', description: 'Try including your city or state.' });
                 }
             } else {
-                toast({ variant: 'destructive', title: 'Search failed', description: result.message });
+                toast({ variant: 'destructive', title: 'Search failed', description: result.error });
             }
         } catch (error) {
             toast({ variant: 'destructive', title: 'Search error' });
@@ -79,51 +62,23 @@ export default function LinkDispensaryPageClient() {
         }
     };
 
-    const handleLink = async (dispensary: DispensaryResult) => {
+    const handleLink = async (entity: DiscoveryEntity) => {
         setIsLinking(true);
 
         try {
-            const result = await linkDispensaryAction(dispensary.id, dispensary.name, dispensary);
+            // Use new Link Entity action
+            const result = await linkEntity(entity);
+            
             if (result.success) {
-                // Trigger Wiring Animation instead of immediate redirect
-                setLinkedDispensaryName(dispensary.name);
+                // Trigger Wiring Animation
+                setLinkedEntityName(entity.name);
                 setWiringStatus('active');
             } else {
-                toast({ variant: 'destructive', title: 'Failed to link', description: result.message });
+                toast({ variant: 'destructive', title: 'Failed to link', description: result.error });
                 setIsLinking(false);
             }
         } catch (error) {
             toast({ variant: 'destructive', title: 'Link error' });
-            setIsLinking(false);
-        }
-    };
-
-    const handleManualCreate = async () => {
-        if (!manualName || !manualCity || !manualState) {
-            toast({ variant: 'destructive', title: 'Please fill in required fields' });
-            return;
-        }
-
-        setIsLinking(true);
-
-        try {
-            const result = await createManualDispensaryAction(
-                manualName,
-                manualAddress,
-                manualCity,
-                manualState,
-                manualZip
-            );
-            if (result.success) {
-                 // Trigger Wiring Animation
-                setLinkedDispensaryName(manualName);
-                setWiringStatus('active');
-            } else {
-                toast({ variant: 'destructive', title: 'Failed to create', description: result.message });
-                setIsLinking(false);
-            }
-        } catch (error) {
-            toast({ variant: 'destructive', title: 'Create error' });
             setIsLinking(false);
         }
     };
@@ -140,16 +95,16 @@ export default function LinkDispensaryPageClient() {
                     Link Your Dispensary
                 </h1>
                 <p className="text-muted-foreground">
-                    Search for your dispensary to import your menu and data automatically.
+                    Search for your dispensary using BakedBot Discovery to import your menu and data automatically.
                 </p>
             </div>
 
             {/* Search Card */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-lg">Search CannMenus</CardTitle>
+                    <CardTitle className="text-lg">Search Business</CardTitle>
                     <CardDescription>
-                        Find your dispensary by name or ZIP code
+                        Find your dispensary by name, city, or ZIP code
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -169,14 +124,14 @@ export default function LinkDispensaryPageClient() {
                             </div>
                         </div>
                         <div className="w-full sm:w-32">
-                            <Label htmlFor="zip" className="sr-only">ZIP Code</Label>
+                            <Label htmlFor="zip" className="sr-only">ZIP / City</Label>
                             <div className="relative">
                                 <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     id="zip"
                                     value={searchZip}
                                     onChange={e => setSearchZip(e.target.value)}
-                                    placeholder="ZIP"
+                                    placeholder="ZIP/City"
                                     className="pl-9"
                                     onKeyDown={e => e.key === 'Enter' && handleSearch()}
                                 />
@@ -191,30 +146,33 @@ export default function LinkDispensaryPageClient() {
                     {hasSearched && (
                         <div className="space-y-2 pt-4 border-t">
                             {results.length > 0 ? (
-                                results.map(dispensary => (
+                                results.map(entity => (
                                     <div
-                                        key={dispensary.id}
+                                        key={entity.id}
                                         className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                                     >
                                         <div className="flex items-start gap-3">
                                             <div className="p-2 bg-emerald-100 rounded-lg text-emerald-700">
                                                 <Store className="h-5 w-5" />
                                             </div>
-                                            <div>
-                                                <div className="font-medium">{dispensary.name}</div>
-                                                <div className="text-sm text-muted-foreground">
-                                                    {[dispensary.city, dispensary.state].filter(Boolean).join(', ')}
-                                                    {dispensary.productCount && (
-                                                        <span className="ml-2 text-emerald-600">
-                                                            • {dispensary.productCount} products
-                                                        </span>
-                                                    )}
+                                            <div className="overflow-hidden">
+                                                <div className="font-medium truncate">{entity.name}</div>
+                                                <div className="text-sm text-muted-foreground flex items-center gap-2">
+                                                    <Globe className="h-3 w-3" />
+                                                    <a href={entity.url} target="_blank" rel="noopener noreferrer" className="hover:underline truncate max-w-[200px]">
+                                                        {entity.url}
+                                                    </a>
                                                 </div>
+                                                {entity.description && (
+                                                    <div className="text-xs text-muted-foreground mt-1 truncate max-w-sm">
+                                                        {entity.description}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         <Button
                                             size="sm"
-                                            onClick={() => handleLink(dispensary)}
+                                            onClick={() => handleLink(entity)}
                                             disabled={isLinking}
                                         >
                                             {isLinking ? (
@@ -231,94 +189,10 @@ export default function LinkDispensaryPageClient() {
                             ) : (
                                 <div className="text-center py-8 text-muted-foreground">
                                     <Package className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                                    <p>No dispensaries found matching your search.</p>
-                                    <p className="text-sm mt-1">Try a different name or create manually below.</p>
+                                    <p>No results found via BakedBot Discovery.</p>
+                                    <p className="text-sm mt-1">Try refining your search terms.</p>
                                 </div>
                             )}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Manual Creation Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        <Plus className="h-5 w-5" />
-                        Can't find your dispensary?
-                    </CardTitle>
-                    <CardDescription>
-                        Create your dispensary manually and connect your POS later.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {!showManualForm ? (
-                        <Button variant="outline" onClick={() => setShowManualForm(true)}>
-                            Enter Details Manually
-                        </Button>
-                    ) : (
-                        <div className="space-y-4">
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="sm:col-span-2">
-                                    <Label htmlFor="manualName">Dispensary Name *</Label>
-                                    <Input
-                                        id="manualName"
-                                        value={manualName}
-                                        onChange={e => setManualName(e.target.value)}
-                                        placeholder="e.g. Essex Apothecary"
-                                    />
-                                </div>
-                                <div className="sm:col-span-2">
-                                    <Label htmlFor="manualAddress">Street Address</Label>
-                                    <Input
-                                        id="manualAddress"
-                                        value={manualAddress}
-                                        onChange={e => setManualAddress(e.target.value)}
-                                        placeholder="123 Main St"
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="manualCity">City *</Label>
-                                    <Input
-                                        id="manualCity"
-                                        value={manualCity}
-                                        onChange={e => setManualCity(e.target.value)}
-                                        placeholder="Boston"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <Label htmlFor="manualState">State *</Label>
-                                        <Input
-                                            id="manualState"
-                                            value={manualState}
-                                            onChange={e => setManualState(e.target.value)}
-                                            placeholder="MA"
-                                            maxLength={2}
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="manualZip">ZIP</Label>
-                                        <Input
-                                            id="manualZip"
-                                            value={manualZip}
-                                            onChange={e => setManualZip(e.target.value)}
-                                            placeholder="02101"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex gap-2">
-                                <Button onClick={handleManualCreate} disabled={isLinking}>
-                                    {isLinking ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : null}
-                                    Create Dispensary
-                                </Button>
-                                <Button variant="ghost" onClick={() => setShowManualForm(false)}>
-                                    Cancel
-                                </Button>
-                            </div>
                         </div>
                     )}
                 </CardContent>
@@ -339,10 +213,11 @@ export default function LinkDispensaryPageClient() {
                     </a>
                 </Button>
             </div>
+            
             {/* Wiring Animation Overlay */}
             {wiringStatus === 'active' && (
                 <WiringScreen 
-                    dispensaryName={linkedDispensaryName}
+                    dispensaryName={linkedEntityName}
                     onComplete={() => router.push('/dashboard')}
                 />
             )}

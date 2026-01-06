@@ -17,11 +17,11 @@ import {
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import {
-    Popover,
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { Server } from 'lucide-react';
+import { SyncToggle } from '@/components/dashboard/sync-toggle';
 
 import { ManagedPagesList } from '@/components/dashboard/managed-pages-list';
 import { SetupChecklist } from '@/components/dashboard/setup-checklist';
@@ -50,7 +50,7 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
 
     return (
         <div className="space-y-6 pb-20"> {/* pb-20 availability for sticky footer */}
-            {/* 1. Header (Custom for Dispensary) */}
+{/* Updated Header with SyncToggle */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-3">
@@ -83,37 +83,16 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/50 rounded-md text-xs font-medium cursor-pointer hover:bg-muted/80 transition-colors">
-                                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                <span className="text-[11px] font-black uppercase tracking-wider">Live Data ON</span>
-                            </div>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64 p-0" align="end">
-                            <div className="p-3 bg-slate-950 text-white rounded-t-lg border-b border-slate-800">
-                                <div className="text-xs font-mono text-slate-400 mb-1">DATA STREAM</div>
-                                <div className="text-sm font-semibold flex items-center gap-2">
-                                    <Server className="h-4 w-4 text-emerald-400" />
-                                    Active Sync
-                                </div>
-                            </div>
-                            <div className="p-3 space-y-3">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Products Indexed</span>
-                                    <span className="font-mono font-bold">{productsCount}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Competitors Found</span>
-                                    <span className="font-mono font-bold">{competitorsCount}</span>
-                                </div>
-                                <div className="pt-2 border-t text-xs text-muted-foreground flex justify-between">
-                                    <span>Last Sync:</span>
-                                    <span>{liveData?.sync?.lastSynced ? new Date(liveData.sync.lastSynced).toLocaleTimeString() : 'N/A'}</span>
-                                </div>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
+                    <SyncToggle 
+                        brandId={brandId} 
+                        website={liveData?.location?.website}
+                        type="dispensary"
+                        initialStats={{
+                            products: productsCount,
+                            competitors: competitorsCount,
+                            lastSynced: liveData?.sync?.lastSynced ? new Date(liveData.sync.lastSynced).toISOString() : null
+                        }}
+                    />
                 </div>
             </div>
 
