@@ -6,18 +6,20 @@ import { getPOSClient } from '@/lib/pos/factory';
 import type { POSProvider } from '@/lib/pos/types';
 
 export async function saveIntegrationConfig(provider: POSProvider | string, config: any) {
-    const user = await requireUser(['dispensary', 'owner', 'brand']); // Brands might manage this for their retailer partners
+    const user = await requireUser(['dispensary', 'owner', 'brand', 'superuser', 'admin']); // Allow superusers
     const { firestore } = await createServerClient();
     const { grantPermission } = await import('@/server/services/permissions');
 
     // Determine target ID (dispensary ID or brand's reference to a retailer)
     // For simplicity, assuming user is a Dispensary Admin configuring their own store
-    // Determine target ID (dispensary ID or brand's reference to a retailer)
-    // For simplicity, assuming user is a Dispensary Admin configuring their own store
     const targetId = user.uid; // legacy
 
     // Grant permission for this tool/provider
-    await grantPermission(user.uid, provider);
+    try {
+        await grantPermission(user.uid, provider);
+    } catch (e) {
+        console.warn('Grant permission failed (non-critical):', e);
+    }
 
     // 1. Resolve Location ID (Primary for Sync)
     let locationId = user.locationId;
@@ -31,15 +33,15 @@ export async function saveIntegrationConfig(provider: POSProvider | string, conf
     }
 
     if (locationId) {
-        // Save to Locations (New Source of Truth)
-        await firestore.collection('locations').doc(locationId).update({
+        // Save to Locations (New Source of Truth) - use set with merge to create if doesn't exist
+        await firestore.collection('locations').doc(locationId).set({
             posConfig: {
                 provider,
                 ...config,
                 updatedAt: new Date(),
                 status: 'active'
             }
-        });
+        }, { merge: true });
     }
 
     // 2. Legacy Support: Save to Dispensary/User Profile
