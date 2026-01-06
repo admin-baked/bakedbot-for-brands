@@ -727,6 +727,119 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         };
     }
 
+    // --- Discovery Browser Tools (RTRVR) ---
+    if (def.name.startsWith('discovery.') && ['browserAutomate', 'summarizePage', 'extractData', 'fillForm', 'createRedditAd'].some(t => def.name.endsWith(t))) {
+        try {
+            const { executeDiscoveryBrowserTool, canRoleUseDiscoveryBrowser } = await import('@/server/services/rtrvr/tools');
+            
+            // Permissions check (beyond registry)
+            if (!canRoleUseDiscoveryBrowser(request.actor.role)) {
+                return { status: 'failed', error: 'Discovery browser tools require elevated access.' };
+            }
+            
+            const result = await executeDiscoveryBrowserTool(def.name, inputs);
+            
+            return {
+                status: result.success ? 'success' : 'failed',
+                data: result.data,
+                error: result.error
+            };
+        } catch (error: any) {
+            return { status: 'failed', error: `Discovery browser error: ${error.message}` };
+        }
+    }
+
+    // --- Firecrawl Deep Discovery (mapSite, crawl) ---
+    if (def.name === 'discovery.mapSite') {
+        try {
+            const { discovery } = await import('@/server/services/firecrawl');
+            if (!discovery.isConfigured()) {
+                return { status: 'failed', error: 'Firecrawl not configured.' };
+            }
+            const result = await discovery.mapSite(inputs.url as string);
+            return { status: 'success', data: result };
+        } catch (error: any) {
+            return { status: 'failed', error: `Map site error: ${error.message}` };
+        }
+    }
+
+    if (def.name === 'discovery.crawl') {
+        try {
+            const { discovery } = await import('@/server/services/firecrawl');
+            if (!discovery.isConfigured()) {
+                return { status: 'failed', error: 'Firecrawl not configured.' };
+            }
+            // Note: Firecrawl SDK crawl method might be async with polling
+            // For MVP, we use scrape in a loop or rely on the SDK's crawl if available
+            const result = await discovery.discoverUrl(inputs.url as string, ['markdown']);
+            return { status: 'success', data: { url: inputs.url, content: result } };
+        } catch (error: any) {
+            return { status: 'failed', error: `Crawl error: ${error.message}` };
+        }
+    }
+
+    // --- Letta Memory System (Universal) ---
+    if (def.name.startsWith('letta.')) {
+        try {
+            const lettaTools = await import('@/server/tools/letta-memory');
+            
+            // Map registry name to export name
+            // Registry: letta.saveFact -> Export: lettaSaveFact
+            // Registry: letta.searchMemory -> Export: lettaSearchMemory
+            // Registry: letta.updateCoreMemory -> Export: lettaUpdateCoreMemory
+            // Registry: letta.messageAgent -> Export: lettaMessageAgent
+            
+            const exportName = def.name.replace(/^letta\./, 'letta')
+                .replace(/^letta(\w)/, (match, p1) => `letta${p1.toUpperCase()}`);
+            
+            // Actually, my export naming convention is:
+            // letta.saveFact -> lettaSaveFact (camelCase match)
+            // But wait, in letta-memory.ts I exported:
+            // lettaSaveFact
+            // lettaSearchMemory
+            // lettaUpdateCoreMemory
+            // lettaMessageAgent
+            
+            // So if toolName is 'letta.saveFact', I want 'lettaSaveFact'.
+            // if toolName is 'letta.searchMemory', I want 'lettaSearchMemory'.
+            
+            // Let's hardcode the map for safety or use a cleaner construct.
+            const toolMap: Record<string, any> = {
+                'letta.saveFact': lettaTools.lettaSaveFact,
+                'letta.searchMemory': lettaTools.lettaSearchMemory,
+                'letta.updateCoreMemory': lettaTools.lettaUpdateCoreMemory,
+                'letta.messageAgent': lettaTools.lettaMessageAgent,
+            };
+
+            const toolImpl = toolMap[def.name];
+            
+            if (!toolImpl) {
+                 return { status: 'failed', error: `Letta tool implementation not found for: ${def.name}` };
+            }
+
+            // Execute the Tool wrapper
+            // The `tool` from genkit returns a function that takes inputs
+            // But wait, Genkit tools are usually executed by the runner, not manually dispatched like this?
+            // In this router, we are manually invoking the implementation function usually.
+            // But `lettaSaveFact` is a Genkit `Reference` or `Tool` object?
+            // checking letta-memory.ts: export const lettaSaveFact = tool({...}, async ({...}) => {...})
+            // Invoking it as a function might not work directly if it's the wrapper.
+            // Ideally we expose the async function directly or call `.run(inputs)`.
+            // Genkit tools are callable if they are the output of `tool()`.
+            
+            // Let's try calling it directly, as Genkit tools are often just callable functions + metadata.
+            const result = await toolImpl(inputs);
+            
+            return {
+                status: 'success',
+                data: result
+            };
+
+        } catch (error: any) {
+            return { status: 'failed', error: `Letta execution error: ${error.message}` };
+        }
+    }
+
     // --- Internal CRM Tools (Jack/Admin) ---
     if (def.name === 'crm.getInternalLeads') {
         const { getInternalLeads } = await import('./domain/crm');
