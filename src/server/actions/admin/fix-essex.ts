@@ -122,7 +122,48 @@ export async function fixEssexApothecary() {
             updatedAt: new Date()
         }, { merge: true });
         
-        log('Credentials updated.');
+        log('Credentials updated in integrations.');
+
+        // 5b. Update Location posConfig (REQUIRED for syncMenu action)
+        log('Updating location posConfig...');
+        const locationsSnap = await firestore.collection('locations')
+            .where('orgId', '==', orgId)
+            .get();
+        
+        if (locationsSnap.empty) {
+            log('WARNING: No locations found for this organization. Creating one...');
+            // Create a location if none exists
+            const newLocRef = firestore.collection('locations').doc();
+            await newLocRef.set({
+                orgId: orgId,
+                name: 'Essex Apothecary - Main',
+                posConfig: {
+                    provider: 'dutchie',
+                    storeId: config.storeId,
+                    apiKey: config.apiKey,
+                    environment: config.environment
+                },
+                createdAt: new Date(),
+                updatedAt: new Date()
+            });
+            log(`Created new location: ${newLocRef.id}`);
+        } else {
+            // Update existing location(s)
+            for (const locDoc of locationsSnap.docs) {
+                await locDoc.ref.update({
+                    posConfig: {
+                        provider: 'dutchie',
+                        storeId: config.storeId,
+                        apiKey: config.apiKey,
+                        environment: config.environment
+                    },
+                    updatedAt: new Date()
+                });
+                log(`Updated location posConfig: ${locDoc.id}`);
+            }
+        }
+
+        log('Location posConfig updated.');
 
         // 6. Validate Connection
         log('Validating connection...');
