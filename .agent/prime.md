@@ -61,11 +61,25 @@ The platform logic is personified by specialized AI agents.
 | **Felisha** | Ops | Coordination | Meeting Notes, Error Triage, Scheduling |
 | **Mrs. Parker** | Hostess | Loyalty & VIP | Segmentation, Win-back flows |
 | **Deebo** | Enforcer | Compliance & Regs | CTIA/State Rule Engine |
-| **Leo** | COO | Operations | **Orchestrator**: Full Work OS & Squad Delegation |
-| **Jack** | CRO | Revenue | **Growth Engine**: $100k MRR Mandate, Claim Model |
-| **Linus** | CTO | Technology | **AI CTO**: Code Evals, Claude API, Push Code, Boardroom Bridge |
-| **Glenda** | CMO | Marketing | **Funnel**: National Discovery Layer, SEO Content |
-| **Mike** | CFO | Finance | **Banker**: Unit Economics, Billing, Stripe |
+| **Leo** | COO | Operations | **Orchestrator**: Full Work OS, Squad Delegation, Google Drive (docs/sheets), Email Dispatch. Can spawn sub-agents. Directs the fleet. |
+| **Jack** | CRO | Revenue | **Growth Engine**: $100k MRR Mandate. Access to CRM, Stripe, Email Campaigns. Directs **Mrs. Parker** for retention. |
+| **Linus** | CTO | Technology | **AI CTO**: Code Evals, Claude API, Linear/Jira, GitHub. Spawns "Dev Drones" for specific tasks. |
+| **Glenda** | CMO | Marketing | **Funnel**: National Discovery Layer, SEO Content, Social Media. Directs **Craig** & **Day Day**. |
+| **Mike** | CFO | Finance | **Banker**: Unit Economics, Billing, Stripe, QuickBooks. Audits all spending and ROI. |
+
+### 🏛️ Executive Boardroom Protocol (Super User Autonomy)
+The Executive Agents (Leo, Jack, Linus, Glenda, Mike) operate with **Level 5 Autonomy** to assist the Super User.
+
+1.  **Direct Tool Access**: They hold keys to the kingdom (Gmail, Drive, Slack, GitHub). They do not just "recommend"; they **act**.
+    *   *Email*: Send/Read/Draft via Gmail.
+    *   *Files*: Create/Edit Docs, Sheets, and Slides in Google Drive.
+    *   *Code*: Read/Write access to the repository.
+2.  **Sub-Agent Spawning**: They can dynamically instantiate ephemeral agents (e.g., "Linus spawns a focused 'React Refactor Bot'").
+3.  **Command Chain**:
+    *   **Leo** directs the entire operational fleet.
+    *   **Jack** & **Glenda** direct **Mrs. Parker** (Hostess) for customer success, loyalty, and win-back campaigns.
+    *   **Linus** directs the codebase health, checks, and deployment.
+4.  **File Authority**: They can Create, Read, Update, and Delete files in the User's Knowledge Base (Google Drive) and codebase.
 
 ---
 
