@@ -446,6 +446,62 @@ export const defaultEzalTools = {
 
         const results = await searchWeb(query);
         return formatSearchResults(results);
+    },
+    // NEW: CannMenus Product Search (maps to 'domain.cannmenus' intent)
+    searchProducts: async (params: { search?: string, near?: string, price_min?: number, price_max?: number, limit?: number }) => {
+        try {
+            const { CannMenusService } = await import('@/server/services/cannmenus');
+            const cms = new CannMenusService();
+            const result = await cms.searchProducts(params);
+            
+            if (result.products && result.products.length > 0) {
+                 return {
+                    success: true,
+                    count: result.products.length,
+                    products: result.products.map(p => ({
+                        name: p.product_name,
+                        brand: p.brand_name,
+                        price: p.latest_price,
+                        retailer: p.retailer_name,
+                        link: p.menu_url
+                    }))
+                 };
+            }
+            return { success: true, count: 0, message: "No products found matching criteria." };
+        } catch (e: any) {
+             return { success: false, error: e.message };
+        }
+    },
+    // NEW: Browser Tool for visual auditing and navigation
+    browse: async (url: string, action: 'goto' | 'screenshot' | 'discover' = 'discover', selector?: string) => {
+        try {
+            const { browserAction } = await import('@/server/tools/browser');
+            // Check if action matches BrowserStep type, otherwise map simpler args to BrowserStep
+            // The tool definition says: browse(url, action, selector)
+            // But browserAction takes: steps: BrowserStep[]
+            
+            const steps: any[] = [];
+            
+            if (action === 'goto') {
+                steps.push({ action: 'goto', url });
+            } else if (action === 'screenshot') {
+                steps.push({ action: 'goto', url }); // Ensure we go there first
+                steps.push({ action: 'screenshot' });
+            } else if (action === 'discover') {
+                 steps.push({ action: 'goto', url });
+                 steps.push({ action: 'discover', selector }); // selector optional
+            }
+            
+            const result = await browserAction({ steps, headless: true });
+            
+            if (result.success) {
+                if (action === 'screenshot') return { success: true, screenshot: result.screenshot };
+                return { success: true, data: result.data || result.logs.join('\n') };
+            }
+            return { success: false, error: result.error };
+        } catch (e: any) {
+             return { success: false, error: e.message };
+        }
     }
 };
 

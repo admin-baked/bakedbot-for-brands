@@ -332,6 +332,30 @@ export async function runAgentCore(
         const userBrandId = (user?.brandId as string) || (role === 'brand' ? 'demo-brand-123' : 'general');
         const userBrandName = role === 'brand' ? 'Your Brand' : 'BakedBot';
 
+        // === CONTEXT INJECTION (Fix for Generic Placeholders) ===
+        // Fetch Brand Profile to inject Name, State, City, etc.
+        let brandContextString = '';
+        if (userBrandId && userBrandId !== 'demo-brand-123') {
+            try {
+                const { createServerClient } = await import('@/firebase/server-client');
+                const { firestore } = await createServerClient();
+                const brandDoc = await firestore.collection('brands').doc(userBrandId).get();
+                if (brandDoc.exists) {
+                    const data = brandDoc.data();
+                    const state = data?.marketState || data?.state || data?.location?.state || 'Unknown State';
+                    const city = data?.city || data?.location?.city || '';
+                    const orgName = data?.name || userBrandName;
+                    
+                    brandContextString = `\n\n[USER CONTEXT]\nOrganization: ${orgName}\nLocation: ${city ? city + ', ' : ''}${state}\nWebsite: ${data?.websiteUrl || 'Not set'}\nMarket: ${state}\n`;
+                    
+                    // Append to message so the agent "sees" it immediately
+                    finalMessage += brandContextString;
+                }
+            } catch (e) {
+                console.warn('Failed to inject brand context:', e);
+            }
+        }
+
         // === MODEL TIER ENFORCEMENT ===
         let effectiveModelLevel = extraOptions?.modelLevel || 'lite';
         
