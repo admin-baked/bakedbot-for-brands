@@ -778,6 +778,66 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         }
     }
 
+    // --- Firecrawl MCP Tools ---
+    if (def.name.startsWith('firecrawl.')) {
+        try {
+            const mcpTools = await import('@/server/tools/firecrawl-mcp');
+            
+            const toolMap: Record<string, any> = {
+                'firecrawl.search': mcpTools.firecrawlSearch,
+                'firecrawl.batchScrape': mcpTools.firecrawlBatchScrape,
+                'firecrawl.map': mcpTools.firecrawlMap,
+                'firecrawl.extract': mcpTools.firecrawlExtract,
+            };
+
+            const toolImpl = toolMap[def.name];
+            if (!toolImpl) {
+                return { status: 'failed', error: `Firecrawl tool not found: ${def.name}` };
+            }
+
+            const result = await toolImpl(inputs);
+            return { status: 'success', data: result };
+        } catch (error: any) {
+            return { status: 'failed', error: `Firecrawl error: ${error.message}` };
+        }
+    }
+
+    // --- Scout Tools (Competitive Monitoring) ---
+    if (def.name.startsWith('scout.')) {
+        try {
+            const { createScout, runScout, getScouts } = await import('@/server/services/scouts/scout-service');
+            
+            if (def.name === 'scout.create') {
+                if (!request.tenantId) throw new Error('Tenant context required');
+                const scout = await createScout(
+                    request.tenantId,
+                    request.actor.userId,
+                    inputs.query as string,
+                    {
+                        frequency: inputs.frequency as any,
+                        targetUrls: inputs.targetUrls as string[]
+                    }
+                );
+                return { status: 'success', data: { scoutId: scout.id, message: `Scout created: ${scout.query}` } };
+            }
+            
+            if (def.name === 'scout.run') {
+                if (!request.tenantId) throw new Error('Tenant context required');
+                const scouts = await getScouts(request.tenantId, request.actor.userId);
+                const scout = scouts.find(s => s.id === inputs.scoutId);
+                if (!scout) {
+                    return { status: 'failed', error: 'Scout not found' };
+                }
+                const result = await runScout(scout);
+                return { status: 'success', data: { summary: result.summary, resultCount: result.resultCount } };
+            }
+            
+            return { status: 'failed', error: `Unknown scout tool: ${def.name}` };
+        } catch (error: any) {
+            return { status: 'failed', error: `Scout error: ${error.message}` };
+        }
+    }
+
     // --- Letta Memory System (Universal) ---
     if (def.name.startsWith('letta.')) {
         try {
