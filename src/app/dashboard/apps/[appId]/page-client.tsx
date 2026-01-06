@@ -29,6 +29,28 @@ export default function AppConfigPageClient({ appId }: AppConfigProps) {
     const provider = (['dutchie', 'jane'].includes(appId) ? appId : 'dutchie') as POSProvider;
     const isSupported = ['dutchie', 'jane'].includes(appId);
 
+    // Pre-load existing credentials on mount
+    useEffect(() => {
+        const loadExisting = async () => {
+            try {
+                const { getIntegrationConfig } = await import('@/app/dashboard/integrations/actions');
+                const config = await getIntegrationConfig(provider);
+                if (config) {
+                    setStoreId(config.storeId || '');
+                    setApiKey(config.apiKey || '');
+                    setClientId(config.clientId || '');
+                    setOrderAheadClientId(config.orderAheadClientId || '');
+                    setOrderAheadClientToken(config.orderAheadClientToken || '');
+                }
+            } catch (e) {
+                console.log('No existing config found');
+            }
+        };
+        if (isSupported) {
+            loadExisting();
+        }
+    }, [provider, isSupported]);
+
     if (!isSupported) {
         return <div className="p-8">App configuration not supported yet.</div>;
     }

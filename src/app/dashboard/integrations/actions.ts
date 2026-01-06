@@ -62,6 +62,47 @@ export async function enableApp(appId: string) {
     return { success: true };
 }
 
+/**
+ * Fetch existing integration config for a provider (e.g., Dutchie).
+ * Returns the posConfig from the user's location.
+ */
+export async function getIntegrationConfig(provider: POSProvider | string) {
+    const user = await requireUser();
+    const { firestore } = await createServerClient();
+
+    // Resolve location
+    let locationId = user.locationId;
+    const orgId = (user as any).orgId || user.customClaims?.orgId;
+
+    if (!locationId && orgId) {
+        const locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
+        if (!locSnap.empty) {
+            locationId = locSnap.docs[0].id;
+        }
+    }
+
+    if (!locationId) {
+        return null;
+    }
+
+    const locDoc = await firestore.collection('locations').doc(locationId).get();
+    if (!locDoc.exists) return null;
+
+    const posConfig = locDoc.data()?.posConfig;
+    if (!posConfig || posConfig.provider !== provider) {
+        return null;
+    }
+
+    return {
+        storeId: posConfig.storeId || '',
+        apiKey: posConfig.apiKey || '',
+        clientId: posConfig.clientId || '',
+        orderAheadClientId: posConfig.orderAheadClientId || '',
+        orderAheadClientToken: posConfig.orderAheadClientToken || '',
+        environment: posConfig.environment || 'production'
+    };
+}
+
 export async function testConnection(provider: POSProvider, config: any) {
     try {
         const client = getPOSClient(provider, config);
