@@ -120,7 +120,7 @@ export async function PricingSection() {
                             marginTop: 'auto'
                         }}>
                             {/* Use logic to display specific button text for free vs paid  */}
-                            {plan.id === 'free' ? 'Create Free Listing' :
+                            {plan.id === 'free' ? 'Hire a Scout' :
                                 plan.id === 'founders_claim' ? 'Get Founders Pricing' :
                                     `Start ${plan.name}`}
                         </Link>

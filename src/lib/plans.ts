@@ -41,8 +41,8 @@ export const COVERAGE_PACKS: Record<CoveragePackId, CoveragePackConfig> = {
 export const PLANS: Record<PlanId, PlanConfig> = {
   free: {
     id: "free",
-    name: "Free",
-    description: "Unclaimed listing, basic discovery.",
+    name: "The Scout",
+    description: "Unclaimed listing + Digital Worker Briefing.",
     baseAmount: 0,
     includedLocations: 1,
     extraPerLocation: null,
