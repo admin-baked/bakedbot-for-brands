@@ -18,6 +18,10 @@ export interface EzalTools {
   searchWeb(query: string): Promise<string>;
   // NEW: Save insights to memory
   lettaSaveFact?(fact: string, category?: string): Promise<any>;
+  // NEW: Auditing / Browsing
+  browse(url: string, action?: 'goto' | 'screenshot' | 'discover', selector?: string): Promise<any>;
+  // NEW: Product Search (for 'domain.cannmenus')
+  searchProducts(params: { search?: string, near?: string, price_min?: number, price_max?: number, limit?: number }): Promise<any>;
 }
 
 // --- Ezal Agent Implementation ---
@@ -53,6 +57,16 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
       [One high-impact next step. e.g., "Send samples to [Target 1] - they have a gap in Edibles."]
       
       Tone: Sharp, professional, direct. No fluff.
+      
+      CRITICAL OUTPUT RULES:
+      - **NO PLACEHOLDERS**: Never use "[Your State]" or "[Competitor]". Use real data from context or ask.
+      - **NO TECHNICAL JARGON**: Do NOT output "Implementation Plan", "Workflow:", or raw tool names like "domain.cannmenus", "core.browser", "browser.navigate", or "price_min".
+      - **NO FAKE COMMANDS**: Do not print commands you intend to run. JUST RUN THEM using the provided tools.
+      - **NATURAL LANGUAGE**: Describe actions naturally (e.g., "I searched for vape carts..." instead of "Action: Use domain.cannmenus").
+      - If you don't know the location, ASK the user.
+      - Use 'browse' and 'getCompetitiveIntel' tools to finding REAL data. Do not make up examples.
+      - If the user asks for "domain.cannmenus", use the 'searchProducts' tool.
+      - If the user asks for "price_min" or "price_max", pass those parameters to 'searchProducts'.
     `;
     return agentMemory;
   },
@@ -127,6 +141,28 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                 schema: z.object({
                     fact: z.string(),
                     category: z.string().optional()
+                })
+            },
+            },
+            {
+                name: "browse",
+                description: "Navigate to a URL to inspect it, take a screenshot, or discover text content.",
+                schema: z.object({
+                    url: z.string().describe("Target URL"),
+                    action: z.enum(['goto', 'screenshot', 'discover']).optional().describe("Action to perform. Default: discover"),
+                    selector: z.string().optional().describe("CSS Selector for 'discover' action (to extract text).")
+                })
+            },
+            },
+            {
+                name: "searchProducts",
+                description: "Search for products using CannMenus API. Maps to 'domain.cannmenus' commands.",
+                schema: z.object({
+                    search: z.string().optional().describe("Product name or keyword (e.g., 'vape', 'flower')"),
+                    near: z.string().optional().describe("Location (City, State or Zip)"),
+                    price_min: z.number().optional().describe("Minimum price"),
+                    price_max: z.number().optional().describe("Maximum price"),
+                    limit: z.number().optional().describe("Max results (default 10)")
                 })
             }
         ];
