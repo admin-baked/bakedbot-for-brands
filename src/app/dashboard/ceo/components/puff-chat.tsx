@@ -741,7 +741,7 @@ export function PuffChat({
 
 // ... keep existing code until submitMessage ...
 
-    const submitMessage = async (textInput: string, audioBase64?: string) => {
+    const submitMessage = async (textInput: string, audioBase64?: string) => { // async fix
         if ((!textInput.trim() && !audioBase64 && attachments.length === 0) || isProcessing) return;
 
         const userInput = textInput;
@@ -2126,7 +2126,7 @@ export function PuffChat({
                 </div>
             )}
         </div>
-    );
+    );;
 
     return (
         <div className={cn("flex flex-col h-full bg-background", className)}>
