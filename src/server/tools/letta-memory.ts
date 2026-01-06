@@ -79,4 +79,55 @@ export const lettaAsk = tool({
     }
 });
 
-export const lettaMemoryTools = [lettaSaveFact, lettaAsk];
+// ----------------------------------------------------------------------------
+// INTER-AGENT & SHARED MEMORY TOOLS
+// ----------------------------------------------------------------------------
+
+export const lettaMessageAgent = tool({
+    name: 'letta_message_agent',
+    description: 'Send a direct message to another agent. Use this to delegate tasks, ask questions, or share findings with your squad.',
+    inputSchema: z.object({
+        toAgent: z.string().describe('The name of the target agent (e.g., "Jack", "Linus").'),
+        message: z.string().describe('The content of the message.')
+    }),
+    outputSchema: z.string(),
+}, async ({ toAgent, message }) => {
+    try {
+        const { lettaClient } = await import('@/server/services/letta/client');
+        const agents = await lettaClient.listAgents();
+        // Fuzzy match agent name
+        const target = agents.find(a => a.name.toLowerCase().includes(toAgent.toLowerCase()));
+        
+        if (!target) {
+            return `Failed: Agent '${toAgent}' not found in Letta.`;
+        }
+
+        // Send async message (we assume 'self' or a system sender for now)
+        await lettaClient.sendAsyncMessage('system', target.id, `[Incoming Message]: ${message}`);
+        return `Message sent to ${target.name} (ID: ${target.id}).`;
+    } catch (e: any) {
+        return `Error sending message: ${e.message}`;
+    }
+});
+
+export const lettaReadSharedBlock = tool({
+    name: 'letta_read_shared_block',
+    description: 'Read a specific Shared Memory Block. Use this to access "Strategy", "ComplianceRules", or "WeeklyKPIs" shared by the Boardroom.',
+    inputSchema: z.object({
+        blockLabel: z.string().describe('The label of the shared block (e.g., "Strategy", "KPIs").')
+    }),
+    outputSchema: z.string(),
+}, async ({ blockLabel }) => {
+    try {
+        const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
+        // We assume a 'global' or 'boardroom' tenant ID for shared context if not provided
+        const tenantId = (global as any).currentTenantId || 'boardroom_shared';
+        
+        const content = await lettaBlockManager.readBlock(tenantId, blockLabel as any);
+        return content || "Block is empty or does not exist.";
+    } catch (e: any) {
+        return `Error reading shared block: ${e.message}`;
+    }
+});
+
+export const lettaMemoryTools = [lettaSaveFact, lettaAsk, lettaMessageAgent, lettaReadSharedBlock];

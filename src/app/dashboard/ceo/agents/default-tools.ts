@@ -722,7 +722,7 @@ export const defaultUniversalTools = {
     use_mcp_tool: defaultExecutiveTools.use_mcp_tool,
 };
 
-// Executive Board tools: Universal + RTRvr capabilities
+// Executive Board tools: Universal + RTRvr capabilities + MCP + Python Sidecar
 export const defaultExecutiveBoardTools = {
     ...defaultUniversalTools,
     
@@ -730,6 +730,61 @@ export const defaultExecutiveBoardTools = {
     rtrvrAgent: defaultExecutiveTools.rtrvrAgent,
     rtrvrScrape: defaultExecutiveTools.rtrvrScrape,
     rtrvrMcp: defaultExecutiveTools.rtrvrMcp,
+    
+    // new Universal Bridges
+    // Note: We need to import these at top level or handle dynamic loading in actual agent runner registry
+    // For this file def, we map them if they were imported. 
+    // Since we just created them, we'll assume dynamic mapping in the agent loading layer 
+    // OR we add them here if we can import.
+    // Let's add placeholders that use dynamic imports to be safe in this file structure.
+    
+    mcpListServers: async () => {
+        const { mcpListServers } = await import('@/server/tools/mcp-tools');
+        // This is a bit of a hack since tools are usually defined as Genkit tools, 
+        // but here we are exporting functions that WRAP tools or ARE tools.
+        // The default-tools.ts exports objects of functions.
+        // So we need a function wrapper.
+        // However, mcpListServers IS a specialized Tool object (from z.tool).
+        // The pattern here seems to be raw functions that GET converted to tools?
+        // Wait, looking at lines 29-48... simple async functions.
+        // The 'tool' wrapper in mcp-tools.ts creates a Genkit Tool instance.
+        // But default-tools.ts seems to export raw functions that eventually get wrapped?
+        // Let's look at `commonMemoryTools`... `lettaSaveFact: async ...`
+        // YES. They act as raw functions here.
+        // So mcp-tools.ts defined real tools, but here we need raw functions.
+        // I should have defined RAW functions in mcp-tools.ts and then wrapped them.
+        // Let's simple inline the logic here to match the pattern, referencing the client directly.
+        
+        // RE-IMPLEMENTING AS RAW FUNCTION
+        const { getMcpClient } = await import('@/server/services/mcp/client');
+        // Mock list for now as discussed
+        return {
+             servers: [
+                { id: 'brave-search', status: 'connected', tools: [{ name: 'brave.search', description: 'Search' }] }
+            ]
+        };
+    },
+    
+    mcpCallTool: async (serverId: string, toolName: string, args: any) => {
+        const { getMcpClient } = await import('@/server/services/mcp/client');
+        const client = getMcpClient(serverId);
+        if (!client) return { error: `Server ${serverId} not found` };
+        try {
+            return await client.callTool(toolName, args);
+        } catch(e: any) {
+            return { error: e.message };
+        }
+    },
+    
+    // Python Sidecar Wrapper
+    pythonSidecarExec: async (action: string, data: any) => {
+        const { sidecar } = await import('@/server/services/python-sidecar');
+        try {
+            return await sidecar.execute(action, data);
+        } catch (e: any) {
+            return { error: e.message };
+        }
+    }
 };
 
 // Export common tools for direct use in agents
