@@ -197,6 +197,38 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: ['testName']
         }
+    },
+    {
+        name: 'letta_search_memory',
+        description: 'Search your long-term memory for past code decisions, bug reports, or architectural patterns.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                query: {
+                    type: 'string',
+                    description: 'What to search for in memory'
+                }
+            },
+            required: ['query']
+        }
+    },
+    {
+        name: 'letta_update_personal_memory',
+        description: 'Update your personal agent memory block. Use this to store insights, track ongoing tasks, or remember code patterns.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                content: {
+                    type: 'string',
+                    description: 'The content to add to your memory'
+                },
+                replace: {
+                    type: 'boolean',
+                    description: 'If true, replaces the memory. If false (default), appends.'
+                }
+            },
+            required: ['content']
+        }
     }
 ];
 
@@ -357,6 +389,46 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
                     stdout: e.stdout ? e.stdout.slice(-2000) : undefined,
                     stderr: e.stderr ? e.stderr.slice(-2000) : undefined
                 };
+            }
+        }
+
+        case 'letta_search_memory': {
+            const { query } = input as { query: string };
+            try {
+                const { lettaSearchMemory } = await import('@/server/tools/letta-memory');
+                const result = await lettaSearchMemory({ query });
+                return { success: true, results: result };
+            } catch (e) {
+                return { success: false, error: (e as Error).message };
+            }
+        }
+
+        case 'letta_update_personal_memory': {
+            const { content, replace } = input as { content: string; replace?: boolean };
+            try {
+                const { lettaBlockManager, BLOCK_LABELS } = await import('@/server/services/letta/block-manager');
+                const tenantId = 'boardroom_shared';
+                
+                if (replace) {
+                    // Replace entire memory block
+                    const block = await lettaBlockManager.getOrCreateBlock(
+                        tenantId,
+                        BLOCK_LABELS.AGENT_LINUS as any
+                    );
+                    const { lettaClient } = await import('@/server/services/letta/client');
+                    await lettaClient.updateBlock(block.id, content);
+                } else {
+                    // Append to memory
+                    await lettaBlockManager.appendToBlock(
+                        tenantId,
+                        BLOCK_LABELS.AGENT_LINUS as any,
+                        content,
+                        'Linus'
+                    );
+                }
+                return { success: true, message: 'Personal memory updated.' };
+            } catch (e) {
+                return { success: false, error: (e as Error).message };
             }
         }
         
