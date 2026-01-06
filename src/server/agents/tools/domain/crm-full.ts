@@ -1,4 +1,6 @@
-'use server';
+// This file is NOT a server action file - it exports tool definitions
+// which are objects, not async functions
+
 
 /**
  * CRM Full Tools
@@ -15,9 +17,9 @@ import {
     getBrands,
     getDispensaries,
     getPlatformLeads,
-    type CRMFilters,
-    type CRMLifecycleStage
+    type CRMFilters
 } from '@/server/services/crm-service';
+import { type CRMLifecycleStage } from '@/server/services/crm-types';
 import { defineTool } from '@genkit-ai/ai';
 import { z } from 'zod';
 
