@@ -154,3 +154,45 @@ export async function searchDemoRetailers(zip: string) {
         return { success: false, error: "Market Scout Search Failed" };
     }
 }
+// ===========================================
+// LIVE DEMO SENDING ACTIONS
+// ===========================================
+
+export async function sendDemoSMS(phoneNumber: string, messageBody: string) {
+    try {
+        const { blackleafService } = await import('@/lib/notifications/blackleaf-service');
+        // Clean phone number just in case (Blackleaf service also does this but good to be safe)
+        const success = await blackleafService.sendCustomMessage(phoneNumber, messageBody);
+        
+        if (success) {
+            return { success: true, message: 'SMS Sent Successfully' };
+        } else {
+            return { success: false, error: 'Failed to send SMS via provider' };
+        }
+    } catch (e: any) {
+        console.error('[Demo] Send SMS failed:', e);
+        return { success: false, error: e.message };
+    }
+}
+
+export async function sendDemoEmail(email: string, htmlBody: string) {
+    try {
+        const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+        
+        const result = await sendGenericEmail({
+            to: email,
+            subject: 'Your BakedBot Campaign Draft 🌿',
+            htmlBody: htmlBody,
+            textBody: 'Your campaign draft is ready. View in HTML client.'
+        });
+
+        if (result.success) {
+            return { success: true, message: 'Email Sent Successfully' };
+        } else {
+            return { success: false, error: result.error || 'Failed to send Email' };
+        }
+    } catch (e: any) {
+        console.error('[Demo] Send Email failed:', e);
+        return { success: false, error: e.message };
+    }
+}
