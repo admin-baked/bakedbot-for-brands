@@ -179,6 +179,24 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: ['fact']
         }
+    },
+    {
+        name: 'run_browser_test',
+        description: 'Run a browser-based end-to-end test using Playwright. Use for verifying UI flows.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                testName: {
+                    type: 'string',
+                    description: 'Name or pattern of the test file to run (e.g., "login.spec.ts")'
+                },
+                headed: {
+                    type: 'boolean',
+                    description: 'Run with browser UI visible? (default: false)'
+                }
+            },
+            required: ['testName']
+        }
     }
 ];
 
@@ -316,6 +334,29 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
                 return { success: true, message: 'Fact saved to memory.' };
             } catch (e) {
                 return { success: false, error: (e as Error).message };
+            }
+        }
+
+        case 'run_browser_test': {
+            const { testName, headed } = input as { testName: string; headed?: boolean };
+            try {
+                const cmd = `npx playwright test ${testName} ${headed ? '--headed' : ''}`;
+                const { stdout, stderr } = await execAsync(cmd, { cwd: PROJECT_ROOT, timeout: 120000 });
+                return { 
+                    success: true, 
+                    message: `Test '${testName}' passed.`,
+                    stdout: stdout.slice(-2000), // Return last 2000 chars
+                    stderr: stderr ? stderr.slice(-500) : undefined
+                };
+            } catch (e: any) {
+                // Playwright returns exit code 1 on failure, so execAsync throws
+                return { 
+                    success: false, 
+                    message: `Test '${testName}' failed.`,
+                    error: e.message,
+                    stdout: e.stdout ? e.stdout.slice(-2000) : undefined,
+                    stderr: e.stderr ? e.stderr.slice(-2000) : undefined
+                };
             }
         }
         
