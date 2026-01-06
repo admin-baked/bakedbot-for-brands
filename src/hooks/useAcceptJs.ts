@@ -62,6 +62,13 @@ export function useAcceptJs({ clientKey, apiLoginId }: UseAcceptJsOptions) {
 
     // Load Accept.js script
     useEffect(() => {
+        // Immediate check for global object (handles already loaded + race conditions)
+        if (typeof window !== 'undefined' && (window as any).Accept) {
+            setIsLoaded(true);
+            scriptLoaded.current = true;
+            return;
+        }
+
         if (scriptLoaded.current || typeof window === 'undefined') return;
 
         const isProduction = process.env.NEXT_PUBLIC_AUTHNET_ENV === 'production';
@@ -69,10 +76,11 @@ export function useAcceptJs({ clientKey, apiLoginId }: UseAcceptJsOptions) {
             ? 'https://js.authorize.net/v1/Accept.js'
             : 'https://jstest.authorize.net/v1/Accept.js';
 
-        // Check if already loaded
+        // Check if already loaded by src
         const existingScript = document.querySelector(`script[src="${scriptSrc}"]`);
         if (existingScript) {
-            setIsLoaded(true);
+            // Assume loading if in DOM, but safer to check global above
+            setIsLoaded(true); 
             scriptLoaded.current = true;
             return;
         }
