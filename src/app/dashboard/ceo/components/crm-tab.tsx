@@ -30,14 +30,16 @@ import {
     getPlatformUsers,
     getCRMStats, 
     getCRMUserStats,
-    LIFECYCLE_STAGE_CONFIG,
     type CRMBrand, 
     type CRMDispensary, 
     type CRMLead, 
-    type CRMUser,
-    type CRMFilters,
-    type CRMLifecycleStage
+    type CRMFilters
 } from '@/server/services/crm-service';
+import { 
+    LIFECYCLE_STAGE_CONFIG,
+    type CRMUser,
+    type CRMLifecycleStage
+} from '@/server/services/crm-types';
 import { Pagination, usePagination } from '@/components/ui/pagination';
 import { inviteToClaimAction } from '../actions';
 

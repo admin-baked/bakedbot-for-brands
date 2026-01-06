@@ -59,12 +59,8 @@ export interface CRMFilters {
     lifecycleStage?: CRMLifecycleStage;
 }
 
-// Re-export types and constants from crm-types.ts (non-server exports)
-export { 
-    LIFECYCLE_STAGE_CONFIG, 
-    type CRMLifecycleStage, 
-    type CRMUser 
-} from './crm-types';
+// NOTE: LIFECYCLE_STAGE_CONFIG, CRMLifecycleStage, and CRMUser are in crm-types.ts
+// Import them directly from '@/server/services/crm-types' - cannot re-export from 'use server' file
 
 /**
  * Create a URL-safe slug from a name
