@@ -37,6 +37,34 @@ jest.mock('@/lib/plans', () => ({
   COVERAGE_PACKS: {},
 }));
 
+// Mock UI components to avoid JSDOM issues
+jest.mock('@/components/ui/card', () => ({
+  Card: ({ children, className }: any) => <div data-testid="card" className={className}>{children}</div>,
+  CardHeader: ({ children }: any) => <div data-testid="card-header">{children}</div>,
+  CardTitle: ({ children }: any) => <h3 data-testid="card-title">{children}</h3>,
+  CardContent: ({ children }: any) => <div data-testid="card-content">{children}</div>
+}));
+
+jest.mock('@/components/ui/button', () => ({
+  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>
+}));
+
+jest.mock('@/components/ui/input', () => ({
+  Input: (props: any) => <input {...props} />
+}));
+
+jest.mock('@/components/ui/label', () => ({
+  Label: (props: any) => <label {...props} />
+}));
+
+jest.mock('lucide-react', () => ({
+    AlertCircle: () => <span>AlertIcon</span>,
+    CreditCard: () => <span>CreditCardIcon</span>,
+    Calendar: () => <span>CalendarIcon</span>,
+    Lock: () => <span>LockIcon</span>,
+    Check: () => <span>CheckIcon</span>
+}));
+
 // Mock fetch
 global.fetch = jest.fn();
 
@@ -92,5 +120,18 @@ describe('BillingForm', () => {
       expect(mockTokenizeCard).toHaveBeenCalled();
       expect(fetch).toHaveBeenCalledWith('/api/billing/authorize-net', expect.any(Object));
     });
+  });
+
+
+  it('displays payment system error when useAcceptJs reports an error', async () => {
+    mockUseAcceptJs.mockReturnValue({
+      isLoaded: true,
+      error: 'Invalid Credentials',
+      tokenizeCard: mockTokenizeCard,
+    });
+
+    render(<BillingForm organizationId="org1" locationCount={1} />);
+
+    expect(screen.getByText('Payment System Error: Invalid Credentials')).toBeInTheDocument();
   });
 });
