@@ -1,9 +1,9 @@
 import type { POSClient, POSConfig, POSProduct } from '../types';
 import { logger } from '@/lib/logger';
 
-// Dutchie has multiple API endpoints
-const DUTCHIE_PLUS_URL = 'https://plus.dutchie.com/graphql';
-const DUTCHIE_EMBEDDED_URL = 'https://dutchie.com/graphql'; // Public embedded menu
+// Dutchie API endpoints
+const DUTCHIE_REST_API = 'https://plus.dutchie.com/api/v1';
+const DUTCHIE_PLUS_GRAPHQL = 'https://plus.dutchie.com/graphql';
 
 export class DutchieClient implements POSClient {
     private config: POSConfig;
@@ -13,71 +13,98 @@ export class DutchieClient implements POSClient {
     }
 
     /**
-     * Query the public embedded menu API (no auth required)
+     * REST API request with Bearer token auth
      */
-    private async queryPublic(query: string, variables: any = {}) {
-        const response = await fetch(DUTCHIE_EMBEDDED_URL, {
-            method: 'POST',
+    private async restRequest(endpoint: string, method = 'GET'): Promise<any> {
+        const url = `${DUTCHIE_REST_API}${endpoint}`;
+        logger.info(`[POS_DUTCHIE] REST ${method} ${endpoint}`);
+        
+        const response = await fetch(url, {
+            method,
             headers: {
+                'Authorization': `Bearer ${this.config.apiKey}`,
                 'Content-Type': 'application/json',
+                'x-dutchie-retailer-id': this.config.storeId || '',
             },
-            body: JSON.stringify({ query, variables }),
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Dutchie public API error: ${response.statusText} - ${errorText}`);
+            throw new Error(`Dutchie REST API error: ${response.status} ${response.statusText} - ${errorText}`);
         }
 
         return response.json();
     }
 
     /**
-     * Query the Plus API (requires API key)
+     * GraphQL query for public embedded menu (no auth)
      */
-    private async queryPlus(query: string, variables: any = {}) {
-        const response = await fetch(DUTCHIE_PLUS_URL, {
+    private async graphqlPublic(query: string, variables: any = {}): Promise<any> {
+        const response = await fetch('https://dutchie.com/graphql', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, variables }),
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Dutchie public GraphQL error: ${response.statusText}`);
+        }
+        return response.json();
+    }
+
+    /**
+     * GraphQL query for Plus API (requires auth)
+     */
+    private async graphqlPlus(query: string, variables: any = {}): Promise<any> {
+        const response = await fetch(DUTCHIE_PLUS_GRAPHQL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': this.config.apiKey ? `Bearer ${this.config.apiKey}` : '',
+                'Authorization': `Bearer ${this.config.apiKey}`,
                 'x-dutchie-plus-token': this.config.apiKey || '',
             },
             body: JSON.stringify({ query, variables }),
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Dutchie Plus API error: ${response.statusText} - ${errorText}`);
+            throw new Error(`Dutchie Plus GraphQL error: ${response.statusText}`);
         }
-
         return response.json();
     }
 
     async validateConnection(): Promise<boolean> {
-        logger.info('[POS_DUTCHIE] Validating connection', { storeId: this.config.storeId });
+        logger.info('[POS_DUTCHIE] Validating connection', { 
+            storeId: this.config.storeId,
+            hasApiKey: !!this.config.apiKey 
+        });
         
-        // Try public API first
-        try {
-            const result = await this.queryPublic(`
-                query CheckConnection($retailerId: ID!) {
-                    menu(retailerId: $retailerId) {
-                        products { id }
-                    }
+        // Try REST API first (most reliable for Partner integrations)
+        if (this.config.apiKey) {
+            try {
+                const result = await this.restRequest(`/retailers/${this.config.storeId}/products?limit=1`);
+                if (result && (result.data || Array.isArray(result))) {
+                    logger.info('[POS_DUTCHIE] REST API connection successful');
+                    return true;
                 }
-            `, { retailerId: this.config.storeId });
-            
-            if (result.data?.menu?.products) {
-                logger.info('[POS_DUTCHIE] Public API connection successful');
-                return true;
+            } catch (restError: any) {
+                logger.warn('[POS_DUTCHIE] REST API failed:', restError.message);
+                
+                // Try alternate REST endpoints
+                try {
+                    const altResult = await this.restRequest('/products?limit=1');
+                    if (altResult) {
+                        logger.info('[POS_DUTCHIE] REST API (alt endpoint) successful');
+                        return true;
+                    }
+                } catch (altError: any) {
+                    logger.warn('[POS_DUTCHIE] Alternate REST also failed:', altError.message);
+                }
             }
-        } catch (pubError: any) {
-            logger.warn('[POS_DUTCHIE] Public API failed, trying Plus:', pubError.message);
         }
         
-        // Fallback to Plus API
+        // Fallback to GraphQL Plus API
         try {
-            const result = await this.queryPlus(`
+            const result = await this.graphqlPlus(`
                 query CheckConnection($retailerId: ID!) {
                     filteredProducts(retailerId: $retailerId) {
                         products { id }
@@ -86,11 +113,11 @@ export class DutchieClient implements POSClient {
             `, { retailerId: this.config.storeId });
             
             if (result.data?.filteredProducts) {
-                logger.info('[POS_DUTCHIE] Plus API connection successful');
+                logger.info('[POS_DUTCHIE] Plus GraphQL connection successful');
                 return true;
             }
-        } catch (plusError: any) {
-            logger.error('[POS_DUTCHIE] Both APIs failed:', plusError.message);
+        } catch (graphqlError: any) {
+            logger.error('[POS_DUTCHIE] All connection methods failed:', graphqlError.message);
         }
         
         return false;
@@ -121,7 +148,7 @@ export class DutchieClient implements POSClient {
                 }
             `;
 
-            const result = await this.queryPublic(publicQuery, { retailerId: this.config.storeId });
+            const result = await this.graphqlPublic(publicQuery, { retailerId: this.config.storeId });
             
             if (result.data?.menu?.products) {
                 logger.info('[POS_DUTCHIE] Fetched menu via public API');
@@ -153,7 +180,7 @@ export class DutchieClient implements POSClient {
                 }
             `;
 
-            const result = await this.queryPlus(plusQuery, { retailerId: this.config.storeId });
+            const result = await this.graphqlPlus(plusQuery, { retailerId: this.config.storeId });
             
             if (result.errors) {
                 logger.error('[POS_DUTCHIE] GraphQL errors', { errors: result.errors });
