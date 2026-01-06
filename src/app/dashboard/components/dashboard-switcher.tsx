@@ -23,13 +23,28 @@ export default function DashboardSwitcher() {
     console.log('[DashboardSwitcher] Render:', { role, isSuperAdmin, isRoleLoading });
 
     useEffect(() => {
+        if (isRoleLoading) return;
+
         // Check local storage for super admin session
         const session = getSuperAdminSession();
         if (session) {
-            setIsSuperAdmin(true);
+            // SECURITY FIX: If a user is logged in, their email MUST match the super admin session
+            // This prevents "Role Leakage" on shared devices where a Super Admin session persists
+            if (user && user.email && session.email !== user.email.toLowerCase()) {
+                console.warn('[DashboardSwitcher] Security Alert: Super Admin session mismatch. Invalidating.');
+                setIsSuperAdmin(false);
+                // We don't necessarily clear it here to allow easy switching back,
+                // but we definitely don't grant access in this context.
+                // Actually, for safety, let's clear it to force re-auth.
+                localStorage.removeItem('bakedbot_superadmin_session');
+            } else {
+                setIsSuperAdmin(true);
+            }
+        } else {
+            setIsSuperAdmin(false);
         }
         setCheckComplete(true);
-    }, []);
+    }, [isRoleLoading, user]);
 
     const isLoading = isRoleLoading || !checkComplete;
 

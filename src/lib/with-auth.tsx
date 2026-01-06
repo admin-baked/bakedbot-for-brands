@@ -34,10 +34,21 @@ export function withAuth<P extends object>(
         const [isSuperAdmin, setIsSuperAdmin] = useState(false);
         const [hasSessionCookie, setHasSessionCookie] = useState(false);
 
-        // Check for super admin session and session cookie immediately on mount
+        // Check for super admin session and session cookie on mount/update
         useEffect(() => {
+            if (isAuthLoading) return;
+
             const session = getSuperAdminSession();
-            setIsSuperAdmin(!!session);
+            let validSuperAdmin = !!session;
+
+            // SECURITY FIX: Validate session against active user
+            if (session && user && user.email && session.email !== user.email.toLowerCase()) {
+                console.warn('[withAuth] Security Alert: Super Admin session mismatch. Invalidating.');
+                localStorage.removeItem('bakedbot_superadmin_session');
+                validSuperAdmin = false;
+            }
+
+            setIsSuperAdmin(validSuperAdmin);
 
             // Check for __session_is_active cookie (client-visible flag)
             // We use this because __session is HttpOnly and invisible to document.cookie
@@ -47,7 +58,7 @@ export function withAuth<P extends object>(
             setHasSessionCookie(!!sessionCookie);
 
             setSuperAdminChecked(true);
-        }, []);
+        }, [isAuthLoading, user]);
 
         // Combined loading state - wait for both auth and super admin check
         const isLoading = isAuthLoading || !superAdminChecked;

@@ -1,6 +1,6 @@
 
 
-export type PlanId = "free" | "claim_pro" | "founders_claim" | "growth_5" | "scale_10" | "pro_25" | "enterprise";
+export type PlanId = "free" | "claim_pro" | "founders_claim" | "growth_5" | "scale_10" | "pro_25" | "enterprise" | "empire";
 
 export interface PlanConfig {
   id: PlanId;
@@ -98,6 +98,14 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     description: "25+ locations with custom pricing and terms.",
     baseAmount: 0,
     includedLocations: 0,
+    extraPerLocation: null,
+  },
+  empire: {
+    id: "empire",
+    name: "The Empire",
+    description: "The full fleet. 7 Digital Workers + Custom Integrations.",
+    baseAmount: 1499,
+    includedLocations: 999, // Effectively unlimited or highcap
     extraPerLocation: null,
   },
 };
