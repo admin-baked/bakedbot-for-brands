@@ -582,6 +582,97 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         },
         category: 'side-effect',
         requiredPermission: 'admin:all',
+    },
+
+    // ===================================
+    // 13. Letta Memory System (Universal)
+    // ===================================
+    'letta.saveFact': {
+        name: 'letta.saveFact',
+        description: 'Save a persistent fact or finding into long-term memory via Letta.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                fact: { type: 'string' },
+                category: { type: 'string' }
+            },
+            required: ['fact']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics', // Broad access
+    },
+    'letta.searchMemory': {
+        name: 'letta.searchMemory',
+        description: 'Semantically search long-term memory for facts.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                query: { type: 'string' }
+            },
+            required: ['query']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics',
+    },
+    'letta.updateCoreMemory': {
+        name: 'letta.updateCoreMemory',
+        description: 'Update your own Core Memory (Persona).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                section: { type: 'string', enum: ['persona', 'human'] },
+                content: { type: 'string' }
+            },
+            required: ['section', 'content']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics',
+    },
+    'letta.messageAgent': {
+        name: 'letta.messageAgent',
+        description: 'Send a message to another agent.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                toAgent: { type: 'string' },
+                message: { type: 'string' }
+            },
+            required: ['toAgent', 'message']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics',
+    },
+
+    // ===================================
+    // 14. Firecrawl Deep Discovery (Universal)
+    // ===================================
+    'discovery.mapSite': {
+        name: 'discovery.mapSite',
+        description: 'Map all URLs on a website. Returns a sitemap of discoverable pages.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                url: { type: 'string', description: 'Root URL to map' }
+            },
+            required: ['url']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics', // Universal access
+    },
+    'discovery.crawl': {
+        name: 'discovery.crawl',
+        description: 'Crawl multiple pages and extract structured data.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                url: { type: 'string', description: 'Starting URL' },
+                limit: { type: 'number', description: 'Max pages to crawl (default: 10)' },
+                schema: { type: 'object', description: 'JSON schema for data extraction' }
+            },
+            required: ['url']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics',
     }
 };
 

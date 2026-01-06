@@ -130,4 +130,48 @@ export const lettaReadSharedBlock = tool({
     }
 });
 
-export const lettaMemoryTools = [lettaSaveFact, lettaAsk, lettaMessageAgent, lettaReadSharedBlock];
+
+export const lettaSearchMemory = tool({
+    name: 'letta_search_memory',
+    description: 'Semantically search your long-term archival memory. Use this to recall specific details, facts, or past research findings that are not in your active context.',
+    inputSchema: z.object({
+        query: z.string().describe('The search query (e.g., "competitor pricing strategy", "user preference for email").')
+    }),
+    outputSchema: z.string(),
+}, async ({ query }) => {
+    try {
+        const agent = await getOrCreateResearchAgent();
+        const results = await lettaClient.searchPassages(agent.id, query, 5);
+        
+        if (results.length === 0) {
+            return "No relevant memories found.";
+        }
+        
+        return `Found ${results.length} memories:\n- ${results.join('\n- ')}`;
+    } catch (e: any) {
+        return `Error searching memory: ${e.message}`;
+    }
+});
+
+export const lettaUpdateCoreMemory = tool({
+    name: 'letta_update_core_memory',
+    description: 'Update your own Core Memory (Persona). Use this to permanently change how you behave or remember critical user preferences.',
+    inputSchema: z.object({
+        section: z.enum(['persona', 'human']).describe('The section of core memory to update. "persona" updates who YOU are. "human" updates what you know about the USER.'),
+        content: z.string().describe('The new content for this section. Be careful, this overwrites the previous section content.')
+    }),
+    outputSchema: z.string(),
+}, async ({ section, content }) => {
+    try {
+        const agent = await getOrCreateResearchAgent();
+        // Determine the core memory key based on section
+        // Letta typically uses 'persona' and 'human' as block labels in the core memory
+        await lettaClient.updateCoreMemory(agent.id, section, content);
+        return `Core Memory (${section}) updated successfully.`;
+    } catch (e: any) {
+        return `Error updating core memory: ${e.message}`;
+    }
+});
+
+export const lettaMemoryTools = [lettaSaveFact, lettaAsk, lettaMessageAgent, lettaReadSharedBlock, lettaSearchMemory, lettaUpdateCoreMemory];
+

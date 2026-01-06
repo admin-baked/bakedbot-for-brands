@@ -198,6 +198,31 @@ export class LettaClient {
     }
 
     // ============================================================================
+    // ARCHIVAL MEMORY (PASSAGES) API
+    // ============================================================================
+
+    async insertPassage(agentId: string, content: string): Promise<any> {
+        return this.request(`/agents/${agentId}/archival-memory`, {
+            method: 'POST',
+            body: JSON.stringify({ content })
+        });
+    }
+
+    async searchPassages(agentId: string, query: string, limit: number = 5): Promise<string[]> {
+        // Note: API returns objects, we simplify to strings for the agent for now
+        const response = await this.request(`/agents/${agentId}/archival-memory?query=${encodeURIComponent(query)}&limit=${limit}`);
+        // Assuming response is an array of passage objects
+        if (Array.isArray(response)) {
+            return response.map((p: any) => p.content);
+        }
+        return [];
+    }
+
+    async listPassages(agentId: string, limit: number = 50): Promise<any[]> {
+        return this.request(`/agents/${agentId}/archival-memory?limit=${limit}`);
+    }
+
+    // ============================================================================
     // CORE MEMORY (Legacy API)
     // ============================================================================
 
