@@ -16,11 +16,11 @@ import {
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import {
-    Popover,
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { Server } from 'lucide-react';
+import { SyncToggle } from '@/components/dashboard/sync-toggle';
 import { DataImportDropdown } from '@/components/dashboard/data-import-dropdown';
 import { SetupHealth } from '@/components/dashboard/setup-health';
 import { QuickStartCards } from '@/components/dashboard/quick-start-cards';
@@ -110,37 +110,16 @@ export default function BrandDashboardClient({ brandId }: { brandId: string }) {
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-background border-2 rounded-md shadow-sm cursor-pointer hover:bg-muted/50 transition-colors">
-                                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                <span className="text-[11px] font-black uppercase tracking-wider">Live Data ON</span>
-                            </div>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64 p-0" align="end">
-                            <div className="p-3 bg-slate-950 text-white rounded-t-lg border-b border-slate-800">
-                                <div className="text-xs font-mono text-slate-400 mb-1">DATA STREAM</div>
-                                <div className="text-sm font-semibold flex items-center gap-2">
-                                    <Server className="h-4 w-4 text-emerald-400" />
-                                    Active Sync
-                                </div>
-                            </div>
-                            <div className="p-3 space-y-3">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Products Indexed</span>
-                                    <span className="font-mono font-bold">{productsCount}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Competitors Found</span>
-                                    <span className="font-mono font-bold">{competitorsCount}</span>
-                                </div>
-                                <div className="pt-2 border-t text-xs text-muted-foreground flex justify-between">
-                                    <span>Last Sync:</span>
-                                    <span>{liveData?.sync?.lastSynced ? new Date(liveData.sync.lastSynced).toLocaleTimeString() : 'N/A'}</span>
-                                </div>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
+                    <SyncToggle 
+                        brandId={brandId} 
+                        website={liveData?.meta?.website}
+                        type="brand"
+                        initialStats={{
+                            products: productsCount,
+                            competitors: competitorsCount,
+                            lastSynced: liveData?.sync?.lastSynced ? new Date(liveData.sync.lastSynced).toISOString() : null
+                        }}
+                    />
                 </div>
             </div>
 

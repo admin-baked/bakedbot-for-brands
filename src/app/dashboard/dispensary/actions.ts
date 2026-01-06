@@ -26,6 +26,7 @@ export interface DispensaryDashboardData {
         name: string;
         type: 'delivery' | 'pickup' | 'both';
         state?: string;
+        website?: string;
     };
     sync?: {
         products: number;
@@ -159,6 +160,23 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
                  const orgData = orgDoc.data();
                  canonicalName = orgData?.name || canonicalName;
                  state = orgData?.marketState || orgData?.state || state;
+                 
+                 // Assign to a scoped variable or just use directly in return
+                 // Actually, let's just use it to populate the return object directly later or store in a let variable.
+             }
+        }
+        // Retrying the logic to be cleaner to avoid type errors
+        
+        let orgWebsite = dispensaryData.website;
+        if (currentOrgId) {
+             const orgDoc = await firestore.collection('organizations').doc(currentOrgId).get();
+             if (orgDoc.exists) {
+                 const orgData = orgDoc.data();
+                 if (orgData) {
+                    canonicalName = orgData.name || canonicalName;
+                    state = orgData.marketState || orgData.state || state;
+                    orgWebsite = orgData.website || orgWebsite;
+                 }
              }
         }
 
@@ -228,7 +246,8 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
             location: {
                 name: locationName,
                 type: locationType as 'delivery' | 'pickup' | 'both',
-                state: state || 'Michigan'
+                state: state || 'Michigan',
+                website: orgWebsite
             },
             // NEW: Sync Data
             sync: {

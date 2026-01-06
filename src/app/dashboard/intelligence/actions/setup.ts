@@ -2,43 +2,37 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
-import { CannMenusService } from '@/server/services/cannmenus';
-import { quickSetupCompetitor } from '@/server/services/ezal/competitor-manager';
 import { getDefaultPlaybook } from '@/config/default-playbooks';
+import { quickSetupCompetitor } from '@/server/services/ezal/competitor-manager';
 import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/logger';
-import { getZipCodeCoordinates } from '@/server/services/geo-discovery';
+
+import { searchEntities } from '@/server/actions/discovery-search';
 
 export async function searchLocalCompetitors(zip: string) {
     await requireUser();
-    const service = new CannMenusService();
     
     try {
-        // First geocode the ZIP code
-        const coords = await getZipCodeCoordinates(zip);
-        if (!coords) {
-            console.error("Could not geocode ZIP:", zip);
+        // Use BakedBot Discovery (FireCrawl) instead of CannMenus
+        // We search for "dispensaries" in the given ZIP
+        const result = await searchEntities('dispensaries', 'dispensary', zip);
+        
+        if (!result.success || !result.data) {
+            console.error("Discovery search failed:", result.error);
             return [];
         }
         
-        // Use findRetailers with lat/lng
-        const results = await service.findRetailers({ 
-            lat: coords.lat, 
-            lng: coords.lng, 
-            limit: 10 
-        });
-        
-        return results.map((r: any) => ({
+        return result.data.map((r: any) => ({
             name: r.name,
-            address: r.address,
-            city: r.city || coords.city,
-            state: r.state || coords.state,
-            zip: r.postalCode || zip,
-            menuUrl: r.website || r.url,
-            logo: r.logo_url
+            address: r.description || '', // FireCrawl might not parse address perfectly in search mode, use desc as fallback
+            city: '', // Discovery search result might not have structured city
+            state: '', 
+            zip: zip,
+            menuUrl: r.url,
+            logo: ''
         }));
     } catch (e) {
-        console.error("CannMenus search failed", e);
+        console.error("Discovery search failed", e);
         return [];
     }
 }

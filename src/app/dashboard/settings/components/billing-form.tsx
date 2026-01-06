@@ -11,8 +11,17 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAcceptJs } from "@/hooks/useAcceptJs";
+import { useToast } from "@/hooks/use-toast";
+import { logger } from "@/lib/logger";
 
-// ... existing imports ...
+interface BillingFormProps {
+  organizationId: string;
+  locationCount: number;
+  customerName?: string;
+  customerEmail?: string;
+  customerCompany?: string;
+  customerZip?: string;
+}
 
 export function BillingForm(props: BillingFormProps) {
   const { organizationId, locationCount } = props;
