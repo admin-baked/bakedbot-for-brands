@@ -736,17 +736,17 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     },
 
     // ===================================
-    // 16. Scouts (Competitive Monitoring)
+    // 16. Scouts (Ezal - Competitive Intelligence)
     // ===================================
     'scout.create': {
         name: 'scout.create',
-        description: 'Create a monitoring scout that automatically watches for web changes.',
+        description: 'Create an Ezal Scout for automated competitive monitoring. Scouts watch for competitor price changes, new products, or market updates and alert you.',
         inputSchema: {
             type: 'object',
             properties: {
                 query: { type: 'string', description: 'What to monitor (e.g., "competitor product launches")' },
                 frequency: { type: 'string', enum: ['hourly', 'daily', 'weekly'] },
-                targetUrls: { type: 'array', items: { type: 'string' }, description: 'Specific URLs to watch' }
+                targetUrls: { type: 'array', items: { type: 'string' }, description: 'Specific competitor URLs to watch' }
             },
             required: ['query']
         },
@@ -755,7 +755,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     },
     'scout.run': {
         name: 'scout.run',
-        description: 'Manually trigger a scout to run now.',
+        description: 'Manually trigger an Ezal Scout to run competitive analysis now.',
         inputSchema: {
             type: 'object',
             properties: {
