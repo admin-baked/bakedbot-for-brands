@@ -1168,6 +1168,64 @@ export function PuffChat({
              return;
         }
 
+        // DETECT BRAND NAME (Context: Ezal Audit)
+        const lastBotBrand = currentMessages[currentMessages.length - 1];
+        const askedForBrand = lastBotBrand?.type === 'agent' && lastBotBrand.content.includes("What is the name of your brand?");
+
+        if (askedForBrand) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `thinking-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+             setStreamingMessageId(null);
+
+             const brandName = trimmedInput;
+             
+             const step1Id = Math.random().toString(36).substr(2,9);
+             updateMessage(thinkingId, {
+                thinking: { isThinking: true, steps: [{ id: step1Id, toolName: "Ezal", description: `Scanning footprint for ${brandName}...`, status: 'in-progress' }], plan: [] }
+             });
+
+             const { getDemoBrandFootprint } = await import('@/app/dashboard/intelligence/actions/demo-presets');
+             const result = await getDemoBrandFootprint(brandName);
+             
+             await new Promise(r => setTimeout(r, 1500));
+
+             if (result.success && result.audit) {
+                 const a = result.audit;
+                 const reportContent = `**👁️ Ezal's Brand Footprint Audit: ${a.brandName}**\n\n` +
+                    `**Estimated Retail Partners**: ${a.estimatedRetailers}\n\n` +
+                    `**Top Markets**\n` +
+                    a.topMarkets.map((m: string) => `- ✅ ${m}`).join('\n') + `\n\n` +
+                    `**Coverage Gaps** (Opportunities)\n` +
+                    a.coverageGaps.map((m: string) => `- ⚠️ ${m}`).join('\n') + `\n\n` +
+                    `**SEO Opportunities**\n` +
+                    a.seoOpportunities.map((k: string) => `- 🔍 "${k}"`).join('\n') + `\n\n` +
+                    `**Key Competitors**\n` +
+                    a.competitorOverlap.map((c: string) => `- 🏷️ ${c}`).join('\n') + `\n\n` +
+                    `_Want a deeper competitive analysis? Hire Ezal full-time._`;
+
+                 updateMessage(thinkingId, {
+                     content: reportContent,
+                     thinking: { isThinking: false, steps: [
+                         { id: step1Id, toolName: "Ezal", description: `Found ${a.estimatedRetailers} partners`, status: 'completed' },
+                         { id: 'seo', toolName: "SEO Scanner", description: "Keywords analyzed", status: 'completed' }
+                     ], plan: [] }
+                 });
+             } else {
+                 updateMessage(thinkingId, {
+                     content: "I hit a snag analyzing that brand. Please try again.",
+                     thinking: { isThinking: false, steps: [], plan: [] }
+                 });
+             }
+             
+             setIsProcessing(false);
+             setStreamingMessageId(thinkingId);
+             return;
+        }
+
         const zipRegex = /^\d{5}$/;
         const isZipOrCity = zipRegex.test(trimmedInput) || (trimmedInput.length > 3 && trimmedInput.length < 20 && !trimmedInput.includes(' ')); // Simple city heuristic
         
@@ -1297,6 +1355,185 @@ export function PuffChat({
                  });
              }
              
+             setIsProcessing(false);
+             setStreamingMessageId(thinkingId);
+             return;
+        }
+
+        }
+
+        // ---------------------------------------------------------
+        // DYNAMIC PRESET: CRAIG (Campaign Draft & Live Send)
+        // ---------------------------------------------------------
+        if (trimmedInput.includes("Draft a New Drop Campaign") || trimmedInput.includes("campaign draft")) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `agent-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+             setStreamingMessageId(null);
+             
+             const step1Id = Math.random().toString(36).substr(2,9);
+             updateMessage(thinkingId, {
+                thinking: { isThinking: true, steps: [{ id: step1Id, toolName: "Craig", description: "Drafting campaign copy...", status: 'in-progress' }], plan: [] }
+             });
+
+             const { getDemoCampaignDraft } = await import('@/app/dashboard/intelligence/actions/demo-presets');
+             const result = await getDemoCampaignDraft();
+             
+             await new Promise(r => setTimeout(r, 1000));
+
+             if (result.success && result.campaign) {
+                 const c = result.campaign;
+                 const draftContent = `**🌿 Campaign Draft: New Drop**\n\n` +
+                    `**SMS (${c.sms.chars} chars)**\n` +
+                    `> ${c.sms.text}\n` +
+                    `_Compliance: ${c.sms.compliance}_\n\n` +
+                    `**Email Subject**\n` +
+                    `> 📧 ${c.emailSubject}\n\n` +
+                    `**Social Post**\n` +
+                    `> ${c.social.text}\n\n` +
+                    `---\n` +
+                    `**🚀 Live Demo: Want to receive this for real?**\n` +
+                    `I can send this draft to your phone (SMS) or inbox (Email) right now.\n\n` +
+                    `**Reply with "SMS" or "Email".**`;
+
+                 updateMessage(thinkingId, {
+                     content: draftContent,
+                     thinking: { isThinking: false, steps: [
+                         { id: step1Id, toolName: "Craig", description: "Copy generated", status: 'completed' }
+                     ], plan: [] }
+                 });
+             } else {
+                 updateMessage(thinkingId, {
+                     content: "I couldn't draft the campaign right now. Please try again.",
+                     thinking: { isThinking: false, steps: [], plan: [] }
+                 });
+             }
+             
+             setIsProcessing(false);
+             setStreamingMessageId(thinkingId);
+             return;
+        }
+
+        // DETECT CAMPAIGN SEND INTENT
+        const lastBotForCampaign = currentMessages[currentMessages.length - 1];
+        const askedForSendMethod = lastBotForCampaign?.type === 'agent' && lastBotForCampaign.content.includes("Reply with \"SMS\" or \"Email\"");
+        
+        // 1. User chose SMS
+        if (askedForSendMethod && (trimmedInput.toLowerCase().includes('sms') || trimmedInput.toLowerCase().includes('text'))) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `agent-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: "Got it. **What's your mobile number?** (I'll send the test immediately)", timestamp: new Date(), thinking: { isThinking: false, steps: [], plan: [] } });
+             setStreamingMessageId(null);
+             setIsProcessing(false);
+             return;
+        }
+
+        // 2. User chose Email
+        if (askedForSendMethod && (trimmedInput.toLowerCase().includes('email') || trimmedInput.toLowerCase().includes('mail'))) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `agent-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: "Understood. **What's your email address?**", timestamp: new Date(), thinking: { isThinking: false, steps: [], plan: [] } });
+             setStreamingMessageId(null);
+             setIsProcessing(false);
+             return;
+        }
+
+        // 3. User Provided Phone Number (Context: Campaign SMS)
+        const lastBotForPhone = currentMessages[currentMessages.length - 1];
+        const askedForPhone = lastBotForPhone?.type === 'agent' && lastBotForPhone.content.includes("What's your mobile number");
+        const isPhoneNumber = /^[\d\+\-\(\) ]{7,20}$/.test(trimmedInput); // Basic phone regex
+
+        if (askedForPhone && isPhoneNumber) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `thinking-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'init', toolName: "Blackleaf", description: "Connecting to SMS gateway...", status: 'in-progress' }], plan: [] } });
+             setStreamingMessageId(null);
+
+             const dummyCampaign = "🌿 BakedBot Demo: This is how your customers will see your SMS campaigns. Reply STOP to opt out.";
+             const targetPhone = trimmedInput;
+
+             const { sendDemoSMS } = await import('@/app/dashboard/intelligence/actions/demo-setup');
+             
+             // Simulate network delay
+             await new Promise(r => setTimeout(r, 800));
+             
+             const result = await sendDemoSMS(targetPhone, dummyCampaign);
+             
+             if (result.success) {
+                 updateMessage(thinkingId, {
+                     content: `✅ **SMS Sent!**\n\nChecking your phone now. It should arrive from our Blackleaf shortcode/number.\n\n*Demo complete.*`,
+                     thinking: { isThinking: false, steps: [
+                         { id: 'init', toolName: "Blackleaf", description: "Gateway connected", status: 'completed' },
+                         { id: 'send', toolName: "SMS Dispatch", description: `Sent to ${targetPhone}`, status: 'completed' }
+                     ], plan: [] }
+                 });
+             } else {
+                 updateMessage(thinkingId, {
+                     content: `❌ **Failed to send SMS**\n\n${result.error}. Please ensure the number is valid.`,
+                     thinking: { isThinking: false, steps: [], plan: [] }
+                 });
+             }
+             setIsProcessing(false);
+             setStreamingMessageId(thinkingId);
+             return;
+        }
+
+        // 4. User Provided Email (Context: Campaign Email)
+        const lastBotForEmail = currentMessages[currentMessages.length - 1];
+        const askedForEmail = lastBotForEmail?.type === 'agent' && lastBotForEmail.content.includes("What's your email address");
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedInput);
+
+        if (askedForEmail && isEmail) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `thinking-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'init', toolName: "Mailjet", description: "Compiling HTML template...", status: 'in-progress' }], plan: [] } });
+             setStreamingMessageId(null);
+             
+             const targetEmail = trimmedInput;
+             const dummyHtml = `
+                <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+                    <h2 style="color: #059669;">🌿 New Drop Alert</h2>
+                    <p>This is a live demo of a <strong>BakedBot Marketing Campaign</strong>.</p>
+                    <p>Imagine this email populated with your brand's latest products, automatically sent to your segmented customers.</p>
+                    <a href="https://bakedbot.ai" style="display: inline-block; background: #059669; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 10px;">Shop Now</a>
+                </div>
+             `;
+
+             const { sendDemoEmail } = await import('@/app/dashboard/intelligence/actions/demo-setup');
+             
+             await new Promise(r => setTimeout(r, 1000)); // Pacing
+
+             const result = await sendDemoEmail(targetEmail, dummyHtml);
+
+             if (result.success) {
+                 updateMessage(thinkingId, {
+                     content: `✅ **Email Sent!**\n\nCheck your inbox (and spam folder) for the test email.\n\n*Demo complete.*`,
+                     thinking: { isThinking: false, steps: [
+                         { id: 'init', toolName: "Mailjet", description: "Template rendered", status: 'completed' },
+                         { id: 'send', toolName: "Email Dispatch", description: `Sent to ${targetEmail}`, status: 'completed' }
+                     ], plan: [] }
+                 });
+             } else {
+                 updateMessage(thinkingId, {
+                     content: `❌ **Failed to send Email**\n\n${result.error}.`,
+                     thinking: { isThinking: false, steps: [], plan: [] }
+                 });
+             }
              setIsProcessing(false);
              setStreamingMessageId(thinkingId);
              return;
