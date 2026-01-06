@@ -56,6 +56,50 @@ export interface CRMFilters {
     isNational?: boolean;
     search?: string;
     limit?: number;
+    lifecycleStage?: CRMLifecycleStage;
+}
+
+// ============================================================================
+// Cannabis Lifecycle Stages
+// ============================================================================
+export type CRMLifecycleStage = 
+    | 'prospect'       // Discovered via Discovery Hub, not contacted
+    | 'contacted'      // Reached out via email/playbook
+    | 'demo_scheduled' // Booked a demo or trial
+    | 'trial'          // Active trial period
+    | 'customer'       // Paying customer
+    | 'vip'            // High-value customer (top tier)
+    | 'churned'        // Canceled subscription
+    | 'winback';       // Re-engagement in progress
+
+export const LIFECYCLE_STAGE_CONFIG: Record<CRMLifecycleStage, { label: string; color: string; order: number }> = {
+    prospect: { label: 'Prospect', color: 'bg-gray-100 text-gray-700', order: 1 },
+    contacted: { label: 'Contacted', color: 'bg-blue-100 text-blue-700', order: 2 },
+    demo_scheduled: { label: 'Demo Scheduled', color: 'bg-purple-100 text-purple-700', order: 3 },
+    trial: { label: 'Trial', color: 'bg-yellow-100 text-yellow-700', order: 4 },
+    customer: { label: 'Customer', color: 'bg-green-100 text-green-700', order: 5 },
+    vip: { label: 'VIP', color: 'bg-gradient-to-r from-amber-400 to-yellow-300 text-amber-900', order: 6 },
+    churned: { label: 'Churned', color: 'bg-red-100 text-red-700', order: 7 },
+    winback: { label: 'Win-Back', color: 'bg-orange-100 text-orange-700', order: 8 },
+};
+
+// ============================================================================
+// CRM User (Platform Users)
+// ============================================================================
+export interface CRMUser {
+    id: string;
+    email: string;
+    displayName: string;
+    photoUrl?: string | null;
+    accountType: 'brand' | 'dispensary' | 'superuser' | 'customer';
+    lifecycleStage: CRMLifecycleStage;
+    signupAt: Date;
+    lastLoginAt?: Date | null;
+    plan: string;
+    mrr: number;  // From Authorize.net
+    orgId?: string | null;
+    orgName?: string | null;
+    notes?: string | null;
 }
 
 /**
@@ -376,4 +420,177 @@ export async function getPlatformLeads(filters: CRMFilters = {}): Promise<CRMLea
     }
 
     return leads;
+}
+
+// ============================================================================
+// Platform Users (Full CRM)
+// ============================================================================
+
+/**
+ * Get all platform users with lifecycle tracking and MRR
+ */
+export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUser[]> {
+    const firestore = getAdminFirestore();
+    let query = firestore
+        .collection('users')
+        .orderBy('createdAt', 'desc');
+
+    if (filters.limit) {
+        query = query.limit(filters.limit);
+    } else {
+        query = query.limit(200);
+    }
+
+    const snapshot = await query.get();
+
+    let users = snapshot.docs.map(doc => {
+        const data = doc.data();
+        
+        // Determine account type from role
+        let accountType: CRMUser['accountType'] = 'customer';
+        if (data.role === 'superuser' || data.role === 'admin') accountType = 'superuser';
+        else if (data.orgType === 'brand') accountType = 'brand';
+        else if (data.orgType === 'dispensary') accountType = 'dispensary';
+
+        // Determine lifecycle stage
+        let lifecycleStage: CRMLifecycleStage = data.lifecycleStage || 'prospect';
+        
+        // Auto-detect based on data if not set
+        if (!data.lifecycleStage) {
+            if (data.subscription?.status === 'active') {
+                lifecycleStage = data.plan === 'scale' ? 'vip' : 'customer';
+            } else if (data.claimedAt || data.orgId) {
+                lifecycleStage = 'trial';
+            } else if (data.createdAt) {
+                lifecycleStage = 'prospect';
+            }
+        }
+
+        return {
+            id: doc.id,
+            email: data.email || '',
+            displayName: data.displayName || data.name || 'Unknown',
+            photoUrl: data.photoURL || data.photoUrl || null,
+            accountType,
+            lifecycleStage,
+            signupAt: data.createdAt?.toDate?.() || new Date(),
+            lastLoginAt: data.lastLoginAt?.toDate?.() || null,
+            plan: data.plan || data.subscription?.plan || 'free',
+            mrr: data.mrr || 0, // Will be enriched from Authorize.net
+            orgId: data.orgId || data.tenantId || null,
+            orgName: data.orgName || null,
+            notes: data.crmNotes || null,
+        } as CRMUser;
+    });
+
+    // Filter by lifecycle stage
+    if (filters.lifecycleStage) {
+        users = users.filter(u => u.lifecycleStage === filters.lifecycleStage);
+    }
+
+    // Filter by search
+    if (filters.search) {
+        const search = filters.search.toLowerCase();
+        users = users.filter(u =>
+            u.email.toLowerCase().includes(search) ||
+            u.displayName.toLowerCase().includes(search) ||
+            (u.orgName?.toLowerCase().includes(search) ?? false)
+        );
+    }
+
+    return users;
+}
+
+/**
+ * Get CRM user stats for dashboard
+ */
+export async function getCRMUserStats(): Promise<{
+    totalUsers: number;
+    activeUsers: number;
+    totalMRR: number;
+    byLifecycle: Record<CRMLifecycleStage, number>;
+}> {
+    const firestore = getAdminFirestore();
+    const snapshot = await firestore.collection('users').get();
+    
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    let totalMRR = 0;
+    let activeUsers = 0;
+    const byLifecycle: Record<CRMLifecycleStage, number> = {
+        prospect: 0,
+        contacted: 0,
+        demo_scheduled: 0,
+        trial: 0,
+        customer: 0,
+        vip: 0,
+        churned: 0,
+        winback: 0,
+    };
+
+    snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        
+        // Count active users
+        const lastLogin = data.lastLoginAt?.toDate?.();
+        if (lastLogin && lastLogin >= sevenDaysAgo) {
+            activeUsers++;
+        }
+
+        // Sum MRR
+        totalMRR += data.mrr || 0;
+
+        // Count by lifecycle
+        const stage = (data.lifecycleStage || 'prospect') as CRMLifecycleStage;
+        if (byLifecycle[stage] !== undefined) {
+            byLifecycle[stage]++;
+        }
+    });
+
+    return {
+        totalUsers: snapshot.size,
+        activeUsers,
+        totalMRR,
+        byLifecycle,
+    };
+}
+
+/**
+ * Update user lifecycle stage
+ */
+export async function updateUserLifecycle(
+    userId: string, 
+    stage: CRMLifecycleStage,
+    note?: string
+): Promise<void> {
+    const firestore = getAdminFirestore();
+    
+    const updateData: any = {
+        lifecycleStage: stage,
+        lifecycleUpdatedAt: new Date(),
+    };
+    
+    if (note) {
+        updateData.crmNotes = note;
+    }
+
+    await firestore.collection('users').doc(userId).update(updateData);
+}
+
+/**
+ * Add CRM note to user
+ */
+export async function addCRMNote(
+    userId: string,
+    note: string,
+    authorId: string
+): Promise<void> {
+    const firestore = getAdminFirestore();
+    
+    await firestore.collection('users').doc(userId).collection('crm_notes').add({
+        note,
+        authorId,
+        createdAt: new Date(),
+    });
 }

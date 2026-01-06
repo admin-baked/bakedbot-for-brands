@@ -918,6 +918,31 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         };
     }
 
+    // --- Full CRM Tools (Executive Boardroom) ---
+    if (def.name.startsWith('crm.') && ['crm.listUsers', 'crm.getStats', 'crm.updateLifecycle', 'crm.addNote', 'crm.search'].includes(def.name)) {
+        try {
+            const crmTools = await import('./domain/crm-full');
+            
+            const toolMap: Record<string, any> = {
+                'crm.listUsers': crmTools.crmListUsersTool,
+                'crm.getStats': crmTools.crmGetStatsTool,
+                'crm.updateLifecycle': crmTools.crmUpdateLifecycleTool,
+                'crm.addNote': crmTools.crmAddNoteTool,
+                'crm.search': crmTools.crmSearchTool,
+            };
+
+            const toolImpl = toolMap[def.name];
+            if (!toolImpl) {
+                return { status: 'failed', error: `CRM tool not found: ${def.name}` };
+            }
+
+            const result = await toolImpl(inputs);
+            return { status: 'success', data: result };
+        } catch (error: any) {
+            return { status: 'failed', error: `CRM error: ${error.message}` };
+        }
+    }
+
     // --- System Navigation (Inline Connections) ---
     if (def.name === 'system.generateConnectionLink') {
         // Map tools to their dashboard settings URLs
