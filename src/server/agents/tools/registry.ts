@@ -765,6 +765,75 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         },
         category: 'read',
         requiredPermission: 'read:analytics',
+    },
+
+    // ===================================
+    // Full CRM System (Executive Boardroom)
+    // All Boardroom agents: Leo, Jack, Pops, Craig, Mrs. Parker, Deebo, Ezal, Money Mike
+    // ===================================
+    'crm.listUsers': {
+        name: 'crm.listUsers',
+        description: 'List all platform users with lifecycle tracking, plan, and MRR. Use to understand customer base.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                search: { type: 'string', description: 'Search by email, name, or org' },
+                lifecycleStage: { type: 'string', enum: ['prospect', 'contacted', 'demo_scheduled', 'trial', 'customer', 'vip', 'churned', 'winback'] },
+                limit: { type: 'number' }
+            }
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics',
+    },
+    'crm.getStats': {
+        name: 'crm.getStats',
+        description: 'Get CRM dashboard stats: total users, active users, MRR, and lifecycle funnel breakdown.',
+        inputSchema: { type: 'object', properties: {} },
+        category: 'read',
+        requiredPermission: 'read:analytics',
+    },
+    'crm.updateLifecycle': {
+        name: 'crm.updateLifecycle',
+        description: 'Move a user to a different lifecycle stage (e.g., prospect → contacted → trial → customer).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                userId: { type: 'string', description: 'User ID to update' },
+                stage: { type: 'string', enum: ['prospect', 'contacted', 'demo_scheduled', 'trial', 'customer', 'vip', 'churned', 'winback'] },
+                note: { type: 'string', description: 'Reason for change' }
+            },
+            required: ['userId', 'stage']
+        },
+        category: 'write',
+        requiredPermission: 'manage:users',
+    },
+    'crm.addNote': {
+        name: 'crm.addNote',
+        description: 'Add a note to a user CRM record documenting interactions or follow-ups.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                userId: { type: 'string' },
+                note: { type: 'string' }
+            },
+            required: ['userId', 'note']
+        },
+        category: 'write',
+        requiredPermission: 'manage:users',
+    },
+    'crm.search': {
+        name: 'crm.search',
+        description: 'Unified search across all CRM entities: users, brands, dispensaries, leads.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                query: { type: 'string', description: 'Search query' },
+                limit: { type: 'number' }
+            },
+            required: ['query']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics',
     }
 };
 

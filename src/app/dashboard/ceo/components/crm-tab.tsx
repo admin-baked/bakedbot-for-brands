@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Building2, Store, Search, Globe, CheckCircle, XCircle, Inbox, Send, ArrowUpDown, TrendingUp } from 'lucide-react';
+import { Loader2, Building2, Store, Search, Globe, CheckCircle, XCircle, Inbox, Send, ArrowUpDown, TrendingUp, Users, DollarSign } from 'lucide-react';
 import {
     Table,
     TableBody,
@@ -23,7 +23,21 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getBrands, getDispensaries, getPlatformLeads, getCRMStats, type CRMBrand, type CRMDispensary, type CRMLead, type CRMFilters } from '@/server/services/crm-service';
+import { 
+    getBrands, 
+    getDispensaries, 
+    getPlatformLeads, 
+    getPlatformUsers,
+    getCRMStats, 
+    getCRMUserStats,
+    LIFECYCLE_STAGE_CONFIG,
+    type CRMBrand, 
+    type CRMDispensary, 
+    type CRMLead, 
+    type CRMUser,
+    type CRMFilters,
+    type CRMLifecycleStage
+} from '@/server/services/crm-service';
 import { Pagination, usePagination } from '@/components/ui/pagination';
 import { inviteToClaimAction } from '../actions';
 
@@ -115,17 +129,37 @@ export default function CRMTab() {
         totalItems: totalLeadsItems
     } = usePagination(leads, 10);
 
+    // Users (Platform)
+    const [users, setUsers] = useState<CRMUser[]>([]);
+    const [usersLoading, setUsersLoading] = useState(true);
+    const [userSearch, setUserSearch] = useState('');
+    const [userLifecycleFilter, setUserLifecycleFilter] = useState<CRMLifecycleStage | 'all'>('all');
+    const [userStats, setUserStats] = useState<{ totalUsers: number; activeUsers: number; totalMRR: number; byLifecycle: Record<CRMLifecycleStage, number> } | null>(null);
+
+    // Paginated Users
+    const {
+        currentPage: usersPage,
+        totalPages: usersTotalPages,
+        paginatedItems: paginatedUsers,
+        setCurrentPage: setUsersPage,
+        totalItems: totalUsersItems
+    } = usePagination(users, 10);
+
     useEffect(() => {
         loadStats();
         loadBrands();
         loadDispensaries();
         loadLeads();
+        loadUsers();
     }, []);
 
     const loadStats = async () => {
         try {
             const data = await getCRMStats();
             setStats(data);
+            // Also load user stats
+            const uStats = await getCRMUserStats();
+            setUserStats(uStats);
         } catch (e: any) {
             console.error('Failed to load CRM stats', e);
         }
@@ -175,6 +209,22 @@ export default function CRMTab() {
             toast({ variant: 'destructive', title: 'Error', description: e.message });
         } finally {
             setLeadsLoading(false);
+        }
+    };
+
+    const loadUsers = async () => {
+        setUsersLoading(true);
+        try {
+            const filters: CRMFilters = { limit: 200 };
+            if (userSearch) filters.search = userSearch;
+            if (userLifecycleFilter !== 'all') filters.lifecycleStage = userLifecycleFilter;
+            const data = await getPlatformUsers(filters);
+            setUsers(data);
+            setUsersPage(1);
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        } finally {
+            setUsersLoading(false);
         }
     };
 
@@ -232,49 +282,68 @@ export default function CRMTab() {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h2 className="text-2xl font-bold">CRM Lite</h2>
-                <p className="text-muted-foreground">Track brands and dispensaries discovered via page generation</p>
+                <h2 className="text-2xl font-bold">BakedBot CRM</h2>
+                <p className="text-muted-foreground">Full company CRM with user lifecycle tracking and MRR</p>
             </div>
 
             {/* Stats Cards */}
-            {stats && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardDescription>Total Brands</CardDescription>
-                            <CardTitle className="text-3xl">{stats.totalBrands}</CardTitle>
-                        </CardHeader>
-                    </Card>
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardDescription>Total Dispensaries</CardDescription>
-                            <CardTitle className="text-3xl">{stats.totalDispensaries}</CardTitle>
-                        </CardHeader>
-                    </Card>
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardDescription>Claimed Brands</CardDescription>
-                            <CardTitle className="text-3xl text-green-600">{stats.claimedBrands}</CardTitle>
-                        </CardHeader>
-                    </Card>
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardDescription>Claimed Dispensaries</CardDescription>
-                            <CardTitle className="text-3xl text-green-600">{stats.claimedDispensaries}</CardTitle>
-                        </CardHeader>
-                    </Card>
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardDescription>Inbound Leads</CardDescription>
-                            <CardTitle className="text-3xl text-blue-600">{stats.totalPlatformLeads}</CardTitle>
-                        </CardHeader>
-                    </Card>
-                </div>
-            )}
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                {stats && (
+                    <>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardDescription>Total Brands</CardDescription>
+                                <CardTitle className="text-2xl">{stats.totalBrands}</CardTitle>
+                            </CardHeader>
+                        </Card>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardDescription>Dispensaries</CardDescription>
+                                <CardTitle className="text-2xl">{stats.totalDispensaries}</CardTitle>
+                            </CardHeader>
+                        </Card>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardDescription>Inbound Leads</CardDescription>
+                                <CardTitle className="text-2xl text-blue-600">{stats.totalPlatformLeads}</CardTitle>
+                            </CardHeader>
+                        </Card>
+                    </>
+                )}
+                {userStats && (
+                    <>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardDescription>Platform Users</CardDescription>
+                                <CardTitle className="text-2xl text-purple-600">{userStats.totalUsers}</CardTitle>
+                            </CardHeader>
+                        </Card>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardDescription>Active (7d)</CardDescription>
+                                <CardTitle className="text-2xl text-green-600">{userStats.activeUsers}</CardTitle>
+                            </CardHeader>
+                        </Card>
+                        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950">
+                            <CardHeader className="pb-2">
+                                <CardDescription className="flex items-center gap-1">
+                                    <DollarSign className="h-3 w-3" />
+                                    Total MRR
+                                </CardDescription>
+                                <CardTitle className="text-2xl text-green-600">${userStats.totalMRR.toLocaleString()}</CardTitle>
+                            </CardHeader>
+                        </Card>
+                    </>
+                )}
+            </div>
 
             {/* Tabs */}
-            <Tabs defaultValue="brands">
+            <Tabs defaultValue="users">
                 <TabsList>
+                    <TabsTrigger value="users" className="gap-2">
+                        <Users className="h-4 w-4" />
+                        Users
+                    </TabsTrigger>
                     <TabsTrigger value="brands" className="gap-2">
                         <Building2 className="h-4 w-4" />
                         Brands
@@ -285,9 +354,119 @@ export default function CRMTab() {
                     </TabsTrigger>
                     <TabsTrigger value="leads" className="gap-2">
                         <Inbox className="h-4 w-4" />
-                        Inbound Leads
+                        Leads
                     </TabsTrigger>
                 </TabsList>
+
+                {/* Users Tab */}
+                <TabsContent value="users" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Platform Users</CardTitle>
+                            <CardDescription>
+                                All registered users with lifecycle tracking and MRR from Authorize.net
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {/* Filters */}
+                            <div className="flex gap-2 flex-wrap">
+                                <Input
+                                    placeholder="Search users..."
+                                    value={userSearch}
+                                    onChange={(e) => setUserSearch(e.target.value)}
+                                    className="max-w-xs"
+                                />
+                                <Select value={userLifecycleFilter} onValueChange={(v) => setUserLifecycleFilter(v as CRMLifecycleStage | 'all')}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Lifecycle Stage" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Stages</SelectItem>
+                                        {Object.entries(LIFECYCLE_STAGE_CONFIG).map(([key, config]) => (
+                                            <SelectItem key={key} value={key}>{config.label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button onClick={loadUsers}>
+                                    <Search className="h-4 w-4" />
+                                </Button>
+                            </div>
+
+                            {/* Table */}
+                            {usersLoading ? (
+                                <div className="flex justify-center py-8">
+                                    <Loader2 className="h-6 w-6 animate-spin" />
+                                </div>
+                            ) : users.length === 0 ? (
+                                <p className="text-center text-muted-foreground py-8">
+                                    No users found.
+                                </p>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>User</TableHead>
+                                            <TableHead>Type</TableHead>
+                                            <TableHead>Lifecycle</TableHead>
+                                            <TableHead>Plan</TableHead>
+                                            <TableHead>MRR</TableHead>
+                                            <TableHead>Signup</TableHead>
+                                            <TableHead>Last Login</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {paginatedUsers.map((user) => (
+                                            <TableRow key={user.id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        {user.photoUrl && (
+                                                            <img src={user.photoUrl} alt="" className="h-8 w-8 rounded-full" />
+                                                        )}
+                                                        <div>
+                                                            <div className="font-medium">{user.displayName}</div>
+                                                            <div className="text-xs text-muted-foreground">{user.email}</div>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="capitalize">{user.accountType}</Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge className={LIFECYCLE_STAGE_CONFIG[user.lifecycleStage]?.color || 'bg-gray-100'}>
+                                                        {LIFECYCLE_STAGE_CONFIG[user.lifecycleStage]?.label || user.lifecycleStage}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="secondary" className="capitalize">{user.plan}</Badge>
+                                                </TableCell>
+                                                <TableCell className="font-medium text-green-600">
+                                                    ${user.mrr.toLocaleString()}
+                                                </TableCell>
+                                                <TableCell className="text-xs text-muted-foreground">
+                                                    {new Date(user.signupAt).toLocaleDateString()}
+                                                </TableCell>
+                                                <TableCell className="text-xs text-muted-foreground">
+                                                    {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+
+                            {users.length > 0 && !usersLoading && (
+                                <Pagination
+                                    currentPage={usersPage}
+                                    totalPages={usersTotalPages}
+                                    onPageChange={setUsersPage}
+                                    itemsPerPage={10}
+                                    totalItems={totalUsersItems}
+                                    className="mt-4"
+                                />
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
                 {/* Brands Tab */}
                 <TabsContent value="brands" className="space-y-4">
