@@ -282,6 +282,14 @@ export function BillingForm(props: BillingFormProps) {
           </div>
         )}
 
+        {/* Script Load Error */}
+        {acceptError && (
+          <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-alert-circle"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+            <span>Payment System Error: {acceptError}</span>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             Active locations: <span className="font-semibold">{locationCount}</span>
