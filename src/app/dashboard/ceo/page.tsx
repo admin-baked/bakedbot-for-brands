@@ -10,6 +10,7 @@ import { InvitationsList } from '@/components/invitations/invitations-list';
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { getChatSessions } from '@/server/actions/chat-persistence'; // Added for global hydration
 
 const TabLoader = () => <div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
@@ -41,6 +42,7 @@ const TalkTracksTab = dynamic(() => import("./components/talk-tracks-tab"), { lo
 
 
 import { useSuperAdmin } from '@/hooks/use-super-admin';
+import { useUser } from '@/firebase/auth/use-user';
 import { Loader2, Shield, ShieldX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -57,6 +59,7 @@ function CeoDashboardContent() {
     const searchParams = useSearchParams();
     const pathname = usePathname();
     const { isSuperAdmin, isLoading, superAdminEmail, logout } = useSuperAdmin();
+    const { user } = useUser();
     const { clearCurrentSession } = useAgentChatStore();
 
     // Sync tabs with URL ?tab=...
@@ -66,8 +69,16 @@ function CeoDashboardContent() {
     useEffect(() => {
         if (isSuperAdmin) {
             clearCurrentSession();
+            // Hydrate sessions globally on dashboard load
+            if (user?.uid) {
+                getChatSessions(user.uid).then(result => {
+                    if (result.success && result.sessions) {
+                        useAgentChatStore.getState().hydrateSessions(result.sessions);
+                    }
+                }).catch(err => console.error('Failed to hydrate sessions:', err));
+            }
         }
-    }, [isSuperAdmin, clearCurrentSession]);
+    }, [isSuperAdmin, clearCurrentSession, user]);
 
 
 

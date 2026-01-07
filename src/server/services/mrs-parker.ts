@@ -101,13 +101,13 @@ Return JSON: { "subject": "...", "body": "..." }`;
                         if (jsonMatch) {
                             return JSON.parse(jsonMatch[0]);
                         }
-                    } catch (e) {
+                    } catch (e: any) {
                         // Fall through to default
                     }
                 }
             }
         }
-    } catch (e) {
+    } catch (e: any) {
         logger.warn(`[Mrs. Parker] Letta generation failed, using default: ${e}`);
     }
 

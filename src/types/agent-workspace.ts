@@ -64,4 +64,4 @@ export interface QuickStartCard {
     roles: ('brand' | 'dispensary' | 'owner')[]; // Which roles see this card
 }
 
-export type UserRole = 'brand' | 'dispensary' | 'owner' | 'customer' | 'super_admin';
+export type UserRole = 'brand' | 'dispensary' | 'owner' | 'customer' | 'super_admin' | 'super_user' | 'budtender';

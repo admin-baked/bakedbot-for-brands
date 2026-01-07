@@ -6,7 +6,7 @@ import { getPOSClient } from '@/lib/pos/factory';
 import type { POSProvider } from '@/lib/pos/types';
 
 export async function saveIntegrationConfig(provider: POSProvider | string, config: any) {
-    const user = await requireUser(['dispensary', 'owner', 'brand', 'superuser', 'admin']); // Allow superusers
+    const user = await requireUser(['dispensary', 'owner', 'brand', 'super_user', 'super_admin']); // Allow superusers
     const { firestore } = await createServerClient();
     const { grantPermission } = await import('@/server/services/permissions');
 

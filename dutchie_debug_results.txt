@@ -1,0 +1,105 @@
+Dutchie Plus GraphQL Debug
+Endpoint: https://plus.dutchie.com/plus/2021-07/graphql
+Store ID: 3af693f9-ee33-43de-9d68-2a8c25881517
+API Key: 487c94ca-684...
+
+=== Menu Query ===
+Status: 200 OK
+GraphQL Errors: [
+  {
+    "message": "A valid API key is required to make this request.",
+    "locations": [
+      {
+        "line": 3,
+        "column": 13
+      }
+    ],
+    "path": [
+      "menu"
+    ],
+    "extensions": {
+      "code": "UNAUTHENTICATED"
+    }
+  }
+]
+Data: {
+  "menu": null
+}
+
+=== Retailer Info ===
+Status: 400 Bad Request
+GraphQL Errors: [
+  {
+    "message": "Field \"address\" must not have a selection since type \"String!\" has no subfields.",
+    "locations": [
+      {
+        "line": 6,
+        "column": 25
+      }
+    ],
+    "extensions": {
+      "code": "GRAPHQL_VALIDATION_FAILED"
+    }
+  }
+]
+
+=== Filtered Products ===
+Status: 400 Bad Request
+GraphQL Errors: [
+  {
+    "message": "Cannot query field \"filteredProducts\" on type \"Query\".",
+    "locations": [
+      {
+        "line": 3,
+        "column": 13
+      }
+    ],
+    "extensions": {
+      "code": "GRAPHQL_VALIDATION_FAILED"
+    }
+  }
+]
+
+=== Available Queries (Introspection) ===
+Status: 200 OK
+Data: {
+  "__schema": {
+    "queryType": {
+      "fields": [
+        {
+          "name": "checkout",
+          "description": null
+        },
+        {
+          "name": "collection",
+          "description": null
+        },
+        {
+          "name": "customers",
+          "description": "Get customers for a particular dispensaary."
+        },
+        {
+          "name": "customer",
+          "description": "Get the data for a particular customer."
+        },
+        {
+          "name": "menu",
+          "description": null
+        },
+        {
+          "name": "orders",
+          "description": "Get orders for a particular dispensary."
+        },
+        {
+          "name": "order",
+          "description": "Get the data for a particular order."
+        },
+        {
+          "name": "product",
+          "description": "Get the data for a particular product."
+        },
+        {
+          "name": "productAvailabilityByRetailer",
+          "description": "Check the availability of a prod
+
+=== Done ===

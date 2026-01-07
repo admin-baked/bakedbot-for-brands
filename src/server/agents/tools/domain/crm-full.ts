@@ -20,11 +20,11 @@ import {
     type CRMFilters
 } from '@/server/services/crm-service';
 import { type CRMLifecycleStage } from '@/server/services/crm-types';
-import { defineTool } from '@genkit-ai/ai';
+import { tool } from 'genkit';
 import { z } from 'zod';
 
 // List all platform users
-export const crmListUsersTool = defineTool(
+export const crmListUsersTool = tool(
     {
         name: 'crm.listUsers',
         description: 'List all platform users with lifecycle tracking. Returns user info including email, account type, lifecycle stage, plan, and MRR.',
@@ -75,7 +75,7 @@ export const crmListUsersTool = defineTool(
 );
 
 // Get CRM dashboard stats
-export const crmGetStatsTool = defineTool(
+export const crmGetStatsTool = tool(
     {
         name: 'crm.getStats',
         description: 'Get CRM dashboard statistics including total users, active users, MRR breakdown, and lifecycle funnel data.',
@@ -99,7 +99,7 @@ export const crmGetStatsTool = defineTool(
 );
 
 // Update user lifecycle stage
-export const crmUpdateLifecycleTool = defineTool(
+export const crmUpdateLifecycleTool = tool(
     {
         name: 'crm.updateLifecycle',
         description: 'Update a user\'s lifecycle stage in the CRM. Use this to move users through the sales funnel.',
@@ -130,7 +130,7 @@ export const crmUpdateLifecycleTool = defineTool(
 );
 
 // Add CRM note
-export const crmAddNoteTool = defineTool(
+export const crmAddNoteTool = tool(
     {
         name: 'crm.addNote',
         description: 'Add a note to a user\'s CRM record. Use this to document interactions, observations, or follow-up tasks.',
@@ -161,7 +161,7 @@ export const crmAddNoteTool = defineTool(
 );
 
 // Search CRM (unified search across users, brands, dispensaries, leads)
-export const crmSearchTool = defineTool(
+export const crmSearchTool = tool(
     {
         name: 'crm.search',
         description: 'Unified search across all CRM entities: users, brands, dispensaries, and leads. Returns matching results from each category.',

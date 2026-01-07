@@ -95,7 +95,7 @@ export const bigWormAgent: AgentImplementation<BigWormMemory, BigWormTools> = {
                 
                 const result = await runMultiStepTask({
                     userQuery,
-                    systemInstructions: agentMemory.system_instructions || '',
+                    systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
                     tools,
                     model: 'claude', // Uses default CLAUDE_TOOL_MODEL (Opus 4.5)

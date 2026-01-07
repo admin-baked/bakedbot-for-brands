@@ -175,7 +175,7 @@ export async function runScout(scout: Scout): Promise<ScoutResult> {
                         url,
                         snippet: scraped.markdown?.substring(0, 200) || ''
                     });
-                } catch (e) {
+                } catch (e: any) {
                     logger.warn(`[Scouts] Failed to scrape ${url}`);
                 }
             }
@@ -302,7 +302,7 @@ async function sendScoutNotifications(
                 scout.notifyPhone,
                 `🔍 Scout Alert: ${scout.query}\n${result.summary.substring(0, 100)}...`
             );
-        } catch (e) {
+        } catch (e: any) {
             logger.warn('[Scouts] SMS notification failed:', e);
         }
     }
@@ -316,7 +316,7 @@ async function sendScoutNotifications(
                 body: result.summary,
                 data: { scoutId: scout.id },
             });
-        } catch (e) {
+        } catch (e: any) {
             logger.warn('[Scouts] Push notification failed:', e);
         }
     }
@@ -358,7 +358,7 @@ async function generateSummary(query: string, results: any[]): Promise<string> {
             prompt: `Summarize these search results for the query "${query}" in one concise sentence:\n\n${results.map(r => `- ${r.title}: ${r.snippet}`).join('\n')}`,
         });
         return response.text || `Found ${results.length} results for "${query}".`;
-    } catch (e) {
+    } catch (e: any) {
         return `Found ${results.length} results for "${query}".`;
     }
 }
@@ -390,7 +390,7 @@ export async function dispatchDueScouts(): Promise<{ dispatched: number }> {
             try {
                 await runScout(scout);
                 dispatched++;
-            } catch (e) {
+            } catch (e: any) {
                 logger.error(`[Scouts] Dispatch failed for ${scout.id}:`, e);
             }
         }

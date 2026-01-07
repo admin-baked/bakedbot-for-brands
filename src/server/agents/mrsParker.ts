@@ -99,7 +99,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
             
             const result = await runMultiStepTask({
                 userQuery,
-                systemInstructions: agentMemory.system_instructions || '',
+                systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
                 tools,
                 model: 'googleai/gemini-3-pro-preview', // Context-heavy customer history

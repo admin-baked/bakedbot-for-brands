@@ -93,7 +93,7 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
             
             const result = await runMultiStepTask({
                 userQuery,
-                systemInstructions: agentMemory.system_instructions || '',
+                systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
                 tools,
                 model: 'claude', // Use Claude for precise math logic

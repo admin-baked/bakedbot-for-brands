@@ -1,0 +1,272 @@
+
+=== Customer Type ===
+Status: 200
+Data: {
+  "__type": {
+    "fields": [
+      {
+        "name": "birthdate",
+        "type": {
+          "name": "String"
+        }
+      },
+      {
+        "name": "email",
+        "type": {
+          "name": "String"
+        }
+      },
+      {
+        "name": "guest",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "id",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "medicalCard",
+        "type": {
+          "name": "MedicalCard"
+        }
+      },
+      {
+        "name": "name",
+        "type": {
+          "name": "String"
+        }
+      },
+      {
+        "name": "optIns",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "orders",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "phone",
+        "type": {
+          "name": null
+        }
+      }
+    ]
+  }
+}
+
+=== Order Type ===
+Status: 200
+Data: {
+  "__type": {
+    "fields": [
+      {
+        "name": "createdAt",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "customer",
+        "type": {
+          "name": "Customer"
+        }
+      },
+      {
+        "name": "customerId",
+        "type": {
+          "name": "ID"
+        }
+      },
+      {
+        "name": "delivery",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "deliveryAddress",
+        "type": {
+          "name": "DeliveryAddress"
+        }
+      },
+      {
+        "name": "discounts",
+        "type": {
+          "name": "Discounts"
+        }
+      },
+      {
+        "name": "dispensaryName",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "fees",
+        "type": {
+          "name": "Fees"
+        }
+      },
+      {
+        "name": "foreignId",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "id",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "items",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "medical",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "metadata",
+        "type": {
+          "name": "JSON"
+        }
+      },
+      {
+        "name": "orderNumber",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "paymentMethod",
+        "type": {
+          "name": null
+     
+
+=== Product Type ===
+Status: 200
+Data: {
+  "__type": {
+    "fields": [
+      {
+        "name": "brand",
+        "type": {
+          "name": "Brand"
+        }
+      },
+      {
+        "name": "category",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "createdAt",
+        "type": {
+          "name": "DateTime"
+        }
+      },
+      {
+        "name": "description",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "descriptionHtml",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "effects",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "enterpriseProductId",
+        "type": {
+          "name": "String"
+        }
+      },
+      {
+        "name": "id",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "productBatchId",
+        "type": {
+          "name": "ID"
+        }
+      },
+      {
+        "name": "productAvailabilityByRetailer",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "images",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "menuTypes",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "name",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "slug",
+        "type": {
+          "name": "String"
+        }
+      },
+      {
+        "name": "posId",
+        "type": {
+          "name": "String"
+
+=== Customers (ID only) ===
+Status: 200
+Error: A valid API key is required to make this request.
+
+=== Product by ID ===
+Status: 200
+Error: A valid API key is required to make this request.
+Data: {
+  "product": null
+}
+
+=== Collection ===
+Status: 200
+Error: Not Found
+Data: {
+  "collection": null
+}
+
+=== Done ===

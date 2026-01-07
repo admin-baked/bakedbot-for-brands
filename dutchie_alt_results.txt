@@ -1,0 +1,50 @@
+Dutchie GraphQL - Testing Alternative Approaches
+Store ID: 3af693f9-ee33-43de-9d68-2a8c25881517
+
+=== Product by Retailer (customers query) ===
+Endpoint: https://plus.dutchie.com/plus/2021-07/gr...
+Auth: Bearer token
+Status: 400 Bad Request
+Error: Field "Pagination.offset" of required type "Int!" was not provided.
+Code: GRAPHQL_VALIDATION_FAILED
+
+=== Orders ===
+Endpoint: https://plus.dutchie.com/plus/2021-07/gr...
+Auth: Bearer token
+Status: 400 Bad Request
+Error: Field "Pagination.offset" of required type "Int!" was not provided.
+Code: GRAPHQL_VALIDATION_FAILED
+
+=== Collection ===
+Endpoint: https://plus.dutchie.com/plus/2021-07/gr...
+Auth: Bearer token
+Status: 400 Bad Request
+Error: Unknown argument "collectionId" on field "Query.collection".
+Code: GRAPHQL_VALIDATION_FAILED
+
+=== Product Availability ===
+Endpoint: https://plus.dutchie.com/plus/2021-07/gr...
+Auth: Bearer token
+Status: 400 Bad Request
+Error: Unknown argument "retailerId" on field "Query.productAvailabilityByRetailer".
+Code: GRAPHQL_VALIDATION_FAILED
+
+=== Public Menu (No Auth) ===
+Endpoint: https://dutchie.com/graphql...
+Auth: None
+Status: 403 Forbidden
+Non-JSON: <!DOCTYPE html>
+<!--[if lt IE 7]> <html class="no-js ie6 oldie" lang="en-US"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js ie7 oldie" lang="en-US"> <![endif]-->
+<!--[if IE 8]>    <html class="no-
+
+=== Public Dispensary Info (No Auth) ===
+Endpoint: https://dutchie.com/graphql...
+Auth: None
+Status: 403 Forbidden
+Non-JSON: <!DOCTYPE html>
+<!--[if lt IE 7]> <html class="no-js ie6 oldie" lang="en-US"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js ie7 oldie" lang="en-US"> <![endif]-->
+<!--[if IE 8]>    <html class="no-
+
+=== Done ===

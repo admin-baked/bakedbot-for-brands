@@ -1,0 +1,55 @@
+node.exe : 
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpec 
+   ified: (:String) [], RemoteExcept  
+  ion
+    + FullyQualifiedErrorId : NativeC 
+   ommandError
+ 
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+Error: Transform failed with 1 error:
+C:\Users\marte\Baked for Brands\bakedb
+ot-for-brands\src\scripts\find_essex_d
+irect.ts:67:16: ERROR: "await" can 
+only be used inside an "async" 
+function
+    at failureErrorWithLog 
+(C:\Users\marte\Baked for Brands\baked
+bot-for-brands\node_modules\esbuild\li
+b\main.js:1467:15)
+    at C:\Users\marte\Baked for Brands
+\bakedbot-for-brands\node_modules\esbu
+ild\lib\main.js:736:50
+    at responseCallbacks.<computed> 
+(C:\Users\marte\Baked for Brands\baked
+bot-for-brands\node_modules\esbuild\li
+b\main.js:603:9)
+    at handleIncomingPacket 
+(C:\Users\marte\Baked for Brands\baked
+bot-for-brands\node_modules\esbuild\li
+b\main.js:658:12)
+    at Socket.readFromStdout 
+(C:\Users\marte\Baked for Brands\baked
+bot-for-brands\node_modules\esbuild\li
+b\main.js:581:7)
+    at Socket.emit 
+(node:events:508:28)
+    at addChunk (node:internal/streams
+/readable:559:12)
+    at readableAddChunkPushByteMode 
+(node:internal/streams/readable:510:3)
+    at Readable.push 
+(node:internal/streams/readable:390:5)
+    at Pipe.onStreamRead (node:interna
+l/stream_base_commons:189:23) {
+  name: 'TransformError'
+}
+
+Node.js v24.11.1

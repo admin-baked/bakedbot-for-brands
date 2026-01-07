@@ -1,0 +1,103 @@
+Ingesting menu for Dispensary: 8iE1Qfp6fnevCWhXvrrQTLe4wmt2
+Parsed 100 products.
+Writing batch 1...
+node.exe : Error: Unable to 
+detect a Project Id in the 
+current environment. 
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~
+    + CategoryInfo          : 
+NotSpec    ified: (Error: Unable 
+t...t envir    onment. :String) 
+[], RemoteExcept    ion
+    + FullyQualifiedErrorId : 
+NativeC    ommandError
+ 
+To learn more about 
+authentication and Google APIs, 
+visit: 
+https://cloud.google.com/docs/auth
+entication/getting-started
+    at 
+GoogleAuth.findAndCacheProjectId 
+(C:\Users\marte\Baked for Brands\b
+akedbot-for-brands\node_modules\go
+ogle-auth-library\build\src\auth\g
+oogleauth.js:170:19)
+    at 
+process.processTicksAndRejections 
+(node:internal/process/task_queues
+:103:5)
+    at async 
+Firestore.initializeIfNeeded 
+(C:\Users\marte\Baked for Brands\b
+akedbot-for-brands\node_modules\@g
+oogle-cloud\firestore\build\src\in
+dex.js:1201:35)
+    at async WriteBatch._commit 
+(C:\Users\marte\Baked for Brands\b
+akedbot-for-brands\node_modules\@g
+oogle-cloud\firestore\build\src\wr
+ite-batch.js:469:9)
+    at async main 
+(C:\Users\marte\Baked for Brands\b
+akedbot-for-brands\src\scripts\ing
+est_essex_menu.ts:195:9)
+Caused by: Error
+    at _firestore._traceUtil.start
+ActiveSpan (C:\Users\marte\Baked 
+for Brands\bakedbot-for-brands\nod
+e_modules\@google-cloud\firestore\
+build\src\write-batch.js:438:27)
+    at C:\Users\marte\Baked for Br
+ands\bakedbot-for-brands\node_modu
+les\@google-cloud\firestore\build\
+src\telemetry\enabled-trace-util.j
+s:110:30
+    at NoopContextManager.with 
+(C:\Users\marte\Baked for Brands\b
+akedbot-for-brands\node_modules\@o
+pentelemetry\api\src\context\NoopC
+ontextManager.ts:31:15)
+    at ContextAPI.with 
+(C:\Users\marte\Baked for Brands\b
+akedbot-for-brands\node_modules\@o
+pentelemetry\api\src\api\context.t
+s:77:42)
+    at NoopTracer.startActiveSpan 
+(C:\Users\marte\Baked for Brands\b
+akedbot-for-brands\node_modules\@o
+pentelemetry\api\src\trace\NoopTra
+cer.ts:98:27)
+    at 
+ProxyTracer.startActiveSpan 
+(C:\Users\marte\Baked for Brands\b
+akedbot-for-brands\node_modules\@o
+pentelemetry\api\src\trace\ProxyTr
+acer.ts:51:20)
+    at 
+EnabledTraceUtil.startActiveSpan 
+(C:\Users\marte\Baked for Brands\b
+akedbot-for-brands\node_modules\@g
+oogle-cloud\firestore\build\src\te
+lemetry\enabled-trace-util.js:102:
+28)
+    at WriteBatch.commit 
+(C:\Users\marte\Baked for Brands\b
+akedbot-for-brands\node_modules\@g
+oogle-cloud\firestore\build\src\wr
+ite-batch.js:436:43)
+    at main (C:\Users\marte\Baked 
+for Brands\bakedbot-for-brands\src
+\scripts\ingest_essex_menu.ts:195:
+21)
+    at <anonymous> 
+(C:\Users\marte\Baked for Brands\b
+akedbot-for-brands\src\scripts\ing
+est_essex_menu.ts:201:1)

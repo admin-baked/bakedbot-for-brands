@@ -66,7 +66,7 @@ export async function searchDemoRetailers(zip: string) {
                 
                 // If this clean name is a substring of an existing one (or vice versa), skip
                 // This is aggressive but needed for "Body and Mind" vs "Body and Mind Markham"
-                for (const existing of seenNames) {
+                for (const existing of Array.from(seenNames)) {
                     if (existing.includes(cleanName) || cleanName.includes(existing)) {
                         return false;
                     }

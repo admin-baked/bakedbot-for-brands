@@ -38,6 +38,10 @@ export const CANNMENUS_LIMITS: Record<PlanId, CannMenusLimit> = {
     enterprise: {
         maxRetailers: 1000,
         maxProducts: 100000
+    },
+    empire: {
+        maxRetailers: 10000,
+        maxProducts: 1000000
     }
 };
 
@@ -49,7 +53,8 @@ export const EZAL_LIMITS: Record<PlanId, EzalLimit> = {
     growth_5: { frequencyMinutes: 60 * 24, maxCompetitors: 20 },
     scale_10: { frequencyMinutes: 60 * 12, maxCompetitors: 50 }, // Twice daily
     pro_25: { frequencyMinutes: 60 * 6, maxCompetitors: 100 }, // Every 6 hours
-    enterprise: { frequencyMinutes: 60, maxCompetitors: 500 } // Hourly
+    enterprise: { frequencyMinutes: 60, maxCompetitors: 500 }, // Hourly
+    empire: { frequencyMinutes: 15, maxCompetitors: 1000 } // 15 mins
 };
 
 export function getPlanLimits(planId: string): CannMenusLimit {

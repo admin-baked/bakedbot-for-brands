@@ -4,12 +4,14 @@ import { generateVideoFromPrompt } from '@/ai/flows/generate-video';
 import { analyzeQuery } from '@/ai/chat-query-handler';
 import { blackleafService } from '@/lib/notifications/blackleaf-service';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
+import { TalkTrack } from '@/types/talk-track';
 import { findTalkTrackByTrigger } from '@/server/repos/talkTrackRepo';
 
 // Demo responses per agent - pre-generated for speed
 const DEMO_RESPONSES: Record<string, {
     items: { title: string; description: string; meta?: string }[];
     totalCount: number;
+
 }> = {
     smokey: {
         items: [
@@ -312,7 +314,8 @@ export async function POST(request: NextRequest) {
         try {
             // Only engage "Intention OS" (Episodic Thinking) for complex queries or specific triggers
             // This prevents "Thinking..." overhead for simple "Hi" or "Price check" queries
-            let talkTrack = null;
+            const userRole = (context?.brandId ? 'brand' : 'dispensary') as TalkTrack['role'];
+            let talkTrack: TalkTrack | null = null;
             
             if (isComplex) {
                 talkTrack = await findTalkTrackByTrigger(prompt, userRole);

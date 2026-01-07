@@ -2,6 +2,7 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import type { CRMLifecycleStage, CRMUser } from './crm-types';
 
 export interface CRMBrand {
     id: string;
