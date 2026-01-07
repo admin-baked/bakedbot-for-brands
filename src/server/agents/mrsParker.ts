@@ -20,6 +20,9 @@ export interface MrsParkerTools {
   predictChurnRisk(segmentId: string): Promise<{ riskLevel: 'high' | 'medium' | 'low'; atRiskCount: number }>;
   // Generate a loyalty campaign concept
   generateLoyaltyCampaign(segmentId: string, goal: string): Promise<{ subject: string; body: string }>;
+  // Letta Collaboration (NEW)
+  lettaUpdateCoreMemory?(section: 'persona' | 'human', content: string): Promise<any>;
+  lettaMessageAgent?(toAgent: string, message: string): Promise<any>;
 }
 
 // --- Mrs. Parker Agent Implementation (Harness) ---
@@ -38,6 +41,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
         1. **Southern Hospitality**: Warm, welcoming, and personal.
         2. **Churn Prevention**: Notice when people stop visiting.
         3. **Surprise & Delight**: Reward loyalty generously (but sustainably).
+        4. **Collaboration**: Work with Craig (Marketing) to execute your ideas.
         
         Tone: Maternal, warm, caring ("Sugar", "Honey", "Dear").
     `;
@@ -89,6 +93,22 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
                 schema: z.object({
                     fact: z.string(),
                     category: z.string().optional()
+                })
+            },
+            {
+                name: "lettaUpdateCoreMemory",
+                description: "Update your own Core Memory (Persona) with new rules or protocols.",
+                schema: z.object({
+                    section: z.enum(['persona', 'human']),
+                    content: z.string()
+                })
+            },
+            {
+                name: "lettaMessageAgent",
+                description: "Send a message to another agent (e.g. Craig) to request help.",
+                schema: z.object({
+                    toAgent: z.string(),
+                    message: z.string()
                 })
             }
         ];

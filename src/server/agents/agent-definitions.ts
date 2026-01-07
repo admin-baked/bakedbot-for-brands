@@ -3,7 +3,7 @@
  * Shared configuration used by both Client and Server code.
  */
 
-export type AgentId = 'craig' | 'pops' | 'ezal' | 'smokey' | 'money_mike' | 'mrs_parker' | 'day_day' | 'felisha' | 'general' | 'puff' | 'deebo' | 'leo' | 'linus';
+export type AgentId = 'craig' | 'pops' | 'ezal' | 'smokey' | 'money_mike' | 'mike_exec' | 'mrs_parker' | 'day_day' | 'felisha' | 'general' | 'puff' | 'deebo' | 'leo' | 'linus' | 'roach' | 'big_worm';
 
 export interface AgentCapability {
     id: AgentId;
@@ -139,6 +139,24 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         // Special config: Uses Claude API exclusively for agentic coding tasks
         // See: src/server/agents/linus.ts for implementation
     },
+    {
+        id: 'mike_exec',
+        name: 'Mike',
+        specialty: 'CFO (Corporate & Strategy)',
+        keywords: ['audit', 'finance', 'investor', 'treasury', 'cfo', 'bank', 'compliance', 'budget', 'burn rate', 'ebitda'],
+        description: 'Corporate CFO handling high-level financial strategy, audits, and investor relations. Distinct from Money Mike (Sales).',
+        responseFormat: 'Formal, precise financial language. Focus on strategic ROI and capital efficiency.',
+        roleRestrictions: ['guest', 'customer', 'dispensary', 'brand']
+    },
+    {
+        id: 'roach',
+        name: 'Roach',
+        specialty: 'Academic Research & Compliance Knowledge (Librarian)',
+        keywords: ['research', 'paper', 'academic', 'study', 'compliance', 'regulation', 'audit', 'deep dive', 'scholar', 'knowledge base', 'citation'],
+        description: 'Maintains the Compliance Knowledge Base, conducts academic research, and assists executives with deep dives. The "Hive Mind" Librarian.',
+        responseFormat: 'Academic citation style (APA). Structured summaries: "Key Findings", "Methodology", "Relevance". Tagged for archival.',
+        roleRestrictions: ['guest', 'customer', 'dispensary', 'brand']
+    }
 ];
 
 // Helper to get agent by ID

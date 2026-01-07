@@ -2021,7 +2021,7 @@ export function PuffChat({
                             e.target.style.height = e.target.scrollHeight + 'px';
                         }}
                         placeholder={hasMessages ? "Reply, or use microphone..." : "Ask Smokey anything..."}
-                        className="min-h-[40px] max-h-[200px] w-full border-0 bg-transparent resize-none p-0 focus:outline-none focus:ring-0 shadow-none text-base flex-1 overflow-y-auto"
+                        className="min-h-[44px] max-h-[200px] w-full border-0 bg-transparent resize-none p-0 focus:outline-none focus:ring-0 shadow-none text-base flex-1 overflow-y-auto"
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();
@@ -2456,9 +2456,9 @@ export function PuffChat({
             </div>
 
             {/* Input at BOTTOM */}
-            <div className="shrink-0 z-10 bg-background/80 backdrop-blur-sm pt-2 space-y-2">
-                {/* Unified Discovery Bar - shows above input during processing */}
-                {showDiscoveryBar && (
+            <div className="shrink-0 z-10 bg-background/80 backdrop-blur-sm pt-2 space-y-2 min-h-[60px]">
+                {/* Unified Discovery Bar - Removed per user request to reduce clutter */}
+                {/* {showDiscoveryBar && (
                     <div className="px-4">
                         <DiscoveryBar 
                             isActive={isDiscoveryActive}
@@ -2467,7 +2467,7 @@ export function PuffChat({
                             onClose={() => setShowDiscoveryBar(false)}
                         />
                     </div>
-                )}
+                )} */}
                 {InputArea}
             </div>
           </div>

@@ -17,6 +17,8 @@ export interface SmokeyTools {
     // Memory tools
     lettaSaveFact(fact: string, category?: string): Promise<any>;
     lettaAsk(question: string): Promise<any>;
+    lettaUpdateCoreMemory(section: 'persona' | 'human', content: string): Promise<any>;
+    lettaMessageAgent(toAgent: string, message: string): Promise<any>;
     // Search local menu
     searchMenu(query: string): Promise<any>;
 }
@@ -138,6 +140,22 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                     description: "Ask long-term memory a question.",
                     schema: z.object({
                         question: z.string()
+                    })
+                },
+                {
+                    name: "lettaUpdateCoreMemory",
+                    description: "Update your core persona or knowledge about the user.",
+                    schema: z.object({
+                        section: z.enum(['persona', 'human']),
+                        content: z.string()
+                    })
+                },
+                {
+                    name: "lettaMessageAgent",
+                    description: "Send a message to another agent (e.g. Leo, Craig).",
+                    schema: z.object({
+                        toAgent: z.string(),
+                        message: z.string()
                     })
                 }
             ];

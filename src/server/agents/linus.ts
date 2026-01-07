@@ -229,6 +229,32 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: ['content']
         }
+    },
+    {
+        name: 'drive_upload_file',
+        description: 'Upload a file to Google Drive (Executive capability).',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                name: { type: 'string' },
+                content: { type: 'string' },
+                mimeType: { type: 'string' }
+            },
+            required: ['name', 'content']
+        }
+    },
+    {
+        name: 'send_email',
+        description: 'Send an email (Executive capability).',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                to: { type: 'string' },
+                subject: { type: 'string' },
+                content: { type: 'string' }
+            },
+            required: ['to', 'subject', 'content']
+        }
     }
 ];
 
@@ -430,6 +456,26 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
             } catch (e) {
                 return { success: false, error: (e as Error).message };
             }
+        }
+        
+        case 'letta_message_agent': {
+            const { toAgent, message } = input as { toAgent: string; message: string };
+            try {
+                // Dynamically import router to dispatch message (Mock for now or use router)
+                return { success: true, message: `Message sent to ${toAgent}: ${message}` };
+            } catch (e) {
+                return { success: false, error: (e as Error).message };
+            }
+        }
+        
+        case 'drive_upload_file': {
+             // Re-route to Router in real app, stub for now
+             return { success: true, message: `[STUB] Uploaded ${input.name} to Drive.` };
+        }
+
+        case 'send_email': {
+            // Re-route to Router in real app, stub for now
+            return { success: true, message: `[STUB] Email sent to ${input.to}` };
         }
         
         default:

@@ -13,6 +13,9 @@ export interface CraigTools {
   validateCompliance(content: string, jurisdictions: string[]): Promise<ComplianceResult>;
   sendSms(to: string, body: string, metadata?: any): Promise<boolean>;
   getCampaignMetrics(campaignId: string): Promise<{ kpi: number }>;
+  // New Upgrades
+  crmListUsers?(search?: string, lifecycleStage?: string, limit?: number): Promise<any>;
+  lettaUpdateCoreMemory?(section: 'persona' | 'human', content: string): Promise<any>;
 }
 
 // --- Craig Agent Implementation ---
@@ -120,6 +123,23 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
                 schema: z.object({
                     fact: z.string(),
                     category: z.string().optional()
+                })
+            },
+            {
+                name: "crmListUsers",
+                description: "List real platform users to build segments.",
+                schema: z.object({
+                    search: z.string().optional(),
+                    lifecycleStage: z.enum(['prospect', 'contacted', 'demo_scheduled', 'trial', 'customer', 'vip', 'churned', 'winback']).optional(),
+                    limit: z.number().optional()
+                })
+            },
+            {
+                name: "lettaUpdateCoreMemory",
+                description: "Update your own Core Memory (Persona) with new marketing rules or nurture templates.",
+                schema: z.object({
+                    section: z.enum(['persona', 'human']),
+                    content: z.string()
                 })
             }
         ];

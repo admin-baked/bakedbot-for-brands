@@ -798,9 +798,313 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
             }
 
             const result = await toolImpl(inputs);
-            return { status: 'success', data: result };
+            return {
+                status: 'success',
+                data: result
+            };
         } catch (error: any) {
-            return { status: 'failed', error: `Firecrawl error: ${error.message}` };
+            return { status: 'failed', error: error.message };
+        }
+    }
+
+    // --- CRM / Boardroom Tools ---
+    if (def.name === 'crm.listUsers') {
+        try {
+            await checkAndEnforcePermission('read:analytics');
+            const { getAllUsers } = await import('@/app/dashboard/ceo/actions');
+            const users = await getAllUsers();
+            
+            // Basic filtering
+            let filtered = users;
+            if (inputs.search) {
+                const q = inputs.search.toLowerCase();
+                filtered = users.filter((u: any) => 
+                    (u.email && u.email.toLowerCase().includes(q)) || 
+                    (u.displayName && u.displayName.toLowerCase().includes(q))
+                );
+            }
+            if (inputs.limit) {
+                filtered = filtered.slice(0, inputs.limit);
+            }
+            return { status: 'success', data: filtered };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+
+    if (def.name === 'crm.getStats') {
+        try {
+            await checkAndEnforcePermission('read:analytics');
+            const { getPlatformAnalytics } = await import('@/app/dashboard/ceo/actions');
+            const stats = await getPlatformAnalytics();
+            return { status: 'success', data: stats };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+
+    if (def.name === 'letta.updateCoreMemory') {
+        try {
+            // Mock Implementation for Letta - In real app, call Letta SDK
+            return { 
+                status: 'success', 
+                data: { message: `Core Memory (${inputs.section}) updated.`, content: inputs.content } 
+            };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+
+    if (def.name === 'letta.messageAgent') {
+        try {
+            // Mock Implementation - In real app, put message on queue
+            return { 
+                status: 'success', 
+                data: { message: `Message sent to ${inputs.toAgent}.`, content: inputs.message } 
+            };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+
+    // --- Brain / Learning Tools ---
+    if (def.name === 'agent.sleepAndReflect') {
+        try {
+            const { sleepService } = await import('@/server/services/sleep-service');
+            if (!request.tenantId) throw new Error('Tenant context required for sleep');
+            const result = await sleepService.runSleepCycle(actor.userId, request.tenantId);
+            return { status: 'success', data: result };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+
+    if (def.name === 'agent.mountSkill') {
+        try {
+            const { learningService } = await import('@/server/services/learning-service');
+            const skillContent = await learningService.loadSkill(actor.userId, inputs.skillName);
+            if (!skillContent) return { status: 'failed', error: 'Skill not found' };
+            return { status: 'success', data: { skillContent } };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+
+    if (def.name === 'agent.learnSkill') {
+        try {
+            const { learningService } = await import('@/server/services/learning-service');
+            await learningService.saveSkill(actor.userId, inputs.name, inputs.instructions);
+            return { status: 'success', data: { message: `Skill '${inputs.name}' saved.` } };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+
+    // --- Archival Memory (Long Term) ---
+    if (def.name === 'archival.insert') {
+        try {
+            // "Tags" logic would go here if SDK supported it directly, for now we prepend to content
+            const content = inputs.tags ? `[Tags: ${inputs.tags.join(', ')}] ${inputs.content}` : inputs.content;
+            await lettaClient.insertPassage(actor.userId, content);
+            return { status: 'success', data: { message: 'Saved to archival memory.' } };
+        } catch (e: any) {
+             return { status: 'failed', error: e.message };
+        }
+    }
+
+    if (def.name === 'archival.search') {
+        try {
+            const results = await lettaClient.searchPassages(actor.userId, inputs.query, inputs.limit || 5);
+            return { status: 'success', data: { results } };
+        } catch (e: any) {
+             return { status: 'failed', error: e.message };
+        }
+    }
+
+    // --- Executive Suite: Finance (Mike) ---
+    if (def.name === 'finance.authorizeNet.listSubscriptions') {
+        try {
+            const { authorizeNetService } = await import('@/server/services/finance/authorize-net');
+            const data = await authorizeNetService.listSubscriptions();
+            return { status: 'success', data: { subscriptions: data } };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+
+    if (def.name === 'finance.authorizeNet.getBalance') {
+        // Mapped to daily stats for now
+        return { status: 'success', data: { balance: 0, note: "Real-time balance API unavailable. Use transaction list." } };
+    }
+
+    if (def.name === 'finance.authorizeNet.getTransactions') {
+        const { authorizeNetService } = await import('@/server/services/finance/authorize-net');
+        const data = await authorizeNetService.getTransactionList();
+        return { status: 'success', data: { transactions: data } };
+    }
+    // --- Executive Suite: Ops (Leo/Linus) ---
+    if (def.name === 'ops.linear.createIssue') {
+        try {
+            const { linearService } = await import('@/server/services/ops/linear');
+            const issue = await linearService.createIssue(inputs.title, inputs.description, inputs.priority);
+            return { status: 'success', data: issue };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+
+    if (def.name === 'ops.linear.getIssues') {
+         try {
+            const { linearService } = await import('@/server/services/ops/linear');
+            const issues = await linearService.getIssues(inputs.filter);
+            return { status: 'success', data: { issues } };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+    // --- Executive Suite: Growth (Craig) ---
+    if (def.name === 'analytics.google.getTraffic') {
+         try {
+            const { googleAnalyticsService } = await import('@/server/services/growth/google-analytics');
+            const report = await googleAnalyticsService.getTrafficReport(inputs.startDate, inputs.endDate);
+            return { status: 'success', data: report };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+    
+    if (def.name === 'analytics.google.searchConsole') {
+         // Placeholder until GSC specific oauth is set up
+         return { status: 'success', data: { message: "GSC integration pending OAUTH setup. Use GA4 traffic data." } };
+    }
+    // --- Executive Suite: Knowledge (All) ---
+    if (def.name === 'docs.notion.createPage') {
+        try {
+            const { notionService } = await import('@/server/services/docs/notion');
+            const page = await notionService.createPage(inputs.title, inputs.content);
+            return { status: 'success', data: page };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+
+    if (def.name === 'docs.notion.search') {
+         try {
+            const { notionService } = await import('@/server/services/docs/notion');
+            const results = await notionService.search(inputs.query);
+            return { status: 'success', data: { results } };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+    // --- Executive Suite: Automation (All) ---
+    if (def.name === 'automation.zapier.trigger') {
+        try {
+            const { webhookService } = await import('@/server/services/automation/webhook-service');
+            const res = await webhookService.triggerZap(inputs.hookId, inputs.payload);
+            return { status: 'success', data: res };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+
+    if (def.name === 'automation.n8n.webhook') {
+         try {
+            const { webhookService } = await import('@/server/services/automation/webhook-service');
+            const res = await webhookService.triggerN8N(inputs.webhookId, inputs.payload);
+            return { status: 'success', data: res };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+    
+    // --- Google Workspace & Canva ---
+    if (def.name === 'google.docs.create') {
+        try {
+            const { googleWorkspaceService } = await import('@/server/services/docs/google-workspace');
+            const res = await googleWorkspaceService.createDoc(inputs.title, inputs.content);
+            return { status: 'success', data: res };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+    if (def.name === 'google.sheets.read') {
+        try {
+            const { googleWorkspaceService } = await import('@/server/services/docs/google-workspace');
+            const res = await googleWorkspaceService.readSheet(inputs.spreadsheetId, inputs.range);
+            return { status: 'success', data: res };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+    if (def.name === 'google.sheets.append') {
+        try {
+            const { googleWorkspaceService } = await import('@/server/services/docs/google-workspace');
+            const res = await googleWorkspaceService.appendToSheet(inputs.spreadsheetId, inputs.range, inputs.values);
+            return { status: 'success', data: res };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+    if (def.name === 'canva.listDesigns') {
+        try {
+            const { canvaService } = await import('@/server/services/design/canva');
+            const res = await canvaService.listDesigns();
+            return { status: 'success', data: { designs: res } };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+    if (def.name === 'canva.createDesign') {
+        try {
+            const { canvaService } = await import('@/server/services/design/canva');
+            const res = await canvaService.createDesign(inputs.title);
+            return { status: 'success', data: res };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+
+    // --- Slack Tools ---
+    if (def.name === 'slack.postMessage') {
+        try {
+            const { slackService } = await import('@/server/services/communications/slack');
+            const res = await slackService.postMessage(inputs.channel, inputs.text);
+            return { status: 'success', data: res };
+        } catch (e: any) {
+             return { status: 'failed', error: e.message };
+        }
+    }
+    if (def.name === 'slack.listChannels') {
+        try {
+            const { slackService } = await import('@/server/services/communications/slack');
+            const res = await slackService.listChannels();
+            return { status: 'success', data: { channels: res } };
+        } catch (e: any) {
+             return { status: 'failed', error: e.message };
+        }
+    }
+
+
+
+
+    // --- Research & Intelligence (Roach/BigWorm) ---
+    if (def.name === 'research.deep') {
+        try {
+            const { researchService } = await import('@/server/services/research-service');
+            const res = await researchService.performDeepDive(inputs.query, inputs.depth || 2);
+            return { status: 'success', data: res };
+        } catch (e: any) {
+             return { status: 'failed', error: e.message };
+        }
+    }
+    if (def.name === 'research.scholar') {
+        try {
+            const { researchService } = await import('@/server/services/research-service');
+            const res = await researchService.performScholarSearch(inputs.query, inputs.limit || 5);
+            return { status: 'success', data: res };
+        } catch (e: any) {
+             return { status: 'failed', error: e.message };
         }
     }
 

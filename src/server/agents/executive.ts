@@ -19,6 +19,20 @@ export interface ExecutiveTools {
   // Digital Worker / Playbooks
   createPlaybook?(name: string, description: string, steps: any[], schedule?: string): Promise<any>;
   use_mcp_tool?(serverName: string, toolName: string, args: any): Promise<any>;
+
+  // CRM & Data Tools (NEW)
+  crmListUsers?(search?: string, lifecycleStage?: string, limit?: number): Promise<any>;
+  crmGetStats?(): Promise<any>;
+  lettaSaveFact?(fact: string, category?: string): Promise<any>;
+
+  // Executive Productivity Suite [NEW]
+  driveUploadFile?(name: string, content: string, mimeType: string): Promise<any>;
+  sendEmail?(to: string, subject: string, content: string): Promise<any>;
+  bashExecute?(command: string, cwd?: string, timeout?: number): Promise<any>;
+
+  // Brain Upgrades (Hive Mind & Learning)
+  sleepAndReflect?(): Promise<any>;
+  agentMountSkill?(skillName: string): Promise<any>;
 }
 
 /**
@@ -43,8 +57,19 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
         CAPABILITIES:
         1. **Plan & Delegate**: Break down complex goals into tasks for other agents.
         2. **RTRvr Access**: You have exclusive access to a "Browser Agent" (RTRvr) that can login, download files, and browse the web autonomously.
-        3. **Strategic Oversight**: Always tie actions back to the Brand Objectives.
+        3. **Live CRM Access**: You have READ access to the real user database. Use 'crmListUsers' to inspect signups.
+        4. **Strategic Oversight**: Always tie actions back to the Brand Objectives.
+        4. **Strategic Oversight**: Always tie actions back to the Brand Objectives.
     `;
+
+    // === HIVE MIND INIT ===
+    try {
+        const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
+        await lettaBlockManager.attachBlocksForRole(brandMemory.brand_profile.id, agentMemory.agent_id, 'executive');
+        logger.info(`[Executive:HiveMind] Connected ${agentMemory.agent_id} to shared executive blocks.`);
+    } catch (e) {
+        logger.warn(`[Executive:HiveMind] Failed to connect to Hive Mind: ${e}`);
+    }
     
     return agentMemory;
   },
@@ -134,6 +159,47 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                     url: z.string().describe("URL of the dispensary menu page"),
                     waitMs: z.number().optional().describe("Wait time for content to load after age gate")
                 })
+            },
+            {
+                name: "crmListUsers",
+                description: "List real platform users (signups) from the database.",
+                schema: z.object({
+                    search: z.string().optional(),
+                    lifecycleStage: z.enum(['prospect', 'contacted', 'demo_scheduled', 'trial', 'customer', 'vip', 'churned', 'winback']).optional(),
+                    limit: z.number().optional()
+                })
+            },
+            {
+                name: "crmGetStats",
+                description: "Get high-level CRM stats (MRR, Total Users).",
+                schema: z.object({})
+            },
+            {
+                name: "drive.uploadFile",
+                description: "Upload a strategic document or report to Google Drive.",
+                schema: z.object({
+                    name: z.string(),
+                    content: z.string(),
+                    mimeType: z.string().optional()
+                })
+            },
+            {
+                name: "communications.sendEmail",
+                description: "Send an email from your executive account.",
+                schema: z.object({
+                    to: z.string(),
+                    subject: z.string(),
+                    content: z.string()
+                })
+            },
+            {
+                name: "bashExecute",
+                description: "Execute a shell command (System Admin / CTO Level only).",
+                schema: z.object({
+                    command: z.string(),
+                    cwd: z.string().optional(),
+                    timeout: z.number().optional()
+                })
             }
         ];
 
@@ -152,10 +218,14 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                 onStepComplete: async (step, toolName, result) => {
                     // Persist each step to Letta
                     if ((tools as any).lettaSaveFact) {
-                        await (tools as any).lettaSaveFact(
-                            `Executive Step ${step}: ${toolName} -> ${JSON.stringify(result).slice(0, 200)}`,
-                            'task_log'
-                        );
+                        try {
+                            await (tools as any).lettaSaveFact(
+                                `Executive Step ${step}: ${toolName} -> ${JSON.stringify(result).slice(0, 200)}`,
+                                'task_log'
+                            );
+                        } catch (err) {
+                            console.warn('Failed to save step to Letta:', err);
+                        }
                     }
                 }
             });

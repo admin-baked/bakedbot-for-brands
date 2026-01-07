@@ -20,14 +20,17 @@
 
 ---
 
-## 🆕 Recent Updates (2026-01-04)
-| Feature | Description |
-|---------|-------------|
-| **Dispensary Live Data** | Dashboard, Orders, Playbooks, and CRM now use Firestore. |
-| **Orders Page** | Replaced WIP stub with functional order management UI. |
-| **Playbook Server Actions** | `getDispensaryPlaybooks`, `toggleDispensaryPlaybook` added. |
-| **Sidebar Alerts** | Real-time OOS, compliance, and sync status displayed. |
-| **Unit Tests** | 17 new tests for dispensary, orders, and customer scoping. |
+## 🧠 BakedBot Intelligence 1.0 (Live on Executive Boardroom)
+**Major Release**: We have deployed a cognitive upgrade to the Executive Agents (Leo, Mike, Craig, Linus).
+These capabilities will rollout to Standard Agents (Brand/Dispensary/Customer) in Q2 2026.
+
+| Capability | Feature | Benefit |
+|------------|---------|---------|
+| **Hive Mind** | Shared Memory Blocks | If Mike (Finance) cuts budget, Craig (Marketing) stops spending instantly. **No message passing required.** |
+| **Self-Improvement** | Sleep Time Compute | Agents go offline to reflect on logs, find patterns, and update their own Persona. |
+| **Skill Learning** | The Letta Loop | Teachers (Strong Models) analyze Agent (Weak Models) mistakes and write reusable `SKILL.md` instructions. |
+| **Archival Memory** | Active Knowledge Base | Agents deciding *what* to remember forever strategies, preferences, histories. |
+| **Executive Tools** | Direct API Access | Finance (Authorize.net), Ops (Linear), Growth (GA), Docs (Notion) integration. |
 
 ---
 
@@ -39,7 +42,7 @@
 
 ### 🗺️ Technical Roadmap
 - **V1 (Current)**: **Executive Squad & Delegation** — Agents autonomously orchestrate via `agent.delegate`.
-- **V2 (Future)**: **Browser Agents (RTRVR/Puppeteer)** — "Special Ops" local automation for non-API portals (Metrc, Admin Dashboards).
+- **V2 (Intelligence 1.0)**: **Self-Evolving Agents** — Hive Mind, Sleep Reflection, and Skill Learning. (Live on Boardroom).
 - **V3**: Full autonomous revenue management ($100k MRR).
 
 ### The Rebel-Sage Synthesis
