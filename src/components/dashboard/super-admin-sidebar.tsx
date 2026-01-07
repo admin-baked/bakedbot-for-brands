@@ -66,10 +66,6 @@ export function SuperAdminSidebar() {
             return pathname?.startsWith('/dashboard/ceo/treasury') || currentTabParam === 'treasury';
         }
 
-            // Only active if explicitly 'playbooks'
-            return currentTabParam === 'playbooks';
-        }
-
         return currentTabParam === tab;
     };
 
