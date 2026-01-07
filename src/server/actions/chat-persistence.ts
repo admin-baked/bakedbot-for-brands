@@ -45,19 +45,27 @@ export async function getChatSessions(userId?: string) {
 
         const sessions = snapshot.docs.map(doc => {
             const data = doc.data();
+            // Serialize to plain objects to ensure safe transfer over RSC boundary
             return {
-                ...data,
-                timestamp: data.timestamp?.toDate ? data.timestamp.toDate() : new Date(data.timestamp),
-                messages: data.messages?.map((m: any) => ({
+                id: doc.id,
+                title: data.title || 'Untitled Chat',
+                preview: data.preview || '',
+                // Return as ISO string for safety, client will hydrate
+                timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : new Date(data.timestamp || Date.now()).toISOString(),
+                messages: (data.messages || []).map((m: any) => ({
                     ...m,
-                    timestamp: m.timestamp?.toDate ? m.timestamp.toDate() : new Date(m.timestamp)
-                }))
-            } as ChatSession;
+                    timestamp: m.timestamp?.toDate ? m.timestamp.toDate().toISOString() : new Date(m.timestamp || Date.now()).toISOString()
+                })),
+                role: data.role,
+                projectId: data.projectId,
+                artifacts: data.artifacts || []
+            };
         });
 
         return { success: true, sessions };
     } catch (error: any) {
-        logger.error('Failed to get chat sessions', error);
-        return { success: false, error: error.message };
+        console.error('Failed to get chat sessions:', error);
+        // Return a clean error object, do not throw
+        return { success: false, error: error.message || 'Unknown error' };
     }
 }
