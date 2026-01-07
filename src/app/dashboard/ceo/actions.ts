@@ -473,13 +473,19 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
     const totalOrgs = orgsSnap.data().count;
     const totalLeads = leadsSnap.data().count;
 
-    // 2. Fetch recent signups (last 5)
+    // 2. Fetch recent signups (Fixed: Fetch more and sort in-memory to handle missing index/dates)
     const recentUsersSnap = await firestore.collection('users')
-      .orderBy('createdAt', 'desc')
-      .limit(5)
+      .limit(50)
       .get();
+    
+    // In-memory sort
+    const docs = recentUsersSnap.docs.sort((a, b) => {
+        const dateA = a.data().createdAt?.toDate?.()?.getTime() || 0;
+        const dateB = b.data().createdAt?.toDate?.()?.getTime() || 0;
+        return dateB - dateA;
+    });
 
-    const recentSignups = recentUsersSnap.docs.map(doc => {
+    const recentSignups = docs.slice(0, 10).map(doc => {
       const data = doc.data();
       return {
         id: doc.id,

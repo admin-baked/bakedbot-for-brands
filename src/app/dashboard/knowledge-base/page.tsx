@@ -3,6 +3,7 @@
 import { useUserRole } from '@/hooks/use-user-role';
 import { BrandKnowledgeBase } from '../playbooks/components/brand-knowledge-base';
 import { DispensaryKnowledgeBase } from '@/components/dashboard/dispensary-knowledge-base';
+import { SuperUserKnowledgeBase } from '@/components/dashboard/super-user-knowledge-base';
 import { Loader2, BookOpen } from 'lucide-react';
 import { useUser } from '@/firebase/auth/use-user';
 
@@ -20,7 +21,12 @@ export default function KnowledgeBasePage() {
         );
     }
 
-    // 1. Brand View
+    // 1. Super User View (Roach's Library)
+    if (role === 'owner') {
+        return <SuperUserKnowledgeBase />;
+    }
+
+    // 2. Brand View
     if (role === 'brand') {
         const brandId = (user as any)?.brandId || user?.uid;
         

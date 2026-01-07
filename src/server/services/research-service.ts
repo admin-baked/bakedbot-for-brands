@@ -188,6 +188,57 @@ export class ResearchService {
     });
     return reportRef.id;
   }
+
+  // === Roach / BigWorm Synchronous Methods ===
+
+  /**
+   * Conducts a synchronous deep dive using Firecrawl Discovery
+   */
+  async performDeepDive(query: string, depth: number = 2): Promise<any> {
+      try {
+          const { discovery } = await import('@/server/services/firecrawl');
+          if (!discovery.isConfigured()) {
+              return { error: 'Discovery Service not configured' };
+          }
+
+          // Step 1: Broad Search
+          const searchResults = await discovery.search(query);
+          
+          // Step 2: "Depth" - If depth > 1, we could scrape top results
+          // For now, returning search results with metadata
+          return {
+              query,
+              depth,
+              results: searchResults
+          };
+      } catch (e: any) {
+          return { error: `Deep dive failed: ${e.message}` };
+      }
+  }
+
+  /**
+   * Conducts a focused academic search
+   */
+  async performScholarSearch(query: string, limit: number = 5): Promise<any> {
+      try {
+          const { discovery } = await import('@/server/services/firecrawl');
+          if (!discovery.isConfigured()) {
+               return { error: 'Discovery Service not configured' };
+          }
+
+          // Append academic sites to query
+          const academicQuery = `${query} (site:ac.uk OR site:edu OR site:arxiv.org OR site:scholar.google.com OR site:ncbi.nlm.nih.gov)`;
+          
+          const results = await discovery.search(academicQuery);
+          return {
+              query,
+              type: 'academic',
+              results: results ? (results as any[]).slice(0, limit) : []
+          };
+      } catch (e: any) {
+          return { error: `Scholar search failed: ${e.message}` };
+      }
+  }
 }
 
 export const researchService = new ResearchService();

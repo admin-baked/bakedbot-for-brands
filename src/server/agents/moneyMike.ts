@@ -20,6 +20,10 @@ export interface MoneyMikeTools {
   forecastRevenueImpact(skuId: string, priceDelta: number): Promise<{ projected_revenue_change: number; confidence: number }>;
   // Validate if a price change violates margin constraints
   validateMargin(skuId: string, newPrice: number, costBasis: number): Promise<{ isValid: boolean; margin: number }>;
+  // Letta Memory Tools
+  lettaSaveFact(fact: string, category?: string): Promise<any>;
+  lettaUpdateCoreMemory(section: 'persona' | 'human', content: string): Promise<any>;
+  lettaMessageAgent(toAgent: string, message: string): Promise<any>;
 }
 
 // --- Money Mike Agent Implementation (Harness) ---
@@ -83,6 +87,22 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
                 schema: z.object({
                     fact: z.string(),
                     category: z.string().optional()
+                })
+            },
+            {
+                name: "lettaUpdateCoreMemory",
+                description: "Update your core persona or knowledge about the user.",
+                schema: z.object({
+                    section: z.enum(['persona', 'human']),
+                    content: z.string()
+                })
+            },
+            {
+                name: "lettaMessageAgent",
+                description: "Send a message to another agent (e.g. Leo, Craig).",
+                schema: z.object({
+                    toAgent: z.string(),
+                    message: z.string()
                 })
             }
         ];

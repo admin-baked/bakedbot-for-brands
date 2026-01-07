@@ -17,6 +17,88 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'read',
         requiredPermission: 'read:analytics', // Basic read access
     },
+    'google.docs.create': {
+        name: 'google.docs.create',
+        description: 'Create a new Google Doc.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                title: { type: 'string' },
+                content: { type: 'string' }
+            },
+            required: ['title', 'content']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics'
+    },
+    'google.sheets.read': {
+        name: 'google.sheets.read',
+        description: 'Read values from a Google Sheet range.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                spreadsheetId: { type: 'string' },
+                range: { type: 'string', description: 'e.g. "Sheet1!A1:B10"' }
+            },
+            required: ['spreadsheetId', 'range']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+    'google.sheets.append': {
+        name: 'google.sheets.append',
+        description: 'Append rows to a Google Sheet.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                spreadsheetId: { type: 'string' },
+                range: { type: 'string' },
+                values: { type: 'array', items: { type: 'array', items: { type: 'string' } } }
+            },
+            required: ['spreadsheetId', 'range', 'values']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics'
+    },
+    'canva.listDesigns': {
+        name: 'canva.listDesigns',
+        description: 'List recent Canva designs.',
+        inputSchema: { type: 'object', properties: {} },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+    'canva.createDesign': {
+        name: 'canva.createDesign',
+        description: 'Create a new Canva design.',
+        inputSchema: {
+            type: 'object',
+            properties: { title: { type: 'string' } },
+            required: ['title']
+        },
+        category: 'write',
+        requiredPermission: 'manage:brand'
+    },
+    'slack.postMessage': {
+        name: 'slack.postMessage',
+        description: 'Post a message to a Slack channel.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                channel: { type: 'string', description: 'Channel ID or name (e.g. #general)' },
+                text: { type: 'string' }
+            },
+            required: ['channel', 'text']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics'
+    },
+    'slack.listChannels': {
+        name: 'slack.listChannels',
+        description: 'List available Slack channels.',
+        inputSchema: { type: 'object', properties: {} },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
     'audit.log': {
         name: 'audit.log',
         description: 'Explicitly logs an important event or decision to the audit trail.',
@@ -44,8 +126,175 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
             },
             required: ['query']
         },
-        category: 'read',
         requiredPermission: 'read:analytics',
+    },
+
+    // ===================================
+    // 1.1 Finance & Payments (Mike - CFO)
+    // ===================================
+    'finance.authorizeNet.getBalance': {
+        name: 'finance.authorizeNet.getBalance',
+        description: 'Get current Authorize.net balance and settled funds.',
+        inputSchema: { type: 'object', properties: {} },
+        category: 'read',
+        requiredPermission: 'manage:campaigns'
+    },
+    'finance.authorizeNet.getTransactions': {
+        name: 'finance.authorizeNet.getTransactions',
+        description: 'List recent Authorize.net transactions (settled/unsettled).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                limit: { type: 'number', default: 10 },
+                status: { type: 'string', enum: ['settledSuccessfully', 'capturedPendingSettlement', 'refunded', 'voided'] }
+            }
+        },
+        category: 'read',
+        requiredPermission: 'manage:campaigns'
+    },
+    'finance.authorizeNet.listSubscriptions': {
+        name: 'finance.authorizeNet.listSubscriptions',
+        description: 'List active recurring subscriptions (Claim/Growth Plans).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                status: { type: 'string', enum: ['active', 'expired', 'suspended', 'canceled', 'terminated'] },
+                limit: { type: 'number', default: 20 }
+            }
+        },
+        category: 'read',
+        requiredPermission: 'manage:campaigns'
+    },
+
+    // ===================================
+    // 1.2 Ops & Project Management (Leo - Ops)
+    // ===================================
+    'ops.linear.createIssue': {
+        name: 'ops.linear.createIssue',
+        description: 'Create a new issue in Linear for engineering/product tracking.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                title: { type: 'string', description: 'Issue title' },
+                description: { type: 'string', description: 'Issue description (markdown)' },
+                teamId: { type: 'string', description: 'Linear Team ID (e.g. "ENG")' },
+                priority: { type: 'number', description: '0 (No Priority) to 1 (Urgent)' }
+            },
+            required: ['title', 'teamId']
+        },
+        category: 'write',
+        requiredPermission: 'manage:brand'
+    },
+    'ops.linear.getIssues': {
+        name: 'ops.linear.getIssues',
+        description: 'List recent issues from Linear.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                limit: { type: 'number', default: 10 },
+                state: { type: 'string', enum: ['Backlog', 'Todo', 'In Progress', 'Done'] }
+            }
+        },
+        category: 'read',
+        requiredPermission: 'manage:brand'
+    },
+
+    // ===================================
+    // 1.3 Growth & Analytics (Craig - CMO)
+    // ===================================
+    'analytics.google.getTraffic': {
+        name: 'analytics.google.getTraffic',
+        description: 'Get Google Analytics 4 traffic stats (Sessions, Users, Engagement).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                startDate: { type: 'string', description: 'YYYY-MM-DD' },
+                endDate: { type: 'string', description: 'YYYY-MM-DD' },
+                metrics: { type: 'array', items: { type: 'string' }, description: 'sessions, totalUsers, screenPageViews' }
+            },
+            required: ['startDate', 'endDate']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+    'analytics.google.searchConsole': {
+        name: 'analytics.google.searchConsole',
+        description: 'Get Google Search Console performance (Clicks, Impressions, CTR).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                startDate: { type: 'string' },
+                endDate: { type: 'string' },
+                dimensions: { type: 'array', items: { type: 'string' }, description: 'query, page, country' }
+            },
+            required: ['startDate', 'endDate']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+
+    // ===================================
+    // 1.4 Knowledge Base (Notion)
+    // ===================================
+    'docs.notion.createPage': {
+        name: 'docs.notion.createPage',
+        description: 'Create a new page in the Company Notion Knowledge Base.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                title: { type: 'string' },
+                content: { type: 'string', description: 'Markdown content' },
+                parentId: { type: 'string', description: 'Parent page/database ID' }
+            },
+            required: ['title', 'content']
+        },
+        category: 'write',
+        requiredPermission: 'manage:brand'
+    },
+    'docs.notion.search': {
+        name: 'docs.notion.search',
+        description: 'Search Notion workspace for strategy docs or wikis.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                query: { type: 'string' }
+            },
+            required: ['query']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+
+    // ===================================
+    // 1.5 Automation (Zapier & n8n)
+    // ===================================
+    'automation.zapier.trigger': {
+        name: 'automation.zapier.trigger',
+        description: 'Trigger a Zapier webhook to start an automation workflow.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                webhookUrl: { type: 'string' },
+                payload: { type: 'object', description: 'Data to send to webhook' }
+            },
+            required: ['webhookUrl', 'payload']
+        },
+        category: 'side-effect',
+        requiredPermission: 'manage:campaigns'
+    },
+    'automation.n8n.webhook': {
+        name: 'automation.n8n.webhook',
+        description: 'Trigger an n8n workflow via webhook.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                webhookUrl: { type: 'string' },
+                payload: { type: 'object' }
+            },
+            required: ['webhookUrl', 'payload']
+        },
+        category: 'side-effect',
+        requiredPermission: 'manage:campaigns'
     },
 
     // ===================================
@@ -354,6 +603,34 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'write',
         requiredPermission: 'read:analytics', // All roles can use this
     },
+    'research.deep': {
+        name: 'research.deep',
+        description: 'Conducts a multi-step deep dive research on a topic.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                query: { type: 'string' },
+                depth: { type: 'number' }
+            },
+            required: ['query']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+    'research.scholar': {
+        name: 'research.scholar',
+        description: 'Searches academic papers and legal regulations.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                query: { type: 'string' },
+                limit: { type: 'number' }
+            },
+            required: ['query']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
     'dev.readCodebase': {
         name: 'dev.readCodebase',
         description: 'Enables Super Users to inspect the application codebase for context or debugging.',
@@ -601,16 +878,82 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'write',
         requiredPermission: 'read:analytics', // Broad access
     },
-    'letta.searchMemory': {
-        name: 'letta.searchMemory',
-        description: 'Semantically search long-term memory for facts.',
+    'agent.sleepAndReflect': {
+        name: 'agent.sleepAndReflect',
+        description: 'Trigger a sleep cycle to consolidate memory and learn from recent actions.',
+        inputSchema: { type: 'object', properties: {} },
+        category: 'side-effect',
+        requiredPermission: 'read:analytics'
+    },
+    'agent.mountSkill': {
+        name: 'agent.mountSkill',
+        description: 'Dynamically load a learned Skill (Markdown instructions) into context.',
         inputSchema: {
             type: 'object',
             properties: {
-                query: { type: 'string' }
+                skillName: { type: 'string', description: 'Name of the skill to load' }
+            },
+            required: ['skillName']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+    'archival.insert': {
+        name: 'archival.insert',
+        description: 'Actively save a piece of knowledge to long-term memory for future retrieval.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                content: { type: 'string', description: 'The fact, insight, or summary to store.' },
+                tags: { type: 'array', items: { type: 'string' }, description: 'Keywords for categorization (e.g. "competitor", "pricing", "customer_feedback").' }
+            },
+            required: ['content']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics'
+    },
+    'archival.search': {
+        name: 'archival.search',
+        description: 'Semantically search your long-term archival memory.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                query: { type: 'string' },
+                tags: { type: 'array', items: { type: 'string' }, description: 'Filter by tags.' },
+                limit: { type: 'number', default: 5 }
             },
             required: ['query']
         },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+    // Legacy alias
+    'letta.saveFact': {
+        name: 'letta.saveFact',
+        description: '[Deprecated] Use archival.insert instead.',
+        inputSchema: { type: 'object', properties: { fact: { type: 'string' } } },
+        category: 'write',
+        requiredPermission: 'read:analytics'
+    },
+    'agent.learnSkill': {
+        name: 'agent.learnSkill',
+        description: 'Manually abstract a recent experience into a reusable skill.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                name: { type: 'string' },
+                description: { type: 'string' },
+                instructions: { type: 'string', description: 'Markdown content of the skill' }
+            },
+            required: ['name', 'instructions']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics'
+    },
+    'letta.searchMemory': {
+        name: 'letta.searchMemory',
+        description: '[Deprecated] Use archival.search instead.',
+        inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
         category: 'read',
         requiredPermission: 'read:analytics',
     },

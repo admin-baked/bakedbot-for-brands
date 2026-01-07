@@ -66,9 +66,8 @@ export function SuperAdminSidebar() {
             return pathname?.startsWith('/dashboard/ceo/treasury') || currentTabParam === 'treasury';
         }
 
-        if (tab === 'playbooks') {
-            // Only active if explicitly 'playbooks' or we are on root with no tab selected
-            return currentTabParam === 'playbooks' || (!currentTabParam && pathname === '/dashboard/ceo');
+            // Only active if explicitly 'playbooks'
+            return currentTabParam === 'playbooks';
         }
 
         return currentTabParam === tab;
