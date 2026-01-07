@@ -146,7 +146,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                 const { runMultiStepTask } = await import('./harness');
                 const result = await runMultiStepTask({
                     userQuery,
-                    systemInstructions: agentMemory.system_instructions || '',
+                    systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
                     tools: tools, // Harness injects 'tools'
                     model: 'claude',

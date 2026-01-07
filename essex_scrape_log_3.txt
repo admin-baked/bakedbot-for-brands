@@ -1,0 +1,19 @@
+Scraping https://dutchie.com/embedded-menu/essex-apothecary/products...
+node.exe : Error scraping: TypeError: 
+app.scrapeUrl is not a function
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpec 
+   ified: (Error scraping:... not a   
+  function:String) [], RemoteExcept   
+ ion
+    + FullyQualifiedErrorId : NativeC 
+   ommandError
+ 
+    at main (C:\Users\marte\Baked for 
+Brands\bakedbot-for-brands\dev\scrape_
+essex_dutchie.ts:19:40)

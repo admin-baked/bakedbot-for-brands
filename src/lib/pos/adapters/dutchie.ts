@@ -2,72 +2,94 @@ import type { POSClient, POSConfig, POSProduct } from '../types';
 import { logger } from '@/lib/logger';
 
 // Dutchie API endpoints
-const DUTCHIE_REST_API = 'https://plus.dutchie.com/api/v1';
-const DUTCHIE_PLUS_GRAPHQL = 'https://plus.dutchie.com/graphql';
+const DUTCHIE_PLUS_GRAPHQL = 'https://plus.dutchie.com/plus/2021-07/graphql';
+const DUTCHIE_POS_API = 'https://pos-api.dutchie.com'; // POS REST API
+
+export interface DutchieConfig extends POSConfig {
+    clientId?: string;          // Dutchie Client ID
+    orderAheadClientId?: string;  // Order Ahead Client ID
+    orderAheadClientToken?: string; // Order Ahead Client Token
+    authMethod?: 'bearer' | 'basic' | 'pos'; // Authentication method to use
+}
 
 export class DutchieClient implements POSClient {
-    private config: POSConfig;
+    private config: DutchieConfig;
 
-    constructor(config: POSConfig) {
+    constructor(config: DutchieConfig) {
         this.config = config;
     }
 
     /**
-     * REST API request with Bearer token auth
+     * Build authorization header based on config
      */
-    private async restRequest(endpoint: string, method = 'GET'): Promise<any> {
-        const url = `${DUTCHIE_REST_API}${endpoint}`;
-        logger.info(`[POS_DUTCHIE] REST ${method} ${endpoint}`);
-        
-        const response = await fetch(url, {
-            method,
-            headers: {
-                'Authorization': `Bearer ${this.config.apiKey}`,
-                'Content-Type': 'application/json',
-                'x-dutchie-retailer-id': this.config.storeId || '',
-            },
-        });
+    private getAuthHeaders(): Record<string, string> {
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+        };
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Dutchie REST API error: ${response.status} ${response.statusText} - ${errorText}`);
+        // Method 1: Bearer token with API key (Plus GraphQL)
+        if (this.config.apiKey) {
+            headers['Authorization'] = `Bearer ${this.config.apiKey}`;
+            headers['x-dutchie-plus-token'] = this.config.apiKey;
         }
 
-        return response.json();
+        // Method 2: HTTP Basic Auth with API key (POS API style)
+        if (this.config.authMethod === 'basic' && this.config.apiKey) {
+            const basicAuth = Buffer.from(`${this.config.apiKey}:`).toString('base64');
+            headers['Authorization'] = `Basic ${basicAuth}`;
+        }
+
+        // Method 3: Order Ahead OAuth credentials
+        if (this.config.orderAheadClientId && this.config.orderAheadClientToken) {
+            const basicAuth = Buffer.from(
+                `${this.config.orderAheadClientId}:${this.config.orderAheadClientToken}`
+            ).toString('base64');
+            headers['Authorization'] = `Basic ${basicAuth}`;
+        }
+
+        return headers;
     }
 
     /**
-     * GraphQL query for public embedded menu (no auth)
-     */
-    private async graphqlPublic(query: string, variables: any = {}): Promise<any> {
-        const response = await fetch('https://dutchie.com/graphql', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query, variables }),
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Dutchie public GraphQL error: ${response.statusText}`);
-        }
-        return response.json();
-    }
-
-    /**
-     * GraphQL query for Plus API (requires auth)
+     * GraphQL query for Plus API (2021-07 Endpoint)
      */
     private async graphqlPlus(query: string, variables: any = {}): Promise<any> {
+        const headers = this.getAuthHeaders();
+        
         const response = await fetch(DUTCHIE_PLUS_GRAPHQL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.config.apiKey}`,
-                'x-dutchie-plus-token': this.config.apiKey || '',
-            },
+            headers,
             body: JSON.stringify({ query, variables }),
         });
 
         if (!response.ok) {
-            throw new Error(`Dutchie Plus GraphQL error: ${response.statusText}`);
+            const text = await response.text();
+            throw new Error(`Dutchie Plus GraphQL error: ${response.status} ${response.statusText} - ${text}`);
+        }
+        return response.json();
+    }
+
+    /**
+     * REST API call for POS API (fallback)
+     */
+    private async posApiRequest(endpoint: string): Promise<any> {
+        if (!this.config.apiKey) {
+            throw new Error('API key required for POS API');
+        }
+
+        const basicAuth = Buffer.from(`${this.config.apiKey}:`).toString('base64');
+        
+        const response = await fetch(`${DUTCHIE_POS_API}${endpoint}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Basic ${basicAuth}`,
+            },
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`Dutchie POS API error: ${response.status} - ${text}`);
         }
         return response.json();
     }
@@ -75,49 +97,60 @@ export class DutchieClient implements POSClient {
     async validateConnection(): Promise<boolean> {
         logger.info('[POS_DUTCHIE] Validating connection', { 
             storeId: this.config.storeId,
-            hasApiKey: !!this.config.apiKey 
+            hasApiKey: !!this.config.apiKey,
+            hasOrderAheadCreds: !!(this.config.orderAheadClientId && this.config.orderAheadClientToken),
+            authMethod: this.config.authMethod || 'bearer'
         });
         
-        // Try REST API first (most reliable for Partner integrations)
-        if (this.config.apiKey) {
-            try {
-                const result = await this.restRequest(`/retailers/${this.config.storeId}/products?limit=1`);
-                if (result && (result.data || Array.isArray(result))) {
-                    logger.info('[POS_DUTCHIE] REST API connection successful');
-                    return true;
-                }
-            } catch (restError: any) {
-                logger.warn('[POS_DUTCHIE] REST API failed:', restError.message);
-                
-                // Try alternate REST endpoints
-                try {
-                    const altResult = await this.restRequest('/products?limit=1');
-                    if (altResult) {
-                        logger.info('[POS_DUTCHIE] REST API (alt endpoint) successful');
-                        return true;
+        // Try Plus GraphQL first
+        const query = `
+            query CheckConnection($retailerId: ID!) {
+                menu(retailerId: $retailerId) {
+                    products {
+                        id
                     }
-                } catch (altError: any) {
-                    logger.warn('[POS_DUTCHIE] Alternate REST also failed:', altError.message);
                 }
             }
-        }
-        
-        // Fallback to GraphQL Plus API
+        `;
+
         try {
-            const result = await this.graphqlPlus(`
-                query CheckConnection($retailerId: ID!) {
-                    filteredProducts(retailerId: $retailerId) {
-                        products { id }
-                    }
-                }
-            `, { retailerId: this.config.storeId });
+            const result = await this.graphqlPlus(query, { retailerId: this.config.storeId });
             
-            if (result.data?.filteredProducts) {
+            if (result.data?.menu?.products) {
                 logger.info('[POS_DUTCHIE] Plus GraphQL connection successful');
                 return true;
             }
+            
+            if (result.errors) {
+                const errorCode = result.errors[0]?.extensions?.code;
+                const errorMsg = result.errors[0]?.message;
+                
+                logger.warn('[POS_DUTCHIE] GraphQL validation failed', { 
+                    code: errorCode, 
+                    message: errorMsg 
+                });
+
+                // If unauthenticated, the credentials may be for a different API
+                if (errorCode === 'UNAUTHENTICATED') {
+                    logger.info('[POS_DUTCHIE] Auth failed - credentials may be for Order Ahead API, not Plus API');
+                }
+            }
         } catch (graphqlError: any) {
-            logger.error('[POS_DUTCHIE] All connection methods failed:', graphqlError.message);
+            logger.error('[POS_DUTCHIE] Connection validation failed:', graphqlError.message);
+        }
+
+        // Try POS REST API if configured
+        if (this.config.apiKey && this.config.authMethod === 'pos') {
+            try {
+                logger.info('[POS_DUTCHIE] Trying POS REST API...');
+                const result = await this.posApiRequest(`/v2/locations/${this.config.storeId}/products`);
+                if (result && (result.products || result.data)) {
+                    logger.info('[POS_DUTCHIE] POS REST API connection successful');
+                    return true;
+                }
+            } catch (posError: any) {
+                logger.warn('[POS_DUTCHIE] POS REST API failed:', posError.message);
+            }
         }
         
         return false;
@@ -126,77 +159,54 @@ export class DutchieClient implements POSClient {
     async fetchMenu(): Promise<POSProduct[]> {
         logger.info('[POS_DUTCHIE] Fetching menu', { storeId: this.config.storeId });
 
-        // Try public embedded API first
-        try {
-            const publicQuery = `
-                query GetMenu($retailerId: ID!) {
-                    menu(retailerId: $retailerId) {
-                        products {
-                            id
-                            name
-                            brand { name }
-                            category
-                            image
-                            potencyThc { formatted }
-                            potencyCbd { formatted }
-                            variants {
-                                price
-                                quantity
-                            }
+        const query = `
+            query GetMenu($retailerId: ID!) {
+                menu(retailerId: $retailerId) {
+                    products {
+                        id
+                        name
+                        brand { name }
+                        category
+                        image
+                        potencyThc { formatted }
+                        potencyCbd { formatted }
+                        variants {
+                            price
+                            quantity
                         }
                     }
                 }
-            `;
-
-            const result = await this.graphqlPublic(publicQuery, { retailerId: this.config.storeId });
-            
-            if (result.data?.menu?.products) {
-                logger.info('[POS_DUTCHIE] Fetched menu via public API');
-                return this.mapProducts(result.data.menu.products);
             }
-        } catch (pubError: any) {
-            logger.warn('[POS_DUTCHIE] Public API menu fetch failed, trying Plus:', pubError.message);
-        }
+        `;
 
-        // Fallback to Plus API
         try {
-            const plusQuery = `
-                query GetMenu($retailerId: ID!) {
-                    filteredProducts(retailerId: $retailerId) {
-                        products {
-                            id
-                            name
-                            brand { name }
-                            category
-                            image
-                            potencyThc { formatted }
-                            potencyCbd { formatted }
-                            variants {
-                                priceRecalc { price }
-                                quantity
-                            }
-                        }
-                    }
-                }
-            `;
-
-            const result = await this.graphqlPlus(plusQuery, { retailerId: this.config.storeId });
+            const result = await this.graphqlPlus(query, { retailerId: this.config.storeId });
             
             if (result.errors) {
-                logger.error('[POS_DUTCHIE] GraphQL errors', { errors: result.errors });
+                const errorCode = result.errors[0]?.extensions?.code;
+                
+                // If authentication fails, provide helpful error
+                if (errorCode === 'UNAUTHENTICATED') {
+                    throw new Error(
+                        'Dutchie authentication failed. The provided credentials may be for Order Ahead API. ' +
+                        'Please contact Dutchie support to obtain Plus API credentials for this store.'
+                    );
+                }
+                
                 throw new Error(result.errors[0]?.message || 'GraphQL error');
             }
 
-            const products = result.data?.filteredProducts?.products || [];
-            logger.info('[POS_DUTCHIE] Fetched menu via Plus API');
-            return this.mapProducts(products, true);
+            const products = result.data?.menu?.products || [];
+            logger.info(`[POS_DUTCHIE] Fetched ${products.length} products via Plus API`);
+            return this.mapProducts(products);
+
         } catch (error: any) {
-            logger.error('[POS_DUTCHIE] Both APIs failed for menu fetch:', error.message);
+            logger.error('[POS_DUTCHIE] Menu fetch failed:', error.message);
             throw new Error(`Dutchie menu fetch failed: ${error.message}`);
         }
     }
 
-    private mapProducts(products: any[], isPlusApi = false): POSProduct[] {
+    private mapProducts(products: any[]): POSProduct[] {
         return products.map((p: any) => {
             const variant = p.variants?.[0] || {};
             return {
@@ -204,7 +214,7 @@ export class DutchieClient implements POSClient {
                 name: p.name,
                 brand: p.brand?.name || 'Unknown',
                 category: p.category || 'Other',
-                price: isPlusApi ? (variant.priceRecalc?.price || 0) : (variant.price || 0),
+                price: variant.price || 0,
                 stock: variant.quantity || 0,
                 thcPercent: p.potencyThc?.formatted ? parseFloat(p.potencyThc.formatted) : undefined,
                 cbdPercent: p.potencyCbd?.formatted ? parseFloat(p.potencyCbd.formatted) : undefined,
@@ -215,7 +225,6 @@ export class DutchieClient implements POSClient {
     }
 
     async getInventory(externalIds: string[]): Promise<Record<string, number>> {
-        // Fetch full menu and filter for inventory sync
         const products = await this.fetchMenu();
         const stock: Record<string, number> = {};
         products.forEach(p => {
@@ -225,5 +234,18 @@ export class DutchieClient implements POSClient {
         });
         return stock;
     }
-}
 
+    /**
+     * Get configuration info for debugging
+     */
+    getConfigInfo(): Record<string, any> {
+        return {
+            storeId: this.config.storeId,
+            hasApiKey: !!this.config.apiKey,
+            hasClientId: !!this.config.clientId,
+            hasOrderAheadCreds: !!(this.config.orderAheadClientId && this.config.orderAheadClientToken),
+            authMethod: this.config.authMethod || 'bearer',
+            environment: this.config.environment || 'production'
+        };
+    }
+}

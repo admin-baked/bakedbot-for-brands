@@ -1,0 +1,31 @@
+Testing Dutchie POS API (api.pos.dutchie.com)
+API Key: 487c94ca...
+Auth: Basic (API key as username, empty password)
+Header: Authorization: Basic NDg3Yzk0Y2EtNjg0Zi00...
+
+=== WhoAmI (Location Identity) ===
+URL: https://api.pos.dutchie.com/whoami
+Status: 401 Unauthorized
+Non-JSON response: 
+
+=== Products (Menu) ===
+URL: https://api.pos.dutchie.com/products
+Status: 401 Unauthorized
+Non-JSON response: 
+
+=== Inventory (Stock) ===
+URL: https://api.pos.dutchie.com/inventory
+Status: 401 Unauthorized
+Non-JSON response: 
+
+=== Product Categories ===
+URL: https://api.pos.dutchie.com/product-category
+Status: 401 Unauthorized
+Non-JSON response: 
+
+=== Reporting Products ===
+URL: https://api.pos.dutchie.com/reporting/products
+Status: 401 Unauthorized
+Non-JSON response: 
+
+=== Done ===

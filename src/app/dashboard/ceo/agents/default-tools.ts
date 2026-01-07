@@ -4,6 +4,9 @@ import { deebo } from '@/server/agents/deebo';
 import { blackleafService } from '@/lib/notifications/blackleaf-service';
 import { CannMenusService } from '@/server/services/cannmenus';
 import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
+import { createServerClient } from '@/firebase/server-client';
+import { requireUser } from '@/server/auth/auth';
+import { makeProductRepo } from '@/server/repos/productRepo';
 
 // Wrapper to avoid cirular dependency issues if any
 // but these tools mostly depend on external services or leaf nodes.
@@ -341,8 +344,8 @@ export const defaultSmokeyTools = {
             // In-memory simplistic fuzzy search
             const lowerQ = query.toLowerCase();
             const results = products.filter(p => {
-                const content = `${p.name} ${p.brandName} ${p.category} ${p.description || ''}`.toLowerCase();
-                return content.includes(lowerQ) && p.inStock;
+                const content = `${p.name} ${p.brandId} ${p.category} ${p.description || ''}`.toLowerCase();
+                return content.includes(lowerQ) && (p.stock && p.stock > 0);
             }).slice(0, 15);
 
             return { 
@@ -350,10 +353,10 @@ export const defaultSmokeyTools = {
                 count: results.length, 
                 products: results.map(p => ({
                     name: p.name,
-                    brand: p.brandName,
+                    brand: p.brandId,
                     price: p.price, 
                     thc: p.thcPercent,
-                    stock: p.stockCount,
+                    stock: p.stock,
                     category: p.category
                 }))
             };
@@ -503,7 +506,7 @@ export const defaultEzalTools = {
                         brand: p.brand_name,
                         price: p.latest_price,
                         retailer: p.retailer_name,
-                        link: p.menu_url
+                        url: p.url
                     }))
                  };
             }

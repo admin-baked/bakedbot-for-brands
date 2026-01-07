@@ -183,6 +183,16 @@ export const PROMPT_CHIPS = {
         "Analyze Dutchie's market share in Illinois",
         "Generate a report on Terpli's recommendation accuracy",
         "Explain the pricing model"
+    ],
+    super_user: [
+        "Check system health",
+        "Monitor active agents",
+        "Review error logs"
+    ],
+    budtender: [
+        "Find products for sleep",
+        "What are the specials today?",
+        "Recommend a hybrid for creativity"
     ]
 };
 
@@ -212,5 +222,9 @@ export const WELCOME_MESSAGES = {
 
     customer: "Welcome! I'm Smokey, your AI budtender. I can help you find products, get recommendations, discover deals nearby, and learn about strains. What are you looking for today?",
 
-    super_admin: "Welcome to Super Admin mode. You have full platform access including system configuration, user management, compliance settings, and analytics across all tenants."
+    super_admin: "Welcome to Super Admin mode. You have full platform access including system configuration, user management, compliance settings, and analytics across all tenants.",
+    
+    super_user: "Welcome Super User. Access restricted to monitoring and basic administration.",
+
+    budtender: "Welcome! I'm here to help you serve customers better. improve product knowledge, and finding the right recommendations."
 };

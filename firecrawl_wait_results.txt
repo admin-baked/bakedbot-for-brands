@@ -1,0 +1,78 @@
+Testing Firecrawl with JavaScript wait...
+URL: https://essexapothecary.com/our-menu
+
+=== Scrape with Wait ===
+??? Scrape successful!
+Markdown length: 11753
+Full content saved to essex_menu_scraped.md
+
+Preview:
+--------------------------------------------------
+[![essex apothecary colored logo](https://essexapothecary.com/sites/sg_essexapothecary3153/uploads/2025/09/Group_8_.webp)](https://essexapothecary.com/)
+
+## ARE YOU 21 OR OVER?
+
+Must be 21+ to enter this site.
+
+[Yes](https://essexapothecary.com/our-menu#yes) [No](https://essexapothecary.com/our-menu#no)
+
+[![small logo of essex apothecary](https://essexapothecary.com/sites/sg_essexapothecary3153/uploads/2025/09/Group_10_.webp)](https://essexapothecary.com/)
+
+- [Home](https://essexapothecary.com/)
+- [About Us](https://essexapothecary.com/about-us)
+- [Menu](https://essexapothecary.com/our-menu)
+- [Contact Us](https://essexapothecary.com/contact-us)
+- [Deals](https://essexapothecary.com/deals)
+- [Blog](https://essexapothecary.com/blog)
+
+- [ORDER NOW](https://essexapothecary.com/our-menu)
+
+[![essex apothecary colored logo](https://essexapothecary.com/sites/sg_essexapothecary3153/uploads/2025/09/Group_8_.webp)](https://essexapothecary.com/)
+
+## ARE YOU 21 OR OVER?
+
+Must be 21+ to enter this site.
+
+[Yes](https://essexapothecary.com/our-menu#yes) [No](https://essexapothecary.com/our-menu#no)
+
+[Skip to main content](https://essexapothecary.com/our-menu#main-inner) [Skip to main content](https://essexapothecary.com/our-menu#site-content)
+
+#### Accessibility Modes
+
+Epilepsy Safe Mode
+
+
+Epilepsy Safe Mode
+
+Dampens color and removes blinks
+
+This mode enables people with epilepsy to use the website safely by eliminating the risk of seizures that result from flashing or blinking animations and risky color combinations.
+
+Visually Impaired Mode
+
+
+Visually Impaired Mode
+
+Improves websites visuals
+
+This mode adjusts the website for the convenience of users with visual impairments such as Degrading Eyesight, Tunnel Vision, Cataract, Glaucoma, and others.
+
+Cognitive Disability Mode
+
+
+Cognitive Disability Mode
+
+Helps to focus on specific content
+
+This mode provides different assistive options to help users with cognitive impairments such as Dyslexia, Autism, CVA, and others, to focus on 
+--------------------------------------------------
+
+Has cannabis product keywords: false
+Price patterns found: 0
+
+=== Check for Embedded Iframes ===
+Iframes found: 1
+Contains "dutchie" reference: true
+Dutchie URLs: []
+
+=== Done ===

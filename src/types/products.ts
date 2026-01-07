@@ -59,6 +59,7 @@ export type Product = {
     cbdPercent?: number; // Quick access
     source?: 'manual' | 'pos' | 'cannmenus' | 'leafly' | 'discovery'; // Data source
     sourceTimestamp?: Date; // Last synced with source
+    strainType?: string;
 };
 
 export type Retailer = {

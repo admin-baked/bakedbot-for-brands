@@ -1,0 +1,184 @@
+Dutchie Plus GraphQL - Schema Discovery
+Store ID: 3af693f9-ee33-43de-9d68-2a8c25881517
+
+=== Customers Query Schema ===
+Status: 200 OK
+Data: {
+  "__type": {
+    "fields": [
+      {
+        "name": "checkout",
+        "type": {
+          "name": "Checkout",
+          "kind": "OBJECT",
+          "ofType": null
+        },
+        "args": [
+          {
+            "name": "retailerId",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "id",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          }
+        ]
+      },
+      {
+        "name": "collection",
+        "type": {
+          "name": "Collection",
+          "kind": "OBJECT",
+          "ofType": null
+        },
+        "args": [
+          {
+            "name": "retailerId",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "slug",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "pagination",
+            "type": {
+              "name": "Pagination",
+              "kind": "INPUT_OBJECT"
+            }
+          },
+          {
+            "name": "ignoreQuantityThresholds",
+            "type": {
+              "name": "Boolean",
+              "kind": "SCALAR"
+            }
+          },
+          {
+            "name": "showOutOfStock",
+            "type": {
+              "name": "Boolean",
+              "kind": "SCALAR"
+            }
+          }
+        ]
+      },
+      {
+        "name": "customers",
+        "type": {
+          "name": null,
+          "kind": "NON_NULL",
+          "ofType": {
+            "name": null,
+            "kind": "LIST"
+          }
+        },
+        "args": [
+          {
+            "name": "retailerId",
+            "type": {
+              "name": null,
+              "kind": "NON_NULL"
+            }
+          },
+          {
+            "name": "filter",
+            "type": {
+              "name": "CustomersFilte
+
+=== Customers (Simple) ===
+Status: 400 Bad Request
+Error: Cannot query field "firstName" on type "Customer".
+
+=== Orders (Simple) ===
+Status: 200 OK
+Error: A valid API key is required to make this request.
+
+=== Checkout Schema ===
+Status: 200 OK
+Data: {
+  "__type": {
+    "fields": [
+      {
+        "name": "address"
+      },
+      {
+        "name": "createdAt"
+      },
+      {
+        "name": "id"
+      },
+      {
+        "name": "items"
+      },
+      {
+        "name": "orderType"
+      },
+      {
+        "name": "priceSummary"
+      },
+      {
+        "name": "pricingType"
+      },
+      {
+        "name": "redirectUrl"
+      },
+      {
+        "name": "updatedAt"
+      }
+    ]
+  }
+}
+
+=== Menu Type Schema ===
+Status: 200 OK
+Data: {
+  "__type": {
+    "fields": [
+      {
+        "name": "brands",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "products",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "productsCount",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "weights",
+        "type": {
+          "name": null
+        }
+      },
+      {
+        "name": "tags",
+        "type": {
+          "name": null
+        }
+      }
+    ]
+  }
+}
+
+=== Done ===

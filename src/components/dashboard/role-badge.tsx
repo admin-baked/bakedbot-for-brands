@@ -34,6 +34,16 @@ const ROLE_CONFIG = {
         label: 'Super Admin',
         icon: Shield,
         color: 'bg-red-500'
+    },
+    super_user: {
+        label: 'Super User',
+        icon: Shield,
+        color: 'bg-blue-600'
+    },
+    budtender: {
+        label: 'Budtender',
+        icon: User,
+        color: 'bg-green-600'
     }
 };
 

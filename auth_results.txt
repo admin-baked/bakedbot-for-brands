@@ -1,0 +1,37 @@
+Testing Dutchie POS API Authentication Combinations
+Endpoint: https://api.pos.dutchie.com/whoami
+
+=== API Key : (empty) ===
+Username: 487c94ca-684...
+Password: (empty)
+Status: 401 Unauthorized
+
+=== API Key : Client ID ===
+Username: 487c94ca-684...
+Password: 7ce3ca6c-ab8...
+Status: 401 Unauthorized
+
+=== Client ID : API Key ===
+Username: 7ce3ca6c-ab8...
+Password: 487c94ca-684...
+Status: 401 Unauthorized
+
+=== Order Ahead Client : Token ===
+Username: DuhGhnVA5nKb...
+Password: 6AnJC-ZcHoxb...
+Status: 401 Unauthorized
+
+=== API Key : Order Ahead Token ===
+Username: 487c94ca-684...
+Password: 6AnJC-ZcHoxb...
+Status: 401 Unauthorized
+
+=== Order Ahead Client : API Key ===
+Username: DuhGhnVA5nKb...
+Password: 487c94ca-684...
+Status: 401 Unauthorized
+
+=== Done ===
+
+If all fail, you may need an "Integrator Key" from Dutchie.
+Contact Dutchie Support to get developer/integrator credentials.

@@ -42,12 +42,12 @@ const DEMO_PRODUCTS: Product[] = [
         description: 'A potent indica strain enforcing relaxation. Known for its earthy tones and heavy effects.',
         price: 45,
         imageUrl: 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&w=400&q=80',
+        imageHint: 'Black market cannabis flower',
         category: 'Flower',
         thcPercent: 28,
         cbdPercent: 0.5,
         strainType: 'Indica',
-        brandId: '40tons',
-        variants: []
+        brandId: '40tons'
     },
     {
         id: '40t-2',
@@ -55,12 +55,12 @@ const DEMO_PRODUCTS: Product[] = [
         description: 'Uplifting sativa dominant strain. Perfect for creativity and advocacy work.',
         price: 55,
         imageUrl: 'https://images.unsplash.com/photo-1556928045-16f7f50be0f3?auto=format&fit=crop&w=400&q=80',
+        imageHint: 'Justice sativa flower',
         category: 'Flower',
         thcPercent: 24,
         cbdPercent: 0.1,
         strainType: 'Sativa',
-        brandId: '40tons',
-        variants: []
+        brandId: '40tons'
     },
     {
         id: '40t-3',
@@ -68,12 +68,12 @@ const DEMO_PRODUCTS: Product[] = [
         description: 'Sweet berry flavored gummies for a balanced hybrid effect. 10mg per piece.',
         price: 25,
         imageUrl: 'https://images.unsplash.com/photo-1581006198904-7a93c4ca3476?auto=format&fit=crop&w=400&q=80',
+        imageHint: 'Freedom gummies berry flavor',
         category: 'Edibles',
         thcPercent: 10,  // mg
         cbdPercent: 0,
         strainType: 'Hybrid',
-        brandId: '40tons',
-        variants: []
+        brandId: '40tons'
     }
 ];
 

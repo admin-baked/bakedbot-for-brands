@@ -1,0 +1,31 @@
+Testing Dutchie POS API (api.pos.dutchie.com)
+API Key: 487c94ca...
+Location: 3af693f9-ee33-43de-9d68-2a8c25881517
+Auth: Basic (API key as username, empty password)
+
+=== Locations ===
+URL: https://api.pos.dutchie.com/v1/locations
+Status: 404 Not Found
+Non-JSON response: 
+
+=== Products ===
+URL: https://api.pos.dutchie.com/v1/inventory/3af693f9-ee33-43de-9d68-2a8c25881517/products
+Status: 404 Not Found
+Non-JSON response: 
+
+=== Inventory ===
+URL: https://api.pos.dutchie.com/v1/inventory/3af693f9-ee33-43de-9d68-2a8c25881517
+Status: 404 Not Found
+Non-JSON response: 
+
+=== Menu ===
+URL: https://api.pos.dutchie.com/v1/menu/3af693f9-ee33-43de-9d68-2a8c25881517
+Status: 404 Not Found
+Non-JSON response: 
+
+=== Categories ===
+URL: https://api.pos.dutchie.com/v1/inventory/3af693f9-ee33-43de-9d68-2a8c25881517/categories
+Status: 404 Not Found
+Non-JSON response: 
+
+=== Done ===

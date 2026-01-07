@@ -1,0 +1,26 @@
+Searching "dispensaries" collection directly for "Essex"...
+FOUND DISPENSARY: 8iE1Qfp6fnevCWhXvrrQTLe4wmt2
+{
+  createdAt: Timestamp { _seconds: 1767300505, _nanoseconds: 143000000 },
+  ownerId: '8iE1Qfp6fnevCWhXvrrQTLe4wmt2',
+  status: 'active',
+  zip: '',
+  address: '',
+  city: '',
+  source: 'scraper',
+  state: '',
+  websiteUrl: 'https://essexapothecary.com/',
+  name: 'Essex Apothecary: Lynn, MA Cannabis Dispensary',
+  linkedAt: Timestamp { _seconds: 1767367779, _nanoseconds: 769000000 },
+  posConfig: {
+    provider: 'dutchie',
+    clientId: '7ce3ca6c-ab87-479f-8a8e-cc713cbc67dd',
+    apiKey: '487c94ca-684f-4237-b3ef-6adb996437f1',
+    orderAheadClientToken: '6AnJC-ZcHoxbIE5IGg1kJFQtyyIDRx2Jz1cpY3eY0fwI8WldMjf6tU-2kyhNQP9s',
+    orderAheadClientId: 'DuhGhnVA5nKbokCDDDtcXO3kdt8VdyzG',
+    storeId: '3af693f9-ee33-43de-9d68-2a8c25881517',
+    updatedAt: Timestamp { _seconds: 1767751206, _nanoseconds: 774000000 }
+  }
+}
+Updating plan to "empire"...
+Plan updated to Empire.

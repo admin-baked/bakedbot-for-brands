@@ -635,16 +635,8 @@ export function PuffChat({
     // --- Persistence Logic ---
 
     // Load sessions on mount
-    useEffect(() => {
-        if (user?.uid) {
-            getChatSessions(user.uid).then(result => {
-                if (result.success && result.sessions) {
-                    // Update store with loaded sessions
-                    useAgentChatStore.getState().hydrateSessions(result.sessions);
-                }
-            });
-        }
-    }, [user]);
+    // Session hydration is now handled by the parent/dashboard layout
+    // to prevent remount loops resulting from store updates.
 
     // Track sessions for persistence
     const sessions = useAgentChatStore(state => state.sessions);

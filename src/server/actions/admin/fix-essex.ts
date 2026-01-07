@@ -3,6 +3,7 @@
 import { initializeApp, cert, getApps, getApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { DutchieClient } from '@/lib/pos/adapters/dutchie';
+import { POSConfig } from '@/lib/pos/types';
 import fs from 'fs';
 import path from 'path';
 
@@ -110,7 +111,7 @@ export async function fixEssexApothecary() {
         log('Updating Dutchie integration credentials...');
         const integrationRef = orgDoc.ref.collection('integrations').doc('dutchie');
         
-        const config = {
+        const config: POSConfig = {
             storeId: '3af693f9-ee33-43de-9d68-2a8c25881517', // Location ID
             apiKey: '487c94ca-684f-4237-b3ef-6adb996437f1',   // API Key
             environment: 'production'

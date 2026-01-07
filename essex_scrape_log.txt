@@ -1,0 +1,52 @@
+node.exe : C:\Users\marte\Baked for Br
+ands\bakedbot-for-brands\dev\scrape_es
+sex_dutchie.ts:7
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpec 
+   ified: (C:\Users\marte\...ex_dutc  
+  hie.ts:7:String) [], RemoteExcept   
+ ion
+    + FullyQualifiedErrorId : NativeC 
+   ommandError
+ 
+const app = new FirecrawlApp({ 
+apiKey: process.env.FIRECRAWL_API_KEY 
+});
+            ^
+
+TypeError: 
+import_firecrawl_js.FirecrawlApp is 
+not a constructor
+    at fs (C:\Users\marte\Baked for Br
+ands\bakedbot-for-brands\dev\scrape_es
+sex_dutchie.ts:7:13)
+    at Object.<anonymous> 
+(C:\Users\marte\Baked for Brands\baked
+bot-for-brands\dev\scrape_essex_dutchi
+e.ts:35:27)
+    at Module._compile (node:internal/
+modules/cjs/loader:1761:14)
+    at Object.transformer 
+(C:\Users\marte\Baked for Brands\baked
+bot-for-brands\node_modules\tsx\dist\r
+egister-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modu
+les/cjs/loader:1481:32)
+    at Module._load (node:internal/mod
+ules/cjs/loader:1300:12)
+    at TracingChannel.traceSync 
+(node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/m
+odules/cjs/loader:245:24)
+    at loadCJSModuleWithModuleLoad (no
+de:internal/modules/esm/translators:33
+6:3)
+    at ModuleWrap.<anonymous> (node:in
+ternal/modules/esm/translators:239:7)
+
+Node.js v24.11.1

@@ -13,6 +13,7 @@ export type Permission =
     | 'manage:agents'
     | 'manage:brand'
     | 'sync:menus'
+    | 'manage:users'
     | 'admin:all';
 
 export type UserRole = 'brand' | 'dispensary' | 'customer' | 'budtender' | 'owner' | 'super_admin' | 'super_user';
@@ -34,6 +35,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
         'manage:agents',
         'manage:brand',
         'sync:menus',
+        'manage:users',
     ],
     dispensary: [
         'read:products',

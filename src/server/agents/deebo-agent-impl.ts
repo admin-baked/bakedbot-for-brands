@@ -83,7 +83,7 @@ export const deeboAgent: AgentImplementation<DeeboMemory, DeeboTools> = {
                 
                 const result = await runMultiStepTask({
                     userQuery,
-                    systemInstructions: agentMemory.system_instructions || '',
+                    systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
                     tools: tools,
                     model: 'claude', // Use Claude for strict compliance logic

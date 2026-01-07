@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Database, Globe, Shield, Mail, Loader2, AlertCircle } from 'lucide-react';
-import type { SetupHealth as SetupHealthType, SetupHealthStatus } from '@/types/agent-workspace';
+import type { SetupHealth as SetupHealthType, SetupHealthStatus, UserRole } from '@/types/agent-workspace';
 import { getSetupHealth } from '@/server/actions/setup-health';
 import { useUserRole } from '@/hooks/use-user-role';
 import { cn } from '@/lib/utils';
@@ -82,7 +82,7 @@ export function SetupHealth({ onActionClick }: SetupHealthProps) {
 
             try {
                 setLoading(true);
-                const data = await getSetupHealth(user.uid, role);
+                const data = await getSetupHealth(user.uid, role as UserRole);
                 setHealth(data);
                 setError(null);
             } catch (err) {
