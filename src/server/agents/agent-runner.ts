@@ -42,30 +42,29 @@ const engine = EvalEngine.getInstance();
 engine.register(new DeeboComplianceEval());
 
 // Claude Tool Calling Integration
+
 import { executeWithTools, isClaudeAvailable } from '@/ai/claude';
 import { getUniversalClaudeTools, createToolExecutor, shouldUseClaudeTools } from '@/server/agents/tools/claude-tools';
+
+
+// Verification Layer (Gauntlet)
+import { Gauntlet } from './verification/gauntlet';
+import { DeeboEvaluator } from './verification/evaluators/deebo-evaluator';
+import { FinancialEvaluator } from './verification/evaluators/financial-evaluator';
+import { StrategyEvaluator } from './verification/evaluators/strategy-evaluator';
+import { TechnicalEvaluator } from './verification/evaluators/technical-evaluator';
+import { VerificationContext } from './verification/types';
+
+import { logger } from '@/lib/logger';
+import { AgentLogEntry } from '@/server/agents/schemas';
 
 
 export interface AgentResult {
     content: string;
     toolCalls?: { id: string; name: string; status: 'success' | 'error' | 'running'; result: string }[];
     toolPerms?: any; // Added for compatibility if needed
-    metadata?: {
-        type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context';
-        data?: any;
-        brandId?: string;
-        brandName?: string;
-        agentName?: string;
-        role?: string;
-        jobId?: string; // Added to metadata
-        evalResults?: any[]; // Compliance eval results
-        media?: {
-            type: string;
-            url: string;
-            prompt?: string;
-        };
-    };
-    logs?: string[];
+    logs?: AgentLogEntry;
+    metadata?: any;
 }
 
 export interface ChatExtraOptions {
@@ -155,14 +154,69 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
         }
     }
 
-    try {
-        const enhancedStimulus = (stimulus || '') + (skillInstructions ? `\n\n=== ENABLED SKILLS ===\n${skillInstructions}` : '');
 
-        const logEntry = await runAgent(brandId, persistence, agentImpl as any, tools, enhancedStimulus);
+    // --- GAUNTLET VERIFICATION LOOP ---
+        
+    // 1. Configure Evaluators
+    // TODO: Move this to a registry if it grows
+    const AGENT_EVALUATORS: Record<string, any[]> = {
+        'deebo': [new DeeboEvaluator()], 
+        'craig': [new DeeboEvaluator()], // Craig is now audited by Deebo
+    };
+
+    const evaluators = AGENT_EVALUATORS[agentName];
+    const MAX_RETRIES = evaluators ? 3 : 1; 
+    let currentStimulus = enhancedStimulus;
+    let attempts = 0;
+
+    while (attempts < MAX_RETRIES) {
+        attempts++;
+        
+        // A. Generate (Run Agent)
+        const logEntry = await runAgent(brandId, persistence, agentImpl as any, tools, currentStimulus);
+        const resultText = logEntry?.result || '';
+        
+        // B. Verify (Run Gauntlet)
+        if (evaluators && evaluators.length > 0) {
+            const gauntlet = new Gauntlet(evaluators);
+            const context: VerificationContext = {
+                agentId: agentName,
+                task: stimulus || 'Unknown Task',
+                originalPrompt: stimulus || '',
+                previousAttempts: attempts - 1
+            };
+
+            const verdict = await gauntlet.run(resultText, context);
+
+            if (verdict.passed) {
+                // Success!
+                return { 
+                    success: true, 
+                    message: resultText, 
+                    log: logEntry 
+                };
+            }
+
+            // Failure - Loop back
+            // If we hit max retries, we return the failure (or the last attempt with a warning)
+            if (attempts >= MAX_RETRIES) {
+                return { 
+                    success: false, 
+                    message: `Agent failed verification after ${attempts} attempts. Last feedback: ${verdict.issues.join('; ')}`,
+                    log: logEntry 
+                };
+            }
+
+            // Add feedback to stimulus for next run
+            currentStimulus = `\n\n[VERIFICATION FEEDBACK]\nYour previous output failed validation:\n${verdict.issueList || verdict.issues.join('\n')}\n\nSuggestion: ${verdict.suggestion}\n\nPlease fix these issues and regenerate the response.`;
+            continue;
+        }
+
+        // No evaluators, just return result
         return { success: true, message: `Ran ${agentName} successfully.`, log: logEntry };
-    } catch (error: any) {
-        return { success: false, message: error.message };
     }
+    
+    return { success: false, message: "Loop terminated unexpectedly." };
 }
 
 /**
