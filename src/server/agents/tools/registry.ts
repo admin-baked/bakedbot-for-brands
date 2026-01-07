@@ -834,6 +834,108 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         },
         category: 'read',
         requiredPermission: 'read:analytics',
+    },
+
+    // ===================================
+    // 9. Firecrawl Discovery Tools
+    // ===================================
+    'firecrawl.search': {
+        name: 'firecrawl.search',
+        description: 'Search the web and extract content from results.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                query: { type: 'string' },
+                limit: { type: 'number' },
+                scrapeContent: { type: 'boolean' }
+            },
+            required: ['query']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+    'firecrawl.batchScrape': {
+        name: 'firecrawl.batchScrape',
+        description: 'Scrape multiple URLs efficiently.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                urls: { type: 'array', items: { type: 'string' } },
+                format: { type: 'string', enum: ['markdown', 'html'] }
+            },
+            required: ['urls']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+    'firecrawl.map': {
+        name: 'firecrawl.map',
+        description: 'Discover all URLs on a website.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                url: { type: 'string' }
+            },
+            required: ['url']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+    'firecrawl.extract': {
+        name: 'firecrawl.extract',
+        description: 'Extract structured data from a page using LLM.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                url: { type: 'string' },
+                fields: { type: 'array', items: { type: 'string' } }
+            },
+            required: ['url', 'fields']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+    'firecrawl.scrapeMenu': {
+        name: 'firecrawl.scrapeMenu',
+        description: 'Scrape a dispensary menu page with automatic age gate bypass.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                url: { type: 'string' },
+                waitMs: { type: 'number' }
+            },
+            required: ['url']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
+    'firecrawl.scrapeWithActions': {
+        name: 'firecrawl.scrapeWithActions',
+        description: 'Scrape a page using custom browser actions (click, wait, scroll).',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                url: { type: 'string' },
+                actions: { 
+                    type: 'array', 
+                    items: {
+                        type: 'object',
+                        properties: {
+                            type: { type: 'string', enum: ['wait', 'click', 'scroll', 'type'] },
+                            selector: { type: 'string' },
+                            milliseconds: { type: 'number' },
+                            direction: { type: 'string', enum: ['up', 'down'] },
+                            amount: { type: 'number' },
+                            text: { type: 'string' }
+                        }
+                    } 
+                },
+                format: { type: 'string', enum: ['markdown', 'html'] }
+            },
+            required: ['url', 'actions']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
     }
 };
 

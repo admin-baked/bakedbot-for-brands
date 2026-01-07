@@ -117,6 +117,23 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                     fact: z.string(),
                     category: z.string().optional()
                 })
+            },
+            {
+                name: "bashExecute",
+                description: "Execute a shell command for development tasks. Security restrictions apply.",
+                schema: z.object({
+                    command: z.string().describe("The shell command to execute"),
+                    cwd: z.string().optional().describe("Working directory"),
+                    timeout: z.number().optional().describe("Timeout in milliseconds")
+                })
+            },
+            {
+                name: "firecrawlScrapeMenu",
+                description: "Scrape a dispensary menu with automatic age gate bypass. Use for cannabis websites.",
+                schema: z.object({
+                    url: z.string().describe("URL of the dispensary menu page"),
+                    waitMs: z.number().optional().describe("Wait time for content to load after age gate")
+                })
             }
         ];
 
@@ -127,7 +144,7 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
             
             const result = await runMultiStepTask({
                 userQuery,
-                systemInstructions: agentMemory.system_instructions || '',
+                systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
                 tools,
                 model: 'googleai/gemini-3-pro-preview', // High-level strategy needs big context

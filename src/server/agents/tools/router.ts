@@ -788,6 +788,8 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
                 'firecrawl.batchScrape': mcpTools.firecrawlBatchScrape,
                 'firecrawl.map': mcpTools.firecrawlMap,
                 'firecrawl.extract': mcpTools.firecrawlExtract,
+                'firecrawl.scrapeMenu': mcpTools.firecrawlScrapeMenu,
+                'firecrawl.scrapeWithActions': mcpTools.firecrawlScrapeWithActions,
             };
 
             const toolImpl = toolMap[def.name];
