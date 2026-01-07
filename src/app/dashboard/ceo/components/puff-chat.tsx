@@ -74,6 +74,7 @@ import { TypewriterText } from '@/components/landing/typewriter-text';
 import { AgentRouterVisualization } from '@/components/chat/agent-router-visualization';
 import { ProjectSelector } from '@/components/chat/project-selector';
 import { HireAgentModal } from '@/components/billing/hire-agent-modal';
+import { AgentResponseCarousel } from '@/components/chat/agent-response-carousel';
 
 // ============ Types ============
 
@@ -2330,73 +2331,81 @@ export function PuffChat({
                                             )}
 
                                             <div className="prose prose-sm max-w-none group relative text-sm leading-relaxed space-y-2">
-                                                {streamingMessageId === message.id ? (
-                                                    <TypewriterText 
-                                                        text={typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2)}
-                                                        speed={15}
-                                                        delay={500}
-                                                        onComplete={() => setStreamingMessageId(null)}
-                                                        className="whitespace-pre-wrap"
-                                                    />
-                                                ) : (
-                                                    <ReactMarkdown 
-                                                        remarkPlugins={[remarkGfm]}
-                                                        components={{
-                                                            p: ({node, ...props}) => <div {...props} />,
-                                                            ul: ({node, ...props}) => <ul className="list-disc list-inside my-2" {...props} />,
-                                                            ol: ({node, ...props}) => <ol className="list-decimal list-inside my-2" {...props} />,
-                                                            li: ({node, ...props}) => <li className="my-1" {...props} />,
-                                                            h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-4 mb-2" {...props} />,
-                                                            h2: ({node, ...props}) => <h2 className="text-base font-bold mt-3 mb-2" {...props} />,
-                                                            h3: ({node, ...props}) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
-                                                            blockquote: ({node, ...props}) => <blockquote className="border-l-2 border-primary/50 pl-4 italic my-2" {...props} />,
-                                                            a: ({node, href, children, ...props}: any) => {
-                                                                if (href?.startsWith('artifact://')) {
-                                                                    const artifactId = href.replace('artifact://', '');
-                                                                    return (
-                                                                        <Button 
-                                                                            variant="outline" 
-                                                                            className="my-2 gap-2 h-auto py-2 px-3 bg-white hover:bg-slate-50 border-emerald-200 text-emerald-800 w-full justify-start"
-                                                                            onClick={(e) => {
-                                                                                e.preventDefault();
-                                                                                setActiveArtifact(artifactId);
-                                                                                setArtifactPanelOpen(true);
-                                                                            }}
-                                                                        >
-                                                                            <div className="bg-emerald-100 p-1.5 rounded-md">
-                                                                               <FileText className="h-4 w-4 text-emerald-600" />
-                                                                            </div>
-                                                                            <div className="flex flex-col items-start text-xs">
-                                                                                <span className="font-semibold">{children}</span>
-                                                                                <span className="text-emerald-600/80">Click to open artifact</span>
-                                                                            </div>
-                                                                        </Button>
-                                                                    );
-                                                                }
-                                                                return <a href={href} className="text-primary underline underline-offset-4" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
-                                                            },
-                                                            code: ({node, inline, className, children, ...props}: any) => {
-                                                                const match = /language-(\w+)/.exec(className || '');
-                                                                if (!inline && match) {
-                                                                    return (
-                                                                        <CodeBlock 
-                                                                            language={match[1]} 
-                                                                            value={String(children).replace(/\n$/, '')} 
-                                                                            className="my-4"
-                                                                        />
-                                                                    );
-                                                                }
-                                                                return (
-                                                                    <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props}>
-                                                                        {children}
-                                                                    </code>
-                                                                );
-                                                            },
-                                                        }}
-                                                    >
-                                                        {typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2)}
-                                                    </ReactMarkdown>
-                                                )}
+                                                    {/* Intelligent Layout: Carousel for Reports vs Typewriter/Markdown for Chat */}
+                                                    {streamingMessageId === message.id ? (
+                                                        <TypewriterText 
+                                                            text={typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2)}
+                                                            speed={15}
+                                                            delay={500}
+                                                            onComplete={() => setStreamingMessageId(null)}
+                                                            className="whitespace-pre-wrap"
+                                                        />
+                                                    ) : (
+                                                        // Check if this is a structured report suitable for Carousel
+                                                        (typeof message.content === 'string' && message.content.length > 300 && (message.content.includes('## ') || message.content.includes('### '))) ? (
+                                                            <div className="w-full -mx-4 sm:mx-0 px-4 sm:px-0"> {/* Negative margin breakout for mobile freshness */}
+                                                                <AgentResponseCarousel content={message.content} />
+                                                            </div>
+                                                        ) : (
+                                                            <ReactMarkdown 
+                                                                remarkPlugins={[remarkGfm]}
+                                                                components={{
+                                                                    p: ({node, ...props}) => <div {...props} />,
+                                                                    ul: ({node, ...props}) => <ul className="list-disc list-inside my-2" {...props} />,
+                                                                    ol: ({node, ...props}) => <ol className="list-decimal list-inside my-2" {...props} />,
+                                                                    li: ({node, ...props}) => <li className="my-1" {...props} />,
+                                                                    h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-4 mb-2" {...props} />,
+                                                                    h2: ({node, ...props}) => <h2 className="text-base font-bold mt-3 mb-2" {...props} />,
+                                                                    h3: ({node, ...props}) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
+                                                                    blockquote: ({node, ...props}) => <blockquote className="border-l-2 border-primary/50 pl-4 italic my-2" {...props} />,
+                                                                    a: ({node, href, children, ...props}: any) => {
+                                                                        if (href?.startsWith('artifact://')) {
+                                                                            const artifactId = href.replace('artifact://', '');
+                                                                            return (
+                                                                                <Button 
+                                                                                    variant="outline" 
+                                                                                    className="my-2 gap-2 h-auto py-2 px-3 bg-white hover:bg-slate-50 border-emerald-200 text-emerald-800 w-full justify-start"
+                                                                                    onClick={(e) => {
+                                                                                        e.preventDefault();
+                                                                                        setActiveArtifact(artifactId);
+                                                                                        setArtifactPanelOpen(true);
+                                                                                    }}
+                                                                                >
+                                                                                    <div className="bg-emerald-100 p-1.5 rounded-md">
+                                                                                        <FileText className="h-4 w-4 text-emerald-600" />
+                                                                                    </div>
+                                                                                    <div className="flex flex-col items-start text-xs">
+                                                                                        <span className="font-semibold">{children}</span>
+                                                                                        <span className="text-emerald-600/80">Click to open artifact</span>
+                                                                                    </div>
+                                                                                </Button>
+                                                                            );
+                                                                        }
+                                                                        return <a href={href} className="text-primary underline underline-offset-4" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>;
+                                                                    },
+                                                                    code: ({node, inline, className, children, ...props}: any) => {
+                                                                        const match = /language-(\w+)/.exec(className || '');
+                                                                        if (!inline && match) {
+                                                                            return (
+                                                                                <CodeBlock 
+                                                                                    language={match[1]} 
+                                                                                    value={String(children).replace(/\n$/, '')} 
+                                                                                    className="my-4"
+                                                                                />
+                                                                            );
+                                                                        }
+                                                                        return (
+                                                                            <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props}>
+                                                                                {children}
+                                                                            </code>
+                                                                        );
+                                                                    },
+                                                                }}
+                                                            >
+                                                                {typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2)}
+                                                            </ReactMarkdown>
+                                                        )
+                                                    )}
                                                 <button
                                                     onClick={() => {
                                                         navigator.clipboard.writeText(message.content);
