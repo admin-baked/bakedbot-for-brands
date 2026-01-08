@@ -6,3 +6,4 @@
 
 export * from './types';
 export { DecisionLogService } from './decision-log';
+export { QueryEngine } from './query-engine';
