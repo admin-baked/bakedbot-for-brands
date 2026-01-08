@@ -18,7 +18,8 @@ export async function createOAuth2Client(): Promise<OAuth2Client> {
         throw new Error('Google OAuth credentials not configured.');
     }
 
-    return new google.auth.OAuth2(clientId, clientSecret, REDIRECT_URI);
+    // Note: Using 'as unknown as' to handle potential library version type mismatches
+    return new google.auth.OAuth2(clientId, clientSecret, REDIRECT_URI) as unknown as OAuth2Client;
 }
 
 /**

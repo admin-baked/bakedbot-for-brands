@@ -17,6 +17,51 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'read',
         requiredPermission: 'read:analytics', // Basic read access
     },
+    'context.askWhy': {
+        name: 'context.askWhy',
+        description: 'Ask the Context Graph why a specific decision was made in the past.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                question: { type: 'string', description: 'E.g., "Why did we discount Sour Diesel?"' }
+            },
+            required: ['question']
+        },
+        category: 'read', // Use 'read' category for queries
+        requiredPermission: 'read:analytics'
+    },
+    'context.logDecision': {
+        name: 'context.logDecision',
+        description: 'Log an important business decision with reasoning.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                decision: { type: 'string' },
+                reasoning: { type: 'string' },
+                category: { 
+                    type: 'string', 
+                    enum: ['pricing', 'marketing', 'compliance', 'operations', 'strategy', 'other'] 
+                }
+            },
+            required: ['decision', 'reasoning', 'category']
+        },
+        category: 'write', // Use 'write' category for logging
+        requiredPermission: 'read:analytics'
+    },
+    'context.getAgentHistory': {
+        name: 'context.getAgentHistory',
+        description: 'Get recent decision history for a specific agent.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                agentId: { type: 'string' },
+                limit: { type: 'number' }
+            },
+            required: ['agentId']
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
     'google.docs.create': {
         name: 'google.docs.create',
         description: 'Create a new Google Doc.',
@@ -126,6 +171,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
             },
             required: ['query']
         },
+        category: 'read',
         requiredPermission: 'read:analytics',
     },
 
@@ -675,21 +721,6 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'write',
         requiredPermission: 'manage:campaigns',
     },
-    'slack.postMessage': {
-        name: 'slack.postMessage',
-        description: 'Posts a message to a Slack channel or DM.',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                channel: { type: 'string', description: 'Channel name or ID' },
-                text: { type: 'string', description: 'Message text' },
-                blocks: { type: 'array', items: { type: 'object', additionalProperties: true }, description: 'Framer/Slack blocks for rich content' }
-            },
-            required: ['channel', 'text']
-        },
-        category: 'write',
-        requiredPermission: 'manage:campaigns',
-    },
     // ===================================
     // 9. Internal CRM Tools (Jack/Admin)
     // ===================================
@@ -925,14 +956,6 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
             required: ['query']
         },
         category: 'read',
-        requiredPermission: 'read:analytics'
-    },
-    // Legacy alias
-    'letta.saveFact': {
-        name: 'letta.saveFact',
-        description: '[Deprecated] Use archival.insert instead.',
-        inputSchema: { type: 'object', properties: { fact: { type: 'string' } } },
-        category: 'write',
         requiredPermission: 'read:analytics'
     },
     'agent.learnSkill': {
@@ -1180,64 +1203,8 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     },
 
     // ===================================
-    // 9. Firecrawl Discovery Tools
+    // 10. Additional Firecrawl Tools
     // ===================================
-    'firecrawl.search': {
-        name: 'firecrawl.search',
-        description: 'Search the web and extract content from results.',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                query: { type: 'string' },
-                limit: { type: 'number' },
-                scrapeContent: { type: 'boolean' }
-            },
-            required: ['query']
-        },
-        category: 'read',
-        requiredPermission: 'read:analytics'
-    },
-    'firecrawl.batchScrape': {
-        name: 'firecrawl.batchScrape',
-        description: 'Scrape multiple URLs efficiently.',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                urls: { type: 'array', items: { type: 'string' } },
-                format: { type: 'string', enum: ['markdown', 'html'] }
-            },
-            required: ['urls']
-        },
-        category: 'read',
-        requiredPermission: 'read:analytics'
-    },
-    'firecrawl.map': {
-        name: 'firecrawl.map',
-        description: 'Discover all URLs on a website.',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                url: { type: 'string' }
-            },
-            required: ['url']
-        },
-        category: 'read',
-        requiredPermission: 'read:analytics'
-    },
-    'firecrawl.extract': {
-        name: 'firecrawl.extract',
-        description: 'Extract structured data from a page using LLM.',
-        inputSchema: {
-            type: 'object',
-            properties: {
-                url: { type: 'string' },
-                fields: { type: 'array', items: { type: 'string' } }
-            },
-            required: ['url', 'fields']
-        },
-        category: 'read',
-        requiredPermission: 'read:analytics'
-    },
     'firecrawl.scrapeMenu': {
         name: 'firecrawl.scrapeMenu',
         description: 'Scrape a dispensary menu page with automatic age gate bypass.',

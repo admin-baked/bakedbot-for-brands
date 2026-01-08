@@ -166,7 +166,7 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
 
     const evaluators = AGENT_EVALUATORS[agentName];
     const MAX_RETRIES = evaluators ? 3 : 1; 
-    let currentStimulus = enhancedStimulus;
+    let currentStimulus = stimulus || '';
     let attempts = 0;
 
     while (attempts < MAX_RETRIES) {
@@ -208,7 +208,7 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
             }
 
             // Add feedback to stimulus for next run
-            currentStimulus = `\n\n[VERIFICATION FEEDBACK]\nYour previous output failed validation:\n${verdict.issueList || verdict.issues.join('\n')}\n\nSuggestion: ${verdict.suggestion}\n\nPlease fix these issues and regenerate the response.`;
+            currentStimulus = `\n\n[VERIFICATION FEEDBACK]\nYour previous output failed validation:\n${verdict.issues.join('\n')}\n\nSuggestion: ${verdict.suggestion}\n\nPlease fix these issues and regenerate the response.`;
             continue;
         }
 

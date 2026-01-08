@@ -34,6 +34,50 @@ These capabilities will rollout to Standard Agents (Brand/Dispensary/Customer) i
 
 ---
 
+## 🧬 Context OS (Decision Lineage Layer)
+**The "Why" Layer**: Context OS captures the reasoning behind every decision, not just the data.
+
+### Core Concept
+| Traditional Systems | Context OS |
+|---------------------|------------|
+| Records **what** happened | Captures **why** it happened |
+| Static data warehouses | Living decision traces |
+| Lost tribal knowledge | Searchable, scalable context |
+| Fragile AI (wrong values) | Grounded AI (policy-aware) |
+
+### Components
+
+| Component | Purpose | Status |
+|-----------|---------|--------|
+| **Decision Log** | Persist every agent decision with inputs, reasoning, and outcome | 🟢 Phase 1 |
+| **Context Query** | Ask "Why did we...?" questions across decision history | 🟡 Phase 2 |
+| **GraphRAG** | Entity-relationship graph for multi-hop reasoning | ⚪ Phase 3 |
+
+### Decision Trace Schema
+```typescript
+interface DecisionTrace {
+  id: string;
+  timestamp: Date;
+  agentId: string;           // Who decided
+  task: string;              // What was asked
+  inputs: Record<string, any>; // Context available
+  reasoning: string;         // Why (from agent)
+  outcome: 'approved' | 'rejected' | 'modified';
+  evaluators: EvaluatorResult[]; // Gauntlet verification
+  linkedDecisions?: string[]; // Related decisions
+  metadata: { brandId?: string; userId?: string; sessionId?: string; };
+}
+```
+
+### Agent Tools
+- `context_ask_why` - Query the decision graph
+- `context_log_decision` - Explicitly log business decisions
+
+### Value Proposition
+> "The winners won't be those with the most data; they'll be those with the best **Context Engineering**."
+
+---
+
 ## 🌟 Strategic North Star: Autonomous Cannabis Commerce
 **Target (Q4 2026):**
 - Every agent runs on 50+ versioned, battle-tested tools.
