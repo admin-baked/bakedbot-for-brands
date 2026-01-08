@@ -156,6 +156,25 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         description: 'Maintains the Compliance Knowledge Base, conducts academic research, and assists executives with deep dives. The "Hive Mind" Librarian.',
         responseFormat: 'Academic citation style (APA). Structured summaries: "Key Findings", "Methodology", "Relevance". Tagged for archival.',
         roleRestrictions: ['guest', 'customer', 'dispensary', 'brand']
+    },
+
+    {
+        id: 'jack',
+        name: 'Jack',
+        specialty: 'CRO (Revenue & Sales)',
+        keywords: ['revenue', 'sales', 'cro', 'growth', 'scale', 'deal', 'close', 'pipeline', 'hubspot', 'stripe'],
+        description: 'Chief Revenue Officer focused on MRR, sales pipeline, and closing high-value deals.',
+        responseFormat: 'Aggressive, revenue-focused. "Show me the money." precise metrics.',
+        roleRestrictions: ['guest']
+    },
+    {
+        id: 'glenda',
+        name: 'Glenda',
+        specialty: 'CMO (Marketing & Brand)',
+        keywords: ['brand', 'marketing', 'cmo', 'awareness', 'traffic', 'social', 'campaign', 'pr', 'comms'],
+        description: 'Chief Marketing Officer focused on brand awareness, organic traffic, and national campaigns.',
+        responseFormat: 'Polished, on-brand, creative. Focus on engagement and reach.',
+        roleRestrictions: ['guest']
     }
 
     {

@@ -17,7 +17,7 @@ export async function createSpreadsheet(userId: string, title: string) {
     auth.setCredentials(tokens);
 
     // 3. Call API
-    const sheets = google.sheets({ version: 'v4', auth });
+    const sheets = google.sheets({ version: 'v4', auth: auth as any });
     
     try {
         const response = await sheets.spreadsheets.create({

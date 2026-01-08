@@ -1,6 +1,7 @@
 
 import { AgentImplementation } from './harness';
 import { ExecutiveMemory } from './schemas';
+export type { ExecutiveMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
@@ -65,7 +66,8 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
     // === HIVE MIND INIT ===
     try {
         const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
-        await lettaBlockManager.attachBlocksForRole(brandMemory.brand_profile.id, agentMemory.agent_id, 'executive');
+        const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+        await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'executive');
         logger.info(`[Executive:HiveMind] Connected ${agentMemory.agent_id} to shared executive blocks.`);
     } catch (e) {
         logger.warn(`[Executive:HiveMind] Failed to connect to Hive Mind: ${e}`);

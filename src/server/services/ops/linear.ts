@@ -49,13 +49,13 @@ export class LinearService {
         if (!this.client) throw new Error('Linear integration not configured');
         
         // Basic filtering or just catch-all
-        const issues = await this.client.issues({ first: 10, orderBy: LinearClient.convertorderBy.UpdatedAt });
+        const issues = await this.client.issues({ first: 10 });
         return issues.nodes.map(i => ({
             id: i.id,
             identifier: i.identifier,
             title: i.title,
             priority: i.priority,
-            status: i.state.then(s => s?.name) // resolving promise for state name if needed, usually async
+            status: i.state ? i.state.then(s => s?.name) : Promise.resolve(undefined)
         }));
     }
 }
