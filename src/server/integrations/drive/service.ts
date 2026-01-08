@@ -18,7 +18,7 @@ export async function uploadFile(userId: string, filename: string, content: stri
     auth.setCredentials(tokens);
 
     // 3. Call API
-    const drive = google.drive({ version: 'v3', auth });
+    const drive = google.drive({ version: 'v3', auth: auth as any });
 
     try {
         const fileMetadata = {

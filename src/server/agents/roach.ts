@@ -32,10 +32,11 @@ export const roachAgent: AgentImplementation<RoachMemory, RoachTools> = {
         // === 1. Hive Mind Attachment ===
         // Roach attaches to 'compliance_context' (Deebo) and 'executive_workspace' (Boardroom)
         // We use the block manager to ensure these exist.
-        if (brandMemory.brandId) {
+        const brandId = (brandMemory as any).brandId || (brandMemory as any).brand_profile?.id;
+        if (brandId) {
              try {
                 // Attach to Deebo's world
-                await lettaBlockManager.attachBlocksForRole(brandMemory.brandId, agentMemory.agent_id, 'compliance_officer'); // Shared with Deebo
+                await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'brand'); // Shared context
                 // Attach to Boardroom
                 // Note: 'executive' role usually implies full access, Roach is a helper.
                 // We might just give him read access or specific blocks later. 

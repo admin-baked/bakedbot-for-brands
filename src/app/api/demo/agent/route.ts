@@ -409,7 +409,8 @@ export async function POST(request: NextRequest) {
         // Inject Real Data context if applicable (e.g. Ezal)
         if (targetAgent === 'ezal' && !actionTakenResponse) {
             const urlMatch = prompt.match(/https?:\/\/[^\s]+/);
-            const locationMatch = prompt.match(/^(\d{5}|[a-zA-Z\s]+,\s?[a-zA-Z]{2})$/);
+            // Match: ZIP code, "City, ST", or plain city name (letters/spaces, 3-30 chars)
+            const locationMatch = prompt.match(/^(\d{5}|[a-zA-Z\s]+,\s?[a-zA-Z]{2}|[a-zA-Z][a-zA-Z\s]{2,29})$/);
             
             // 1. Live BakedBot Discovery Demo (if URL present)
             if (urlMatch) {
