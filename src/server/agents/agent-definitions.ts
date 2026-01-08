@@ -175,8 +175,7 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         description: 'Chief Marketing Officer focused on brand awareness, organic traffic, and national campaigns.',
         responseFormat: 'Polished, on-brand, creative. Focus on engagement and reach.',
         roleRestrictions: ['guest']
-    }
-
+    },
     {
         id: 'jack',
         name: 'Jack',

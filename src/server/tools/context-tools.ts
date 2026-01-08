@@ -23,40 +23,35 @@ export const contextAskWhy = tool({
   outputSchema: z.string(),
 }, async ({ question }) => {
   try {
-    // For Phase 1, we do a simple keyword-based search
-    // Phase 2 will add semantic search with embeddings
+    // Phase 2: Use semantic search with embeddings
+    const { QueryEngine } = await import('../services/context-os/query-engine');
     
-    const recentDecisions = await DecisionLogService.queryDecisions({ limit: 20 });
+    const results = await QueryEngine.semanticSearchDecisions(question, 5, 0.3);
     
-    if (recentDecisions.length === 0) {
-      return "No decision history found. The Context Graph is still learning from agent actions.";
-    }
-    
-    // Simple keyword matching for MVP
-    const keywords = question.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-    
-    const relevantDecisions = recentDecisions.filter(d => {
-      const searchText = `${d.task} ${d.reasoning} ${d.agentId}`.toLowerCase();
-      return keywords.some(k => searchText.includes(k));
-    }).slice(0, 5);
-    
-    if (relevantDecisions.length === 0) {
-      return `I couldn't find specific decisions matching your question. Here are the most recent decisions:\n\n${
+    if (results.length === 0) {
+      // Fallback to recent decisions if no semantic matches
+      const recentDecisions = await DecisionLogService.queryDecisions({ limit: 5 });
+      
+      if (recentDecisions.length === 0) {
+        return "No decision history found. The Context Graph is still learning from agent actions.";
+      }
+      
+      return `No decisions matched your question semantically. Here are the most recent decisions:\n\n${
         recentDecisions.slice(0, 3).map(d => 
           `• [${d.agentId}] ${d.task.substring(0, 100)}... → ${d.outcome}`
         ).join('\n')
       }`;
     }
     
-    const summary = relevantDecisions.map(d => 
-      `**Decision by ${d.agentId}** (${d.timestamp.toLocaleDateString()}):\n` +
-      `- Task: ${d.task.substring(0, 150)}...\n` +
+    const summary = results.map(({ decision: d, similarity }) => 
+      `**Decision by ${d.agentId}** (${d.timestamp.toLocaleDateString()}) [${Math.round(similarity * 100)}% match]:\n` +
+      `- Task: ${d.task.substring(0, 150)}${d.task.length > 150 ? '...' : ''}\n` +
       `- Reasoning: ${d.reasoning}\n` +
       `- Outcome: ${d.outcome}` +
       (d.evaluators?.length ? `\n- Verified by: ${d.evaluators.map(e => e.evaluatorName).join(', ')}` : '')
     ).join('\n\n---\n\n');
     
-    return `Found ${relevantDecisions.length} relevant decisions:\n\n${summary}`;
+    return `Found ${results.length} relevant decisions:\n\n${summary}`;
     
   } catch (error: any) {
     return `Error querying Context Graph: ${error.message}`;
