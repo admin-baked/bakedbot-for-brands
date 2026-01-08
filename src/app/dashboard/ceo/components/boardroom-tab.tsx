@@ -167,7 +167,7 @@ export default function BoardroomTab() {
                             <Badge variant="secondary" className="text-[10px] hidden sm:flex">Universal Delegation Enabled</Badge>
                         </div>
                     </CardHeader>
-                    <CardContent className="flex-1 p-0 overflow-hidden relative">
+                    <CardContent className="flex-1 p-0 overflow-visible relative min-h-0">
                         <DiscoveryBrowserStatus />
                         <Suspense fallback={<div className="p-4 text-center">Loading chat...</div>}>
                             <PuffChat 
