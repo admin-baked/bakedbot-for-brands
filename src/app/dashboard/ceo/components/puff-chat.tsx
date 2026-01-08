@@ -1220,7 +1220,9 @@ export function PuffChat({
         }
 
         const zipRegex = /^\d{5}$/;
-        const isZipOrCity = zipRegex.test(trimmedInput) || (trimmedInput.length > 3 && trimmedInput.length < 20 && !trimmedInput.includes(' ')); // Simple city heuristic
+        // City heuristic: 3-30 chars, letters/spaces only, not a URL or command
+        const isCityName = /^[a-zA-Z\s]{3,30}$/.test(trimmedInput) && !trimmedInput.toLowerCase().includes('http');
+        const isZipOrCity = zipRegex.test(trimmedInput) || isCityName;
         
         // If last message asked for location (We can check if last bot message contains "What City or Zip")
         const lastBotMsg = currentMessages[currentMessages.length - 1];

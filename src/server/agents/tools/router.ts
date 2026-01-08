@@ -778,6 +778,21 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         }
     }
 
+    // --- Context OS Tools ---
+    if (def.name.startsWith('context.')) {
+        const { contextAskWhy, contextLogDecision, contextGetAgentHistory } = await import('@/server/tools/context-tools');
+        
+        if (def.name === 'context.askWhy') {
+            return { status: 'success', data: await contextAskWhy(inputs) };
+        }
+        if (def.name === 'context.logDecision') {
+            return { status: 'success', data: await contextLogDecision(inputs) };
+        }
+        if (def.name === 'context.getAgentHistory') {
+            return { status: 'success', data: await contextGetAgentHistory(inputs) };
+        }
+    }
+
     // --- Firecrawl MCP Tools ---
     if (def.name.startsWith('firecrawl.')) {
         try {
@@ -872,7 +887,7 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         try {
             const { sleepService } = await import('@/server/services/sleep-service');
             if (!request.tenantId) throw new Error('Tenant context required for sleep');
-            const result = await sleepService.runSleepCycle(actor.userId, request.tenantId);
+            const result = await sleepService.runSleepCycle(request.actor.userId, request.tenantId);
             return { status: 'success', data: result };
         } catch (e: any) {
             return { status: 'failed', error: e.message };
@@ -882,7 +897,7 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
     if (def.name === 'agent.mountSkill') {
         try {
             const { learningService } = await import('@/server/services/learning-service');
-            const skillContent = await learningService.loadSkill(actor.userId, inputs.skillName);
+            const skillContent = await learningService.loadSkill(request.actor.userId, inputs.skillName);
             if (!skillContent) return { status: 'failed', error: 'Skill not found' };
             return { status: 'success', data: { skillContent } };
         } catch (e: any) {
@@ -893,7 +908,7 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
     if (def.name === 'agent.learnSkill') {
         try {
             const { learningService } = await import('@/server/services/learning-service');
-            await learningService.saveSkill(actor.userId, inputs.name, inputs.instructions);
+            await learningService.saveSkill(request.actor.userId, inputs.name, inputs.instructions);
             return { status: 'success', data: { message: `Skill '${inputs.name}' saved.` } };
         } catch (e: any) {
             return { status: 'failed', error: e.message };
@@ -905,7 +920,8 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         try {
             // "Tags" logic would go here if SDK supported it directly, for now we prepend to content
             const content = inputs.tags ? `[Tags: ${inputs.tags.join(', ')}] ${inputs.content}` : inputs.content;
-            await lettaClient.insertPassage(actor.userId, content);
+            const { lettaClient } = await import('@/server/services/letta/client');
+            await lettaClient.insertPassage(request.actor.userId, content);
             return { status: 'success', data: { message: 'Saved to archival memory.' } };
         } catch (e: any) {
              return { status: 'failed', error: e.message };
@@ -914,7 +930,8 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
 
     if (def.name === 'archival.search') {
         try {
-            const results = await lettaClient.searchPassages(actor.userId, inputs.query, inputs.limit || 5);
+            const { lettaClient } = await import('@/server/services/letta/client');
+            const results = await lettaClient.searchPassages(request.actor.userId, inputs.query, inputs.limit || 5);
             return { status: 'success', data: { results } };
         } catch (e: any) {
              return { status: 'failed', error: e.message };

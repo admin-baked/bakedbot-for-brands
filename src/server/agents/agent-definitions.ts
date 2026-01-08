@@ -156,7 +156,7 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         description: 'Maintains the Compliance Knowledge Base, conducts academic research, and assists executives with deep dives. The "Hive Mind" Librarian.',
         responseFormat: 'Academic citation style (APA). Structured summaries: "Key Findings", "Methodology", "Relevance". Tagged for archival.',
         roleRestrictions: ['guest', 'customer', 'dispensary', 'brand']
-    }
+    },
 
     {
         id: 'jack',
