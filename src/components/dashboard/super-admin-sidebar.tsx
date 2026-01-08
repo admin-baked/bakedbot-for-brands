@@ -8,6 +8,9 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
     SidebarMenuAction,
+    SidebarMenuSub,
+    SidebarMenuSubItem,
+    SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import {
     Bot,
@@ -44,7 +47,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { InviteUserDialog } from "@/components/invitations/invite-user-dialog";
-import { SidebarMenuSub, SidebarMenuSubItem, SidebarMenuSubButton } from "@/components/ui/sidebar";
 
 export function SuperAdminSidebar() {
     const searchParams = useSearchParams();
@@ -132,7 +134,7 @@ export function SuperAdminSidebar() {
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
- 
+
             {/* Operations Group */}
             <SidebarGroup>
                 <SidebarGroupLabel>Operations</SidebarGroupLabel>
@@ -197,7 +199,7 @@ export function SuperAdminSidebar() {
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
- 
+
             {/* Insights Group */}
             <SidebarGroup>
                 <SidebarGroupLabel>Insights</SidebarGroupLabel>
@@ -219,7 +221,7 @@ export function SuperAdminSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
- 
+
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("ezal")}>
                                 <Link href="/dashboard/ceo?tab=ezal">
@@ -247,14 +249,12 @@ export function SuperAdminSidebar() {
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
- 
- 
+
             {/* Admin Group */}
             <SidebarGroup>
                 <SidebarGroupLabel>Admin</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
-                         {/* ... existing items ... */}
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("tickets")}>
                                 <Link href="/dashboard/ceo?tab=tickets">
@@ -321,7 +321,7 @@ export function SuperAdminSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
- 
+
                          {/* Invite User Dialog Trigger */}
                          <SidebarMenuItem>
                             <InviteUserDialog 
@@ -334,7 +334,7 @@ export function SuperAdminSidebar() {
                                 }
                             />
                         </SidebarMenuItem>
- 
+
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("settings")}>
                                 <Link href="/dashboard/ceo?tab=settings">
@@ -365,5 +365,3 @@ export function SuperAdminSidebar() {
         </>
     );
 }
-
-
