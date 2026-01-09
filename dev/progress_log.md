@@ -1,3 +1,35 @@
+## Session: Restore Desktop Typewriter Text Unfurl
+### Task ID
+typewriter_viewport_aware_rendering
+
+### Summary
+Restored Claude-style typewriter text animation for desktop/laptop/tablet while keeping carousel behavior for mobile. Added "Show more" button for very long responses.
+
+### Key Changes
+*   **MOD**: `src/app/dashboard/ceo/components/puff-chat.tsx`
+    - Added `useIsMobile` hook import for viewport detection
+    - Updated rendering logic with viewport-aware branching:
+      - **Desktop/Tablet**: Typewriter animation when streaming, collapsible for long content
+      - **Mobile**: Carousel for structured content, instant markdown otherwise
+    - Added `CollapsibleContent` helper component with smart truncation and "Show more"/"Show less" buttons
+*   **NEW**: `tests/components/chat/viewport-aware-rendering.test.ts` - 21 unit tests covering:
+    - Viewport detection logic
+    - Content rendering decisions
+    - Mobile vs Desktop behavior
+    - CollapsibleContent breakpoint finding
+
+### Tests Run
+*   `npm test -- tests/components/chat/viewport-aware-rendering.test.ts` (21/21 Passed ✅)
+*   `npm run check:types` (Passed ✅)
+
+### Commits
+*   `1b723a6b`: feat: restore Claude-style typewriter text unfurl for desktop/tablet
+
+### Result: ✅ Complete
+Typewriter text unfurl restored for desktop with "Show more" button for long responses.
+
+---
+
 ## Session: Onboarding Waterfall Data Hydration
 ### Task ID
 onboarding_waterfall_hydration
