@@ -4,122 +4,162 @@
 
 ---
 
+## Quick Reference
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Start local dev server |
+| `npm run check:types` | TypeScript check (production-safe) |
+| `npm test` | Run Jest tests (dev only) |
+| `npm run lint` | ESLint check |
+| `git push origin main` | Deploy via Firebase App Hosting |
+
+---
+
 ## Project Overview
 
-**BakedBot AI** is an "Agentic Commerce OS" for the cannabis industry. It is a multi-agent platform that:
-- Keeps customers in a brand's own funnel
+**BakedBot AI** is an "Agentic Commerce OS" for the cannabis industry:
+- Multi-agent platform keeping customers in brand's funnel
 - Routes orders to retail partners for fulfillment
 - Automates marketing, analytics, compliance, and competitive intelligence
 
 **Tech Stack:**
 - **Framework**: Next.js 15+ (App Router)
-- **Backend/Infra**: Firebase (App Hosting, Functions, Firestore, Auth)
-- **AI Core**: Google Genkit (Gemini) for general flows, Claude (Anthropic SDK) for agentic coding
-- **UI**: Tailwind CSS, ShadCN UI (Radix), Framer Motion
-- **Integrations**: Stripe, Authorize.net, SendGrid, Twilio, CannMenus, Firecrawl
+- **Backend**: Firebase (App Hosting, Firestore, Auth)
+- **AI Core**: Genkit (Gemini), Claude (Anthropic SDK)
+- **UI**: Tailwind CSS, ShadCN UI, Framer Motion
 
 ---
 
-## Project Structure
+## Core Directory Map
 
 ```
-bakedbot-for-brands/
-├── src/
-│   ├── app/                  # Next.js App Router pages
-│   │   ├── api/              # API routes (chat, jobs, webhooks)
-│   │   ├── dashboard/        # Role-based dashboards (ceo, dispensary, brand, customer)
-│   │   └── (marketing)/      # Public marketing pages
-│   ├── components/           # React components (ShadCN + custom)
-│   ├── server/
-│   │   ├── agents/           # Agent definitions (linus.ts, harness.ts, schemas.ts)
-│   │   ├── services/         # Business logic services (letta/, ezal/, rtrvr/)
-│   │   ├── actions/          # Server Actions
-│   │   └── tools/            # Agent tools (letta-memory.ts, etc.)
-│   ├── ai/                   # AI model wrappers (claude.ts, genkit-flows.ts)
-│   ├── config/               # App configuration
-│   └── lib/                  # Utilities (firebase/, store/, logger.ts)
-├── dev/                      # Development context
-│   ├── backlog.json          # Task backlog with status tracking
-│   ├── progress_log.md       # Session-by-session progress notes
-│   └── test_matrix.json      # Test commands by area
-├── tests/                    # Jest unit tests
-├── .agent/                   # Agent memory files (prime.md, CHEATSHEET.md)
-└── apphosting.yaml           # Firebase App Hosting config (secrets)
+src/
+├── app/                     # Next.js pages
+│   ├── api/                 # API routes
+│   ├── dashboard/           # Role-based dashboards
+│   └── (marketing)/         # Public pages
+├── components/              # React components
+├── server/
+│   ├── agents/              # Agent definitions ⭐
+│   ├── services/            # Business logic
+│   │   ├── letta/           # BakedBot Intelligence (memory)
+│   │   ├── rtrvr/           # BakedBot Discovery (browser)
+│   │   └── ezal/            # Competitive intel
+│   ├── actions/             # Server Actions
+│   └── tools/               # Agent tools
+├── ai/                      # AI wrappers (claude.ts)
+└── lib/                     # Utilities
+
+dev/                         # Development context
+├── backlog.json             # Task backlog
+├── progress_log.md          # Session logs
+└── test_matrix.json         # Test commands
+
+.agent/                      # Agent context
+├── prime.md                 # Agent philosophy
+├── refs/                    # Detailed references ⭐
+└── workflows/               # Automation recipes
 ```
+
+> ⭐ = Key integration points for agents
 
 ---
 
 ## Agent Squad
 
-| Agent | Role | File |
-|-------|------|------|
-| **Linus** | AI CTO, Code Eval, Deployment | `src/server/agents/linus.ts` |
-| **Leo** | CEO, Executive Orchestration | `src/app/dashboard/ceo/agents/` |
-| **Mike** | CFO, Revenue & Billing | `src/app/dashboard/ceo/agents/` |
-| **Craig** | CMO, Marketing Automation | `src/app/dashboard/ceo/agents/` |
-| **Smokey** | Budtender, Product Search | `defaultSmokeyTools` |
-| **Deebo** | Compliance Enforcer | Gauntlet evaluators |
-
----
-
-## Common Commands
-
-```bash
-# Development
-npm run dev              # Start local dev server
-npm run check:types      # TypeScript type check (production-safe)
-npm test                 # Run Jest tests (dev only)
-
-# Deployment
-git push origin main     # Triggers Firebase App Hosting auto-deploy
-
-# Health Check (for Linus)
-npm run check:types      # Safe in production (typescript in dependencies)
-cat dev/backlog.json     # Check task status
-```
-
----
-
-## Key Files for Code Tasks
-
-| Purpose | File |
-|---------|------|
-| **Task Backlog** | `dev/backlog.json` |
-| **Progress Log** | `dev/progress_log.md` |
-| **App Secrets** | `apphosting.yaml` |
-| **Claude Wrapper** | `src/ai/claude.ts` |
-| **Linus Agent** | `src/server/agents/linus.ts` |
-| **Agent Harness** | `src/server/agents/harness.ts` |
+| Agent | Role | Domain |
+|-------|------|--------|
+| **Linus** | CTO | Code eval, deployment decisions |
+| **Leo** | COO | Executive orchestration |
+| **Mike** | CFO | Revenue, billing |
+| **Craig** | CMO | Marketing automation |
+| **Smokey** | Budtender | Product search |
+| **Deebo** | Enforcer | Compliance |
+| **Ezal** | Lookout | Competitive intel |
 
 ---
 
 ## Coding Standards
 
-1. **TypeScript Only** — All code must be typed.
-2. **Server Actions** — Use `'use server'` for mutations.
-3. **Firestore Native** — Use `@google-cloud/firestore` (not Firebase client SDK).
-4. **Error Handling** — Always wrap async operations in try/catch.
-5. **Logging** — Use `@/lib/logger` for structured logs.
+1. **TypeScript Only** — All code must be typed
+2. **Server Actions** — Use `'use server'` for mutations
+3. **Firestore Native** — Use `@google-cloud/firestore` (not client SDK)
+4. **Error Handling** — Always wrap async in try/catch
+5. **Logging** — Use `@/lib/logger` for structured logs
+6. **Incremental Changes** — Small commits, frequent tests
+7. **Plan First** — Create implementation plan before coding
 
 ---
 
-## Current Priorities (from dev/backlog.json)
+## Key Files
 
-Check `dev/backlog.json` for the live task list. Common statuses:
-- `pending` — Not started
-- `in_progress` — Being worked on
-- `passing` — Complete and verified
-- `failing` — Needs fix
-
----
-
-## Memory Integration
-
-Linus has access to:
-- **Letta Memory** — Long-term archival via `letta_save_fact`, `letta_search_memory`
-- **Shared Blocks** — Hive Mind with other Executive agents
-- **This File** — Codebase context for orientation
+| Purpose | Path |
+|---------|------|
+| Task Backlog | `dev/backlog.json` |
+| Linus Agent | `src/server/agents/linus.ts` |
+| Claude Wrapper | `src/ai/claude.ts` |
+| Agent Harness | `src/server/agents/harness.ts` |
+| App Secrets | `apphosting.yaml` |
+| Agent Refs | `.agent/refs/` |
 
 ---
 
-*This file is read by Linus and other Claude-based agents to understand the codebase structure and conventions.*
+## Agentic Workflow
+
+1. **Orient** — Read this file and relevant refs
+2. **Plan** — Generate detailed plan, await approval
+3. **Execute** — Implement in small increments
+4. **Test** — Run tests after each change
+5. **Commit** — Commit frequently for easy rollback
+
+### For Complex Tasks
+- Read detailed documentation: `.agent/refs/`
+- Check backlog status: `dev/backlog.json`
+- Run health check: `npm run check:types`
+
+---
+
+## Memory Systems
+
+### BakedBot Intelligence (Letta)
+- `letta_save_fact` — Persist important insights
+- `letta_search_memory` — Query past decisions
+- Shared Blocks — Hive Mind with Executive agents
+
+### BakedBot Discovery
+- Web search, Firecrawl scraping
+- RTRVR browser automation
+- Ezal competitive monitoring
+
+---
+
+## Task Statuses
+
+| Status | Meaning |
+|--------|---------|
+| `pending` | Not started |
+| `in_progress` | Being worked on |
+| `passing` | Complete and verified |
+| `failing` | Needs fix |
+
+---
+
+## Progressive Disclosure
+
+For detailed documentation, see `.agent/refs/`:
+
+| Topic | File |
+|-------|------|
+| BakedBot Intelligence | `refs/bakedbot-intelligence.md` |
+| BakedBot Discovery | `refs/bakedbot-discovery.md` |
+| Agentic Coding | `refs/agentic-coding.md` |
+| API | `refs/api.md` |
+| Backend | `refs/backend.md` |
+| Testing | `refs/testing.md` |
+
+Read these on-demand to avoid context window bloat.
+
+---
+
+*This file is read by Linus and other Claude-based agents to understand the codebase.*
