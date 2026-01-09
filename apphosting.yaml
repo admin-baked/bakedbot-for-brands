@@ -67,10 +67,10 @@ env:
     availability:
       - RUNTIME
   # AI/Tools
-  # - variable: CLAUDE_API_KEY
-  #   secret: CLAUDE_API_KEY
-  #   availability:
-  #     - RUNTIME
+  - variable: CLAUDE_API_KEY
+    secret: CLAUDE_API_KEY
+    availability:
+      - RUNTIME
   - variable: GEMINI_API_KEY
     secret: GEMINI_API_KEY@2
     availability:
