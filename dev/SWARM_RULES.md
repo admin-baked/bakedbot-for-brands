@@ -63,11 +63,14 @@ Only AFTER completing all 4 steps may you proceed to implementation.
 *   Never change a task status to `"passing"` in `backlog.json` unless you have actually ran the command found in `test_matrix.json` and received a success exit code.
 *   If a test fails, the task status is `"failing"`.
 
-## 5. Logging
+## 5. Logging & Work Archive
 *   Every session must end with a log entry in `dev/progress_log.md` summarizing:
     *   Task ID completed.
     *   Tests run (and result).
     *   New tasks created (if any).
+    *   **Reference to work artifact** (if applicable).
+*   **Before changing files**: Query `dev/work_archive/` or use `query_work_history` to understand past work.
+*   **After completing work**: Archive decisions and context to `dev/work_archive/` or use `archive_work`.
 
 ## 6. File Investigation Rules
 *   **Never assume** file contents based on filename alone

@@ -66,6 +66,7 @@ For detailed documentation, see `.agent/refs/`:
 | **Location** | `refs/pages-location.md` | Discovery layer |
 | **Tools** | `refs/tools.md` | Agent tools, Genkit |
 | **Workflows** | `refs/workflows.md` | Playbooks, automation |
+| **Work Archive** | `refs/work-archive.md` | Historical context, artifacts |
 | **Context OS** | `refs/context-os.md` | Decision lineage |
 | **Intuition OS** | `refs/intuition-os.md` | Proactive intelligence |
 | **Intention OS** | `refs/intention-os.md` | Intent parsing |
@@ -104,12 +105,14 @@ git pull origin main --rebase
 3. **Deep Read** — `view_file` each relevant file (NEVER assume)
 4. **Pattern Summary** — Document patterns before implementing
 
-### Fix → Test → Ship Loop
-1. Make change
-2. Run test (`npm test -- <file>.test.ts`)
-3. If fail → analyze + retry (max 3x)
-4. If pass → update backlog + commit
-5. Log progress in `dev/progress_log.md`
+### Fix → Test → Archive → Ship Loop
+1. **Query history** — `query_work_history` before changing files
+2. **Make change** — Implement with context from past work
+3. **Run test** (`npm test -- <file>.test.ts`)
+4. If fail → analyze + retry (max 3x)
+5. If pass → update backlog + commit
+6. **Archive work** — Use `archive_work` or add to `dev/work_archive/`
+7. Log progress in `dev/progress_log.md` with artifact reference
 
 ---
 
@@ -130,6 +133,7 @@ git push origin main
 | Task Backlog | `dev/backlog.json` |
 | Test Commands | `dev/test_matrix.json` |
 | Progress Log | `dev/progress_log.md` |
+| **Work Archive** | `dev/work_archive/` |
 | Swarm Rules | `dev/SWARM_RULES.md` |
 | CLAUDE.md | `CLAUDE.md` (root) |
 | Orchestrator | `.agent/orchestrator.md` |
