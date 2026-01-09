@@ -426,7 +426,8 @@ export function PuffChat({
         currentArtifacts, activeArtifactId, isArtifactPanelOpen,
         addArtifact, setActiveArtifact, setArtifactPanelOpen 
     } = useAgentChatStore();
-    const { user } = useUser(); // Get authenticated user for dynamic email\r\n    const isMobile = useIsMobile(); // Detect mobile for responsive typewriter behavior
+    const { user } = useUser(); // Get authenticated user for dynamic email
+    const isMobile = useIsMobile(); // Detect mobile for responsive typewriter behavior
 
     const [state, setState] = useState<PuffState>({
         title: initialTitle,
