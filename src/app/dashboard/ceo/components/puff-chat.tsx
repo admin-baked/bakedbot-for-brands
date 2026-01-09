@@ -75,6 +75,7 @@ import { AgentRouterVisualization } from '@/components/chat/agent-router-visuali
 import { ProjectSelector } from '@/components/chat/project-selector';
 import { HireAgentModal } from '@/components/billing/hire-agent-modal';
 import { AgentResponseCarousel } from '@/components/chat/agent-response-carousel';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // ============ Types ============
 
@@ -425,7 +426,7 @@ export function PuffChat({
         currentArtifacts, activeArtifactId, isArtifactPanelOpen,
         addArtifact, setActiveArtifact, setArtifactPanelOpen 
     } = useAgentChatStore();
-    const { user } = useUser(); // Get authenticated user for dynamic email
+    const { user } = useUser(); // Get authenticated user for dynamic email\r\n    const isMobile = useIsMobile(); // Detect mobile for responsive typewriter behavior
 
     const [state, setState] = useState<PuffState>({
         title: initialTitle,
@@ -2333,22 +2334,67 @@ export function PuffChat({
                                             )}
 
                                             <div className="prose prose-sm max-w-none group relative text-sm leading-relaxed space-y-2">
-                                                    {/* Intelligent Layout: Carousel for Reports vs Typewriter/Markdown for Chat */}
-                                                    {streamingMessageId === message.id ? (
-                                                        <TypewriterText 
-                                                            text={typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2)}
-                                                            speed={15}
-                                                            delay={500}
-                                                            onComplete={() => setStreamingMessageId(null)}
-                                                            className="whitespace-pre-wrap"
-                                                        />
-                                                    ) : (
-                                                        // Check if this is a structured report suitable for Carousel
-                                                        (typeof message.content === 'string' && message.content.length > 300 && (message.content.includes('## ') || message.content.includes('### '))) ? (
-                                                            <div className="w-full -mx-4 sm:mx-0 px-4 sm:px-0"> {/* Negative margin breakout for mobile freshness */}
-                                                                <AgentResponseCarousel content={message.content} />
-                                                            </div>
-                                                        ) : (
+                                                    {/* Viewport-aware Layout: Typewriter for Desktop, Carousel for Mobile */}
+                                                    {(() => {
+                                                        const contentStr = typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2);
+                                                        const isStreaming = streamingMessageId === message.id;
+                                                        const isLongStructured = contentStr.length > 300 && (contentStr.includes('## ') || contentStr.includes('### '));
+                                                        
+                                                        // MOBILE: Carousel for structured content, instant markdown otherwise
+                                                        if (isMobile) {
+                                                            if (isLongStructured) {
+                                                                return (
+                                                                    <div className="w-full -mx-4 sm:mx-0 px-4 sm:px-0">
+                                                                        <AgentResponseCarousel content={contentStr} />
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            return (
+                                                                <ReactMarkdown 
+                                                                    remarkPlugins={[remarkGfm]}
+                                                                    components={{
+                                                                        p: ({node, ...props}) => <div {...props} />,
+                                                                        ul: ({node, ...props}) => <ul className="list-disc list-inside my-2" {...props} />,
+                                                                        ol: ({node, ...props}) => <ol className="list-decimal list-inside my-2" {...props} />,
+                                                                        li: ({node, ...props}) => <li className="my-1" {...props} />,
+                                                                        h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-4 mb-2" {...props} />,
+                                                                        h2: ({node, ...props}) => <h2 className="text-base font-bold mt-3 mb-2" {...props} />,
+                                                                        h3: ({node, ...props}) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
+                                                                        blockquote: ({node, ...props}) => <blockquote className="border-l-2 border-primary/50 pl-4 italic my-2" {...props} />,
+                                                                        code: ({node, inline, className, children, ...props}: any) => {
+                                                                            const match = /language-(\w+)/.exec(className || '');
+                                                                            if (!inline && match) {
+                                                                                return <CodeBlock language={match[1]} value={String(children).replace(/\n$/, '')} className="my-4" />;
+                                                                            }
+                                                                            return <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props}>{children}</code>;
+                                                                        },
+                                                                    }}
+                                                                >
+                                                                    {contentStr}
+                                                                </ReactMarkdown>
+                                                            );
+                                                        }
+                                                        
+                                                        // DESKTOP/TABLET: Typewriter effect when streaming
+                                                        if (isStreaming) {
+                                                            return (
+                                                                <TypewriterText 
+                                                                    text={contentStr}
+                                                                    speed={15}
+                                                                    delay={500}
+                                                                    onComplete={() => setStreamingMessageId(null)}
+                                                                    className="whitespace-pre-wrap"
+                                                                />
+                                                            );
+                                                        }
+                                                        
+                                                        // DESKTOP/TABLET: Collapsible content for very long responses
+                                                        if (contentStr.length > 2500) {
+                                                            return <CollapsibleContent content={contentStr} />;
+                                                        }
+                                                        
+                                                        // DESKTOP: Standard markdown for normal length content
+                                                        return (
                                                             <ReactMarkdown 
                                                                 remarkPlugins={[remarkGfm]}
                                                                 components={{
@@ -2404,10 +2450,10 @@ export function PuffChat({
                                                                     },
                                                                 }}
                                                             >
-                                                                {typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2)}
+                                                                {contentStr}
                                                             </ReactMarkdown>
-                                                        )
-                                                    )}
+                                                        );
+                                                    })()}
                                                 <button
                                                     onClick={() => {
                                                         navigator.clipboard.writeText(message.content);
@@ -2562,3 +2608,79 @@ function ThinkingIndicator({ level = 'balanced', duration }: { level?: 'fast' | 
         </div>
     );
 }
+
+// Collapsible content for very long desktop responses with "Show more" button
+function CollapsibleContent({ content, initialChars = 1500 }: { content: string; initialChars?: number }) {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const needsExpansion = content.length > initialChars;
+    
+    // Find a good break point (end of a paragraph or sentence)
+    const findBreakPoint = (text: string, targetLength: number): number => {
+        const paragraphBreak = text.lastIndexOf('\n\n', targetLength);
+        if (paragraphBreak > targetLength * 0.8) return paragraphBreak;
+        const sentenceBreak = text.lastIndexOf('. ', targetLength);
+        if (sentenceBreak > targetLength * 0.8) return sentenceBreak + 1;
+        return targetLength;
+    };
+    
+    const breakPoint = findBreakPoint(content, initialChars);
+    const displayContent = isExpanded || !needsExpansion 
+        ? content 
+        : content.slice(0, breakPoint);
+    
+    return (
+        <div>
+            <ReactMarkdown 
+                remarkPlugins={[remarkGfm]}
+                components={{
+                    p: ({node, ...props}) => <div {...props} />,
+                    ul: ({node, ...props}) => <ul className="list-disc list-inside my-2" {...props} />,
+                    ol: ({node, ...props}) => <ol className="list-decimal list-inside my-2" {...props} />,
+                    li: ({node, ...props}) => <li className="my-1" {...props} />,
+                    h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-4 mb-2" {...props} />,
+                    h2: ({node, ...props}) => <h2 className="text-base font-bold mt-3 mb-2" {...props} />,
+                    h3: ({node, ...props}) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
+                    blockquote: ({node, ...props}) => <blockquote className="border-l-2 border-primary/50 pl-4 italic my-2" {...props} />,
+                    code: ({node, inline, className, children, ...props}: any) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        if (!inline && match) {
+                            return <CodeBlock language={match[1]} value={String(children).replace(/\n$/, '')} className="my-4" />;
+                        }
+                        return <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono" {...props}>{children}</code>;
+                    },
+                }}
+            >
+                {displayContent}
+            </ReactMarkdown>
+            
+            {needsExpansion && !isExpanded && (
+                <div className="mt-3 pt-3 border-t border-dashed">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setIsExpanded(true)}
+                        className="text-xs text-muted-foreground hover:text-foreground gap-1"
+                    >
+                        <ChevronDown className="h-3 w-3" />
+                        Show more ({Math.round((content.length - breakPoint) / 100) * 100}+ chars remaining)
+                    </Button>
+                </div>
+            )}
+            
+            {isExpanded && needsExpansion && (
+                <div className="mt-3 pt-3 border-t border-dashed">
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setIsExpanded(false)}
+                        className="text-xs text-muted-foreground hover:text-foreground gap-1"
+                    >
+                        <ChevronUp className="h-3 w-3" />
+                        Show less
+                    </Button>
+                </div>
+            )}
+        </div>
+    );
+}
+
