@@ -255,6 +255,81 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: ['to', 'subject', 'content']
         }
+    },
+    {
+        name: 'archive_work',
+        description: 'Archive a work artifact after completing a coding task. This helps future agents understand what was done and why.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                type: {
+                    type: 'string',
+                    description: 'Type of work: feature, bugfix, refactor, docs, test, chore',
+                    enum: ['feature', 'bugfix', 'refactor', 'docs', 'test', 'chore']
+                },
+                summary: {
+                    type: 'string',
+                    description: 'Brief summary of what was done'
+                },
+                filesChanged: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'List of files that were changed'
+                },
+                reasoning: {
+                    type: 'string',
+                    description: 'Why this change was made'
+                },
+                decisions: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Key decisions made during this work'
+                },
+                dependenciesAffected: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Dependencies that may be affected by this change'
+                },
+                warnings: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Things future developers should watch out for'
+                }
+            },
+            required: ['type', 'summary', 'filesChanged', 'reasoning', 'decisions']
+        }
+    },
+    {
+        name: 'query_work_history',
+        description: 'Query past work on a file or topic BEFORE making changes. Essential for understanding historical context.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                query: {
+                    type: 'string',
+                    description: 'File path or topic to search for (e.g., "linus.ts" or "authentication")'
+                },
+                lookbackDays: {
+                    type: 'number',
+                    description: 'Number of days to look back (default: 30)'
+                }
+            },
+            required: ['query']
+        }
+    },
+    {
+        name: 'archive_recent_commits',
+        description: 'Backfill work archive from recent git commits. Use to catch up on work not yet archived.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                days: {
+                    type: 'number',
+                    description: 'Number of days of commits to archive (default: 7)'
+                }
+            },
+            required: []
+        }
     }
 ];
 
@@ -639,6 +714,88 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
         case 'send_email': {
             // Re-route to Router in real app, stub for now
             return { success: true, message: `[STUB] Email sent to ${input.to}` };
+        }
+
+        case 'archive_work': {
+            const { type, summary, filesChanged, reasoning, decisions, dependenciesAffected, warnings } = input as {
+                type: 'feature' | 'bugfix' | 'refactor' | 'docs' | 'test' | 'chore';
+                summary: string;
+                filesChanged: string[];
+                reasoning: string;
+                decisions: string[];
+                dependenciesAffected?: string[];
+                warnings?: string[];
+            };
+            try {
+                const { archiveWork } = await import('@/server/services/work-archive');
+                const artifact = await archiveWork({
+                    agentId: 'linus',
+                    type,
+                    summary,
+                    filesChanged,
+                    reasoning,
+                    decisions,
+                    dependenciesAffected,
+                    warnings,
+                });
+                return { 
+                    success: true, 
+                    message: `Work archived: ${artifact.id}`,
+                    artifactId: artifact.id,
+                    path: `dev/work_archive/${artifact.id}.json`
+                };
+            } catch (e) {
+                return { success: false, error: (e as Error).message };
+            }
+        }
+
+        case 'query_work_history': {
+            const { query, lookbackDays } = input as { query: string; lookbackDays?: number };
+            try {
+                const { queryWorkHistory } = await import('@/server/services/work-archive');
+                const artifacts = await queryWorkHistory(query, lookbackDays || 30);
+                
+                if (artifacts.length === 0) {
+                    return { 
+                        success: true, 
+                        message: `No work history found for "${query}" in last ${lookbackDays || 30} days.`,
+                        artifacts: []
+                    };
+                }
+                
+                // Return summarized artifacts
+                const summaries = artifacts.map(a => ({
+                    id: a.id,
+                    timestamp: a.timestamp,
+                    summary: a.summary,
+                    files: a.filesChanged,
+                    decisions: a.decisions,
+                    warnings: a.warnings,
+                }));
+                
+                return { 
+                    success: true, 
+                    message: `Found ${artifacts.length} work artifacts for "${query}".`,
+                    artifacts: summaries
+                };
+            } catch (e) {
+                return { success: false, error: (e as Error).message };
+            }
+        }
+
+        case 'archive_recent_commits': {
+            const { days } = input as { days?: number };
+            try {
+                const { archiveRecentCommits } = await import('@/server/services/work-archive');
+                const count = await archiveRecentCommits(days || 7);
+                return { 
+                    success: true, 
+                    message: `Archived ${count} commits from last ${days || 7} days.`,
+                    archivedCount: count
+                };
+            } catch (e) {
+                return { success: false, error: (e as Error).message };
+            }
         }
         
         default:

@@ -1,0 +1,21 @@
+{
+  "lastUpdated": "2026-01-09T16:50:00.000Z",
+  "artifactCount": 1,
+  "artifacts": [
+    {
+      "id": "2026-01-09_agent-context-reorganization-and-work-arch",
+      "timestamp": "2026-01-09T16:50:00.000Z",
+      "summary": "Major reorganization of agent context files and implementation of work archive system",
+      "files": [
+        ".agent/prime.md",
+        ".agent/refs/bakedbot-intelligence.md",
+        ".agent/refs/bakedbot-discovery.md",
+        ".agent/refs/agentic-coding.md",
+        ".agent/refs/work-archive.md",
+        "CLAUDE.md",
+        "src/server/agents/linus.ts",
+        "src/server/services/work-archive.ts"
+      ]
+    }
+  ]
+}
