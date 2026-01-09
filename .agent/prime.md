@@ -50,6 +50,8 @@ For detailed documentation, see `.agent/refs/`:
 
 | Topic | File | Description |
 |-------|------|-------------|
+| **🧠 BakedBot Intelligence** | `refs/bakedbot-intelligence.md` | Letta memory, Hive Mind, archival |
+| **🔍 BakedBot Discovery** | `refs/bakedbot-discovery.md` | Web search, Firecrawl, RTRVR |
 | **API** | `refs/api.md` | Routes, endpoints, patterns |
 | **Backend** | `refs/backend.md` | Services, server actions, Firebase |
 | **Frontend** | `refs/frontend.md` | Components, ShadCN, layouts |
