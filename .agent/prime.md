@@ -97,7 +97,11 @@ For detailed documentation, see `.agent/refs/`:
 ### Before ANY Code Changes
 ```bash
 git pull origin main --rebase
+npm run check:types  # Verify build is healthy
 ```
+
+> **If build is failing**: Fix build errors FIRST before proceeding with new work.
+> Run `npm run check:types` and resolve any errors before making changes.
 
 ### 4-Step Exploration Sequence
 1. **Directory Tree** — `list_dir` on relevant directories
@@ -123,6 +127,12 @@ git pull origin main --rebase
 ```bash
 git push origin main
 ```
+
+### Post-Push Build Verification
+1. Wait 2-3 minutes for Firebase App Hosting build
+2. Check build status in Firebase Console or GitHub Actions
+3. **If build fails**: Fix immediately and push again
+4. Do NOT leave builds in failed state
 
 ---
 

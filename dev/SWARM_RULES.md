@@ -13,9 +13,18 @@ All Agents working in the `dev/` context must adhere to these protocols.
 *   **Fix first, refactor never**: Ship the fix. Refactoring is a separate task (if ever needed).
 
 ## 1. Grid Sync Protocol (Git)
-**CRITICAL**: Before touching ANY code, you must ensure you are on the latest commit.
+**CRITICAL**: Before touching ANY code, you must ensure you are on the latest commit AND build is healthy.
 *   Run: `git pull origin main --rebase`
+*   Run: `npm run check:types` to verify build is passing
+*   **If build is failing**: Fix build errors FIRST before proceeding with new work.
 *   If you encounter conflicts that you cannot easily resolve, stop and notify the user.
+
+### Post-Push Verification
+After pushing changes:
+1. Wait 2-3 minutes for Firebase App Hosting build
+2. Check build status
+3. **If build fails**: Fix immediately and push again
+4. **Do NOT leave builds in failed state**
 
 ## 2. Exploration Sequence Protocol (MANDATORY)
 **CRITICAL**: Never assume or speculate what is inside a file. Always read and investigate fully based on actual file contents.

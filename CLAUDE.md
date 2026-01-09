@@ -108,13 +108,17 @@ dev/                         # Development context
 
 ## Agentic Workflow
 
-1. **Query History** — Use `query_work_history` before changing files
-2. **Orient** — Read this file and relevant refs
-3. **Plan** — Generate detailed plan, await approval
-4. **Execute** — Implement in small increments
-5. **Test** — Run tests after each change
-6. **Archive** — Use `archive_work` to record decisions and context
-7. **Commit** — Commit frequently for easy rollback
+1. **Check Build Status** — Run `npm run check:types` to verify build is healthy
+2. **Query History** — Use `query_work_history` before changing files
+3. **Orient** — Read this file and relevant refs
+4. **Plan** — Generate detailed plan, await approval
+5. **Execute** — Implement in small increments
+6. **Test** — Run tests after each change
+7. **Archive** — Use `archive_work` to record decisions and context
+8. **Commit & Push** — Push to main, verify build passes
+
+> **CRITICAL**: If build is failing, fix it FIRST before new work.
+> After pushing, verify build succeeds. If it fails, fix immediately.
 
 ### For Complex Tasks
 - Read detailed documentation: `.agent/refs/`
