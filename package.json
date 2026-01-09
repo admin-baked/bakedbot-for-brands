@@ -109,7 +109,8 @@
     "uuid": "^13.0.0",
     "ws": "^8.18.3",
     "zod": "^3.25.76",
-    "zustand": "^4.5.7"
+    "zustand": "^4.5.7",
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.0",
@@ -145,7 +146,6 @@
     "ts-jest": "^29.1.5",
     "ts-prune": "^0.10.3",
     "tsup": "^8.5.1",
-    "tsx": "^4.16.2",
-    "typescript": "^5.9.3"
+    "tsx": "^4.16.2"
   }
 }
