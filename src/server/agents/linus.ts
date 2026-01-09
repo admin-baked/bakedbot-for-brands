@@ -546,7 +546,26 @@ export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
         throw new Error('Claude API is required for Linus. Set CLAUDE_API_KEY environment variable.');
     }
     
-    const fullPrompt = `${LINUS_SYSTEM_PROMPT}\n\n---\n\nUser Request: ${request.prompt}`;
+    // Read CLAUDE.md for codebase context (Claude Code convention)
+    let claudeContext = '';
+    try {
+        const claudeMdPath = path.join(PROJECT_ROOT, 'CLAUDE.md');
+        claudeContext = await fs.readFile(claudeMdPath, 'utf-8');
+    } catch {
+        // CLAUDE.md not found, continue without it
+        claudeContext = '(CLAUDE.md not found - operating without codebase context)';
+    }
+    
+    const fullPrompt = `${LINUS_SYSTEM_PROMPT}
+
+---
+
+## CODEBASE CONTEXT (from CLAUDE.md)
+${claudeContext}
+
+---
+
+User Request: ${request.prompt}`;
     
     const result = await executeWithTools(
         fullPrompt,
@@ -557,6 +576,7 @@ export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
             maxIterations: 15 // Allow more iterations for complex coding tasks
         }
     );
+
     
     // Extract decision if present
     const decisionMatch = result.content.match(/MISSION_READY|NEEDS_REVIEW|BLOCKED/);
