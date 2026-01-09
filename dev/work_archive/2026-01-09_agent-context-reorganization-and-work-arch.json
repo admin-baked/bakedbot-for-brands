@@ -1,0 +1,55 @@
+{
+  "id": "2026-01-09_agent-context-reorganization-and-work-arch",
+  "timestamp": "2026-01-09T16:50:00.000Z",
+  "agentId": "human+antigravity",
+  "type": "feature",
+  "filesChanged": [
+    ".agent/prime.md",
+    ".agent/refs/README.md",
+    ".agent/refs/api.md",
+    ".agent/refs/backend.md",
+    ".agent/refs/authentication.md",
+    ".agent/refs/frontend.md",
+    ".agent/refs/onboarding.md",
+    ".agent/refs/context-os.md",
+    ".agent/refs/intuition-os.md",
+    ".agent/refs/intention-os.md",
+    ".agent/refs/super-users.md",
+    ".agent/refs/roles.md",
+    ".agent/refs/pages-dispensary.md",
+    ".agent/refs/pages-brand.md",
+    ".agent/refs/pages-location.md",
+    ".agent/refs/testing.md",
+    ".agent/refs/tools.md",
+    ".agent/refs/workflows.md",
+    ".agent/refs/bakedbot-intelligence.md",
+    ".agent/refs/bakedbot-discovery.md",
+    ".agent/refs/agentic-coding.md",
+    ".agent/refs/work-archive.md",
+    "CLAUDE.md",
+    "src/server/agents/linus.ts",
+    "src/server/services/work-archive.ts"
+  ],
+  "summary": "Major reorganization of agent context files and implementation of work archive system",
+  "reasoning": "To improve agent context management by breaking down prime.md into modular reference files, implementing industry best practices for agentic coding, and creating a work archive system for historical context.",
+  "decisions": [
+    "Use .agent/refs/ for modular reference documentation",
+    "Reduce prime.md from 617 lines to ~155 lines",
+    "BakedBot Intelligence = Letta memory system",
+    "BakedBot Discovery = scraping, browsing, web search tools",
+    "Store work artifacts in dev/work_archive/",
+    "Archive all commits (human + agent)",
+    "Complement progress_log.md with artifact references",
+    "Enhanced Linus 7-layer eval with real checks (TypeScript, deps, security, lint, tests)"
+  ],
+  "dependenciesAffected": [
+    "@/lib/logger",
+    "@/app/dashboard/ceo/agents/default-tools"
+  ],
+  "warnings": [
+    "work-archive.ts uses dynamic imports for Letta memory",
+    "Linus layer evals run real commands - may timeout in low-resource environments",
+    "Path aliases not resolved by standalone tsc - use npm run check:types"
+  ],
+  "testsPassing": true
+}
