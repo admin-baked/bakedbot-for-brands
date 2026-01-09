@@ -97,6 +97,7 @@ dev/                         # Development context
 | Purpose | Path |
 |---------|------|
 | Task Backlog | `dev/backlog.json` |
+| **Work Archive** | `dev/work_archive/` |
 | Linus Agent | `src/server/agents/linus.ts` |
 | Claude Wrapper | `src/ai/claude.ts` |
 | Agent Harness | `src/server/agents/harness.ts` |
@@ -107,14 +108,17 @@ dev/                         # Development context
 
 ## Agentic Workflow
 
-1. **Orient** — Read this file and relevant refs
-2. **Plan** — Generate detailed plan, await approval
-3. **Execute** — Implement in small increments
-4. **Test** — Run tests after each change
-5. **Commit** — Commit frequently for easy rollback
+1. **Query History** — Use `query_work_history` before changing files
+2. **Orient** — Read this file and relevant refs
+3. **Plan** — Generate detailed plan, await approval
+4. **Execute** — Implement in small increments
+5. **Test** — Run tests after each change
+6. **Archive** — Use `archive_work` to record decisions and context
+7. **Commit** — Commit frequently for easy rollback
 
 ### For Complex Tasks
 - Read detailed documentation: `.agent/refs/`
+- Check work history: `dev/work_archive/`
 - Check backlog status: `dev/backlog.json`
 - Run health check: `npm run check:types`
 
@@ -131,6 +135,11 @@ dev/                         # Development context
 - Web search, Firecrawl scraping
 - RTRVR browser automation
 - Ezal competitive monitoring
+
+### Work Archive
+- `archive_work` — Save decisions and context after changes
+- `query_work_history` — Query past work before making changes
+- `dev/work_archive/` — Historical artifacts
 
 ---
 
@@ -154,6 +163,7 @@ For detailed documentation, see `.agent/refs/`:
 | BakedBot Intelligence | `refs/bakedbot-intelligence.md` |
 | BakedBot Discovery | `refs/bakedbot-discovery.md` |
 | Agentic Coding | `refs/agentic-coding.md` |
+| **Work Archive** | `refs/work-archive.md` |
 | API | `refs/api.md` |
 | Backend | `refs/backend.md` |
 | Testing | `refs/testing.md` |
