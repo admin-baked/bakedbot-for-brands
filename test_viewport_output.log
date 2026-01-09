@@ -1,0 +1,83 @@
+﻿
+> nextn@0.1.0 test
+> jest tests/components/chat/viewport-aware-rendering.test.ts
+
+node.exe : FAIL tests/comp
+onents/chat/viewport-aware
+-rendering.test.ts
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (F  
+  AIL tests/comp...nder   
+ ing.test.ts:String) [    
+], RemoteException
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+  ΓùÅ Test suite failed 
+to run
+
+    Cannot find module 
+'vitest' from 'tests/compo
+nents/chat/viewport-aware-
+rendering.test.ts'
+
+    [0m [90m  6 |[39m 
+[36mimport[39m { 
+describe[33m,[39m 
+it[33m,[39m 
+expect[33m,[39m 
+vi[33m,[39m 
+beforeEach[33m,[39m 
+afterEach } 
+[36mfrom[39m [32m'vites
+t'[39m[33m;[39m
+     [90m  7 |[39m
+    
+[31m[1m>[22m[39m[90m 
+ 8 |[39m [90m// Mock 
+the useIsMobile hook[39m
+     [90m    |[39m      
+           
+[31m[1m^[22m[39m
+     [90m  9 |[39m 
+[36mconst[39m 
+mockUseIsMobile 
+[33m=[39m vi[33m.[39mf
+n()[33m;[39m
+     [90m 10 |[39m vi[3
+3m.[39mmock([32m'@/hooks
+/use-mobile'[39m[33m,[3
+9m () [33m=>[39m ({
+     [90m 11 |[39m     
+useIsMobile[33m:[39m () 
+[33m=>[39m 
+mockUseIsMobile()[0m
+
+      at Resolver._throwMo
+dNotFoundError (node_modul
+es/jest-resolve/build/reso
+lver.js:427:11)
+      at 
+Object.<anonymous> (tests/
+components/chat/viewport-a
+ware-rendering.test.ts:8:1
+7)
+
+Test Suites: 1 failed, 1 
+total
+Tests:       0 total
+Snapshots:   0 total
+Time:        2.244 s
+Ran all test suites 
+matching /tests\\component
+s\\chat\\viewport-aware-re
+ndering.test.ts/i.
