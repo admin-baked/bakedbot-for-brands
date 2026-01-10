@@ -145,6 +145,24 @@ export const POST = withProtection(
                          logger.error('Video Generation Error', err instanceof Error ? err : new Error(String(err)));
                          response = "I encountered an error generating the video. Please check the logs.";
                      }
+                } else if (params.action === 'post_social') {
+                    // NEW: Handle Social Posting
+                    try {
+                        const { SocialTools } = await import('@/server/tools/social');
+                        const result = await SocialTools.post(
+                             params.topic || 'Check out our new products!',
+                             params.platforms || ['twitter', 'linkedin']
+                        );
+                        
+                        if (result.success) {
+                            response = `📱 **Social Post Sent**\n\nContent: "${params.topic}"\nPlatforms: ${params.platforms?.join(', ')}\nRef ID: ${result.refId}`;
+                        } else {
+                             response = `❌ **Social Post Failed**\n\nReason: ${result.errors?.join(', ')}`;
+                        }
+                    } catch (err) {
+                        logger.error('Social Post Error', err instanceof Error ? err : new Error(String(err)));
+                        response = "I encountered an error posting to social media.";
+                    }
                 }
 
                 if (userId && currentSessionId) {
@@ -174,6 +192,66 @@ export const POST = withProtection(
                 return NextResponse.json({ ok: true, message: response, products: [], sessionId: currentSessionId });
             }
 
+            // 2.7.5 Handles Scheduling (Felisha)
+            if (analysis.searchType === 'scheduling') {
+                await UsageService.increment(brandId, 'agent_calls');
+                const params = analysis.schedulingParams || {};
+                const { SchedulingTools } = await import('@/server/tools/scheduling');
+                
+                let response = "I'm Felisha. Checking the calendars.";
+                
+                if (params.action === 'check_availability') {
+                    // Default to next 2 days if not specified
+                    const today = new Date();
+                    const nextDay = new Date(today);
+                    nextDay.setDate(today.getDate() + 2);
+                    
+                    const result = await SchedulingTools.checkAvailability(
+                        params.username || 'User',
+                        today.toISOString(),
+                        nextDay.toISOString()
+                    );
+                    
+                    if (result && result.length > 0) {
+                         response = `📅 **Availability Found**\n\nI see ${result.length} slots for ${params.username}:\n\n${result.slice(0,3).map((s: any) => `- ${new Date(s.time).toLocaleString()}`).join('\n')}\n\n[Book First Slot]`;
+                    } else {
+                         response = `📅 **No Availability**\n\nI couldn't find any open slots for ${params.username} in the next 48 hours.`;
+                    }
+                }
+                
+                if (userId && currentSessionId) {
+                    await addMessageToSession(userId, currentSessionId, { role: 'user', content: query });
+                    await addMessageToSession(userId, currentSessionId, { role: 'assistant', content: response });
+                }
+                return NextResponse.json({ ok: true, message: response, products: [], sessionId: currentSessionId });
+            }
+
+            // 2.7.6 Handles SEO (Day Day)
+            if (analysis.searchType === 'seo') {
+                 await UsageService.increment(brandId, 'agent_calls');
+                 const params = analysis.seoParams || {};
+                 const { SeoTools } = await import('@/server/tools/seo');
+                 
+                 let response = "Day Day here. Auditing your growth metrics.";
+                 
+                 if (params.action === 'audit_page' || params.action === 'check_rank') {
+                     const url = params.url || 'https://bakedbot.ai';
+                     const result = await SeoTools.checkRank(url);
+                     
+                     if (result.success) {
+                         response = `🔍 **SEO Audit: ${url}**\n\nScore: **${Math.round(result.score || 0)}/100**\nTop Issue: ${result.topIssue}\n\n[View Full Report]`;
+                     } else {
+                         response = `❌ **Audit Failed**\n\nCould not access ${url}. Error: ${result.error}`;
+                     }
+                 }
+                 
+                 if (userId && currentSessionId) {
+                    await addMessageToSession(userId, currentSessionId, { role: 'user', content: query });
+                    await addMessageToSession(userId, currentSessionId, { role: 'assistant', content: response });
+                }
+                return NextResponse.json({ ok: true, message: response, products: [], sessionId: currentSessionId });
+            }
+
             // 2.8️⃣ Handle Analytics Requests (Pops)
             if (analysis.searchType === 'analytics') {
                 await UsageService.increment(brandId, 'agent_calls');
@@ -192,6 +270,10 @@ export const POST = withProtection(
                 }
                 return NextResponse.json({ ok: true, message: response, products: [], sessionId: currentSessionId });
             }
+
+
+
+
 
             // 3️⃣ Use CannMenusService to fetch products directly
             const cannMenusService = new CannMenusService();

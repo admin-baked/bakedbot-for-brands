@@ -42,6 +42,23 @@
 - **Dispensary Console**: Live data, `retailerId` scoping
 - **Linus**: Now reads `CLAUDE.md` for codebase context
 
+### 🗺️ Codebase Map
+| Domain | Services Path | Tool Wrappers |
+|--------|---------------|---------------|
+| **Agents** | `src/server/agents/` | `src/server/tools/` |
+| **Integrations** | `src/server/services/` | `src/server/tools/` |
+| **Prompts** | `dev/prompt-catalog-*.ts` | N/A |
+| **Notifications** | `src/lib/notifications/` | N/A |
+
+### 🔌 Integration Matrix
+| Service | Primary Agent | Key File | Notes |
+|---------|---------------|----------|-------|
+| **Alpine IQ** | Mrs. Parker/Craig | `alpine-iq.ts` | Loyalty Logic |
+| **Blackleaf** | Craig | `blackleaf-service.ts` | SMS Dispatch |
+| **Headset** | Ezal | `headset.ts` | Market Trends |
+| **CannMenus** | Ezal | `cannmenus.ts` | Live Pricing |
+| **Green Check** | Deebo | `green-check.ts` | Licensing Data |
+
 ---
 
 ## 📚 Reference Index
@@ -89,6 +106,9 @@ For detailed documentation, see `.agent/refs/`:
 | **Linus** | CTO | Code Eval, Claude API |
 | **Glenda** | CMO | Marketing & Funnel |
 | **Mike** | CFO | Finance & Billing |
+| **Day Day** | Growth | SEO & Traffic |
+| **Felisha** | Ops | Scheduling & HR |
+| **Roach** | Librarian | Research & Compliance |
 
 ---
 

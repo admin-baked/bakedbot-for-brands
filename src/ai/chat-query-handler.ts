@@ -7,7 +7,7 @@ import { getSmokeyConfig } from '@/config/super-admin-smokey-config';
 
 // Schema for extracting search parameters from natural language queries
 const QueryAnalysisSchema = z.object({
-    searchType: z.enum(['semantic', 'keyword', 'filtered', 'competitive', 'marketing', 'compliance', 'analytics']).describe('The type of search or action to perform based on the query'),
+    searchType: z.enum(['semantic', 'keyword', 'filtered', 'competitive', 'marketing', 'compliance', 'analytics', 'scheduling', 'seo']).describe('The type of search or action to perform based on the query'),
     filters: z.object({
         priceMin: z.number().optional().describe('Minimum price filter extracted from query'),
         priceMax: z.number().optional().describe('Maximum price filter extracted from query'),
@@ -21,9 +21,10 @@ const QueryAnalysisSchema = z.object({
         targetLocation: z.string().optional().describe('City or state of the competitor'),
     }).optional().describe('Parameters for competitive intelligence actions (Ezal)'),
     marketingParams: z.object({
-        action: z.enum(['create_campaign', 'draft_email', 'segment_users', 'create_video', 'unknown']).optional(),
+        action: z.enum(['create_campaign', 'draft_email', 'segment_users', 'create_video', 'post_social', 'unknown']).optional(),
         topic: z.string().optional().describe('Topic of the campaign, email, or video'),
         audience: z.string().optional().describe('Target audience'),
+        platforms: z.array(z.string()).optional().describe('Social platforms for posting (e.g., twitter, linkedin)'),
     }).optional().describe('Parameters for marketing actions (Craig)'),
     complianceParams: z.object({
         action: z.enum(['check_product', 'audit_page', 'check_regulation']).optional(),
@@ -35,6 +36,15 @@ const QueryAnalysisSchema = z.object({
         metric: z.string().optional().describe('Metric to analyze (e.g., sales, retention)'),
         timeframe: z.string().optional().describe('Timeframe for analysis'),
     }).optional().describe('Parameters for analytics actions (Pops)'),
+    schedulingParams: z.object({
+        action: z.enum(['check_availability', 'book_meeting']).optional(),
+        username: z.string().optional().describe('Person to meet with'),
+        date: z.string().optional().describe('Date or time reference'),
+    }).optional().describe('Parameters for scheduling actions (Felisha)'),
+    seoParams: z.object({
+        action: z.enum(['audit_page', 'check_rank']).optional(),
+        url: z.string().optional().describe('URL to audit'),
+    }).optional().describe('Parameters for SEO actions (Day Day)'),
     searchQuery: z.string().describe('The refined search query to use for product search'),
     intent: z.string().describe('A brief description of what the user is looking for'),
 });
@@ -70,9 +80,11 @@ Extract the following information:
    - "keyword": Simple product name or brand search (e.g., "Blue Dream")
    - "filtered": Query with specific filters like price or category (e.g., "edibles under $20")
    - "competitive": Requests to track competitors, check prices, or get market insights (e.g., "Track Green Dragon", "Who has cheaper gummies?") [Ezal Agent]
-   - "marketing": Requests to create campaigns, emails, SMS, OR VIDEOS (e.g., "Draft a 4/20 email", "Create a video of a cloud") [Craig Agent]
+   - "marketing": Requests to create campaigns, emails, SMS, VIDEOS, or SOCIAL POSTS (e.g., "Draft a 4/20 email", "Tweet about our sale") [Craig Agent]
    - "compliance": Requests to check laws, audit labels, or verify regulations (e.g., "Is 100mg THC legal in CA?", "Check this label") [Deebo Agent]
    - "analytics": Requests for sales data, forecasts, or cohorts (e.g., "Forecast next month's sales", "What is my CLV?") [Pops Agent]
+   - "scheduling": Requests to book meetings or check availability (e.g., "Is Jack free tomorrow?", "Book a sync with Felisha") [Felisha Agent]
+   - "seo": Requests to audit pages or check rank (e.g., "Audit our homepage", "Check SEO score for brand page") [Day Day Agent]
 
 2. **filters** (for product search): Extract any mentioned Price range, Category, Effects, Strain type.
 
@@ -81,28 +93,38 @@ Extract the following information:
    - targetName, targetLocation
 
 4. **marketingParams** (Craig):
-   - action: create_campaign, draft_email, segment_users, create_video
-   - topic (e.g. "summer sale", "smiling cloud"), audience (e.g. "churned users")
+   - action: create_campaign, draft_email, segment_users, create_video, post_social
+   - topic, audience, platforms (array)
 
 5. **complianceParams** (Deebo):
    - action: check_product, audit_page, check_regulation
-   - target (e.g. "packaging"), state (e.g. "California")
+   - target, state
 
 6. **analyticsParams** (Pops):
    - action: forecast_sales, analyze_cohort, get_report
-   - metric (e.g. "sales"), timeframe (e.g. "Q4")
+   - metric, timeframe
 
-7. **searchQuery**: Create a refined search query or summary.
+7. **schedulingParams** (Felisha):
+   - action: check_availability, book_meeting
+   - username, date
 
-8. **intent**: Briefly describe user intent.
+8. **seoParams** (Day Day):
+   - action: audit_page, check_rank
+   - url
+
+9. **searchQuery**: Create a refined search query or summary.
+
+10. **intent**: Briefly describe user intent.
 
 Examples:
 - "Show me uplifting sativa gummies under $25" → searchType: filtered, filters: {priceMax: 25, ...}
 - "Track Green Dragon in Denver" → searchType: competitive, competitiveParams: {action: "track_competitor", ...}
 - "Draft an email about our new concentrates drop" → searchType: marketing, marketingParams: {action: "draft_email", topic: "new concentrates drop"}
-- "Create a video of a smiling cloud" → searchType: marketing, marketingParams: {action: "create_video", topic: "smiling cloud"}
+- "Post to Twitter about our happy hour" → searchType: marketing, marketingParams: {action: "post_social", topic: "happy hour", platforms: ["twitter"]}
 - "Is it legal to sell delta-8 in NY?" → searchType: compliance, complianceParams: {action: "check_regulation", state: "NY"}
 - "Predict sales for next month" → searchType: analytics, analyticsParams: {action: "forecast_sales", timeframe: "next month"}
+- "When is Jack free?" -> searchType: scheduling, schedulingParams: {action: "check_availability", username: "Jack"}
+- "Audit https://bakedbot.ai" -> searchType: seo, seoParams: {action: "audit_page", url: "https://bakedbot.ai"}
 `,
     model: 'googleai/gemini-3-flash-preview',
 });

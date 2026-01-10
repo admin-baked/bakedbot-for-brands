@@ -231,6 +231,119 @@ Would you like a deeper competitive analysis?`,
         shouldAskClarification: false,
         targetAgent: 'pops'
     },
+    // --- Social Media Tools ---
+    {
+        id: 'tool-social-001',
+        role: 'brand',
+        category: 'social_posting',
+        prompt: 'Post about our happy hour to Twitter',
+        expectedBehavior: 'Post to social media via Ayrshare',
+        idealResponsePattern: `📱 **Social Post Sent**
+
+Content: "Happy Hour! Come by for 20% off all edibles from 4-7pm today. 🌿🍬 #CannabisCommunity #HappyHour"
+Platforms: Twitter
+Ref ID: post_12345abcdef
+
+[View Post] [Share to LinkedIn]`,
+        shouldAskClarification: false,
+        targetAgent: 'craig'
+    },
+
+    // --- SEO Tools ---
+    {
+        id: 'tool-seo-001',
+        role: 'brand',
+        category: 'seo_audit',
+        prompt: 'Audit our homepage for SEO performance',
+        expectedBehavior: 'Run PageSpeed Insights audit',
+        idealResponsePattern: `🔍 **SEO Audit: https://bakedbot.ai**
+
+**Score: 92/100** 🟢
+
+Top Issue: **Serve images in next-gen formats** (potential savings: 1.2s)
+
+Core Vitals:
+- LCP: 2.1s (Good)
+- CLS: 0.05 (Good)
+- FID: 12ms (Good)
+
+[View Full Report] [Fix Issues]`,
+        shouldAskClarification: false,
+        targetAgent: 'day_day'
+    },
+
+    // --- Scheduling Tools ---
+    {
+        id: 'tool-scheduling-001',
+        role: 'super_admin',
+        category: 'scheduling',
+        prompt: 'Is Jack free for a sync tomorrow?',
+        expectedBehavior: 'Check Cal.com availability',
+        idealResponsePattern: `📅 **Availability for Jack**
+
+I found **3 open slots** tomorrow (Jan 12):
+- 10:00 AM
+- 1:30 PM
+- 4:00 PM
+
+[Book 10:00 AM] [Check Next Day]`,
+        shouldAskClarification: false,
+        targetAgent: 'felisha'
+    },
+
+    // --- Loyalty Tools (Alpine IQ) ---
+    {
+        id: 'tool-loyalty-001',
+        role: 'dispensary',
+        category: 'loyalty',
+        prompt: 'Check loyalty points for 555-0123',
+        expectedBehavior: 'Check Alpine IQ profile',
+        idealResponsePattern: `💎 **Loyalty Profile: (555) 555-0123**
+
+**Points:** 420
+**Tier:** Platinum
+**Last Visit:** 2 days ago
+
+[Send Reward SMS] [Adjust Points]`,
+        shouldAskClarification: false,
+        targetAgent: 'mrs_parker'
+    },
+
+    // --- Market Intel Tools (Headset) ---
+    {
+        id: 'tool-market-001',
+        role: 'brand',
+        category: 'market_intel',
+        prompt: 'What are the edible trends in California?',
+        expectedBehavior: 'Check Headset category trends',
+        idealResponsePattern: `📈 **Market Trends: Edibles (CA)**
+
+**Growth:** +12.5% YoY
+**Avg Price:** $24.50
+**Top Brand:** Wyld
+
+[Deep Dive] [Compare to IL]`,
+        shouldAskClarification: false,
+        targetAgent: 'ezal'
+    },
+
+    // --- Compliance Tools (Green Check) ---
+    {
+        id: 'tool-compliance-001',
+        role: 'super_admin',
+        category: 'compliance',
+        prompt: 'Verify license C10-0000001-LIC',
+        expectedBehavior: 'Check Green Check license status',
+        idealResponsePattern: `✅ **License Verified: C10-0000001-LIC**
+
+**Status:** Active
+**Last Audit:** 2025-12-15
+**Issues:** None detected.
+
+[View Certificate] [Run Full Audit]`,
+        shouldAskClarification: false,
+        targetAgent: 'deebo'
+    },
 ];
 
 // =============================================================================
@@ -448,7 +561,7 @@ Workers, minorities, and women-owned businesses get:
 
 [Download Full Report] [Save to Drive]`,
         shouldAskClarification: false,
-        targetAgent: 'general'
+        targetAgent: 'roach'
     },
     {
         id: 'research-002',
@@ -517,7 +630,7 @@ Workers, minorities, and women-owned businesses get:
 
 [Download Report] [Email to Team]`,
         shouldAskClarification: false,
-        targetAgent: 'ezal'
+        targetAgent: 'roach'
     },
 ];
 
