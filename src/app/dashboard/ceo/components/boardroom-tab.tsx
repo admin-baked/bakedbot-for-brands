@@ -56,6 +56,11 @@ const EXECUTIVE_TEAM = [
     { id: 'mike_exec', name: 'Mike', role: 'CFO', icon: DollarSign, color: 'bg-amber-100 text-amber-700' },
 ];
 
+const SUPPORT_STAFF = [
+    { id: 'smokey', name: 'Smokey', role: 'Head of Product', icon: Zap, color: 'bg-green-100 text-green-700' },
+    { id: 'pops', name: 'Pops', role: 'Data Analyst', icon: BarChart3, color: 'bg-slate-100 text-slate-700' },
+];
+
 export default function BoardroomTab() {
     const { user } = useUser();
     const [selectedAgent, setSelectedAgent] = useState('leo');
@@ -88,6 +93,7 @@ export default function BoardroomTab() {
                     </div>
                 </div>
 
+                {/* Executive Team */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
                     {EXECUTIVE_TEAM.map((agent) => (
                         <Card 
@@ -105,6 +111,35 @@ export default function BoardroomTab() {
                                 <div className="text-center">
                                     <p className="font-bold text-sm leading-tight">{agent.name}</p>
                                     <p className="text-[10px] uppercase tracking-wider font-semibold opacity-60 leading-tight mt-1">{agent.role}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+
+                {/* Support Staff */}
+                <div className="flex items-center gap-4 mt-2">
+                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest shrink-0">Support Staff</p>
+                     <div className="h-px bg-border flex-1" />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:flex sm:flex-wrap">
+                    {SUPPORT_STAFF.map((agent) => (
+                        <Card 
+                            key={agent.id}
+                            className={cn(
+                                "cursor-pointer transition-all hover:bg-accent/50 active:scale-95 sm:w-48",
+                                selectedAgent === agent.id ? "ring-2 ring-slate-400 ring-offset-1 border-slate-400 shadow-md bg-accent" : "border-border/60"
+                            )}
+                            onClick={() => setSelectedAgent(agent.id)}
+                        >
+                            <CardContent className="flex flex-row items-center p-3 gap-3">
+                                <div className={cn("p-2 rounded-lg shrink-0", agent.color)}>
+                                    <agent.icon className="h-4 w-4" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-semibold text-sm leading-none">{agent.name}</p>
+                                    <p className="text-[10px] text-muted-foreground mt-1 leading-none">{agent.role}</p>
                                 </div>
                             </CardContent>
                         </Card>

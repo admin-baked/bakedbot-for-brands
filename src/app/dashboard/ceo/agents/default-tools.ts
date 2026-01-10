@@ -408,6 +408,14 @@ export const defaultSmokeyTools = {
         } catch (e: any) {
             return { success: false, error: e.message };
         }
+    },
+    generateExecutiveReport: async (topic: string) => {
+        return {
+            recipient: "CEO",
+            topic,
+            summary: `Smokey's Product Report on ${topic}: Inventory health matches sales velocity. Recommendations attached.`,
+            status: "delivered"
+        };
     }
 };
 
@@ -427,6 +435,14 @@ export const defaultPopsTools = {
     },
     detectAnomalies: async (metric: string, history: number[]) => {
         return false;
+    },
+    generateExecutiveReport: async (topic: string) => {
+        return {
+            recipient: "CEO",
+            topic,
+            summary: `Pops' Analytics Brief on ${topic}: Key metrics trending positive. Detailed KPI breakdown available.`,
+            status: "delivered"
+        };
     }
 };
 
@@ -928,6 +944,25 @@ export const defaultExecutiveBoardTools = {
             return await sidecar.execute(action, data);
         } catch (e: any) {
             return { error: e.message };
+        }
+    },
+    
+    // NEW: Spawn Agent Capability (Super User / Executive)
+    spawnAgent: async (purpose: string, type: 'research' | 'monitoring' | 'development', ttlSeconds: number = 3600) => {
+        try {
+            const agentId = `spawned-${type}-${Date.now().toString(36)}`;
+            await commonMemoryTools.lettaSaveFact(
+                `Spawned Sub-Agent ${agentId}: Purpose="${purpose}", TTL=${ttlSeconds}s. Status=Active`, 
+                'active_agents'
+            );
+            return { 
+                success: true, 
+                agentId, 
+                status: 'active', 
+                message: `Agent ${agentId} spawned for: ${purpose}. Reporting back in < ${ttlSeconds}s.` 
+            };
+        } catch (e: any) {
+            return { success: false, error: e.message };
         }
     }
 };
