@@ -83,6 +83,49 @@ export const myTool = defineTool({
 | `context_ask_why` | Query decision history |
 | `context_log_decision` | Log business decision |
 
+### Social Tools (Craig)
+| Tool | Description |
+|------|-------------|
+| `social_post` | Post to Twitter/LinkedIn via Ayrshare |
+| `social_profile` | Get social engagement stats |
+
+### SEO Tools (Day Day)
+| Tool | Description |
+|------|-------------|
+| `seo_audit` | Audit page performance (PageSpeed) |
+| `chk_rank` | Check SEO ranking factors |
+
+### Scheduling Tools (Felisha)
+| Tool | Description |
+|------|-------------|
+| `check_availability` | Check Cal.com slots |
+| `book_meeting` | Book meeting via Cal.com |
+
+### Research Tools (Roach)
+| Tool | Description |
+|------|-------------|
+| `archival_insert` | Save fact to knowledge graph |
+| `archival_search` | Search semantic memory |
+| `research_deep` | Deep web research (Firecrawl) |
+
+### Loyalty & Marketing Tools (Craig/Mrs. Parker)
+| Tool | Description | Status |
+|------|-------------|--------|
+| `loyalty_check_points` | Check Alpine IQ profile | ✅ Live |
+| `loyalty_send_sms` | Send Blackleaf SMS | ✅ Live |
+
+### Market Intel Tools (Ezal)
+| Tool | Description | Status |
+|------|-------------|--------|
+| `market_get_trends` | Headset Category Trends | ⚠️ Mock |
+| `market_competitor_price` | CannMenus Live Price Check | ✅ Live |
+
+### Compliance Tools (Deebo)
+| Tool | Description | Status |
+|------|-------------|--------|
+| `compliance_verify_license` | Green Check Verify | ⚠️ Mock |
+| `compliance_check_banking` | Banking Access Check | ⚠️ Mock |
+
 ---
 
 ## Tool Registry
