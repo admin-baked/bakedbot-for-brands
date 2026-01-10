@@ -190,7 +190,7 @@ export async function queryWorkHistory(query: string, lookbackDays: number = 30)
                 artifacts.push(artifact);
             }
         } catch (e) {
-            logger.warn(`[WorkArchive] Could not read ${file}:`, e);
+            logger.warn(`[WorkArchive] Could not read ${file}: ${(e as Error).message}`);
         }
     }
     
@@ -284,7 +284,7 @@ export async function archiveFromCommit(commitHash?: string): Promise<WorkArtifa
             decisions: [],
         });
     } catch (e) {
-        logger.error('[WorkArchive] Failed to archive from commit:', e);
+        logger.error(`[WorkArchive] Failed to archive from commit: ${(e as Error).message}`);
         return null;
     }
 }
@@ -310,7 +310,7 @@ export async function archiveRecentCommits(days: number = 7): Promise<number> {
         logger.info(`[WorkArchive] Archived ${archived} commits from last ${days} days`);
         return archived;
     } catch (e) {
-        logger.error('[WorkArchive] Failed to archive recent commits:', e);
+        logger.error(`[WorkArchive] Failed to archive recent commits: ${(e as Error).message}`);
         return 0;
     }
 }

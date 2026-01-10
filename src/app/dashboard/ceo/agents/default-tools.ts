@@ -271,10 +271,10 @@ const commonDigitalWorkerTools = {
 
     // Email Verification (QuickEmailVerification)
     // Available to: Super Users, Brands, Dispensaries
-    verifyEmail: async (email: string) => {
+    verifyEmail: async (email: string, apiKey?: string) => {
         try {
             const { verifyEmail, getEmailQualityScore } = await import('@/server/services/email-verification');
-            const result = await verifyEmail(email);
+            const result = await verifyEmail({ email, apiKey });
             const qualityScore = getEmailQualityScore(result);
             return {
                 ...result,
@@ -292,10 +292,10 @@ const commonDigitalWorkerTools = {
         }
     },
 
-    verifyEmailBatch: async (emails: string[]) => {
+    verifyEmailBatch: async (emails: string[], apiKey?: string) => {
         try {
             const { verifyEmails, getEmailQualityScore } = await import('@/server/services/email-verification');
-            const results = await verifyEmails(emails);
+            const results = await verifyEmails(emails, apiKey);
             return {
                 success: true,
                 total: results.length,
