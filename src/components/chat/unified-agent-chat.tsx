@@ -13,6 +13,7 @@
  */
 
 import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
+import { useEffect } from 'react';
 import { getChatConfigForRole, type UserRoleForChat, type RoleChatConfig } from '@/lib/chat/role-chat-config';
 import { cn } from '@/lib/utils';
 import { useAgentChatStore } from '@/lib/store/agent-chat-store';
@@ -135,6 +136,15 @@ export function UnifiedAgentChat({
     // Icon and theme
     const Icon = ICON_MAP[config.iconName] || Sparkles;
     const theme = THEME_COLORS[config.themeColor] || THEME_COLORS.emerald;
+
+    // Critical Security: Force clear session on mount for public/demo roles
+    // This prevents "chat leaks" from privileged dashboards (Super User/Brand) 
+    // from appearing on the public homepage.
+    useEffect(() => {
+        if (role === 'public') {
+            useAgentChatStore.getState().clearCurrentSession();
+        }
+    }, [role]);
 
     return (
         <div className={cn(

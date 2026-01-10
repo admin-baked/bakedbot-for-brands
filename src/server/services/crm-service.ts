@@ -393,8 +393,8 @@ export async function getPlatformLeads(filters: CRMFilters = {}): Promise<CRMLea
 export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUser[]> {
     const firestore = getAdminFirestore();
     let query = firestore
-        .collection('users')
-        .orderBy('createdAt', 'desc');
+        .collection('users');
+        // .orderBy('createdAt', 'desc'); // REMOVED: Excludes users without createdAt
 
     if (filters.limit) {
         query = query.limit(filters.limit);
@@ -434,7 +434,7 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
             photoUrl: data.photoURL || data.photoUrl || null,
             accountType,
             lifecycleStage,
-            signupAt: data.createdAt?.toDate?.() || new Date(),
+            signupAt: data.createdAt?.toDate?.() || new Date(0), // Default to old date if missing
             lastLoginAt: data.lastLoginAt?.toDate?.() || null,
             plan: data.plan || data.subscription?.plan || 'free',
             mrr: data.mrr || 0, // Will be enriched from Authorize.net
@@ -458,6 +458,14 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
             (u.orgName?.toLowerCase().includes(search) ?? false)
         );
     }
+
+    // Sort by signupAt desc (Newest first)
+    // Handle nulls by pushing them to the end or treating as old
+    users.sort((a, b) => {
+        const timeA = a.signupAt ? new Date(a.signupAt).getTime() : 0;
+        const timeB = b.signupAt ? new Date(b.signupAt).getTime() : 0;
+        return timeB - timeA;
+    });
 
     return users;
 }
