@@ -2,9 +2,12 @@
  * QuickEmailVerification Service
  * 
  * Real-time email verification to improve deliverability and reduce bounces.
- * Available to: Super Users, Brands, Dispensaries
  * 
- * API Docs: https://quickemailverification.com/docs/api/
+ * Access Levels:
+ * - Super Users: Use system-level API key (QUICKEMAILVERIFICATION_API_KEY env var)
+ * - Brands/Dispensaries: Must provide their own API key (stored in tenant config)
+ * 
+ * API Docs: https://quickemailverification.com/email-verification-api
  */
 
 import { logger } from '@/lib/logger';
@@ -25,11 +28,26 @@ export interface EmailVerificationResult {
     message?: string;
 }
 
+export interface VerifyEmailOptions {
+    email: string;
+    apiKey?: string; // Tenant-specific API key (for brands/dispensaries)
+}
+
 /**
- * Verify a single email address
+ * Verify a single email address.
+ * 
+ * @param options.email - Email address to verify
+ * @param options.apiKey - Optional tenant-specific API key. If not provided, 
+ *                         falls back to system key (Super User only)
  */
-export async function verifyEmail(email: string): Promise<EmailVerificationResult> {
-    const apiKey = process.env.QUICKEMAILVERIFICATION_API_KEY;
+export async function verifyEmail(options: VerifyEmailOptions | string): Promise<EmailVerificationResult> {
+    // Support both old signature (string) and new signature (options object)
+    const { email, apiKey: tenantApiKey } = typeof options === 'string' 
+        ? { email: options, apiKey: undefined } 
+        : options;
+    
+    // Use tenant key if provided, otherwise fall back to system key
+    const apiKey = tenantApiKey || process.env.QUICKEMAILVERIFICATION_API_KEY;
     
     if (!apiKey) {
         logger.warn('[EmailVerification] No API key configured');
@@ -93,14 +111,16 @@ export async function verifyEmail(email: string): Promise<EmailVerificationResul
 
 /**
  * Verify multiple emails (batch)
+ * @param emails - Array of email addresses to verify
+ * @param apiKey - Optional tenant-specific API key
  */
-export async function verifyEmails(emails: string[]): Promise<EmailVerificationResult[]> {
+export async function verifyEmails(emails: string[], apiKey?: string): Promise<EmailVerificationResult[]> {
     // QuickEmailVerification supports batch via file upload, but for simplicity
     // we'll do sequential verification with rate limiting
     const results: EmailVerificationResult[] = [];
     
     for (const email of emails.slice(0, 50)) { // Limit to 50 per call
-        const result = await verifyEmail(email);
+        const result = await verifyEmail({ email, apiKey });
         results.push(result);
         
         // Small delay to respect rate limits
