@@ -267,6 +267,51 @@ const commonDigitalWorkerTools = {
         } catch (e: any) {
             return { success: false, error: e.message };
         }
+    },
+
+    // Email Verification (QuickEmailVerification)
+    // Available to: Super Users, Brands, Dispensaries
+    verifyEmail: async (email: string) => {
+        try {
+            const { verifyEmail, getEmailQualityScore } = await import('@/server/services/email-verification');
+            const result = await verifyEmail(email);
+            const qualityScore = getEmailQualityScore(result);
+            return {
+                ...result,
+                qualityScore,
+                recommendation: result.safe_to_send 
+                    ? 'Safe to send' 
+                    : result.disposable 
+                        ? 'Disposable email - do not send' 
+                        : result.result === 'invalid' 
+                            ? 'Invalid email - do not send'
+                            : 'Proceed with caution'
+            };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    },
+
+    verifyEmailBatch: async (emails: string[]) => {
+        try {
+            const { verifyEmails, getEmailQualityScore } = await import('@/server/services/email-verification');
+            const results = await verifyEmails(emails);
+            return {
+                success: true,
+                total: results.length,
+                safe: results.filter(r => r.safe_to_send).length,
+                invalid: results.filter(r => r.result === 'invalid').length,
+                disposable: results.filter(r => r.disposable).length,
+                results: results.map(r => ({
+                    email: r.email,
+                    result: r.result,
+                    safe_to_send: r.safe_to_send,
+                    qualityScore: getEmailQualityScore(r)
+                }))
+            };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
     }
 };
 

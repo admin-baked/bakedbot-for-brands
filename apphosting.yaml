@@ -169,6 +169,11 @@ env:
     secret: LETTA_API_KEY@1
     availability:
       - RUNTIME
+  # Email Verification
+  - variable: QUICKEMAILVERIFICATION_API_KEY
+    secret: QUICKEMAILVERIFICATION_API_KEY
+    availability:
+      - RUNTIME
 
 build:
   installCommand: npm install --legacy-peer-deps
