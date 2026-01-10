@@ -1,3 +1,46 @@
+## Session: Fix Infinite Agent Handoff Loop & Secure Executive Boardroom
+### Task ID
+fix_infinite_handoff_loop_and_security
+
+### Summary
+Fixed an infinite loop where the system repeatedly handed off to the Linus agent when processing queries like "System health check". Additionally, hardened Executive Boardroom security to enforce role-based access control.
+
+### Root Cause (Loop)
+- In `actions.ts`, Linus was mapped to `executiveAgent` (generic Gemini-based)
+- The `executiveAgent` could call `delegateTask` → `runAgentChat` → routing → causing a loop
+- Linus should use `linusAgent` (Claude-based) with its own iteration limits
+
+### Key Changes
+*   **MOD**: `src/app/dashboard/ceo/agents/actions.ts`:
+    - Added import for `linusAgent` from `@/server/agents/linus`
+    - Changed `AGENT_MAP.linus` from `executiveAgent` to `linusAgent`
+*   **MOD**: `src/server/agents/agent-definitions.ts`:
+    - Updated Jack (CRO) roleRestrictions: `['guest']` → `['guest', 'customer', 'dispensary', 'brand']`
+    - Updated Glenda (CMO) roleRestrictions: `['guest']` → `['guest', 'customer', 'dispensary', 'brand']`
+*   **MOD**: `src/server/agents/agent-runner.ts`:
+    - Added import for `canRoleAccessAgent` from agent-definitions
+    - Added role access check before specialized agent handoff
+    - Added security logging for blocked access attempts
+
+### Security Summary
+| Agent | Access |
+|-------|--------|
+| Leo, Linus, Mike, Roach, Jack, Glenda | Super Users Only |
+| Smokey, Craig, Pops, Ezal, etc. | Based on individual restrictions |
+
+### Tests Run
+*   `npm run check:types` (Passed ✅)
+*   `npx jest tests/server/agents/repro_loop.test.ts` (2/2 Passed ✅)
+
+### Related Docs
+*   `.agent/prime.md` - Agent architecture reference
+*   `.agent/refs/super-users.md` - Executive Boardroom protocol
+
+### Result: ✅ Fixed & Secured
+Linus now correctly uses Claude API and doesn't cause infinite delegation loops. Executive Boardroom agents are now properly restricted to Super Users only, with backend enforcement.
+
+---
+
 ## Session: Restore Desktop Typewriter Text Unfurl
 ### Task ID
 typewriter_viewport_aware_rendering

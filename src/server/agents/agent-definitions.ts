@@ -164,7 +164,7 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         keywords: ['revenue', 'sales', 'cro', 'growth', 'scale', 'deal', 'close', 'pipeline', 'hubspot', 'stripe'],
         description: 'Chief Revenue Officer focused on MRR, sales pipeline, and closing high-value deals.',
         responseFormat: 'Aggressive, revenue-focused. "Show me the money." precise metrics.',
-        roleRestrictions: ['guest']
+        roleRestrictions: ['guest', 'customer', 'dispensary', 'brand']
     },
     {
         id: 'glenda',
@@ -173,7 +173,7 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         keywords: ['brand', 'marketing', 'cmo', 'awareness', 'traffic', 'social', 'campaign', 'pr', 'comms'],
         description: 'Chief Marketing Officer focused on brand awareness, organic traffic, and national campaigns.',
         responseFormat: 'Polished, on-brand, creative. Focus on engagement and reach.',
-        roleRestrictions: ['guest']
+        roleRestrictions: ['guest', 'customer', 'dispensary', 'brand']
     }
 ];
 

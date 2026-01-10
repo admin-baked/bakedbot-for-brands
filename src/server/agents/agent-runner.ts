@@ -511,7 +511,7 @@ export async function runAgentCore(
 
         // Lazy load for performance
         const { routeToAgent } = await import('@/server/agents/agent-router');
-        const { AGENT_CAPABILITIES } = await import('@/server/agents/agent-definitions');
+        const { AGENT_CAPABILITIES, canRoleAccessAgent } = await import('@/server/agents/agent-definitions');
         const { getKnowledgeBasesAction, searchKnowledgeBaseAction } = await import('@/server/actions/knowledge-base');
 
         await emitThought(jobId, 'Routing', 'Determining best agent for task...');
@@ -694,7 +694,10 @@ export async function runAgentCore(
         }
 
         // 3. Specialized Agents (only for non-media requests)
-        if (agentInfo && routing.confidence > 0.6 && agentInfo.id !== 'general' && agentInfo.id !== 'puff') {
+        // SECURITY: Check role restrictions before handoff
+        const canAccessAgent = agentInfo ? canRoleAccessAgent(role, agentInfo.id as any) : false;
+        
+        if (agentInfo && routing.confidence > 0.6 && agentInfo.id !== 'general' && agentInfo.id !== 'puff' && canAccessAgent) {
             try {
                 await emitThought(jobId, 'Handing off', `Transferring control to specialized agent: ${agentInfo.name}`);
                 const res = await triggerAgentRun(agentInfo.id, userMessage, userBrandId);
@@ -706,6 +709,9 @@ export async function runAgentCore(
                 });
                 return { content: res.log?.result || res.message, toolCalls: executedTools };
             } catch (e) {}
+        } else if (agentInfo && !canAccessAgent && agentInfo.id !== 'general' && agentInfo.id !== 'puff') {
+            // Log blocked access attempt for security auditing
+            console.warn(`[Security] Role '${role}' attempted to access restricted agent '${agentInfo.id}'`);
         }
 
         // 3. Web Search (Explicit Triggers Only)
