@@ -7,6 +7,7 @@ import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { makeProductRepo } from '@/server/repos/productRepo';
+import { superUserTools } from '@/app/dashboard/ceo/agents/super-user-tools-impl';
 
 // Wrapper to avoid cirular dependency issues if any
 // but these tools mostly depend on external services or leaf nodes.
@@ -410,12 +411,7 @@ export const defaultSmokeyTools = {
         }
     },
     generateExecutiveReport: async (topic: string) => {
-        return {
-            recipient: "CEO",
-            topic,
-            summary: `Smokey's Product Report on ${topic}: Inventory health matches sales velocity. Recommendations attached.`,
-            status: "delivered"
-        };
+        return await superUserTools.generateExecutiveReport(topic, 'Smokey');
     }
 };
 
@@ -437,12 +433,7 @@ export const defaultPopsTools = {
         return false;
     },
     generateExecutiveReport: async (topic: string) => {
-        return {
-            recipient: "CEO",
-            topic,
-            summary: `Pops' Analytics Brief on ${topic}: Key metrics trending positive. Detailed KPI breakdown available.`,
-            status: "delivered"
-        };
+        return await superUserTools.generateExecutiveReport(topic, 'Pops');
     }
 };
 
@@ -948,23 +939,7 @@ export const defaultExecutiveBoardTools = {
     },
     
     // NEW: Spawn Agent Capability (Super User / Executive)
-    spawnAgent: async (purpose: string, type: 'research' | 'monitoring' | 'development', ttlSeconds: number = 3600) => {
-        try {
-            const agentId = `spawned-${type}-${Date.now().toString(36)}`;
-            await commonMemoryTools.lettaSaveFact(
-                `Spawned Sub-Agent ${agentId}: Purpose="${purpose}", TTL=${ttlSeconds}s. Status=Active`, 
-                'active_agents'
-            );
-            return { 
-                success: true, 
-                agentId, 
-                status: 'active', 
-                message: `Agent ${agentId} spawned for: ${purpose}. Reporting back in < ${ttlSeconds}s.` 
-            };
-        } catch (e: any) {
-            return { success: false, error: e.message };
-        }
-    }
+    spawnAgent: superUserTools.spawnAgent
 };
 
 // Export common tools for direct use in agents
