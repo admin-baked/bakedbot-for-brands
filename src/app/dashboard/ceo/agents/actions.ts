@@ -34,6 +34,7 @@ import { analyzeQuery } from '@/ai/chat-query-handler';
 
 import { deeboAgent } from '@/server/agents/deebo-agent-impl';
 import { bigWormAgent } from '@/server/agents/bigworm';
+import { linusAgent } from '@/server/agents/linus';
 
 const AGENT_MAP = {
     craig: craigAgent,
@@ -46,7 +47,7 @@ const AGENT_MAP = {
     bigworm: bigWormAgent,
     leo: executiveAgent,
     jack: executiveAgent,
-    linus: executiveAgent,
+    linus: linusAgent,  // CTO uses Claude API exclusively
     glenda: executiveAgent,
     mike_exec: executiveAgent,
 };
