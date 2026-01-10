@@ -1,5 +1,6 @@
 
 import { ai } from '@/ai/genkit';
+import type { RoutingResult } from '@/server/agents/agent-router';
 import { getGenerateOptions } from '@/ai/model-selector';
 import { runAgent } from '@/server/agents/harness';
 import { persistence } from '@/server/agents/persistence';
@@ -514,11 +515,33 @@ export async function runAgentCore(
         const { AGENT_CAPABILITIES, canRoleAccessAgent } = await import('@/server/agents/agent-definitions');
         const { getKnowledgeBasesAction, searchKnowledgeBaseAction } = await import('@/server/actions/knowledge-base');
 
-        await emitThought(jobId, 'Routing', 'Determining best agent for task...');
-        const routing = await routeToAgent(userMessage);
-        await emitThought(jobId, 'Agent Selected', `Routed to ${routing.primaryAgent} (${(routing.confidence * 100).toFixed(0)}% confidence).`);
-        const agentInfo = AGENT_CAPABILITIES.find(a => a.id === routing.primaryAgent) ||
-            AGENT_CAPABILITIES.find(a => a.id === 'general');
+        // PERSONA OVERRIDE: If explicit persona is provided (not 'puff' or 'general'), 
+        // skip auto-routing and use the specified agent directly.
+        // This is critical for Executive Boardroom to work correctly.
+        const SKIP_ROUTING_PERSONAS = ['leo', 'linus', 'jack', 'glenda', 'mike_exec', 'roach', 'craig', 'ezal', 'pops', 'smokey', 'money_mike', 'mrs_parker', 'deebo', 'day_day', 'felisha', 'big_worm'];
+        const useForcePersona = personaId && SKIP_ROUTING_PERSONAS.includes(personaId);
+        
+        let routing: RoutingResult;
+        let agentInfo;
+        
+        if (useForcePersona) {
+            // Force the specified persona - skip auto-routing
+            await emitThought(jobId, 'Agent Selected', `Using explicitly selected agent: ${personaId}`);
+            agentInfo = AGENT_CAPABILITIES.find(a => a.id === personaId) ||
+                AGENT_CAPABILITIES.find(a => a.id === 'general');
+            routing = {
+                primaryAgent: personaId as any, // Cast to avoid strict AgentId type issues if string mismatch
+                confidence: 1.0,
+                reasoning: 'Explicitly selected by user'
+            };
+        } else {
+            // Auto-route based on message content
+            await emitThought(jobId, 'Routing', 'Determining best agent for task...');
+            routing = await routeToAgent(userMessage);
+            await emitThought(jobId, 'Agent Selected', `Routed to ${routing.primaryAgent} (${(routing.confidence * 100).toFixed(0)}% confidence).`);
+            agentInfo = AGENT_CAPABILITIES.find(a => a.id === routing.primaryAgent) ||
+                AGENT_CAPABILITIES.find(a => a.id === 'general');
+        }
 
         let knowledgeContext = '';
         try {
