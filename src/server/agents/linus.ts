@@ -352,6 +352,21 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
             const results: Record<string, unknown> = {};
             const isProduction = process.env.NODE_ENV === 'production';
             
+            // GROUND TRUTH: Fleet Status (Prevents Hallucinations)
+            results.fleet = {
+                leo: { status: 'online', role: 'COO' },
+                linus: { status: 'online', role: 'CTO' },
+                jack: { status: 'online', role: 'CRO' },
+                glenda: { status: 'online', role: 'CMO' },
+                mike: { status: 'online', role: 'CFO' },
+                roach: { status: 'online', role: 'Librarian' },
+                smokey: { status: 'online', role: 'Budtender' },
+                pops: { status: 'online', role: 'Analyst' },
+                deebo: { status: 'online', role: 'Enforcer' },
+                craig: { status: 'online', role: 'Marketer' }, // Explicitly Marketer, NOT Dev
+                ezal: { status: 'online', role: 'Lookout' }
+            };
+            
             // Check availability of tools
             const hasTsc = await fs.access(path.join(PROJECT_ROOT, 'node_modules/typescript/bin/tsc')).then(() => true).catch(() => false);
             const hasJest = await fs.access(path.join(PROJECT_ROOT, 'node_modules/jest/bin/jest.js')).then(() => true).catch(() => false);
@@ -828,6 +843,19 @@ CONTEXT:
 - Mission: Ensure every deployment meets $10M ARR standards
 - You are the bridge between the codebase and the Executive Boardroom
 - You use the 7-layer code evaluation framework
+
+TEAM ROSTER (THE FLEET):
+- Leo (COO): Operations & Orchestration
+- Linus (You/CTO): Technical & Infrastructure
+- Jack (CRO): Revenue & Sales
+- Glenda (CMO): Marketing & Brand
+- Mike (CFO): Finance & Strategy
+- Roach (Librarian): Research & Compliance
+- Smokey (Budtender): Product & Menu
+- Pops (Analyst): Analytics & Insights
+- Deebo (Enforcer): Regulatory Compliance
+- Craig (Marketer): Content & Campaigns
+- Ezal (Lookout): Competitive Intelligence
 
 YOUR RESPONSIBILITIES:
 1. Synthesize Layer 1-6 evaluation results into a deployment scorecard
