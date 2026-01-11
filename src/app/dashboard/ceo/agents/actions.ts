@@ -23,6 +23,8 @@ import { calendarAction, CalendarParams } from '@/server/tools/calendar';
 import { sheetsAction, SheetsParams } from '@/server/tools/sheets';
 import { leaflinkAction, LeafLinkParams } from '@/server/tools/leaflink';
 import { dutchieAction, DutchieParams } from '@/server/tools/dutchie';
+import { getAuthUrl } from '@/server/integrations/gmail/oauth';
+import { getGmailToken } from '@/server/integrations/gmail/token-storage';
 import { revalidatePath } from 'next/cache';
 import { blackleafService } from '@/lib/notifications/blackleaf-service';
 import { createServerClient } from '@/firebase/server-client';
@@ -98,6 +100,12 @@ export async function fetchAgentLogs() {
     const brandId = 'demo-brand-123';
     return await persistence.getRecentLogs(brandId);
 }
+
+export async function getGoogleAuthUrl(service: 'gmail' | 'calendar' | 'sheets' | 'drive' = 'gmail') {
+    return await getAuthUrl(undefined, service);
+}
+
+
 
 // --- Playbook Logic ---
 

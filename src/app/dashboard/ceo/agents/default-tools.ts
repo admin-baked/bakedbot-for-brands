@@ -8,6 +8,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { superUserTools } from '@/app/dashboard/ceo/agents/super-user-tools-impl';
+import { requestPermission } from '@/server/tools/permissions';
 
 // Wrapper to avoid cirular dependency issues if any
 // but these tools mostly depend on external services or leaf nodes.
@@ -822,6 +823,9 @@ export const defaultUniversalTools = {
     
     // RAG (Knowledge Base, Search)
     ...commonRAGTools,
+
+    // Permissions
+    request_permission: requestPermission,
 
     // Craig (Marketing)
     generateCopy: defaultCraigTools.generateCopy,
