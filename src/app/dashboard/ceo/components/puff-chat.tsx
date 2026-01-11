@@ -406,6 +406,7 @@ export interface PuffChatProps {
         city: string;
     } | null;
     initialPermissions?: any[];
+    restrictedModels?: ThinkingLevel[];
 }
 
 export function PuffChat({
@@ -420,7 +421,8 @@ export function PuffChat({
     isHired = false, // New prop to suppress hiring flows
     persona: externalPersona,
     locationInfo,
-    initialPermissions
+    initialPermissions,
+    restrictedModels = []
 }: PuffChatProps) {
     // Global Store State
     const { 
@@ -2309,6 +2311,7 @@ export function PuffChat({
                                 userPlan="pro" 
                                 unlockResearch={true} 
                                 isSuperUser={isSuperUser}
+                                restrictedLevels={restrictedModels}
                             />
                             <ToolSelector
                                 mode={toolMode}

@@ -76,9 +76,13 @@ export function AgentResponseCarousel({ content, className }: AgentResponseCarou
 
     return (
         <div className={cn("w-full", className)}>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={cn(
+                "grid grid-cols-1 md:grid-cols-2 gap-4",
+                // Mobile: Horizontal scroll snap
+                "max-md:flex max-md:overflow-x-auto max-md:snap-x max-md:snap-mandatory max-md:pb-4 max-md:-mx-4 max-md:px-4"
+            )}>
                 {sections.map((section, index) => (
-                    <Card key={index} className="h-full flex flex-col border-emerald-100/50 shadow-sm hover:shadow-md transition-all bg-white/50 backdrop-blur-sm">
+                    <Card key={index} className="h-full flex flex-col border-emerald-100/50 shadow-sm hover:shadow-md transition-all bg-white/50 backdrop-blur-sm max-md:min-w-[85vw] max-md:snap-center">
                         <CardHeader className="pb-2 bg-emerald-50/30 rounded-t-xl border-b border-emerald-100/50">
                             <div className="flex justify-between items-start gap-2">
                                 <CardTitle className="text-sm font-semibold text-emerald-900 leading-tight">

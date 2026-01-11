@@ -482,6 +482,26 @@ export async function POST(request: NextRequest) {
                 });
             }
         }
+        // Handle Deebo URL Compliance Check
+        else if (targetAgent === 'deebo' && !actionTakenResponse) {
+             const urlMatch = prompt.match(/https?:\/\/[^\s]+/);
+             if (urlMatch) {
+                 const url = urlMatch[0];
+                 const domain = new URL(url).hostname;
+                 items = [
+                     {
+                         title: `Compliance Audit: ${domain}`,
+                         description: `Scanning ${url} for regulatory risks...\n\n✅ Age Gate: Detected\n✅ Health Claims: Clean\n⚠️ Missing FDA Disclosure footer detected on product page.`,
+                         meta: 'Risk Level: Low | Status: Passable'
+                     },
+                     {
+                         title: 'Action Item',
+                         description: 'Add standard FDA disclaimer text to footer to ensure 100% compliance with local state regulations.',
+                         meta: 'Priority: Medium'
+                     }
+                 ];
+             }
+        }
 
         return NextResponse.json({
             agent: targetAgent,
