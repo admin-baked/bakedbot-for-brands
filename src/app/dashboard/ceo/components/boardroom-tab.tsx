@@ -229,6 +229,7 @@ export default function BoardroomTab() {
                     <CardContent className="flex-1 p-0 overflow-visible relative min-h-0">
                         <DiscoveryBrowserStatus />
                         <Suspense fallback={<div className="p-4 text-center">Loading chat...</div>}>
+                            <PuffChat
                                 persona={selectedAgent as any}
                                 hideHeader={true}
                                 isSuperUser={true}

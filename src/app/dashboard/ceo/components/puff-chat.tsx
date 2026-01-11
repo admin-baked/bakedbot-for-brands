@@ -484,6 +484,8 @@ export function PuffChat({
     // Multi-modal State
     const [attachments, setAttachments] = useState<{ id: string, file: File, preview?: string, type: 'image' | 'file' }[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
 
     // Async Job Polling
     const [activeJob, setActiveJob] = useState<{ jobId: string, messageId: string } | null>(null);
@@ -601,6 +603,7 @@ export function PuffChat({
             });
             setActiveJob(null); // Stop polling
             setIsProcessing(false);
+            focusInput(); // Refocus input after response
             setStreamingMessageId(activeJob.messageId); // Trigger typewriter
             // Mark discovery as complete but keep bar visible briefly
             setIsDiscoveryActive(false);
@@ -616,6 +619,7 @@ export function PuffChat({
             });
             setActiveJob(null);
             setIsProcessing(false);
+            focusInput(); // Refocus input after failure
         }
     }, [job, thoughts, isComplete, activeJob, updateMessage]);
 
@@ -719,6 +723,29 @@ export function PuffChat({
             messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
         }
     }, []);
+
+    // --- Focus Management ---
+    const focusInput = useCallback(() => {
+        // Small delay to ensure DOM updates are complete
+        setTimeout(() => {
+            if (textareaRef.current) {
+                textareaRef.current.focus();
+                // On mobile, scroll the input into view to prevent keyboard from hiding it
+                if (isMobile) {
+                    textareaRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }, 100);
+    }, [isMobile]);
+
+    // Textarea height auto-adjustment
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+        }
+    }, [input]);
+
 
     // Scroll on message change or thinking state change
     useEffect(() => {
@@ -922,6 +949,7 @@ export function PuffChat({
                  }
                  
                  setIsProcessing(false);
+                 focusInput(); // Refocus input after Market Scout report
                  setStreamingMessageId(thinkingId);
              } else {
                  // CASE B: Ask for Location (Preserved)
@@ -931,6 +959,7 @@ export function PuffChat({
                         thinking: { isThinking: false, steps: [], plan: [] }
                     });
                     setIsProcessing(false);
+                    focusInput(); // Refocus input after location prompt
                     setStreamingMessageId(thinkingId);
                  }, 800);
              }
@@ -968,6 +997,7 @@ export function PuffChat({
              });
              
              setIsProcessing(false);
+             focusInput(); // Refocus input after Smokey activation
              setStreamingMessageId(agentMsgId);
              return;
         }
@@ -1022,6 +1052,7 @@ export function PuffChat({
              }
              
              setIsProcessing(false);
+             focusInput(); // Refocus input after campaign draft
              setStreamingMessageId(thinkingId);
              return;
         }
@@ -1045,6 +1076,7 @@ export function PuffChat({
                      thinking: { isThinking: false, steps: [], plan: [] }
                  });
                  setIsProcessing(false);
+                 focusInput(); // Refocus input after brand audit prompt
                  setStreamingMessageId(thinkingId);
              }, 800);
              return;
@@ -1098,6 +1130,7 @@ export function PuffChat({
              }
              
              setIsProcessing(false);
+             focusInput(); // Refocus input after pricing plans
              setStreamingMessageId(thinkingId);
              return;
         }
@@ -1124,6 +1157,7 @@ export function PuffChat({
                      thinking: { isThinking: false, steps: [], plan: [] }
                  });
                  setIsProcessing(false);
+                 focusInput(); // Refocus input after Deebo compliance prompt
              }, 800);
              return;
         }
@@ -1522,6 +1556,7 @@ export function PuffChat({
                  });
              }
              setIsProcessing(false);
+             focusInput(); // Refocus input after SMS demo
              setStreamingMessageId(thinkingId);
              return;
         }
@@ -1571,6 +1606,7 @@ export function PuffChat({
                  });
              }
              setIsProcessing(false);
+             focusInput(); // Refocus input after email demo
              setStreamingMessageId(thinkingId);
              return;
         }
@@ -1634,6 +1670,7 @@ export function PuffChat({
                     }
                 });
                 setIsProcessing(false);
+                focusInput(); // Refocus input after preset demo
                 setStreamingMessageId(thinkingId);
             }, 800); // Slight initial delay for realism
 
@@ -1985,9 +2022,11 @@ export function PuffChat({
                 thinking: { isThinking: false, steps: [], plan: [] }
             });
             setIsProcessing(false);
+            focusInput(); // Refocus input after error
         }
 
         setIsProcessing(false);
+        focusInput(); // Refocus input after successful response
 
         if (onSubmit) {
             await onSubmit(userInput);
@@ -2060,18 +2099,9 @@ export function PuffChat({
                 
                 <div className="flex gap-2">
                      <textarea
-                        ref={(el) => {
-                            if (el) {
-                                el.style.height = 'auto';
-                                el.style.height = el.scrollHeight + 'px';
-                            }
-                        }}
+                        ref={textareaRef}
                         value={input}
-                        onChange={(e) => {
-                            setInput(e.target.value);
-                            e.target.style.height = 'auto';
-                            e.target.style.height = e.target.scrollHeight + 'px';
-                        }}
+                        onChange={(e) => setInput(e.target.value)}
                         placeholder={hasMessages ? "Reply, or use microphone..." : "Ask Smokey anything..."}
                         className="min-h-[44px] max-h-[200px] w-full border-0 bg-transparent resize-none p-0 focus:outline-none focus:ring-0 shadow-none text-base flex-1 overflow-y-auto"
                         onKeyDown={(e) => {
@@ -2083,6 +2113,7 @@ export function PuffChat({
                         rows={1}
                     />
                 </div>
+
 
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
