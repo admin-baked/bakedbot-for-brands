@@ -1,16 +1,34 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Building2, User, Mail, Phone, Loader2, ArrowLeft, ArrowRight, CreditCard, Lock } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { 
+    CheckCircle, Building2, User, Mail, Phone, Loader2, 
+    ArrowLeft, ArrowRight, CreditCard, Lock, Search, 
+    MapPin, Sparkles, Store, Briefcase 
+} from 'lucide-react';
 import { PlanSelectionCards } from '@/components/claim/plan-selection-cards';
 import { useAcceptJs, formatCardNumber, formatExpiryDate, parseExpirationDate } from '@/hooks/useAcceptJs';
-
 import { PlanId } from '@/lib/plans';
+import { MarketSelector } from '@/components/ui/market-selector';
+import { searchCannMenusRetailers } from '@/server/actions/cannmenus';
+import { useFirebase } from '@/firebase/provider';
+import { GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
+import { Spinner } from '@/components/ui/spinner';
+import { useDebounce } from '@/hooks/use-debounce';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 interface ClaimFormData {
     // Step 1: Business Info
@@ -20,6 +38,7 @@ interface ClaimFormData {
     contactEmail: string;
     contactPhone: string;
     role: string;
+    marketState: string;
     // Step 2: Plan Selection
     planId: PlanId;
     orgId?: string;
@@ -32,13 +51,36 @@ interface PaymentFormData {
     zip: string;
 }
 
+type Step = 'role' | 'market' | 'search' | 'auth' | 'details' | 'plan' | 'payment';
+
 function ClaimWizard() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const [step, setStep] = useState(1);
+    const { toast } = useToast();
+    const { auth } = useFirebase();
+
+    // Steps: role -> market -> search -> auth -> details -> plan -> payment
+    const [step, setStep] = useState<Step>('role');
+    const [history, setHistory] = useState<Step[]>([]);
+    
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [foundersRemaining, setFoundersRemaining] = useState<number>(247);
+    
+    // Search State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [manualEntry, setManualEntry] = useState(false);
+    
+    // Debounce search query to prevent excessive API calls
+    const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+    // Auth State
+    const [showAuthModal, setShowAuthModal] = useState(false);
+    const [authLoading, setAuthLoading] = useState(false);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
 
     // Accept.js integration
     const { isLoaded: acceptLoaded, isLoading: tokenizing, error: acceptError, tokenizeCard } = useAcceptJs({
@@ -53,7 +95,8 @@ function ClaimWizard() {
         contactEmail: '',
         contactPhone: '',
         role: '',
-        planId: 'claim_pro'
+        marketState: '',
+        planId: 'free' // Default to "The Scout"
     });
 
     const [paymentData, setPaymentData] = useState<PaymentFormData>({
@@ -70,95 +113,185 @@ function ClaimWizard() {
                 const { getFoundersClaimCount } = await import('@/server/actions/createClaimSubscription');
                 const count = await getFoundersClaimCount();
                 setFoundersRemaining(Math.max(0, 250 - count));
-            } catch (e) {
-                // Ignore errors, use default
-            }
+            } catch (e) { }
         }
         loadFoundersCount();
     }, []);
 
+    // Handle URL Params
     useEffect(() => {
         const name = searchParams?.get('name');
         const orgId = searchParams?.get('orgId');
-        
-        async function loadOrg() {
-             if (orgId) {
-                 try {
-                     const { getOrganizationForClaim } = await import('@/server/actions/createClaimSubscription');
-                     const org = await getOrganizationForClaim(orgId);
-                     if (org) {
-                         setFormData(prev => ({ 
-                             ...prev, 
-                             businessName: org.name,
-                             businessAddress: org.address || prev.businessAddress,
-                             orgId: org.id
-                         }));
-                     }
-                 } catch (e) {
-                     console.error("Failed to load org", e);
-                 }
-             } else if (name) {
-                 setFormData(prev => ({ ...prev, businessName: name }));
-             }
-        }
-        loadOrg();
+        const plan = searchParams?.get('plan');
+        const roleParam = searchParams?.get('role'); // brand/dispensary
+
+        if (name) setFormData(prev => ({ ...prev, businessName: name }));
+        if (plan && plan === 'free') setFormData(prev => ({ ...prev, planId: 'free' }));
+        if (roleParam) setFormData(prev => ({ ...prev, role: roleParam }));
     }, [searchParams]);
 
+    // Handle Search Effect
+    useEffect(() => {
+        const performSearch = async () => {
+             if (debouncedSearchQuery.length < 2) {
+                setSearchResults([]);
+                return;
+            }
+            setIsSearching(true);
+            try {
+                const results = await searchCannMenusRetailers(debouncedSearchQuery);
+                const typeFilter = formData.role === 'brand' ? 'brand' : 'dispensary';
+                const filtered = results.filter(r => r.type === typeFilter);
+                setSearchResults(filtered);
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setIsSearching(false);
+            }
+        };
+
+        performSearch();
+    }, [debouncedSearchQuery, formData.role]);
+
+    // Navigation Helpers
+    const nextStep = (next: Step) => {
+        setHistory([...history, step]);
+        setStep(next);
+    };
+
+    const prevStep = () => {
+        const prev = history[history.length - 1];
+        if (prev) {
+            setHistory(history.slice(0, -1));
+            setStep(prev);
+        }
+    };
+
+    // --- Search Handlers ---
+    const handleSearch = (term: string) => {
+        setSearchQuery(term);
+    };
+
+    const selectEntity = (entity: any) => {
+        setFormData(prev => ({
+            ...prev,
+            businessName: entity.name,
+            orgId: entity.id, // This fits into orgId or we might need a separate field if it's a cannmenus ID
+            // If it's a CannMenus ID (starts with cm_), we should treat it as a new import potentially
+            // relying on createClaimWithSubscription to handle it?
+            // Actually, createClaimWithSubscription expects existing orgId in Firestore.
+            // If we are claiming a NEW entity found in CannMenus, we might need logic to Create-on-Claim.
+            // For now, let's treat it as the name.
+        }));
+        
+        // Trigger background import if possible
+        // import('@/app/onboarding/pre-start-import').then(({ preStartDataImport }) => { ... })
+        // For simplicity in this iteration, just proceed to Auth.
+        
+        checkAuthAndProceed();
+    };
+
+    const handleManualEntry = () => {
+        setManualEntry(true);
+        checkAuthAndProceed();
+    };
+
+    const checkAuthAndProceed = () => {
+        if (auth?.currentUser) {
+            // Already logged in, fill contact info if available
+            if (auth.currentUser.email) {
+                setFormData(prev => ({ ...prev, contactEmail: auth.currentUser!.email! }));
+            }
+            if (auth.currentUser.displayName) {
+                setFormData(prev => ({ ...prev, contactName: auth.currentUser!.displayName! }));
+            }
+            nextStep('details');
+        } else {
+            setStep('auth');
+        }
+    };
+
+    // --- Auth Handlers ---
+    const handleGoogleSignUp = async () => {
+        if (!auth) return;
+        setAuthLoading(true);
+        try {
+            const provider = new GoogleAuthProvider();
+            const result = await signInWithPopup(auth, provider);
+            
+            // Create server session
+            const idToken = await result.user.getIdToken();
+            await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken }),
+            });
+
+            // Set info
+            setFormData(prev => ({
+                ...prev,
+                contactName: result.user.displayName || '',
+                contactEmail: result.user.email || ''
+            }));
+
+            nextStep('details');
+        } catch (error: any) {
+            console.error("Sign Up Error:", error);
+            toast({ variant: "destructive", title: "Sign Up Failed", description: error.message });
+        } finally {
+            setAuthLoading(false);
+        }
+    };
+
+    const handleEmailSignUp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!auth) return;
+        setAuthLoading(true);
+        try {
+            const result = await createUserWithEmailAndPassword(auth, email, password);
+             // Create server session
+            const idToken = await result.user.getIdToken();
+            await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idToken }),
+            });
+            
+             setFormData(prev => ({
+                ...prev,
+                contactEmail: result.user.email || ''
+            }));
+
+            nextStep('details');
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Sign Up Failed", description: error.message });
+        } finally {
+            setAuthLoading(false);
+        }
+    };
+
+    // --- Detail & Payment Handlers ---
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.id]: e.target.value });
     };
 
     const handlePaymentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { id, value } = e.target;
-
         let formattedValue = value;
-        if (id === 'cardNumber') {
-            formattedValue = formatCardNumber(value);
-        } else if (id === 'expiry') {
-            formattedValue = formatExpiryDate(value);
-        } else if (id === 'cvv') {
-            formattedValue = value.replace(/\D/g, '').substr(0, 4);
-        } else if (id === 'zip') {
-            formattedValue = value.replace(/\D/g, '').substr(0, 5);
-        }
-
+        if (id === 'cardNumber') formattedValue = formatCardNumber(value);
+        else if (id === 'expiry') formattedValue = formatExpiryDate(value);
+        else if (id === 'cvv') formattedValue = value.replace(/\D/g, '').substr(0, 4);
+        else if (id === 'zip') formattedValue = value.replace(/\D/g, '').substr(0, 5);
         setPaymentData({ ...paymentData, [id]: formattedValue });
     };
 
-    const handlePlanSelect = (planId: PlanId) => {
-        setFormData({ ...formData, planId });
-    };
-
-    const validateStep1 = () => {
+    const validateDetails = () => {
         return formData.businessName && formData.contactName &&
             formData.contactEmail && formData.contactPhone;
     };
 
-    const validatePayment = () => {
-        if (formData.planId === 'free') return true;
-        const expiry = parseExpirationDate(paymentData.expiry);
-        return (
-            paymentData.cardNumber.replace(/\s/g, '').length >= 15 &&
-            expiry !== null &&
-            paymentData.cvv.length >= 3 &&
-            paymentData.zip.length === 5
-        );
-    };
-
-    const handleNext = () => {
-        if (step === 1 && validateStep1()) {
-            setStep(2);
-        } else if (step === 2) {
-            setStep(3);
-        }
-    };
-
-    const handleBack = () => {
-        if (step > 1) setStep(step - 1);
-    };
-
     const handleSubmit = async () => {
-        if (!validatePayment()) {
+        if (formData.planId !== 'free' && !validatePayment()) {
             setError('Please fill in all payment fields correctly');
             return;
         }
@@ -168,15 +301,9 @@ function ClaimWizard() {
 
         try {
             let opaqueData = undefined;
-
             if (formData.planId !== 'free') {
-                // Parse expiration date
                 const expiry = parseExpirationDate(paymentData.expiry);
-                if (!expiry) {
-                    throw new Error('Invalid expiration date');
-                }
-
-                // Tokenize card with Accept.js
+                if (!expiry) throw new Error('Invalid expiration date');
                 opaqueData = await tokenizeCard({
                     cardNumber: paymentData.cardNumber,
                     expirationMonth: expiry.month,
@@ -185,9 +312,7 @@ function ClaimWizard() {
                 });
             }
 
-            // Call the server action to create the claim with subscription
             const { createClaimWithSubscription } = await import('@/server/actions/createClaimSubscription');
-
             const result = await createClaimWithSubscription({
                 ...formData,
                 opaqueData,
@@ -195,13 +320,11 @@ function ClaimWizard() {
             });
 
             if (result.success) {
-                // Redirect to thank you page for Google Ads conversion tracking
                 const thankYouParams = new URLSearchParams({
                     plan: formData.planId,
                     name: formData.businessName
                 });
                 router.push(`/thank-you?${thankYouParams.toString()}`);
-                return;
             } else {
                 setError(result.error || 'Failed to submit claim');
             }
@@ -212,314 +335,303 @@ function ClaimWizard() {
         }
     };
 
+     const validatePayment = () => {
+        if (formData.planId === 'free') return true;
+        const expiry = parseExpirationDate(paymentData.expiry);
+        return (
+            paymentData.cardNumber.replace(/\s/g, '').length >= 15 &&
+            expiry !== null &&
+            paymentData.cvv.length >= 3 &&
+            paymentData.zip.length === 5
+        );
+    };
+
+
+    // --- Renderers ---
+
     return (
-        <div className="container max-w-3xl py-12">
-            {/* Header */}
-            <div className="mb-8 text-center">
-                <h1 className="text-4xl font-bold tracking-tight">Claim Your Business</h1>
-                <p className="mt-2 text-muted-foreground">
-                    Take control of your listing and unlock powerful features
-                </p>
-            </div>
-
-            {/* Progress Steps */}
-            <div className="mb-8 flex items-center justify-center gap-4">
-                {[1, 2, 3].map((s) => (
-                    <div key={s} className="flex items-center gap-2">
-                        <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium transition-colors ${step >= s
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-muted-foreground'
-                            }`}>
-                            {s}
-                        </div>
-                        <span className={`text-sm hidden sm:inline ${step >= s ? 'text-foreground' : 'text-muted-foreground'}`}>
-                            {s === 1 ? 'Business Info' : s === 2 ? 'Select Plan' : 'Payment'}
-                        </span>
-                        {s < 3 && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
+        <div className="container max-w-3xl py-12 min-h-screen">
+            {/* Steps Progress */}
+            {step !== 'role' && step !== 'market' && (
+                <div className="mb-8 flex items-center justify-center gap-4">
+                     {/* Simplified Progress Bar for later steps */}
+                    <div className="text-sm text-muted-foreground uppercase tracking-wider font-semibold">
+                        {step === 'search' && 'Find Business'}
+                        {step === 'auth' && 'Create Account'}
+                        {step === 'details' && 'Verify Details'}
+                        {step === 'plan' && 'Select Plan'}
+                        {step === 'payment' && 'Finalize'}
                     </div>
-                ))}
-            </div>
+                </div>
+            )}
 
-            <Card>
-                {/* Step 1: Business Info */}
-                {step === 1 && (
-                    <>
+            {step === 'role' && (
+                <div className="space-y-8 max-w-lg mx-auto">
+                    <div className="text-center">
+                        <h1 className="text-3xl font-bold mb-2">Claim Your Page</h1>
+                        <p className="text-muted-foreground">Select your business type to get started</p>
+                    </div>
+                     <div className="grid gap-4 sm:grid-cols-2">
+                        <Button variant="outline" className="h-auto p-6 flex flex-col gap-4 hover:border-primary border-2 border-transparent hover:bg-accent" onClick={() => {
+                            setFormData(prev => ({ ...prev, role: 'brand' }));
+                            nextStep('market');
+                        }}>
+                            <Briefcase className="h-10 w-10 text-primary" />
+                            <div className="text-left">
+                                <h3 className="font-bold">I'm a Brand</h3>
+                                <p className="text-sm text-muted-foreground">Growers, processors, manufacturers</p>
+                            </div>
+                        </Button>
+                        <Button variant="outline" className="h-auto p-6 flex flex-col gap-4 hover:border-primary border-2 border-transparent hover:bg-accent" onClick={() => {
+                            setFormData(prev => ({ ...prev, role: 'dispensary' }));
+                            nextStep('market');
+                        }}>
+                             <Store className="h-10 w-10 text-primary" />
+                             <div className="text-left">
+                                <h3 className="font-bold">I'm a Dispensary</h3>
+                                <p className="text-sm text-muted-foreground">Retailers, delivery services</p>
+                            </div>
+                        </Button>
+                    </div>
+                    <div className="text-center">
+                         <Button variant="link" onClick={() => router.push('/')}>Cancel</Button>
+                    </div>
+                </div>
+            )}
+
+            {step === 'market' && (
+                <div className="space-y-8 max-w-md mx-auto">
+                    <div className="text-center">
+                        <h1 className="text-2xl font-bold">Where are you located?</h1>
+                        <p className="text-muted-foreground">We'll optimize your experience for your market.</p>
+                    </div>
+                    
+                    <MarketSelector 
+                        value={formData.marketState}
+                        onChange={(val) => setFormData(prev => ({ ...prev, marketState: val }))}
+                        label="Primary State"
+                        required
+                    />
+
+                    <div className="flex justify-between pt-4">
+                        <Button variant="ghost" onClick={prevStep}>Back</Button>
+                        <Button onClick={() => nextStep('search')} disabled={!formData.marketState}>Continue</Button>
+                    </div>
+                </div>
+            )}
+
+            {step === 'search' && (
+                <div className="space-y-6 max-w-lg mx-auto">
+                     <div className="text-center">
+                        <h1 className="text-2xl font-bold">Find your {formData.role}</h1>
+                        <p className="text-muted-foreground">Search our directory to claim your qualified listing.</p>
+                    </div>
+
+                    <div className="relative">
+                        <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                        <Input 
+                            className="pl-10 h-12 text-lg" 
+                            placeholder={`Search ${formData.role} name...`}
+                            value={searchQuery}
+                            onChange={(e) => handleSearch(e.target.value)}
+                            autoFocus
+                        />
+                         {isSearching && <div className="absolute right-3 top-3"><Spinner size="sm" /></div>}
+                    </div>
+
+                    <div className="space-y-2">
+                        {searchResults.map((result) => (
+                             <Button 
+                                key={result.id} 
+                                variant="outline" 
+                                className="w-full justify-start h-auto p-4"
+                                onClick={() => selectEntity(result)}
+                            >
+                                <div className="flex flex-col items-start">
+                                    <span className="font-medium text-lg">{result.name}</span>
+                                    <span className="text-xs text-muted-foreground capitalize">{result.type} • {result.id}</span>
+                                </div>
+                             </Button>
+                        ))}
+                        
+                        {searchQuery.length > 2 && !isSearching && searchResults.length === 0 && (
+                            <div className="text-center py-8 text-muted-foreground">
+                                No results found.
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="text-center pt-4">
+                         <div className="text-sm text-muted-foreground mb-2">Can't find your business?</div>
+                         <Button variant="secondary" onClick={handleManualEntry}>Create New Listing manually</Button>
+                    </div>
+                     <div className="flex justify-start">
+                        <Button variant="ghost" onClick={prevStep}>Back</Button>
+                    </div>
+                </div>
+            )}
+
+            {step === 'auth' && (
+                 <div className="space-y-8 max-w-md mx-auto text-center">
+                     <div className="mx-auto bg-primary/10 p-4 rounded-full w-fit">
+                        <Sparkles className="h-8 w-8 text-primary" />
+                     </div>
+                     <div>
+                        <h1 className="text-2xl font-bold">Create your Account</h1>
+                        <p className="text-muted-foreground">
+                            Claiming <strong>{formData.businessName || 'your business'}</strong> requires a secure account.
+                        </p>
+                     </div>
+
+                    <div className="space-y-4">
+                         <Button variant="outline" className="w-full h-12 font-semibold relative" onClick={handleGoogleSignUp} disabled={authLoading}>
+                            {authLoading ? <Spinner size="sm" /> : (
+                            <>
+                                <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" /><path d="M5.84 14.11c-.22-.66-.35-1.36-.35-2.11s.13-1.45.35-2.11V7.05H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.95l3.66-2.84z" fill="#FBBC05" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.05l3.66 2.84c.87-2.6 3.3-4.51 6.16-4.51z" fill="#EA4335" /></svg>
+                                Sign Up with Google
+                            </>
+                            )}
+                        </Button>
+
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                            <div className="relative flex justify-center text-xs uppercase"><span className="bg-background px-2 text-muted-foreground">Or with Email</span></div>
+                        </div>
+
+                         <form onSubmit={handleEmailSignUp} className="space-y-3 text-left">
+                            <div className="space-y-1">
+                                <Label>Email</Label>
+                                <Input type="email" required value={email} onChange={e => setEmail(e.target.value)} />
+                            </div>
+                            <div className="space-y-1">
+                                <Label>Password</Label>
+                                <Input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} />
+                            </div>
+                            <Button className="w-full" type="submit" disabled={authLoading}>Create Account</Button>
+                        </form>
+                    </div>
+                     <Button variant="ghost" onClick={prevStep}>Back</Button>
+                 </div>
+            )}
+
+            {step === 'details' && (
+                <div className="max-w-xl mx-auto">
+                    <Card>
                         <CardHeader>
-                            <CardTitle>Business Information</CardTitle>
-                            <CardDescription>
-                                Tell us about your business to start the verification process.
-                            </CardDescription>
+                            <CardTitle>Verify Business Details</CardTitle>
+                            <CardDescription>Ensure your listing information is accurate</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div className="space-y-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="businessName">Business Name</Label>
-                                    <div className="relative">
-                                        <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            id="businessName"
-                                            className="pl-9"
-                                            placeholder="e.g. Green Planet Dispensary"
-                                            value={formData.businessName}
-                                            onChange={handleChange}
-                                            required
-                                            disabled={!!formData.orgId}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="businessAddress">Address</Label>
-                                    <Input
-                                        id="businessAddress"
-                                        placeholder="e.g. 123 Main St, Los Angeles, CA"
-                                        value={formData.businessAddress}
-                                        onChange={handleChange}
-                                    />
-                                </div>
+                        <CardContent className="space-y-4">
+                             <div className="grid gap-2">
+                                <Label htmlFor="businessName">Business Name</Label>
+                                <Input id="businessName" value={formData.businessName} onChange={handleChange} required />
                             </div>
-
-                            <div className="border-t pt-6 space-y-4">
-                                <h3 className="font-medium">Contact Information</h3>
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="contactName">Your Name</Label>
-                                        <div className="relative">
-                                            <User className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                id="contactName"
-                                                className="pl-9"
-                                                placeholder="John Doe"
-                                                value={formData.contactName}
-                                                onChange={handleChange}
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="role">Your Role</Label>
-                                        <Input
-                                            id="role"
-                                            placeholder="e.g. Owner, Manager"
-                                            value={formData.role}
-                                            onChange={handleChange}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="contactEmail">Email</Label>
-                                        <div className="relative">
-                                            <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                id="contactEmail"
-                                                type="email"
-                                                className="pl-9"
-                                                placeholder="john@example.com"
-                                                value={formData.contactEmail}
-                                                onChange={handleChange}
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="contactPhone">Phone</Label>
-                                        <div className="relative">
-                                            <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                id="contactPhone"
-                                                type="tel"
-                                                className="pl-9"
-                                                placeholder="(555) 123-4567"
-                                                value={formData.contactPhone}
-                                                onChange={handleChange}
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="businessAddress">Address</Label>
+                                <Input id="businessAddress" value={formData.businessAddress} onChange={handleChange} placeholder="e.g. 123 Main St" />
                             </div>
-
-                            <div className="flex justify-end pt-4">
-                                <Button onClick={handleNext} disabled={!validateStep1()}>
-                                    Continue to Plan Selection
-                                    <ArrowRight className="ml-2 h-4 w-4" />
-                                </Button>
+                             <div className="grid gap-2">
+                                <Label htmlFor="contactName">Your Name</Label>
+                                <Input id="contactName" value={formData.contactName} onChange={handleChange} required />
+                            </div>
+                             <div className="grid gap-2">
+                                <Label htmlFor="contactPhone">Phone</Label>
+                                <Input id="contactPhone" type="tel" value={formData.contactPhone} onChange={handleChange} required />
                             </div>
                         </CardContent>
-                    </>
-                )}
+                        <CardFooter className="flex justify-between">
+                            <Button variant="ghost" onClick={prevStep}>Back</Button>
+                            <Button onClick={() => nextStep('plan')} disabled={!validateDetails()}>Continue to Plan</Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+            )}
 
-                {/* Step 2: Plan Selection */}
-                {step === 2 && (
-                    <>
-                        <CardHeader>
-                            <CardTitle>Choose Your Plan</CardTitle>
-                            <CardDescription>
-                                Select the plan that works best for your business.
-                            </CardDescription>
+            {step === 'plan' && (
+                <div className="max-w-3xl mx-auto">
+                    <Card>
+                         <CardHeader>
+                            <CardTitle>Select a Plan</CardTitle>
+                            <CardDescription>Choose the tier that fits your growth goals</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-6">
-                            <PlanSelectionCards
+                        <CardContent>
+                             <PlanSelectionCards
                                 selectedPlan={formData.planId}
-                                onSelectPlan={handlePlanSelect}
+                                onSelectPlan={(id) => setFormData(prev => ({ ...prev, planId: id }))}
                                 foundersRemaining={foundersRemaining}
                             />
-
-                            <div className="flex justify-between pt-4">
-                                <Button variant="outline" onClick={handleBack}>
-                                    <ArrowLeft className="mr-2 h-4 w-4" />
-                                    Back
-                                </Button>
-                                <Button onClick={handleNext}>
-                                    Continue to Payment
-                                    <ArrowRight className="ml-2 h-4 w-4" />
-                                </Button>
-                            </div>
                         </CardContent>
-                    </>
-                )}
+                         <CardFooter className="flex justify-between">
+                            <Button variant="ghost" onClick={prevStep}>Back</Button>
+                            <Button onClick={() => nextStep('payment')}>Continue</Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+            )}
 
-                {/* Step 3: Payment */}
-                {step === 3 && (
-                    <>
+            {step === 'payment' && (
+                <div className="max-w-xl mx-auto">
+                     <Card>
                         <CardHeader>
-                            <CardTitle>{formData.planId === 'free' ? 'Confirm Free Listing' : 'Complete Your Subscription'}</CardTitle>
+                            <CardTitle>{formData.planId === 'free' ? 'Confirm Free Listing' : 'Complete Subscription'}</CardTitle>
                             <CardDescription>
-                                {formData.planId === 'free' 
-                                    ? 'Confirm your details to create your free listing.' 
-                                    : `Enter your payment details to activate your ${formData.planId === 'founders_claim' ? 'Founders Claim' : 'Claim Pro'} subscription.`}
+                                {formData.planId === 'free' ? 'No credit card required for The Scout plan.' : 'Secure payment via Authorize.net'}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            {/* Order Summary */}
-                            <div className="rounded-lg bg-muted/50 p-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="font-medium">{formData.businessName}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {formData.planId === 'free' ? 'Free Listing' : (formData.planId === 'founders_claim' ? 'Founders Claim' : 'Claim Pro')} Subscription
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-2xl font-bold">
-                                            {formData.planId === 'free' ? '$0' : (formData.planId === 'founders_claim' ? '$79' : '$99')}
-                                        </p>
-                                        <p className="text-sm text-muted-foreground">/month</p>
-                                    </div>
+                            {/* Summary */}
+                             <div className="bg-muted/50 p-4 rounded-lg flex justify-between items-center">
+                                <div>
+                                    <div className="font-bold">{formData.businessName}</div>
+                                    <div className="text-sm text-muted-foreground">{formData.planId === 'free' ? 'The Scout (Free)' : formData.planId}</div>
+                                </div>
+                                <div className="text-xl font-bold">
+                                    {formData.planId === 'free' ? '$0' : (formData.planId === 'founders_claim' ? '$79' : '$99')}/mo
                                 </div>
                             </div>
 
                             {formData.planId !== 'free' && (
-                            <>
-                                {/* Secure Payment Badge */}
-                                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                                    <Lock className="h-4 w-4" />
-                                    <span>Secured by Authorize.Net</span>
-                                </div>
-
-                                {/* Payment Form */}
                                 <div className="space-y-4">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="cardNumber">Card Number</Label>
-                                        <div className="relative">
-                                            <CreditCard className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                id="cardNumber"
-                                                className="pl-9"
-                                                placeholder="4111 1111 1111 1111"
-                                                value={paymentData.cardNumber}
-                                                onChange={handlePaymentChange}
-                                                maxLength={19}
-                                            />
-                                        </div>
+                                     <div className="grid gap-2">
+                                        <Label>Card Number</Label>
+                                        <Input id="cardNumber" value={paymentData.cardNumber} onChange={handlePaymentChange} placeholder="0000 0000 0000 0000" />
                                     </div>
-                                    <div className="grid gap-4 sm:grid-cols-3">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="expiry">Expiration</Label>
-                                            <Input
-                                                id="expiry"
-                                                placeholder="MM/YY"
-                                                value={paymentData.expiry}
-                                                onChange={handlePaymentChange}
-                                                maxLength={5}
-                                            />
+                                    <div className="grid grid-cols-3 gap-4">
+                                         <div className="grid gap-2">
+                                            <Label>Expiry</Label>
+                                            <Input id="expiry" value={paymentData.expiry} onChange={handlePaymentChange} placeholder="MM/YY" />
                                         </div>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="cvv">CVV</Label>
-                                            <Input
-                                                id="cvv"
-                                                placeholder="123"
-                                                type="password"
-                                                value={paymentData.cvv}
-                                                onChange={handlePaymentChange}
-                                                maxLength={4}
-                                            />
+                                         <div className="grid gap-2">
+                                            <Label>CVV</Label>
+                                            <Input id="cvv" value={paymentData.cvv} onChange={handlePaymentChange} placeholder="123" />
                                         </div>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="zip">Billing ZIP</Label>
-                                            <Input
-                                                id="zip"
-                                                placeholder="12345"
-                                                value={paymentData.zip}
-                                                onChange={handlePaymentChange}
-                                                maxLength={5}
-                                            />
+                                         <div className="grid gap-2">
+                                            <Label>ZIP</Label>
+                                            <Input id="zip" value={paymentData.zip} onChange={handlePaymentChange} placeholder="90210" />
                                         </div>
                                     </div>
                                 </div>
-                            </>
                             )}
 
-                            {error && (
-                                <div className="rounded-lg bg-red-50 border border-red-200 p-3">
-                                    <p className="text-sm text-red-600 font-medium">{error}</p>
-                                </div>
-                            )}
-
-                            <div className="flex justify-between pt-4">
-                                <Button variant="outline" onClick={handleBack} disabled={loading}>
-                                    <ArrowLeft className="mr-2 h-4 w-4" />
-                                    Back
-                                </Button>
-                                <Button
-                                    onClick={handleSubmit}
-                                    disabled={loading || (formData.planId !== 'free' && (tokenizing || !acceptLoaded || !validatePayment()))}
-                                    className="min-w-[200px]"
-                                >
-                                    {loading || (formData.planId !== 'free' && tokenizing) ? (
-                                        <>
-                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            {tokenizing ? 'Securing...' : 'Processing...'}
-                                        </>
-                                    ) : (
-                                        <>
-                                            {formData.planId === 'free' ? <CheckCircle className="mr-2 h-4 w-4" /> : <Lock className="mr-2 h-4 w-4" />}
-                                            {formData.planId === 'free' ? 'Confirm Free Listing' : `Pay ${formData.planId === 'founders_claim' ? '$79' : '$99'}/mo`}
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-
-                            <p className="text-xs text-center text-muted-foreground">
-                                Your subscription will begin immediately. You can cancel anytime from your dashboard.
-                                <br />
-                                By subscribing, you agree to our Terms of Service and Privacy Policy.
-                            </p>
+                            {error && <div className="text-red-500 text-sm">{error}</div>}
                         </CardContent>
-                    </>
-                )}
-            </Card>
+                        <CardFooter className="flex justify-between">
+                             <Button variant="ghost" onClick={prevStep}>Back</Button>
+                             <Button onClick={handleSubmit} disabled={loading} className="w-full md:w-auto">
+                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {formData.planId === 'free' ? 'Confirm & Start' : 'Pay & Subscribe'}
+                             </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }
 
 export default function ClaimPage() {
     return (
-        <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-        }>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>}>
             <ClaimWizard />
         </Suspense>
     );

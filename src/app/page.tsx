@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 
 import { LiveStats } from "@/components/landing/live-stats";
 import { AgentPlayground } from "@/components/landing/agent-playground";
-import { PLATFORM_PLANS, ADDONS, OVERAGES } from "@/lib/config/pricing";
+import { PRICING_PLANS, ADDONS, OVERAGES } from "@/lib/config/pricing";
 import { useUser } from "@/hooks/use-user";
 
 function AuthButtons() {
@@ -468,11 +468,11 @@ export default function HomePage() {
             <LiveStats />
 
             <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
-              <Button size="lg" asChild href="/free-audit">
-                Run a Free Menu + SEO Audit <span className="ml-2">→</span>
+              <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white border-none" asChild href="/claim?plan=free">
+                Start Free - The Scout <span className="ml-2">→</span>
               </Button>
-              <Button size="lg" variant="outline" asChild href="/onboarding/passport">
-                Try Preference Passport
+              <Button size="lg" variant="outline" asChild href="/free-audit">
+                Run Free Audit
               </Button>
               <Button size="lg" variant="outline" asChild href="/shop/demo">
                 See Live Demo
@@ -673,7 +673,7 @@ export default function HomePage() {
                 content: (
                   <div>
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                      {PLATFORM_PLANS.map((t) => (
+                      {PRICING_PLANS.map((t) => (
                         <Card key={t.name}>
                           <CardHeader>
                             <div className="flex items-center justify-between gap-2">
