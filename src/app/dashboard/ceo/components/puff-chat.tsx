@@ -1470,8 +1470,8 @@ export function PuffChat({
         const isZipOrCity = zipRegex.test(trimmedInput) || isCityName;
         
         // If last message asked for location (We can check if last bot message contains "What City or Zip")
-        const lastBotMsg = currentMessages[currentMessages.length - 1];
-        const askedForLocation = lastBotMsg?.type === 'agent' && lastBotMsg.content.includes("What City or Zip Code");
+        const lastBotMsgForLocation = currentMessages[currentMessages.length - 1];
+        const askedForLocation = lastBotMsgForLocation?.type === 'agent' && lastBotMsgForLocation.content.includes("What City or Zip Code");
 
         if (askedForLocation && isZipOrCity) {
              const userMsgId = `user-${Date.now()}`;
