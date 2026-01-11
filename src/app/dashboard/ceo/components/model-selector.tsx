@@ -33,12 +33,13 @@ export interface ModelSelectorProps {
     unlockResearch?: boolean; // Super User / Global unlock override
     isSuperUser?: boolean; // Super user gets access to all models
     isPublic?: boolean; // Public user (not logged in)
+    restrictedLevels?: ThinkingLevel[]; // Explicitly restrict specific levels
 }
 
-export function ModelSelector({ value, onChange, userPlan = 'free', unlockResearch = false, isSuperUser = false, isPublic = false }: ModelSelectorProps) {
+export function ModelSelector({ value, onChange, userPlan = 'free', unlockResearch = false, isSuperUser = false, isPublic = false, restrictedLevels = [] }: ModelSelectorProps) {
     const isPaid = userPlan !== 'free' || isSuperUser;
 
-    const options: Record<ThinkingLevel, { label: string, desc: string, icon: any, locked?: boolean }> = {
+    const options: Record<ThinkingLevel, { label: string, desc: string, icon: any, locked?: boolean, hidden?: boolean }> = {
         lite: { label: 'Lite', desc: 'Ultra-fast responses', icon: Leaf },
         standard: { label: 'Standard', desc: 'Balanced speed & quality', icon: Zap, locked: !isPaid },
         advanced: { label: 'Advanced', desc: 'Complex reasoning', icon: Brain, locked: !isPaid },
@@ -62,7 +63,9 @@ export function ModelSelector({ value, onChange, userPlan = 'free', unlockResear
             <DropdownMenuContent align="start" className="w-[300px]">
                 <DropdownMenuLabel>Intelligence Level</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {(Object.entries(options) as [ThinkingLevel, typeof options['standard']][]).map(([key, opt]) => (
+                {(Object.entries(options) as [ThinkingLevel, typeof options['standard']][])
+                    .filter(([key]) => !restrictedLevels.includes(key as ThinkingLevel))
+                    .map(([key, opt]) => (
                     <DropdownMenuItem 
                         key={key} 
                         onClick={() => !opt.locked && onChange(key)} 

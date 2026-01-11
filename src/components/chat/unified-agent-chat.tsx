@@ -149,6 +149,9 @@ export function UnifiedAgentChat({
     return (
         <div className={cn(
             "rounded-xl border bg-card shadow-sm flex flex-col",
+            // Mobile: Fixed height to enable internal scrolling
+            "max-md:h-[600px] max-md:max-h-[80vh]",
+            // Desktop: Auto or inherited
             height,
             className
         )}>
@@ -215,6 +218,7 @@ export function UnifiedAgentChat({
                     locationInfo={locationInfo} // Pass location context
                     persona={config.agentPersona as any}
                     className="h-full"
+                    restrictedModels={role === 'public' ? ['deep_research', 'genius', 'expert', 'advanced'] : []}
                 />
             </div>
         </div>
