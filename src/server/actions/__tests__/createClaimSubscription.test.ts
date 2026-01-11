@@ -23,12 +23,16 @@ jest.mock('@/lib/plans', () => ({
 const mockAdd = jest.fn();
 const mockUpdate = jest.fn();
 const mockGet = jest.fn();
-const mockDoc = jest.fn(() => ({
+
+// Recursive mock setup
+const mockDocResult = {
     get: mockGet,
     update: mockUpdate,
-}));
-const mockCollection = jest.fn(() => ({
-    doc: mockDoc,
+    collection: null as any // Placeholder
+};
+
+const mockCollectionResult = {
+    doc: jest.fn(() => mockDocResult),
     add: mockAdd,
     where: jest.fn(() => ({
         where: jest.fn(() => ({
@@ -39,7 +43,11 @@ const mockCollection = jest.fn(() => ({
             }))
         }))
     }))
-}));
+};
+
+mockDocResult.collection = jest.fn(() => mockCollectionResult);
+
+const mockCollection = jest.fn(() => mockCollectionResult);
 
 jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn(async () => ({
@@ -54,6 +62,7 @@ jest.mock('@/lib/logger', () => ({
     logger: {
         info: jest.fn(),
         error: jest.fn(),
+        warn: jest.fn(),
     }
 }));
 
@@ -119,5 +128,26 @@ describe('createClaimWithSubscription', () => {
         const result = await createClaimWithSubscription(input);
         expect(result.success).toBe(false);
         expect(result.error).toBe('Invalid plan selected.');
+    });
+    it('should proceed with claim creation if orgId does not exist (treating as new claim)', async () => {
+        const input = {
+            businessName: 'New Biz',
+            businessAddress: '456 New St',
+            contactName: 'Jane Doe',
+            contactEmail: 'jane@example.com',
+            contactPhone: '555-1234',
+            role: 'brand',
+            planId: 'free' as const,
+            zip: '67890',
+            orgId: 'non-existent-id'
+        };
+
+        // Mock get to return false for exists (default in beforeEach)
+        const result = await createClaimWithSubscription(input);
+
+        expect(result.success).toBe(true);
+        expect(result.claimId).toBe('test-claim-id');
+        
+        // Verify it didn't error out with "Organization not found"
     });
 });
