@@ -1,6 +1,20 @@
 {
     "features": [
         {
+            "id": "task_test_unified_claim_flow",
+            "title": "Unit Test: Unified Claim Flow",
+            "status": "pending",
+            "priority": "high",
+            "description": "Implement unit tests for the Unified Claim/Onboarding Flow. Specifically for `cannmenus.ts` (mock logic vs API) and `createClaimSubscription.ts` (free plan logic). Previous attempts failed due to complex module mocking (config/pricing vs plans) and fetch mock timing.",
+            "acceptance_tests": [
+                "tests/server/actions/createClaimSubscription.test.ts passes",
+                "tests/server/actions/cannmenus.test.ts passes"
+            ],
+            "owner": "ai_builder_swarm",
+            "area": "testing",
+            "created_at": "2026-01-11T15:00:00Z"
+        },
+        {
             "id": "task_test_receipt_scanner",
             "title": "Unit Test: Receipt Scanner Service",
             "status": "pending",

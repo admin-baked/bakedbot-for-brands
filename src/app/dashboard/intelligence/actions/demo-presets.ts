@@ -186,10 +186,15 @@ export async function getDemoPricingPlans() {
         success: true,
         plans: [
             {
-                name: 'Unclaimed Listing',
+                name: 'The Scout',
                 price: '$0/mo',
-                features: ['Basic SEO presence', 'Public directory listing', 'Brand discovery page'],
-                cta: 'Claim Your Page'
+                features: [
+                    '1 Competitive Intelligence Playbook/mo',
+                    '3 Daily Tasks',
+                    'Smokey (Lite) Budtender',
+                    'Public Directory Listing'
+                ],
+                cta: 'Start Free'
             },
             {
                 name: 'Claim Pro',

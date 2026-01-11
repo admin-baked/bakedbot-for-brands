@@ -27,12 +27,12 @@ export const DIRECTORY_PLANS: PricingPlan[] = [
         setup: "Best for: getting discovered + market intel",
         desc: "Public listing + Digital Worker Briefing anytime.",
         features: [
-            "Public brand/dispensary listing page (SEO indexed)",
-            "1 Discovery Audit / Month (Deep Scan)",
+            "1 Competitive Intelligence Playbook / Month",
+            "3 Daily Tasks",
             "Smokey 'Light' (Learns 20 products)",
             "Ezal Market Scout (Public Data)",
             "Deebo Compliance (Basic Scan)",
-            "“Request update” + “Report issue” flows"
+            "Public brand/dispensary listing page"
         ],
         pill: "Hire a Scout",
         highlight: false,

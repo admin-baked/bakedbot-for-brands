@@ -8,10 +8,8 @@ import { Suspense } from 'react';
 import { Spinner } from '@/components/ui/spinner';
 import OnboardingClient from './onboarding-client';
 
+import { redirect } from 'next/navigation';
+
 export default function OnboardingPage() {
-    return (
-        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Spinner size="lg" /></div>}>
-            <OnboardingClient />
-        </Suspense>
-    );
+    redirect('/claim');
 }
