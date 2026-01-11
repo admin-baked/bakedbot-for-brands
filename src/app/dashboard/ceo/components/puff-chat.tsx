@@ -61,7 +61,7 @@ import {
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { runAgentChat, cancelAgentJob } from '../agents/actions';
+import { runAgentChat, cancelAgentJob, getGoogleAuthUrl } from '../agents/actions';
 import { saveChatSession, getChatSessions } from '@/server/actions/chat-persistence'; // Import server actions
 import { saveArtifact } from '@/server/actions/artifacts';
 import { AgentPersona } from '../agents/personas';
@@ -405,6 +405,7 @@ export interface PuffChatProps {
         brandCount: number;
         city: string;
     } | null;
+    initialPermissions?: any[];
 }
 
 export function PuffChat({
@@ -418,7 +419,8 @@ export function PuffChat({
     isSuperUser = false,
     isHired = false, // New prop to suppress hiring flows
     persona: externalPersona,
-    locationInfo
+    locationInfo,
+    initialPermissions
 }: PuffChatProps) {
     // Global Store State
     const { 
@@ -452,6 +454,16 @@ export function PuffChat({
             setPersona(externalPersona);
         }
     }, [externalPersona]);
+
+    // Sync initialPermissions if provided
+    useEffect(() => {
+        if (initialPermissions?.length) {
+            setState(prev => ({
+                ...prev,
+                permissions: initialPermissions
+            }));
+        }
+    }, [initialPermissions]);
 
     // Tool Selection State
     const [toolMode, setToolMode] = useState<ToolMode>('auto');
@@ -538,6 +550,33 @@ export function PuffChat({
                     saveArtifact(a as any).catch(err => console.error('Failed to save artifact:', err));
                 });
                 finalContent = cleanedContent;
+            }
+
+            // DETECT PERMISSION REQUEST
+            if (result.metadata?.type === 'permission_request' || finalContent.includes('[PERMISSION_REQUEST:')) {
+                const permissionType = result.metadata?.permission || finalContent.match(/PERMISSION_REQUEST:([A-Z]+)/)?.[1]?.toLowerCase();
+                
+                if (permissionType && ['gmail', 'calendar', 'sheets', 'drive'].includes(permissionType)) {
+                     setState(prev => {
+                        if (prev.permissions.some(p => p.id === permissionType)) return prev; // Already requested
+                        
+                        const icons: any = { gmail: 'mail', calendar: 'calendar', sheets: 'table', drive: 'hard-drive' }; // Simple mapping logic needed
+
+                        return {
+                            ...prev,
+                            permissions: [...prev.permissions, {
+                                id: permissionType,
+                                name: permissionType.charAt(0).toUpperCase() + permissionType.slice(1),
+                                icon: icons[permissionType] || 'lock',
+                                email: user?.email || 'unknown@user.com',
+                                description: result.metadata?.reason || `Agent requested access to ${permissionType} to perform this task.`,
+                                status: 'pending',
+                                tools: ['Read', 'Write']
+                            }]
+                        };
+                     });
+                     setShowPermissions(true);
+                }
             }
 
             // AUTO-OPEN HIRE MODAL (Only if not already hired)
@@ -1957,11 +1996,19 @@ export function PuffChat({
 
     const handleSubmit = () => submitMessage(input);
 
-    const handleGrantPermission = (permissionId: string) => {
+    const handleGrantPermission = async (permissionId: string) => {
         const permission = state.permissions.find(p => p.id === permissionId);
 
-        if (permission?.id === 'gmail') {
-            window.location.href = '/api/auth/google';
+        if (['gmail', 'calendar', 'sheets', 'drive'].includes(permission?.id || '')) {
+            try {
+                // permission.id matches the service name expected by getGoogleAuthUrl
+                const url = await getGoogleAuthUrl(permission?.id as any);
+                if (url) {
+                    window.location.href = url;
+                }
+            } catch (error) {
+                console.error("Failed to get auth URL:", error);
+            }
             return;
         }
 

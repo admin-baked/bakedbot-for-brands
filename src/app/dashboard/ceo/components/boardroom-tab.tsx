@@ -70,6 +70,30 @@ export default function BoardroomTab() {
         getPlatformAnalytics().then(setAnalytics).catch(console.error);
     }, []);
 
+    const [initialPermissions, setInitialPermissions] = useState<any[]>([]);
+    
+    // Check for existing Gmail capability
+    useEffect(() => {
+        // Dynamic import to avoid bundling server code if possible, though 'use server' handles it.
+        // Actually, for client components calling server actions, we import directly often.
+        // But here we use dynamic import as per previous pattern.
+        import('@/server/actions/gmail').then(({ checkGmailConnection }) => {
+            checkGmailConnection().then(result => {
+                if (result.isConnected) {
+                    setInitialPermissions([{
+                        id: 'gmail',
+                        name: 'Gmail',
+                        icon: 'mail',
+                        email: result.email || 'connected@user.com',
+                        description: 'Access granted via persistent connection.',
+                        status: 'granted',
+                        tools: ['Send Message', 'Read Mail']
+                    }]);
+                }
+            });
+        });
+    }, []);
+
     const mrr = analytics?.revenue.mrr || 0;
     const leads = analytics?.signups.total || 0;
     const activeUsers = analytics?.activeUsers.monthly || 0;
@@ -205,11 +229,11 @@ export default function BoardroomTab() {
                     <CardContent className="flex-1 p-0 overflow-visible relative min-h-0">
                         <DiscoveryBrowserStatus />
                         <Suspense fallback={<div className="p-4 text-center">Loading chat...</div>}>
-                            <PuffChat 
                                 persona={selectedAgent as any}
                                 hideHeader={true}
                                 isSuperUser={true}
                                 isHired={true}
+                                initialPermissions={initialPermissions}
                                 promptSuggestions={[
                                     "Run Weekly KPI Report",
                                     "Check System Health Status",
