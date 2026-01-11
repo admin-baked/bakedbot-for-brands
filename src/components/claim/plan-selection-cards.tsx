@@ -29,7 +29,7 @@ export function PlanSelectionCards({
             <div className="grid gap-4 md:grid-cols-2">
                 {/* Claim Pro Card */}
                 <div
-                    onClick={() => onSelectPlan('claim_pro')}
+                    onClick={() => onSelectPlan(selectedPlan === 'claim_pro' ? 'free' : 'claim_pro')}
                     className={cn(
                         "relative cursor-pointer rounded-xl border-2 p-6 transition-all duration-200 hover:shadow-lg",
                         selectedPlan === 'claim_pro'
@@ -69,7 +69,7 @@ export function PlanSelectionCards({
 
                 {/* Founders Claim Card */}
                 <div
-                    onClick={() => onSelectPlan('founders_claim')}
+                    onClick={() => onSelectPlan(selectedPlan === 'founders_claim' ? 'free' : 'founders_claim')}
                     className={cn(
                         "relative cursor-pointer rounded-xl border-2 p-6 transition-all duration-200 hover:shadow-lg",
                         selectedPlan === 'founders_claim'
@@ -114,18 +114,32 @@ export function PlanSelectionCards({
                 </div>
             </div>
             
-            <div className="text-center">
-                <button 
-                    type="button" 
-                    onClick={() => onSelectPlan('free')}
-                    className={cn(
-                        "text-sm font-medium transition-colors hover:underline",
-                        selectedPlan === 'free' ? "text-primary underline" : "text-muted-foreground"
-                    )}
-                >
-                    Continue with The Scout (Free)
-                </button>
             </div>
+            
+            {/* 
+                Only show the Free option link if we are currently on the free plan.
+                If the user selects a paid plan, they can deselect it (toggle) to return to free,
+                or we assume they want to proceed with the paid plan. 
+                This reduces confusion about the "Continue with The Scout" link appearing 
+                alongside a paid selection.
+            */}
+            {selectedPlan === 'free' && (
+                <div className="text-center animate-in fade-in slide-in-from-bottom-2 duration-300">
+                     <p className="text-muted-foreground text-sm mb-2">Not ready to commit?</p>
+                    <button 
+                        type="button" 
+                        onClick={() => onSelectPlan('free')}
+                        className={cn(
+                            "text-sm font-medium transition-colors hover:underline text-primary underline"
+                        )}
+                    >
+                        Continue with The Scout (Free)
+                    </button>
+                    {/* Note: In 'free' mode, the main 'Continue' button on the parent page handles the action. 
+                        This link is mostly for reassurance or explicit selection if we had >1 free option. 
+                    */}
+                </div>
+            )}
         </div>
     );
 }

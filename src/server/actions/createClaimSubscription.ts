@@ -78,13 +78,22 @@ export async function createClaimWithSubscription(
         }
 
         // 1b. Validate Existing Org (if claiming specific entity)
+        // If the ID exists in our DB, check if it's already claimed.
+        // If it doesn't exist (e.g. from external search like CannMenus), treat as a "New" claim (orgId = null for linking purposes momentarily).
         if (input.orgId) {
             const orgDoc = await firestore.collection('organizations').doc(input.orgId).get();
-            if (!orgDoc.exists) {
-                return { success: false, error: 'Organization not found.' };
-            }
-            if (orgDoc.data()?.claimStatus === 'claimed') {
-                return { success: false, error: 'This organization has already been claimed.' };
+            if (orgDoc.exists) {
+                if (orgDoc.data()?.claimStatus === 'claimed') {
+                    return { success: false, error: 'This organization has already been claimed.' };
+                }
+            } else {
+                // ID provided but not found in 'organizations'.
+                // Check if it's a valid external ID format or just proceed as new.
+                // For now, we'll assume it's a new import and proceed, but we won't link it to a non-existent doc.
+                // We'll keep input.orgId in the claim record for future reconciliation if needed, 
+                // but we won't fail the request.
+                logger.warn(`Claim attempted for non-existent orgId: ${input.orgId}. Treating as new claim.`);
+                // Setup for future: could trigger a background import here.
             }
         }
 
@@ -128,30 +137,35 @@ export async function createClaimWithSubscription(
 
         // 3b. Update CRM Record if linked
         if (input.orgId) {
-            // Try to update in both CRM collections
-            // First try by ID (if it's a CRM ID) then by seoPageId (if it's a page ID)
-            const collections = ['crm_brands', 'crm_dispensaries'];
-            for (const coll of collections) {
-                // Try direct ID
-                const docRef = firestore.collection(coll).doc(input.orgId);
-                const doc = await docRef.get();
-                if (doc.exists) {
-                    await docRef.update({ 
-                        claimStatus: 'claimed', 
-                        updatedAt: FieldValue.serverTimestamp() 
-                    });
-                    break;
+            try {
+                // Try to update in both CRM collections
+                // First try by ID (if it's a CRM ID) then by seoPageId (if it's a page ID)
+                const collections = ['crm_brands', 'crm_dispensaries'];
+                for (const coll of collections) {
+                    // Try direct ID
+                    const docRef = firestore.collection(coll).doc(input.orgId);
+                    const doc = await docRef.get();
+                    if (doc.exists) {
+                        await docRef.update({ 
+                            claimStatus: 'claimed', 
+                            updatedAt: FieldValue.serverTimestamp() 
+                        });
+                        break;
+                    }
+                    
+                    // Try seoPageId query
+                    const snap = await firestore.collection(coll).where('seoPageId', '==', input.orgId).limit(1).get();
+                    if (!snap.empty) {
+                        await snap.docs[0].ref.update({ 
+                            claimStatus: 'claimed', 
+                            updatedAt: FieldValue.serverTimestamp() 
+                        });
+                        break;
+                    }
                 }
-                
-                // Try seoPageId query
-                const snap = await firestore.collection(coll).where('seoPageId', '==', input.orgId).limit(1).get();
-                if (!snap.empty) {
-                    await snap.docs[0].ref.update({ 
-                        claimStatus: 'claimed', 
-                        updatedAt: FieldValue.serverTimestamp() 
-                    });
-                    break;
-                }
+            } catch (error) {
+                 logger.warn('Failed to update CRM record during claim', { orgId: input.orgId, error });
+                 // Don't block the claim creation if CRM update fails
             }
         }
 
@@ -164,11 +178,15 @@ export async function createClaimWithSubscription(
             });
 
             if (input.orgId) {
-                await firestore.collection('organizations').doc(input.orgId).update({
-                    claimStatus: 'pending_verification',
-                    claimId: claimId,
-                    updatedAt: FieldValue.serverTimestamp()
-                });
+                const orgRef = firestore.collection('organizations').doc(input.orgId);
+                const orgSnap = await orgRef.get();
+                if (orgSnap.exists) {
+                     await orgRef.update({
+                        claimStatus: 'pending_verification',
+                        claimId: claimId,
+                        updatedAt: FieldValue.serverTimestamp()
+                    });
+                }
             }
 
             return { success: true, claimId };
@@ -230,13 +248,17 @@ export async function createClaimWithSubscription(
                 updatedAt: FieldValue.serverTimestamp()
             });
 
-            // 7. Update Organization status if linked
+            // 7. Update Organization status if linked and exists
             if (input.orgId) {
-                await firestore.collection('organizations').doc(input.orgId).update({
-                    claimStatus: 'pending_verification',
-                    claimId: claimId,
-                    updatedAt: FieldValue.serverTimestamp()
-                });
+                const orgDocRef = firestore.collection('organizations').doc(input.orgId);
+                const orgDoc = await orgDocRef.get();
+                if (orgDoc.exists) {
+                    await orgDocRef.update({
+                        claimStatus: 'pending_verification',
+                        claimId: claimId,
+                        updatedAt: FieldValue.serverTimestamp()
+                    });
+                }
             }
 
             logger.info('Claim subscription created successfully', {
