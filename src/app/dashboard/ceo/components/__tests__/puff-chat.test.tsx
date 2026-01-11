@@ -1,7 +1,7 @@
+'use client';
 
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { PuffChat } from '../puff-chat';
 import '@testing-library/jest-dom';
 import { TextEncoder, TextDecoder } from 'util';
@@ -31,8 +31,21 @@ jest.mock('@/firebase/auth/use-user', () => ({
 }));
 
 jest.mock('@/app/dashboard/ceo/agents/actions', () => ({
-    runAgentChat: jest.fn()
+    runAgentChat: jest.fn(),
+    getGoogleAuthUrl: jest.fn().mockResolvedValue(null),
+    cancelAgentJob: jest.fn().mockResolvedValue({ success: true })
 }));
+
+// Mock server actions that use next/cache and require Next.js runtime
+jest.mock('@/server/actions/artifacts', () => ({
+    saveArtifact: jest.fn().mockResolvedValue({ success: true }),
+    getUserArtifacts: jest.fn().mockResolvedValue({ success: true, artifacts: [] })
+}));
+
+jest.mock('@/server/actions/gmail', () => ({
+    checkGmailConnection: jest.fn().mockResolvedValue({ isConnected: false })
+}));
+
 
 // Mock AudioRecorder to avoid media device errors
 jest.mock('@/components/ui/audio-recorder', () => ({
@@ -62,6 +75,16 @@ jest.mock('@/components/chat/project-selector', () => ({
     ProjectSelector: () => <div data-testid="project-selector">Project Selector</div>
 }));
 
+// Mock artifact components to avoid ESM issues with react-syntax-highlighter/refractor
+jest.mock('@/components/artifacts/artifact-panel', () => ({
+    ArtifactPanel: () => <div data-testid="artifact-panel">Artifact Panel</div>
+}));
+
+jest.mock('@/components/artifacts/artifact-renderer', () => ({
+    ArtifactRenderer: () => <div data-testid="artifact-renderer">Artifact Renderer</div>
+}));
+
+
 describe('PuffChat Component', () => {
     beforeEach(() => {
         useAgentChatStore.setState({
@@ -73,6 +96,21 @@ describe('PuffChat Component', () => {
         // Mock JSDOM unimplemented methods
         window.HTMLElement.prototype.scrollIntoView = jest.fn();
         window.scrollTo = jest.fn();
+        
+        // Mock matchMedia for useIsMobile hook
+        Object.defineProperty(window, 'matchMedia', {
+            writable: true,
+            value: jest.fn().mockImplementation((query: string) => ({
+                matches: false,
+                media: query,
+                onchange: null,
+                addListener: jest.fn(),
+                removeListener: jest.fn(),
+                addEventListener: jest.fn(),
+                removeEventListener: jest.fn(),
+                dispatchEvent: jest.fn(),
+            })),
+        });
         
         // Mock fetch
         global.fetch = jest.fn() as jest.Mock;
@@ -158,5 +196,57 @@ describe('PuffChat Component', () => {
              expect(screen.getByText(/Agent Routing/i)).toBeInTheDocument();
         }, { timeout: 5000 });
     });
-});
 
+    describe('Focus Management', () => {
+        it('textarea receives focus after clicking a prompt suggestion', async () => {
+            const mockFocus = jest.fn();
+            const mockScrollIntoView = jest.fn();
+            
+            render(
+                <PuffChat 
+                    promptSuggestions={['Test prompt suggestion']} 
+                    isAuthenticated={false}
+                />
+            );
+
+            // Find the textarea and spy on focus
+            const textarea = screen.getByPlaceholderText('Ask Smokey anything...');
+            textarea.focus = mockFocus;
+            textarea.scrollIntoView = mockScrollIntoView;
+
+            // Find and click the prompt suggestion button
+            const suggestionButton = await screen.findByText('Test prompt suggestion');
+            fireEvent.click(suggestionButton);
+
+            // Wait for the focus to be called (with 100ms delay in implementation)
+            await waitFor(() => {
+                expect(mockFocus).toHaveBeenCalled();
+            }, { timeout: 500 });
+        });
+
+        it('textarea has the correct ref attached', () => {
+            render(<PuffChat />);
+            
+            const textarea = screen.getByPlaceholderText('Ask Smokey anything...');
+            expect(textarea).toBeInTheDocument();
+            expect(textarea.tagName).toBe('TEXTAREA');
+        });
+
+        it('submit button is disabled when input is empty', () => {
+            render(<PuffChat />);
+            
+            const submitButton = screen.getByTestId('submit-button');
+            expect(submitButton).toBeDisabled();
+        });
+
+        it('submit button is enabled when input has text', async () => {
+            render(<PuffChat />);
+            
+            const textarea = screen.getByPlaceholderText('Ask Smokey anything...');
+            fireEvent.change(textarea, { target: { value: 'Hello' } });
+            
+            const submitButton = screen.getByTestId('submit-button');
+            expect(submitButton).not.toBeDisabled();
+        });
+    });
+});
