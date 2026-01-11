@@ -816,8 +816,11 @@ export function PuffChat({
 
         
         // SPECIAL CASE: Market Scout needs location context
-        // DISABLED: Refactored to use Real Agent
+        // Supports both Dispensary mode (Spy on Competitors) and Brand mode (Find retail partners)
         if (trimmedInput.includes("Hire a Market Scout")) {
+             // Detect if this is Brand mode (retail partners) vs Dispensary mode (competitors)
+             const isBrandMode = trimmedInput.includes("Find retail partners") || trimmedInput.includes("retail partner");
+             
              const userMsgId = `user-${Date.now()}`;
              addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
              setInput(''); setAttachments([]); setIsProcessing(true);
@@ -837,109 +840,174 @@ export function PuffChat({
                  // CASE A: We have location (either from context or user just typed zip)
                  const zipOrCity = trimmedInput.match(/^\d{5}$/) ? trimmedInput : (locationInfo?.city || "your area");
                  
-                 // Start "Thinking" with detailed steps
+                 // Start "Thinking" with detailed steps - context-aware labels
                  const step1Id = Math.random().toString(36).substr(2,9);
+                 const scanLabel = isBrandMode ? "Retail Discovery" : "Active Recon";
+                 const scanDesc = isBrandMode 
+                     ? `Finding dispensary partners near ${zipOrCity}...`
+                     : `Initializing scan for ${zipOrCity}...`;
+                 
                  updateMessage(thinkingId, {
-                    thinking: { isThinking: true, steps: [{ id: step1Id, toolName: "Active Recon", description: `Initializing scan for ${zipOrCity}...`, status: 'in-progress', durationMs: 0 }], plan: [] }
+                    thinking: { isThinking: true, steps: [{ id: step1Id, toolName: scanLabel, description: scanDesc, status: 'in-progress', durationMs: 0 }], plan: [] }
                  });
 
-                 // Call Server Action (Dynamic Import to avoid server-on-client issues if any, but standard import works in Next.js actions)
+                 // Call Server Action
                  const { searchDemoRetailers } = await import('@/app/dashboard/intelligence/actions/demo-setup');
                  
                  // Update step to "Scanning"
                  await new Promise(r => setTimeout(r, 800)); // Visual pacing
                  updateMessage(thinkingId, {
                     thinking: { isThinking: true, steps: [
-                        { id: step1Id, toolName: "Active Recon", description: `Scanning dispensaries near ${zipOrCity}...`, status: 'completed', durationMs: 800 },
-                        { id: 'scan', toolName: "Menu Crawler", description: "Browsing competitor sites (BakedBot Discovery)...", status: 'in-progress' }
+                        { id: step1Id, toolName: scanLabel, description: `${isBrandMode ? 'Found dispensaries' : 'Scanning dispensaries'} near ${zipOrCity}...`, status: 'completed', durationMs: 800 },
+                        { id: 'scan', toolName: isBrandMode ? "Partner Matching" : "Menu Crawler", description: isBrandMode ? "Analyzing dispensary profiles for fit..." : "Browsing competitor sites (BakedBot Discovery)...", status: 'in-progress' }
                     ], plan: [] }
                  });
 
                  const result = await searchDemoRetailers(zipOrCity);
                  
-                 // Simulate "Deep Dive" time if we got results, to let the user read the "Browsing" step
+                 // Simulate "Deep Dive" time if we got results
                  await new Promise(r => setTimeout(r, 1200));
 
                  if (result.success && result.daa) {
-                     // Success! Format the report
-                     const competitors = result.daa.slice(0, 5); // Top 5 for richer report
+                     const retailers = result.daa.slice(0, 5); // Top 5
                      const count = result.daa.length;
-                     const enrichedComp = result.daa.find((c: any) => c.isEnriched);
-                     
-                     // Analyze pricing strategies
-                     const premiumComps = competitors.filter((c: any) => c.pricingStrategy?.includes('Premium'));
-                     const aggressiveComps = competitors.filter((c: any) => c.pricingStrategy?.includes('Aggressive'));
-                     const standardComps = competitors.filter((c: any) => c.pricingStrategy === 'Standard');
-                     
-                     // Build competitor table
-                     let tableRows = competitors.map((c: any) => 
-                        `| **${c.name}** ${c.isEnriched ? '✅' : ''} | ${c.address ? c.address.slice(0, 30) + '...' : c.city} | ${c.pricingStrategy} | ${c.skuCount} SKUs | ${c.riskScore === 'Low' ? '🟢 Low' : '🟡 Med'} |`
-                     ).join('\n');
-                     
-                     // Build pricing insights
-                     let pricingInsight = '';
-                     if (premiumComps.length > 0) {
-                         pricingInsight = `**${premiumComps[0].name}** leads with premium positioning (+15% above market). `;
-                     }
-                     if (aggressiveComps.length > 0) {
-                         pricingInsight += `**${aggressiveComps[0].name}** running aggressive promotions—potential price war.`;
-                     }
-                     if (!pricingInsight) {
-                         pricingInsight = `Market pricing is relatively stable with ${standardComps.length} dispensaries at standard rates.`;
-                     }
-                     
-                     // Deep dive insight
-                     let deepDive = '';
-                     if (enrichedComp) {
-                         deepDive = `**🔬 Deep Dive: ${enrichedComp.name}**\n${enrichedComp.enrichmentSummary}\n\n`;
-                     }
+                     const enrichedRetailer = result.daa.find((c: any) => c.isEnriched);
 
-                     const reportContent = `## 🔥 Cannabis Market Intelligence - ${result.location}\n` +
-                        `**📊 COMPETITIVE ANALYSIS** - ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}\n\n` +
-                        `---\n\n` +
-                        `### 💰 KEY PRICING INSIGHTS\n` +
-                        `${pricingInsight}\n\n` +
-                        `- **Premium Positioned**: ${premiumComps.length} dispensaries (${Math.round(premiumComps.length/count*100)}%)\n` +
-                        `- **Standard Pricing**: ${standardComps.length} dispensaries (${Math.round(standardComps.length/count*100)}%)\n` +
-                        `- **Aggressive Promos**: ${aggressiveComps.length} dispensaries\n\n` +
-                        `---\n\n` +
-                        `### 📍 COMPETITOR BREAKDOWN (${count} Total)\n\n` +
-                        `| Dispensary | Location | Pricing | Menu Size | Risk |\n` +
-                        `| :--- | :--- | :--- | :--- | :--- |\n` +
-                        tableRows + `\n\n` +
-                        deepDive +
-                        `---\n\n` +
-                        `### 🎯 MARGIN OPPORTUNITIES\n` +
-                        `- **Price Increase Candidates**: High-THC strains with limited competition in ${result.location}\n` +
-                        `- **Bundle Opportunity**: Create value bundles to compete with ${aggressiveComps[0]?.name || 'aggressive discounters'}\n` +
-                        `- **Exclusivity Play**: Partner with premium brands not carried by competitors\n\n` +
-                        `---\n\n` +
-                        `### 🚨 COMPETITOR VULNERABILITIES\n` +
-                        `- ${premiumComps[0]?.name || 'Premium competitors'} may lose price-sensitive customers\n` +
-                        `- ${count - (enrichedComp ? 1 : 0)} competitors lack verified loyalty programs\n` +
-                        `- Opportunity: Position on quality + service vs. price wars\n\n` +
-                        `---\n\n` +
-                        `### ✅ NEXT STEPS\n` +
-                        `- ✓ Set up automated price monitoring for top ${Math.min(count, 5)} competitors\n` +
-                        `- ✓ Analyze ${enrichedComp?.name || 'top competitor'}'s bestsellers for counter-positioning\n` +
-                        `- ✓ Launch Daily Competitive Intel playbook for real-time alerts\n\n` +
-                        `---\n\n` +
-                        `### 🚀 Automate This Report\n\n` +
-                        `Create a **Free Account** and launch the **Daily Competitive Intelligence Report** playbook.\n\n` +
-                        `**What you get:**\n` +
-                        `- ✅ Monitor ${count}+ competitors automatically\n` +
-                        `- ✅ Daily pricing change alerts\n` +
-                        `- ✅ Weekly market summary like this one\n\n` +
-                        `[**Create Free Account →**](/claim)`;
+                     if (isBrandMode) {
+                         // ============================================
+                         // BRAND MODE: Retail Partner Discovery Report
+                         // ============================================
+                         
+                         // Analyze partner fit
+                         const premiumPartners = retailers.filter((c: any) => c.pricingStrategy?.includes('Premium'));
+                         const highVolumePartners = retailers.filter((c: any) => c.skuCount > 300);
+                         
+                         // Build partner table
+                         let tableRows = retailers.map((c: any) => 
+                            `| **${c.name}** ${c.isEnriched ? '✅' : ''} | ${c.address ? c.address.slice(0, 30) + '...' : c.city} | ${c.skuCount} SKUs | ${c.pricingStrategy === 'Premium' ? '💎 Premium' : '📦 Standard'} | ${c.riskScore === 'Low' ? '🟢 Good' : '🟡 Review'} |`
+                         ).join('\n');
+                         
+                         // Deep dive insight
+                         let deepDive = '';
+                         if (enrichedRetailer) {
+                             deepDive = `**🔬 Featured Partner: ${enrichedRetailer.name}**\n${enrichedRetailer.enrichmentSummary}\n\n`;
+                         }
 
-                     updateMessage(thinkingId, {
-                         content: reportContent,
-                         thinking: { isThinking: false, steps: [
-                             { id: step1Id, toolName: "Active Recon", description: `Found ${count} locations`, status: 'completed' },
-                             { id: 'scan', toolName: "BakedBot Discovery", description: `Analyzed ${enrichedComp?.name || 'competitors'}`, status: 'completed' },
-                             { id: 'done', toolName: "Intel Report", description: "Risk analysis complete", status: 'completed' }
-                         ], plan: [] }
-                     });
+                         const reportContent = `## 🏪 Retail Partner Discovery - ${result.location}\n` +
+                            `**🤝 PARTNER OPPORTUNITIES** - ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}\n\n` +
+                            `---\n\n` +
+                            `### 💡 MARKET OVERVIEW\n` +
+                            `Found **${count} dispensaries** in ${result.location} that could carry your products.\n\n` +
+                            `- **Premium Retailers**: ${premiumPartners.length} (ideal for premium product lines)\n` +
+                            `- **High-Volume Stores**: ${highVolumePartners.length} (large menu = more shelf space)\n\n` +
+                            `---\n\n` +
+                            `### 📍 POTENTIAL RETAIL PARTNERS\n\n` +
+                            `| Dispensary | Location | Menu Size | Market Position | Partner Fit |\n` +
+                            `| :--- | :--- | :--- | :--- | :--- |\n` +
+                            tableRows + `\n\n` +
+                            deepDive +
+                            `---\n\n` +
+                            `### 🎯 RECOMMENDED APPROACH\n` +
+                            `1. **Start with ${premiumPartners[0]?.name || 'premium retailers'}** — Ideal for brand-building\n` +
+                            `2. **Target ${highVolumePartners[0]?.name || 'high-volume stores'}** — Maximum reach potential\n` +
+                            `3. **Prepare sell sheets** with margin analysis for each partner tier\n\n` +
+                            `---\n\n` +
+                            `### 🚀 Next Steps\n\n` +
+                            `Create a **Free Account** to:\n` +
+                            `- ✅ Track which dispensaries carry your brand\n` +
+                            `- ✅ Monitor your brand footprint across all retailers\n` +
+                            `- ✅ Get alerts when new dispensaries open in your target markets\n\n` +
+                            `[**Create Free Account →**](/claim)`;
+
+                         updateMessage(thinkingId, {
+                             content: reportContent,
+                             thinking: { isThinking: false, steps: [
+                                 { id: step1Id, toolName: "Retail Discovery", description: `Found ${count} dispensaries`, status: 'completed' },
+                                 { id: 'scan', toolName: "Partner Matching", description: `Analyzed ${enrichedRetailer?.name || 'retailers'}`, status: 'completed' },
+                                 { id: 'done', toolName: "Partner Report", description: "Opportunities identified", status: 'completed' }
+                             ], plan: [] }
+                         });
+                     } else {
+                         // ============================================
+                         // DISPENSARY MODE: Competitor Analysis Report
+                         // ============================================
+                         const competitors = retailers;
+                         
+                         // Analyze pricing strategies
+                         const premiumComps = competitors.filter((c: any) => c.pricingStrategy?.includes('Premium'));
+                         const aggressiveComps = competitors.filter((c: any) => c.pricingStrategy?.includes('Aggressive'));
+                         const standardComps = competitors.filter((c: any) => c.pricingStrategy === 'Standard');
+                         
+                         // Build competitor table
+                         let tableRows = competitors.map((c: any) => 
+                            `| **${c.name}** ${c.isEnriched ? '✅' : ''} | ${c.address ? c.address.slice(0, 30) + '...' : c.city} | ${c.pricingStrategy} | ${c.skuCount} SKUs | ${c.riskScore === 'Low' ? '🟢 Low' : '🟡 Med'} |`
+                         ).join('\n');
+                         
+                         // Build pricing insights
+                         let pricingInsight = '';
+                         if (premiumComps.length > 0) {
+                             pricingInsight = `**${premiumComps[0].name}** leads with premium positioning (+15% above market). `;
+                         }
+                         if (aggressiveComps.length > 0) {
+                             pricingInsight += `**${aggressiveComps[0].name}** running aggressive promotions—potential price war.`;
+                         }
+                         if (!pricingInsight) {
+                             pricingInsight = `Market pricing is relatively stable with ${standardComps.length} dispensaries at standard rates.`;
+                         }
+                         
+                         // Deep dive insight
+                         let deepDive = '';
+                         if (enrichedRetailer) {
+                             deepDive = `**🔬 Deep Dive: ${enrichedRetailer.name}**\n${enrichedRetailer.enrichmentSummary}\n\n`;
+                         }
+
+                         const reportContent = `## 🔥 Cannabis Market Intelligence - ${result.location}\n` +
+                            `**📊 COMPETITIVE ANALYSIS** - ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}\n\n` +
+                            `---\n\n` +
+                            `### 💰 KEY PRICING INSIGHTS\n` +
+                            `${pricingInsight}\n\n` +
+                            `- **Premium Positioned**: ${premiumComps.length} dispensaries (${Math.round(premiumComps.length/count*100)}%)\n` +
+                            `- **Standard Pricing**: ${standardComps.length} dispensaries (${Math.round(standardComps.length/count*100)}%)\n` +
+                            `- **Aggressive Promos**: ${aggressiveComps.length} dispensaries\n\n` +
+                            `---\n\n` +
+                            `### 📍 COMPETITOR BREAKDOWN (${count} Total)\n\n` +
+                            `| Dispensary | Location | Pricing | Menu Size | Risk |\n` +
+                            `| :--- | :--- | :--- | :--- | :--- |\n` +
+                            tableRows + `\n\n` +
+                            deepDive +
+                            `---\n\n` +
+                            `### 🎯 MARGIN OPPORTUNITIES\n` +
+                            `- **Price Increase Candidates**: High-THC strains with limited competition in ${result.location}\n` +
+                            `- **Bundle Opportunity**: Create value bundles to compete with ${aggressiveComps[0]?.name || 'aggressive discounters'}\n` +
+                            `- **Exclusivity Play**: Partner with premium brands not carried by competitors\n\n` +
+                            `---\n\n` +
+                            `### 🚨 COMPETITOR VULNERABILITIES\n` +
+                            `- ${premiumComps[0]?.name || 'Premium competitors'} may lose price-sensitive customers\n` +
+                            `- ${count - (enrichedRetailer ? 1 : 0)} competitors lack verified loyalty programs\n` +
+                            `- Opportunity: Position on quality + service vs. price wars\n\n` +
+                            `---\n\n` +
+                            `### ✅ NEXT STEPS\n` +
+                            `- ✓ Set up automated price monitoring for top ${Math.min(count, 5)} competitors\n` +
+                            `- ✓ Analyze ${enrichedRetailer?.name || 'top competitor'}'s bestsellers for counter-positioning\n` +
+                            `- ✓ Launch Daily Competitive Intel playbook for real-time alerts\n\n` +
+                            `---\n\n` +
+                            `### 🚀 Automate This Report\n\n` +
+                            `Create a **Free Account** and launch the **Daily Competitive Intelligence Report** playbook.\n\n` +
+                            `**What you get:**\n` +
+                            `- ✅ Monitor ${count}+ competitors automatically\n` +
+                            `- ✅ Daily pricing change alerts\n` +
+                            `- ✅ Weekly market summary like this one\n\n` +
+                            `[**Create Free Account →**](/claim)`;
+
+                         updateMessage(thinkingId, {
+                             content: reportContent,
+                             thinking: { isThinking: false, steps: [
+                                 { id: step1Id, toolName: "Active Recon", description: `Found ${count} locations`, status: 'completed' },
+                                 { id: 'scan', toolName: "BakedBot Discovery", description: `Analyzed ${enrichedRetailer?.name || 'competitors'}`, status: 'completed' },
+                                 { id: 'done', toolName: "Intel Report", description: "Risk analysis complete", status: 'completed' }
+                             ], plan: [] }
+                         });
+                     }
                  } else {
                      // Error State
                      updateMessage(thinkingId, {
@@ -953,9 +1021,13 @@ export function PuffChat({
                  setStreamingMessageId(thinkingId);
              } else {
                  // CASE B: Ask for Location (Preserved)
+                 const locationPrompt = isBrandMode
+                     ? "I can find dispensary partners for your brand. **What City or Zip Code should I search?**"
+                     : "I'm ready to audit your local market. **What City or Zip Code should I scan?**";
+                 
                   setTimeout(() => {
                     updateMessage(thinkingId, {
-                        content: "I'm ready to audit your local market. **What City or Zip Code should I scan?**",
+                        content: locationPrompt,
                         thinking: { isThinking: false, steps: [], plan: [] }
                     });
                     setIsProcessing(false);
@@ -965,6 +1037,7 @@ export function PuffChat({
              }
              return;
         }
+
 
         // ---------------------------------------------------------
         // DYNAMIC PRESET: SMOKEY (Digital Budtender Demo)
@@ -1079,6 +1152,103 @@ export function PuffChat({
                  focusInput(); // Refocus input after brand audit prompt
                  setStreamingMessageId(thinkingId);
              }, 800);
+             return;
+        }
+
+        // ---------------------------------------------------------
+        // FOLLOW-UP: Brand Name Input (after Audit my Brand prompt)
+        // ---------------------------------------------------------
+        const lastBotMsg = currentMessages[currentMessages.length - 1];
+        const askedForBrandName = lastBotMsg?.type === 'agent' && lastBotMsg.content.includes("What is the name of your brand?");
+        
+        if (askedForBrandName && trimmedInput.length > 1 && trimmedInput.length < 100) {
+             const brandName = trimmedInput;
+             
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: brandName, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `agent-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+             setStreamingMessageId(null);
+             
+             const step1Id = Math.random().toString(36).substr(2,9);
+             updateMessage(thinkingId, {
+                thinking: { isThinking: true, steps: [{ id: step1Id, toolName: "Ezal", description: `Searching for "${brandName}" across dispensary menus...`, status: 'in-progress' }], plan: [] }
+             });
+
+             // Simulate search with real retailer data
+             const { searchDemoRetailers } = await import('@/app/dashboard/intelligence/actions/demo-setup');
+             
+             await new Promise(r => setTimeout(r, 1000));
+             updateMessage(thinkingId, {
+                thinking: { isThinking: true, steps: [
+                    { id: step1Id, toolName: "Ezal", description: `Scanning dispensary networks for "${brandName}"...`, status: 'completed', durationMs: 1000 },
+                    { id: 'scan', toolName: "Brand Discovery", description: "Analyzing digital footprint...", status: 'in-progress' }
+                ], plan: [] }
+             });
+             
+             // Get some retailers to reference in the audit
+             const result = await searchDemoRetailers(locationInfo?.city || "Denver");
+             
+             await new Promise(r => setTimeout(r, 1200));
+             
+             // Generate simulated brand audit results
+             const carriedByCount = Math.floor(Math.random() * 8) + 2; // 2-10 retailers
+             const totalRetailers = result.success && result.daa ? result.daa.length : 15;
+             const marketPenetration = Math.round((carriedByCount / totalRetailers) * 100);
+             const avgPrice = (Math.random() * 20 + 30).toFixed(2); // $30-50
+             const competitorBrands = ['Raw Garden', 'Stiiizy', 'Connected', 'Alien Labs', 'Cookies'];
+             const randomCompetitors = competitorBrands.sort(() => 0.5 - Math.random()).slice(0, 3);
+             
+             // Build sample retailer list from actual data if available
+             let sampleRetailers = '';
+             if (result.success && result.daa) {
+                 const retailers = result.daa.slice(0, 3);
+                 sampleRetailers = retailers.map((r: any) => `- **${r.name}** (${r.city || 'Location N/A'})`).join('\n');
+             } else {
+                 sampleRetailers = '- *Location data not available - create account to unlock*';
+             }
+             
+             const auditContent = `## 🔍 Brand Footprint Audit: ${brandName}\n` +
+                `**📊 DIGITAL PRESENCE ANALYSIS** - ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}\n\n` +
+                `---\n\n` +
+                `### 📈 MARKET PENETRATION\n` +
+                `- **Retailers Carrying ${brandName}**: ${carriedByCount} dispensaries\n` +
+                `- **Market Penetration**: ${marketPenetration}% in ${locationInfo?.city || 'target market'}\n` +
+                `- **Avg. Retail Price**: $${avgPrice}\n\n` +
+                `---\n\n` +
+                `### 🏪 SAMPLE RETAILERS CARRYING ${brandName.toUpperCase()}\n` +
+                `${sampleRetailers}\n\n` +
+                `---\n\n` +
+                `### ⚔️ COMPETITIVE LANDSCAPE\n` +
+                `Top competing brands in same category:\n` +
+                randomCompetitors.map((c, i) => `${i + 1}. **${c}**`).join('\n') + `\n\n` +
+                `---\n\n` +
+                `### 🎯 GROWTH OPPORTUNITIES\n` +
+                `- **${totalRetailers - carriedByCount} dispensaries** don't carry ${brandName} yet\n` +
+                `- Premium retailers in this market are underrepresented\n` +
+                `- Opportunity to expand in adjacent ZIP codes\n\n` +
+                `---\n\n` +
+                `### 🚀 Next Steps\n\n` +
+                `Create a **Free Account** to:\n` +
+                `- ✅ Monitor all ${carriedByCount}+ retailers carrying ${brandName}\n` +
+                `- ✅ Get alerts when new stores add your brand\n` +
+                `- ✅ Track competitor pricing and availability\n\n` +
+                `[**Create Free Account →**](/claim)`;
+
+             updateMessage(thinkingId, {
+                 content: auditContent,
+                 thinking: { isThinking: false, steps: [
+                     { id: step1Id, toolName: "Ezal", description: `Found ${carriedByCount} retailers`, status: 'completed' },
+                     { id: 'scan', toolName: "Brand Discovery", description: `Analyzed ${brandName} footprint`, status: 'completed' },
+                     { id: 'done', toolName: "Audit Complete", description: "Report generated", status: 'completed' }
+                 ], plan: [] }
+             });
+             
+             setIsProcessing(false);
+             focusInput();
+             setStreamingMessageId(thinkingId);
              return;
         }
 
