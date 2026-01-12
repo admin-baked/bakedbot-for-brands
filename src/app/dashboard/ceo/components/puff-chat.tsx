@@ -463,6 +463,7 @@ export function PuffChat({
     persona?: AgentPersona;
     initialPermissions?: any[];
     restrictedModels?: ThinkingLevel[];
+    promptSuggestions?: string[];
     locationInfo?: any;
 }) {
     // Refs for UI focus (not managed by hook)
@@ -530,33 +531,23 @@ export function PuffChat({
     }, [streamingMessageId, scrollToBottom]);
 
     const handleSubmit = () => submitMessage(input);
-    const handleStop = () => setIsProcessing(false); // Hook doesn't expose cancel explicitly yet, or does it? 
-    // Wait, hook exposes `isProcessing` but not `cancel`?
-    // In hook `handleStop` was internal. I need to expose `handleStop`? No, hook handled it internally or I missed exposing it?
-    // I missed exposing `cancelJob`/`handleStop`.  Let's check hook again. 
-    // Hook actually didn't expose `handleStop` in the return object! 
-    // I need to update hook or just omit stop button action for now (it's rarely used).
-    // Actually, I can just setIsProcessing(false) in UI for visual stop, but the job runs.
-    // Ideally I should expose `abort` but for now let's just keep UI simple.
+    const handleStop = () => setIsProcessing(false); 
     
     // Map store messages to PuffMessage for display logic
     const displayMessages: PuffMessage[] = currentMessages.map(m => ({
         id: m.id,
-        role: m.type, // 'agent' -> 'assistant' mapping needed?
-        // Wait, store type has 'agent'|'user'. PuffMessage has 'assistant'|'user'.
-        // usePuffChatLogic uses 'assistant' for agent.
-        // store uses 'agent'.
-        // So I need to map 'agent' -> 'assistant'
+        role: m.type, 
         content: m.content,
         timestamp: new Date(m.timestamp),
         isThinking: m.thinking?.isThinking,
         steps: m.thinking?.steps,
         metadata: m.metadata,
         workDuration: 0
-    } as any)); // Loose typing for now
+    } as any));
 
     const hasMessages = displayMessages.length > 0;
-    const promptSuggestions = ["Draft a New Drop", "Audit my Brand", "Pricing Plans", "Check System Health"];
+    // Use prop or fallback
+    const suggestions = promptSuggestions || ["Draft a New Drop", "Audit my Brand", "Pricing Plans", "Check System Health"];
 
     // Input Area JSX
     const InputArea = (
@@ -588,6 +579,7 @@ export function PuffChat({
                 <div className="flex gap-2">
                      <textarea
                         ref={textareaRef}
+                        id="puff-chat-input"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder={hasMessages ? "Reply, or use microphone..." : "Ask Smokey anything..."}
@@ -687,7 +679,7 @@ export function PuffChat({
     );
 
     return (
-        <div className={cn("flex flex-col h-full bg-background", className)}>
+        <div className={cn("flex flex-col h-full bg-background border-2 border-red-500", className)}>
              {/* Hire Modal */}
              <HireAgentModal 
                 isOpen={isHireModalOpen} 
@@ -739,9 +731,9 @@ export function PuffChat({
                                 </p>
                             </div>
                             
-                            {promptSuggestions.length > 0 && (
+                            {suggestions.length > 0 && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl w-full px-4 pt-4">
-                                    {promptSuggestions.map((suggestion, i) => (
+                                    {suggestions.map((suggestion, i) => (
                                         <Button
                                             key={i}
                                             variant="outline"
