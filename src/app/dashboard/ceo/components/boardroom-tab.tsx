@@ -226,7 +226,6 @@ export default function BoardroomTab() {
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1 p-0 overflow-visible relative min-h-0">
-                        <Suspense fallback={<div className="p-4 text-center">Loading chat...</div>}>
                             <PuffChat
                                 persona={selectedAgent as any}
                                 hideHeader={true}
@@ -238,11 +237,10 @@ export default function BoardroomTab() {
                                     "Check System Health Status",
                                     "Review Recent Signups",
                                     "Generate Competitive Intel Summary",
-                                    "Draft Weekly Team Update Email" // Triggers Gmail permission check
+                                    "Draft Weekly Team Update Email"
                                 ]}
                                 className="h-full border-0 shadow-none"
                             />
-                        </Suspense>
                     </CardContent>
                 </Card>
             </div>
