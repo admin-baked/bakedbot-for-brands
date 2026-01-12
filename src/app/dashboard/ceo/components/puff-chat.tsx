@@ -18,8 +18,10 @@ import {
     DropdownMenuTrigger,
     DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
-import { ThinkingWindow } from '@/components/chat/thinking-window';
-import { DiscoveryBar, DiscoverySummary, type DiscoveryStep } from '@/components/chat/discovery-bar';
+import { ThoughtBubble } from '@/components/chat/thought-bubble';
+import { ChatFeedback } from '@/components/chat/chat-feedback';
+import { SystemHealthCheck } from '@/components/chat/system-health-check';
+import { checkIntegrationsStatus, IntegrationStatus } from '@/server/actions/integrations';
 import { ArtifactPanel } from '@/components/artifacts/artifact-panel';
 import { parseArtifactsFromContent, Artifact } from '@/types/artifact';
 import {
@@ -55,6 +57,8 @@ import {
     Megaphone,
     BarChart3,
     DollarSign,
+    FileSpreadsheet,
+    Info,
     Heart,
     ShieldAlert
 } from 'lucide-react';
@@ -79,6 +83,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 // ============ Types ============
 
+// Tool Call Step Type (Keep export as it is used elsewhere)
 export interface ToolCallStep {
     id: string;
     toolName: string;
@@ -232,18 +237,23 @@ function ToolSelector({
     mode,
     selectedTools,
     onModeChange,
-    onToggleTool
+    onToggleTool,
+    integrationStatus,
+    onConnectTool
 }: {
     mode: ToolMode;
     selectedTools: AvailableTool[];
     onModeChange: (mode: ToolMode) => void;
     onToggleTool: (tool: AvailableTool) => void;
+    integrationStatus?: Record<string, 'active' | 'disconnected' | 'error'>;
+    onConnectTool?: (toolId: string) => void;
+    onShowToolInfo?: (toolId: string) => void;
 }) {
-    const tools: { id: AvailableTool; label: string; icon: any }[] = [
-        { id: 'gmail', label: 'Gmail', icon: Mail },
-        { id: 'calendar', label: 'Calendar', icon: Calendar },
-        { id: 'drive', label: 'Drive', icon: FolderOpen },
-        { id: 'search', label: 'Web Search', icon: Globe },
+    const tools: { id: AvailableTool; label: string; icon: any; capability: string }[] = [
+        { id: 'gmail', label: 'Gmail', icon: Mail, capability: 'Send & Read Emails' },
+        { id: 'calendar', label: 'Calendar', icon: Calendar, capability: 'Manage Schedule' },
+        { id: 'drive', label: 'Drive', icon: FolderOpen, capability: 'File Access' },
+        { id: 'search', label: 'Web Search', icon: Globe, capability: 'Live Browsing' },
     ];
 
     return (
@@ -255,7 +265,7 @@ function ToolSelector({
                     <ChevronDown className="h-3 w-3 opacity-50" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[240px]">
+            <DropdownMenuContent align="start" className="w-[280px]">
                 <DropdownMenuLabel>Tool Settings</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => onModeChange(mode === 'auto' ? 'manual' : 'auto')}>
@@ -268,19 +278,73 @@ function ToolSelector({
                 <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
                     Available Tools
                 </DropdownMenuLabel>
-                {tools.map(tool => (
-                    <DropdownMenuCheckboxItem
-                        key={tool.id}
-                        checked={selectedTools.includes(tool.id) || mode === 'auto'}
-                        disabled={mode === 'auto'}
-                        onCheckedChange={() => onToggleTool(tool.id)}
-                    >
-                        <div className="flex items-center gap-2">
-                            <tool.icon className="h-3 w-3" />
-                            <span>{tool.label}</span>
+                {tools.map(tool => {
+                    // Determine status (default to active for 'search' as it's built-in)
+                    const status = tool.id === 'search' ? 'active' : (integrationStatus?.[tool.id] || 'disconnected');
+                    const isConnected = status === 'active';
+
+                    return (
+                    <div key={tool.id} className="relative flex items-center justify-between px-2 py-2 hover:bg-muted/50 rounded-sm group transition-colors">
+                        {/* Main Row Area */}
+                        <div 
+                            className="flex items-center gap-3 flex-1 cursor-pointer min-w-0" 
+                            onClick={(e) => {
+                                if (!isConnected && onConnectTool) {
+                                    onConnectTool(tool.id);
+                                } else {
+                                    onToggleTool(tool.id);
+                                }
+                            }}
+                        >
+                            <div className={cn("shrink-0 h-2 w-2 rounded-full transition-all", isConnected ? "bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.4)]" : "bg-red-400 opacity-70")} />
+                            <tool.icon className={cn("shrink-0 h-4 w-4", isConnected ? "text-foreground" : "text-muted-foreground")} />
+                            
+                            <div className="flex flex-col min-w-0">
+                                <span className={cn("text-sm font-medium leading-none truncate", !isConnected && "text-muted-foreground")}>{tool.label}</span>
+                                {isConnected && (
+                                    <span className="text-[10px] text-muted-foreground leading-tight mt-0.5 truncate">{tool.capability}</span>
+                                )}
+                            </div>
                         </div>
-                    </DropdownMenuCheckboxItem>
-                ))}
+                        
+                        <div className="flex items-center gap-1">
+                             {/* Connected Info Action */}
+                             {isConnected && onShowToolInfo && tool.id !== 'search' && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onShowToolInfo(tool.id);
+                                    }}
+                                >
+                                    <Info className="h-3 w-3 text-muted-foreground" />
+                                </Button>
+                             )}
+
+                             {/* Selection Checkbox */}
+                             {(selectedTools.includes(tool.id) || mode === 'auto') && isConnected && (
+                                <Check className="h-3.5 w-3.5 text-primary ml-1" />
+                             )}
+
+                             {/* Connect Action */}
+                            {!isConnected && onConnectTool && (
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="h-6 px-2 text-[10px] bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border border-red-100 shadow-sm whitespace-nowrap"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onConnectTool(tool.id);
+                                    }}
+                                >
+                                    Connect
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                )})}
             </DropdownMenuContent>
         </DropdownMenu>
     );
@@ -440,6 +504,18 @@ export function PuffChat({
         triggers: [],
     });
 
+    // Integration Status State for Tools UI
+    const [integrationStatus, setIntegrationStatus] = useState<Record<string, 'active' | 'disconnected' | 'error'>>({});
+
+    useEffect(() => {
+        // Initial Health Check for Super Users or if authenticated
+        if (isAuthenticated) {
+            checkIntegrationsStatus().then(status => {
+                setIntegrationStatus(status);
+            }).catch(e => console.error("Failed to check integrations:", e));
+        }
+    }, [isAuthenticated]);
+
     // Sync title with global store active session title in real app, but simplified here.
 
     const [input, setInput] = useState('');
@@ -456,6 +532,20 @@ export function PuffChat({
             setPersona(externalPersona);
         }
     }, [externalPersona]);
+
+    // Resume Pending Intent (Auto-Continue) logic
+    useEffect(() => {
+        const pendingIntent = sessionStorage.getItem('pending_intent');
+        if (pendingIntent && isAuthenticated) {
+            // Clear it immediately to prevent loops
+            sessionStorage.removeItem('pending_intent');
+            
+            // Give small delay for UI to settle then submit
+            setTimeout(() => {
+                submitMessage(pendingIntent);
+            }, 1000);
+        }
+    }, [isAuthenticated]);
 
     // Sync initialPermissions if provided
     useEffect(() => {
@@ -510,7 +600,8 @@ export function PuffChat({
 
         // 1. Update Thinking Steps from Thoughts - sync to unified discovery bar
         if (thoughts.length > 0) {
-            // Sync to discovery bar
+            // Sync to discovery bar (Removed visual bar, but keeping internal logic if needed for thinking steps)
+            /* 
             const newSteps: DiscoveryStep[] = thoughts.map(t => ({
                 id: t.id,
                 agentId: t.agentId || 'puff',
@@ -523,6 +614,7 @@ export function PuffChat({
             setDiscoverySteps(newSteps);
             setIsDiscoveryActive(!isComplete);
             setShowDiscoveryBar(true);
+            */
             
             // Also update message for persistence (but not for live display)
             updateMessage(activeJob.messageId, {
@@ -607,10 +699,10 @@ export function PuffChat({
             setIsProcessing(false);
             focusInput(); // Refocus input after response
             setStreamingMessageId(activeJob.messageId); // Trigger typewriter
-            // Mark discovery as complete but keep bar visible briefly
+            // Mark discovery as complete
             setIsDiscoveryActive(false);
-            setIsFirstDiscovery(false); // Next discovery won't auto-expand
-            setTimeout(() => setShowDiscoveryBar(false), 5000); // Auto-hide after 5s
+            setIsFirstDiscovery(false); 
+            setShowDiscoveryBar(false);
         }
 
         // 3. Handle Failure
@@ -809,9 +901,58 @@ export function PuffChat({
 
         const userInput = textInput;
         const displayContent = audioBase64 ? '🎤 Voice Message' : (userInput || (attachments.length > 0 ? `Sent ${attachments.length} attachment(s)` : ''));
+        const trimmedInput = textInput.trim();
+
+        // --- Custom Prompt Permission Sniffing ---
+        // Detect if user is asking for a tool action but lacks permission
+        if (isAuthenticated && !isSuperUser) { // Super users might have overrides, but let's check for them too if needed. Actually, keep it simple.
+             const lowerInput = trimmedInput.toLowerCase();
+             
+             // GMAIL CHECK
+             if ((lowerInput.includes('email') || lowerInput.includes('send mail')) && integrationStatus.gmail !== 'active') {
+                 // Preempt with Permission Request
+                 
+                 // Add User Message first
+                 const userMsgId = `user-${Date.now()}`;
+                 addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+                 
+                 // System Response
+                 const agentMsgId = `agent-${Date.now()}`;
+                 addMessage({
+                    id: agentMsgId,
+                    type: 'agent',
+                    content: "I'd love to handle that email for you, but I need access to your Gmail first.",
+                    timestamp: new Date(),
+                    thinking: { isThinking: false, steps: [], plan: [] },
+                    metadata: {
+                        type: 'system_health', // Re-use the health check card which has the connect button
+                        data: integrationStatus
+                    }
+                 });
+                 return; // HALT
+             }
+
+             // DRIVE/SHEETS CHECK
+             if ((lowerInput.includes('spreadsheet') || lowerInput.includes('google sheet') || lowerInput.includes('drive file')) && (integrationStatus.sheets !== 'active' || integrationStatus.drive !== 'active')) {
+                 const userMsgId = `user-${Date.now()}`;
+                 addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+                 
+                 addMessage({
+                    id: `agent-${Date.now()}`,
+                    type: 'agent',
+                    content: "I need access to your Google Drive/Sheets to manage files.",
+                    timestamp: new Date(),
+                    thinking: { isThinking: false, steps: [], plan: [] },
+                     metadata: {
+                        type: 'system_health', 
+                        data: integrationStatus
+                    }
+                 });
+                 return; // HALT
+             }
+        }
 
         // Detect Preset / Intercept Logic (Client-Side Demo Optimization)
-        const trimmedInput = textInput.trim();
         const demoIntercept = PRESET_RESPONSES[trimmedInput];
 
         // SPECIAL INTERCEPT: Open Smokey Widget for Budtender Demo
@@ -1783,6 +1924,51 @@ export function PuffChat({
              return;
         }
 
+        // CHECK SYSTEM HEALTH INTENT
+        if (userInput.toLowerCase().includes('check system health') || userInput.toLowerCase().includes('status report') || userInput.toLowerCase().includes('integrations status')) {
+             const userMsgId = `user-${Date.now()}`;
+             addMessage({ id: userMsgId, type: 'user', content: displayContent, timestamp: new Date() });
+             setInput(''); setAttachments([]); setIsProcessing(true);
+
+             const thinkingId = `agent-${Date.now()}`;
+             addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'diag', toolName: "Pops", description: "Running system diagnostics...", status: 'in-progress' }], plan: [] } });
+             setStreamingMessageId(null);
+             
+             // Run Server Action
+             try {
+                const status = await checkIntegrationsStatus();
+                await new Promise(r => setTimeout(r, 1200)); // Pacing
+
+                // Determine active count
+                const activeCount = Object.values(status).filter(s => s === 'active').length;
+                const total = 4;
+                
+                const reportContent = `**诊断 REPORT: SYSTEM INTEGRITY**\n\n` +
+                    `Operational Status: ${activeCount === total ? '✅ OPTIMAL' : activeCount > 0 ? '⚠️ DEGRADED' : '❌ OFFLINE'}\n` +
+                    `Active Nodes: ${activeCount}/${total}\n\n` +
+                    `I have scanned your core integration uplinks. ${activeCount < total ? 'Some systems require authorization.' : 'All systems are go.'}`;
+
+                updateMessage(thinkingId, {
+                    content: reportContent,
+                    thinking: { isThinking: false, steps: [{ id: 'diag', toolName: "Pops", description: "Diagnostics complete", status: 'completed' }], plan: [] },
+                    metadata: {
+                         type: 'system_health',
+                         data: status
+                    }
+                });
+
+             } catch (e: any) {
+                 updateMessage(thinkingId, {
+                     content: `I couldn't run diagnostics at this time. ${e.message}`,
+                     thinking: { isThinking: false, steps: [{ id: 'diag', toolName: "Error", description: "Failed", status: 'failed' }], plan: [] }
+                 });
+             }
+             
+             setIsProcessing(false);
+             setStreamingMessageId(thinkingId);
+             return;
+        }
+
         if (demoIntercept) {
             // ... (Existing logic for other presets)
             // 1. Add User Message
@@ -2208,12 +2394,16 @@ export function PuffChat({
     const handleSubmit = () => submitMessage(input);
 
     const handleGrantPermission = async (permissionId: string) => {
-        const permission = state.permissions.find(p => p.id === permissionId);
-
-        if (['gmail', 'calendar', 'sheets', 'drive'].includes(permission?.id || '')) {
+        // Direct handling for Core Services (System Health Check)
+        if (['gmail', 'calendar', 'sheets', 'drive'].includes(permissionId)) {
             try {
+                // Save current input to session storage to resume after redirect
+                if (input.trim()) {
+                    sessionStorage.setItem('pending_intent', input);
+                }
+
                 // permission.id matches the service name expected by getGoogleAuthUrl
-                const url = await getGoogleAuthUrl(permission?.id as any);
+                const url = await getGoogleAuthUrl(permissionId as any);
                 if (url) {
                     window.location.href = url;
                 }
@@ -2223,12 +2413,56 @@ export function PuffChat({
             return;
         }
 
+
+
+
+
+        // Legacy/Computed Permissions (from state)
+        const permission = state.permissions.find(p => p.id === permissionId);
+        if (!permission) return;
+
         setState(prev => ({
             ...prev,
             permissions: prev.permissions.map(p =>
                 p.id === permissionId ? { ...p, status: 'granted' } : p
             ),
         }));
+    };
+
+    const handleShowToolInfo = (toolId: string) => {
+        // Show permission details in chat as requested by user
+        const icons: any = { gmail: 'mail', calendar: 'calendar', sheets: 'table', drive: 'hard-drive' };
+        const caps: any = { 
+            gmail: 'Send & Read Emails', 
+            calendar: 'Manage Schedule', 
+            sheets: 'Read/Write Spreadsheets', 
+            drive: 'Access Files' 
+        };
+
+        const permission: ToolPermission = {
+            id: toolId,
+            name: toolId.charAt(0).toUpperCase() + toolId.slice(1),
+            icon: icons[toolId] || 'lock',
+            email: user?.email || 'unknown@user.com',
+            description: `Active connection via ${toolId.charAt(0).toUpperCase() + toolId.slice(1)} API.`,
+            status: 'granted',
+            tools: [caps[toolId] || 'Standard Access']
+        };
+
+        addMessage({
+            id: `info-${Date.now()}`,
+            type: 'agent',
+            content: `Here is the current connection status for **${permission.name}**:`,
+            timestamp: new Date(),
+            thinking: { isThinking: false, steps: [], plan: [] },
+            metadata: {
+                type: 'system_health', // Re-using render logic, but creating a custom wrapper would be better.
+                // Actually, let's just make sure it renders the PermissionCard.
+                // We'll use a new type 'permission_info' to be clean.
+                type: 'permission_info' as any,
+                data: permission
+            }
+        });
     };
 
     const handleStop = async () => {
@@ -2429,6 +2663,9 @@ export function PuffChat({
                             selectedTools={selectedTools}
                             onModeChange={setToolMode}
                             onToggleTool={handleToggleTool}
+                            integrationStatus={integrationStatus}
+                            onConnectTool={handleGrantPermission}
+                            onShowToolInfo={handleShowToolInfo}
                         />
                     </div>
                 </div>
@@ -2491,35 +2728,13 @@ export function PuffChat({
                                 </div>
                             ) : (
                                 <div className="space-y-2 max-w-[90%]">
-                                    {/* Compact Discovery Summary - for past completed messages */}
-                                    {message.steps && message.steps.length > 0 && !message.isThinking && (
-                                        <DiscoverySummary 
-                                            steps={message.steps.map((s: ToolCallStep) => ({
-                                                id: s.id,
-                                                agentId: s.subagentId || 'puff',
-                                                agentName: s.toolName.split(':')[0] || 'Puff',
-                                                action: s.description || s.toolName,
-                                                status: s.status === 'completed' ? 'done' : (s.status === 'in-progress' ? 'running' : s.status as any),
-                                                durationMs: s.durationMs
-                                            }))}
-                                            durationSec={Math.round((message.steps.reduce((sum: number, s: ToolCallStep) => sum + (s.durationMs || 0), 0)) / 1000)}
-                                        />
-                                    )}
-
-
-                                    {/* CREATIVE LOADER - Shows when "Creative Engine" step is active */}
-                                    {message.isThinking && message.steps && message.steps.some(s => s.toolName === 'Creative Engine' && s.status === 'in-progress') && (
-                                        <CreativeLoader 
-                                            label={message.steps.find(s => s.toolName === 'Creative Engine')?.description || 'Generating...'} 
-                                        />
-                                    )}
-
-                                    {/* THINKING WINDOW - Shows for heavy "Agentic" tasks (Scraping, Recon, Search) */}
-                                    {message.isThinking && message.steps && message.steps.length > 0 && !message.steps.some(s => s.toolName === 'Creative Engine') && (
-                                        <ThinkingWindow 
+                                    {/* THINKING BUBBLE - Replaces Thinking Window */}
+                                    {message.isThinking && message.steps && message.steps.length > 0 && (
+                                        <ThoughtBubble 
                                             steps={message.steps} 
-                                            isThinking={true} 
-                                            agentName={message.metadata?.agentName || (message.steps[0].subagentId || 'smokey')} 
+                                            isThinking={message.isThinking || false} 
+                                            agentName={message.metadata?.agentName}
+                                            duration={message.workDuration}
                                         />
                                     )}
                                     
@@ -2532,6 +2747,25 @@ export function PuffChat({
                                     {!message.isThinking && (
                                         <div className="bg-white rounded-2xl rounded-tl-sm border px-6 py-5 shadow-sm">
                                             {/* Rich Metadata Rendering */}
+                                            {message.metadata?.type === 'system_health' && (
+                                                <SystemHealthCheck 
+                                                    status={message.metadata.data} 
+                                                    onConnect={handleGrantPermission}
+                                                    onRefresh={() => submitMessage('Check System Health Status')} // Re-trigger
+                                                />
+                                            )}
+
+                                            {message.metadata?.type === 'permission_info' && (
+                                                <Card className="mt-2 mb-4 border-emerald-200 bg-emerald-50/50">
+                                                    <CardContent className="p-0">
+                                                        <PermissionCard 
+                                                            permission={message.metadata.data} 
+                                                            onGrant={() => {}} // Already granted, no-op or maybe 'Revoke'?
+                                                        />
+                                                    </CardContent>
+                                                </Card>
+                                            )}
+
                                             {message.metadata?.type === 'compliance_report' && (
                                                 <Card className="border-red-200 bg-red-50 mb-4">
                                                     <CardContent className="p-3">
@@ -2722,6 +2956,12 @@ export function PuffChat({
                                                     <Copy className="h-4 w-4" />
                                                 </button>
                                             </div>
+                                            
+                                            {/* Chat Feedback Actions */}
+                                            <ChatFeedback 
+                                                messageId={message.id} 
+                                                content={typeof message.content === 'string' ? message.content : JSON.stringify(message.content)} 
+                                            />
                                         </div>
                                     )}
                                 </div>
