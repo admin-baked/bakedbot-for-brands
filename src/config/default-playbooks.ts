@@ -844,6 +844,88 @@ steps:
     version: 1
   },
 
+  // 10b. Weekly Competitive Intelligence Report (Free Users)
+  {
+    name: 'Weekly Competitive Intelligence Report',
+    description: 'Weekly summary of competitor activity, pricing trends, and strategic recommendations. Included with Free tier.',
+    status: 'active',
+    yaml: `name: Weekly Competitive Intelligence Report
+description: Aggregates daily competitor data into weekly strategic insights
+
+triggers:
+  - type: schedule
+    cron: "0 9 * * 1"  # Monday at 9 AM
+  - type: manual
+    name: Run Now
+
+config:
+  tier: free  # Included with Free tier
+  
+steps:
+  # Step 1: Aggregate weekly snapshots
+  - action: tool
+    tool: intel.generateWeeklyReport
+    agent: ezal
+    task: Aggregate last 7 days of competitor snapshots into weekly report
+    
+  # Step 2: Generate strategic insights
+  - action: delegate
+    agent: pops
+    input: "{{ezal.weekly_data}}"
+    task: |
+      Calculate market positioning metrics:
+      1. Average deal prices by competitor
+      2. Pricing strategy analysis (discount vs premium)
+      3. Deal frequency patterns
+      4. Market trend summary
+    
+  # Step 3: Generate recommendations
+  - action: delegate
+    agent: money_mike
+    input: "{{pops.market_analysis}}"
+    task: |
+      Based on competitive intelligence, recommend:
+      1. Pricing opportunities
+      2. Deal timing suggestions
+      3. Competitor weaknesses to exploit
+    
+  # Step 4: Notify via email and dashboard
+  - action: notify
+    channels:
+      - email
+      - dashboard
+    to: "{{user.email}}"
+    subject: "📊 Weekly Competitive Intelligence Report"
+    body: |
+      Here's your weekly competitive intelligence summary:
+      
+      📈 MARKET OVERVIEW
+      {{pops.market_summary}}
+      
+      🏆 TOP COMPETITOR DEALS
+      {{ezal.top_deals}}
+      
+      💡 RECOMMENDATIONS
+      {{money_mike.recommendations}}
+      
+      View full report in your dashboard.
+`,
+    triggers: [
+        { id: 'trigger-1', type: 'schedule', name: 'Weekly Report', config: { cron: '0 9 * * 1' }, enabled: true },
+        { id: 'trigger-2', type: 'manual', name: 'Run Now', config: {}, enabled: true }
+    ],
+    steps: [
+        { action: 'tool', params: { tool: 'intel.generateWeeklyReport' } },
+        { action: 'delegate', params: { agent: 'pops', task: 'market_analysis' } },
+        { action: 'delegate', params: { agent: 'money_mike', task: 'recommendations' } },
+        { action: 'notify', params: { channels: ['email', 'dashboard'] } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
   // 11. Daily Brand Price Tracker (Agent Discovery)
   {
     name: 'Daily Brand Price Tracker',
@@ -996,6 +1078,988 @@ steps:
         action: 'tracker.submit',
         params: { orgs: '{{scan.data}}' }
       }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // =============================================================================
+  // SMOKEY RECOMMENDS: Dispensary Playbooks (MVP)
+  // =============================================================================
+
+  // SR-1. Competitor Price Match Alert
+  {
+    name: 'Competitor Price Match Alert',
+    description: 'Get notified when competitors undercut your prices on key products. Runs daily scan via Firecrawl.',
+    status: 'active',
+    yaml: `name: Competitor Price Match Alert
+description: Daily competitor price monitoring with threshold alerts
+
+triggers:
+  - type: schedule
+    cron: "0 8 * * *"  # Daily at 8 AM
+  - type: manual
+    name: Run Now
+
+config:
+  threshold: 5  # Alert when difference > $5
+
+steps:
+  - action: tool
+    tool: intel.scanCompetitors
+    agent: ezal
+    task: Scan competitor menus for current prices
+    
+  - action: delegate
+    agent: money_mike
+    input: "{{ezal.competitor_prices}}"
+    task: |
+      Compare competitor prices to ours and identify:
+      1. Products where competitor is \${{config.threshold}}+ cheaper
+      2. Opportunity to price match or differentiate
+      3. Products where we have competitive advantage
+    
+  - condition: "{{money_mike.alerts.length > 0}}"
+    action: notify
+    channels:
+      - email
+      - dashboard
+    to: "{{user.email}}"
+    subject: "🚨 Competitor Price Alert"
+    body: |
+      {{money_mike.alert_count}} price alerts detected:
+      
+      {{#each money_mike.alerts}}
+      • {{this.product}}: Competitor at \${{this.competitor_price}} vs our \${{this.our_price}}
+      {{/each}}
+      
+      Suggested actions in your dashboard.
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Daily Scan', config: { cron: '0 8 * * *' }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Run Now', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'intel.scanCompetitors', agent: 'ezal' } },
+      { action: 'delegate', params: { agent: 'money_mike' } },
+      { action: 'notify', params: { channels: ['email', 'dashboard'], conditional: true } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // SR-2. Review Response Autopilot
+  {
+    name: 'Review Response Autopilot',
+    description: 'Auto-generate responses to new Google & Weedmaps reviews. Deebo checks compliance before posting.',
+    status: 'active',
+    yaml: `name: Review Response Autopilot
+description: AI-generated review responses with compliance check
+
+triggers:
+  - type: event
+    pattern: "review.received"
+  - type: manual
+    name: Generate Response
+
+config:
+  auto_post: false  # Require approval by default
+  tone: friendly
+
+steps:
+  - action: delegate
+    agent: smokey
+    input: "{{trigger.review}}"
+    task: |
+      Generate a response to this customer review:
+      Rating: {{trigger.review.rating}}/5
+      Content: "{{trigger.review.content}}"
+      
+      Tone: {{config.tone}}
+      Guidelines:
+      - Thank them for visiting
+      - Address any specific feedback
+      - Invite them back
+      - Keep under 100 words
+    
+  - action: delegate
+    agent: deebo
+    input: "{{smokey.response}}"
+    task: Check response for compliance issues (no medical claims, no pricing promises)
+    
+  - condition: "{{config.auto_post && deebo.approved}}"
+    action: tool
+    tool: reviews.postResponse
+    params:
+      platform: "{{trigger.review.platform}}"
+      reviewId: "{{trigger.review.id}}"
+      response: "{{smokey.response}}"
+    
+  - action: notify
+    channels:
+      - dashboard
+    to: "{{user.email}}"
+    subject: "⭐ Review Response Ready"
+    body: |
+      New {{trigger.review.rating}}-star review from {{trigger.review.author}}:
+      "{{trigger.review.content}}"
+      
+      Suggested response:
+      "{{smokey.response}}"
+      
+      {{#if config.auto_post}}Auto-posted ✓{{else}}Approve in dashboard{{/if}}
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'event', name: 'New Review', config: { eventPattern: 'review.received' }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Generate', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'delegate', params: { agent: 'smokey', task: 'generate_response' } },
+      { action: 'delegate', params: { agent: 'deebo', task: 'compliance_check' } },
+      { action: 'tool', params: { tool: 'reviews.postResponse', conditional: true } },
+      { action: 'notify', params: { channels: ['dashboard'] } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // SR-3. Win-Back Campaign
+  {
+    name: 'Win-Back Campaign',
+    description: 'Auto-reach customers who haven\'t visited in 30+ days with a personalized offer.',
+    status: 'active',
+    yaml: `name: Win-Back Campaign
+description: Re-engage lapsed customers with targeted offers
+
+triggers:
+  - type: schedule
+    cron: "0 10 * * 1"  # Weekly on Mondays at 10 AM
+  - type: manual
+    name: Run Campaign
+
+config:
+  inactive_days: 30
+  offer: "15_percent"
+
+steps:
+  - action: tool
+    tool: crm.findInactiveCustomers
+    agent: mrs_parker
+    params:
+      days: "{{config.inactive_days}}"
+    
+  - action: delegate
+    agent: craig
+    input: "{{mrs_parker.inactive_customers}}"
+    task: |
+      Create personalized win-back emails for each customer:
+      - Reference their last purchase
+      - Include {{config.offer}} offer
+      - Create urgency (offer expires in 7 days)
+      - Keep friendly and non-pushy
+    
+  - action: tool
+    tool: email.sendBatch
+    params:
+      recipients: "{{mrs_parker.inactive_customers}}"
+      template: "win_back"
+      personalization: "{{craig.personalized_messages}}"
+    
+  - action: notify
+    channels:
+      - dashboard
+    to: "{{user.email}}"
+    subject: "📧 Win-Back Campaign Sent"
+    body: |
+      Win-back campaign completed:
+      
+      📤 Emails sent: {{mrs_parker.inactive_customers.length}}
+      🎁 Offer: {{config.offer}}
+      ⏰ Valid for: 7 days
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Weekly', config: { cron: '0 10 * * 1' }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Run Now', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'crm.findInactiveCustomers', agent: 'mrs_parker' } },
+      { action: 'delegate', params: { agent: 'craig', task: 'personalize' } },
+      { action: 'tool', params: { tool: 'email.sendBatch' } },
+      { action: 'notify', params: { channels: ['dashboard'] } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // SR-4. Weekly Top Sellers Report
+  {
+    name: 'Weekly Top Sellers Report',
+    description: 'Email digest of your best-performing products every Monday morning.',
+    status: 'active',
+    yaml: `name: Weekly Top Sellers Report
+description: Automated weekly sales performance digest
+
+triggers:
+  - type: schedule
+    cron: "0 9 * * 1"  # Mondays at 9 AM
+  - type: manual
+    name: Generate Report
+
+config:
+  top_count: 10
+  include_margins: true
+
+steps:
+  - action: tool
+    tool: pos.getTopSellers
+    agent: pops
+    params:
+      days: 7
+      limit: "{{config.top_count}}"
+    
+  - condition: "{{config.include_margins}}"
+    action: delegate
+    agent: money_mike
+    input: "{{pops.top_sellers}}"
+    task: Calculate margin % for each product and identify margin opportunities
+    
+  - action: delegate
+    agent: pops
+    input:
+      products: "{{pops.top_sellers}}"
+      margins: "{{money_mike.margins}}"
+    task: |
+      Generate executive summary:
+      1. Revenue highlight
+      2. Top performer spotlight
+      3. Week-over-week comparison
+      4. Recommendations
+    
+  - action: notify
+    channels:
+      - email
+    to: "{{user.email}}"
+    subject: "🏆 Weekly Top Sellers Report"
+    body: |
+      {{pops.executive_summary}}
+      
+      **Top {{config.top_count}} Products This Week:**
+      
+      {{#each pops.top_sellers}}
+      - {{this.name}} - \${{this.revenue}} ({{this.units}} units)
+      {{/each}}
+      
+      {{#if config.include_margins}}
+      **Margin Analysis:**
+      {{money_mike.margin_summary}}
+      {{/if}}
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Weekly Report', config: { cron: '0 9 * * 1' }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Generate', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'pos.getTopSellers', agent: 'pops' } },
+      { action: 'delegate', params: { agent: 'money_mike', conditional: true } },
+      { action: 'delegate', params: { agent: 'pops', task: 'summary' } },
+      { action: 'notify', params: { channels: ['email'] } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // SR-5. Low Stock Alert
+  {
+    name: 'Low Stock Alert',
+    description: 'Get notified when popular products drop below your restock threshold.',
+    status: 'active',
+    yaml: `name: Low Stock Alert
+description: Real-time inventory monitoring with restock alerts
+
+triggers:
+  - type: schedule
+    cron: "0 */2 * * *"  # Every 2 hours
+  - type: event
+    pattern: "inventory.updated"
+  - type: manual
+    name: Check Now
+
+config:
+  threshold: 10
+  categories: ["flower", "concentrates", "edibles", "vapes"]
+
+steps:
+  - action: tool
+    tool: pos.getInventory
+    agent: pops
+    params:
+      categories: "{{config.categories}}"
+    
+  - action: delegate
+    agent: smokey
+    input: "{{pops.inventory}}"
+    task: |
+      Identify products below threshold:
+      - Threshold: {{config.threshold}} units
+      - Flag best sellers at risk
+      - Recommend reorder quantities based on velocity
+    
+  - condition: "{{smokey.low_stock_items.length > 0}}"
+    action: notify
+    channels:
+      - dashboard
+      - email
+    to: "{{user.email}}"
+    subject: "📦 Low Stock Alert: {{smokey.low_stock_items.length}} items"
+    body: |
+      The following products need attention:
+      
+      {{#each smokey.low_stock_items}}
+      ⚠️ **{{this.name}}**
+         Stock: {{this.current_qty}} units
+         Velocity: {{this.daily_velocity}}/day
+         Days until stockout: ~{{this.days_remaining}}
+         Suggested reorder: {{this.reorder_qty}} units
+      
+      {{/each}}
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Hourly Check', config: { cron: '0 */2 * * *' }, enabled: true },
+      { id: 'trigger-2', type: 'event', name: 'Inventory Update', config: { eventPattern: 'inventory.updated' }, enabled: true },
+      { id: 'trigger-3', type: 'manual', name: 'Check Now', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'pos.getInventory', agent: 'pops' } },
+      { action: 'delegate', params: { agent: 'smokey', task: 'analyze' } },
+      { action: 'notify', params: { channels: ['dashboard', 'email'], conditional: true } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // =============================================================================
+  // SMOKEY RECOMMENDS: Brand Playbooks (CPG)
+  // =============================================================================
+
+  // SR-B1. Price Violation Watch (MAP)
+  {
+    name: 'Price Violation Watch (MAP)',
+    description: 'Alerts when retailers list your products below Minimum Advertised Price.',
+    status: 'active',
+    yaml: `name: Price Violation Watch (MAP)
+description: Monitor retailer menus for MAP violations
+
+triggers:
+  - type: schedule
+    cron: "0 9 * * *"  # Daily at 9 AM
+  - type: manual
+    name: Check Prices
+
+config:
+  map_price: 0
+  variance_percent: 5
+
+steps:
+  - action: tool
+    tool: scanner.scanMenus
+    agent: ezal
+    task: Scan all authorized retailer menus for our products
+  
+  - action: delegate
+    agent: money_mike
+    input: "{{ezal.menu_prices}}"
+    task: |
+      Identify MAP violations:
+      - MAP Price: \${{config.map_price}}
+      - Allowed Variance: {{config.variance_percent}}%
+      - Flag any price below \${{config.map_price * (1 - config.variance_percent/100)}}
+    
+  - condition: "{{money_mike.violations.length > 0}}"
+    action: notify
+    channels:
+      - email
+      - dashboard
+    to: "{{user.email}}"
+    subject: "🚨 MAP Violations Detected: {{money_mike.violations.length}} items"
+    body: |
+      The following retailers are below MAP:
+      
+      {{#each money_mike.violations}}
+      • {{this.retailer}}: {{this.product}} @ \${{this.price}} (MAP: \${{config.map_price}})
+      {{/each}}
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Daily Check', config: { cron: '0 9 * * *' }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Check Now', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'scanner.scanMenus', agent: 'ezal' } },
+      { action: 'delegate', params: { agent: 'money_mike' } },
+      { action: 'notify', params: { channels: ['email', 'dashboard'], conditional: true } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // SR-B2. New Store Opener
+  {
+    name: 'New Store Opener',
+    description: 'Auto-send intro kits to newly issued retail licenses in your territory.',
+    status: 'active',
+    yaml: `name: New Store Opener
+description: Lead generation for new dispensary licenses
+
+triggers:
+  - type: schedule
+    cron: "0 10 * * 1"  # Weekly on Mondays
+  - type: manual
+    name: Run Search
+
+config:
+  territory: "CA"
+  send_email: false
+
+steps:
+  - action: tool
+    tool: intel.findNewLicenses
+    agent: deebo
+    params:
+      state: "{{config.territory}}"
+      days: 7
+    
+  - action: delegate
+    agent: craig
+    input: "{{deebo.new_licenses}}"
+    task: |
+      Draft intro emails for each new licensee:
+      - Congratulate them on the new license
+      - Introduce our brand portfolio
+      - Attach wholesale catalog
+    
+  - condition: "{{config.send_email}}"
+    action: tool
+    tool: email.sendBatch
+    params:
+      recipients: "{{deebo.new_licenses}}"
+      template: "new_store_intro"
+      personalization: "{{craig.drafts}}"
+    
+  - action: notify
+    channels:
+      - dashboard
+    to: "{{user.email}}"
+    subject: "🏪 New Licenses Found: {{deebo.new_licenses.length}}"
+    body: |
+      Found {{deebo.new_licenses.length}} new licenses in {{config.territory}}:
+      
+      {{#each deebo.new_licenses}}
+      • {{this.name}} ({{this.city}})
+      {{/each}}
+      
+      {{#if config.send_email}}Emails sent via Craig.{{else}}Drafts ready for review.{{/if}}
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Weekly Search', config: { cron: '0 10 * * 1' }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Run Search', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'intel.findNewLicenses', agent: 'deebo' } },
+      { action: 'delegate', params: { agent: 'craig' } },
+      { action: 'tool', params: { tool: 'email.sendBatch', conditional: true } },
+      { action: 'notify', params: { channels: ['dashboard'] } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // SR-B3. Retailer Stockout Alert
+  {
+    name: 'Retailer Stockout Alert',
+    description: 'Notify sales rep when a partner menu no longer lists your SKUs.',
+    status: 'active',
+    yaml: `name: Retailer Stockout Alert
+description: Monitor partners for stockouts (menu gaps)
+
+triggers:
+  - type: schedule
+    cron: "0 8 * * *"  # Daily at 8 AM
+  - type: manual
+    name: Check Stock
+
+config:
+  retailers: []
+  products: []
+
+steps:
+  - action: tool
+    tool: scanner.checkAvailability
+    agent: pops
+    params:
+      retailers: "{{config.retailers}}"
+      products: "{{config.products}}"
+    
+  - action: delegate
+    agent: craig
+    input: "{{pops.missing_items}}"
+    task: |
+      Draft reorder reminder emails for partners with gaps:
+      - Mention missing SKUs
+      - Suggest reorder quantity
+      - Highlight fast delivery options
+    
+  - condition: "{{pops.missing_items.length > 0}}"
+    action: notify
+    channels:
+      - email
+      - dashboard
+    to: "{{user.email}}"
+    subject: "📉 Stockouts Detected at {{pops.affected_retailers.length}} Stores"
+    body: |
+      The following partners are missing SKUs on their menu:
+      
+      {{#each pops.missing_items}}
+      • {{this.retailer}}: Missing {{this.sku}}
+      {{/each}}
+      
+      Draft emails prepared by Craig.
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Daily Check', config: { cron: '0 8 * * *' }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Check Now', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'scanner.checkAvailability', agent: 'pops' } },
+      { action: 'delegate', params: { agent: 'craig' } },
+      { action: 'notify', params: { channels: ['email', 'dashboard'], conditional: true } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // SR-B4. Competitor Shelf Space Alert
+  {
+    name: 'Competitor Shelf Space Alert',
+    description: 'Get notified when key competitors launch new products at your retail partners.',
+    status: 'active',
+    yaml: `name: Competitor Shelf Space Alert
+description: Track competitor expansion in your accounts
+
+triggers:
+  - type: schedule
+    cron: "0 9 * * 1"  # Weekly on Mondays
+  - type: manual
+    name: Scan Shelf
+
+config:
+  competitors: []
+
+steps:
+  - action: tool
+    tool: scanner.scanShelf
+    agent: ezal
+    params:
+      competitors: "{{config.competitors}}"
+    
+  - action: delegate
+    agent: ezal
+    input: "{{ezal.new_listings}}"
+    task: |
+      Analyze new competitor listings:
+      - Identify new SKUs requiring response
+      - Compare price points
+      - Estimate shelf share impact
+    
+  - condition: "{{ezal.new_listings.length > 0}}"
+    action: notify
+    channels:
+      - email
+    to: "{{user.email}}"
+    subject: "🕵️ Competitor Activity Alert"
+    body: |
+      New competitor products detected at your accounts:
+      
+      {{#each ezal.new_listings}}
+      • {{this.retailer}}: {{this.competitor}} launched {{this.product}} (\${{this.price}})
+      {{/each}}
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Weekly Scan', config: { cron: '0 9 * * 1' }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Scan Now', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'scanner.scanShelf', agent: 'ezal' } },
+      { action: 'delegate', params: { agent: 'ezal', task: 'analyze' } },
+      { action: 'notify', params: { channels: ['email'], conditional: true } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // SR-B5. Slow Mover Alert
+  {
+    name: 'Slow Mover Alert',
+    description: 'Identify retail partners who haven\'t reordered in X days despite high initial volume.',
+    status: 'active',
+    yaml: `name: Slow Mover Alert
+description: Wholesale velocity and reorder monitoring
+
+triggers:
+  - type: schedule
+    cron: "0 9 * * 5"  # Fridays at 9 AM
+  - type: manual
+    name: Check Velocity
+
+config:
+  days_without_reorder: 45
+  min_initial_order: 1000
+
+steps:
+  - action: tool
+    tool: wholesale.checkOrders
+    agent: pops
+    params:
+      days: "{{config.days_without_reorder}}"
+      min_amount: "{{config.min_initial_order}}"
+    
+  - action: delegate
+    agent: pops
+    input: "{{pops.slow_movers}}"
+    task: |
+      Analyze slow movers:
+      - Calculate days since last order
+      - Check if sell-through data available (Metrc)
+      - Flag accounts at risk of churn
+    
+  - condition: "{{pops.slow_movers.length > 0}}"
+    action: notify
+    channels:
+      - dashboard
+      - email
+    to: "{{user.email}}"
+    subject: "🐢 Slow Mover Alert: {{pops.slow_movers.length}} Accounts"
+    body: |
+      The following accounts haven't reordered in {{config.days_without_reorder}}+ days:
+      
+      {{#each pops.slow_movers}}
+      • {{this.account_name}} (Last order: {{this.last_order_date}})
+      {{/each}}
+      
+      Consider running a "Sell-through Support" promo.
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Weekly Check', config: { cron: '0 9 * * 5' }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Check Now', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'wholesale.checkOrders', agent: 'pops' } },
+      { action: 'delegate', params: { agent: 'pops', task: 'analyze' } },
+      { action: 'notify', params: { channels: ['dashboard', 'email'], conditional: true } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // =============================================================================
+  // SMOKEY RECOMMENDS: Consumer Playbooks (Customer Role)
+  // =============================================================================
+
+  // SR-C1. Deal Hunter
+  {
+    name: 'Deal Hunter',
+    description: 'Alerts when your favorite products or brands go on sale at nearby dispensaries.',
+    status: 'active',
+    yaml: `name: Deal Hunter
+description: Find local deals on favorite brands
+
+triggers:
+  - type: schedule
+    cron: "0 10 * * *"  # Daily at 10 AM
+  - type: manual
+    name: Scan Deals
+
+config:
+  brands: []
+  max_distance_miles: 10
+
+steps:
+  - action: tool
+    tool: scanner.findDeals
+    agent: ezal
+    params:
+      brands: "{{config.brands}}"
+      radius: "{{config.max_distance_miles}}"
+    
+  - action: delegate
+    agent: money_mike
+    input: "{{ezal.deals}}"
+    task: |
+      Curate the best deals found:
+      - Highlight biggest savings
+      - Verify deal freshness
+      - Sort by distance
+      - Format as a savings report
+    
+  - condition: "{{money_mike.curated_deals.length > 0}}"
+    action: notify
+    channels:
+      - push
+    to: "{{user.uid}}"
+    title: "💰 Deal Alert: Save up to {{money_mike.max_savings}}%"
+    body: |
+      Found {{money_mike.deal_count}} deals near you for {{config.brands}}:
+      
+      {{#each money_mike.curated_deals}}
+      • {{this.retailer}}: {{this.product}} (\${{this.price}}) - {{this.discount}} Off
+      {{/each}}
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Daily Scan', config: { cron: '0 10 * * *' }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Scan Now', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'scanner.findDeals', agent: 'ezal' } },
+      { action: 'delegate', params: { agent: 'money_mike' } },
+      { action: 'notify', params: { channels: ['push'], conditional: true } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // SR-C2. Fresh Drop Alert
+  {
+    name: 'Fresh Drop Alert',
+    description: 'Get notified as soon as a hyped brand or strain lands at a dispensary near you.',
+    status: 'active',
+    yaml: `name: Fresh Drop Alert
+description: Be the first to know about new inventory
+
+triggers:
+  - type: schedule
+    cron: "0 * * * *"  # Hourly
+  - type: manual
+    name: Check Drops
+
+config:
+  watch_list: []
+
+steps:
+  - action: tool
+    tool: scanner.checkNewArrivals
+    agent: ezal
+    params:
+      keywords: "{{config.watch_list}}"
+    
+  - action: delegate
+    agent: smokey
+    input: "{{ezal.new_arrivals}}"
+    task: |
+      Verify hype factor:
+      - Confirm these are actual new drops
+      - Check strain ratings
+      - Add tasting notes if available
+    
+  - condition: "{{ezal.new_arrivals.length > 0}}"
+    action: notify
+    channels:
+      - push
+    to: "{{user.uid}}"
+    title: "🚀 Fresh Drop: {{ezal.new_arrivals.0.name}} Just Landed"
+    body: |
+      New arrivals at {{ezal.new_arrivals.0.retailer}}:
+      
+      {{#each ezal.new_arrivals}}
+      • {{this.name}}
+      {{/each}}
+      
+      Tap to reserve before it's gone!
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Hourly Scan', config: { cron: '0 * * * *' }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Check Now', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'scanner.checkNewArrivals', agent: 'ezal' } },
+      { action: 'delegate', params: { agent: 'smokey' } },
+      { action: 'notify', params: { channels: ['push'], conditional: true } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // SR-C3. The Re-Up Reminder
+  {
+    name: 'The Re-Up Reminder',
+    description: 'Smart reminders to restock your stash based on your consumption habits.',
+    status: 'active',
+    yaml: `name: Re-Up Reminder
+description: Predictive restocking based on purchase history
+
+triggers:
+  - type: schedule
+    cron: "0 18 * * *"  # Daily at 6 PM
+  - type: manual
+    name: Check Stash
+
+config:
+  weekly_consumption_grams: 3.5
+
+steps:
+  - action: tool
+    tool: user.getLastPurchase
+    agent: pops
+    task: Get last purchase date and quantity
+    
+  - action: delegate
+    agent: pops
+    task: |
+      Calculate stash status:
+      - Days since purchase: {{pops.days_since}}
+      - Estimated usage: {{pops.days_since * (config.weekly_consumption_grams / 7)}}g
+      - Remaining: {{pops.last_quantity - pops.estimated_usage}}g
+      - Alert if remaining < 20%
+    
+  - condition: "{{pops.needs_restock}}"
+    action: notify
+    channels:
+      - push
+    to: "{{user.uid}}"
+    title: "🔄 Time to Re-Up?"
+    body: |
+      Running low? It's been {{pops.days_since}} days since your last pick-up.
+      
+      Check out new arrivals at {{pops.favorite_retailer}}.
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Daily Check', config: { cron: '0 18 * * *' }, enabled: true },
+      { id: 'trigger-2', type: 'manual', name: 'Check Now', config: {}, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'user.getLastPurchase', agent: 'pops' } },
+      { action: 'delegate', params: { agent: 'pops', task: 'analyze' } },
+      { action: 'notify', params: { channels: ['push'], conditional: true } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // SR-C4. Consumption Journal
+  {
+    name: 'Consumption Journal',
+    description: 'Get prompted to rate and review products the day after you buy them.',
+    status: 'active',
+    yaml: `name: Consumption Journal
+description: Post-purchase feedback loop
+
+triggers:
+  - type: event
+    pattern: "order.completed"
+    delay: "24h"
+
+config:
+  ask_time: "19:00"
+
+steps:
+  - action: tool
+    tool: user.getRecentOrder
+    agent: smokey
+    
+  - action: notify
+    channels:
+      - push
+    to: "{{user.uid}}"
+    title: "📓 How was the {{smokey.order.product}}?"
+    body: |
+      Rate your experience to help me find better strains for you next time.
+      
+      Tap to log:
+      1. Effect (Energy vs Sleep)
+      2. Flavor
+      3. Overall Rating
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'event', name: 'Post-Purchase', config: { eventPattern: 'order.completed', delay: '24h' }, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'user.getRecentOrder', agent: 'smokey' } },
+      { action: 'notify', params: { channels: ['push'] } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1
+  },
+
+  // SR-C5. Strain of the Week
+  {
+    name: 'Strain of the Week',
+    description: 'Weekly curated recommendation based on your unique terpene profile.',
+    status: 'active',
+    yaml: `name: Strain of the Week
+description: Personalized weekly recommendation
+
+triggers:
+  - type: schedule
+    cron: "0 16 * * 5"  # Fridays at 4 PM
+
+config:
+  preference_profile: "hybrid"
+
+steps:
+  - action: tool
+    tool: recommendations.getPersonalized
+    agent: smokey
+    params:
+      profile: "{{config.preference_profile}}"
+      limit: 1
+    
+  - action: notify
+    channels:
+      - push
+      - email
+    to: "{{user.uid}}"
+    title: "🌿 Your Weekend Pick: {{smokey.recommendation.name}}"
+    body: |
+      Based on your love for {{smokey.user_top_terps}}, we think you'll love this:
+      
+      {{smokey.recommendation.name}} by {{smokey.recommendation.brand}}
+      
+      Why: {{smokey.reasoning}}
+      Available at: {{smokey.nearest_retailer}}
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Weekly Rec', config: { cron: '0 16 * * 5' }, enabled: true }
+    ],
+    steps: [
+      { action: 'tool', params: { tool: 'recommendations.getPersonalized', agent: 'smokey' } },
+      { action: 'notify', params: { channels: ['push', 'email'] } }
     ],
     runCount: 0,
     successCount: 0,

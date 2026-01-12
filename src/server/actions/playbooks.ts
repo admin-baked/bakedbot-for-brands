@@ -119,6 +119,72 @@ export async function listBrandPlaybooks(brandId: string): Promise<Playbook[]> {
 }
 
 /**
+ * Assign a playbook template to an org (without requiring user auth).
+ * Used for automated setup like Free user onboarding.
+ */
+export async function assignPlaybookToOrg(
+    orgId: string,
+    templateId: string
+): Promise<{ success: boolean; playbookId?: string; error?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+
+        // Find the template playbook in defaults
+        const template = DEFAULT_PLAYBOOKS.find(pb => pb.name.toLowerCase().includes(templateId.replace(/-/g, ' ')));
+        
+        if (!template) {
+            console.warn(`[Playbooks] Template not found: ${templateId}`);
+            return { success: false, error: `Template "${templateId}" not found` };
+        }
+
+        const collectionRef = firestore.collection('brands').doc(orgId).collection('playbooks');
+        
+        // Check if playbook already exists
+        const existing = await collectionRef
+            .where('name', '==', template.name)
+            .limit(1)
+            .get();
+
+        if (!existing.empty) {
+            console.log(`[Playbooks] Playbook already exists: ${template.name}`);
+            return { success: true, playbookId: existing.docs[0].id };
+        }
+
+        // Create the playbook
+        const newDocRef = collectionRef.doc();
+        const timestamp = new Date();
+
+        const playbookData = {
+            ...template,
+            id: newDocRef.id,
+            status: 'active',
+            agent: (template as any).agent || 'ezal',
+            category: (template as any).category || 'intel',
+            ownerId: 'system',
+            ownerName: 'BakedBot',
+            isCustom: false,
+            requiresApproval: await detectApprovalRequired(template.steps || []),
+            createdAt: timestamp,
+            updatedAt: timestamp,
+            createdBy: 'system',
+            orgId,
+            runCount: 0,
+            successCount: 0,
+            failureCount: 0,
+            version: 1,
+        };
+
+        await newDocRef.set(playbookData);
+        console.log(`[Playbooks] Assigned playbook "${template.name}" to org ${orgId}`);
+        
+        return { success: true, playbookId: newDocRef.id };
+    } catch (error: any) {
+        console.error('[Playbooks] assignPlaybookToOrg failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
  * Create a new playbook
  */
 export async function createPlaybook(
