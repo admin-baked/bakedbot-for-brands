@@ -102,15 +102,16 @@
     "recharts": "^2.12.7",
     "remark-gfm": "^4.0.1",
     "server-only": "^0.0.1",
+    "sonner": "^2.0.7",
     "stripe": "^20.0.0",
     "tailwind-merge": "^2.4.0",
     "twilio": "^5.10.7",
+    "typescript": "^5.9.3",
     "universal-cookie": "^7.1.4",
     "uuid": "^13.0.0",
     "ws": "^8.18.3",
     "zod": "^3.25.76",
-    "zustand": "^4.5.7",
-    "typescript": "^5.9.3"
+    "zustand": "^4.5.7"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.0",
