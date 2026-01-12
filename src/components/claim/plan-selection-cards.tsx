@@ -114,7 +114,7 @@ export function PlanSelectionCards({
                 </div>
             </div>
             
-            </div>
+
             
             {/* 
                 Only show the Free option link if we are currently on the free plan.
