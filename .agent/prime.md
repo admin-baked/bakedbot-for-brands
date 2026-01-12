@@ -54,10 +54,20 @@
 | Service | Primary Agent | Key File | Notes |
 |---------|---------------|----------|-------|
 | **Alpine IQ** | Mrs. Parker/Craig | `alpine-iq.ts` | Loyalty Logic |
-| **Blackleaf** | Craig | `blackleaf-service.ts` | SMS Dispatch |
+| **Blackleaf** | Craig | `blackleaf-service.ts` | **Default SMS** |
+| **Mailjet** | Craig | `mailjet-service.ts` | **Default Email** |
 | **Headset** | Ezal | `headset.ts` | Market Trends |
 | **CannMenus** | Ezal | `cannmenus.ts` | Live Pricing |
 | **Green Check** | Deebo | `green-check.ts` | Licensing Data |
+
+### 🎯 Smokey Recommends: MVP Playbooks (Dispensaries)
+| # | Playbook | Agents | Trigger | Permissions |
+|---|----------|--------|---------|-------------|
+| 1 | 🚨 Competitor Price Match Alert | Ezal, Money Mike | Daily | None (Firecrawl) |
+| 2 | ⭐ Review Response Autopilot | Smokey, Deebo | Event | Google Business |
+| 3 | 🔄 Win-Back Campaign | Mrs. Parker, Craig | Weekly | CRM, Email |
+| 4 | 🏆 Weekly Top Sellers Report | Pops, Money Mike | Weekly | POS, Email |
+| 5 | 📦 Low Stock Alert | Pops, Smokey | Hourly | POS Integration |
 
 ---
 

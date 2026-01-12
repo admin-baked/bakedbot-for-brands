@@ -78,6 +78,19 @@ dev/                         # Development context
 | **Deebo** | Enforcer | Compliance |
 | **Ezal** | Lookout | Competitive intel |
 
+### Default Messaging Providers
+| Channel | Provider | Service File |
+|---------|----------|--------------|
+| **SMS** | BlackLeaf | `blackleaf-service.ts` |
+| **Email** | Mailjet | `mailjet-service.ts` |
+
+### Smokey Recommends (MVP Playbooks)
+1. 🚨 Competitor Price Match Alert
+2. ⭐ Review Response Autopilot
+3. 🔄 Win-Back Campaign
+4. 🏆 Weekly Top Sellers Report
+5. 📦 Low Stock Alert
+
 ---
 
 ## Coding Standards

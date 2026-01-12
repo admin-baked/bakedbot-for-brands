@@ -38,6 +38,8 @@ import { AgentPersona } from '../../agents/personas';
 import { 
     ToolCallStep, ToolPermission, PuffTrigger, PuffState, ToolMode, AvailableTool
 } from '../types/chat-types';
+import { ThoughtBubble } from '@/components/chat/thought-bubble';
+import { ChatFeedback } from '@/components/chat/chat-feedback';
 
 // ============ Types (Local or Imported) ============
 // Keeping PuffMessage here as it is a UI-specific mapping often used by children
@@ -248,68 +250,7 @@ function ToolSelector({
     );
 }
 
-function ThoughtBubble({ steps, isThinking, agentName, duration }: { steps: ToolCallStep[], isThinking: boolean, agentName?: string, duration?: number }) {
-    const isExpanded = isThinking; // Auto-expand when thinking
-    
-    // Get last active step
-    const currentStep = steps[steps.length - 1];
-    const statusLabels = {
-        'pending': 'Queued',
-        'in-progress': 'Working...',
-        'completed': 'Done',
-        'failed': 'Failed'
-    };
 
-    return (
-        <div className="max-w-[85%] space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            {/* Thinking Header / Status */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-white/50 border rounded-full px-3 py-1.5 w-fit shadow-sm">
-                {isThinking ? (
-                    <Loader2 className="h-3 w-3 animate-spin text-purple-500" />
-                ) : (
-                    <Sparkles className="h-3 w-3 text-emerald-500" />
-                )}
-                <span className="font-medium bg-gradient-to-r from-purple-600 to-emerald-600 bg-clip-text text-transparent">
-                    {agentName || 'Agent'}
-                </span>
-                <span className="text-slate-300">|</span>
-                <span>
-                    {isThinking ? (currentStep?.description || 'Processing...') : `Completed in ${duration?.toFixed(1) || 0}s`}
-                </span>
-            </div>
-
-            {/* Steps Visualization */}
-            <div className="bg-white rounded-2xl rounded-tl-sm border px-4 py-3 shadow-sm min-w-[200px]">
-               <div className="space-y-3">
-                   {steps.map((step, i) => (
-                       <div key={i} className="flex items-start gap-3 text-sm group">
-                           <div className={cn(
-                               "mt-0.5 h-2 w-2 rounded-full ring-2 ring-offset-1 transition-all",
-                               step.status === 'completed' ? "bg-emerald-500 ring-emerald-100" :
-                               step.status === 'failed' ? "bg-red-500 ring-red-100" :
-                               step.status === 'in-progress' ? "bg-purple-500 ring-purple-100 animate-pulse" :
-                               "bg-slate-200 ring-slate-50"
-                           )} />
-                           <div className="flex-1 space-y-0.5">
-                               <div className="flex items-center justify-between">
-                                   <span className={cn("font-medium text-xs", step.status === 'completed' ? "text-foreground" : "text-muted-foreground")}>
-                                       {step.toolName}
-                                   </span>
-                                   <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                                       {step.durationMs ? `${step.durationMs}ms` : ''}
-                                   </span>
-                               </div>
-                               <p className="text-xs text-muted-foreground leading-relaxed">
-                                   {step.description}
-                               </p>
-                           </div>
-                       </div>
-                   ))}
-               </div>
-            </div>
-        </div>
-    );
-}
 
 // ... other helpers (PermissionCard, SystemHealthCheck, TriggerIndicator, ChatFeedback) ...
 function PermissionCard({ permission, onGrant }: { permission: ToolPermission, onGrant: () => void }) {
@@ -418,21 +359,7 @@ function TriggerIndicator({ triggers, expanded, onToggle }: { triggers: PuffTrig
         </div>
     );
 }
-// ChatFeedback (Simplified)
-function ChatFeedback({ messageId, content }: { messageId: string, content: string }) {
-    const [status, setStatus] = useState<'idle' | 'helpful' | 'unhelpful'>('idle');
-    if (status !== 'idle') return null; // Hide after feedback
-    return (
-        <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-green-600" onClick={() => setStatus('helpful')}>
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5" /></svg>
-            </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-red-600" onClick={() => setStatus('unhelpful')}>
-                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.92m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2" /></svg>
-            </Button>
-        </div>
-    );
-}
+
 
 // ----------------------------------------------------------------------
 // MAIN COMPONENT
@@ -450,6 +377,7 @@ export function PuffChat({
     persona: initialPersona,
     initialPermissions,
     restrictedModels = [],
+    promptSuggestions,
     locationInfo // For market context
 }: { 
     initialTitle?: string;
@@ -953,15 +881,4 @@ function ThinkingIndicator({ duration }: { duration?: number }) {
     );
 }
 
-// Defining other helpers if they were present
-function StepsList({ steps }: { steps: ToolCallStep[] }) {
-    return null; // Implemented in ThoughtBubble
-}
 
-function CreativeLoader({ label }: { label: string }) {
-    return null; // Not used currently
-}
-
-function CollapsibleContent({ content }: { content: string }) {
-    return null; // Simplified
-}

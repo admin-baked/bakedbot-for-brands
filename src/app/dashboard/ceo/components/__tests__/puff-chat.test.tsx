@@ -52,9 +52,11 @@ jest.mock('@/components/chat/chat-media-preview', () => ({
 jest.mock('@/components/landing/typewriter-text', () => ({
     TypewriterText: ({ text }: { text: string }) => <div data-testid="typewriter">{text}</div>
 }));
-
-jest.mock('@/components/landing/typewriter-text', () => ({
-    TypewriterText: ({ text }: { text: string }) => <div data-testid="typewriter">{text}</div>
+jest.mock('@/components/chat/thought-bubble', () => ({
+    ThoughtBubble: () => <div data-testid="thought-bubble">Thinking...</div>
+}));
+jest.mock('@/components/chat/chat-feedback', () => ({
+    ChatFeedback: () => <div data-testid="chat-feedback">Feedback</div>
 }));
 jest.mock('@/firebase/auth/use-user', () => ({
     useUser: () => ({ user: { uid: 'test-user', email: 'test@example.com' }, isSuperUser: false, claims: {} })

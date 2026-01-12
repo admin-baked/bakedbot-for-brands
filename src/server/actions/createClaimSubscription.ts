@@ -169,7 +169,7 @@ export async function createClaimWithSubscription(
             }
         }
 
-        // 4. If free plan (shouldn't happen for claim plans, but handle it)
+        // 4. If free plan - no payment needed
         if (price === 0) {
             await claimRef.update({
                 status: 'pending_verification',
@@ -187,6 +187,41 @@ export async function createClaimWithSubscription(
                         updatedAt: FieldValue.serverTimestamp()
                     });
                 }
+            }
+
+            // 4b. Initialize Free user competitive intelligence (async, non-blocking)
+            // This discovers nearby competitors and sets up weekly playbook
+            try {
+                const { initializeFreeUserCompetitors } = await import('./free-user-setup');
+                
+                // Use claim data to construct location (best effort)
+                // For now, we'll use the business address or default location
+                // TODO: Parse address to get lat/lng or use geocoding
+                const location = {
+                    lat: 0, // Would be geocoded from businessAddress
+                    lng: 0,
+                    zip: input.zip || '',
+                    city: '', // Would be parsed from businessAddress
+                    state: '', // Would be parsed from businessAddress
+                };
+
+                // Run asynchronously - don't block claim completion
+                initializeFreeUserCompetitors(claimId, location)
+                    .then(result => {
+                        logger.info('Free user competitor setup completed', { 
+                            claimId, 
+                            competitorsCreated: result.competitorsCreated 
+                        });
+                    })
+                    .catch(err => {
+                        logger.warn('Free user competitor setup failed (non-blocking)', { 
+                            claimId, 
+                            error: err.message 
+                        });
+                    });
+            } catch (err) {
+                logger.warn('Failed to initialize Free user competitors', { claimId, error: err });
+                // Non-blocking - continue with successful claim
             }
 
             return { success: true, claimId };
