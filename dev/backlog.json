@@ -15,6 +15,19 @@
             "created_at": "2026-01-11T15:00:00Z"
         },
         {
+            "id": "task_test_smokey_recommends",
+            "title": "Unit Test: Smokey Recommends (Consumer Playbooks)",
+            "status": "pending",
+            "priority": "normal",
+            "description": "Fix unit tests for the Smokey Recommends component (src/app/dashboard/playbooks/components/smokey-recommends.tsx). Tests were skipped during initial implementation due to complex UI dependencies (Radix Tabs, Switch) requiring robust mocks.",
+            "acceptance_tests": [
+                "tests/dashboard/playbooks/components/smokey-recommends.test.tsx passes"
+            ],
+            "owner": "ai_builder_swarm",
+            "area": "testing",
+            "created_at": "2026-01-12T17:15:00Z"
+        },
+        {
             "id": "task_test_receipt_scanner",
             "title": "Unit Test: Receipt Scanner Service",
             "status": "pending",

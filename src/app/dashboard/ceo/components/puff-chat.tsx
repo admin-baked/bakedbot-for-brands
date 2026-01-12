@@ -607,7 +607,7 @@ export function PuffChat({
     );
 
     return (
-        <div className={cn("flex flex-col h-full bg-background border-2 border-red-500", className)}>
+        <div className={cn("flex flex-col h-full bg-background ", className)}>
              {/* Hire Modal */}
              <HireAgentModal 
                 isOpen={isHireModalOpen} 
