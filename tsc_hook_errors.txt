@@ -1,0 +1,26 @@
+src/app/dashboard/ceo/components/model-selector.tsx(3,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/app/dashboard/ceo/components/model-selector.tsx(11,8): error TS2307: Cannot find module '@/components/ui/dropdown-menu' or its corresponding type declarations.
+src/app/dashboard/ceo/components/model-selector.tsx(24,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(3,35): error TS2307: Cannot find module '@/lib/store/agent-chat-store' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(4,25): error TS2307: Cannot find module '@/firebase/auth/use-user' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(5,30): error TS2307: Cannot find module '@/hooks/use-job-poller' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(6,64): error TS2307: Cannot find module '../../agents/actions' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(7,41): error TS2307: Cannot find module '@/server/actions/integrations' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(8,33): error TS2307: Cannot find module '@/server/actions/chat-persistence' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(9,30): error TS2307: Cannot find module '@/server/actions/artifacts' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(10,53): error TS2307: Cannot find module '@/types/artifact' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(11,30): error TS2307: Cannot find module '../../agents/personas' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(16,46): error TS2307: Cannot find module '@/components/chat/chat-media-preview' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(17,29): error TS2307: Cannot find module '@/hooks/use-mobile' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(474,39): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', 'node18', 'node20', or 'nodenext'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(474,46): error TS2307: Cannot find module '@/app/dashboard/intelligence/actions/demo-setup' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(492,41): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', 'node18', 'node20', or 'nodenext'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(492,48): error TS2307: Cannot find module '@/app/dashboard/intelligence/actions/demo-setup' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(531,48): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', 'node18', 'node20', or 'nodenext'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(531,55): error TS2307: Cannot find module '@/app/dashboard/intelligence/actions/demo-presets' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(553,48): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', 'node18', 'node20', or 'nodenext'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(553,55): error TS2307: Cannot find module '@/app/dashboard/intelligence/actions/demo-setup' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(585,50): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', 'node18', 'node20', or 'nodenext'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(585,57): error TS2307: Cannot find module '@/app/dashboard/intelligence/actions/demo-presets' or its corresponding type declarations.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(622,46): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', 'node18', 'node20', or 'nodenext'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(622,53): error TS2307: Cannot find module '@/app/dashboard/intelligence/actions/demo-compliance' or its corresponding type declarations.

@@ -1,0 +1,32 @@
+FAIL src/app/dashboard/ceo/components/__tests__/puff-chat.test.tsx
+  ● Test suite failed to run
+
+    Configuration error:
+
+    Could not locate module @/components/chat/audio-recorder mapped as:
+    C:\Users\marte\Baked for Brands\bakedbot-for-brands\src\$1.
+
+    Please check your configuration for these entries:
+    {
+      "moduleNameMapper": {
+        "/^@\/(.*)$/": "C:\Users\marte\Baked for Brands\bakedbot-for-brands\src\$1"
+      },
+      "resolver": undefined
+    }
+
+    [0m [90m 10 |[39m jest[33m.[39mmock([32m'@/lib/store/agent-chat-store'[39m)[33m;[39m
+     [90m 11 |[39m [90m// Mock Sub-components that might cause issues (though they should be fine now)[39m
+    [31m[1m>[22m[39m[90m 12 |[39m jest[33m.[39mmock([32m'@/components/chat/audio-recorder'[39m[33m,[39m () [33m=>[39m ({
+     [90m    |[39m      [31m[1m^[22m[39m
+     [90m 13 |[39m     [33mAudioRecorder[39m[33m:[39m () [33m=>[39m [33m<[39m[33mdiv[39m data[33m-[39mtestid[33m=[39m[32m"audio-recorder"[39m[33m>[39m[33mRecorder[39m[33m<[39m[33m/[39m[33mdiv[39m[33m>[39m
+     [90m 14 |[39m }))[33m;[39m
+     [90m 15 |[39m[0m
+
+      at createNoMappedModuleFoundError (node_modules/jest-resolve/build/resolver.js:759:17)
+      at Object.mock (src/app/dashboard/ceo/components/__tests__/puff-chat.test.tsx:12:6)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        2.983 s
+Ran all test suites matching /src\\app\\dashboard\\ceo\\components\\__tests__\\puff-chat.test.tsx/i.
