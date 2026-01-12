@@ -18,7 +18,8 @@ import {
     Rocket,
     CheckCircle2,
     Globe,
-    Leaf
+    Leaf,
+    Info
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

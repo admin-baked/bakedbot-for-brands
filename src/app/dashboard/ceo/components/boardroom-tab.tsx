@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
-import { DiscoveryBrowserStatus } from '@/app/dashboard/ceo/components/discovery-browser-status';
 import { useUser } from '@/firebase/auth/use-user';
 import { getPlatformAnalytics, type PlatformAnalyticsData } from '../actions';
 import { useEffect } from 'react';
@@ -227,7 +226,6 @@ export default function BoardroomTab() {
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1 p-0 overflow-visible relative min-h-0">
-                        <DiscoveryBrowserStatus />
                         <Suspense fallback={<div className="p-4 text-center">Loading chat...</div>}>
                             <PuffChat
                                 persona={selectedAgent as any}
@@ -240,7 +238,7 @@ export default function BoardroomTab() {
                                     "Check System Health Status",
                                     "Review Recent Signups",
                                     "Generate Competitive Intel Summary",
-                                    "Audit Compliance Status"
+                                    "Draft Weekly Team Update Email" // Triggers Gmail permission check
                                 ]}
                                 className="h-full border-0 shadow-none"
                             />
