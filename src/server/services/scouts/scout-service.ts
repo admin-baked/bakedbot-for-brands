@@ -25,16 +25,16 @@ export interface Scout {
     id: string;
     tenantId: string;
     userId: string;
-    
+
     // What to monitor
     query: string;
     targetUrls?: string[]; // Optional specific URLs to watch
-    
+
     // Schedule
     frequency: 'hourly' | 'daily' | 'weekly';
     lastRunAt?: Date;
     nextRunAt: Date;
-    
+
     // Notifications
     notifications: {
         email: boolean;
@@ -44,11 +44,11 @@ export interface Scout {
     };
     notifyEmail?: string;
     notifyPhone?: string;
-    
+
     // Status
     status: 'active' | 'paused' | 'error';
     lastError?: string;
-    
+
     // Metadata
     createdAt: Date;
     updatedAt: Date;
@@ -58,7 +58,7 @@ export interface ScoutResult {
     id: string;
     scoutId: string;
     tenantId: string;
-    
+
     query: string;
     resultCount: number;
     results: Array<{
@@ -66,11 +66,11 @@ export interface ScoutResult {
         url: string;
         snippet: string;
     }>;
-    
+
     // AI Summary
     summary: string;
     isNew: boolean; // True if different from last run
-    
+
     executedAt: Date;
 }
 
@@ -91,13 +91,13 @@ export async function createScout(
     } = {}
 ): Promise<Scout> {
     const { firestore } = await createServerClient();
-    
+
     const now = new Date();
     const frequency = options.frequency || 'daily';
-    
+
     // Calculate next run
     const nextRunAt = calculateNextRun(frequency);
-    
+
     const scout: Omit<Scout, 'id'> = {
         tenantId,
         userId,
@@ -117,25 +117,25 @@ export async function createScout(
         createdAt: now,
         updatedAt: now,
     };
-    
+
     const docRef = await firestore.collection(`tenants/${tenantId}/scouts`).add(scout);
-    
+
     logger.info(`[Scouts] Created scout ${docRef.id} for query: ${query}`);
-    
+
     return { id: docRef.id, ...scout };
 }
 
 export async function getScouts(tenantId: string, userId?: string): Promise<Scout[]> {
     const { firestore } = await createServerClient();
-    
+
     let query = firestore.collection(`tenants/${tenantId}/scouts`);
-    
+
     if (userId) {
         query = query.where('userId', '==', userId) as any;
     }
-    
+
     const snap = await query.orderBy('createdAt', 'desc').get();
-    
+
     return snap.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
@@ -158,13 +158,13 @@ export async function deleteScout(tenantId: string, scoutId: string): Promise<vo
 export async function runScout(scout: Scout): Promise<ScoutResult> {
     const { firestore } = await createServerClient();
     const now = new Date();
-    
+
     logger.info(`[Scouts] Running scout ${scout.id}: ${scout.query}`);
-    
+
     try {
         // 1. Execute search
         let results: any[] = [];
-        
+
         if (scout.targetUrls && scout.targetUrls.length > 0) {
             // Scrape specific URLs
             for (const url of scout.targetUrls.slice(0, 5)) {
@@ -188,10 +188,10 @@ export async function runScout(scout: Scout): Promise<ScoutResult> {
                 snippet: r.description || r.snippet || ''
             }));
         }
-        
+
         // 2. Generate AI Summary
         const summary = await generateSummary(scout.query, results);
-        
+
         // 3. Check if results are new (compare to last result)
         const lastResultSnap = await firestore
             .collection(`tenants/${scout.tenantId}/scout_results`)
@@ -199,10 +199,10 @@ export async function runScout(scout: Scout): Promise<ScoutResult> {
             .orderBy('executedAt', 'desc')
             .limit(1)
             .get();
-        
+
         const lastResult = lastResultSnap.empty ? null : lastResultSnap.docs[0].data();
         const isNew = !lastResult || hasNewResults(lastResult.results, results);
-        
+
         // 4. Save result
         const scoutResult: Omit<ScoutResult, 'id'> = {
             scoutId: scout.id,
@@ -214,11 +214,11 @@ export async function runScout(scout: Scout): Promise<ScoutResult> {
             isNew,
             executedAt: now,
         };
-        
+
         const resultRef = await firestore
             .collection(`tenants/${scout.tenantId}/scout_results`)
             .add(scoutResult);
-        
+
         // 5. Update scout status
         await firestore.doc(`tenants/${scout.tenantId}/scouts/${scout.id}`).update({
             lastRunAt: now,
@@ -227,26 +227,26 @@ export async function runScout(scout: Scout): Promise<ScoutResult> {
             lastError: null,
             updatedAt: now,
         });
-        
+
         // 6. Send notifications if new results
         if (isNew && results.length > 0) {
             await sendScoutNotifications(scout, scoutResult);
         }
-        
+
         logger.info(`[Scouts] Scout ${scout.id} completed. Found ${results.length} results. New: ${isNew}`);
-        
+
         return { id: resultRef.id, ...scoutResult };
-        
+
     } catch (error: any) {
         logger.error(`[Scouts] Scout ${scout.id} failed:`, error);
-        
+
         // Update error status
         await firestore.doc(`tenants/${scout.tenantId}/scouts/${scout.id}`).update({
             status: 'error',
             lastError: error.message,
             updatedAt: now,
         });
-        
+
         throw error;
     }
 }
@@ -260,7 +260,7 @@ async function sendScoutNotifications(
     result: Omit<ScoutResult, 'id'>
 ): Promise<void> {
     const { firestore } = await createServerClient();
-    
+
     // 1. In-App Notification (always)
     if (scout.notifications.inApp) {
         await firestore.collection(`tenants/${scout.tenantId}/notifications`).add({
@@ -273,7 +273,7 @@ async function sendScoutNotifications(
             createdAt: new Date(),
         });
     }
-    
+
     // 2. Email
     if (scout.notifications.email && scout.notifyEmail) {
         const { sendGenericEmail } = await import('@/lib/email/dispatcher');
@@ -293,7 +293,7 @@ async function sendScoutNotifications(
             fromName: 'BakedBot Scouts',
         });
     }
-    
+
     // 3. SMS (if configured)
     if (scout.notifications.sms && scout.notifyPhone) {
         try {
@@ -302,11 +302,11 @@ async function sendScoutNotifications(
                 scout.notifyPhone,
                 `🔍 Scout Alert: ${scout.query}\n${result.summary.substring(0, 100)}...`
             );
-        } catch (e: any) {
-            logger.warn('[Scouts] SMS notification failed:', e);
+        } catch (e) {
+            logger.warn('[Scouts] SMS notification failed:', { error: e instanceof Error ? e.message : String(e) });
         }
     }
-    
+
     // 4. Push Notification (if user has FCM token)
     if (scout.notifications.push) {
         try {
@@ -316,8 +316,8 @@ async function sendScoutNotifications(
                 body: result.summary,
                 data: { scoutId: scout.id },
             });
-        } catch (e: any) {
-            logger.warn('[Scouts] Push notification failed:', e);
+        } catch (e) {
+            logger.warn('[Scouts] Push notification failed:', { error: e instanceof Error ? e.message : String(e) });
         }
     }
 }
@@ -341,7 +341,7 @@ function calculateNextRun(frequency: 'hourly' | 'daily' | 'weekly'): Date {
 function hasNewResults(oldResults: any[], newResults: any[]): boolean {
     if (!oldResults || oldResults.length === 0) return true;
     if (newResults.length !== oldResults.length) return true;
-    
+
     // Check if any URLs are different
     const oldUrls = new Set(oldResults.map(r => r.url));
     return newResults.some(r => !oldUrls.has(r.url));
@@ -351,7 +351,7 @@ async function generateSummary(query: string, results: any[]): Promise<string> {
     if (results.length === 0) {
         return 'No results found for this query.';
     }
-    
+
     try {
         const { ai } = await import('@/ai/genkit');
         const response = await ai.generate({
@@ -370,32 +370,32 @@ async function generateSummary(query: string, results: any[]): Promise<string> {
 export async function dispatchDueScouts(): Promise<{ dispatched: number }> {
     const { firestore } = await createServerClient();
     const now = new Date();
-    
+
     // Find all tenants with active scouts due to run
     // Note: In production, this should be optimized with a collection group query
     const tenantsSnap = await firestore.collection('tenants').get();
-    
+
     let dispatched = 0;
-    
+
     for (const tenantDoc of tenantsSnap.docs) {
         const scoutsSnap = await firestore
             .collection(`tenants/${tenantDoc.id}/scouts`)
             .where('status', '==', 'active')
             .where('nextRunAt', '<=', now)
             .get();
-        
+
         for (const scoutDoc of scoutsSnap.docs) {
             const scout = { id: scoutDoc.id, ...scoutDoc.data() } as Scout;
-            
+
             try {
                 await runScout(scout);
                 dispatched++;
-            } catch (e: any) {
-                logger.error(`[Scouts] Dispatch failed for ${scout.id}:`, e);
+            } catch (e) {
+                logger.error(`[Scouts] Dispatch failed for ${scout.id}:`, { error: e instanceof Error ? e.message : String(e) });
             }
         }
     }
-    
+
     logger.info(`[Scouts] Dispatcher completed. Ran ${dispatched} scouts.`);
     return { dispatched };
 }

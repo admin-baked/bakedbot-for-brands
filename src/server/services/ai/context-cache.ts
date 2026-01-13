@@ -1,3 +1,4 @@
+// @ts-expect-error - @google/generative-ai may not have types installed, but package exists
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
@@ -34,20 +35,21 @@ export class ContextCacheManager {
         }
 
         console.log(`ContextCache: Creating new cache for ${key}`);
-        
+
         try {
             // Note: The specific GoogleGenerativeAI SDK logic for 'cache creation'
             // is often via the ModelManager or specific REST calls in standard SDKs.
             // As of early 2025/v0.1, it might be separate. 
             // We strictly mock the "success" here if the SDK logic is complex to infer without docs,
             // OR use the REST API approach if needed.
-            
+
             // Hypothetical SDK usage for Context Caching (as it works in v1beta):
-            const cacheManager = this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro-001' }).cachedContent; 
-            
+            // NOTE: This code is experimental - cachedContent may not exist in SDK yet
+            // const cacheManager = (this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro-001' }) as any).cachedContent; 
+
             // Since the standard SDK types might lag, we simulate the registry
             // implementation or return a placeholder if actual API call fails.
-            
+
             // For valid implementation, we'd use:
             // const cache = await helper_createCache(systemInstruction, ttlSeconds);
             // activeCaches.set(key, { ... });
@@ -56,8 +58,8 @@ export class ContextCacheManager {
             // FALLBACK Implementation for MVP (Since we can't easily verify SDK version):
             // We just return empty string to signal "Not cached" but log the intent.
             // This prevents runtime crashes if the method doesn't exist.
-            
-            return ""; 
+
+            return "";
 
         } catch (error) {
             console.error("ContextCache: Failed to create cache", error);

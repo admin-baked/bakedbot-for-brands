@@ -374,8 +374,8 @@ export async function getPlatformLeads(filters: CRMFilters = {}): Promise<CRMLea
     // Filter by search (client-side)
     if (filters.search) {
         const search = filters.search.toLowerCase();
-        leads = leads.filter(l => 
-            l.email.toLowerCase().includes(search) || 
+        leads = leads.filter(l =>
+            l.email.toLowerCase().includes(search) ||
             l.company.toLowerCase().includes(search)
         );
     }
@@ -406,7 +406,7 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
 
     let users = snapshot.docs.map(doc => {
         const data = doc.data();
-        
+
         // Determine account type from role
         let accountType: CRMUser['accountType'] = 'customer';
         if (data.role === 'superuser' || data.role === 'admin') accountType = 'superuser';
@@ -415,7 +415,7 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
 
         // Determine lifecycle stage
         let lifecycleStage: CRMLifecycleStage = data.lifecycleStage || 'prospect';
-        
+
         // Auto-detect based on data if not set
         if (!data.lifecycleStage) {
             if (data.subscription?.status === 'active') {
@@ -482,7 +482,7 @@ export async function getCRMUserStats(): Promise<{
 }> {
     const firestore = getAdminFirestore();
     const snapshot = await firestore.collection('users').get();
-    
+
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -501,7 +501,7 @@ export async function getCRMUserStats(): Promise<{
 
     snapshot.docs.forEach(doc => {
         const data = doc.data();
-        
+
         // Count active users
         const lastLogin = data.lastLoginAt?.toDate?.();
         if (lastLogin && lastLogin >= sevenDaysAgo) {
@@ -530,17 +530,17 @@ export async function getCRMUserStats(): Promise<{
  * Update user lifecycle stage
  */
 export async function updateUserLifecycle(
-    userId: string, 
+    userId: string,
     stage: CRMLifecycleStage,
     note?: string
 ): Promise<void> {
     const firestore = getAdminFirestore();
-    
+
     const updateData: any = {
         lifecycleStage: stage,
         lifecycleUpdatedAt: new Date(),
     };
-    
+
     if (note) {
         updateData.crmNotes = note;
     }
