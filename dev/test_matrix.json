@@ -113,6 +113,14 @@
                 "src/lib/authorize-net.ts"
             ],
             "area": "backend"
+        },
+        {
+            "id": "test_puff_chat_logic",
+            "command": "npx jest src/app/dashboard/ceo/hooks/__tests__/use-puff-chat-logic.test.tsx",
+            "files": [
+                "src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts"
+            ],
+            "area": "frontend"
         }
     ]
 }
