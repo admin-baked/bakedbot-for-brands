@@ -353,7 +353,6 @@ export const SMOKEY_RECOMMENDS_PLAYBOOKS: RecommendedPlaybook[] = [
             },
         ],
     },
-    },
     // CONSUMER PLAYBOOKS
     {
         id: 'deal_hunter',
@@ -598,7 +597,6 @@ export function SmokeyRecommendsSection({
 }: SmokeyRecommendsSectionProps) {
     return (
         <div className="space-y-4">
-        <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Zap className="h-5 w-5 text-primary" />
@@ -673,7 +671,6 @@ export function SmokeyRecommendsSection({
                     </div>
                 </TabsContent>
             </Tabs>
-        </div>
         </div>
     );
 }

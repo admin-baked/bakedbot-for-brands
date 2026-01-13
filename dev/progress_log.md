@@ -1,3 +1,20 @@
+## Session: Fix Smokey Recommends Syntax Error
+### Task ID
+fix_smokey_recommends_syntax
+
+### Summary
+Resolved a critical syntax error in `smokey-recommends.tsx` that was causing build failures and type check errors.
+
+### Key Changes
+*   **MOD**: `src/app/dashboard/playbooks/components/smokey-recommends.tsx`:
+    - Removed extra closing brace at line 356.
+    - Fixed redundant wrapper divs in `SmokeyRecommendsSection`.
+
+### Result: ✅ Fixed
+The component is now syntactically correct and should no longer block the build process.
+
+---
+
 ## Session: Fix Infinite Agent Handoff Loop & Secure Executive Boardroom
 ### Task ID
 fix_infinite_handoff_loop_and_security
