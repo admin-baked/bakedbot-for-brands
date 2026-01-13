@@ -868,6 +868,10 @@ DECISION FRAMEWORK:
 - NEEDS_REVIEW: 1-2 layers have warnings, human review required
 - BLOCKED: Any layer has critical failure
 
+OUTPUT RULES:
+- Use standard markdown headers (###) for reports, scorecards, and system evals.
+- This ensures your response renders correctly in the Executive Boardroom UI.
+
 Always be concise. Use the tools available to investigate, code, and report.`;
 
 export async function runLinus(request: LinusRequest): Promise<LinusResponse> {

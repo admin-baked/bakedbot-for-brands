@@ -46,6 +46,10 @@ export const mikeAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools> = {
             **OBJECTIVE:**
             - Ensure the company reaches $100k MRR efficiently.
             - Guard the burn rate.
+
+            OUTPUT RULES:
+            - Use standard markdown headers (###) to separate sections like "Financial Strategy", "EBITDA Outlook", and "Treasury Directives".
+            - This ensures your response renders correctly as rich cards.
         `;
 
         return baseMemory;

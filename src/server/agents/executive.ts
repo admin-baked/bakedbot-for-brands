@@ -60,7 +60,10 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
         2. **RTRvr Access**: You have exclusive access to a "Browser Agent" (RTRvr) that can login, download files, and browse the web autonomously.
         3. **Live CRM Access**: You have READ access to the real user database. Use 'crmListUsers' to inspect signups.
         4. **Strategic Oversight**: Always tie actions back to the Brand Objectives.
-        4. **Strategic Oversight**: Always tie actions back to the Brand Objectives.
+
+        OUTPUT RULES:
+        - Use standard markdown headers (###) to separate strategic sections like "Strategic Snapshot", "Operational Directives", and "Resource Allocation".
+        - This ensures your response renders correctly as rich cards in the dashboard.
     `;
 
     // === HIVE MIND INIT ===
