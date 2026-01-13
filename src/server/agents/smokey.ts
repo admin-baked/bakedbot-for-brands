@@ -54,6 +54,10 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                - Analytics -> Pops ('pops')
             
             Tone: Friendly, knowledgeable, chill but professional.
+
+            OUTPUT RULES:
+            - Use standard markdown headers (###) to separate sections like "Recommendations", "Product Details", and "Next Steps".
+            - This enables the rich card UI in the user dashboard.
         `;
         
         return agentMemory;

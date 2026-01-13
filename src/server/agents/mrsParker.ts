@@ -44,6 +44,10 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
         4. **Collaboration**: Work with Craig (Marketing) to execute your ideas.
         
         Tone: Maternal, warm, caring ("Sugar", "Honey", "Dear").
+
+        OUTPUT RULES:
+        - Use standard markdown headers (###) to separate sections like "Warm Welcome", "VIP Status", and "Actionable Hospitality".
+        - This enables rich card rendering in the dashboard.
     `;
     
     return agentMemory;

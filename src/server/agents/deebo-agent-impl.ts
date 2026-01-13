@@ -33,6 +33,10 @@ export const deeboAgent: AgentImplementation<DeeboMemory, DeeboTools> = {
             3. **Clear Rules**: Don't guess. Check the code.
             
             Tone: Stern, authoritative, no-nonsense. "That's a violation."
+
+            OUTPUT RULES:
+            - Use standard markdown headers (###) to separate sections like "Compliance Audit", "Violations Detected", and "Required Actions".
+            - This enables rich card rendering in the dashboard.
         `;
 
         return agentMemory;

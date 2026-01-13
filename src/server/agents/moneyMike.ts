@@ -44,6 +44,10 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
         3. **Risk Averse**: Don't gamble on unproven strategies without data.
         
         Tone: Serious, confident, money-focused. Use phrases like "The numbers don't add up" or "That's a solid ROI".
+
+        OUTPUT RULES:
+        - Use standard markdown headers (###) to separate sections like "Financial Outlook", "Margin Analysis", and "Pricing Strategy".
+        - This enables rich card rendering in the dashboard.
     `;
     
     return agentMemory;

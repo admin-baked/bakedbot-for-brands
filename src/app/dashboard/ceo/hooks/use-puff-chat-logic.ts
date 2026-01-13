@@ -307,61 +307,64 @@ export function usePuffChatLogic({
              return;
         }
 
-        // Craig (Draft Campaign)
-        if (trimmedInput.includes("Draft a New Drop") || trimmedInput.includes("Draft Campaign")) {
-             executeCraigDraft(displayContent);
-             return;
-        }
+        // DEMO INTERCEPTORS (Unauthenticated only)
+        if (!isAuthenticated) {
+            // Craig (Draft Campaign)
+            if (trimmedInput.includes("Draft a New Drop") || trimmedInput.includes("Draft Campaign")) {
+                 executeCraigDraft(displayContent);
+                 return;
+            }
 
-        // Ezal (Brand Audit)
-        if (trimmedInput.includes("Audit my Brand") || trimmedInput.includes("Brand Footprint")) {
-             promptForBrandName(displayContent);
-             return;
-        }
+            // Ezal (Brand Audit)
+            if (trimmedInput.includes("Audit my Brand") || trimmedInput.includes("Brand Footprint")) {
+                 promptForBrandName(displayContent);
+                 return;
+            }
 
-        // Brand Name Input (Ezal Follow-up)
-        const askedForBrand = lastBot?.role === 'assistant' && lastBot.content.includes("What is the name of your brand?");
-        if (askedForBrand && trimmedInput.length > 1) {
-             executeBrandAudit(trimmedInput, displayContent);
-             return;
-        }
+            // Brand Name Input (Ezal Follow-up)
+            const askedForBrand = lastBot?.role === 'assistant' && lastBot.content.includes("What is the name of your brand?");
+            if (askedForBrand && trimmedInput.length > 1) {
+                 executeBrandAudit(trimmedInput, displayContent);
+                 return;
+            }
 
-        // Money Mike (Pricing)
-        if (lowerInput.includes("pricing plan") || lowerInput.includes("what are the price")) {
-             executePricingPlans(displayContent);
-             return;
-        }
+            // Money Mike (Pricing)
+            if (lowerInput.includes("pricing plan") || lowerInput.includes("what are the price")) {
+                 executePricingPlans(displayContent);
+                 return;
+            }
 
-        // Deebo (Compliance)
-        if (trimmedInput.includes("Send Deebo") || lowerInput.includes("compliance check")) {
-             promptForComplianceUrl(displayContent);
-             return;
-        }
+            // Deebo (Compliance)
+            if (trimmedInput.includes("Send Deebo") || lowerInput.includes("compliance check")) {
+                 promptForComplianceUrl(displayContent);
+                 return;
+            }
 
-        // URL Input (Deebo Follow-up)
-        const askedForUrl = lastBot?.role === 'assistant' && lastBot.content.includes("Paste the URL");
-        const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
-        if (askedForUrl && urlRegex.test(trimmedInput)) {
-             executeComplianceScan(trimmedInput, displayContent);
-             return;
-        }
+            // URL Input (Deebo Follow-up)
+            const askedForUrl = lastBot?.role === 'assistant' && lastBot.content.includes("Paste the URL");
+            const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+            if (askedForUrl && urlRegex.test(trimmedInput)) {
+                 executeComplianceScan(trimmedInput, displayContent);
+                 return;
+            }
 
-        // Location Input (Market Scout)
-        const zipOrCityRegex = /^\d{5}$/
-        const isCity = /^[a-zA-Z\s]{3,30}$/.test(trimmedInput) && !lowerInput.includes('http');
-        const askedForLocation = lastBot?.role === 'assistant' && (lastBot.content.includes("What City/Zip?") || lastBot.content.includes("search?"));
-        
-        if (askedForLocation && (zipOrCityRegex.test(trimmedInput) || isCity)) {
-             const isBrand = lastBot.content.includes("find dispensary partners"); // Context check
-             executeMarketScout(trimmedInput, displayContent, isBrand);
-             return;
-        }
+            // Location Input (Market Scout)
+            const zipOrCityRegex = /^\d{5}$/
+            const isCity = /^[a-zA-Z\s]{3,30}$/.test(trimmedInput) && !lowerInput.includes('http');
+            const askedForLocation = lastBot?.role === 'assistant' && (lastBot.content.includes("What City/Zip?") || lastBot.content.includes("search?"));
+            
+            if (askedForLocation && (zipOrCityRegex.test(trimmedInput) || isCity)) {
+                 const isBrand = lastBot.content.includes("find dispensary partners"); // Context check
+                 executeMarketScout(trimmedInput, displayContent, isBrand);
+                 return;
+            }
 
-        if (trimmedInput.includes("Hire a Market Scout")) {
-            // Check mode
-            const isBrandMode = trimmedInput.includes("Find retail partners");
-            promptForLocation(displayContent, isBrandMode);
-            return;
+            if (trimmedInput.includes("Hire a Market Scout")) {
+                // Check mode
+                const isBrandMode = trimmedInput.includes("Find retail partners");
+                promptForLocation(displayContent, isBrandMode);
+                return;
+            }
         }
 
 
@@ -511,8 +514,10 @@ export function usePuffChatLogic({
             const status = await checkIntegrationsStatus();
             await new Promise(r => setTimeout(r, 1200));
             const activeCount = Object.values(status).filter(s => s === 'active').length;
+            const content = `### System Status Report\n- **Status**: ${activeCount}/4 Nodes Active\n- **Health**: ${activeCount === 4 ? 'Optimal' : 'Checking'}\n\n### Integration Nodes\n${Object.entries(status).map(([k, v]) => `- ${k.toUpperCase()}: ${v === 'active' ? '✅ Active' : '⚠️ Pending'}`).join('\n')}`;
+            
             updateMessage(thinkingId, {
-                content: `**SYSTEM INTEGRITY**: ${activeCount}/4 Nodes Active.`,
+                content,
                 thinking: { isThinking: false, steps: [{ id: 'diag', toolName: "Pops", description: "Complete", status: 'completed' }], plan: [] },
                 metadata: { type: 'system_health', data: status } // Re-use type
             });

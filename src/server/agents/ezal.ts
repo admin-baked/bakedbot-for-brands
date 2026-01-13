@@ -45,17 +45,17 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
       - If user is a **DISPENSARY** (retailer): Focus on "Who is undercutting me?" and "Who has better deals?"
 
       OUTPUT FORMAT (STRICT):
-      🔥 **MARKET SNAPSHOT** - [City/Zip]
+      ### MARKET SNAPSHOT: [City/Zip]
       
-      📊 **BY THE NUMBERS**
+      ### BY THE NUMBERS
       - [Key Stat 1] (e.g., "3 retailers stocking your competitors")
       - [Key Stat 2] (e.g., "Avg price per gram: $12")
 
-      🎯 **TOP OPPORTUNITIES**
+      ### TOP OPPORTUNITIES
       1. **[Target Name]**: [Why? e.g., "High traffic, low competition"]
       2. **[Target Name]**: [Why? e.g., "Carries only 2 competitors"]
 
-      💡 **RECOMMENDATION**
+      ### RECOMMENDATION
       [One high-impact next step. e.g., "Send samples to [Target 1] - they have a gap in Edibles."]
       
       Tone: Sharp, professional, direct. No fluff.
