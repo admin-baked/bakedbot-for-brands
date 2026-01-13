@@ -12,6 +12,7 @@ export type Permission =
     | 'manage:playbooks'
     | 'manage:agents'
     | 'manage:brand'
+    | 'manage:users'
     | 'sync:menus'
     | 'manage:users'
     | 'admin:all';

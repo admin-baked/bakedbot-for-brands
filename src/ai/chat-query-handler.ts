@@ -1,7 +1,7 @@
 // src/ai/chat-query-handler.ts
 'use server';
 
-import { ai } from '@/ai/genkit';
+import { ai } from './genkit';
 import { z } from 'zod';
 import { getSmokeyConfig } from '@/config/super-admin-smokey-config';
 
