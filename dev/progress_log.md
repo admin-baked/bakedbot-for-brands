@@ -1,3 +1,35 @@
+## Session: Carousel & Preset Polish
+### Task ID
+task_homepage_preset_review
+
+### Summary
+Restored the `AgentResponseCarousel` UI and updated all local preset handlers to return rich markdown headers. This fixes the issue of "plain text" responses in the demo and ensures a premium "card-based" UI on mobile. Preserved the "Digital Budtender" widget opening functionality.
+
+### Key Changes
+*   **MOD**: `src/app/dashboard/ceo/components/puff-chat.tsx`: Restored carousel rendering logic and `isMobile` branching.
+*   **MOD**: `src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts`: Updated `executeMarketScout`, `executeCraigDraft`, `executeBrandAudit`, `executePricingPlans`, and `executeComplianceScan` for structured markdown output.
+
+### Result: ✅ Improved
+The homepage demo now consistently provides rich, swipeable cards for all major features.
+
+---
+
+## Session: Market Scout Hallucination Fix
+### Task ID
+task_market_scout_hallucination
+
+### Summary
+Fixed a regression where "Hire a Market Scout" returned generic products. Aligned string matches in the frontend and hardened demo API routing for specialized agents.
+
+### Key Changes
+*   **MOD**: `src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts`: Fixed string mismatch in `askedForLocation`.
+*   **MOD**: `src/app/api/demo/agent/route.ts`: Updated routing to respect `requestedAgent` for specialized personas.
+
+### Result: ✅ Fixed
+Live competitive intel is restored for the "Market Scout" demo.
+
+---
+
 ## Session: Fix Smokey Recommends Syntax Error
 ### Task ID
 fix_smokey_recommends_syntax

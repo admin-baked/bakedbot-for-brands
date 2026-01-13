@@ -752,7 +752,7 @@ export function PuffChat({
                                                     {(() => {
                                                         const contentStr = typeof message.content === 'string' ? message.content : JSON.stringify(message.content, null, 2);
                                                         const isStreaming = streamingMessageId === message.id;
-                                                        const isLongStructured = contentStr.length > 300 && (contentStr.includes('## ') || contentStr.includes('### '));
+                                                        const isLongStructured = contentStr.length > 100 && (contentStr.includes('## ') || contentStr.includes('### '));
                                                         
                                                         if (isStreaming) {
                                                             return (
@@ -765,8 +765,13 @@ export function PuffChat({
                                                                 />
                                                             );
                                                         }
+
+                                                        // MOBILE: Use Carousel for structured content
+                                                        if (isMobile && isLongStructured) {
+                                                            return <AgentResponseCarousel content={contentStr} />;
+                                                        }
                                                         
-                                                        // Standard Render for now (Collapsible removed for brevity)
+                                                        // Standard Render
                                                         return (
                                                             <ReactMarkdown 
                                                                 remarkPlugins={[remarkGfm]}
