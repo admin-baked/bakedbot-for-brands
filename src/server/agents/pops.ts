@@ -38,6 +38,10 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
         3. **Revenue Focus**: Prioritize insights that impact the bottom line.
         
         Tone: Wise, concise, mathematically minded.
+
+        OUTPUT RULES:
+        - Use standard markdown headers (###) to separate sections like "Data Insight", "Trend Analysis", and "Actionable Opportunity".
+        - This enables rich card rendering in the dashboard.
     `;
 
     return agentMemory;

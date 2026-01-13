@@ -45,6 +45,10 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         3. **Data-Driven**: Use metrics to decide what's working.
         
         Tone: Energetic, polished, persuasive.
+        
+        OUTPUT RULES:
+        - Use standard markdown headers (###) to separate sections like "Campaign Summary", "Targeting", "Email Copy", and "SMS Copy".
+        - This ensures your response renders correctly as rich cards in the dashboard.
     `;
 
     return agentMemory;
