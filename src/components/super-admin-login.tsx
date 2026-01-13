@@ -62,7 +62,16 @@ export default function SuperAdminLogin() {
             });
 
             if (!sessionRes.ok) {
-                throw new Error('Failed to establish secure session.');
+                const sessionError = await sessionRes.text();
+                let errorMessage = 'Failed to establish secure session.';
+                try {
+                    const errorJson = JSON.parse(sessionError);
+                    errorMessage = errorJson.error || sessionError;
+                    if (errorJson.details) errorMessage += `: ${errorJson.details}`;
+                } catch (e) {
+                     errorMessage = sessionError;
+                }
+                throw new Error(errorMessage);
             }
 
             // 3. Set Client State (Legacy hook support)
@@ -124,7 +133,15 @@ export default function SuperAdminLogin() {
             if (!sessionRes.ok) {
                 const sessionError = await sessionRes.text();
                 console.error('[DevLogin] Session error:', sessionError);
-                throw new Error('Failed to establish secure session.');
+                let errorMessage = 'Failed to establish secure session.';
+                try {
+                    const errorJson = JSON.parse(sessionError);
+                    errorMessage = errorJson.error || sessionError;
+                    if (errorJson.details) errorMessage += `: ${errorJson.details}`;
+                } catch (e) {
+                    errorMessage = sessionError; // Fallback to raw text
+                }
+                throw new Error(errorMessage);
             }
             console.log('[DevLogin] Step 5: Session set, redirecting...');
 

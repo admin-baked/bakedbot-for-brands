@@ -287,28 +287,38 @@ export async function POST(request: NextRequest) {
         let targetAgent = requestedAgent || 'smokey'; // Use requested agent as default
 
         // 2. Intelligent Routing based on Analysis
-        // Check platform/HQ questions FIRST (before product search fallback)
-        if (requestedAgent === 'moneymike') {
-             targetAgent = 'moneymike';
-        } else if (prompt.toLowerCase().includes('pricing') || prompt.toLowerCase().includes('cost') || prompt.toLowerCase().includes('subscription') || prompt.toLowerCase().includes('price')) {
-             targetAgent = 'moneymike';
-        } else if (requestedAgent === 'hq' || prompt.toLowerCase().includes('bakedbot') || prompt.toLowerCase().includes('how does') || (prompt.toLowerCase().includes('work') && prompt.toLowerCase().includes('bakedbot'))) {
-            // General questions about the platform
-            targetAgent = 'hq';
-        } else if (analysis.searchType === 'marketing') {
-            targetAgent = 'craig'; // Marketing -> Craig
-        } else if ((analysis.searchType as string) === 'products' || (analysis.searchType as string) === 'brands') {
-             // Smokey handles products
-             targetAgent = 'smokey';
-        } else if (analysis.searchType === 'competitive') {
-            targetAgent = 'ezal';
-        } else if (analysis.searchType === 'analytics') {
-            targetAgent = 'pops';
-        } else if (analysis.searchType === 'compliance') {
-            targetAgent = 'deebo'; 
+        // If the user explicitly requested a specialized agent, we try to stick with it 
+        // unless the analysis strongly suggests another specialized tool.
+        const isSpecializedRequested = requestedAgent && !['hq', 'puff', 'smokey'].includes(requestedAgent);
+
+        if (isSpecializedRequested) {
+            // Keep specialized agent unless a DIFFERENT specialized intent is detected
+            if (analysis.searchType === 'marketing' && requestedAgent !== 'craig') targetAgent = 'craig';
+            else if (analysis.searchType === 'competitive' && requestedAgent !== 'ezal') targetAgent = 'ezal';
+            else if (analysis.searchType === 'analytics' && requestedAgent !== 'pops') targetAgent = 'pops';
+            else if (analysis.searchType === 'compliance' && requestedAgent !== 'deebo') targetAgent = 'deebo';
+            else targetAgent = requestedAgent; // Stick with requested
         } else {
-            // Default to Smokey for product-related queries
-            targetAgent = 'smokey';
+            // Standard routing for general/hq/smokey requests
+            if (requestedAgent === 'moneymike') {
+                 targetAgent = 'moneymike';
+            } else if (prompt.toLowerCase().includes('pricing') || prompt.toLowerCase().includes('cost') || prompt.toLowerCase().includes('subscription') || prompt.toLowerCase().includes('price')) {
+                 targetAgent = 'moneymike';
+            } else if (requestedAgent === 'hq' || prompt.toLowerCase().includes('bakedbot') || prompt.toLowerCase().includes('how does') || (prompt.toLowerCase().includes('work') && prompt.toLowerCase().includes('bakedbot'))) {
+                targetAgent = 'hq';
+            } else if (analysis.searchType === 'marketing') {
+                targetAgent = 'craig';
+            } else if (analysis.searchType === 'competitive') {
+                targetAgent = 'ezal';
+            } else if (analysis.searchType === 'analytics') {
+                targetAgent = 'pops';
+            } else if (analysis.searchType === 'compliance') {
+                targetAgent = 'deebo'; 
+            } else if ((analysis.searchType as string) === 'products' || (analysis.searchType as string) === 'brands') {
+                targetAgent = 'smokey';
+            } else {
+                targetAgent = requestedAgent || 'smokey';
+            }
         }
         
         try {

@@ -349,7 +349,7 @@ export function usePuffChatLogic({
         // Location Input (Market Scout)
         const zipOrCityRegex = /^\d{5}$/
         const isCity = /^[a-zA-Z\s]{3,30}$/.test(trimmedInput) && !lowerInput.includes('http');
-        const askedForLocation = lastBot?.role === 'assistant' && (lastBot.content.includes("What City or Zip") || lastBot.content.includes("search?"));
+        const askedForLocation = lastBot?.role === 'assistant' && (lastBot.content.includes("What City/Zip?") || lastBot.content.includes("search?"));
         
         if (askedForLocation && (zipOrCityRegex.test(trimmedInput) || isCity)) {
              const isBrand = lastBot.content.includes("find dispensary partners"); // Context check
@@ -534,10 +534,11 @@ export function usePuffChatLogic({
         
         if (result.campaign) {
              const c = result.campaign;
-             const content = `**Campaign Draft**\n\nSMS: ${c.sms.text}\n\nEmail: ${c.emailSubject}\n\nReply "SMS" or "Email" to test send.`;
+             const content = `### Draft: ${result.name || 'New Drop'}\n\n**SMS**: ${c.sms.text}\n\n**Email**: ${c.emailSubject}\n\n### Stats\n- Goal: Lead Generation\n- Channels: SMS, Email\n- Compliance: Verified`;
+             
              updateMessage(thinkingId, {
                 content,
-                thinking: { isThinking: false, steps: [{ id: 'step1', toolName: "Craig", description: "Drafted", status: 'completed' }], plan: [] }
+                thinking: { isThinking: false, steps: [{ id: 'step1', toolName: "Craig", description: "Draft completed", status: 'completed' }], plan: [] }
              });
         }
         setIsProcessing(false);
@@ -548,16 +549,21 @@ export function usePuffChatLogic({
          addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
          setInput(''); setIsProcessing(true);
          const thinkingId = `agent-${Date.now()}`;
-         addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+         addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'scan', toolName: "Market Scout", description: `Scanning ${location}...`, status: 'in-progress' }], plan: [] } });
          
          const { searchDemoRetailers } = await import('@/app/dashboard/intelligence/actions/demo-setup');
-         // (Full implementation of result formatting omitted for brevity, but logically here)
          const result = await searchDemoRetailers(location);
          await new Promise(r => setTimeout(r, 1500));
          
          const count = result.daa ? result.daa.length : 0;
+         const itemsMarkdown = result.daa?.slice(0, 3).map((c: any, idx: number) => (
+            `### Competitor #${idx+1}: ${c.name}\n${c.address || 'Address pending'}\n\n**Intelligence:**\n- Pricing: ${c.pricingStrategy}\n- Risk: ${c.riskScore}\n- Verified: ${c.isEnriched ? 'Yes' : 'Pending'}`
+         )).join('\n\n') || `No specific data for ${location} found.`;
+
+         const finalContent = `I've analyzed the market in **${location}**. Found ${count} locations.\n\n${itemsMarkdown}`;
+
          updateMessage(thinkingId, {
-             content: `Found ${count} locations in ${location}. (Report generated)`,
+             content: finalContent,
              thinking: { isThinking: false, steps: [{ id: 'scan', toolName: "Market Scout", description: `Scanned ${location}`, status: 'completed' }], plan: [] }
          });
          setIsProcessing(false);
@@ -580,14 +586,16 @@ export function usePuffChatLogic({
          addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
          setInput(''); setIsProcessing(true);
          const thinkingId = `agent-${Date.now()}`;
-         addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+         addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'scan', toolName: "Ezal", description: `Auditing ${brand}...`, status: 'in-progress' }], plan: [] } });
          
          const { getDemoBrandFootprint } = await import('@/app/dashboard/intelligence/actions/demo-presets');
          const result = await getDemoBrandFootprint(brand);
          await new Promise(r => setTimeout(r, 1000));
          
+         const content = `### Audit Summary: ${brand}\n**Estimated Reach**: ${result.audit?.estimatedRetailers || 0} stores.\n\n### Market Share\nTop Region: Midwest | Growth: +12% YoY\n\n### Action Items\n1. Target 5 unlisted dispensaries nearby.\n2. Sync menu data to increase visibility.`;
+
          updateMessage(thinkingId, {
-             content: `**Brand Audit: ${brand}**\nEstimated Reach: ${result.audit?.estimatedRetailers || 0} stores.`,
+             content,
              thinking: { isThinking: false, steps: [{ id: 'scan', toolName: "Ezal", description: "Audit complete", status: 'completed' }], plan: [] }
          });
          setIsProcessing(false);
@@ -597,10 +605,18 @@ export function usePuffChatLogic({
     function executePricingPlans(displayContent: string) {
         addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
         setInput(''); setIsProcessing(true);
-         // ... (Simulate Money Mike)
+         // Simulate Money Mike
+         const thinkingId = `agent-${Date.now()}`;
+         addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'calc', toolName: "Money Mike", description: "Calculating plans...", status: 'in-progress' }], plan: [] } });
+
         setTimeout(() => {
             setIsProcessing(false);
-            addMessage({ id: `agent-${Date.now()}`, role: 'assistant', content: "Visit bakedbot.ai/pricing", timestamp: new Date() });
+            const content = `### Claim Pro ($99/mo)\nVerified Badge, Lead Capture, Full Editing.\n\n### Growth ($350/mo)\nAdvanced Analytics + Mrs. Parker (Loyalty).\n\n### Scale ($700/mo)\nFull Agent Squad + API Access.\n\n[**Join Now →**](https://bakedbot.ai/join)`;
+            
+            updateMessage(thinkingId, {
+                content,
+                thinking: { isThinking: false, steps: [{ id: 'calc', toolName: "Money Mike", description: "Pricing ready", status: 'completed' }], plan: [] }
+            });
         }, 1000);
     }
     
@@ -617,16 +633,20 @@ export function usePuffChatLogic({
         addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
         setInput(''); setIsProcessing(true);
         const thinkingId = `agent-${Date.now()}`;
-        addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+        addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'scan', toolName: "Deebo", description: `Scanning ${url}...`, status: 'in-progress' }], plan: [] } });
         
         const { scanDemoCompliance } = await import('@/app/dashboard/intelligence/actions/demo-compliance');
         const result = await scanDemoCompliance(url);
         
-        updateMessage(thinkingId, {
-            content: result.success ? `**Compliance Audit**: Risk Level ${result.riskScore}` : "Failed to scan.",
-            thinking: { isThinking: false, steps: [], plan: [] }
-        });
         setIsProcessing(false);
+        const content = result.success 
+            ? `### Compliance Audit: ${url}\n${result.report}\n\n### Action Items\nAdd FDA Disclaimer to footer. | Verify age barrier on entrance.`
+            : "### Error\nFailed to scan the specified URL. Please ensure it is a public dispensary menu.";
+
+        updateMessage(thinkingId, {
+            content,
+            thinking: { isThinking: false, steps: [{ id: 'scan', toolName: "Deebo", description: "Scan complete", status: 'completed' }], plan: [] }
+        });
     }
 
     function promptForLocation(displayContent: string, isBrandMode: boolean) {
