@@ -1,3 +1,41 @@
+## Session: Chat Logic & Markdown Verification
+### Task ID
+fix_chat_logic_tests
+
+### Summary
+Implemented comprehensive unit tests for `usePuffChatLogic` to verify authentication boundaries, markdown formatting, and async agent flows. Resolved a critical race condition in thinking steps assignment. All 5 core tests are passing.
+
+### Key Changes
+*   **NEW**: `src/app/dashboard/ceo/hooks/__tests__/use-puff-chat-logic.test.tsx`
+    - Added 5 unit tests covering auth scoping, rich markdown headers, and multi-step agent flows.
+    - Implemented polyfill for `fetch` and ESM-compatible mocks for dynamic imports.
+*   **MOD**: `src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts`
+    - Fixed a bug where a `Promise` was incorrectly assigned to the `steps` field in thinking blocks.
+    - Standardized `executeSystemHealthCheck` and `executeMarketScout` to use `###` rich headers for carousel support.
+    - Improved async reactivity for demo responses.
+
+### Result: ✅ Verified & Stable
+The chat logic is now fully tested, and all dashboard personas consistently produce the structured markdown required for the rich card carousel UI.
+
+---
+
+## Session: Boardroom Agent Polish & Role Audit
+### Task ID
+task_boardroom_agent_polish
+
+### Summary
+Polished the entire Executive Boardroom squad (Leo, Jack, Glenda, Mike, Linus, and Roach) and the core Agent Squad for rich card UI support. Enforced standard markdown headers (###) in system prompts. Hardened authentication scoping to prevent demo presets from intercepting real user queries in dashboards.
+
+### Key Changes
+*   **MOD**: `src/server/agents/executive.ts`, `mike.ts`, `linus.ts`, `roach.ts`: Added ### header rules to system prompts.
+*   **MOD**: `src/server/agents/ezal.ts`, `craig.ts`, `smokey.ts`, `moneyMike.ts`, `pops.ts`, `mrs_parker.ts`, `deebo-agent-impl.ts`: Aligned squad prompts with ### header rules.
+*   **MOD**: `src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts`: Wrapped demo presets in `!isAuthenticated` checks and polished system health check markdown.
+
+### Result: ✅ Optimized
+Dashboard responses across all roles now consistently trigger the rich card carousel UI.
+
+---
+
 ## Session: Carousel & Preset Polish
 ### Task ID
 task_homepage_preset_review

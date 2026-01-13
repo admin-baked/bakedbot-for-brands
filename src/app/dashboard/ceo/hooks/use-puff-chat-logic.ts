@@ -387,10 +387,16 @@ export function usePuffChatLogic({
         try {
             const processedAttachments = await convertAttachments();
             
-            // Public / Demo Mode
             if (!isAuthenticated) {
-                // Simulate + Fetch
+                // Public / Demo Mode
+                addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+
                 simulateDemoSteps(thinkingId, userInput, persona).then(simSteps => {
+                     // Update thinking steps
+                     updateMessage(thinkingId, {
+                        thinking: { isThinking: true, steps: simSteps, plan: [] }
+                     });
+
                      // Fetch demo
                      fetch('/api/demo/agent', {
                         method: 'POST', body: JSON.stringify({ agent: persona, prompt: userInput, context: {} })
@@ -514,12 +520,13 @@ export function usePuffChatLogic({
             const status = await checkIntegrationsStatus();
             await new Promise(r => setTimeout(r, 1200));
             const activeCount = Object.values(status).filter(s => s === 'active').length;
-            const content = `### System Status Report\n- **Status**: ${activeCount}/4 Nodes Active\n- **Health**: ${activeCount === 4 ? 'Optimal' : 'Checking'}\n\n### Integration Nodes\n${Object.entries(status).map(([k, v]) => `- ${k.toUpperCase()}: ${v === 'active' ? '✅ Active' : '⚠️ Pending'}`).join('\n')}`;
+            const integrationsStatus = Object.entries(status).map(([k, v]) => `- ${k.toUpperCase()}: ${v === 'active' ? '✅ Active' : '⚠️ Pending'}`).join('\n');
+            const content = `### 🟢 FLEET STATUS\n- **Status**: ${activeCount}/4 Nodes Active\n- **Health**: ${activeCount === 4 ? 'Optimal' : 'Checking'}\n\n### 🟡 INTEGRATIONS\n${integrationsStatus}`;
             
             updateMessage(thinkingId, {
                 content,
                 thinking: { isThinking: false, steps: [{ id: 'diag', toolName: "Pops", description: "Complete", status: 'completed' }], plan: [] },
-                metadata: { type: 'system_health', data: status } // Re-use type
+                metadata: { type: 'system_health', data: status } 
             });
         } catch (e: any) {
              updateMessage(thinkingId, { content: `Error: ${e.message}`, thinking: { isThinking: false, steps: [], plan: [] } });
@@ -565,7 +572,7 @@ export function usePuffChatLogic({
             `### Competitor #${idx+1}: ${c.name}\n${c.address || 'Address pending'}\n\n**Intelligence:**\n- Pricing: ${c.pricingStrategy}\n- Risk: ${c.riskScore}\n- Verified: ${c.isEnriched ? 'Yes' : 'Pending'}`
          )).join('\n\n') || `No specific data for ${location} found.`;
 
-         const finalContent = `I've analyzed the market in **${location}**. Found ${count} locations.\n\n${itemsMarkdown}`;
+         const finalContent = `### 🏪 RETAIL OPPORTUNITIES\nI've analyzed the market in **${location}**. Found ${count} locations.\n\n### 📊 COMPETITIVE LANDSCAPE\n${itemsMarkdown}`;
 
          updateMessage(thinkingId, {
              content: finalContent,
