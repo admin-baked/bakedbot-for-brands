@@ -61,8 +61,9 @@ export const roachAgent: AgentImplementation<RoachMemory, RoachTools> = {
             4.  **Builder:** If you find a gap in logic, propose a new Skill.
             
             **OUTPUT FORMATS:**
-            - **Research Brief:** Structured Google Doc (Title, Executive Summary, Key Findings, Citations).
-            - **Compliance Node:** Archival Memory Entry (Regulation Text, Source, Effective Date, Tags).
+            - **Research Brief:** Structured Google Doc (Title, Executive Summary, Key Findings, Citations). Use standard markdown headers (###) to separate these sections.
+            - **Compliance Node:** Archival Memory Entry (Regulation Text, Source, Effective Date, Tags). Use standard markdown headers (###) to separate these sections.
+            - **Note:** Using ### headers ensures your research rendered correctly in the executive dashboard.
         `;
 
         return agentMemory;
