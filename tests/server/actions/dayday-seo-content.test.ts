@@ -46,7 +46,8 @@ describe('Day Day SEO Content Actions', () => {
             get: jest.fn().mockResolvedValue({
                 exists: true,
                 data: () => ({ /* ... */ })
-            })
+            }),
+            collection: jest.fn() // Will be assigned below to handle circular ref
         };
         const mockSnapshot = {
             exists: true,
@@ -64,10 +65,19 @@ describe('Day Day SEO Content Actions', () => {
             })
         };
 
+        const mockSubCollection = {
+            where: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
+            get: jest.fn().mockResolvedValue({ docs: [mockDoc] })
+        };
+
         mockFirestore = {
             collection: jest.fn(() => mockCollection),
             doc: jest.fn(() => mockDoc)
         };
+        
+        // Fix: collection() on a doc should return a collection-like object
+        mockDoc.collection.mockReturnValue(mockSubCollection);
 
         (createServerClient as jest.Mock).mockResolvedValue({ firestore: mockFirestore });
 
@@ -93,7 +103,7 @@ describe('Day Day SEO Content Actions', () => {
             expect(ai.generate).toHaveBeenCalledTimes(2);
             // We verify model matches the mock structure from genkit-vertexai.js
             expect(ai.generate).toHaveBeenCalledWith(expect.objectContaining({
-                model: expect.objectContaining({ name: 'gemini-2.5-flash-mock' })
+                model: 'vertexai/gemini-3.0-flash-001'
             }));
         });
 

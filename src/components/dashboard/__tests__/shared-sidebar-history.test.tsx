@@ -25,11 +25,25 @@ describe('SharedSidebarHistory', () => {
         jest.clearAllMocks();
         (useRouter as jest.Mock).mockReturnValue({ push: mockRouterPush });
         (useAgentChatStore as unknown as jest.Mock).mockReturnValue({
+            setCurrentRole: mockSetCurrentRole,
+            // Mock missing properties to satisfy interface
             sessions: [],
-            activeSessionId: null,
-            clearCurrentSession: mockClearCurrentSession,
-            setActiveSession: mockSetActiveSession,
-            setCurrentRole: mockSetCurrentRole
+            currentMessages: [],
+            currentRole: 'super-admin',
+            currentProjectId: null,
+            currentArtifacts: [],
+            activeArtifactId: null,
+            isArtifactPanelOpen: false,
+            setCurrentProject: jest.fn(),
+            createSession: jest.fn(),
+            addMessage: jest.fn(),
+            updateMessage: jest.fn(),
+            hydrateSessions: jest.fn(),
+            addArtifact: jest.fn(),
+            updateArtifact: jest.fn(),
+            removeArtifact: jest.fn(),
+            setActiveArtifact: jest.fn(),
+            setArtifactPanelOpen: jest.fn()
         });
     });
 

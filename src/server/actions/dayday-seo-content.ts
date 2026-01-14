@@ -8,7 +8,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { ai } from '@/ai/genkit';
-import { gemini20Flash } from '@genkit-ai/vertexai';
+// import { gemini20Flash } from '@genkit-ai/vertexai';
 import { z } from 'zod';
 
 // Content templates by page type
@@ -137,7 +137,7 @@ export async function optimizePageContent(
     }
     
     const introResult = await ai.generate({
-        model: gemini20Flash,
+        model: 'vertexai/gemini-3.0-flash-001',
         prompt: introPrompt,
         config: { temperature: 0.7, maxOutputTokens: 300 }
     });
@@ -150,7 +150,7 @@ export async function optimizePageContent(
     }
     
     const faqResult = await ai.generate({
-        model: gemini20Flash,
+        model: 'vertexai/gemini-3.0-flash-001',
         prompt: faqPrompt,
         config: { temperature: 0.7, maxOutputTokens: 500 }
     });

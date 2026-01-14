@@ -44,6 +44,7 @@ const nextConfig = {
   serverExternalPackages: [
     'genkit',
     '@genkit-ai/google-genai',
+    '@genkit-ai/vertexai',
     '@genkit-ai/core',
     '@opentelemetry/sdk-node',
     '@opentelemetry/instrumentation',

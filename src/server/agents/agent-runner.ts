@@ -1,5 +1,6 @@
 
 import { ai } from '@/ai/genkit';
+import { getAllTalkTracks } from '@/server/repos/talkTrackRepo';
 import type { RoutingResult } from '@/server/agents/agent-router';
 import { getGenerateOptions } from '@/ai/model-selector';
 import { runAgent } from '@/server/agents/harness';
@@ -167,7 +168,42 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
 
     const evaluators = AGENT_EVALUATORS[agentName];
     const MAX_RETRIES = evaluators ? 3 : 1; 
-    let currentStimulus = stimulus || '';
+
+    
+    // --- CONTEXT INJECTION (Skills & Talk Tracks) ---
+    // We inject these into the stimulus (User Prompt) so the Agent sees them as "System Context" or "Training Data"
+    
+    let trainingContext = '';
+    
+    // 1. Inject Skills (if loaded)
+    if (skillInstructions) {
+        trainingContext += `\n\n[ENABLED SKILLS]\nThe following specialized skills are enabled for this session:\n${skillInstructions}\n`;
+    }
+
+    // 2. Inject Talk Tracks (Training Examples)
+    try {
+        const allTracks = await getAllTalkTracks();
+        // Filter for relevant tracks (Role-based + Keywords matching stimulus)
+        const relevantTracks = allTracks.filter(t => 
+            (t.role === 'all' || t.role === (personaConfig?.role || 'assistant')) &&
+            t.isActive &&
+            t.triggerKeywords.some(k => (stimulus || '').toLowerCase().includes(k.toLowerCase()))
+        );
+
+        if (relevantTracks.length > 0) {
+            trainingContext += `\n\n[RECOMMENDED TALK TRACKS]\nUse these examples to guide your response style and structure:\n`;
+            relevantTracks.forEach(t => {
+                trainingContext += `\n--- SCENARIO: ${t.name} ---\n`;
+                t.steps.forEach(s => {
+                    trainingContext += `Step ${s.order}: ${s.message}\n`;
+                });
+            });
+        }
+    } catch (error) {
+        console.warn('Failed to load Talk Tracks:', error);
+    }
+
+    let currentStimulus = (stimulus || '') + trainingContext;
     let attempts = 0;
 
     while (attempts < MAX_RETRIES) {
