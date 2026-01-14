@@ -31,7 +31,11 @@ export async function searchDemoRetailers(zip: string) {
         // Firecrawl search returns { title, url, description, ... }
         
         // FILTER: Remove directories and "Best of" lists
-        const directories = ['yelp', 'weedmaps', 'leafly', 'potguide', 'yellowpages', 'tripadvisor', 'thc', 'dispensaries.com', 'wikipedia', 'mapquest'];
+        const directories = [
+            'yelp', 'weedmaps', 'leafly', 'potguide', 'yellowpages', 'tripadvisor', 'thc', 
+            'dispensaries.com', 'wikipedia', 'mapquest', 'allbud', 'dutchie', 'jane', 
+            'leafbuyer', 'wikileaf', 'iheartjane'
+        ];
         
         // DEDUPLICATION TRACKERS
         const seenDomains = new Set<string>();
@@ -39,14 +43,22 @@ export async function searchDemoRetailers(zip: string) {
 
         let mapped = searchResults
             .filter((r: any) => {
-                const lowerTitle = r.title.toLowerCase();
-                const lowerDesc = r.description.toLowerCase();
-                const lowerUrl = r.url.toLowerCase();
+                const lowerTitle = (r.title || '').toLowerCase();
+                const lowerDesc = (r.description || '').toLowerCase();
+                const lowerUrl = (r.url || '').toLowerCase();
                 const combined = lowerTitle + lowerUrl + lowerDesc;
                 
                 // 1. Directory Filter
                 const isDirectory = directories.some(d => combined.includes(d));
-                const isBestOfList = combined.includes('best dispensaries') || combined.includes('top 10') || combined.includes('top 20');
+                
+                // 2. "Best of" / "Listicle" Filter
+                const isBestOfList = 
+                    lowerTitle.includes('best dispensaries') || 
+                    lowerTitle.includes('top 10') || 
+                    lowerTitle.includes('top 20') ||
+                    lowerTitle.includes('near me') ||
+                    lowerTitle.startsWith('dispensaries in');
+
                 if (isDirectory || isBestOfList) return false;
 
                 // 2. Domain Deduplication
@@ -94,6 +106,15 @@ export async function searchDemoRetailers(zip: string) {
                 hours: null
             };
         });
+        
+        if (mapped.length === 0) {
+            return { 
+                success: true, // Still success structurally
+                daa: [], 
+                location: locationStr,
+                message: "No specific retailer websites found. (Filtered out directories)"
+            };
+        }
         
         // 3. ENRICHMENT: Pick Top Result
         // We only deep-dive one to keep it fast
