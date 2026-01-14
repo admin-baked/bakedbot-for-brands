@@ -4,9 +4,9 @@ import { discovery } from '@/server/services/firecrawl';
 
 // Mock dependencies
 jest.mock('@/server/services/geo-discovery', () => ({
-  getZipCodeCoordinates: jest.fn().mockResolvedValue({
+  geocodeLocation: jest.fn().mockResolvedValue({
     city: 'Robbins',
-    state: 'CA',
+    state: 'CA', // Logic: In test we stick to CA as original mock unless checking IL specificity
     lat: 38.8,
     lng: -121.6
   })
