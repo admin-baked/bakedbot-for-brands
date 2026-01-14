@@ -1,0 +1,51 @@
+
+> nextn@0.1.0 test
+> jest tests/server/agents/agent-runner-talk-tracks.test.ts
+
+FAIL tests/server/agents/agent-runner-talk-tracks.test.ts
+  ● Test suite failed to run
+
+    Jest encountered an unexpected token
+
+    Jest failed to parse a file. This happens e.g. when your code or its dependencies use non-standard JavaScript syntax, or when Jest is not configured to support such syntax.
+
+    Out of the box Jest supports Babel, which will be used to transform your files into valid JS based on your Babel configuration.
+
+    By default "node_modules" folder is ignored by transformers.
+
+    Here's what you can do:
+     • If you are trying to use ECMAScript Modules, see https://jestjs.io/docs/ecmascript-modules for how to enable it.
+     • If you are trying to use TypeScript, see https://jestjs.io/docs/getting-started#using-typescript
+     • To have some of your "node_modules" files transformed, you can specify a custom "transformIgnorePatterns" in your config.
+     • If you need a custom transformation specify a "transform" option in your config.
+     • If you simply want to mock your non-JS modules (e.g. binary assets) you can stub them out with the "moduleNameMapper" config option.
+
+    You'll find more details and examples of these config options in the docs:
+    https://jestjs.io/docs/configuration
+    For information about custom transformations, see:
+    https://jestjs.io/docs/code-transformation
+
+    Details:
+
+    C:\Users\marte\Baked for Brands\bakedbot-for-brands\src\server\agents\agent-runner.ts:159
+        const MAX_RETRIES = evaluators ? 3 : 1;
+              ^
+
+    SyntaxError: Identifier 'MAX_RETRIES' has already been declared
+
+    [0m [90m 4 |[39m     ai[33m:[39m {
+     [90m 5 |[39m         generate[33m:[39m jest[33m.[39mfn()[33m.[39mmockResolvedValue({ text[33m:[39m [32m'Mock AI Response'[39m })[33m,[39m
+    [31m[1m>[22m[39m[90m 6 |[39m     }[33m,[39m
+     [90m   |[39m                 [31m[1m^[22m[39m
+     [90m 7 |[39m }))[33m;[39m
+     [90m 8 |[39m
+     [90m 9 |[39m [36mimport[39m { runAgentCore } [36mfrom[39m [32m'@/server/agents/agent-runner'[39m[33m;[39m[0m
+
+      at Runtime.createScriptFromCode (node_modules/jest-runtime/build/index.js:1505:14)
+      at Object.<anonymous> (tests/server/agents/agent-runner-talk-tracks.test.ts:6:22)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        5.089 s
+Ran all test suites matching /tests\\server\\agents\\agent-runner-talk-tracks.test.ts/i.

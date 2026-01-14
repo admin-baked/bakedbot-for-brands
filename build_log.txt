@@ -1,0 +1,29 @@
+
+> nextn@0.1.0 build
+> cross-env NODE_OPTIONS='--max-old-space-size=8192' npm run build:embed && npm run check:structure && next build
+
+
+> nextn@0.1.0 build:embed
+> tsup
+
+[2m[[22mCHATBOT[2m][22m [34mCLI[39m Building entry: {"chatbot":"src/embed/index.tsx","locator":"src/embed/locator.tsx"}
+[2m[[22mCHATBOT[2m][22m [34mCLI[39m Using tsconfig: tsconfig.json
+[2m[[22mCHATBOT[2m][22m [34mCLI[39m tsup v8.5.1
+[2m[[22mCHATBOT[2m][22m [34mCLI[39m Using tsup config: C:\Users\marte\Baked for Brands\bakedbot-for-brands\tsup.config.ts
+[2m[[22mCHATBOT[2m][22m [34mCLI[39m Target: es2020
+[2m[[22mCHATBOT[2m][22m [34mCLI[39m Cleaning output folder
+[2m[[22mCHATBOT[2m][22m [34mIIFE[39m Build start
+[2m[[22mCHATBOT[2m][22m [32mIIFE[39m [1mpublic\embed\chatbot.css [22m[32m179.19 KB[39m
+[2m[[22mCHATBOT[2m][22m [32mIIFE[39m [1mpublic\embed\locator.css [22m[32m179.19 KB[39m
+[2m[[22mCHATBOT[2m][22m [32mIIFE[39m [1mpublic\embed\chatbot.js  [22m[32m800.88 KB[39m
+[2m[[22mCHATBOT[2m][22m [32mIIFE[39m [1mpublic\embed\locator.js  [22m[32m779.22 KB[39m
+[2m[[22mCHATBOT[2m][22m [32mIIFE[39m ⚡️ Build success in 17111ms
+
+> nextn@0.1.0 check:structure
+> node scripts/check-app-structure.mjs
+
+   ▲ Next.js 16.0.7 (Turbopack)
+   - Environments: .env.local, .env
+
+ ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+   Creating an optimized production build ...
