@@ -11,7 +11,7 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { ai } from '@/ai/genkit';
-import { gemini25Flash } from '@genkit-ai/vertexai';
+// import { gemini25Flash } from '@genkit-ai/vertexai'; // Unused and caused build error
 import { runChicagoPilotJob } from './seo-generator';
 import { runBrandPilotJob } from './brand-discovery-job';
 import { optimizePageContent } from '@/server/actions/dayday-seo-content';
