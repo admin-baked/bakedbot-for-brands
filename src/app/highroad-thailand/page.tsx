@@ -7,19 +7,19 @@ import styles from './page.module.css';
 const PARTNERS = [
     {
         name: 'Psychedelic State(s) of America',
-        logo: 'https://bakedbot.ai/wp-content/uploads/2025/11/PSA-banner-2.2-2.png',
+        logo: '/images/highroad-thailand/psychedelic-states.png',
     },
     {
         name: 'Beard Bros Media',
-        logo: 'https://bakedbot.ai/wp-content/uploads/2025/11/beard-media-pharms-logo.png',
+        logo: '/images/highroad-thailand/beard-bros-media.png',
     },
     {
         name: 'Cash Color Cannabis',
-        logo: 'https://bakedbot.ai/wp-content/uploads/2025/11/CashColorCannabis_Logo-scaled.png',
+        logo: '/images/highroad-thailand/cash-color-cannabis.png',
     },
     {
         name: 'Grow Magazine',
-        logo: 'https://bakedbot.ai/wp-content/uploads/2025/11/grow-mag-logo.png',
+        logo: '/images/highroad-thailand/grow-magazine.png',
     },
     {
         name: 'Marijuana Venture',
@@ -27,7 +27,7 @@ const PARTNERS = [
     },
     {
         name: 'BakedBot AI',
-        logo: 'https://bakedbot.ai/wp-content/uploads/2025/11/bakedbot-ai-logo.png',
+        logo: '/images/highroad-thailand/bakedbot-ai.png',
     },
 ];
 

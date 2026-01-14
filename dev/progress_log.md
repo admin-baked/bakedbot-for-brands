@@ -2808,3 +2808,17 @@ Refined Market Scout search logic to filter out directory sites (Yelp, Weedmaps)
 ### Result:  Complete
 Market Scout logic is now resilient and verified. Code pushed to 'main'.
 
+
+## Session: High Road Thailand Logo Update
+### Task ID
+update_high_road_thailand_logos
+
+### Summary
+Updated the High Road Thailand page to use locally hosted high-resolution logos for partners, replacing external WordPress links.
+
+### Key Changes
+*   **MOD**: src/app/highroad-thailand/page.tsx - Updated PARTNERS array with local paths.
+*   **NEW**: public/images/highroad-thailand/ - Added 5 partner logos.
+
+### Result: ? Complete
+Logos are now served locally.
