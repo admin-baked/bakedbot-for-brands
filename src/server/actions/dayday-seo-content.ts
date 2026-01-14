@@ -17,55 +17,55 @@ const CONTENT_TEMPLATES = {
         titleTemplate: 'Dispensaries Near {zipCode} | {city}, {state} Cannabis Stores',
         h1Template: 'Cannabis Dispensaries Near {zipCode}',
         introPrompt: `Write a compelling 3-4 sentence intro paragraph for a local cannabis discovery page targeting customers searching for dispensaries near ZIP code {zipCode} in {city}, {state}. 
-Include:
-- Number of dispensaries: {count}
-- Mention deals, hours, and menu browsing
-- Local context (neighborhood if known)
-- Call to action to explore
-
-Keep it natural, helpful, and avoid cannabis slang. Focus on convenience and local discovery.`,
+        Include:
+        - Number of dispensaries: {count}
+        - Mention deals, hours, and menu browsing
+        - Local context (neighborhood if known)
+        - Call to action to explore
+        
+        Keep it natural, helpful, and avoid cannabis slang. Focus on convenience and local discovery.`,
         faqPrompt: `Generate 3 unique FAQs for someone searching "dispensaries near {zipCode}" in {city}, {state}. Each FAQ should:
-- Be a real question someone would ask
-- Have a brief, helpful answer (2-3 sentences)
-- Include local context when possible
-
-Format as JSON array: [{"q": "question", "a": "answer"}]`
+        - Be a real question someone would ask
+        - Have a brief, helpful answer (2-3 sentences)
+        - Include local context when possible
+        
+        Format as JSON array: [{"q": "question", "a": "answer"}]`
     },
     dispensary: {
         titleTemplate: '{dispensaryName} | {city}, {state} Cannabis Dispensary',
         h1Template: '{dispensaryName} - Your Local Cannabis Destination',
         introPrompt: `Write a compelling 3-4 sentence intro for {dispensaryName} dispensary page in {city}, {state}.
-Include:
-- Welcome message
-- What makes this location unique (if known: {about})
-- Mention browsing menu and checking deals
-- Address or location hint: {address}
-
-Keep it professional, welcoming, and informative.`,
+        Include:
+        - Welcome message
+        - What makes this location unique (if known: {about})
+        - Mention browsing menu and checking deals
+        - Address or location hint: {address}
+        
+        Keep it professional, welcoming, and informative.`,
         faqPrompt: `Generate 3 FAQs specifically for {dispensaryName} in {city}, {state}. Include questions about:
-- Store hours and location
-- Product selection or menu
-- Deals or loyalty programs
-
-Format as JSON array: [{"q": "question", "a": "answer"}]`
+        - Store hours and location
+        - Product selection or menu
+        - Deals or loyalty programs
+        
+        Format as JSON array: [{"q": "question", "a": "answer"}]`
     },
     brand: {
         titleTemplate: '{brandName} Products Near {city} | Where to Buy {brandName}',
         h1Template: 'Find {brandName} Near {city}, {state}',
         introPrompt: `Write a 3-4 sentence intro for a brand discovery page for {brandName} in {city}, {state}.
-Include:
-- Help customers find {brandName} products locally
-- Mention {count} retailers carrying this brand
-- Note product categories if known
-- Encourage checking availability and prices
-
-Keep it helpful and discovery-focused.`,
+        Include:
+        - Help customers find {brandName} products locally
+        - Mention {count} retailers carrying this brand
+        - Note product categories if known
+        - Encourage checking availability and prices
+        
+        Keep it helpful and discovery-focused.`,
         faqPrompt: `Generate 3 FAQs for someone searching for {brandName} near {city}, {state}. Include questions about:
-- Where to buy
-- Product types/availability
-- Delivery options
-
-Format as JSON array: [{"q": "question", "a": "answer"}]`
+        - Where to buy
+        - Product types/availability
+        - Delivery options
+        
+        Format as JSON array: [{"q": "question", "a": "answer"}]`
     }
 };
 
@@ -150,7 +150,7 @@ export async function optimizePageContent(
     }
     
     const faqResult = await ai.generate({
-        model: 'googleai/gemini-1.5-flash',
+        model: gemini25Flash,
         prompt: faqPrompt,
         config: { temperature: 0.7, maxOutputTokens: 500 }
     });
