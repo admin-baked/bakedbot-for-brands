@@ -600,10 +600,60 @@ export class CannMenusService {
 
                 await batch.commit();
             }
+            
+            // RAG: Index products for semantic search (async, non-blocking)
+            this.indexProductsForRAG(products).catch(err => {
+                logger.warn('RAG indexing failed (non-fatal)', { error: err.message });
+            });
         }, {
             maxRetries: 2,
             initialDelayMs: 500
         }, 'CannMenus.storeProducts');
+    }
+
+    /**
+     * Index products for RAG semantic search (Smokey/Deebo)
+     */
+    private async indexProductsForRAG(products: ProductDoc[]): Promise<void> {
+        try {
+            const { ragService } = await import('@/server/services/vector-search/rag-service');
+            const { chunkingService } = await import('@/server/services/vector-search/chunking-service');
+            
+            // Index max 50 products per sync to control embedding costs
+            const toIndex = products.slice(0, 50);
+            
+            for (const product of toIndex) {
+                try {
+                    const productChunk = chunkingService.chunkByProduct({
+                        productName: product.name || product.canonical_name,
+                        category: product.category,
+                        thcPercent: product.thcPercent,
+                        cbdPercent: product.cbdPercent,
+                        price: product.price,
+                    });
+                    
+                    await ragService.indexDocument(
+                        'products',
+                        product.id || `${product.brand_id}_${product.sku_id}`,
+                        productChunk,
+                        { 
+                            category: product.category, 
+                            sku: product.sku_id,
+                            source: 'cannmenus'
+                        },
+                        product.brand_id,  // tenantId
+                        { category: product.category }  // chunkContext for header
+                    );
+                } catch (err) {
+                    // Continue indexing other products
+                    logger.warn('Failed to index product', { productId: product.id });
+                }
+            }
+            
+            logger.info('RAG indexed products', { count: toIndex.length });
+        } catch (err) {
+            logger.error('RAG product indexing failed', { error: err });
+        }
     }
 
     // ===== Sync Status Tracking =====

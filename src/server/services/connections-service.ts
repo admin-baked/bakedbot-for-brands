@@ -93,6 +93,16 @@ export const AVAILABLE_SERVICES: ConnectionDefinition[] = [
         isAvailable: true,
     },
     {
+        id: 'google_search_console',
+        name: 'Google Search Console',
+        category: 'analytics',
+        icon: '🔍',
+        description: 'SEO performance data - rankings, clicks, impressions',
+        oauthProvider: 'google',
+        requiredScopes: ['https://www.googleapis.com/auth/webmasters.readonly'],
+        isAvailable: true,
+    },
+    {
         id: 'google_sheets',
         name: 'Google Sheets',
         category: 'google_workspace',

@@ -29,7 +29,7 @@ interface InternalPlaybook {
     id: string;
     name: string;
     description: string;
-    category: 'email' | 'research' | 'reporting' | 'monitoring' | 'operations';
+    category: 'email' | 'research' | 'reporting' | 'monitoring' | 'operations' | 'seo';
     agents: string[];
     schedule?: string;
     active: boolean;
@@ -48,6 +48,17 @@ const INTERNAL_PLAYBOOKS: InternalPlaybook[] = [
         active: true,
         lastRun: new Date(Date.now() - 1800000),
         runsToday: 24,
+    },
+    {
+        id: 'dayday-seo-discovery',
+        name: 'Day Day SEO Discovery',
+        description: 'Find 5-10 low-competition markets daily and auto-publish optimized pages',
+        category: 'seo',
+        agents: ['Day Day'],
+        schedule: '0 5 * * *', // Daily at 5am
+        active: true,
+        lastRun: new Date(Date.now() - 86400000),
+        runsToday: 1,
     },
     {
         id: 'competitor-scan',
@@ -133,6 +144,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
     reporting: <BarChart3 className="h-4 w-4" />,
     monitoring: <AlertCircle className="h-4 w-4" />,
     operations: <Settings className="h-4 w-4" />,
+    seo: <TrendingUp className="h-4 w-4" />,
 };
 
 const categoryColors: Record<string, string> = {
@@ -141,6 +153,7 @@ const categoryColors: Record<string, string> = {
     reporting: 'bg-green-100 text-green-700',
     monitoring: 'bg-yellow-100 text-yellow-700',
     operations: 'bg-gray-100 text-gray-700',
+    seo: 'bg-indigo-100 text-indigo-700',
 };
 
 interface InternalPlaybooksGridProps {

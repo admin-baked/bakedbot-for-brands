@@ -37,7 +37,24 @@ export async function runChicagoPilotJob(
         
         console.log(`[SeoPageGenerator] Found ${candidates.length} candidates in ${zip}`);
 
+        // Get existing pages for this ZIP to avoid duplicate work
+        const { getAdminFirestore } = await import('@/firebase/admin');
+        const db = getAdminFirestore();
+        const existingDocs = await db.collection('seo_pages_dispensary')
+            .where('zipCode', '==', zip)
+            .select('dispensaryName', 'metrics') // Minimize read cost
+            .get();
+        
+        const existingNames = new Set(existingDocs.docs.map(d => d.data().dispensaryName?.toLowerCase()));
+
         for (const candidate of candidates) {
+            // Check if exists
+            if (existingNames.has(candidate.name.toLowerCase())) {
+                console.log(`[SeoPageGenerator] Skipping ${candidate.name} (Already exists)`);
+                results.push({ zip, name: candidate.name, status: 'skipped', reason: 'exists' });
+                continue;
+            }
+
             // 2. Discover & Generate Page
             // Added delay to be polite to target sites
             // await new Promise(r => setTimeout(r, 2000));

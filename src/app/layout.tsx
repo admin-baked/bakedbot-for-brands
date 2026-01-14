@@ -10,6 +10,7 @@ import { AppLayout } from '@/components/AppLayout';
 import Chatbot from '@/components/chatbot';
 import { demoProducts } from '@/lib/demo/demo-data';
 import { SimulationBanner } from '@/components/debug/simulation-banner';
+import { GoogleAnalytics } from '@/components/analytics/google-analytics';
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
@@ -61,6 +62,7 @@ export default async function RootLayout({
       <body className="font-sans min-h-screen bg-background text-foreground" suppressHydrationWarning>
         <Providers>
           <AppLayout>
+            <GoogleAnalytics />
             {children}
           </AppLayout>
           {/* Global chatbot - context-aware, no default brandId */}

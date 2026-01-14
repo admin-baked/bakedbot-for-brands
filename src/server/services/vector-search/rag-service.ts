@@ -147,6 +147,36 @@ export class RAGService {
             metadata,
             chunkContext
         });
+
+        // Track stats asynchronously
+        this.incrementStats(collection).catch(err => {
+            logger.warn('Failed to update RAG stats', { error: err });
+        });
+    }
+
+    private async incrementStats(collection: string) {
+        try {
+            const { firestore } = await import('@/firebase/server-client').then(mod => mod.createServerClient());
+            const { FieldValue } = await import('firebase-admin/firestore');
+            
+            await firestore.collection('system_stats').doc('rag').set({
+                totalDocuments: FieldValue.increment(1),
+                [`collections.${collection}`]: FieldValue.increment(1),
+                lastUpdated: FieldValue.serverTimestamp()
+            }, { merge: true });
+        } catch (error) {
+            // Ignore stats errors
+        }
+    }
+
+    async getStats(): Promise<{ totalDocuments: number; collections: Record<string, number> }> {
+        try {
+            const { firestore } = await import('@/firebase/server-client').then(mod => mod.createServerClient());
+            const doc = await firestore.collection('system_stats').doc('rag').get();
+            return doc.data() as any || { totalDocuments: 0, collections: {} };
+        } catch (error) {
+            return { totalDocuments: 0, collections: {} };
+        }
     }
 }
 

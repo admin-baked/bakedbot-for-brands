@@ -1,3 +1,38 @@
+## Session: 2026-01-13 (RAG Infrastructure Upgrade - Phase 1)
+### Task ID
+rag_infrastructure_phase1
+
+### Summary
+Implemented semantic chunking and reranker services to improve BakedBot AI's retrieval quality for the $10M scale roadmap.
+
+### Key Changes
+*   **NEW**: `src/server/services/vector-search/chunking-service.ts` - Semantic chunking with 3 strategies:
+    - Product-level (menu items)
+    - Section-level (compliance docs)
+    - Sentence-level (FAQs with overlap)
+*   **NEW**: `src/server/services/vector-search/reranker-service.ts` - Vertex AI Ranking API integration with keyword-based fallback
+*   **MOD**: `src/server/services/vector-search/rag-service.ts` - Integrated reranker pipeline:
+    - Increased retrieval K from 5 → 20
+    - Added reranker step (Vertex AI or fallback)
+    - Returns top 5 reranked results
+*   **NEW**: `tests/server/services/chunking-service.test.ts` - 17 unit tests
+*   **NEW**: `tests/server/services/reranker-service.test.ts` - 7 unit tests
+
+### Tests Run
+*   `npm test -- chunking-service.test.ts` (17/17 Passed ✅)
+*   `npm test -- reranker-service.test.ts` (7/7 Passed ✅)
+
+### Configuration
+Feature flag: `ENABLE_RERANKER=true` enables Vertex AI reranking
+Environment: `VERTEX_AI_PROJECT`, `VERTEX_AI_LOCATION`
+
+### Commits
+*   `6f44f9f1`: feat(rag): implement semantic chunking and reranker services
+
+### Result: ✅ Complete - Phase 1 Deployed
+
+---
+
 ## Session: Chat Logic & Markdown Verification
 ### Task ID
 fix_chat_logic_tests
