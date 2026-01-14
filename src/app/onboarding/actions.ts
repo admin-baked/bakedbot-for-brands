@@ -81,6 +81,8 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       isNewUser: false, // Mark as onboarded
       onboardingCompletedAt: new Date().toISOString(),
       role: role === 'skip' ? 'customer' : role, // Default to customer if skipped
+      // Approval Status: Customers auto-approve, Brands/Dispensaries pending
+      approvalStatus: (role === 'customer' || role === 'skip') ? 'approved' : 'pending',
       // Store raw preferences
       preferences: {
         chatbotPersonality: chatbotPersonality || null,
@@ -358,30 +360,34 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       logger.info('Queued competitor discovery job', { orgId, marketState });
     }
 
-    // --- SEND WELCOME EMAIL (NON-BLOCKING) ---
+    // --- SEND NOTIFICATIONS (NON-BLOCKING) ---
     try {
-      const { triggerWelcomeEmail } = await import('@/server/services/autoresponder-service');
+      const { emailService } = await import('@/lib/notifications/email-service');
       const userEmail = user.email || '';
       const userName = user.name || userEmail.split('@')[0];
       
       if (userEmail) {
-        const emailRole = finalRole === 'skip' ? 'customer' : finalRole as 'brand' | 'dispensary' | 'customer';
-        const entityName = finalRole === 'brand' ? finalBrandName : manualDispensaryName;
+        const finalEntityName = finalRole === 'brand' ? finalBrandName : manualDispensaryName;
         
-        // Fire and forget - don't block onboarding completion
-        triggerWelcomeEmail(uid, userEmail, emailRole, userName, entityName || undefined)
-          .then(result => {
-            if (result.success) {
-              logger.info('Welcome email sent', { userId: uid, role: emailRole });
-            } else {
-              logger.warn('Welcome email failed', { userId: uid, message: result.message });
-            }
-          })
-          .catch(err => logger.error('Welcome email error', { error: err.message }));
+        // 1. Send "Mrs. Parker" Welcome Email
+        emailService.sendWelcomeEmail({ 
+            email: userEmail, 
+            name: userName 
+        }).catch(err => logger.error('Mrs. Parker Welcome Email Failed', { error: err.message }));
+
+        // 2. Notify Admin if pending approval (Brands/Dispensaries)
+        if (finalRole === 'brand' || finalRole === 'dispensary') {
+            emailService.notifyAdminNewUser({
+                email: userEmail,
+                name: userName,
+                role: finalRole,
+                company: finalEntityName
+            }).catch(err => logger.error('Admin Notification Failed', { error: err.message }));
+        }
       }
     } catch (emailError) {
       // Don't fail onboarding if email fails
-      logger.error('Failed to trigger welcome email', { error: emailError });
+      logger.error('Failed to trigger notifications', { error: emailError });
     }
 
     revalidatePath('/dashboard');

@@ -171,6 +171,7 @@ export async function getAllUsers() {
         customClaims: data.customClaims || null, // Ensure this is serializable JSON
         createdAt: data.createdAt?.toDate?.()?.toISOString() || null,
         lastLogin: data.lastLogin?.toDate?.()?.toISOString() || null,
+        approvalStatus: data.approvalStatus || 'approved', // Default to approved for legacy
       };
     });
 
@@ -191,6 +192,7 @@ export async function promoteToSuperUser(uid: string) {
     const { getAdminAuth } = await import('@/firebase/admin');
     await getAdminAuth().setCustomUserClaims(uid, { role: 'super_user' });
 
+
     // 2. Update Firestore Profile
     await firestore.collection('users').doc(uid).update({
       roles: ['super_user'], // Overwrite or append? Usually overwrite for primary role, or append.
@@ -204,6 +206,53 @@ export async function promoteToSuperUser(uid: string) {
     console.error('Failed to promote user:', error);
     return { success: false, message: error.message };
   }
+}
+
+export async function approveUser(uid: string) {
+    try {
+        const { firestore } = await createServerClient();
+        await requireUser(['owner', 'super_user']);
+
+        // 1. Update Firestore
+        await firestore.collection('users').doc(uid).update({
+            approvalStatus: 'approved',
+            approvedAt: new Date().toISOString(),
+            status: 'active' // Ensure they are active
+        });
+
+        // 2. Send Email Notification
+        const userDoc = await firestore.collection('users').doc(uid).get();
+        const userData = userDoc.data();
+        if (userData?.email) {
+            const { emailService } = await import('@/lib/notifications/email-service');
+            await emailService.sendAccountApprovedEmail({
+                email: userData.email,
+                name: userData.displayName || undefined
+            });
+        }
+
+        return { success: true, message: 'User approved' };
+    } catch (error: any) {
+        console.error('Failed to approve user:', error);
+        return { success: false, message: error.message };
+    }
+}
+
+export async function rejectUser(uid: string) {
+    try {
+        const { firestore } = await createServerClient();
+        await requireUser(['owner', 'super_user']);
+
+        await firestore.collection('users').doc(uid).update({
+            approvalStatus: 'rejected',
+            status: 'disabled'
+        });
+
+        return { success: true, message: 'User rejected' };
+    } catch (error: any) {
+        console.error('Failed to reject user:', error);
+        return { success: false, message: error.message };
+    }
 }
 
 
