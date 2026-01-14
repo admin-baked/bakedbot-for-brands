@@ -95,6 +95,8 @@ import { BrandPageCreatorDialog } from './brand-page-creator-dialog';
 import { BulkImportSection } from './bulk-import-section';
 import { QuickGeneratorDialog } from './quick-generator-dialog';
 import { DiscoveryPilotDialog } from './discovery-pilot-dialog';
+import { runNationalSeedAction } from '../actions';
+import { runDayDayOptimization } from '@/server/actions/dayday-seo-content';
 
 // Types
 import type { LocalSEOPage, FootTrafficMetrics, BrandSEOPage, DispensarySEOPage, GeoZone, DropAlertConfig, LocalOffer } from '@/types/foot-traffic';
@@ -380,13 +382,52 @@ export default function FootTrafficTab() {
                         <Plus className="h-4 w-4 mr-2" />
                         New Brand Page
                     </Button>
-                    {/* Discovery Pilot Button */}
+                    {/* Custom Discovery Button */}
                     <Button 
+                        variant="outline"
                         onClick={() => setIsPilotOpen(true)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md"
                     >
                         <Rocket className="h-4 w-4 mr-2" />
-                        Run Discovery
+                        Custom Discovery
+                    </Button>
+                    {/* Seed All Markets - Creates all 3 page types */}
+                    <Button 
+                        onClick={async () => {
+                            toast({ title: 'Starting National Seed...', description: 'Creating Dispensary + Brand + Location pages for Chicago & Detroit' });
+                            const result = await runNationalSeedAction();
+                            if (result.error) {
+                                toast({ title: 'Error', description: result.message, variant: 'destructive' });
+                            } else {
+                                toast({ title: 'Started!', description: result.message });
+                                setTimeout(fetchData, 3000); // Refresh after delay
+                            }
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
+                    >
+                        <Globe className="h-4 w-4 mr-2" />
+                        Seed All Markets
+                    </Button>
+                    {/* Run Day Day SEO - Optimizes page content with AI */}
+                    <Button 
+                        variant="outline"
+                        className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                        onClick={async () => {
+                            toast({ title: 'Day Day Activated 🔍', description: 'Generating unique SEO content for all pages...' });
+                            try {
+                                const result = await runDayDayOptimization();
+                                const total = result.zip.optimized + result.dispensary.optimized + result.brand.optimized;
+                                toast({ 
+                                    title: 'Day Day Complete ✨', 
+                                    description: `Optimized ${total} pages (ZIP: ${result.zip.optimized}, Dispensary: ${result.dispensary.optimized}, Brand: ${result.brand.optimized})` 
+                                });
+                                fetchData();
+                            } catch (e: any) {
+                                toast({ title: 'Error', description: e.message, variant: 'destructive' });
+                            }
+                        }}
+                    >
+                        <TrendingUp className="h-4 w-4 mr-2" />
+                        Run Day Day
                     </Button>
                 </div>
             </div>
@@ -516,8 +557,21 @@ export default function FootTrafficTab() {
                                                 />
                                             </TableCell>
                                             <TableCell>
-                                                <div className="font-medium">{page.city}, {page.state}</div>
-                                                <div className="text-sm text-muted-foreground font-mono">{page.zipCode}</div>
+                                                <div className="flex items-center gap-2">
+                                                    {/* SEO Optimization Status Indicator */}
+                                                    <span 
+                                                        className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+                                                            (page as any).seoOptimized 
+                                                                ? 'bg-emerald-500' // Green = Day Day optimized
+                                                                : 'bg-amber-400'   // Yellow = Seeder generated only
+                                                        }`}
+                                                        title={(page as any).seoOptimized ? 'Day Day Optimized' : 'Awaiting Day Day Optimization'}
+                                                    />
+                                                    <div>
+                                                        <div className="font-medium">{page.city}, {page.state}</div>
+                                                        <div className="text-sm text-muted-foreground font-mono">{page.zipCode}</div>
+                                                    </div>
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 {page.published ? (
@@ -725,6 +779,15 @@ export default function FootTrafficTab() {
                                         <TableRow key={page.id}>
                                             <TableCell className="font-medium">
                                                 <div className="flex items-center gap-2">
+                                                    {/* SEO Optimization Status Indicator */}
+                                                    <span 
+                                                        className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+                                                            (page as any).seoOptimized 
+                                                                ? 'bg-emerald-500' // Green = Day Day optimized
+                                                                : 'bg-amber-400'   // Yellow = Seeder generated only
+                                                        }`}
+                                                        title={(page as any).seoOptimized ? 'Day Day Optimized' : 'Awaiting Day Day Optimization'}
+                                                    />
                                                     {page.logoUrl && (
                                                         <img 
                                                             src={page.logoUrl} 

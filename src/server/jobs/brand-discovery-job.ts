@@ -31,8 +31,20 @@ export async function runBrandPilotJob(targetCity = 'Chicago', targetState = 'IL
         });
 
         // 2. Process each brand
+        
+        // Fetch existing brands to avoid duplicates
+        const existingBrandDocs = await firestore.collection('seo_pages_brand').select('brandName').get(); // Might be large, better to check one by one? 
+        // For pilot, loading into Set is fine if < 1000 items. 
+        const existingBrandNames = new Set(existingBrandDocs.docs.map(d => d.data().brandName?.toLowerCase()));
+
         let processedCount = 0;
         for (const brand of discoveredBrands) {
+             if (existingBrandNames.has(brand.name.toLowerCase())) {
+                 console.log(`[BrandPilot] Skipping ${brand.name} (Already exists)`);
+                 results.push({ name: brand.name, status: 'skipped', reason: 'exists' });
+                 continue;
+             }
+
             console.log(`[BrandPilot] Processing ${brand.name}...`);
             
             // Create the SEO page (unpublished draft)

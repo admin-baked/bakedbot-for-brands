@@ -58,6 +58,7 @@ const EXECUTIVE_TEAM = [
 const SUPPORT_STAFF = [
     { id: 'smokey', name: 'Smokey', role: 'Head of Product', icon: Zap, color: 'bg-green-100 text-green-700' },
     { id: 'pops', name: 'Pops', role: 'Data Analyst', icon: BarChart3, color: 'bg-slate-100 text-slate-700' },
+    { id: 'day_day', name: 'Day Day', role: 'SEO & Growth', icon: TrendingUp, color: 'bg-indigo-100 text-indigo-700' },
 ];
 
 export default function BoardroomTab() {

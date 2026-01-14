@@ -388,6 +388,11 @@ async function processCompetitorDiscovery(job: any, firestore: any) {
     const { autoDiscoverCompetitors } = await import('@/app/onboarding/competitive-intel-auto');
     const result = await autoDiscoverCompetitors(orgId, marketState, firestore);
 
+    // RAG: Index competitor data for Ezal semantic search
+    if (result.competitors && result.competitors.length > 0) {
+        await indexCompetitorData(result.competitors, orgId, marketState);
+    }
+
     return {
         message: `Discovered ${result.discovered} competitors`,
         data: { competitorsFound: result.discovered }
@@ -482,6 +487,9 @@ async function processWebsiteDiscover(job: any, firestore: any) {
 
                     await batch.commit();
 
+                    // RAG: Index products for semantic search
+                    await indexDiscoveredProducts(products, orgId, 'website_discover');
+
                     return {
                         message: `Discovered ${products.length} products from website`,
                         data: { productCount: products.length, source: 'firecrawl' }
@@ -506,5 +514,58 @@ async function processWebsiteDiscover(job: any, firestore: any) {
             message: `Discovery failed for ${entityName}. Manual setup recommended.`,
             data: { skipped: true, error: error instanceof Error ? error.message : String(error) }
         };
+    }
+}
+
+// ========================================
+// RAG Indexing Helpers
+// ========================================
+
+async function indexDiscoveredProducts(products: any[], orgId: string, source: string) {
+    try {
+        const { ragService } = await import('@/server/services/vector-search/rag-service');
+        
+        // Limit to 30 to control costs
+        for (const product of products.slice(0, 30)) {
+            const content = `${product.name}: ${product.description || product.category || ''} - ${product.price || ''}`;
+            const docId = `discover_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+            
+            await ragService.indexDocument(
+                'products',
+                docId,
+                content,
+                { source: 'website_discover', category: product.category || 'Unknown' },
+                orgId,
+                { source, category: product.category || 'Unknown' }
+            );
+        }
+        logger.info(`Indexed ${Math.min(products.length, 30)} discovered products for RAG`, { orgId });
+    } catch (error) {
+        logger.warn('Failed to index discovered products for RAG', { error, orgId });
+    }
+}
+
+async function indexCompetitorData(competitors: any[], orgId: string, state: string) {
+    try {
+        const { ragService } = await import('@/server/services/vector-search/rag-service');
+        
+        for (const competitor of competitors || []) {
+            const content = `Competitor: ${competitor.name}. Location: ${competitor.city}, ${state}. ` +
+                `Type: ${competitor.type || 'dispensary'}. ${competitor.description || ''}`;
+            
+            const docId = competitor.id || `comp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+            
+            await ragService.indexDocument(
+                'competitors',
+                docId,
+                content,
+                { type: 'competitor', state },
+                orgId,
+                { state, city: competitor.city, category: 'Competitive Intel' }
+            );
+        }
+        logger.info(`Indexed ${competitors.length} competitors for RAG`, { orgId, state });
+    } catch (error) {
+        logger.warn('Failed to index competitors for RAG', { error, orgId });
     }
 }

@@ -8,6 +8,10 @@ export interface DayDayTools {
     auditPage(url: string, pageType: 'dispensary' | 'brand' | 'city' | 'zip'): Promise<any>;
     generateMetaTags(contentSample: string): Promise<any>;
     lettaSaveFact(fact: string): Promise<any>;
+    // NEW: Analytics tools
+    getSearchConsoleStats(): Promise<any>;
+    getGA4Traffic(): Promise<any>;
+    findSEOOpportunities(): Promise<any>;
 }
 
 export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
@@ -20,7 +24,18 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
             
             CORE SKILLS:
             1. **Technical SEO**: Audit pages for tags, speed, and structure.
-            2. **Content Optimization**: Write click-worthy meta tags.
+            2. **Content Optimization**: Write click-worthy meta tags and unique content.
+            3. **Analytics**: Access Google Search Console and GA4 to make data-driven decisions.
+            4. **Opportunity Finding**: Identify low-competition keywords and markets.
+            
+            DATA SOURCES:
+            - Google Search Console: Rankings, clicks, impressions, CTR
+            - Google Analytics 4: Traffic, sessions, user engagement
+            
+            DAILY TASKS:
+            - Find 5-10 low-competition markets
+            - Generate unique SEO content for new pages
+            - Auto-publish optimized pages
             
             Tone: Technical, precise, growth-hacking.
         `;
@@ -29,7 +44,7 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
 
     async orient(brandMemory, agentMemory, stimulus) {
         if (stimulus && typeof stimulus === 'string') return 'user_request';
-        return null; // No background loop for now
+        return null;
     },
 
     async act(brandMemory, agentMemory, targetId, tools, stimulus) {
@@ -51,11 +66,25 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
                     schema: z.object({
                         contentSample: z.string()
                     })
+                },
+                {
+                    name: "getSearchConsoleStats",
+                    description: "Get Google Search Console performance data - rankings, clicks, impressions.",
+                    schema: z.object({})
+                },
+                {
+                    name: "getGA4Traffic",
+                    description: "Get Google Analytics 4 traffic stats - sessions, users, engagement.",
+                    schema: z.object({})
+                },
+                {
+                    name: "findSEOOpportunities",
+                    description: "Find low-competition keywords and markets with high potential.",
+                    schema: z.object({})
                 }
             ];
 
             try {
-                // === MULTI-STEP PLANNING (Run by Harness + Claude) ===
                 const { runMultiStepTask } = await import('./harness');
                 
                 const result = await runMultiStepTask({
@@ -88,7 +117,5 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
     }
 };
 
-// Export strictly named export to match import expectation if needed, 
-// or default. The previous file used named export 'dayday'. 
-// We will export 'dayday' as the agent implementation to minimize breakage.
 export const dayday = dayDayAgent;
+

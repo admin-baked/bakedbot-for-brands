@@ -2,8 +2,8 @@ import { useRef, useState, useEffect } from 'react';
 import { useFormState, useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { initializeAllEmbeddings, type EmbeddingActionResult } from '../actions';
-import { BrainCircuit, Check, Loader2, ServerCrash, X } from 'lucide-react';
+import { initializeAllEmbeddings, getRagIndexStats, type EmbeddingActionResult } from '../actions';
+import { BrainCircuit, Check, Loader2, ServerCrash, X, Database, Layers, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -43,6 +43,12 @@ export default function AISearchIndexTab() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
+  const [stats, setStats] = useState<{ totalDocuments: number; collections: Record<string, number> } | null>(null);
+
+  useEffect(() => {
+    // Fetch initial stats
+    getRagIndexStats().then(setStats);
+  }, []);
 
   useEffect(() => {
     if (state?.message && state.message.startsWith('Successfully')) {
@@ -50,7 +56,9 @@ export default function AISearchIndexTab() {
         title: 'Success!',
         description: state.message,
       });
-      setOpen(false); // Close dialog if it was somehow open (though submit usually closes it or we handle it)
+      setOpen(false);
+      // Refresh stats after generation
+      getRagIndexStats().then(setStats);
     }
   }, [state, toast]);
 
@@ -59,8 +67,57 @@ export default function AISearchIndexTab() {
     setOpen(false);
   };
 
+  const refreshStats = () => {
+      getRagIndexStats().then(setStats);
+      toast({ description: "Stats refreshed" });
+  };
+
   return (
     <div className="flex flex-col gap-6">
+      
+      {/* KPI Stats Row */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Indexed Docs</CardTitle>
+            <Database className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalDocuments || 0}</div>
+            <p className="text-xs text-muted-foreground">Across all collections</p>
+          </CardContent>
+        </Card>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Products</CardTitle>
+                <Layers className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{stats?.collections?.['products'] || 0}</div>
+                <p className="text-xs text-muted-foreground">Indexed for search</p>
+            </CardContent>
+        </Card>
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Competitors</CardTitle>
+                <Layers className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{stats?.collections?.['competitors'] || 0}</div>
+                <p className="text-xs text-muted-foreground">Intelligence records</p>
+            </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={refreshStats}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Refresh Stats</CardTitle>
+                <RefreshCw className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-sm text-muted-foreground mt-2">Click to update real-time counts</div>
+            </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <form ref={formRef} action={formAction}>
           <CardHeader>

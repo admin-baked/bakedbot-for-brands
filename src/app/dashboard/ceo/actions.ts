@@ -39,6 +39,44 @@ export async function runBrandPilotAction(city: string, state: string): Promise<
   }
 }
 
+const NATIONAL_SEED_MARKETS = [
+  { city: 'Chicago', state: 'IL', zips: ['60601', '60611', '60654', '60610'] },
+  { city: 'Detroit', state: 'MI', zips: ['48201', '48226', '48207', '48202'] }
+];
+
+export async function runNationalSeedAction(): Promise<ActionResult> {
+  try {
+    await requireUser(['owner', 'super_user']);
+    
+    // Import PageGeneratorService for Location (ZIP) pages
+    const { PageGeneratorService } = await import('@/server/services/page-generator');
+    const pageGen = new PageGeneratorService();
+    
+    // Fire off all markets in parallel (non-blocking)
+    for (const market of NATIONAL_SEED_MARKETS) {
+      // 1. Dispensary SEO Pages (via Firecrawl/MassDiscovery)
+      runChicagoPilotJob(market.city, market.state, market.zips)
+        .catch(err => console.error(`[NationalSeed] ${market.city} Dispensary Error:`, err));
+      
+      // 2. Brand SEO Pages (via Firecrawl/BrandDiscovery)
+      runBrandPilotJob(market.city, market.state, market.zips)
+        .catch(err => console.error(`[NationalSeed] ${market.city} Brand Error:`, err));
+      
+      // 3. Location/ZIP Pages (via CannMenus/PageGenerator)
+      pageGen.scanAndGenerateDispensaries({ 
+        locations: market.zips, 
+        city: market.city, 
+        state: market.state,
+        limit: 50 
+      }).catch(err => console.error(`[NationalSeed] ${market.city} Location Pages Error:`, err));
+    }
+    
+    return { message: `Started National Seed for ${NATIONAL_SEED_MARKETS.map(m => m.city).join(', ')} (Dispensary + Brand + Location pages)` };
+  } catch (error: any) {
+    return { message: error.message, error: true };
+  }
+}
+
 export type ActionResult = {
   message: string;
   error?: boolean;
