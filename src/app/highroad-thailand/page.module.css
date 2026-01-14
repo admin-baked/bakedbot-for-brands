@@ -205,6 +205,10 @@
   min-height: 80px;
 }
 
+.logoCard:last-child {
+  grid-column: 4 / span 6;
+}
+
 .logoCard img {
   max-width: 100%;
   height: auto;
@@ -330,6 +334,10 @@
 /* Responsive */
 @media (max-width: 900px) {
   .logoCard {
+    grid-column: span 12;
+  }
+
+  .logoCard:last-child {
     grid-column: span 12;
   }
 
