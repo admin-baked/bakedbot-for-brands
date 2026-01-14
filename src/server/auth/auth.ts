@@ -83,13 +83,26 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
     }
   }
 
+  // Determine user details
+  const userRole = (decodedToken.role as Role) || null;
+  const userEmail = (decodedToken.email as string)?.toLowerCase() || '';
+  const isSuperAdminByEmail = SUPER_ADMIN_EMAILS.some(e => e.toLowerCase() === userEmail);
+  const isSuperUserRole = ['owner', 'super_admin'].includes(userRole || '');
+
+  // --- GLOBAL APPROVAL CHECK ---
+  // Block access if the account is pending/rejected, UNLESS they are a super admin.
+  if (!isSuperAdminByEmail && !isSuperUserRole) {
+      const approvalStatus = decodedToken.approvalStatus;
+      if (approvalStatus === 'pending') {
+           throw new Error('Forbidden: Your account is pending approval.');
+      }
+      if (approvalStatus === 'rejected') {
+           throw new Error('Forbidden: Your account has been rejected.');
+      }
+  }
+
+  // --- ROLE CHECK (Optional) ---
   if (requiredRoles && requiredRoles.length > 0) {
-    const userRole = (decodedToken.role as Role) || null;
-    const userEmail = (decodedToken.email as string)?.toLowerCase() || '';
-    
-    // Super admin emails bypass role restrictions
-    const isSuperAdminByEmail = SUPER_ADMIN_EMAILS.some(e => e.toLowerCase() === userEmail);
-    
     if (!isSuperAdminByEmail && (!userRole || !requiredRoles.includes(userRole))) {
       throw new Error('Forbidden: You do not have the required permissions.');
     }

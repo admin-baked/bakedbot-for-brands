@@ -124,6 +124,65 @@ export class EmailService {
             return false;
         }
     }
+    }
+
+    /**
+     * Notify Admin (Martez) of a new user signup requiring approval
+     */
+    async notifyAdminNewUser(user: { email: string; name?: string; role: string; company?: string }) {
+        const subject = `🚨 New User Signup: ${user.company || user.email}`;
+        const html = `
+            <div style="font-family: sans-serif;">
+                <h2>New User Pending Approval</h2>
+                <p><strong>Email:</strong> ${user.email}</p>
+                <p><strong>Role:</strong> ${user.role}</p>
+                <p><strong>Company:</strong> ${user.company || 'N/A'}</p>
+                <br/>
+                <a href="https://bakedbot.ai/dashboard/ceo?tab=account-management" style="background-color: #d32f2f; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Review in Dashboard</a>
+            </div>
+        `;
+        return this.sendEmail({ to: 'martez@bakedbot.ai', subject, html });
+    }
+
+    /**
+     * Send "Mrs. Parker" Welcome Email
+     */
+    async sendWelcomeEmail(user: { email: string; name?: string }) {
+        const subject = `Welcome to the Family 🍪`;
+        const html = `
+            <div style="font-family: sans-serif; max-width: 600px;">
+                <p>Hi ${user.name || 'there'},</p>
+                <p>I'm Mrs. Parker, your host here at BakedBot.</p>
+                <p>I just wanted to personally welcome you to the platform. We've received your registration, and our team is currently reviewing your account details to ensure everything is set up correctly.</p>
+                <p>You'll receive another email from me as soon as your account is approved (usually within a few minutes).</p>
+                <p>In the meantime, if you have any questions, just reply to this email.</p>
+                <br/>
+                <p>Warmly,</p>
+                <p><strong>Mrs. Parker</strong><br/>Hostess @ BakedBot AI</p>
+            </div>
+        `;
+        return this.sendEmail({ to: user.email, subject, html });
+    }
+
+    /**
+     * Send Account Approved Email
+     */
+    async sendAccountApprovedEmail(user: { email: string; name?: string }) {
+        const subject = `You're Approved! Start Baking 🍪`;
+        const html = `
+            <div style="font-family: sans-serif; max-width: 600px;">
+                <h2>You're In!</h2>
+                <p>Good news - your account has been approved.</p>
+                <p>You now have full access to the BakedBot platform.</p>
+                <br/>
+                <a href="https://bakedbot.ai/brand-login" style="background-color: #2e7d32; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Log In Now</a>
+                <br/><br/>
+                <p>Let's get to work.</p>
+                <p><strong>Mrs. Parker</strong></p>
+            </div>
+        `;
+        return this.sendEmail({ to: user.email, subject, html });
+    }
 }
 
 export const emailService = new EmailService();

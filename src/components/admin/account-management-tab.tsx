@@ -23,6 +23,10 @@ import {
     deleteUserAccount,
 } from '@/server/actions/delete-account';
 import {
+    approveUser,
+    rejectUser
+} from '@/app/dashboard/ceo/actions';
+import {
     getAllBrands,
     getAllDispensaries,
     deleteBrand,
@@ -37,6 +41,7 @@ interface User {
     roles?: string[]; // Added
     customClaims?: any; // Added
     createdAt: string | null;
+    approvalStatus: 'pending' | 'approved' | 'rejected';
 }
 
 interface Organization {
@@ -263,7 +268,12 @@ export function AccountManagementTab() {
                                                     <TableCell>{user.displayName || 'N/A'}</TableCell>
                                                     <TableCell>
                                                         <div className="flex flex-col gap-1">
-                                                            <Badge variant="outline">{user.role || 'none'}</Badge>
+                                                            <div className="flex items-center gap-2">
+                                                                <Badge variant="outline">{user.role || 'none'}</Badge>
+                                                                {user.approvalStatus === 'pending' && (
+                                                                    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Pending</Badge>
+                                                                )}
+                                                            </div>
                                                             {user.roles && user.roles.length > 0 && (
                                                                 <span className="text-xs text-muted-foreground">{user.roles.join(', ')}</span>
                                                             )}
@@ -318,6 +328,39 @@ export function AccountManagementTab() {
                                                             >
                                                                 <Trash2 className="h-4 w-4 text-destructive" />
                                                             </Button>
+
+                                                            {/* Approval Actions */}
+                                                            {user.approvalStatus === 'pending' && (
+                                                                <>
+                                                                    <Button 
+                                                                        size="sm" 
+                                                                        className="bg-green-600 hover:bg-green-700 h-8"
+                                                                        onClick={async () => {
+                                                                            try {
+                                                                                await approveUser(user.id);
+                                                                                toast({ title: "Approved", description: "User has been approved and notified." });
+                                                                                loadUsers();
+                                                                            } catch (e) {
+                                                                                toast({ title: "Error", variant: "destructive" });
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        Approve
+                                                                    </Button>
+                                                                    <Button 
+                                                                        size="sm" 
+                                                                        variant="ghost"
+                                                                        className="text-red-500 hover:text-red-700 h-8"
+                                                                        onClick={async () => {
+                                                                            if(!confirm('Reject this user?')) return;
+                                                                            await rejectUser(user.id);
+                                                                            loadUsers();
+                                                                        }}
+                                                                    >
+                                                                        Reject
+                                                                    </Button>
+                                                                </>
+                                                            )}
                                                         </div>
                                                     </TableCell>
                                                 </TableRow>
