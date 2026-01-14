@@ -124,7 +124,7 @@ export class EmailService {
             return false;
         }
     }
-    }
+
 
     /**
      * Notify Admin (Martez) of a new user signup requiring approval
