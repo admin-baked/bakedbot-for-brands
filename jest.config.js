@@ -18,6 +18,7 @@ const customJestConfig = {
     // Specific mocks (Must come before generic aliases)
     '^@/ai/genkit$': '<rootDir>/tests/__mocks__/genkit.ts',
     '^@/ai/model-selector$': '<rootDir>/tests/__mocks__/model-selector.ts',
+    '^@genkit-ai/vertexai$': '<rootDir>/tests/__mocks__/genkit-vertexai.js',
     
     // Handle module aliases (this will be automatically configured for you soon)
     '^@/(.*)$': '<rootDir>/src/$1',
@@ -44,7 +45,7 @@ const customJestConfig = {
     '!src/**/__tests__/**',
   ],
   transformIgnorePatterns: [
-    'node_modules/(?!(uuid|firebase|@firebase|firebase-admin|jwks-rsa|react-markdown|remark-gfm|micromark|unist|hast|mdast|rehype|remark|vfile|bail|trough|unified|is-plain-obj|property-information|space-separated-tokens|comma-separated-tokens|decode-named-character-reference|character-entities|ccount|escape-string-regexp|markdown-table|longest-streak|lucide-react|@genkit-ai|genkit|dotprompt|zod|yaml)/)',
+    'node_modules/(?!(uuid|firebase|@firebase|firebase-admin|jwks-rsa|react-markdown|remark-gfm|micromark|unist|hast|mdast|rehype|remark|vfile|bail|trough|unified|is-plain-obj|property-information|space-separated-tokens|comma-separated-tokens|decode-named-character-reference|character-entities|ccount|escape-string-regexp|markdown-table|longest-streak|lucide-react|@genkit-ai|genkit|dotprompt|zod|yaml|google-auth-library|google-gax|googleapis|gaxios)/)',
   ],
   coverageThreshold: {
     global: {
