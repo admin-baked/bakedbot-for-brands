@@ -12,6 +12,10 @@ export interface EzalTools {
   discoverMenu(url: string): Promise<{ products: any[] }>;
   // Compare my prices vs competitor prices
   comparePricing(myProducts: any[], competitorProducts: any[]): Promise<{ price_index: number }>;
+  // NEW: Scan competitors in a location for pricing
+  scanCompetitors(location: string): Promise<any>;
+  // NEW: Trigger Craig to launch a counter-campaign
+  alertCraig(competitorId: string, threat: string, product: string): Promise<boolean>;
   // NEW: Get competitive intel from Leafly data
   getCompetitiveIntel(state: string, city?: string): Promise<any>;
   // NEW: Search the web for general research
@@ -20,10 +24,6 @@ export interface EzalTools {
   lettaSaveFact?(fact: string, category?: string): Promise<any>;
   lettaUpdateCoreMemory(section: 'persona' | 'human', content: string): Promise<any>;
   lettaMessageAgent(toAgent: string, message: string): Promise<any>;
-  // NEW: Auditing / Browsing
-  browse(url: string, action?: 'goto' | 'screenshot' | 'discover', selector?: string): Promise<any>;
-  // NEW: Product Search (for 'domain.cannmenus')
-  searchProducts(params: { search?: string, near?: string, price_min?: number, price_max?: number, limit?: number }): Promise<any>;
 }
 
 // --- Ezal Agent Implementation ---
@@ -36,39 +36,25 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
     // Force a more structured system prompt context via memory
     agentMemory.system_instructions = `
       You are Ezal, the "Market Scout" and Competitive Intelligence agent.
+      You know what everyone else is charging, and you hate losing customers to price.
       
       CORE MISSION:
-      Provide a "Free Audit" that proves value immediately. Be concise (max 3 sections).
+      Provide real-time "War Room" intelligence. Move from passive reports to active triggers.
       
-      ROLE AWARENESS:
-      - If user is a **BRAND** (wholesaler): Focus on "Who doesn't carry me?" and "Where is the shelf space?"
-      - If user is a **DISPENSARY** (retailer): Focus on "Who is undercutting me?" and "Who has better deals?"
-
-      OUTPUT FORMAT (STRICT):
-      ### MARKET SNAPSHOT: [City/Zip]
+      GOAL:
+      1. **Price Watch**: Identify who is undercutting us on top SKUs.
+      2. **Gap Analysis**: Report which popular products we are missing compared to neighbors.
+      3. **Trigger**: If you see a threat (e.g., competitor drops price on Blue Dream), tell Craig to spin up a counter-campaign.
       
-      ### BY THE NUMBERS
-      - [Key Stat 1] (e.g., "3 retailers stocking your competitors")
-      - [Key Stat 2] (e.g., "Avg price per gram: $12")
-
-      ### TOP OPPORTUNITIES
-      1. **[Target Name]**: [Why? e.g., "High traffic, low competition"]
-      2. **[Target Name]**: [Why? e.g., "Carries only 2 competitors"]
-
-      ### RECOMMENDATION
-      [One high-impact next step. e.g., "Send samples to [Target 1] - they have a gap in Edibles."]
-      
-      Tone: Sharp, professional, direct. No fluff.
+      Tone: Sharp, street-smart, vigilant. "I got eyes on everything."
       
       CRITICAL OUTPUT RULES:
       - **NO PLACEHOLDERS**: Never use "[Your State]" or "[Competitor]". Use real data from context or ask.
-      - **NO TECHNICAL JARGON**: Do NOT output "Implementation Plan", "Workflow:", or raw tool names like "domain.cannmenus", "core.browser", "browser.navigate", or "price_min".
-      - **NO FAKE COMMANDS**: Do not print commands you intend to run. JUST RUN THEM using the provided tools.
+      - **NO TECHNICAL JARGON**: Do NOT output "Implementation Plan", "Workflow:", or raw tool names.
+      - **NO FAKE COMMANDS**: Do not print commands. JUST RUN THEM.
       - **NATURAL LANGUAGE**: Describe actions naturally (e.g., "I searched for vape carts..." instead of "Action: Use domain.cannmenus").
-      - If you don't know the location, ASK the user.
-      - Use 'browse' and 'getCompetitiveIntel' tools to finding REAL data. Do not make up examples.
-      - If the user asks for "domain.cannmenus", use the 'searchProducts' tool.
-      - If the user asks for "price_min" or "price_max", pass those parameters to 'searchProducts'.
+      - Use 'scanCompetitors' to find real menu data.
+      - Use 'alertCraig' to take action.
     `;
     return agentMemory;
   },
@@ -108,82 +94,46 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
         // 1. Definition of Tools for the LLM
         const toolsDef = [
             {
-                name: "getCompetitiveIntel",
-                description: "Get a list of cannabis retailers and market overview for a specific location. Use this for 'Hir a Market Scout' or 'scout' requests.",
+                name: "scanCompetitors",
+                description: "Scan local competitors in a specific city/zip to find pricing and menus.",
                 schema: z.object({
-                    state: z.string().describe("State abbreviation (e.g., CA, NY)"),
-                    city: z.string().optional().describe("City name OR Zip Code"),
+                    location: z.string().describe("City, State or Zip Code")
                 })
             },
             {
-                name: "discoverMenu",
-                description: "Deep dive into a specific competitor's weed menu to see products and pricing.",
+                name: "alertCraig",
+                description: "Trigger Craig to launch a counter-campaign against a specific threat.",
                 schema: z.object({
-                    url: z.string().describe("The website URL of the dispensary"),
-                })
-            },
-            {
-                name: "comparePricing",
-                description: "Compare my products against a competitor's to find price gaps.",
-                schema: z.object({
-                    myProducts: z.array(z.any()).describe("List of my products"),
-                    competitorProducts: z.array(z.any()).describe("List of competitor products")
-                })
-            },
-            {
-                name: "searchWeb",
-                description: "General web search for news, laws, or broad market trends.",
-                schema: z.object({
-                    query: z.string().describe("The search query"),
-                })
-            },
-            {
-                name: "lettaSaveFact",
-                description: "Save a market insight or competitor fact to memory.",
-                schema: z.object({
-                    fact: z.string(),
-                    category: z.string().optional()
-                })
-            },
-            {
-                name: "lettaUpdateCoreMemory",
-                description: "Update your core persona or knowledge about the user.",
-                schema: z.object({
-                    section: z.enum(['persona', 'human']),
-                    content: z.string()
-                })
-            },
-            {
-                name: "lettaMessageAgent",
-                description: "Send a message to another agent (e.g. Leo, Craig).",
-                schema: z.object({
-                    toAgent: z.string(),
-                    message: z.string()
-                })
-            },
-
-            {
-                name: "browse",
-                description: "Navigate to a URL to inspect it, take a screenshot, or discover text content.",
-                schema: z.object({
-                    url: z.string().describe("Target URL"),
-                    action: z.enum(['goto', 'screenshot', 'discover']).optional().describe("Action to perform. Default: discover"),
-                    selector: z.string().optional().describe("CSS Selector for 'discover' action (to extract text).")
-                }),
-            },
-
-            {
-                name: "searchProducts",
-                description: "Search for products using CannMenus API. Maps to 'domain.cannmenus' commands.",
-                schema: z.object({
-                    search: z.string().optional().describe("Product name or keyword (e.g., 'vape', 'flower')"),
-                    near: z.string().optional().describe("Location (City, State or Zip)"),
-                    price_min: z.number().optional().describe("Minimum price"),
-                    price_max: z.number().optional().describe("Maximum price"),
-                    limit: z.number().optional().describe("Max results (default 10)")
+                    competitorId: z.string().describe("Name of the competitor"),
+                    threat: z.string().describe("Description of the threat (e.g., 'Selling Blue Dream for $5 less')"),
+                    product: z.string().describe("The product involved")
                 })
             }
         ];
+
+        // === SHIM: Implement new tools locally (Keep It Simple) ===
+        const shimmedTools = {
+            ...tools,
+            scanCompetitors: async (location: string) => {
+                logger.info(`[Ezal] Scanning competitors in ${location}...`);
+                // Use CannMenus to find real data
+                const results = await tools.searchProducts({ near: location, limit: 5 });
+                if (!results || results.length === 0) return "No data found for this location. Try a major city.";
+                // Simple summary
+                return results.map((r: any) => `${r.dispensary_name}: ${r.product_name} ($${r.price})`).join('\n');
+            },
+            alertCraig: async (competitorId: string, threat: string, product: string) => {
+                logger.info(`[Ezal] Alerting Craig about ${competitorId}...`);
+                if (tools.lettaMessageAgent) {
+                    await tools.lettaMessageAgent(
+                        'craig', 
+                        `🚨 PRICE WAR ALERT 🚨\nCompetitor: ${competitorId}\nProduct: ${product}\nThreat: ${threat}\n\nAction: Launch 'Price Match' Campaign immediately.`
+                    );
+                    return true;
+                }
+                return false;
+            }
+        };
 
         // === MULTI-STEP PLANNING ===
         try {
@@ -193,16 +143,20 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                 userQuery,
                 systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
-                tools,
-                model: 'googleai/gemini-3-pro-preview',
+                tools: shimmedTools, // Use the shimmed tools
+                model: 'claude', // Triggers harness routing to Claude 4.5 Opus
                 maxIterations: 5,
                 onStepComplete: async (step, toolName, result) => {
                     // Persist each step to Letta
                     if ((tools as any).lettaSaveFact) {
-                        await (tools as any).lettaSaveFact(
-                            `Ezal Step ${step}: ${toolName} -> ${JSON.stringify(result).slice(0, 200)}`,
-                            'market_research_log'
-                        );
+                        try {
+                            await (tools as any).lettaSaveFact(
+                                `Ezal Step ${step}: ${toolName} -> ${JSON.stringify(result).slice(0, 200)}`,
+                                'market_research_log'
+                            );
+                        } catch (e) {
+                            // ignore logging error
+                        }
                     }
                 }
             });

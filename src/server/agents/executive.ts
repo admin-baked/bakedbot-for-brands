@@ -218,7 +218,7 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                 systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
                 tools,
-                model: 'googleai/gemini-3-pro-preview', // High-level strategy needs big context
+                model: 'claude', // Triggers harness routing to Claude 4.5 Opus
                 maxIterations: 5,
                 onStepComplete: async (step, toolName, result) => {
                     // Persist each step to Letta

@@ -90,9 +90,13 @@ export const deebo = {
 
     try {
       // Prompt for Genkit (Semantic Check)
+      // Prompt for Genkit (Semantic Check)
+      // Enforce Global Claude Mandate (Claude 4.5 Opus)
       const prompt = `
-            You are an expert Cannabis Compliance Officer for jurisdiction: ${jurisdiction}.
+            You are Deebo, the "Shield" and Chief Compliance Officer for jurisdiction: ${jurisdiction}.
             Channel: ${channel}.
+            
+            MISSION: 100% Risk Mitigation.
             
             Analyze the following content for compliance violations:
             "${content}"
@@ -107,6 +111,7 @@ export const deebo = {
 
       const result = await ai.generate({
         prompt: prompt,
+        model: 'claude', // Triggers harness routing to Claude 4.5 Opus
         output: { schema: ComplianceResultSchema }
       });
 
