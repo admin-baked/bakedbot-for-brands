@@ -100,6 +100,40 @@ For detailed documentation, see `.agent/refs/`:
 
 ---
 
+## 🔬 RAG Infrastructure Roadmap
+
+### Current State (2026-01)
+| Component | Implementation | Status |
+|-----------|---------------|--------|
+| **Vector Storage** | Firestore native `FieldValue.vector()` | ✅ Active |
+| **Search** | Client-side cosine similarity (fetch 100 → rank) | ⚠️ 100-doc ceiling |
+| **Chunking** | Semantic (product/section/sentence) | ✅ Phase 1 Complete |
+| **Reranking** | Vertex AI Ranking API + keyword fallback | ✅ Phase 1 Complete |
+| **Contextual Headers** | `[State | City | Category]` at index time | ✅ Phase 2 Complete |
+
+### Upgrade Triggers
+| Signal | Threshold | Action |
+|--------|-----------|--------|
+| Tenant indexed docs | >500 docs | Enable Firestore Vector Search Extension |
+| Concurrent users | >50 simultaneous | Monitor latency, consider scale |
+| Response time | >3 seconds avg | Investigate retrieval bottleneck |
+| Monthly MRR | $50k+ | Upgrade to dedicated vector infrastructure |
+
+### Migration Path
+1. **Now → $50k MRR**: Current implementation (reranker gives quality wins)
+2. **$50k → $100k MRR**: Enable **Firestore Vector Search Extension** (ANN)
+3. **$100k+ MRR**: Migrate to **Vertex AI Vector Search** (billions scale)
+
+### Key Files
+| File | Purpose |
+|------|---------|
+| `src/server/services/vector-search/chunking-service.ts` | Semantic chunking strategies |
+| `src/server/services/vector-search/reranker-service.ts` | Vertex AI reranking |
+| `src/server/services/vector-search/rag-service.ts` | RAG pipeline orchestration |
+| `src/server/services/vector-search/firestore-vector.ts` | Vector storage & search |
+
+---
+
 ## 🕵️ Agent Squad
 
 | Agent | Role | Domain |
