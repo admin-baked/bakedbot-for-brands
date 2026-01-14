@@ -167,7 +167,119 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
     finalResult: string;
     steps: Array<{ tool: string; args: any; result: any }>;
 }> {
-    const { userQuery, systemInstructions, toolsDef, tools, maxIterations = 5, onStepComplete, model = 'gemini' } = context;
+    const { userQuery, systemInstructions, toolsDef, tools, maxIterations = 5, onStepComplete, model = 'hybrid' } = context;
+    
+    // === HYBRID EXECUTION PATH (Gemini Planning + Claude Synthesis) ===
+    if (model === 'hybrid') {
+        const steps: Array<{ tool: string; args: any; result: any }> = [];
+        let iteration = 0;
+        
+        while (iteration < maxIterations) {
+            iteration++;
+            
+            // Build history from prior steps
+            const historyPrompt = steps.length > 0 
+                ? `\n\nPRIOR STEPS:\n${steps.map((s, i) => `${i + 1}. ${s.tool}(${JSON.stringify(s.args)}) -> ${JSON.stringify(s.result).slice(0, 300)}`).join('\n')}`
+                : '';
+            
+            // PLAN with Gemini 3 Pro
+            const planPrompt = `
+                ${systemInstructions}
+                
+                USER REQUEST: "${userQuery}"
+                ${historyPrompt}
+                
+                Available Tools:
+                ${toolsDef.map(t => `- ${t.name}: ${t.description}`).join('\n')}
+                
+                Based on the user request and prior steps, decide your next action:
+                - If more work is needed, select a tool.
+                - If the task is complete, set status to 'COMPLETE'.
+                - If blocked (e.g., missing info), set status to 'BLOCKED'.
+                
+                Return JSON: { "thought": string, "status": "CONTINUE" | "COMPLETE" | "BLOCKED", "toolName": string | null, "args": object }
+            `;
+            
+            const plan = await ai.generate({
+                model: 'googleai/gemini-2.5-flash', // Gemini for fast planning
+                prompt: planPrompt,
+                output: {
+                    schema: z.object({
+                        thought: z.string(),
+                        status: z.enum(['CONTINUE', 'COMPLETE', 'BLOCKED']),
+                        toolName: z.string().nullable(),
+                        args: z.record(z.any())
+                    })
+                }
+            });
+            
+            const decision = plan.output as MultiStepPlan;
+            
+            if (decision.status === 'COMPLETE' || decision.status === 'BLOCKED') {
+                // Synthesize final response with Claude 4.5 Opus
+                const { executeWithTools: claudeSynthesize } = await import('@/ai/claude');
+                const synthesisResult = await claudeSynthesize(
+                    `User Request: "${userQuery}"
+                    Steps Taken: ${steps.length}
+                    Final Thought: ${decision.thought}
+                    All Results: ${JSON.stringify(steps.map(s => s.result)).slice(0, 2000)}
+                    
+                    Synthesize a comprehensive response for the user.`,
+                    [], // No tools for synthesis
+                    async () => ({}), // Dummy executor
+                    { maxIterations: 1 }
+                );
+                
+                return { finalResult: synthesisResult.content, steps };
+            }
+            
+            if (!decision.toolName) {
+                break;
+            }
+
+            // HITL Check
+            const HITL_TOOLS = ['sendSms', 'rtrvrAgent', 'createPlaybook', 'sendEmail'];
+            if (HITL_TOOLS.includes(decision.toolName) && context.onHITLRequired) {
+                const approval = await context.onHITLRequired({
+                    tool: decision.toolName,
+                    args: decision.args,
+                    reason: decision.thought
+                });
+                
+                if (!approval.approved) {
+                    steps.push({ 
+                        tool: decision.toolName, 
+                        args: decision.args, 
+                        result: { blocked: true, reason: approval.reason || 'User denied action' } 
+                    });
+                    continue;
+                }
+            }
+            
+            // EXECUTE
+            const toolFn = tools[decision.toolName];
+            let result: any = { error: 'Tool not found' };
+            
+            if (typeof toolFn === 'function') {
+                try {
+                    const argValues = Object.values(decision.args);
+                    result = await toolFn(...argValues);
+                } catch (e: any) {
+                    result = { error: e.message };
+                    if (context.onReplanRequired) await context.onReplanRequired(decision.toolName, e.message);
+                }
+            }
+            
+            steps.push({ tool: decision.toolName, args: decision.args, result });
+            if (onStepComplete) await onStepComplete(steps.length, decision.toolName, result);
+        }
+        
+        // Fallback synthesis if loop exits without COMPLETE
+        return { 
+            finalResult: `Completed ${steps.length} steps. Last thought: ${steps[steps.length - 1]?.result || 'No steps taken.'}`, 
+            steps 
+        };
+    }
     
     // === CLAUDE EXECUTION PATH (LOGIC MASTER) ===
     // Routing: Trigger if model is explicitly 'claude' OR if it's a specific Anthropic model string
@@ -213,13 +325,6 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
             if (typeof toolFn === 'function') {
                 try {
                     const argValues = Object.values(args);
-                    // Match argument order is tricky with Object.values if schema order matters. 
-                    // Better to rely on Zod schema keys if possible, but existing 'tools' map likely expects spread args.
-                    // Assuming implementations use destructuring or consistent order.
-                    // For safety in this hybrid mode, we might need adapter if toolfns demand specific arg order.
-                    // Let's assume toolFn takes a single object OR spread args. 
-                    // Most existing tools in default-tools.ts seem to take (arg1, arg2).
-                    // We will try spread. If fails, we might need a safer assumption.
                     result = await toolFn(...argValues);
                 } catch (e: any) {
                     result = { error: e.message };

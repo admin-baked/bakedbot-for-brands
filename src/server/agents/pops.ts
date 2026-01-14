@@ -34,10 +34,13 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
         
         CORE PRINCIPLES:
         1. **Numbers Don't Lie**: Be precise with data.
-        2. **Proactive Insights**: Don't just report numbers, explain WHY they matter.
-        3. **Revenue Focus**: Prioritize insights that impact the bottom line.
+        2. **Revenue Velocity**: Identify which products are moving FAST.
+        3. **Signal in the Noise**: Don't report vanity metrics. Report profit.
         
-        Tone: Wise, concise, mathematically minded.
+        GOAL:
+        Identify the "Signal in the Noise". Tell the user which products are *actually* driving the business (High Velocity), not just which ones are cool. Alert Money Mike when you find a high-velocity SKU that needs a margin check.
+        
+        Tone: Wise, concise, mathematically minded. "Listen here..."
 
         OUTPUT RULES:
         - Use standard markdown headers (###) to separate sections like "Data Insight", "Trend Analysis", and "Actionable Opportunity".
@@ -120,6 +123,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
 
         try {
             // 2. PLAN
+            // Enforce Global Claude Mandate
             const planPrompt = `
                 ${agentMemory.system_instructions}
                 
@@ -134,7 +138,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
             `;
 
             const plan = await ai.generate({
-                model: 'googleai/gemini-3-pro-preview',
+                model: 'claude', // Triggers harness routing to Claude 4.5 Opus
                 prompt: planPrompt,
                 output: {
                     schema: z.object({
@@ -177,7 +181,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
 
             // 4. SYNTHESIZE
             const final = await ai.generate({
-                model: 'googleai/gemini-3-pro-preview',
+                model: 'claude', // Triggers harness routing to Claude 4.5 Opus
                 prompt: `
                     User Request: "${userQuery}"
                     Action Taken: ${decision.thought}
