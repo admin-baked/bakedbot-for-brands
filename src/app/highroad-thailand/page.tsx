@@ -29,6 +29,10 @@ const PARTNERS = [
         name: 'BakedBot AI',
         logo: '/images/highroad-thailand/bakedbot-ai.png',
     },
+    {
+        name: 'Exhale Pro Stories',
+        logo: '/images/highroad-thailand/exhale-pro.png',
+    },
 ];
 
 const BENEFITS = [
