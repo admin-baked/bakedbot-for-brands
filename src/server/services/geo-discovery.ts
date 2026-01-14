@@ -381,6 +381,57 @@ export async function getZipCodeCoordinates(
     } : null;
 }
 
+/**
+ * Geocode a general location string (Zip, City, or Address)
+ * @param query The location string to geocode (e.g. "Robbins", "Robbins, IL", "90210")
+ */
+export async function geocodeLocation(
+    query: string
+): Promise<{ lat: number; lng: number; city: string; state: string } | null> {
+    // 1. If it looks like a ZIP code (5 digits), use the specialized zip handler
+    // This maintains caching and existing behavior for clear zips
+    const zipMatch = query.match(/^\b\d{5}\b$/);
+    if (zipMatch) {
+         return getZipCodeCoordinates(zipMatch[0]);
+    }
+
+    // 2. Otherwise, perform a free-text search via Nominatim
+    try {
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&countrycodes=us&format=json&limit=1&addressdetails=1`,
+            {
+                headers: {
+                    'User-Agent': 'BakedBot-GeoFinder/1.0',
+                },
+            }
+        );
+
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        if (data && data.length > 0) {
+            const result = data[0];
+            const address = result.address || {};
+            
+            // Extract City (handle various OSM keys)
+            const city = address.city || address.town || address.village || address.hamlet || (address.county ? address.county.replace(' County', '') : undefined);
+            
+            if (result.lat && result.lon && city && address.state) {
+                return {
+                    lat: parseFloat(result.lat),
+                    lng: parseFloat(result.lon),
+                    city: city,
+                    state: address.state
+                };
+            }
+        }
+    } catch (e) {
+        console.error("Geocoding failed:", e);
+    }
+    
+    return null;
+}
+
 
 // =============================================================================
 // GEO ZONE MANAGEMENT

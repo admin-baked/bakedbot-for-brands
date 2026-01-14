@@ -1,6 +1,6 @@
 'use server';
 
-import { getZipCodeCoordinates } from '@/server/services/geo-discovery';
+import { geocodeLocation } from '@/server/services/geo-discovery';
 import { discovery } from '@/server/services/firecrawl';
 
 export async function searchDemoRetailers(zip: string) {
@@ -8,9 +8,9 @@ export async function searchDemoRetailers(zip: string) {
     // In production, we should add rate limiting here
     
     try {
-        // First geocode the ZIP code
-        const coords = await getZipCodeCoordinates(zip);
-        const locationStr = coords ? `${coords.city}, ${coords.state} ${zip}` : zip;
+        // First geocode the location (Zip OR City)
+        const coords = await geocodeLocation(zip);
+        const locationStr = coords ? `${coords.city}, ${coords.state}` : zip;
 
         if (!coords) {
              // Fallback if geocoding fails, but still try search
