@@ -132,7 +132,8 @@ export class RAGService {
         docId: string,
         content: string,
         metadata: Record<string, any> = {},
-        tenantId?: string
+        tenantId?: string,
+        chunkContext?: import('./chunking-service').ChunkContext
     ): Promise<void> {
         let fullCollection = collection;
         if (tenantId && !collection.startsWith('knowledge/') && !collection.startsWith('compliance/')) {
@@ -143,10 +144,12 @@ export class RAGService {
             collection: fullCollection,
             docId,
             content,
-            metadata
+            metadata,
+            chunkContext
         });
     }
 }
 
 export const ragService = new RAGService();
+
 

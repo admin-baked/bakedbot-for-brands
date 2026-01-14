@@ -2,6 +2,7 @@
 import { createServerClient } from "@/firebase/server-client";
 import { generateEmbedding } from "@/ai/utils/generate-embedding";
 import { FieldValue } from "firebase-admin/firestore";
+import { buildChunkWithHeader, ChunkContext } from "./chunking-service";
 
 export interface VectorSearchResult {
   docId: string;
@@ -22,6 +23,8 @@ export interface IndexOptions {
   docId: string;
   content: string;
   metadata?: Record<string, any>;
+  /** Contextual information to prepend as header (State, City, Category, etc.) */
+  chunkContext?: ChunkContext;
 }
 
 // Simple cosine similarity since Firestore doesn't support vector search natively without an extension or external service yet in this setup
@@ -53,12 +56,21 @@ function cosineSimilarity(a: number[], b: number[]) {
 
 export const firestoreVectorSearch = {
   async index(options: IndexOptions) {
-    const embedding = await generateEmbedding(options.content);
+    // Prepend contextual header if chunkContext is provided
+    const contentWithHeader = options.chunkContext 
+      ? buildChunkWithHeader(options.content, options.chunkContext)
+      : options.content;
+    
+    const embedding = await generateEmbedding(contentWithHeader);
     
     const { firestore } = await createServerClient();
     await firestore.collection(options.collection).doc(options.docId).set({
-      content: options.content,
-      metadata: options.metadata || {},
+      content: options.content,  // Store original content for display
+      contentWithHeader,         // Store header-prepended content for reference
+      metadata: {
+        ...options.metadata,
+        ...options.chunkContext  // Also store context in metadata for filtering
+      },
       embedding: FieldValue.vector(embedding), // Support for Firestore native vector type if enabled
       // Fallback or explicit array for manual search
       embedding_array: embedding, 
