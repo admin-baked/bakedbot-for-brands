@@ -23,7 +23,7 @@ const PARTNERS = [
     },
     {
         name: 'Marijuana Venture',
-        logo: 'https://bakedbot.ai/wp-content/uploads/2025/11/MJVenture-Logo-1.png',
+        logo: '/images/highroad-thailand/marijuana-venture.png',
     },
     {
         name: 'BakedBot AI',
