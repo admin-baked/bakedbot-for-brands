@@ -796,8 +796,19 @@ export async function createEzalCompetitor(tenantId: string, data: any): Promise
 }
 
 
-import type { LocalSEOPage, CannMenusSnapshot } from '@/types/foot-traffic';
-import { getZipCodeCoordinates, getRetailersByZipCode, discoverNearbyProducts } from '@/server/services/geo-discovery';
+
+import { ragService } from '@/server/services/vector-search/rag-service';
+
+export async function getRagIndexStats() {
+  try {
+    await requireUser(['owner', 'super_user']);
+    return await ragService.getStats();
+  } catch (error) {
+    console.error('Error fetching RAG stats:', error);
+    return { totalDocuments: 0, collections: {} };
+  }
+}
+
 import type { ProductSummary, DealSummary } from '@/types/foot-traffic';
 
 

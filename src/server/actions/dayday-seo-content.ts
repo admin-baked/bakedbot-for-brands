@@ -150,7 +150,7 @@ export async function optimizePageContent(
     }
     
     const faqResult = await ai.generate({
-        model: gemini25Flash,
+        model: 'googleai/gemini-1.5-flash',
         prompt: faqPrompt,
         config: { temperature: 0.7, maxOutputTokens: 500 }
     });
