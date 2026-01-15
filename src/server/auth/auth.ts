@@ -9,7 +9,7 @@ import { devPersonas } from '@/lib/dev-personas';
 import { SUPER_ADMIN_EMAILS } from '@/lib/super-admin-config';
 
 // Define the roles used in the application for type safety.
-export type Role = 'brand' | 'dispensary' | 'customer' | 'owner' | 'super_admin' | 'super_user';
+export type Role = 'brand' | 'dispensary' | 'customer' | 'super_user';
 
 /**
  * A server-side utility to require an authenticated user and optionally enforce roles.
@@ -68,8 +68,8 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
   }
 
   // --- ROLE SIMULATION LOGIC ---
-  // Only allow simulation if the REAL user has the 'owner' or admin role.
-  if (['owner', 'super_admin'].includes(decodedToken.role)) {
+  // Only allow simulation if the REAL user has the 'super_user' role.
+  if (decodedToken.role === 'super_user') {
     const simulatedRole = cookieStore.get('x-simulated-role')?.value as Role | undefined;
     if (simulatedRole && ['brand', 'dispensary', 'customer'].includes(simulatedRole)) {
       // Override the role in the returned token
@@ -87,7 +87,7 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
   const userRole = (decodedToken.role as Role) || null;
   const userEmail = (decodedToken.email as string)?.toLowerCase() || '';
   const isSuperAdminByEmail = SUPER_ADMIN_EMAILS.some(e => e.toLowerCase() === userEmail);
-  const isSuperUserRole = ['owner', 'super_admin'].includes(userRole || '');
+  const isSuperUserRole = userRole === 'super_user';
 
   // --- GLOBAL APPROVAL CHECK ---
   // Block access if the account is pending/rejected, UNLESS they are a super admin.
@@ -122,7 +122,7 @@ export async function isSuperUser(): Promise<boolean> {
     const email = (user.email as string)?.toLowerCase() || '';
     
     // Check 1: Role-based access
-    if (['owner', 'super_admin'].includes(role)) {
+    if (role === 'super_user') {
       return true;
     }
     

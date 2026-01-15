@@ -25,7 +25,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from 'firebase-admin';
 import { logger } from '@/lib/logger';
 
-export type UserRole = 'brand' | 'dispensary' | 'customer' | 'owner';
+import { UserRole } from '@/types/roles';
+
+export { UserRole }; // Re-export for compatibility
 
 export interface AuthenticatedUser {
   uid: string;
@@ -53,10 +55,17 @@ async function verifyToken(token: string): Promise<AuthenticatedUser | null> {
   try {
     const decodedToken = await auth().verifyIdToken(token);
 
+    const rawRole = decodedToken.role as string;
+    // Map legacy Firebase Custom Claims to new standard roles
+    // Legacy 'owner', 'executive', 'super_admin' -> 'super_user'
+    const role: UserRole = (rawRole === 'owner' || rawRole === 'super_admin' || rawRole === 'executive') 
+        ? 'super_user' 
+        : (rawRole as UserRole || 'customer');
+
     return {
       uid: decodedToken.uid,
       email: decodedToken.email || null,
-      role: (decodedToken.role as UserRole) || 'customer',
+      role,
       brandId: decodedToken.brandId as string | undefined,
       locationId: decodedToken.locationId as string | undefined,
     };
@@ -108,8 +117,8 @@ export async function requireRole(
 
   const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
 
-  // Owner role has access to everything
-  if (user.role === 'owner') {
+  // Super User has access to everything
+  if (user.role === 'super_user') {
     return user;
   }
 
@@ -136,8 +145,8 @@ export async function requireBrandAccess(
 ): Promise<AuthenticatedUser> {
   const user = await requireAuth(req);
 
-  // Owner can access all brands
-  if (user.role === 'owner') {
+  // Super User can access all brands
+  if (user.role === 'super_user') {
     return user;
   }
 
@@ -165,8 +174,8 @@ export async function requireDispensaryAccess(
 ): Promise<AuthenticatedUser> {
   const user = await requireAuth(req);
 
-  // Owner can access all dispensaries
-  if (user.role === 'owner') {
+  // Super User can access all dispensaries
+  if (user.role === 'super_user') {
     return user;
   }
 

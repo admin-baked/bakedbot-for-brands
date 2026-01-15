@@ -82,6 +82,13 @@ export function useDashboardConfig() {
         roles: ['brand', 'owner'],
       },
       {
+        label: 'Creative Center',
+        href: '/dashboard/brand/creative',
+        icon: 'Palette',
+        description: 'Visual storyboard and compliance hub.',
+        roles: ['brand', 'owner'],
+      },
+      {
         label: 'Competitive Intel',
         href: '/dashboard/competitive-intel',
         icon: 'Zap',

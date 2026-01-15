@@ -1,4 +1,5 @@
 
+import { UserRole } from '@/types/roles';
 import { LettaAgent } from './client';
 import { CustomerAgentManager } from './customer-agent-manager';
 import { createServerClient } from '@/firebase/server-client';
@@ -10,15 +11,15 @@ export class RolePermissionService {
      */
     async getMrsParkerForRole(
         userId: string,
-        role: 'executive' | 'dispensary' | 'brand',
+        role: UserRole, // Use standard role definition
         tenantId: string,
         customerId?: string
     ): Promise<LettaAgent> {
         const agentManager = new CustomerAgentManager();
 
-        // SCENARIO 1: Executive Board (Super User)
+        // SCENARIO 1: Super User (Executive Board)
         // Can access ANY customer's agent or the master template
-        if (role === 'executive') {
+        if (role === 'super_user') {
             if (customerId) {
                 const customerData = await this.getCustomerData(customerId);
                 return await agentManager.getCustomerAgent(customerId, customerData);
