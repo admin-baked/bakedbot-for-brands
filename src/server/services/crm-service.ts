@@ -591,3 +591,48 @@ export async function deleteCrmEntity(
     const collection = type === 'brand' ? 'crm_brands' : 'crm_dispensaries';
     await firestore.collection(collection).doc(id).delete();
 }
+
+/**
+ * Force delete a user by email (useful for cleanup of zombie users)
+ */
+export async function deleteUserByEmail(email: string): Promise<string> {
+    const auth = getAdminAuth();
+    const firestore = getAdminFirestore();
+    let result = '';
+
+    try {
+        // 1. Delete from Auth
+        try {
+            const user = await auth.getUserByEmail(email);
+            if (user) {
+                await auth.deleteUser(user.uid);
+                // 2. Delete main doc
+                await firestore.collection('users').doc(user.uid).delete();
+                result += `Deleted Auth user ${user.uid}. `;
+            }
+        } catch (e: any) {
+             if (e.code === 'auth/user-not-found') {
+                 result += 'User not found in Auth. ';
+             } else {
+                 throw e;
+             }
+        }
+
+        // 3. Delete any orphaned docs with this email
+        const snap = await firestore.collection('users').where('email', '==', email).get();
+        if (!snap.empty) {
+            const batch = firestore.batch();
+            snap.docs.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+            result += `Deleted ${snap.size} orphaned Firestore documents.`;
+        } else {
+            result += 'No orphaned documents found.';
+        }
+
+    } catch (e: any) {
+        console.error('Error in deleteUserByEmail:', e);
+        throw new Error(e.message);
+    }
+    
+    return result;
+}
