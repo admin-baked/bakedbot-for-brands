@@ -35,28 +35,28 @@ export function useDashboardConfig() {
         href: '/dashboard',
         icon: 'LayoutDashboard',
         description: 'High-level summary of agents, campaigns, and revenue.',
-        roles: ['brand', 'dispensary', 'owner', 'super_admin'],
+        roles: ['brand', 'dispensary', 'super_user'],
       },
       {
         label: 'Playbooks',
         href: '/dashboard/playbooks',
         icon: 'BookOpen',
         description: 'Manage automation playbooks and workflows.',
-        roles: ['brand', 'dispensary', 'owner', 'super_admin'],
+        roles: ['brand', 'dispensary', 'super_user'],
       },
       {
         label: 'Projects',
         href: '/dashboard/projects',
         icon: 'FolderKanban',
         description: 'Organize chats with dedicated context and instructions.',
-        roles: ['brand', 'dispensary', 'owner', 'super_admin'],
+        roles: ['brand', 'dispensary', 'super_user'],
       },
       {
         label: 'Agents',
         href: '/dashboard/agents',
         icon: 'Bot',
         description: 'Configure and monitor your AI agents.',
-        roles: ['brand', 'dispensary', 'owner', 'super_admin'],
+        roles: ['brand', 'dispensary', 'super_user'],
       },
       // Brand-specific links
       {
@@ -64,14 +64,14 @@ export function useDashboardConfig() {
         href: '/dashboard/products',
         icon: 'Package',
         description: 'Manage your product catalog.',
-        roles: ['brand', 'owner'],
+        roles: ['brand', 'super_user'],
       },
       {
         label: 'Intelligence',
         href: '/dashboard/intelligence',
         icon: 'Target',
         description: 'Competitive intel, pricing gaps, and shelf share analysis.',
-        roles: ['brand', 'owner'],
+        roles: ['brand', 'super_user'],
         badge: 'beta',
       },
       {
@@ -79,28 +79,28 @@ export function useDashboardConfig() {
         href: '/dashboard/content/brand-page',
         icon: 'LayoutTemplate',
         description: 'Manage your public brand page content.',
-        roles: ['brand', 'owner'],
+        roles: ['brand', 'super_user'],
       },
       {
         label: 'Creative Center',
         href: '/dashboard/brand/creative',
         icon: 'Palette',
         description: 'Visual storyboard and compliance hub.',
-        roles: ['brand', 'owner'],
+        roles: ['brand', 'dispensary', 'super_user'],
       },
       {
         label: 'Competitive Intel',
         href: '/dashboard/competitive-intel',
         icon: 'Zap',
         description: 'Track competitor pricing, menus, and local market share.',
-        roles: ['brand', 'dispensary', 'owner'],
+        roles: ['brand', 'dispensary', 'super_user'],
       },
       {
         label: 'Distribution',
         href: '/dashboard/distribution',
         icon: 'Map',
         description: 'Visualize SKU coverage and retail partners.',
-        roles: ['brand', 'owner'],
+        roles: ['brand', 'super_user'],
         badge: 'coming-soon',
       },
       {
@@ -108,7 +108,7 @@ export function useDashboardConfig() {
         href: '/dashboard/content',
         icon: 'PenSquare',
         description: 'Generate product descriptions, social images, and review summaries.',
-        roles: ['brand', 'owner'],
+        roles: ['brand', 'super_user'],
         badge: 'coming-soon',
       },
       {
@@ -116,7 +116,7 @@ export function useDashboardConfig() {
         href: '/dashboard/analytics',
         icon: 'BarChart3',
         description: 'Explore sales data and product performance.',
-        roles: ['brand', 'owner'],
+        roles: ['brand', 'super_user'],
         badge: 'coming-soon',
       },
       {
@@ -124,14 +124,14 @@ export function useDashboardConfig() {
         href: '/dashboard/loyalty',
         icon: 'Crown',
         description: 'Manage rewards, tiers, and VIP automations.',
-        roles: ['brand', 'dispensary', 'owner'],
+        roles: ['brand', 'dispensary', 'super_user'],
       },
       {
         label: 'Leads',
         href: '/dashboard/leads',
         icon: 'UserPlus',
         description: 'Manage captured emails and potential customers.',
-        roles: ['brand', 'owner'],
+        roles: ['brand', 'super_user'],
       },
       // Dispensaries
       {
@@ -139,14 +139,14 @@ export function useDashboardConfig() {
         href: '/dashboard/dispensaries',
         icon: 'Store',
         description: 'Manage your dispensary partners.',
-        roles: ['brand', 'owner'],
+        roles: ['brand', 'super_user'],
       },
       {
         label: 'Promotions',
         href: '/dashboard/promotions/recommendations',
         icon: 'Tag',
         description: 'AI-driven inventory promotions.',
-        roles: ['brand', 'owner'],
+        roles: ['brand', 'super_user'],
         badge: 'coming-soon',
       },
       {
@@ -154,7 +154,7 @@ export function useDashboardConfig() {
         href: '/dashboard/apps',
         icon: 'LayoutGrid',
         description: 'Manage POS and marketing integrations.',
-        roles: ['brand', 'owner', 'dispensary', 'customer'],
+        roles: ['brand', 'super_user', 'dispensary', 'customer'],
       },
       // Shared Commerce & E-com
       {
@@ -162,28 +162,28 @@ export function useDashboardConfig() {
         href: '/dashboard/orders',
         icon: 'ShoppingCart',
         description: 'View and manage customer orders.',
-        roles: ['brand', 'dispensary', 'owner'],
+        roles: ['brand', 'dispensary', 'super_user'],
       },
       {
         label: 'Menu',
         href: '/dashboard/menu',
         icon: 'Utensils', // or FileSpreadsheet
         description: 'Manage your menu and product listings.',
-        roles: ['brand', 'dispensary', 'owner'],
+        roles: ['brand', 'dispensary', 'super_user'],
       },
       {
         label: 'CannSchemas', // 'CannMenus Integration' might be too long
         href: '/dashboard/menu-sync',
         icon: 'Database',
         description: 'Sync with CannMenus and other integrations.',
-        roles: ['brand', 'dispensary', 'owner'],
+        roles: ['brand', 'dispensary', 'super_user'],
       },
       {
         label: 'Ambassadors',
         href: '/dashboard/ambassador',
         icon: 'Megaphone',
         description: 'Manage brand ambassadors and referral programs.',
-        roles: ['brand', 'owner'],
+        roles: ['brand', 'super_user'],
         badge: 'coming-soon',
       },
       // Dispensary-specific links (Remaining)
@@ -192,21 +192,21 @@ export function useDashboardConfig() {
         href: '/dashboard/customers',
         icon: 'Users',
         description: 'Manage your customer base.',
-        roles: ['dispensary', 'owner'],
+        roles: ['dispensary', 'super_user'],
       },
       {
         label: 'Menu Bundles',
         href: '/dashboard/bundles',
         icon: 'PackagePlus',
         description: 'Create and manage product bundles.',
-        roles: ['dispensary', 'owner'],
+        roles: ['dispensary', 'super_user'],
       },
       {
         label: 'Carousels',
         href: '/dashboard/carousels',
         icon: 'Images',
         description: 'Manage featured product carousels.',
-        roles: ['dispensary', 'owner'],
+        roles: ['dispensary', 'super_user'],
       },
 
       {
@@ -214,14 +214,14 @@ export function useDashboardConfig() {
         href: '/dashboard/segments',
         icon: 'PieChart',
         description: 'Segment customers for targeted campaigns.',
-        roles: ['dispensary', 'owner'],
+        roles: ['dispensary', 'super_user'],
       },
       {
         label: 'Vision',
         href: '/dashboard/vision',
         icon: 'Eye',
         description: 'Real-time camera analytics and operations monitoring.',
-        roles: ['brand', 'dispensary', 'owner'],
+        roles: ['brand', 'dispensary', 'super_user'],
         badge: 'coming-soon',
       },
       // Duplicate App Store link removed
@@ -231,21 +231,21 @@ export function useDashboardConfig() {
         href: '/dashboard/ceo/playbooks',
         icon: 'Wand2',
         description: 'Internal agent commands and automation playbooks.',
-        roles: ['owner', 'super_admin'],
+        roles: ['super_user'],
       },
       {
         label: 'Admin Console',
         href: '/dashboard/ceo',
         icon: 'Shield',
         description: 'Manage data and AI features.',
-        roles: ['owner', 'super_admin'],
+        roles: ['super_user'],
       },
       {
         label: 'Deep Research',
         href: '/dashboard/research',
         icon: 'Globe',
         description: 'AI-powered comprehensive web research and analysis.',
-        roles: ['brand', 'dispensary', 'owner', 'super_admin'],
+        roles: ['brand', 'dispensary', 'super_user'],
         badge: 'beta',
       },
       {
@@ -253,7 +253,7 @@ export function useDashboardConfig() {
         href: '/dashboard/settings',
         icon: 'Settings',
         description: 'Configure domains, embeds, and integrations.',
-        roles: ['brand', 'dispensary', 'owner'],
+        roles: ['brand', 'dispensary', 'super_user'],
       },
       // This is not a primary nav item but needed for the settings page to have a description
       {
@@ -261,7 +261,7 @@ export function useDashboardConfig() {
         href: '/account',
         icon: 'Settings',
         description: 'Manage your profile, brand, and AI settings.',
-        roles: ['brand', 'dispensary', 'owner'],
+        roles: ['brand', 'dispensary', 'super_user'],
         hidden: true,
       },
       // Customer-specific links
