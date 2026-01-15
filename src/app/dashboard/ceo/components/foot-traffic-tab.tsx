@@ -103,6 +103,7 @@ import type { LocalSEOPage, FootTrafficMetrics, BrandSEOPage, DispensarySEOPage,
 import { useMockData } from '@/hooks/use-mock-data';
 import { Rocket } from 'lucide-react';
 import { Pagination, usePagination } from '@/components/ui/pagination';
+import Link from 'next/link';
 
 export default function FootTrafficTab() {
     const { toast } = useToast();
@@ -447,6 +448,23 @@ export default function FootTrafficTab() {
                 </div>
             )}
 
+            {/* Status Legend */}
+            <div className="flex flex-wrap items-center gap-6 px-4 py-3 bg-muted/30 rounded-lg border text-sm">
+                <span className="font-semibold text-muted-foreground">Status Legend:</span>
+                <div className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-full bg-emerald-500 shadow-sm" />
+                    <span>Live & Optimized (Day Day)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-full bg-amber-400 shadow-sm" />
+                    <span>Live (Seeder Only)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-full bg-red-500 shadow-sm" />
+                    <span>Draft / Unpublished</span>
+                </div>
+            </div>
+
             {/* Main Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                 <TabsList>
@@ -561,24 +579,30 @@ export default function FootTrafficTab() {
                                                     {/* SEO Optimization Status Indicator */}
                                                     <span 
                                                         className={`h-2.5 w-2.5 rounded-full shrink-0 ${
-                                                            (page as any).seoOptimized 
-                                                                ? 'bg-emerald-500' // Green = Day Day optimized
-                                                                : 'bg-amber-400'   // Yellow = Seeder generated only
+                                                            !page.published 
+                                                                ? 'bg-red-500'     // Red = Draft
+                                                                : (page as any).seoOptimized 
+                                                                    ? 'bg-emerald-500' // Green = Optimized
+                                                                    : 'bg-amber-400'   // Yellow = Seeder
                                                         }`}
-                                                        title={(page as any).seoOptimized ? 'Day Day Optimized' : 'Awaiting Day Day Optimization'}
+                                                        title={!page.published ? 'Draft' : ((page as any).seoOptimized ? 'Day Day Optimized' : 'Awaiting Optimization')}
                                                     />
                                                     <div>
-                                                        <div className="font-medium">{page.city}, {page.state}</div>
+                                                        <Link href={`/zip/${page.zipCode}`} target="_blank" className="font-medium hover:underline hover:text-primary">
+                                                            {page.city}, {page.state}
+                                                        </Link>
                                                         <div className="text-sm text-muted-foreground font-mono">{page.zipCode}</div>
                                                     </div>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                {page.published ? (
-                                                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200">Published</Badge>
-                                                ) : (
-                                                    <Badge variant="outline">Draft</Badge>
-                                                )}
+                                                <Link href={`/zip/${page.zipCode}`} target="_blank">
+                                                    {page.published ? (
+                                                        <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 cursor-pointer">Published</Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="cursor-pointer hover:bg-muted">Draft</Badge>
+                                                    )}
+                                                </Link>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="text-sm">
@@ -661,7 +685,21 @@ export default function FootTrafficTab() {
                                 <TableBody>
                                     {paginatedBrandPages.map((page) => (
                                         <TableRow key={page.id}>
-                                            <TableCell className="font-medium">{page.brandName}</TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-2">
+                                                    {/* Status Dot */}
+                                                    <span 
+                                                        className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+                                                            !page.published 
+                                                                ? 'bg-red-500'
+                                                                : (page.contentBlock ? 'bg-emerald-500' : 'bg-amber-400') // Heuristic for brands
+                                                        }`}
+                                                    />
+                                                    <Link href={`/brands/${page.brandSlug}`} target="_blank" className="font-medium hover:underline hover:text-primary">
+                                                        {page.brandName}
+                                                    </Link>
+                                                </div>
+                                            </TableCell>
                                             <TableCell>
                                                 {page.city}, {page.state}
                                                 <div className="text-xs text-muted-foreground">
@@ -669,17 +707,13 @@ export default function FootTrafficTab() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="sm"
-                                                    onClick={() => toggleBrandPagePublishAction(page.id, !page.published).then(fetchData)}
-                                                >
+                                                <Link href={`/brands/${page.brandSlug}`} target="_blank">
                                                     {page.published ? (
-                                                        <Badge className="bg-green-100 text-green-700">Live</Badge>
+                                                        <Badge className="bg-green-100 text-green-700 hover:bg-green-200 cursor-pointer">Live</Badge>
                                                     ) : (
-                                                        <Badge variant="outline">Draft</Badge>
+                                                        <Badge variant="outline" className="cursor-pointer hover:bg-muted">Draft</Badge>
                                                     )}
-                                                </Button>
+                                                </Link>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <Button variant="ghost" size="icon" onClick={() => handleDelete(page.id, 'brand')}>
@@ -782,11 +816,13 @@ export default function FootTrafficTab() {
                                                     {/* SEO Optimization Status Indicator */}
                                                     <span 
                                                         className={`h-2.5 w-2.5 rounded-full shrink-0 ${
-                                                            (page as any).seoOptimized 
-                                                                ? 'bg-emerald-500' // Green = Day Day optimized
-                                                                : 'bg-amber-400'   // Yellow = Seeder generated only
+                                                            !page.published
+                                                                ? 'bg-red-500' // Red = Unpublished
+                                                                : (page as any).seoOptimized 
+                                                                    ? 'bg-emerald-500' // Green = Optimized
+                                                                    : 'bg-amber-400'   // Yellow = Basic
                                                         }`}
-                                                        title={(page as any).seoOptimized ? 'Day Day Optimized' : 'Awaiting Day Day Optimization'}
+                                                        title={!page.published ? 'Draft' : ((page as any).seoOptimized ? 'Day Day Optimized' : 'Awaiting Day Day Optimization')}
                                                     />
                                                     {page.logoUrl && (
                                                         <img 
@@ -796,7 +832,9 @@ export default function FootTrafficTab() {
                                                         />
                                                     )}
                                                     <div>
-                                                        <div>{page.dispensaryName}</div>
+                                                        <Link href={`/dispensaries/${page.dispensarySlug}`} target="_blank" className="font-medium hover:underline hover:text-primary block">
+                                                            {page.dispensaryName}
+                                                        </Link>
                                                         <div className="text-xs text-muted-foreground">
                                                             {page.dispensarySlug}
                                                         </div>
@@ -812,17 +850,13 @@ export default function FootTrafficTab() {
                                                 <Badge variant="outline">{page.zipCode}</Badge>
                                             </TableCell>
                                             <TableCell>
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="sm"
-                                                    onClick={() => toggleDispensaryPagePublishAction(page.id, !page.published).then(fetchData)}
-                                                >
+                                                <Link href={`/dispensaries/${page.dispensarySlug}`} target="_blank">
                                                     {page.published ? (
-                                                        <Badge className="bg-green-100 text-green-700">Live</Badge>
+                                                        <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 cursor-pointer">Live</Badge>
                                                     ) : (
-                                                        <Badge variant="outline">Draft</Badge>
+                                                        <Badge variant="outline" className="cursor-pointer hover:bg-muted">Draft</Badge>
                                                     )}
-                                                </Button>
+                                                </Link>
                                             </TableCell>
                                             <TableCell>
                                                 <span className="text-sm text-muted-foreground">
