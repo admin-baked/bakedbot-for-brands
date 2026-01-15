@@ -273,7 +273,7 @@ export default function CRMTab() {
         }
     };
 
-    const handleDelete = async (type: 'brand' | 'dispensary', id: string, name: string) => {
+    const handleDelete = async (type: 'brand' | 'dispensary' | 'user', id: string, name: string) => {
         if (!confirm(`Are you sure you want to delete ${type} "${name}"? This cannot be undone.`)) {
             return;
         }
@@ -282,7 +282,8 @@ export default function CRMTab() {
             await deleteCrmEntity(id, type);
             toast({ title: 'Deleted', description: `${name} has been removed from CRM.` });
             if (type === 'brand') loadBrands();
-            else loadDispensaries();
+            else if (type === 'dispensary') loadDispensaries();
+            else loadUsers();
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete entity.' });
         }
@@ -429,6 +430,7 @@ export default function CRMTab() {
                                             <TableHead>MRR</TableHead>
                                             <TableHead>Signup</TableHead>
                                             <TableHead>Last Login</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -464,6 +466,17 @@ export default function CRMTab() {
                                                 </TableCell>
                                                 <TableCell className="text-xs text-muted-foreground">
                                                     {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive rounded-full"
+                                                        onClick={() => handleDelete('user', user.id, user.displayName)}
+                                                        title="Delete User"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
