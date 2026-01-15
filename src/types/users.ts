@@ -3,7 +3,7 @@ export type DomainUserProfile = {
     uid: string;
     email: string | null;
     displayName: string | null;
-    role: 'brand' | 'dispensary' | 'customer' | 'budtender' | 'owner' | 'super_admin' | 'super_user' | null;
+    role: 'brand' | 'dispensary' | 'customer' | 'budtender' | 'super_user' | null;
 
     // Enterprise Context
     organizationIds: string[]; // List of IDs this user belongs to

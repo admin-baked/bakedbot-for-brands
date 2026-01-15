@@ -4,7 +4,10 @@ import { useMemo, useState, useEffect } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import type { DomainUserProfile } from '@/types/domain';
 
-export type Role = 'brand' | 'dispensary' | 'customer' | 'budtender' | 'owner' | 'super_admin';
+import { UserRole } from '@/types/roles';
+
+// Role is now synonymous with UserRole
+export type Role = UserRole;
 
 /**
  * Hook for accessing user role and checking permissions.
@@ -37,6 +40,8 @@ export function useUserRole() {
         if (typeof document !== 'undefined') {
             const match = document.cookie.match(new RegExp('(^| )x-simulated-role=([^;]+)'));
             if (match) {
+                // Ensure the cookie value is a valid role, otherwise ignore or default
+                // In a stricter world we might validation against UserRole values
                 setSimulatedRole(match[2] as Role);
             }
         }
@@ -57,11 +62,11 @@ export function useUserRole() {
     }, [role]);
 
     const canAccessDashboard = useMemo(() => {
-        return role === 'brand' || role === 'dispensary' || role === 'owner' || role === 'customer' || role === 'budtender';
+        return role === 'brand' || role === 'dispensary' || role === 'super_user' || role === 'customer' || role === 'budtender';
     }, [role]);
 
     const canAccessAdminFeatures = useMemo(() => {
-        return realRole === 'owner';
+        return realRole === 'super_user';
     }, [realRole]);
 
     const defaultRoute = useMemo(() => {
@@ -71,7 +76,7 @@ export function useUserRole() {
             case 'customer':
             case 'budtender':
                 return '/dashboard'; // All dashboards on Overview now
-            case 'owner':
+            case 'super_user':
                 return '/dashboard/playbooks';
             default:
                 return '/';

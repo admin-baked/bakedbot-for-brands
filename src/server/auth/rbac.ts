@@ -16,14 +16,12 @@ export type Permission =
     | 'manage:users'
     | 'admin:all';
 
-export type UserRole = 'brand' | 'dispensary' | 'customer' | 'budtender' | 'owner' | 'super_admin' | 'super_user';
+export type UserRole = 'brand' | 'dispensary' | 'customer' | 'budtender' | 'super_user';
 
 /**
  * Role-based permission matrix
  */
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-    owner: ['admin:all'],
-    super_admin: ['admin:all'],
     super_user: ['admin:all'],
     brand: [
         'read:products',
@@ -61,7 +59,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
  */
 export function hasRole(user: DomainUserProfile | null, role: UserRole): boolean {
     if (!user || !user.role) return false;
-    return user.role === role || user.role === 'owner' || user.role === 'super_admin';
+    return user.role === role || user.role === 'super_user';
 }
 
 /**
@@ -73,10 +71,10 @@ export function hasPermission(
 ): boolean {
     if (!user || !user.role) return false;
 
-    // Owners and Super Admins have all permissions
-    if (user.role === 'owner' || user.role === 'super_admin') return true;
+    // Super Users have all permissions
+    if (user.role === 'super_user') return true;
 
-    const userPermissions = ROLE_PERMISSIONS[user.role] || [];
+    const userPermissions = ROLE_PERMISSIONS[user.role as UserRole] || [];
     return userPermissions.includes(permission) || userPermissions.includes('admin:all');
 }
 
@@ -84,7 +82,7 @@ export function hasPermission(
  * Check permission by role directly
  */
 export function hasRolePermission(role: UserRole, permission: Permission): boolean {
-    if (role === 'owner' || role === 'super_admin') return true;
+    if (role === 'super_user') return true;
     const permissions = ROLE_PERMISSIONS[role] || [];
     return permissions.includes(permission) || permissions.includes('admin:all');
 }
@@ -98,8 +96,8 @@ export function canAccessBrand(
 ): boolean {
     if (!user) return false;
 
-    // Owners and Super Admins can access all brands
-    if (user.role === 'owner' || user.role === 'super_admin') return true;
+    // Super Users can access all brands
+    if (user.role === 'super_user') return true;
 
     // Brand users can only access their own brand
     if (user.role === 'brand') {
@@ -118,8 +116,8 @@ export function canAccessDispensary(
 ): boolean {
     if (!user) return false;
 
-    // Owners and Super Admins can access all dispensaries
-    if (user.role === 'owner' || user.role === 'super_admin') return true;
+    // Super Users can access all dispensaries
+    if (user.role === 'super_user') return true;
 
     // Dispensary users can only access their own location
     if (user.role === 'dispensary') {
@@ -138,8 +136,8 @@ export function canAccessOrder(
 ): boolean {
     if (!user) return false;
 
-    // Owners and Super Admins can access all orders
-    if (user.role === 'owner' || user.role === 'super_admin') return true;
+    // Super Users can access all orders
+    if (user.role === 'super_user') return true;
 
     // Customers can only access their own orders
     if (user.role === 'customer') {
@@ -169,7 +167,7 @@ export function canAccessOrder(
  */
 export function getUserPermissions(user: DomainUserProfile | null): Permission[] {
     if (!user || !user.role) return [];
-    return ROLE_PERMISSIONS[user.role] || [];
+    return ROLE_PERMISSIONS[user.role as UserRole] || [];
 }
 
 /**
