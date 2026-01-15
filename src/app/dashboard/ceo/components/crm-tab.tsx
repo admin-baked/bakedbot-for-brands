@@ -30,6 +30,7 @@ import {
     getPlatformUsers,
     getCRMUserStats,
     deleteCrmEntity,
+    deleteUserByEmail,
     type CRMBrand, 
     type CRMDispensary, 
     type CRMLead, 
@@ -289,6 +290,23 @@ export default function CRMTab() {
         }
     };
 
+    const handleCleanup = async () => {
+        const email = prompt("Enter email of the user to force delete (Zombie Cleanup):");
+        if (!email) return;
+
+        if (!confirm(`DANGER: Are you sure you want to FORCE DELETE ${email} from Auth and Firestore? This bypasses standard checks.`)) {
+             return;
+        }
+
+        try {
+            const result = await deleteUserByEmail(email);
+            toast({ title: 'Cleanup Result', description: result });
+            loadUsers();
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Cleanup Failed', description: e.message });
+        }
+    };
+
     const SortIcon = ({ column, currentSort }: { column: string, currentSort: { key: string, direction: 'asc' | 'desc' } }) => {
         if (currentSort.key !== column) return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
         return currentSort.direction === 'asc' ? 
@@ -407,6 +425,9 @@ export default function CRMTab() {
                                 </Select>
                                 <Button onClick={loadUsers}>
                                     <Search className="h-4 w-4" />
+                                </Button>
+                                <Button variant="destructive" size="icon" onClick={handleCleanup} title="Force User Cleanup">
+                                    <Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>
 
