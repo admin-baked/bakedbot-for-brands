@@ -54,4 +54,37 @@ describe('useDashboardConfig', () => {
         const overviewLink = result.current.navLinks.find(link => link.label === 'Overview');
         expect(overviewLink?.active).toBe(false);
     });
+
+    it('should allow super_user to access restricted areas', () => {
+        (useUserRole as jest.Mock).mockReturnValue({ role: 'super_user' });
+        (usePathname as jest.Mock).mockReturnValue('/dashboard');
+
+        const { result } = renderHook(() => useDashboardConfig());
+
+        // Super User should see Admin Console
+        const hasAdminConsole = result.current.navLinks.some(link => link.label === 'Admin Console');
+        expect(hasAdminConsole).toBe(true);
+
+        // Super User should see Brand links
+        const hasProducts = result.current.navLinks.some(link => link.label === 'Products');
+        expect(hasProducts).toBe(true);
+    });
+
+    it('should show Creative Center to authorized roles', () => {
+        const authorizedRoles = ['brand', 'super_user', 'dispensary'];
+
+        authorizedRoles.forEach(role => {
+            (useUserRole as jest.Mock).mockReturnValue({ role });
+            const { result } = renderHook(() => useDashboardConfig());
+            const hasCreative = result.current.navLinks.some(link => link.label === 'Creative Center');
+            expect(hasCreative).toBe(true);
+        });
+    });
+
+    it('should HIDE Creative Center from unauthorized roles', () => {
+        (useUserRole as jest.Mock).mockReturnValue({ role: 'customer' });
+        const { result } = renderHook(() => useDashboardConfig());
+        const hasCreative = result.current.navLinks.some(link => link.label === 'Creative Center');
+        expect(hasCreative).toBe(false);
+    });
 });
