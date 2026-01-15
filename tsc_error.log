@@ -1,2 +1,17 @@
-src/server/actions/chat-persistence.ts(10,27): error TS2339: Property 'currentUser' does not exist on type 'Auth'.
-src/server/actions/chat-persistence.ts(33,36): error TS2339: Property 'currentUser' does not exist on type 'Auth'.
+src/server/services/growth/search-console.ts(10,24): error TS2307: Cannot find module '@/lib/logger' or its corresponding type declarations.
+src/server/services/growth/search-console.ts(49,38): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(version: "v3"): Webmasters', gave the following error.
+    Argument of type '{ version: string; auth: GoogleAuth<JSONClient>; }' is not assignable to parameter of type '"v3"'.
+  Overload 2 of 2, '(options: Options): Webmasters', gave the following error.
+    Type 'GoogleAuth<JSONClient>' is not assignable to type 'string | GoogleAuth<AuthClient> | OAuth2Client | BaseExternalAccountClient'.
+      Type 'GoogleAuth<JSONClient>' is not assignable to type 'GoogleAuth<AuthClient>'.
+        Property '#private' in type 'GoogleAuth' refers to a different member that cannot be accessed from within type 'GoogleAuth'.
+src/server/tools/query-competitor-history.ts(14,24): error TS2307: Cannot find module '@/lib/logger' or its corresponding type declarations.
+src/server/tools/query-competitor-history.ts(21,8): error TS2307: Cannot find module '@/server/repos/competitor-snapshots' or its corresponding type declarations.
+src/server/tools/query-competitor-history.ts(25,8): error TS2307: Cannot find module '@/server/services/ezal/weekly-intel-report' or its corresponding type declarations.
+src/server/tools/query-competitor-history.ts(26,33): error TS2307: Cannot find module '@/server/services/ezal/competitor-manager' or its corresponding type declarations.
+src/server/tools/query-competitor-history.ts(34,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(registry: Registry, config: { multipart: true; } & ToolConfig<ZodTypeAny, ZodTypeAny>, fn?: ToolFn<ZodTypeAny, ZodTypeAny>): MultipartToolAction<...>', gave the following error.
+    Object literal may only specify known properties, and 'name' does not exist in type 'Registry'.
+  Overload 2 of 2, '(registry: Registry, config: ToolConfig<ZodTypeAny, ZodTypeAny>, fn?: ToolFn<ZodTypeAny, ZodTypeAny>): ToolAction<...>', gave the following error.
+    Object literal may only specify known properties, and 'name' does not exist in type 'Registry'.

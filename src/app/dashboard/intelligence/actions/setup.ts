@@ -94,3 +94,25 @@ export async function finalizeCompetitorSetup(competitors: any[]) {
     revalidatePath('/dashboard/intelligence');
     return { success: true };
 }
+
+export async function searchLeaflyCompetitors(city: string, state: string) {
+    await requireUser();
+    try {
+        const { LeaflyService } = await import('@/server/services/integrations/leafly');
+        const service = new LeaflyService();
+        const results = await service.searchDispensaries(city, state);
+        
+        return results.map(r => ({
+            name: r.name,
+            address: r.address,
+            city: r.city,
+            state: r.state,
+            zip: r.zip,
+            menuUrl: r.menuUrl,
+            logo: '' // Leafly scraper might return this later
+        }));
+    } catch (e: any) {
+        console.error("Leafly search failed:", e);
+        return [];
+    }
+}

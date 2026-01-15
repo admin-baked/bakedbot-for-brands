@@ -547,19 +547,23 @@ export async function updateUserLifecycle(
     await firestore.collection('users').doc(userId).update(updateData);
 }
 
-/**
- * Add CRM note to user
- */
-export async function addCRMNote(
-    userId: string,
-    note: string,
-    authorId: string
-): Promise<void> {
-    const firestore = getAdminFirestore();
-    
     await firestore.collection('users').doc(userId).collection('crm_notes').add({
         note,
         authorId,
         createdAt: new Date(),
     });
+}
+
+/**
+ * Delete a CRM entity (Brand or Dispensary)
+ * Only for admin cleanup
+ */
+export async function deleteCrmEntity(
+    id: string,
+    type: 'brand' | 'dispensary'
+): Promise<void> {
+    const firestore = getAdminFirestore();
+    const collection = type === 'brand' ? 'crm_brands' : 'crm_dispensaries';
+
+    await firestore.collection(collection).doc(id).delete();
 }

@@ -1,0 +1,107 @@
+
+> nextn@0.1.0 check:types
+> node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit
+
+.next/types/validator.ts(25,44): error TS2344: Type 'Route' does not satisfy the constraint 'never'.
+  Type 'LayoutRoutes' is not assignable to type 'never'.
+    Type '"/dashboard"' is not assignable to type 'never'.
+.next/types/validator.ts(25,75): error TS2344: Type 'Route' does not satisfy the constraint 'never'.
+  Type 'LayoutRoutes' is not assignable to type 'never'.
+    Type '"/dashboard"' is not assignable to type 'never'.
+.next/types/validator.ts(2119,31): error TS2344: Type 'typeof import("C:/Users/marte/Baked for Brands/bakedbot-for-brands/src/app/[brand]/layout")' does not satisfy the constraint 'LayoutConfig<"/[brand]">'.
+  Types of property 'default' are incompatible.
+    Type '({ children, params, }: { children: ReactNode; params: Promise<{ brand: string; }>; }) => Promise<Element>' is not assignable to type 'ComponentType<LayoutProps<"/[brand]">> | ((props: LayoutProps<"/[brand]">) => void | Promise<void> | ReactNode | Promise<...>)'.
+      Type '({ children, params, }: { children: ReactNode; params: Promise<{ brand: string; }>; }) => Promise<Element>' is not assignable to type 'FunctionComponent<LayoutProps<"/[brand]">>'.
+        Types of parameters '__0' and 'props' are incompatible.
+          Type 'LayoutProps<"/[brand]">' is not assignable to type '{ children: ReactNode; params: Promise<{ brand: string; }>; }'.
+            Types of property 'params' are incompatible.
+              Type 'Promise<unknown>' is not assignable to type 'Promise<{ brand: string; }>'.
+                Type 'unknown' is not assignable to type '{ brand: string; }'.
+src/app/api/jobs/process/route.ts(392,16): error TS2339: Property 'competitors' does not exist on type '{ discovered: number; }'.
+src/app/api/jobs/process/route.ts(392,38): error TS2339: Property 'competitors' does not exist on type '{ discovered: number; }'.
+src/app/api/jobs/process/route.ts(393,42): error TS2339: Property 'competitors' does not exist on type '{ discovered: number; }'.
+src/app/dashboard/ceo/actions.ts(864,52): error TS2304: Cannot find name 'LocalSEOPage'.
+src/app/dashboard/ceo/actions.ts(987,43): error TS2304: Cannot find name 'LocalSEOPage'.
+src/app/dashboard/ceo/actions.ts(1006,26): error TS2304: Cannot find name 'getZipCodeCoordinates'.
+src/app/dashboard/ceo/actions.ts(1012,29): error TS2304: Cannot find name 'getRetailersByZipCode'.
+src/app/dashboard/ceo/actions.ts(1063,36): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/app/dashboard/ceo/actions.ts(1075,33): error TS2304: Cannot find name 'discoverNearbyProducts'.
+src/app/dashboard/ceo/actions.ts(1088,35): error TS2304: Cannot find name 'discoverNearbyProducts'.
+src/app/dashboard/ceo/actions.ts(1135,26): error TS2304: Cannot find name 'LocalSEOPage'.
+src/app/dashboard/ceo/actions.ts(1150,53): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/app/dashboard/ceo/actions.ts(1280,46): error TS2304: Cannot find name 'LocalSEOPage'.
+src/app/dashboard/ceo/actions.ts(1283,26): error TS2304: Cannot find name 'getZipCodeCoordinates'.
+src/app/dashboard/ceo/actions.ts(1290,33): error TS2304: Cannot find name 'discoverNearbyProducts'.
+src/app/dashboard/ceo/actions.ts(1302,31): error TS2304: Cannot find name 'discoverNearbyProducts'.
+src/app/dashboard/ceo/actions.ts(1315,31): error TS2304: Cannot find name 'discoverNearbyProducts'.
+src/app/dashboard/ceo/actions.ts(1327,29): error TS2304: Cannot find name 'getRetailersByZipCode'.
+src/app/dashboard/ceo/actions.ts(1329,66): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/dashboard/ceo/actions.ts(1341,15): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/dashboard/ceo/actions.ts(1343,12): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/dashboard/ceo/actions.ts(1355,46): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/dashboard/ceo/actions.ts(1365,51): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/app/dashboard/ceo/components/puff-chat.tsx(29,28): error TS2307: Cannot find module '@/lib/markdown/artifact-plugin' or its corresponding type declarations.
+src/app/dashboard/ceo/components/puff-chat.tsx(37,30): error TS2307: Cannot find module '../../agents/personas' or its corresponding type declarations.
+src/app/dashboard/ceo/components/puff-chat.tsx(462,30): error TS2552: Cannot find name 'setIsProcessing'. Did you mean 'isProcessing'?
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(93,38): error TS2345: Argument of type 'SystemIntegrations' is not assignable to parameter of type 'SetStateAction<Record<string, "active" | "error" | "disconnected">>'.
+  Type 'SystemIntegrations' is not assignable to type 'Record<string, "active" | "error" | "disconnected">'.
+    Index signature for type 'string' is missing in type 'SystemIntegrations'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(243,57): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(252,33): error TS2322: Type '"system_health"' is not assignable to type '"compliance_report" | "product_rec" | "elasticity_analysis" | "session_context" | "hire_modal" | undefined'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(263,39): error TS2339: Property 'role' does not exist on type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(265,53): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(267,54): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(273,53): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(275,54): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(280,40): error TS2339: Property 'role' does not exist on type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(287,40): error TS2339: Property 'role' does not exist on type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(303,53): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(305,54): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(325,44): error TS2339: Property 'role' does not exist on type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(344,42): error TS2339: Property 'role' does not exist on type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(354,47): error TS2339: Property 'role' does not exist on type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(372,48): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(380,13): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(392,46): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(478,48): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(481,38): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(496,48): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(499,38): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(514,48): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(517,38): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(529,29): error TS2322: Type '"system_health"' is not assignable to type '"compliance_report" | "product_rec" | "elasticity_analysis" | "session_context" | "hire_modal" | undefined'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(538,48): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(541,38): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(549,51): error TS2339: Property 'name' does not exist on type '{ success: boolean; campaign: { sms: { text: any; compliance: string; chars: any; }; social: { text: any; compliance: string; chars: any; }; emailSubject: any; }; source: string; error?: undefined; }'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(561,49): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(564,39): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(589,48): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(592,53): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(598,49): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(601,39): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(618,48): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(622,39): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(636,48): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(639,54): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(645,48): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(648,38): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(655,55): error TS2339: Property 'report' does not exist on type '{ success: boolean; error: string; url?: undefined; riskScore?: undefined; details?: undefined; preview?: undefined; isLive?: undefined; source?: undefined; } | { success: boolean; url: string; riskScore: string; ... 4 more ...; error?: undefined; }'.
+  Property 'report' does not exist on type '{ success: boolean; error: string; url?: undefined; riskScore?: undefined; details?: undefined; preview?: undefined; isLive?: undefined; source?: undefined; }'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(665,48): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(668,54): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/ceo/hooks/use-puff-chat-logic.ts(735,13): error TS2353: Object literal may only specify known properties, and 'role' does not exist in type 'ChatMessage'.
+src/app/dashboard/playbooks/components/agent-chat.tsx(163,11): error TS2741: Property 'bigworm' is missing in type '{ puff: { label: string; desc: string; icon: React.ForwardRefExoticComponent<Omit<LucideProps, "ref"> & React.RefAttributes<SVGSVGElement>>; }; ... 16 more ...; sales_scout: { ...; }; }' but required in type 'Record<AgentPersona, { label: string; desc: string; icon: any; }>'.
+src/components/chat/chat-feedback.tsx(163,51): error TS2304: Cannot find name 'Loader2'.
+src/components/chat/thinking-window.tsx(31,10): error TS2459: Module '"@/app/dashboard/ceo/components/puff-chat"' declares 'ToolCallStep' locally, but it is not exported.
+src/components/chat/thought-bubble.tsx(7,10): error TS2459: Module '"@/app/dashboard/ceo/components/puff-chat"' declares 'ToolCallStep' locally, but it is not exported.
+src/server/agents/agent-runner.ts(188,61): error TS2339: Property 'role' does not exist on type 'PersonaConfig'.
+src/server/agents/ezal.ts(120,45): error TS2339: Property 'searchProducts' does not exist on type 'EzalTools'.
+src/server/repos/competitor-snapshots.ts(197,41): error TS2802: Type 'MapIterator<[string, CompetitorSnapshot[]]>' can only be iterated through when using the '--downlevelIteration' flag or with a '--target' of 'es2015' or higher.
+src/server/repos/competitor-snapshots.ts(198,40): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/server/repos/competitor-snapshots.ts(199,43): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/server/repos/competitor-snapshots.ts(206,36): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+src/server/repos/competitor-snapshots.ts(206,41): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/server/services/cannmenus.ts(627,58): error TS2554: Expected 2 arguments, but got 1.
+src/server/services/cannmenus.ts(638,25): error TS2345: Argument of type 'Chunk[]' is not assignable to parameter of type 'string'.
+src/server/services/crm-service.ts(400,9): error TS2740: Type 'Query<DocumentData, DocumentData>' is missing the following properties from type 'CollectionReference<DocumentData, DocumentData>': id, parent, path, listDocuments, and 2 more.
+src/server/services/crm-service.ts(402,9): error TS2740: Type 'Query<DocumentData, DocumentData>' is missing the following properties from type 'CollectionReference<DocumentData, DocumentData>': id, parent, path, listDocuments, and 2 more.

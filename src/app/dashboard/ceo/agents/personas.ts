@@ -148,7 +148,8 @@ export const PERSONAS: Record<AgentPersona, PersonaConfig> = {
         
         Tone: Sharp, street-smart, vigilant. "I got eyes on everything."`,
         tools: ['web_search', 'browser_action', 'cannmenus_discovery'],
-        skills: ['core/search', 'core/browser', 'domain/cannmenus', 'core/agent']
+
+        skills: ['core/search', 'core/browser', 'domain/cannmenus', 'domain/intel/competitor-analyzer', 'core/agent']
     },
     money_mike: {
         id: 'money_mike',
@@ -262,7 +263,7 @@ export const PERSONAS: Record<AgentPersona, PersonaConfig> = {
         Tone:
         High-energy, confident, creative. Provide 3 variations (Professional, Hype, Educational).`,
         tools: ['web_search', 'browser_action', 'gmail_action'],
-        skills: ['core/email', 'core/search', 'core/agent']
+        skills: ['core/email', 'core/search', 'domain/sales/city-scanner', 'core/agent']
     },
 
     // --- Executive Suite ---
