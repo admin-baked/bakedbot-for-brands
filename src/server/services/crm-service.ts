@@ -1,6 +1,6 @@
 'use server';
 
-import { getAdminFirestore } from '@/firebase/admin';
+import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { CRMLifecycleStage, CRMUser } from './crm-types';
 
@@ -570,10 +570,24 @@ export async function addCRMNote(
  */
 export async function deleteCrmEntity(
     id: string,
-    type: 'brand' | 'dispensary'
+    type: 'brand' | 'dispensary' | 'user'
 ): Promise<void> {
     const firestore = getAdminFirestore();
-    const collection = type === 'brand' ? 'crm_brands' : 'crm_dispensaries';
 
+    if (type === 'user') {
+        const auth = getAdminAuth();
+        try {
+            await auth.deleteUser(id);
+        } catch (error: any) {
+            // Ignore if user not found (already deleted or ghost)
+            if (error.code !== 'auth/user-not-found') {
+                console.error('Error deleting user from Auth:', error);
+            }
+        }
+        await firestore.collection('users').doc(id).delete();
+        return;
+    }
+
+    const collection = type === 'brand' ? 'crm_brands' : 'crm_dispensaries';
     await firestore.collection(collection).doc(id).delete();
 }
