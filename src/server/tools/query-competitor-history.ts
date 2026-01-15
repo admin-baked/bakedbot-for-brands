@@ -9,7 +9,7 @@
  * - "What pricing strategy would work best?"
  */
 
-import { defineTool } from '@genkit-ai/ai';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import {
@@ -29,7 +29,7 @@ import { listCompetitors } from '@/server/services/ezal/competitor-manager';
 // TOOL DEFINITION
 // =============================================================================
 
-export const queryCompetitorHistoryTool = defineTool(
+export const queryCompetitorHistoryTool = ai.defineTool(
     {
         name: 'queryCompetitorHistory',
         description: `Query saved competitive intelligence data. Use for questions like:

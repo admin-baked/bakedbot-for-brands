@@ -46,7 +46,7 @@ export class SearchConsoleService {
                 scopes: ['https://www.googleapis.com/auth/webmasters.readonly']
             });
             
-            this.webmasters = google.webmasters({ version: 'v3', auth });
+            this.webmasters = google.webmasters({ version: 'v3', auth: auth as any });
             this.siteUrl = process.env.SEARCH_CONSOLE_SITE_URL; // e.g., 'https://bakedbot.ai'
             
             if (!this.siteUrl) {
