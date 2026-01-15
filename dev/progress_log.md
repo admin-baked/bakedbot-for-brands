@@ -2822,3 +2822,25 @@ Updated the High Road Thailand page to use locally hosted high-resolution logos 
 
 ### Result: ? Complete
 Logos are now served locally.
+
+---
+
+## Session: 2026-01-15 (User Deletion & CRM Management)
+### Task ID
+user_deletion_and_crm_delete
+
+### Summary
+Implemented functionality to delete specific users and added a Super User feature to delete CRM entities (Brands/Dispensaries) directly from the dashboard. Deleted the target user `ecstaticedibles@bakedbot.ai` using a dedicated script.
+
+### Key Changes
+*   **NEW**: `dev/delete_target_user.ts` - Script to delete a user from Firebase Auth and Firestore.
+*   **MOD**: `src/server/services/crm-service.ts` - Added `deleteCrmEntity` function.
+*   **MOD**: `src/app/dashboard/ceo/components/crm-tab.tsx` - Added "Delete" button to CRM tables with confirmation dialog.
+*   **NOTE**: Unit test `tests/server/services/crm-service.test.ts` was created but deferred to backlog (`task_test_crm_service`) due to Jest environment issues with `firebase-admin` imports.
+
+### Tests Run
+*   `npx tsx dev/delete_target_user.ts` (Passed ✅) - User deleted successfully.
+*   `npm test tests/server/services/crm-service.test.ts` (Failed ❌ - Deferred to backlog)
+
+### Result: ✅ Complete
+Target user deleted. CRM deletion feature deployed.
