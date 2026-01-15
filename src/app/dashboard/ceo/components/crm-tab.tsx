@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Building2, Store, Search, Globe, CheckCircle, XCircle, Inbox, Send, ArrowUpDown, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { Loader2, Building2, Store, Search, Globe, CheckCircle, XCircle, Inbox, Send, ArrowUpDown, TrendingUp, Users, DollarSign, Trash2 } from 'lucide-react';
 import {
     Table,
     TableBody,
@@ -28,8 +28,8 @@ import {
     getDispensaries, 
     getPlatformLeads, 
     getPlatformUsers,
-    getCRMStats, 
     getCRMUserStats,
+    deleteCrmEntity,
     type CRMBrand, 
     type CRMDispensary, 
     type CRMLead, 
@@ -270,6 +270,21 @@ export default function CRMTab() {
             }
         } catch (e: any) {
             toast({ variant: 'destructive', title: 'Error', description: e.message || 'Failed to send invite' });
+        }
+    };
+
+    const handleDelete = async (type: 'brand' | 'dispensary', id: string, name: string) => {
+        if (!confirm(`Are you sure you want to delete ${type} "${name}"? This cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            await deleteCrmEntity(id, type);
+            toast({ title: 'Deleted', description: `${name} has been removed from CRM.` });
+            if (type === 'brand') loadBrands();
+            else loadDispensaries();
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to delete entity.' });
         }
     };
 
@@ -618,17 +633,28 @@ export default function CRMTab() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    {brand.claimStatus !== 'claimed' && (
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="sm" 
-                                                            className="h-8 gap-1 text-primary hover:text-primary hover:bg-primary/10"
-                                                            onClick={() => handleInvite('brand', brand)}
+                                                    <div className="flex justify-end items-center gap-2">
+                                                        {brand.claimStatus !== 'claimed' && (
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                className="h-8 gap-1 text-primary hover:text-primary hover:bg-primary/10"
+                                                                onClick={() => handleInvite('brand', brand)}
+                                                            >
+                                                                <Send className="h-3 w-3" />
+                                                                Invite
+                                                            </Button>
+                                                        )}
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive rounded-full"
+                                                            onClick={() => handleDelete('brand', brand.id, brand.name)}
+                                                            title="Delete"
                                                         >
-                                                            <Send className="h-3 w-3" />
-                                                            Invite
+                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
-                                                    )}
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -788,17 +814,28 @@ export default function CRMTab() {
                                                     {disp.discoveredAt ? new Date(disp.discoveredAt).toLocaleDateString() : 'N/A'}
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    {disp.claimStatus !== 'claimed' && (
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="sm" 
-                                                            className="h-8 gap-1 text-primary hover:text-primary hover:bg-primary/10"
-                                                            onClick={() => handleInvite('dispensary', disp)}
+                                                    <div className="flex justify-end items-center gap-2">
+                                                        {disp.claimStatus !== 'claimed' && (
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                className="h-8 gap-1 text-primary hover:text-primary hover:bg-primary/10"
+                                                                onClick={() => handleInvite('dispensary', disp)}
+                                                            >
+                                                                <Send className="h-3 w-3" />
+                                                                Invite
+                                                            </Button>
+                                                        )}
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive rounded-full"
+                                                            onClick={() => handleDelete('dispensary', disp.id, disp.name)}
+                                                            title="Delete"
                                                         >
-                                                            <Send className="h-3 w-3" />
-                                                            Invite
+                                                             <Trash2 className="h-4 w-4" />
                                                         </Button>
-                                                    )}
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
