@@ -1,7 +1,7 @@
 'use server';
 
 import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Query } from 'firebase-admin/firestore';
 import type { CRMLifecycleStage, CRMUser } from './crm-types';
 
 export interface CRMBrand {
@@ -392,7 +392,7 @@ export async function getPlatformLeads(filters: CRMFilters = {}): Promise<CRMLea
  */
 export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUser[]> {
     const firestore = getAdminFirestore();
-    let query = firestore
+    let query: Query = firestore
         .collection('users');
         // .orderBy('createdAt', 'desc'); // REMOVED: Excludes users without createdAt
 
@@ -441,6 +441,7 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
             orgId: data.orgId || data.tenantId || null,
             orgName: data.orgName || null,
             notes: data.crmNotes || null,
+            approvalStatus: data.approvalStatus || 'approved', // Default to approved for legacy/existing
         } as CRMUser;
     });
 
@@ -636,3 +637,5 @@ export async function deleteUserByEmail(email: string): Promise<string> {
     
     return result;
 }
+
+

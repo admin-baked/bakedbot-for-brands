@@ -29,6 +29,7 @@ import {
     getPlatformLeads, 
     getPlatformUsers,
     getCRMUserStats,
+    getCRMStats,
     deleteCrmEntity,
     deleteUserByEmail,
     type CRMBrand, 
@@ -42,7 +43,7 @@ import {
     type CRMLifecycleStage
 } from '@/server/services/crm-types';
 import { Pagination, usePagination } from '@/components/ui/pagination';
-import { inviteToClaimAction } from '../actions';
+import { inviteToClaimAction, approveUser, rejectUser } from '../actions';
 
 const US_STATES = [
     'All States',
@@ -61,6 +62,41 @@ export default function CRMTab() {
 
     // Stats
     const [stats, setStats] = useState<{ totalBrands: number; totalDispensaries: number; claimedBrands: number; claimedDispensaries: number; totalPlatformLeads: number } | null>(null);
+
+    // ... (rest of state items are standard hooks initialized inside component, keeping code flow minimal)
+    
+    // ... [Inside component]
+    
+    // Handler for Approve
+    const handleApproveUser = async (uid: string, name: string) => {
+        try {
+            const result = await approveUser(uid);
+            if (result.success) {
+                toast({ title: 'Approved', description: `${name} has been approved.` });
+                loadUsers();
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        }
+    };
+
+    // Handler for Reject
+    const handleRejectUser = async (uid: string, name: string) => {
+        if (!confirm(`Reject ${name}? This will disable their account.`)) return;
+        try {
+            const result = await rejectUser(uid);
+            if (result.success) {
+                toast({ title: 'Rejected', description: `${name} has been rejected.` });
+                loadUsers();
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        }
+    };
 
     // Brands
     const [brands, setBrands] = useState<CRMBrand[]>([]);
@@ -489,15 +525,39 @@ export default function CRMTab() {
                                                     {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive rounded-full"
-                                                        onClick={() => handleDelete('user', user.id, user.displayName)}
-                                                        title="Delete User"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        {user.approvalStatus === 'pending' && (
+                                                            <>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                                    onClick={() => handleApproveUser(user.id, user.displayName)}
+                                                                    title="Approve User"
+                                                                >
+                                                                    <CheckCircle className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                    onClick={() => handleRejectUser(user.id, user.displayName)}
+                                                                    title="Reject User"
+                                                                >
+                                                                    <XCircle className="h-4 w-4" />
+                                                                </Button>
+                                                            </>
+                                                        )}
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive rounded-full"
+                                                            onClick={() => handleDelete('user', user.id, user.displayName)}
+                                                            title="Delete User"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))}

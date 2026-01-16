@@ -44,4 +44,5 @@ export interface CRMUser {
     orgId?: string | null;
     orgName?: string | null;
     notes?: string | null;
+    approvalStatus?: 'pending' | 'approved' | 'rejected' | 'disabled';
 }
