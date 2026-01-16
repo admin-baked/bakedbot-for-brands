@@ -114,11 +114,7 @@ function getServiceAccount() {
  * Creates a server-side Firebase client (admin SDK).
  * This function is idempotent, ensuring the app is initialized only once.
  */
-// Import directly to allow bundler to handle resolution
-// This bypasses fs read issues in Next.js Server Actions
-import localServiceAccount from '../../service-account.json';
-
-// ...
+// function getServiceAccount is defined above, let's use it.
 
 export async function createServerClient() {
   // Ensure we use a unique app name to avoid "already exists" errors or race conditions
@@ -127,26 +123,8 @@ export async function createServerClient() {
   const existingApps = getApps().filter(a => a.name === appName);
 
   if (existingApps.length === 0) {
-    let serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-    
-    // Parse environment variable if present
-    let serviceAccountObj;
-    
-    if (serviceAccount) {
-        try {
-            serviceAccountObj = JSON.parse(serviceAccount);
-            console.log('[server-client] Using FIREBASE_SERVICE_ACCOUNT_KEY from env');
-        } catch (e) {
-             // Handle base64 or other formats if needed, but keeping it simple for now
-             console.log('Failed to parse env var key');
-        }
-    }
-
-    // Fallback to imported JSON (Preferred for local dev now)
-    if (!serviceAccountObj) {
-        serviceAccountObj = localServiceAccount;
-        console.log('[server-client] Using imported service-account.json');
-    }
+    // USE THE ROBUST HELPER FUNCTION
+    const serviceAccountObj = getServiceAccount();
 
     if (serviceAccountObj) {
       app = initializeApp({
