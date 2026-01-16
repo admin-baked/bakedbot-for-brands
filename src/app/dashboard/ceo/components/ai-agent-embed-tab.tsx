@@ -21,7 +21,8 @@ import Chatbot from '@/components/chatbot';
 import { cn } from '@/lib/utils';
 import { useOptionalFirebase } from '@/firebase/use-optional-firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { searchCannMenusRetailers, CannMenusResult } from '../actions';
+import { searchCannMenusRetailers } from '../actions';
+import type { CannMenusResult } from '@/server/actions/cannmenus';
 import { useMockData } from '@/hooks/use-mock-data';
 
 // BakedBot assets

@@ -11,8 +11,11 @@ import { ai } from '@/ai/genkit';
 
 import { 
     GenerateVideoInputSchema, 
+    GenerateVideoOutputSchema 
+} from '@/ai/video-types';
+
+import type { 
     GenerateVideoInput, 
-    GenerateVideoOutputSchema, 
     GenerateVideoOutput 
 } from '@/ai/video-types';
 

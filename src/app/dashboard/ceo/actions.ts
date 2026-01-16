@@ -13,12 +13,19 @@ import { makeProductRepo } from '@/server/repos/productRepo';
 import { updateProductEmbeddings } from '@/ai/flows/update-product-embeddings';
 import { formatDistanceToNow } from 'date-fns';
 import { FieldValue } from 'firebase-admin/firestore';
+import { LocalSEOPage } from '@/types/foot-traffic';
+import { 
+    getZipCodeCoordinates, 
+    getRetailersByZipCode, 
+    discoverNearbyProducts 
+} from '@/server/services/geo-discovery';
 
-export type { CannMenusResult };
+
+
 
 export async function runDispensaryPilotAction(city: string, state: string, zipCodes?: string[]): Promise<ActionResult> {
   try {
-    await requireUser(['owner']);
+    await requireUser(['super_user']);
     // Run async - don't await full completion if it takes too long, but for now we await to see logs in dev
     // If it takes > max duration, Vercel will kill it. Ideally use QStash/Inngest. 
     // For now we just kick it off.
@@ -31,7 +38,7 @@ export async function runDispensaryPilotAction(city: string, state: string, zipC
 
 export async function runBrandPilotAction(city: string, state: string): Promise<ActionResult> {
   try {
-    await requireUser(['owner']);
+    await requireUser(['super_user']);
     runBrandPilotJob(city, state).catch(err => console.error('Brand Pilot Background Error:', err));
     return { message: `Started Brand Discovery for ${city}, ${state}` };
   } catch (error: any) {
@@ -46,7 +53,7 @@ const NATIONAL_SEED_MARKETS = [
 
 export async function runNationalSeedAction(): Promise<ActionResult> {
   try {
-    await requireUser(['owner', 'super_user']);
+    await requireUser(['super_user']);
     
     // Import PageGeneratorService for Location (ZIP) pages
     const { PageGeneratorService } = await import('@/server/services/page-generator');
@@ -100,7 +107,7 @@ export async function searchCannMenusRetailers(query: string): Promise<CannMenus
 // Restoring Missing Actions (Stubs to pass build)
 
 export async function initializeAllEmbeddings(): Promise<EmbeddingActionResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   const cookieStore = await cookies();
   const isMock = cookieStore.get('x-use-mock-data')?.value === 'true';
@@ -156,7 +163,7 @@ export async function initializeAllEmbeddings(): Promise<EmbeddingActionResult> 
 export async function getAllUsers() {
   try {
     const { firestore } = await createServerClient();
-    await requireUser(['owner', 'super_user']); // Strict Access
+    await requireUser(['super_user']); // Strict Access
 
     const usersSnap = await firestore.collection('users').orderBy('createdAt', 'desc').limit(100).get();
     
@@ -185,7 +192,7 @@ export async function getAllUsers() {
 export async function promoteToSuperUser(uid: string) {
   try {
     const { firestore } = await createServerClient();
-    const requester = await requireUser(['owner']); // Only Owners can promote (or super_users if we want)
+    const requester = await requireUser(['super_user']); // Only super_users can promote
     // Actually, let's limit to existing super_users/owners
     
     // 1. Update Firebase Auth Custom Claims
@@ -211,7 +218,7 @@ export async function promoteToSuperUser(uid: string) {
 export async function approveUser(uid: string) {
     try {
         const { firestore } = await createServerClient();
-        await requireUser(['owner', 'super_user']);
+        await requireUser(['super_user']);
 
         // 1. Update Firestore
         await firestore.collection('users').doc(uid).update({
@@ -241,7 +248,7 @@ export async function approveUser(uid: string) {
 export async function rejectUser(uid: string) {
     try {
         const { firestore } = await createServerClient();
-        await requireUser(['owner', 'super_user']);
+        await requireUser(['super_user']);
 
         await firestore.collection('users').doc(uid).update({
             approvalStatus: 'rejected',
@@ -257,7 +264,7 @@ export async function rejectUser(uid: string) {
 
 
 export async function createCoupon(prevState: ActionResult, formData: FormData): Promise<ActionResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     const firestore = getAdminFirestore();
@@ -306,7 +313,7 @@ export async function createCoupon(prevState: ActionResult, formData: FormData):
 // Updated signatures to match useFormState
 // Updated signatures to match useFormState
 export async function importDemoData(prevState: ActionResult, formData?: FormData): Promise<ActionResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     const firestore = getAdminFirestore();
@@ -394,7 +401,7 @@ export async function importDemoData(prevState: ActionResult, formData?: FormDat
 }
 
 export async function clearAllData(prevState: ActionResult, formData?: FormData): Promise<ActionResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
   return { message: 'Data cleared (Mock)' };
 }
 
@@ -443,7 +450,7 @@ export async function createDispensaryAction(data: {
   zip: string;
   ownerEmail?: string;
 }): Promise<ActionResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
   
   try {
     const firestore = getAdminFirestore();
@@ -545,7 +552,7 @@ export type PlatformAnalyticsData = {
 export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
   try {
     const { firestore } = await createServerClient();
-    await requireUser(['owner', 'super_user']);
+    await requireUser(['super_user']);
 
     // 1. Fetch real counts
     const [usersSnap, brandsSnap, orgsSnap, leadsSnap] = await Promise.all([
@@ -678,7 +685,7 @@ export interface SystemPlaybook {
 export async function getSystemPlaybooks(): Promise<SystemPlaybook[]> {
     try {
         const { firestore } = await createServerClient();
-        await requireUser(['owner', 'super_user']);
+        await requireUser(['super_user']);
 
         const snapshot = await firestore.collection('system_playbooks').get();
         
@@ -705,7 +712,7 @@ export async function getSystemPlaybooks(): Promise<SystemPlaybook[]> {
 export async function toggleSystemPlaybook(id: string, active: boolean) {
     try {
         const { firestore } = await createServerClient();
-        await requireUser(['owner', 'super_user']);
+        await requireUser(['super_user']);
 
         await firestore.collection('system_playbooks').doc(id).update({
             active,
@@ -722,7 +729,7 @@ export async function toggleSystemPlaybook(id: string, active: boolean) {
 export async function syncSystemPlaybooks(initialSet: any[]) {
     try {
         const { firestore } = await createServerClient();
-        await requireUser(['owner', 'super_user']);
+        await requireUser(['super_user']);
 
         const batch = firestore.batch();
         
@@ -747,7 +754,7 @@ export async function syncSystemPlaybooks(initialSet: any[]) {
 import { fetchSeoKpis, type SeoKpis } from '@/lib/seo-kpis';
 import { calculateMrrLadder } from '@/lib/mrr-ladder';
 
-export type { SeoKpis };
+
 
 export async function getSeoKpis(): Promise<SeoKpis> {
   try {
@@ -850,7 +857,7 @@ import { ragService } from '@/server/services/vector-search/rag-service';
 
 export async function getRagIndexStats() {
   try {
-    await requireUser(['owner', 'super_user']);
+    await requireUser(['super_user']);
     return await ragService.getStats();
   } catch (error) {
     console.error('Error fetching RAG stats:', error);
@@ -992,7 +999,7 @@ export async function getSeoPagesAction(): Promise<LocalSEOPage[]> {
 }
 
 export async function seedSeoPageAction(data: { zipCode: string; featuredDispensaryName?: string }): Promise<ActionResult> {
-  await requireUser(['owner']); // Ensure only admins can seed
+  await requireUser(['super_user']); // Ensure only admins can seed
 
   try {
     const { zipCode, featuredDispensaryName } = data;
@@ -1217,7 +1224,7 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
 
 
 export async function deleteSeoPageAction(zipCode: string): Promise<ActionResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     const firestore = getAdminFirestore();
@@ -1239,7 +1246,7 @@ export async function toggleSeoPagePublishAction(
   pageType: 'zip' | 'dispensary',
   published: boolean
 ): Promise<ActionResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     const firestore = getAdminFirestore();
@@ -1264,7 +1271,7 @@ export async function toggleSeoPagePublishAction(
  * Refresh SEO Page Data (Manual Sync)
  */
 export async function refreshSeoPageDataAction(zipCode: string): Promise<ActionResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     const firestore = getAdminFirestore();
@@ -1431,7 +1438,7 @@ export async function bulkSeoPageStatusAction(
   pageType: 'zip' | 'dispensary',
   published: boolean
 ): Promise<ActionResult & { count?: number }> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     if (!pageIds.length) {
@@ -1468,7 +1475,7 @@ export async function bulkSeoPageStatusAction(
  * Set top 25 ZIPs to published and rest to draft
  */
 export async function setTop25PublishedAction(): Promise<ActionResult & { published?: number; draft?: number }> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   const TOP_25_ZIPS = [
     '60601', '60602', '60603', '60604', '60605',
@@ -1554,7 +1561,7 @@ export async function getLivePreviewProducts(cannMenusId: string) {
 }
 
 export async function getFootTrafficMetrics(): Promise<FootTrafficMetrics> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     const firestore = getAdminFirestore();
@@ -1718,7 +1725,7 @@ export async function getBrandProductsAction(brandId: string, state?: string): P
  * Create a new brand SEO page
  */
 export async function createBrandPageAction(input: CreateBrandPageInput): Promise<ActionResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     const firestore = getAdminFirestore();
@@ -1816,7 +1823,7 @@ export async function getBrandPagesAction(): Promise<BrandSEOPage[]> {
  * Update a brand SEO page
  */
 export async function updateBrandPageAction(id: string, updates: Partial<CreateBrandPageInput>): Promise<ActionResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     const firestore = getAdminFirestore();
@@ -1843,7 +1850,7 @@ export async function updateBrandPageAction(id: string, updates: Partial<CreateB
  * Delete a brand SEO page
  */
 export async function deleteBrandPageAction(id: string): Promise<ActionResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     const firestore = getAdminFirestore();
@@ -1860,7 +1867,7 @@ export async function deleteBrandPageAction(id: string): Promise<ActionResult> {
  * Toggle publish status of a brand SEO page
  */
 export async function toggleBrandPagePublishAction(id: string, published: boolean): Promise<ActionResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     const firestore = getAdminFirestore();
@@ -1882,7 +1889,7 @@ export async function toggleBrandPagePublishAction(id: string, published: boolea
  * Bulk publish/unpublish all brand pages
  */
 export async function bulkPublishBrandPagesAction(published: boolean): Promise<ActionResult & { count?: number }> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     const firestore = getAdminFirestore();
@@ -1916,7 +1923,7 @@ export async function bulkPublishBrandPagesAction(published: boolean): Promise<A
  * Bulk publish/unpublish all dispensary pages
  */
 export async function bulkPublishDispensaryPagesAction(published: boolean): Promise<ActionResult & { count?: number }> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     const firestore = getAdminFirestore();
@@ -1977,7 +1984,7 @@ export async function getDispensaryPagesAction(): Promise<DispensarySEOPage[]> {
  * Delete a dispensary SEO page
  */
 export async function deleteDispensaryPageAction(id: string): Promise<ActionResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     const firestore = getAdminFirestore();
@@ -2016,7 +2023,7 @@ export async function getDiscoveryJobStatusAction(): Promise<any> {
  * Toggle publish status of a dispensary SEO page
  */
 export async function toggleDispensaryPagePublishAction(id: string, published: boolean): Promise<ActionResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   try {
     const firestore = getAdminFirestore();
@@ -2038,7 +2045,7 @@ import { revalidatePath } from 'next/cache';
 
 export async function inviteToClaimAction(id: string, type: 'brand' | 'dispensary'): Promise<ActionResult> {
   try {
-    await requireUser(['owner']);
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const collection = type === 'brand' ? 'crm_brands' : 'crm_dispensaries';
     const docRef = firestore.collection(collection).doc(id);
@@ -2203,7 +2210,7 @@ function parseZipCodesFromString(input: string): string[] {
  * Validate brand pages CSV and return preview
  */
 export async function validateBrandPagesCSV(csvText: string): Promise<CSVPreview> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   const { headers, rows } = parseCSV(csvText);
   const errors: CSVRowError[] = [];
@@ -2297,7 +2304,7 @@ export async function validateBrandPagesCSV(csvText: string): Promise<CSVPreview
  * Import validated brand page rows
  */
 export async function importBrandPagesAction(rows: Record<string, string>[]): Promise<BulkImportResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   const firestore = getAdminFirestore();
   const createdPages: string[] = [];
@@ -2397,7 +2404,7 @@ export async function importBrandPagesAction(rows: Record<string, string>[]): Pr
  * Validate dispensary pages CSV and return preview
  */
 export async function validateDispensaryPagesCSV(csvText: string): Promise<CSVPreview> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   const { headers, rows } = parseCSV(csvText);
   const errors: CSVRowError[] = [];
@@ -2470,7 +2477,7 @@ export async function validateDispensaryPagesCSV(csvText: string): Promise<CSVPr
  * Import validated dispensary page rows
  */
 export async function importDispensaryPagesAction(rows: Record<string, string>[]): Promise<BulkImportResult> {
-  await requireUser(['owner']);
+  await requireUser(['super_user']);
 
   const firestore = getAdminFirestore();
   const createdPages: string[] = [];
@@ -2564,7 +2571,7 @@ export type CoverageStatus = {
 };
 
 export async function getCoverageStatusAction(): Promise<CoverageStatus> {
-  const user = await requireUser(['owner', 'super_admin']);
+  const user = await requireUser(['super_user']);
   // Use organization ID from user session or metadata
   // Assuming user.orgId exists, or we use user.uid as proxy for now if single-tenant per user
   // In `requireUser`, it returns the user object.
@@ -2579,7 +2586,7 @@ export async function getCoverageStatusAction(): Promise<CoverageStatus> {
   const orgId = user.uid;
 
   // Bypass for Super Admin
-  if (user.role === 'owner') {
+  if (user.role === 'super_user') {
     return {
       planName: 'Super Admin (Unlimited)',
       limit: 999999,
@@ -2690,3 +2697,5 @@ export async function testEmailDispatch(data: { to: string, subject: string, bod
     return { message: error.message, error: true };
   }
 }
+
+

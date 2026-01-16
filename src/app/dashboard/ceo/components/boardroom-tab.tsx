@@ -106,14 +106,14 @@ export default function BoardroomTab() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight">Executive Boardroom</h2>
-                        <p className="text-muted-foreground flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-0.5">
+                        <div className="text-muted-foreground flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-0.5">
                             <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1 animate-pulse w-fit">
                                 <Zap className="h-3 w-3 fill-primary" />
                                 Roundtable Active
                             </Badge>
                             <span className="hidden sm:inline">•</span>
                             <span className="text-sm sm:text-base">Collaborative alignment for $100k MRR target (Jan 2027)</span>
-                        </p>
+                        </div>
                     </div>
                 </div>
 

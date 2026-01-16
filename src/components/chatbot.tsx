@@ -320,6 +320,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const pathname = usePathname();
 
   // Get page context from ChatbotContext (set by individual pages)
   const pageContext = useChatbotContext();
@@ -329,10 +330,6 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   const effectiveBrandId = brandId || pageContext.brandId;
   const effectiveEntityName = entityName || pageContext.entityName;
 
-  // HIDE ON DASHBOARD
-  const pathname = usePathname();
-  if (pathname?.startsWith('/dashboard')) return null;
-
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isBotTyping, setIsBotTyping] = useState(false);
@@ -340,6 +337,9 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   const [sessionId, setSessionId] = useState<string | null>(null);
   const { user } = useAuth();
   const userId = user?.uid || 'anonymous';
+
+  // HIDE ON DASHBOARD
+  if (pathname?.startsWith('/dashboard')) return null;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

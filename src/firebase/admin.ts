@@ -4,10 +4,31 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 
 function getServiceAccount() {
-    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    // --------------------------------------------------------------------------
+    // [MODIFIED] Check LOCAL service-account.json first to prevent race conds
+    // --------------------------------------------------------------------------
+    let serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+    // Look for local file if env var not set
+    if (!serviceAccountKey) {
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const localSaPath = path.resolve(process.cwd(), 'service-account.json');
+            if (fs.existsSync(localSaPath)) {
+                // Read file
+                serviceAccountKey = fs.readFileSync(localSaPath, 'utf-8');
+                console.log('[src/firebase/admin.ts] Loading key from local service-account.json');
+            }
+        } catch (err) {
+            console.warn('[src/firebase/admin.ts] Failed to read local service-account.json', err);
+        }
+    }
+
     if (!serviceAccountKey) {
         return null;
     }
+
     let serviceAccount;
     try {
         // First try to parse as raw JSON
@@ -39,7 +60,7 @@ function getServiceAccount() {
 
             // 4n+1 length invalid. Try 1 byte (xx==).
             if (bodyClean.length % 4 === 1) {
-                console.log(`[src/firebase/admin.ts] Truncating 4n+1 and forcing double padding: ${bodyClean.length} -> 1628 (xx==)`);
+                // console.log(`[src/firebase/admin.ts] Truncating 4n+1...`); // reduced log noise
                 bodyClean = bodyClean.slice(0, -1);
                 bodyClean = bodyClean.slice(0, -2) + '==';
             }
@@ -51,8 +72,6 @@ function getServiceAccount() {
 
             const bodyFormatted = bodyClean.match(/.{1,64}/g)?.join('\n') || bodyClean;
             serviceAccount.private_key = `${header}\n${bodyFormatted}\n${footer}\n`;
-
-            console.log(`[src/firebase/admin.ts] Key Normalized. BodyLen: ${bodyClean.length}`);
         } else {
             serviceAccount.private_key = rawKey.trim().replace(/\\n/g, '\n');
         }
@@ -76,7 +95,8 @@ export function getAdminFirestore() {
             });
         }
     }
-    return getFirestore();
+    // Explicitly grab the default app to ensure no ambiguity
+    return getFirestore(getApps()[0]); 
 }
 
 export function getAdminAuth() {

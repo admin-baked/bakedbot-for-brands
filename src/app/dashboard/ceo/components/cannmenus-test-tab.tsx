@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Loader2, Package, Store } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { searchCannMenusRetailers, type CannMenusResult } from '../actions';
+import { searchCannMenusRetailers } from '../actions';
+import type { CannMenusResult } from '@/server/actions/cannmenus';
 // import { type RetailerLocation } from '@/lib/cannmenus-api'; // Unused now
 
 type BrandResult = {
