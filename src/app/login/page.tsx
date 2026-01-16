@@ -40,7 +40,7 @@ const loginOptions: LoginOption[] = [
     {
         title: 'SuperUser',
         description: 'Platform administration and system management.',
-        href: '/super-admin',
+        href: '/admin-login',
         icon: <Shield className="h-8 w-8" />,
         color: 'bg-gradient-to-br from-orange-500 to-red-600'
     }

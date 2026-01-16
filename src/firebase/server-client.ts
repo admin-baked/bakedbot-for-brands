@@ -23,17 +23,30 @@ function getServiceAccount() {
         // Fallback for local development
         const fs = require('fs');
         const path = require('path');
-        const localSaPath = path.resolve(process.cwd(), 'service-account.json');
-        console.log(`[server-client] Checking for SA at: ${localSaPath}`);
-        if (fs.existsSync(localSaPath)) {
-            serviceAccountKey = fs.readFileSync(localSaPath, 'utf-8');
-            console.log('[server-client] Loaded credentials from local service-account.json');
-        } else {
-            console.log('[server-client] SA file not found at path.');
+        const cwd = process.cwd();
+        console.log(`[server-client] Current working directory: ${cwd}`);
+
+        // Search paths for service-account.json
+        const searchPaths = [
+            path.resolve(cwd, 'service-account.json'),
+            path.resolve(cwd, '..', 'service-account.json'),
+            path.resolve(cwd, '..', '..', 'service-account.json'), // Just in case
+            'C:\\Users\\marte\\Baked for Brands\\bakedbot-for-brands\\service-account.json' // Hard fallback based on known user path
+        ];
+
+        for (const tryPath of searchPaths) {
+            console.log(`[server-client] Checking for SA at: ${tryPath}`);
+            if (fs.existsSync(tryPath)) {
+                serviceAccountKey = fs.readFileSync(tryPath, 'utf-8');
+                console.log(`[server-client] LOADED credentials from: ${tryPath}`);
+                break;
+            }
         }
     } catch (e) {
         console.warn('[server-client] Failed to check for local service-account.json:', e);
     }
+  } else {
+      console.log('[server-client] Using credentials from FIREBASE_SERVICE_ACCOUNT_KEY env var');
   }
 
   if (!serviceAccountKey) {
@@ -101,29 +114,54 @@ function getServiceAccount() {
  * Creates a server-side Firebase client (admin SDK).
  * This function is idempotent, ensuring the app is initialized only once.
  */
+// Import directly to allow bundler to handle resolution
+// This bypasses fs read issues in Next.js Server Actions
+import localServiceAccount from '../../service-account.json';
+
+// ...
+
 export async function createServerClient() {
-  if (getApps().length === 0) {
-    let serviceAccount;
-    try {
-        serviceAccount = getServiceAccount();
-    } catch (e) {
-        console.log('No service account loaded, falling back to ADC');
+  // Ensure we use a unique app name to avoid "already exists" errors or race conditions
+  // with other parts of the app that usually initialize the [DEFAULT] app.
+  const appName = 'server-client-app';
+  const existingApps = getApps().filter(a => a.name === appName);
+
+  if (existingApps.length === 0) {
+    let serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    
+    // Parse environment variable if present
+    let serviceAccountObj;
+    
+    if (serviceAccount) {
+        try {
+            serviceAccountObj = JSON.parse(serviceAccount);
+            console.log('[server-client] Using FIREBASE_SERVICE_ACCOUNT_KEY from env');
+        } catch (e) {
+             // Handle base64 or other formats if needed, but keeping it simple for now
+             console.log('Failed to parse env var key');
+        }
     }
 
-    if (serviceAccount) {
+    // Fallback to imported JSON (Preferred for local dev now)
+    if (!serviceAccountObj) {
+        serviceAccountObj = localServiceAccount;
+        console.log('[server-client] Using imported service-account.json');
+    }
+
+    if (serviceAccountObj) {
       app = initializeApp({
-        credential: cert(serviceAccount)
-      });
-      console.log('Firebase initialized with Service Account config');
+        credential: cert(serviceAccountObj)
+      }, appName);
+      console.log('Firebase initialized with Service Account config (isolated app)');
     } else {
-      console.log('Using Application Default Credentials');
+      console.log('Using Application Default Credentials (isolated app)');
       app = initializeApp({
         credential: applicationDefault(),
         projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8'
-      });
+      }, appName);
     }
   } else {
-    app = getApps()[0]!;
+    app = existingApps[0]!;
   }
 
   const auth = getAuth(app);
@@ -131,7 +169,7 @@ export async function createServerClient() {
   try {
     firestore.settings({ ignoreUndefinedProperties: true });
   } catch (e) {
-    // Ignore "already initialized" error if app was reused
+    // Ignore if settings already applied
   }
   return { auth, firestore };
 }
