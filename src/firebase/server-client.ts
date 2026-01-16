@@ -50,10 +50,8 @@ function getServiceAccount() {
   }
 
   if (!serviceAccountKey) {
-    throw new Error(
-      "FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set and no local service-account.json found. " +
-      "Please refer to DEPLOYMENT_INSTRUCTIONS.md to create and set this secret."
-    );
+    console.warn("FIREBASE_SERVICE_ACCOUNT_KEY not set and no local file found. Using default credentials.");
+    return null;
   }
 
   let serviceAccount;
