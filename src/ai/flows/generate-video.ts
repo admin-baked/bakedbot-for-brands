@@ -8,6 +8,7 @@
  */
 
 import { ai } from '@/ai/genkit';
+import { z } from 'zod';
 
 import { 
     GenerateVideoInputSchema, 
@@ -30,7 +31,7 @@ const FALLBACK_VIDEO_URL = 'https://commondatastorage.googleapis.com/gtv-videos-
 /**
  * Generates a marketing video using Veo 3.1 or Sora based on system settings.
  */
-export async function generateMarketingVideo(input: GenerateVideoInput): Promise<GenerateVideoOutput> {
+export async function generateMarketingVideo(input: z.infer<typeof GenerateVideoInputSchema>): Promise<GenerateVideoOutput> {
     return generateVideoFlow(input);
 }
 
