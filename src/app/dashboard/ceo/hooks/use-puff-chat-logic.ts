@@ -4,7 +4,7 @@ import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 import { useUser } from '@/firebase/auth/use-user';
 import { useJobPoller } from '@/hooks/use-job-poller';
 import { runAgentChat, cancelAgentJob, getGoogleAuthUrl } from '../agents/actions';
-import { checkIntegrationsStatus } from '@/server/actions/integrations';
+import { checkIntegrationsStatus, SystemIntegrations } from '@/server/actions/integrations';
 import { saveChatSession } from '@/server/actions/chat-persistence';
 import { saveArtifact } from '@/server/actions/artifacts';
 import { parseArtifactsFromContent, Artifact } from '@/types/artifact';
@@ -58,7 +58,7 @@ export function usePuffChatLogic({
         triggers: [],
     });
 
-    const [integrationStatus, setIntegrationStatus] = useState<Record<string, 'active' | 'disconnected' | 'error'>>({});
+    const [integrationStatus, setIntegrationStatus] = useState<Partial<SystemIntegrations>>({});
     const [input, setInput] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
     const [showTriggers, setShowTriggers] = useState(false);
@@ -240,12 +240,12 @@ export function usePuffChatLogic({
              const needsDrive = (lowerInput.includes('spreadsheet') || lowerInput.includes('drive file')) && (integrationStatus.sheets !== 'active' || integrationStatus.drive !== 'active');
 
              if (needsGmail || needsDrive) {
-                 addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+                 addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
                  
                  const msg = needsGmail ? "I'd love to handle that email, but I need access to your Gmail first." : "I need access to your Google Drive/Sheets to manage files.";
                  addMessage({
                     id: `agent-${Date.now()}`,
-                    role: 'assistant',
+                    type: 'agent',
                     content: msg,
                     timestamp: new Date(),
                     thinking: { isThinking: false, steps: [], plan: [] },
@@ -260,31 +260,31 @@ export function usePuffChatLogic({
         const lastBot = currentMessages[currentMessages.length - 1];
         
         // SMS Check
-        const askedForSend = lastBot?.role === 'assistant' && lastBot.content.includes("Reply with \"SMS\" or \"Email\"");
+        const askedForSend = lastBot?.type === 'agent' && lastBot.content.includes("Reply with \"SMS\" or \"Email\"");
         if (askedForSend && (lowerInput.includes('sms') || lowerInput.includes('text'))) {
-             addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+             addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
              if (overrideInput === undefined) setInput(''); setIsProcessing(false);
-             addMessage({ id: `agent-${Date.now()}`, role: 'assistant', content: "Got it. **What's your mobile number?** (I'll send the test immediately)", timestamp: new Date() });
+             addMessage({ id: `agent-${Date.now()}`, type: 'agent', content: "Got it. **What's your mobile number?** (I'll send the test immediately)", timestamp: new Date() });
              return;
         }
 
         // Email Check
         if (askedForSend && (lowerInput.includes('email') || lowerInput.includes('mail'))) {
-             addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+             addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
              if (overrideInput === undefined) setInput(''); setIsProcessing(false);
-             addMessage({ id: `agent-${Date.now()}`, role: 'assistant', content: "Understood. **What's your email address?**", timestamp: new Date() });
+             addMessage({ id: `agent-${Date.now()}`, type: 'agent', content: "Understood. **What's your email address?**", timestamp: new Date() });
              return;
         }
 
         // 3. Campaign SMS Execution (Phone Number input)
-        const askedForPhone = lastBot?.role === 'assistant' && lastBot.content.includes("What's your mobile number");
+        const askedForPhone = lastBot?.type === 'agent' && lastBot.content.includes("What's your mobile number");
         if (askedForPhone && /^[\d\+\-\(\) ]{7,20}$/.test(trimmedInput)) {
              executeCampaignSMS(trimmedInput, displayContent);
              return;
         }
 
         // 4. Campaign Email Execution
-        const askedForEmail = lastBot?.role === 'assistant' && lastBot.content.includes("What's your email address");
+        const askedForEmail = lastBot?.type === 'agent' && lastBot.content.includes("What's your email address");
         if (askedForEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedInput)) {
              executeCampaignEmail(trimmedInput, displayContent);
              return;
@@ -300,9 +300,9 @@ export function usePuffChatLogic({
         // Digital Budtender
         if (trimmedInput.includes("Digital Budtender") || trimmedInput.includes("See my")) {
              window.dispatchEvent(new Event('open-smokey-widget'));
-             addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+             addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
              if (overrideInput === undefined) setInput('');
-             addMessage({ id: `agent-${Date.now()}`, role: 'assistant', content: `**🌿 Smokey Activated**\n\nI've opened the Digital Budtender widget for you.\n\n[**View Full Demo Experience →**](https://bakedbot.ai/shop/demo)`, timestamp: new Date() });
+             addMessage({ id: `agent-${Date.now()}`, type: 'agent', content: `**🌿 Smokey Activated**\n\nI've opened the Digital Budtender widget for you.\n\n[**View Full Demo Experience →**](https://bakedbot.ai/shop/demo)`, timestamp: new Date() });
              if(focusInput) focusInput();
              return;
         }
@@ -322,7 +322,7 @@ export function usePuffChatLogic({
             }
 
             // Brand Name Input (Ezal Follow-up)
-            const askedForBrand = lastBot?.role === 'assistant' && lastBot.content.includes("What is the name of your brand?");
+            const askedForBrand = lastBot?.type === 'agent' && lastBot.content.includes("What is the name of your brand?");
             if (askedForBrand && trimmedInput.length > 1) {
                  executeBrandAudit(trimmedInput, displayContent);
                  return;
@@ -341,7 +341,7 @@ export function usePuffChatLogic({
             }
 
             // URL Input (Deebo Follow-up)
-            const askedForUrl = lastBot?.role === 'assistant' && lastBot.content.includes("Paste the URL");
+            const askedForUrl = lastBot?.type === 'agent' && lastBot.content.includes("Paste the URL");
             const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
             if (askedForUrl && urlRegex.test(trimmedInput)) {
                  executeComplianceScan(trimmedInput, displayContent);
@@ -351,7 +351,7 @@ export function usePuffChatLogic({
             // Location Input (Market Scout)
             const zipOrCityRegex = /^\d{5}$/
             const isCity = /^[a-zA-Z\s]{3,30}$/.test(trimmedInput) && !lowerInput.includes('http');
-            const askedForLocation = lastBot?.role === 'assistant' && (lastBot.content.includes("What City/Zip?") || lastBot.content.includes("search?"));
+            const askedForLocation = lastBot?.type === 'agent' && (lastBot.content.includes("What City/Zip?") || lastBot.content.includes("search?"));
             
             if (askedForLocation && (zipOrCityRegex.test(trimmedInput) || isCity)) {
                  const isBrand = lastBot.content.includes("find dispensary partners"); // Context check
@@ -369,7 +369,7 @@ export function usePuffChatLogic({
 
 
         // STANDARD SUBMISSION
-        addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+        addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
         if (overrideInput === undefined) setInput('');
         setAttachments([]);
         setIsProcessing(true);
@@ -377,7 +377,7 @@ export function usePuffChatLogic({
         const thinkingId = `thinking-${Date.now()}`;
         addMessage({
             id: thinkingId,
-            role: 'assistant',
+            type: 'agent',
             content: '',
             timestamp: new Date(),
             thinking: { isThinking: true, steps: [], plan: [] }
@@ -389,7 +389,7 @@ export function usePuffChatLogic({
             
             if (!isAuthenticated) {
                 // Public / Demo Mode
-                addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
+                addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [], plan: [] } });
 
                 simulateDemoSteps(thinkingId, userInput, persona).then(simSteps => {
                      // Update thinking steps
@@ -475,10 +475,10 @@ export function usePuffChatLogic({
     // --- EXECUTION HELPERS (Imports on demand) ---
 
     async function executeCampaignSMS(phone: string, displayContent: string) {
-        addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+        addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
         setInput(''); setIsProcessing(true);
         const thinkingId = `agent-${Date.now()}`;
-        addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'init', toolName: "Blackleaf", description: "Connecting...", status: 'in-progress' }], plan: [] } });
+        addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'init', toolName: "Blackleaf", description: "Connecting...", status: 'in-progress' }], plan: [] } });
         
         const { sendDemoSMS } = await import('@/app/dashboard/intelligence/actions/demo-setup');
         await new Promise(r => setTimeout(r, 800));
@@ -493,10 +493,10 @@ export function usePuffChatLogic({
     }
 
     async function executeCampaignEmail(email: string, displayContent: string) {
-        addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+        addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
         setInput(''); setIsProcessing(true);
         const thinkingId = `agent-${Date.now()}`;
-        addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'init', toolName: "Mailjet", description: "Rendering...", status: 'in-progress' }], plan: [] } });
+        addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'init', toolName: "Mailjet", description: "Rendering...", status: 'in-progress' }], plan: [] } });
         
         const { sendDemoEmail } = await import('@/app/dashboard/intelligence/actions/demo-setup');
         await new Promise(r => setTimeout(r, 1000));
@@ -511,10 +511,10 @@ export function usePuffChatLogic({
     }
 
     async function executeSystemHealthCheck(displayContent: string) {
-        addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+        addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
         setInput(''); setIsProcessing(true);
         const thinkingId = `agent-${Date.now()}`;
-        addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'diag', toolName: "Pops", description: "Running diagnostics...", status: 'in-progress' }], plan: [] } });
+        addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'diag', toolName: "Pops", description: "Running diagnostics...", status: 'in-progress' }], plan: [] } });
         
         try {
             const status = await checkIntegrationsStatus();
@@ -535,10 +535,10 @@ export function usePuffChatLogic({
     }
 
     async function executeCraigDraft(displayContent: string) {
-        addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+        addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
         setInput(''); setIsProcessing(true);
         const thinkingId = `agent-${Date.now()}`;
-        addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'step1', toolName: "Craig", description: "Drafting copy...", status: 'in-progress' }], plan: [] } });
+        addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'step1', toolName: "Craig", description: "Drafting copy...", status: 'in-progress' }], plan: [] } });
         
         const { getDemoCampaignDraft } = await import('@/app/dashboard/intelligence/actions/demo-presets');
         const result = await getDemoCampaignDraft('New Drop');
@@ -546,7 +546,7 @@ export function usePuffChatLogic({
         
         if (result.campaign) {
              const c = result.campaign;
-             const content = `### Draft: ${result.name || 'New Drop'}\n\n**SMS**: ${c.sms.text}\n\n**Email**: ${c.emailSubject}\n\n### Stats\n- Goal: Lead Generation\n- Channels: SMS, Email\n- Compliance: Verified`;
+const content = `### Draft: ${'New Drop'}\n\n**SMS**: ${c.sms.text}\n\n**Email**: ${c.emailSubject}\n\n### Stats\n- Goal: Lead Generation\n- Channels: SMS, Email\n- Compliance: Verified`;
              
              updateMessage(thinkingId, {
                 content,
@@ -558,10 +558,10 @@ export function usePuffChatLogic({
     }
 
     async function executeMarketScout(location: string, displayContent: string, isBrandMode: boolean) {
-         addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+         addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
          setInput(''); setIsProcessing(true);
          const thinkingId = `agent-${Date.now()}`;
-         addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'scan', toolName: "Market Scout", description: `Scanning ${location}...`, status: 'in-progress' }], plan: [] } });
+         addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'scan', toolName: "Market Scout", description: `Scanning ${location}...`, status: 'in-progress' }], plan: [] } });
          
          const { searchDemoRetailers } = await import('@/app/dashboard/intelligence/actions/demo-setup');
          const result = await searchDemoRetailers(location);
@@ -586,19 +586,19 @@ export function usePuffChatLogic({
     // Note: I am implementing the core ones. The lesser ones follow the same pattern.
     
     function promptForBrandName(displayContent: string) {
-        addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+        addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
         setInput(''); setIsProcessing(false);
         setTimeout(() => {
-            addMessage({ id: `agent-${Date.now()}`, role: 'assistant', content: "**What is the name of your brand?**", timestamp: new Date() });
+            addMessage({ id: `agent-${Date.now()}`, type: 'agent', content: "**What is the name of your brand?**", timestamp: new Date() });
             if(focusInput) focusInput();
         }, 500);
     }
 
     async function executeBrandAudit(brand: string, displayContent: string) {
-         addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+         addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
          setInput(''); setIsProcessing(true);
          const thinkingId = `agent-${Date.now()}`;
-         addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'scan', toolName: "Ezal", description: `Auditing ${brand}...`, status: 'in-progress' }], plan: [] } });
+         addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'scan', toolName: "Ezal", description: `Auditing ${brand}...`, status: 'in-progress' }], plan: [] } });
          
          const { getDemoBrandFootprint } = await import('@/app/dashboard/intelligence/actions/demo-presets');
          const result = await getDemoBrandFootprint(brand);
@@ -615,11 +615,11 @@ export function usePuffChatLogic({
     }
 
     function executePricingPlans(displayContent: string) {
-        addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+        addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
         setInput(''); setIsProcessing(true);
          // Simulate Money Mike
          const thinkingId = `agent-${Date.now()}`;
-         addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'calc', toolName: "Money Mike", description: "Calculating plans...", status: 'in-progress' }], plan: [] } });
+         addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'calc', toolName: "Money Mike", description: "Calculating plans...", status: 'in-progress' }], plan: [] } });
 
         setTimeout(() => {
             setIsProcessing(false);
@@ -633,26 +633,26 @@ export function usePuffChatLogic({
     }
     
     function promptForComplianceUrl(displayContent: string) {
-        addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+        addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
         setInput(''); setIsProcessing(false);
         setTimeout(() => {
-             addMessage({ id: `agent-${Date.now()}`, role: 'assistant', content: "**Paste the URL you want me to scan.**", timestamp: new Date() });
+             addMessage({ id: `agent-${Date.now()}`, type: 'agent', content: "**Paste the URL you want me to scan.**", timestamp: new Date() });
              if(focusInput) focusInput();
         }, 500);
     }
 
     async function executeComplianceScan(url: string, displayContent: string) {
-        addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+        addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
         setInput(''); setIsProcessing(true);
         const thinkingId = `agent-${Date.now()}`;
-        addMessage({ id: thinkingId, role: 'assistant', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'scan', toolName: "Deebo", description: `Scanning ${url}...`, status: 'in-progress' }], plan: [] } });
+        addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'scan', toolName: "Deebo", description: `Scanning ${url}...`, status: 'in-progress' }], plan: [] } });
         
         const { scanDemoCompliance } = await import('@/app/dashboard/intelligence/actions/demo-compliance');
         const result = await scanDemoCompliance(url);
         
         setIsProcessing(false);
         const content = result.success 
-            ? `### Compliance Audit: ${url}\n${result.report}\n\n### Action Items\nAdd FDA Disclaimer to footer. | Verify age barrier on entrance.`
+            ? `### Compliance Audit: ${url}\n${result.preview}\n\n### Action Items\nAdd FDA Disclaimer to footer. | Verify age barrier on entrance.`
             : "### Error\nFailed to scan the specified URL. Please ensure it is a public dispensary menu.";
 
         updateMessage(thinkingId, {
@@ -662,10 +662,10 @@ export function usePuffChatLogic({
     }
 
     function promptForLocation(displayContent: string, isBrandMode: boolean) {
-        addMessage({ id: `user-${Date.now()}`, role: 'user', content: displayContent, timestamp: new Date() });
+        addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
         setInput(''); setIsProcessing(false);
         setTimeout(() => {
-             addMessage({ id: `agent-${Date.now()}`, role: 'assistant', content: isBrandMode ? "finding dispensary partners. **What City/Zip?**" : "competitor scan. **What City/Zip?**", timestamp: new Date() });
+             addMessage({ id: `agent-${Date.now()}`, type: 'agent', content: isBrandMode ? "finding dispensary partners. **What City/Zip?**" : "competitor scan. **What City/Zip?**", timestamp: new Date() });
              if(focusInput) focusInput();
         }, 500);
     }
@@ -732,7 +732,7 @@ export function usePuffChatLogic({
     const handleShowToolInfo = (toolId: string) => {
          addMessage({
             id: `info-${Date.now()}`,
-            role: 'assistant',
+            type: 'agent',
             content: `Status for **${toolId}**: Connected.`,
             timestamp: new Date(),
             thinking: { isThinking: false, steps: [], plan: [] },
@@ -746,7 +746,7 @@ export function usePuffChatLogic({
     };
 
     return {
-        state, input, setInput, isProcessing, streamingMessageId, attachments, integrationStatus,
+        state, input, setInput, isProcessing, setIsProcessing, streamingMessageId, attachments, integrationStatus,
         persona, setPersona, thinkingLevel, setThinkingLevel, selectedProjectId, setSelectedProjectId,
         toolMode, setToolMode, selectedTools, isHireModalOpen, setIsHireModalOpen, selectedHirePlan,
         showPermissions, setShowPermissions, submitMessage, handleFileSelect, handleAudioComplete,

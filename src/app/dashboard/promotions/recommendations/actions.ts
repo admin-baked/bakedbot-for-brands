@@ -17,7 +17,7 @@ export interface PromotionRecommendation {
 }
 
 export async function getPromotionRecommendations(brandId: string): Promise<PromotionRecommendation[]> {
-    const user = await requireUser(['brand', 'owner']);
+    const user = await requireUser(['brand', 'super_user']);
     // Filter by brand
     const { firestore } = await createServerClient();
 

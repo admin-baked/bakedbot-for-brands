@@ -16,7 +16,7 @@ const PROTECTED_METHODS = ['POST', 'PUT', 'DELETE', 'PATCH'];
  * (e.g., public webhooks that use other authentication methods)
  */
 const EXEMPT_ROUTES = [
-  '/api/webhooks/stripe',
+  // '/api/webhooks/stripe', removed
   '/api/webhooks/canpay',
   '/api/webhooks/authnet',
   '/api/auth/session', // Session creation uses Firebase auth

@@ -8,7 +8,7 @@ import { ShieldAlert, TrendingUp, Wallet, AlertTriangle } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 export default async function TreasuryConsolePage() {
-    await requireUser(['owner']); // Strict access control
+    await requireUser(['super_user']); // Strict access control
 
     const memory = await loadTreasuryMemory();
     const { treasury_profile, runway_model, allocation_policy, strategy_registry } = memory;

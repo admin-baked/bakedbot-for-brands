@@ -53,8 +53,8 @@ export interface CohortData {
 }
 
 export async function getAnalyticsData(brandId: string): Promise<AnalyticsData> {
-  const user = await requireUser(['brand', 'owner']);
-  if (user.brandId !== brandId && user.role !== 'owner') {
+  const user = await requireUser(['brand', 'super_user']);
+  if (user.brandId !== brandId && user.role !== 'super_user') {
     throw new Error('Forbidden: You do not have permission to access this data.');
   }
 

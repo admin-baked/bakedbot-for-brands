@@ -15,7 +15,7 @@ export async function autoDiscoverCompetitors(
     orgId: string,
     marketState: string,
     firestore: Firestore
-): Promise<{ discovered: number }> {
+): Promise<{ discovered: number; competitors?: any[] }> {
     try {
         const cms = new CannMenusService();
 
@@ -83,13 +83,13 @@ export async function autoDiscoverCompetitors(
 
         await batch.commit();
 
-        return { discovered };
+        return { discovered, competitors };
     } catch (error) {
         logger.error('Auto-discover competitors failed:', {
             orgId,
             marketState,
             error: error instanceof Error ? error.message : String(error)
         });
-        return { discovered: 0 };
+        return { discovered: 0, competitors: [] };
     }
 }

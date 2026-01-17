@@ -6,7 +6,7 @@ import { getPOSClient } from '@/lib/pos/factory';
 import type { POSProvider } from '@/lib/pos/types';
 
 export async function saveIntegrationConfig(provider: POSProvider | string, config: any) {
-    const user = await requireUser(['dispensary', 'owner', 'brand', 'super_user', 'super_admin']); // Allow superusers
+    const user = await requireUser(['dispensary', 'super_user', 'brand']); // Allow superusers
     const { firestore } = await createServerClient();
     const { grantPermission } = await import('@/server/services/permissions');
 
@@ -119,7 +119,7 @@ export async function testConnection(provider: POSProvider, config: any) {
 }
 
 export async function syncMenu(provider: POSProvider, config: any) {
-    const user = await requireUser(['dispensary', 'owner']);
+    const user = await requireUser(['dispensary', 'super_user']);
     // Dispensary logic: User ID is likely the dispensary ID in this architecture, 
     // or we fetch their dispensary profile.
     const dispensaryId = user.uid; // Placeholder

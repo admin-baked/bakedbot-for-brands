@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger';
 export async function POST(req: NextRequest) {
   try {
     // Secure this endpoint: only 'owner' role can trigger it.
-    await requireUser(['owner']);
+    await requireUser(['super_user']);
     
     const { firestore: db } = await createServerClient();
 

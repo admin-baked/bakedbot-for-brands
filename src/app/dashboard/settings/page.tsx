@@ -34,7 +34,7 @@ export default function SettingsPage() {
       setPreviewUrl(`/${profile.brandId}`);
     } else if (role === 'dispensary' && profile.locationId) {
       setPreviewUrl(`/shop/${profile.locationId}`);
-    } else if (role === 'owner') {
+    } else if (role === 'super_user') {
       // Owners might want to see demo or a specific one, fallback to demo for now
       setPreviewUrl('/demo');
     }
@@ -77,13 +77,13 @@ export default function SettingsPage() {
             <Download className="mr-2 h-4 w-4" />
             WordPress Plugin
           </TabsTrigger>
-          {(role === 'brand' || role === 'dispensary' || role === 'owner') && (
+          {(role === 'brand' || role === 'dispensary' || role === 'super_user') && (
             <TabsTrigger value="team">
               <Users className="mr-2 h-4 w-4" />
               Team
             </TabsTrigger>
           )}
-          {(role === 'brand' || role === 'dispensary' || role === 'owner') && (
+          {(role === 'brand' || role === 'dispensary' || role === 'super_user') && (
             <TabsTrigger value="billing">
               <CreditCard className="mr-2 h-4 w-4" />
               Billing

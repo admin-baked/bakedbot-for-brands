@@ -42,17 +42,17 @@ let mockCampaigns: LoyaltyCampaign[] = [
 ];
 
 export async function getLoyaltySettings() {
-    await requireUser(['brand', 'owner']);
+    await requireUser(['brand', 'super_user']);
     return mockSettings;
 }
 
 export async function getLoyaltyCampaigns() {
-    await requireUser(['brand', 'owner']);
+    await requireUser(['brand', 'super_user']);
     return mockCampaigns;
 }
 
 export async function toggleLoyaltyCampaign(id: string) {
-    await requireUser(['brand', 'owner']);
+    await requireUser(['brand', 'super_user']);
     const camp = mockCampaigns.find(c => c.id === id);
     if (camp) {
         camp.enabled = !camp.enabled;
@@ -62,14 +62,14 @@ export async function toggleLoyaltyCampaign(id: string) {
 }
 
 export async function triggerCampaignTest(type: CampaignType) {
-    await requireUser(['brand', 'owner']);
+    await requireUser(['brand', 'super_user']);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 800));
     return { success: true, message: `Successfully simulated ${type} trigger for 5 random customers.` };
 }
 
 export async function updateLoyaltySettings(settings: Partial<LoyaltySettings>) {
-    await requireUser(['brand', 'owner']);
+    await requireUser(['brand', 'super_user']);
     mockSettings = { ...mockSettings, ...settings };
     return mockSettings;
 }

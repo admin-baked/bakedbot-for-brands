@@ -133,11 +133,11 @@ export function DashboardSidebar() {
 
                 const isComingSoon = link.badge === 'coming-soon';
                 // If badge is 'locked', hide it completely for non-owners
-                if (link.badge === 'locked' && role !== 'owner') {
+                if (link.badge === 'locked' && role !== 'super_user') {
                   return null;
                 }
                 // Unlock more features for paid tiers
-                const isLocked = isComingSoon && role !== 'owner' && !isGrowthOrHigher;
+                const isLocked = isComingSoon && role !== 'super_user' && !isGrowthOrHigher;
 
                 if (isLocked) {
                   return (
@@ -180,8 +180,8 @@ export function DashboardSidebar() {
                     allowedRoles={(() => {
                         const r = (user as any).role;
                         if (r === 'super_admin') return ['brand', 'dispensary', 'super_admin', 'customer'];
-                        if (r === 'brand' || r === 'dispensary' || r === 'owner') {
-                             if (r === 'owner') return ['brand'];
+                        if (r === 'brand' || r === 'dispensary' || r === 'super_user') {
+                             if (r === 'super_user') return ['brand'];
                              return [r];
                         }
                         return [];

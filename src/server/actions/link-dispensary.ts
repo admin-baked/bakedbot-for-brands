@@ -41,7 +41,7 @@ export async function searchDispensariesAction(
     zip?: string
 ): Promise<ActionResult<{ dispensaries: DispensarySearchResult[] }>> {
     try {
-        await requireUser(['dispensary', 'owner', 'super_admin']);
+        await requireUser(['dispensary', 'super_user']);
 
         if (!query && !zip) {
             return { success: false, message: 'Please provide a search query or ZIP code' };
@@ -140,7 +140,7 @@ export async function linkDispensaryAction(
     dispensaryData?: Partial<DispensarySearchResult>
 ): Promise<ActionResult> {
     try {
-        const user = await requireUser(['dispensary', 'owner', 'super_admin']);
+        const user = await requireUser(['dispensary', 'super_user']);
         const { firestore } = await createServerClient();
 
         const zip = dispensaryData?.zip || '';
@@ -309,7 +309,7 @@ export async function createManualDispensaryAction(
     zip: string
 ): Promise<ActionResult> {
     try {
-        const user = await requireUser(['dispensary', 'owner', 'super_admin']);
+        const user = await requireUser(['dispensary', 'super_user']);
         const { firestore } = await createServerClient();
 
         const dispensaryRef = firestore.collection('dispensaries').doc(user.uid);

@@ -27,7 +27,7 @@ type OnboardingEventType =
 interface OnboardingEventData {
     eventType: OnboardingEventType;
     userId?: string;
-    role?: 'brand' | 'dispensary' | 'customer' | 'owner';
+    role?: 'brand' | 'dispensary' | 'customer' | 'super_user';
     entryPoint?: string;
     provider?: 'google' | 'email';
     queryType?: 'name' | 'domain';

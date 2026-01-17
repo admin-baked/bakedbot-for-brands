@@ -150,5 +150,8 @@
     "ts-prune": "^0.10.3",
     "tsup": "^8.5.1",
     "tsx": "^4.16.2"
+  },
+  "overrides": {
+    "google-auth-library": "^9.15.1"
   }
 }

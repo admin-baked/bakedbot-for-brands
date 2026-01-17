@@ -170,18 +170,18 @@ export const POST = withProtection(
                 });
             }
 
-            // Option 3: Stripe or Authorize.Net (credit card payment)
-            if (paymentMethod === 'stripe') {
-                const stripeData = paymentData as any; // Type assertion for Stripe-specific data
+            // Option 3: Credit Card (Authorize.Net)
+            if (paymentMethod === 'credit_card') {
+                const cardData = paymentData as any; // Type assertion for Credit Card-specific data
                 const paymentRequest: PaymentRequest = {
                     amount,
                     orderId,
                     customer,
                     // Support both opaque data (Accept.js) and raw card data (PCI/Testing)
-                    opaqueData: stripeData.opaqueData,
-                    cardNumber: stripeData.cardNumber,
-                    expirationDate: stripeData.expirationDate,
-                    cvv: stripeData.cvv,
+                    opaqueData: cardData.opaqueData,
+                    cardNumber: cardData.cardNumber,
+                    expirationDate: cardData.expirationDate,
+                    cvv: cardData.cvv,
                 };
 
                 const result = await createTransaction(paymentRequest);
@@ -190,20 +190,21 @@ export const POST = withProtection(
                     if (orderId) {
                         const { firestore } = await createServerClient();
                         await firestore.collection('orders').doc(orderId).update({
-                            paymentMethod: 'stripe',
+                            paymentMethod: 'credit_card',
                             paymentStatus: 'paid',
+                            paymentProvider: 'authorize_net',
                             updatedAt: new Date().toISOString()
                         });
                     }
 
-                    logger.info('[P0-PAY-SMOKEYPAY] Stripe payment successful', {
+                    logger.info('[P0-PAY-SMOKEYPAY] Authorize.Net payment successful', {
                         orderId,
                         transactionId: result.transactionId
                     });
 
                     return NextResponse.json({
                         success: true,
-                        paymentMethod: 'stripe',
+                        paymentMethod: 'credit_card',
                         transactionId: result.transactionId,
                         message: result.message,
                         complianceValidated: true

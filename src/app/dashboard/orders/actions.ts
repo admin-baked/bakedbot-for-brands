@@ -40,7 +40,7 @@ export async function updateOrderStatus(
 
   let user;
   try {
-    user = await requireUser(['dispensary', 'owner']);
+    user = await requireUser(['dispensary', 'super_user']);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     return { error: true, message: errorMessage };
@@ -69,7 +69,7 @@ export async function updateOrderStatus(
       const order = orderDoc.data() as OrderDoc;
 
       // 3. Authorization part 2: Check if this manager can access this specific order
-      if (user.role !== 'owner' && order.retailerId !== userLocationId) {
+      if (user.role !== 'super_user' && order.retailerId !== userLocationId) {
         throw new Error("You do not have permission to modify this order.");
       }
 

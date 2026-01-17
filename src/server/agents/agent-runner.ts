@@ -185,7 +185,7 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
         const allTracks = await getAllTalkTracks();
         // Filter for relevant tracks (Role-based + Keywords matching stimulus)
         const relevantTracks = allTracks.filter(t => 
-            (t.role === 'all' || t.role === (personaConfig?.role || 'assistant')) &&
+            ((t.role as string) === 'all' || (t.role as string) === (personaConfig?.id || 'assistant')) &&
             t.isActive &&
             t.triggerKeywords.some(k => (stimulus || '').toLowerCase().includes(k.toLowerCase()))
         );
@@ -451,7 +451,7 @@ export async function runAgentCore(
         let effectiveModelLevel = extraOptions?.modelLevel || 'lite';
         
         // Super User Bypass
-        const isSuperUser = role === 'super_admin' || role === 'owner'; // Simplify super user check
+        const isSuperUser = role === 'super_user'; // Standardized super user check
         const isFreeUser = !isSuperUser && role === 'guest'; // Assuming 'guest' is free, 'brand' is paid? logic needs to closely match plan
         // Actually, user object might have 'plan'
         // Let's assume role check for now: 'guest' = free, 'brand'/'dispensary' = paid, 'super_admin' = super.

@@ -18,7 +18,7 @@ export default async function AgentDetailsPage({ params }: PageProps) {
     const { agentId } = await params;
 
     try {
-        await requireUser(['brand', 'owner']);
+        await requireUser(['brand', 'super_user']);
     } catch (error) {
         redirect('/dashboard');
     }

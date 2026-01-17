@@ -6,7 +6,7 @@ export const metadata = {
 };
 
 export default async function NewScenarioPage() {
-    await requireUser(['brand', 'dispensary', 'owner']);
+    await requireUser(['brand', 'dispensary', 'super_user']);
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-4xl">

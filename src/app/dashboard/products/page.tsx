@@ -31,7 +31,7 @@ export default async function DashboardProductsPage() {
         user = { role: 'brand', brandId: DEMO_BRAND_ID };
     } else {
         try {
-            user = await requireUser(['brand', 'owner', 'dispensary']);
+            user = await requireUser(['brand', 'super_user', 'dispensary']);
             const brandId = user.brandId;
 
             const { firestore } = await createServerClient();
@@ -52,7 +52,7 @@ export default async function DashboardProductsPage() {
                 if (!posConfig || !posConfig.provider) {
                     showPosAlert = true;
                 }
-            } else if (user.role === 'owner') {
+            } else if (user.role === 'super_user') {
                 // Owner sees all products
                 products = await productRepo.getAll();
             } else if (brandId) {

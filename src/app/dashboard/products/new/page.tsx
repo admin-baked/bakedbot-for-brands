@@ -19,13 +19,13 @@ export default async function NewProductPage() {
   let brands: Brand[] = [];
 
   try {
-    user = await requireUser(['brand', 'owner', 'dispensary']);
+    user = await requireUser(['brand', 'super_user', 'dispensary']);
   } catch {
     redirect('/brand-login');
   }
 
   // If the user is an owner, we need to fetch all brands so they can choose one.
-  if (user.role === 'owner') {
+  if (user.role === 'super_user') {
     brands = await getBrands();
   }
 

@@ -161,7 +161,7 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         id: 'jack',
         name: 'Jack',
         specialty: 'CRO (Revenue & Sales)',
-        keywords: ['revenue', 'sales', 'cro', 'growth', 'scale', 'deal', 'close', 'pipeline', 'hubspot', 'stripe'],
+        keywords: ['revenue', 'sales', 'cro', 'growth', 'scale', 'deal', 'close', 'pipeline', 'hubspot'],
         description: 'Chief Revenue Officer focused on MRR, sales pipeline, and closing high-value deals.',
         responseFormat: 'Aggressive, revenue-focused. "Show me the money." precise metrics.',
         roleRestrictions: ['guest', 'customer', 'dispensary', 'brand']

@@ -83,7 +83,7 @@ export class LeaflyService {
             })) as LeaflyDispensary[];
 
         } catch (error) {
-            logger.error('[LeaflyService] Apify scraping failed:', error);
+            logger.error('[LeaflyService] Apify scraping failed:', error as any);
             // Fallback to mock if real fails, so we don't break the UI
             return this.getMockDispensaries(city, state);
         }
@@ -140,7 +140,7 @@ export class LeaflyService {
             };
 
         } catch (error) {
-           logger.error('[LeaflyService] Menu scraping failed:', error);
+           logger.error('[LeaflyService] Menu scraping failed:', error as any);
            return this.getMockPricing();
         }
     }

@@ -33,7 +33,7 @@ export type ImportCandidate = {
 };
 
 export async function searchCannMenusProducts(brandName: string): Promise<ImportCandidate[]> {
-  await requireUser(['brand', 'owner', 'dispensary']);
+  await requireUser(['brand', 'super_user', 'dispensary']);
 
   try {
     // 1. Try CannMenus Service (API)
@@ -68,7 +68,7 @@ export async function searchCannMenusProducts(brandName: string): Promise<Import
 }
 
 export async function linkBrandProducts(products: ImportCandidate[]) {
-  const user = await requireUser(['brand', 'owner']);
+  const user = await requireUser(['brand', 'super_user']);
   const brandId = user.brandId;
   
   if (!brandId) {
@@ -81,7 +81,7 @@ export async function linkBrandProducts(products: ImportCandidate[]) {
   const orgData = orgDoc.data();
 
   // 1. One-Time Confirmation Check
-  if (orgData?.productsLinked && user.role !== 'super_admin' && user.role !== 'owner') {
+  if (orgData?.productsLinked && user.role !== 'super_user') {
      throw new Error('Products have already been linked for this brand. Contact support for updates.');
   }
   
@@ -141,7 +141,7 @@ export async function importProducts(products: any[]) {
 }
 
 export async function deleteProduct(productId: string) {
-  const user = await requireUser(['brand', 'owner', 'dispensary']);
+  const user = await requireUser(['brand', 'super_user', 'dispensary']);
   const { firestore } = await createServerClient();
 
   try {
@@ -164,7 +164,7 @@ export type ProductFormState = {
 };
 
 export async function saveProduct(prevState: ProductFormState, formData: FormData): Promise<ProductFormState> {
-  const user = await requireUser(['brand', 'owner', 'dispensary']);
+  const user = await requireUser(['brand', 'super_user', 'dispensary']);
   const { firestore } = await createServerClient();
   const productRepo = makeProductRepo(firestore);
 
@@ -215,7 +215,7 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
 }
 
 export async function getBrandStatus() {
-  const user = await requireUser(['brand', 'owner']);
+  const user = await requireUser(['brand', 'super_user']);
   const { firestore } = await createServerClient();
   const brandId = user.brandId;
 

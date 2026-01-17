@@ -14,49 +14,9 @@ export interface WebhookValidationResult {
   payload?: Record<string, any>;
 }
 
-/**
- * Verify Stripe webhook signature using SHA256 HMAC
- * 
- * @param body - Raw request body (string, not parsed JSON)
- * @param signature - Stripe-Signature header value
- * @param secret - STRIPE_WEBHOOK_SECRET from environment
- * @returns true if signature is valid
- */
-export function verifyStripeSignature(
-  body: string,
-  signature: string,
-  secret: string
-): WebhookValidationResult {
-  try {
-    if (!secret) {
-      logger.error('[WEBHOOK_VALIDATION] Stripe secret not configured');
-      return { valid: false, error: 'Webhook secret not configured' };
-    }
-
-    if (!signature) {
-      logger.error('[WEBHOOK_VALIDATION] Missing Stripe signature header');
-      return { valid: false, error: 'Missing signature header' };
-    }
-
-    // Stripe SDK handles verification internally
-    // This is a helper for consistency
-    try {
-      // Note: In actual implementation, use stripe.webhooks.constructEvent()
-      // This validates the signature and returns the event
-      logger.debug('[WEBHOOK_VALIDATION] Stripe signature verification delegated to SDK');
-      return { valid: true };
-    } catch (err: any) {
-      logger.error('[WEBHOOK_VALIDATION] Stripe signature invalid', {
-        error: err?.message,
-      });
-      return { valid: false, error: err?.message };
-    }
-  } catch (error: any) {
-    logger.error('[WEBHOOK_VALIDATION] Stripe verification failed', {
-      error: error?.message,
-    });
-    return { valid: false, error: error?.message };
-  }
+// Stripe verification removed
+export function verifyStripeSignature(body: string, signature: string, secret: string) {
+    throw new Error('Stripe is no longer supported');
 }
 
 /**
@@ -195,8 +155,7 @@ export function validateWebhook(
   secret: string
 ): WebhookValidationResult {
   switch (gateway) {
-    case 'stripe':
-      return verifyStripeSignature(body, signature, secret);
+    // case 'stripe': removed
 
     case 'cannpay':
       return verifyCannPaySignature(body, signature, secret);

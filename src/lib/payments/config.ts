@@ -6,8 +6,7 @@
 export enum PaymentMethod {
     PAY_AT_PICKUP = 'PAY_AT_PICKUP',
     CANNPAY = 'CANNPAY', // SmokeyPay (Loyalty/Bank)
-    STRIPE = 'STRIPE',
-    AUTHORIZE_NET = 'AUTHORIZE_NET',
+    CREDIT_CARD = 'CREDIT_CARD', // Authorize.net
 }
 
 export enum ProductType {
@@ -30,18 +29,18 @@ export interface PaymentOption {
  * RULES:
  * 1. PAY_AT_PICKUP is always available (Core Option).
  * 2. CANNPAY is the ONLY online payment method for CANNABIS.
- * 3. STRIPE/AUTHORIZE_NET are ONLY for HEMP, ACCESSORIES, or SUBSCRIPTIONS.
- * 4. If cart contains ANY Cannabis items, Stripe/AuthNet must be disabled.
+ * 3. CREDIT_CARD (Authorize.net) is ONLY for HEMP, ACCESSORIES, or SUBSCRIPTIONS.
+ * 4. If cart contains ANY Cannabis items, Credit Card must be disabled.
  */
 export function getAvailablePaymentMethods(
     cartHasCannabis: boolean,
-    retailerConfig: { hasCannPay: boolean; hasStripe: boolean; hasAuthNet: boolean }
+    retailerConfig: { hasCannPay: boolean; hasCreditCard: boolean }
 ): PaymentOption[] {
     const options: PaymentOption[] = [
         {
             id: PaymentMethod.PAY_AT_PICKUP,
             label: 'Pay at Pickup',
-            description: 'Pay when you pick up your order at the dispensary.',
+            description: 'Pay when you pick up your order at dispensary.',
             isAvailable: true, // Always available
         },
     ];
@@ -50,7 +49,7 @@ export function getAvailablePaymentMethods(
     if (retailerConfig.hasCannPay) {
         options.push({
             id: PaymentMethod.CANNPAY,
-            label: 'CannPay (SmokeyPay)',
+            label: 'Smokey Pay',
             description: 'Secure bank transfer or loyalty points.',
             isAvailable: true, // Valid for both Cannabis and Non-Cannabis
         });
@@ -58,18 +57,10 @@ export function getAvailablePaymentMethods(
 
     // Hemp/Accessory Payment Rule (Strict Separation)
     if (!cartHasCannabis) {
-        if (retailerConfig.hasStripe) {
+        if (retailerConfig.hasCreditCard) {
             options.push({
-                id: PaymentMethod.STRIPE,
-                label: 'Credit Card (Stripe)',
-                description: 'Secure credit card payment.',
-                isAvailable: true,
-            });
-        }
-        if (retailerConfig.hasAuthNet) {
-            options.push({
-                id: PaymentMethod.AUTHORIZE_NET,
-                label: 'Credit Card (Authorize.net)',
+                id: PaymentMethod.CREDIT_CARD,
+                label: 'Credit Card',
                 description: 'Secure credit card payment.',
                 isAvailable: true,
             });

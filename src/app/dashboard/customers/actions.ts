@@ -43,7 +43,7 @@ export interface GetCustomersParams {
  * This is the primary data source before POS integration
  */
 export async function getCustomers(brandId: string): Promise<CustomersData> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const orgId = user.brandId || user.uid;
 
     // For brand users, ensure they access their own data
@@ -237,7 +237,7 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
  * Get a single customer by ID or email
  */
 export async function getCustomer(customerId: string): Promise<CustomerProfile | null> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const orgId = user.brandId || user.uid;
     const { firestore } = await createServerClient();
 
@@ -286,7 +286,7 @@ export async function getCustomer(customerId: string): Promise<CustomerProfile |
 export async function upsertCustomer(
     profile: Partial<CustomerProfile> & { email: string }
 ): Promise<CustomerProfile> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const orgId = user.brandId || user.uid;
     const { firestore } = await createServerClient();
 
@@ -351,7 +351,7 @@ export async function upsertCustomer(
  * Add a tag to a customer
  */
 export async function addCustomerTag(customerId: string, tag: string): Promise<void> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const orgId = user.brandId || user.uid;
     const { firestore } = await createServerClient();
 
@@ -370,7 +370,7 @@ export async function addCustomerTag(customerId: string, tag: string): Promise<v
  * Add a note to a customer
  */
 export async function addCustomerNote(customerId: string, note: string): Promise<void> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const orgId = user.brandId || user.uid;
     const { firestore } = await createServerClient();
 

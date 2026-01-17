@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 export default async function EditScenarioPage({ params }: { params: { id: string } }) {
-    await requireUser(['brand', 'dispensary', 'owner']);
+    await requireUser(['brand', 'dispensary', 'super_user']);
 
     const scenario = await getScenario(params.id);
 

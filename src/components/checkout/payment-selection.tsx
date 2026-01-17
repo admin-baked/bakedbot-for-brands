@@ -22,7 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Banknote, CreditCard, Store } from 'lucide-react';
 
-export type PaymentMethod = 'dispensary_direct' | 'cannpay' | 'stripe';
+export type PaymentMethod = 'dispensary_direct' | 'cannpay' | 'credit_card';
 
 export interface PaymentSelectionProps {
   /** Selected payment method */
@@ -34,8 +34,8 @@ export interface PaymentSelectionProps {
   /** Order subtotal in cents */
   subtotal: number;
 
-  /** Whether Stripe is enabled (optional payment method) */
-  stripeEnabled?: boolean;
+  /** Whether Credit Card is enabled (optional payment method) */
+  creditCardEnabled?: boolean;
 }
 
 const SMOKEY_PAY_FEE_CENTS = 50; // $0.50 transaction fee (internal: cannpay)
@@ -51,7 +51,7 @@ export function PaymentSelection({
   value,
   onChange,
   subtotal,
-  stripeEnabled = true,
+  creditCardEnabled = true,
 }: PaymentSelectionProps) {
   const smokeyPayTotal = subtotal + SMOKEY_PAY_FEE_CENTS;
 
@@ -112,12 +112,12 @@ export function PaymentSelection({
           </div>
         </Card>
 
-        {/* Option 3: Stripe (Optional Fallback) */}
-        {stripeEnabled && (
+        {/* Option 3: Credit Card (Authorize.Net) */}
+        {creditCardEnabled && (
           <Card className="p-4 cursor-pointer hover:border-primary transition-colors">
             <div className="flex items-start space-x-4">
-              <RadioGroupItem value="stripe" id="stripe" />
-              <Label htmlFor="stripe" className="flex-1 cursor-pointer space-y-2">
+              <RadioGroupItem value="credit_card" id="credit_card" />
+              <Label htmlFor="credit_card" className="flex-1 cursor-pointer space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <CreditCard className="h-5 w-5 text-purple-600" />
@@ -126,7 +126,7 @@ export function PaymentSelection({
                   <span className="font-semibold">{formatCurrency(subtotal)}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Pay securely with your credit or debit card via Stripe.
+                  Pay securely with your credit or debit card.
                 </p>
               </Label>
             </div>

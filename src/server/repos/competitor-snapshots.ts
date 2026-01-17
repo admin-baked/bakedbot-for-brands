@@ -9,6 +9,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
+import { Query } from 'firebase-admin/firestore';
 
 // =============================================================================
 // TYPES
@@ -125,7 +126,7 @@ export async function getCompetitorSnapshots(
         .doc(orgId)
         .collection(COLLECTION)
         .where('competitorId', '==', competitorId)
-        .orderBy('scrapedAt', 'desc') as FirebaseFirestore.Query;
+        .orderBy('scrapedAt', 'desc') as Query;
 
     if (options?.startDate) {
         query = query.where('scrapedAt', '>=', options.startDate);
@@ -195,8 +196,8 @@ export async function getCompetitorSummaries(
     // Calculate summaries
     const summaries: SnapshotSummary[] = [];
     for (const [competitorId, snaps] of byCompetitor.entries()) {
-        const allDeals = snaps.flatMap(s => s.deals);
-        const allProducts = snaps.flatMap(s => s.products);
+        const allDeals = snaps.reduce<CompetitorDeal[]>((acc, s) => acc.concat(s.deals), []);
+        const allProducts = snaps.reduce<CompetitorProduct[]>((acc, s) => acc.concat(s.products), []);
         
         summaries.push({
             competitorId,

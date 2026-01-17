@@ -1,5 +1,5 @@
 
-import { GenerateVideoInput, GenerateVideoOutput } from '../video-types';
+import type { GenerateVideoInput, GenerateVideoOutput } from '../video-types';
 
 // OpenAI Sora API job states - includes all observed statuses
 type SoraJobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'queued' | 'in_progress';

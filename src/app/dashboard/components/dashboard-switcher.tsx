@@ -74,7 +74,7 @@ export default function DashboardSwitcher() {
     }
 
     // 3. Owner View - Redirect to CEO Dashboard
-    if (role === 'owner') {
+    if (role === 'super_user') {
         router.replace('/dashboard/ceo');
         return (
             <div className="flex h-[50vh] w-full items-center justify-center">

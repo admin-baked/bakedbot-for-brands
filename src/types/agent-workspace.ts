@@ -66,5 +66,5 @@ export interface QuickStartCard {
 
 import { UserRole } from './roles';
 
-export { UserRole }; // Re-export for compatibility
+export type { UserRole }; // Re-export for compatibility
 

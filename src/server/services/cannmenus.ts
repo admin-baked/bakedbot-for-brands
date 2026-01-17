@@ -1,5 +1,6 @@
 import { createServerClient } from '@/firebase/server-client';
 import { RetailerDoc, ProductDoc, CannMenusProduct } from '@/types/cannmenus';
+import type { MenuItem } from '@/server/services/vector-search/chunking-service';
 import { v4 as uuidv4 } from 'uuid';
 import { withRetry, RateLimiter } from '@/lib/retry-utility';
 import { logger, reportError, monitorApiCall, perfMonitor } from '@/lib/monitoring';
@@ -624,26 +625,32 @@ export class CannMenusService {
             
             for (const product of toIndex) {
                 try {
-                    const productChunk = chunkingService.chunkByProduct({
-                        productName: product.name || product.canonical_name,
+                    const menuItem: MenuItem = {
+                        id: product.id,
+                        name: product.name || product.canonical_name,
+                        brand: product.brand_id,
                         category: product.category,
-                        thcPercent: product.thcPercent,
-                        cbdPercent: product.cbdPercent,
-                        price: product.price,
-                    });
-                    
-                    await ragService.indexDocument(
-                        'products',
-                        product.id || `${product.brand_id}_${product.sku_id}`,
-                        productChunk,
-                        { 
-                            category: product.category, 
-                            sku: product.sku_id,
-                            source: 'cannmenus'
-                        },
-                        product.brand_id,  // tenantId
-                        { category: product.category }  // chunkContext for header
-                    );
+                        price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+                        thc: product.thcPercent ? `${product.thcPercent}%` : undefined,
+                        cbd: product.cbdPercent ? `${product.cbdPercent}%` : undefined
+                    };
+
+                    const chunks = chunkingService.chunkByProduct([menuItem], product.id);
+
+                    if (chunks.length > 0) {
+                        await ragService.indexDocument(
+                            'products',
+                            product.id || `${product.brand_id}_${product.sku_id}`,
+                            chunks[0].content,
+                            { 
+                                category: product.category, 
+                                sku: product.sku_id,
+                                source: 'cannmenus'
+                            },
+                            product.brand_id,  // tenantId
+                            { category: product.category }  // chunkContext for header
+                        );
+                    }
                 } catch (err) {
                     // Continue indexing other products
                     logger.warn('Failed to index product', { productId: product.id });

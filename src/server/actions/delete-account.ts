@@ -36,7 +36,7 @@ export async function isSuperUser(uid: string, email?: string | null): Promise<b
         }
         
         // Also check owner role (they have super admin access)
-        if (userData?.role === 'owner') {
+        if (userData?.role === 'super_user') {
             return true;
         }
         

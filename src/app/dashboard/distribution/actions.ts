@@ -12,7 +12,7 @@ export interface DistributionData {
 }
 
 export async function getDistributionData(brandId: string): Promise<DistributionData> {
-    const user = await requireUser(['brand', 'owner']);
+    const user = await requireUser(['brand', 'super_user']);
     const idToUse = user.brandId || brandId;
 
     const { firestore } = await createServerClient();
