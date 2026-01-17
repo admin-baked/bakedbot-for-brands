@@ -338,8 +338,10 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   const { user } = useAuth();
   const userId = user?.uid || 'anonymous';
 
+
   // HIDE ON DASHBOARD
-  if (pathname?.startsWith('/dashboard')) return null;
+  // Moved to end of component to prevent Hook Mismatch (React Error #300)
+  // if (pathname?.startsWith('/dashboard')) return null;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

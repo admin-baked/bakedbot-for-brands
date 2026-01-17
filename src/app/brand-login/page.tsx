@@ -68,9 +68,9 @@ export default function BrandLoginPage() {
     console.log('ID token claims:', idTokenResult.claims);
 
     // Use window.location.href for full page reload to ensure session cookie is picked up
-    // If user has no role or is brand new, send to onboarding.
-    if (!userRole || isNewUser) {
-      console.log('Redirecting to onboarding...');
+    // VALIDATION: Trust the role claim if present. 'isNewUser' can be true for existing users logging in via provider for the first time.
+    if (!userRole) {
+      console.log('No role found. Redirecting to onboarding...');
       window.location.href = '/onboarding';
       return;
     }
