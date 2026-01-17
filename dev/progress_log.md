@@ -2968,3 +2968,93 @@ Installed and configured Kusho CLI for automated UI testing of BakedBot applicat
 ### Result: ✅ Complete
 Kusho CLI is fully operational and ready for UI test creation.
 
+---
+
+## Session: 2026-01-17 (Playwright UI Testing Setup)
+### Task ID
+playwright_ui_testing_setup
+
+### Summary
+Set up Playwright for automated UI testing in the BakedBot project. After encountering compatibility issues with Kusho CLI, pivoted to using Playwright directly which provides robust, well-maintained browser automation and test generation capabilities.
+
+### Key Changes
+*   **INSTALL**: @playwright/test installed in BakedBot project
+*   **NEW**: `playwright.config.js` - Comprehensive Playwright configuration
+*   **NEW**: `tests/e2e/` directory - E2E test location
+*   **NEW**: `tests/e2e/example.spec.js` - Sample test demonstrating setup
+*   **NEW**: `docs/ui-testing-guide.md` - Complete UI testing guide with best practices
+*   **MOD**: `package.json` - Added Playwright test scripts
+
+### Test Scripts Added
+*   `npm run test:e2e` - Run all E2E tests
+*   `npm run test:e2e:ui` - Run tests in UI mode (recommended for development)
+*   `npm run test:e2e:headed` - Run tests with visible browser
+*   `npm run test:e2e:debug` - Run tests in debug mode
+*   `npm run test:e2e:report` - View HTML test report
+*   `npm run test:e2e:codegen` - Record UI interactions (code generator)
+
+### Playwright Features Configured
+*   Multi-browser testing (Chromium, Firefox, WebKit)
+*   Mobile device emulation (Pixel 5, iPhone 13)
+*   Automatic dev server startup before tests
+*   Screenshot on failure
+*   Video recording on failure
+*   Trace collection for debugging
+*   HTML report generation
+
+### Recording UI Tests
+```bash
+# Start dev server (auto-started by Playwright config)
+npm run dev
+
+# Record interactions and generate test code
+npm run test:e2e:codegen
+
+# Or use Playwright directly
+npx playwright codegen http://localhost:3000
+```
+
+### Running Tests
+```bash
+# Run all tests (headless)
+npm run test:e2e
+
+# Run with UI mode (best for development)
+npm run test:e2e:ui
+
+# Run with visible browser
+npm run test:e2e:headed
+
+# Debug specific test
+npm run test:e2e:debug tests/e2e/example.spec.js
+```
+
+### Priority Test Scenarios
+1. Brand onboarding flow
+2. Dispensary console interactions
+3. Agent/chatbot conversations
+4. Dashboard navigation and features
+5. Form submissions and validation
+6. Mobile responsiveness
+
+### Technical Details
+*   Playwright version: Latest
+*   Test directory: `tests/e2e/`
+*   Reports: `playwright-report/`
+*   Screenshots: Captured on failure
+*   Browsers: Chromium, Firefox, WebKit, Mobile Chrome, Mobile Safari
+
+### Kusho CLI Status
+*   Encountered compatibility issues with Playwright version mismatch
+*   Kusho CLI uses Playwright v1.40.0, system has v1.53.2
+*   Decision: Use Playwright directly for better reliability and maintainability
+*   Kusho CLI remains available at `c:\Users\admin\BakedBot for Brands\kusho-cli` if needed
+
+### Documentation
+*   Comprehensive guide created at `docs/ui-testing-guide.md`
+*   Covers recording, running, best practices, CI/CD integration
+*   Includes troubleshooting and quick command reference
+
+### Result: ✅ Complete
+Playwright is fully configured and ready for UI test creation. Dev team can record and run tests immediately.
+
