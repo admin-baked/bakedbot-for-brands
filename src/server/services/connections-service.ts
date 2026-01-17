@@ -188,14 +188,6 @@ export const AVAILABLE_SERVICES: ConnectionDefinition[] = [
     
     // Payments
     {
-        id: 'stripe',
-        name: 'Stripe',
-        category: 'payments',
-        icon: '💳',
-        description: 'Manage subscriptions and payments',
-        isAvailable: true,
-    },
-    {
         id: 'authorize_net',
         name: 'Authorize.net',
         category: 'payments',

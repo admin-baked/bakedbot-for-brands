@@ -1,5 +1,5 @@
 
-import { GenerateVideoInput, GenerateVideoOutput } from '../video-types';
+import type { GenerateVideoInput, GenerateVideoOutput } from '../video-types';
 
 // Veo API job states
 type VeoJobStatus = 'PROCESSING' | 'SUCCEEDED' | 'FAILED';

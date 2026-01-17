@@ -38,7 +38,7 @@ export const metadata = {
 };
 
 export default async function SimulationPage() {
-    await requireUser(['brand', 'dispensary', 'owner']);
+    await requireUser(['brand', 'dispensary', 'super_user']);
 
     // Parallel data fetching
     const [scenarios, runs] = await Promise.all([

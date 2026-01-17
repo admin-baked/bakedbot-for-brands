@@ -18,8 +18,8 @@ export interface InventoryStats {
 }
 
 export async function getInventoryData(brandId: string) {
-    const user = await requireUser(['brand', 'owner']);
-    if (user.brandId !== brandId && user.role !== 'owner') {
+    const user = await requireUser(['brand', 'super_user']);
+    if (user.brandId !== brandId && user.role !== 'super_user') {
         throw new Error('Forbidden');
     }
 

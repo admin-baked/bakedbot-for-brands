@@ -28,7 +28,7 @@ export async function updateBrandSettings(
   formData: FormData
 ): Promise<BrandSettingsFormState> {
   try {
-    const user = await requireUser(['brand', 'owner']);
+    const user = await requireUser(['brand', 'super_user']);
     const brandId = user.brandId;
     if (!brandId) {
       return { error: true, message: 'You are not associated with a brand.' };
@@ -76,7 +76,7 @@ export async function updateChatbotSettings(
   formData: FormData
 ): Promise<BrandSettingsFormState> {
     try {
-        const user = await requireUser(['brand', 'owner']);
+        const user = await requireUser(['brand', 'super_user']);
         const brandId = user.brandId;
         if (!brandId) {
             return { error: true, message: 'You are not associated with a brand.' };

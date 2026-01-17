@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 export default async function LeadsPage() {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const orgId = user.brandId || user.uid;
 
     // Pre-fetch leads for SSR

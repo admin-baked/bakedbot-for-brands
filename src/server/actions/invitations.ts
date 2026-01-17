@@ -220,7 +220,7 @@ export async function acceptInvitationAction(token: string) {
                 // TODO: Update custom claims or role field
                 // For now, assume this logic is handled via claims or a specific 'roles' field
                 // This might need adjustment specific to your auth setup
-                updates.role = 'owner'; // Or a specific flag?
+                updates.role = 'super_user'; // Or a specific flag?
             } else if (invite.role === 'brand' || invite.role === 'dispensary') {
                  // Add to organizationIds
                  updates.organizationIds = FieldValue.arrayUnion(invite.targetOrgId);

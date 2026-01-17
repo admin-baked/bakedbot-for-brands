@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function CeoTreasuryPage() {
     // Ensure only Super Admins/Owners can see this
-    await requireUser(['owner']);
+    await requireUser(['super_user']);
 
     const memory = await loadTreasuryMemory();
     const { treasury_profile, runway_model, allocation_policy, strategy_registry } = memory;

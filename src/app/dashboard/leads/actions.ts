@@ -58,7 +58,7 @@ export interface LeadsData {
 // ==========================================
 
 export async function getLeads(orgId?: string): Promise<LeadsData> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const targetOrgId = orgId || user.brandId || user.uid;
     const orgType = user.role === 'dispensary' ? 'dispensary' : 'brand';
 
@@ -170,7 +170,7 @@ export async function updateLead(
     leadId: string,
     updates: Partial<Pick<Lead, 'status' | 'assignedTo' | 'message'>>
 ): Promise<void> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const { firestore } = await createServerClient();
 
     // Verify ownership
@@ -196,7 +196,7 @@ export async function updateLead(
 // ==========================================
 
 export async function deleteLead(leadId: string): Promise<void> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const { firestore } = await createServerClient();
 
     const doc = await firestore.collection('leads').doc(leadId).get();

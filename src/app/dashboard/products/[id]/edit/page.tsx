@@ -8,13 +8,13 @@ import { requireUser } from '@/server/auth/auth';
 export default async function EditProductPage({ params }: { params: { id: string } }) {
   let user;
   try {
-    user = await requireUser(['brand', 'owner']);
+    user = await requireUser(['brand', 'super_user']);
   } catch {
     redirect('/brand-login');
   }
 
   const brandId = user.brandId;
-  if (!brandId && user.role !== 'owner') {
+  if (!brandId && user.role !== 'super_user') {
     // Should not happen if role is brand, but a good safeguard.
     redirect('/dashboard');
   }
@@ -24,7 +24,7 @@ export default async function EditProductPage({ params }: { params: { id: string
   const product = await productRepo.getById(params.id);
 
   // Security check: ensure the user is editing a product that belongs to their brand
-  if (!product || (user.role !== 'owner' && product.brandId !== brandId)) {
+  if (!product || (user.role !== 'super_user' && product.brandId !== brandId)) {
     return (
         <div className="mx-auto max-w-2xl">
             <h1 className="text-2xl font-bold">Product not found</h1>

@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 export default async function SegmentsServerPage() {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const brandId = user.brandId || user.uid;
 
     return <SegmentsPage brandId={brandId} />;

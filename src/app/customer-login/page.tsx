@@ -64,7 +64,7 @@ export default function CustomerLoginPage() {
     // Check if user has appropriate role for customer login
     if (userRole === 'customer') {
       window.location.href = '/account';
-    } else if (userRole === 'brand' || userRole === 'dispensary' || userRole === 'owner') {
+    } else if (userRole === 'brand' || userRole === 'dispensary' || userRole === 'super_user') {
       toast({
         variant: 'default',
         title: 'Business Account',

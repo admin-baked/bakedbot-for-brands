@@ -27,7 +27,7 @@ import { logger } from '@/lib/logger';
 
 import { UserRole } from '@/types/roles';
 
-export { UserRole }; // Re-export for compatibility
+export type { UserRole }; // Re-export for compatibility
 
 export interface AuthenticatedUser {
   uid: string;

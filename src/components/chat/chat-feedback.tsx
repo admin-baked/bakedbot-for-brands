@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ThumbsUp, ThumbsDown, Copy, Check, MessageSquareWarning, X } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Copy, Check, MessageSquareWarning, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';

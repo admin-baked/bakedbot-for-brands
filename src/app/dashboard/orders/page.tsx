@@ -9,7 +9,7 @@ export const metadata = {
 };
 
 export default async function OrdersPage() {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const orgId = user.brandId || user.uid;
 
     // Pre-fetch digital orders for SSR

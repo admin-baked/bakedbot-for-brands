@@ -1,4 +1,4 @@
-/**
+email/**
  * Dev Script: List Recent Users and Configure Brand
  * 
  * This script will:
@@ -12,10 +12,7 @@ import { initializeApp, cert, getApps, App } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import * as path from 'path';
-
-// Initialize Firebase Admin
-function initializeFirebaseAdmin(): App {
-    if (getApps().length > 0) {
+ (getApps().length > 0) {
         return getApps()[0];
     }
 
@@ -27,7 +24,7 @@ function initializeFirebaseAdmin(): App {
 }
 
 async function main() {
-    const app = initializeFirebaseAdmin();
+    const app =                                                                                     ();
     const firestore = getFirestore(app);
     const auth = getAuth(app);
 

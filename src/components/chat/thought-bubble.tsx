@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronRight, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ToolCallStep } from '@/app/dashboard/ceo/components/puff-chat';
+import { ToolCallStep } from '@/app/dashboard/playbooks/components/agent-chat';
 
 interface ThoughtBubbleProps {
     steps: ToolCallStep[];

@@ -745,7 +745,7 @@ const DEFAULT_TRACKS: TalkTrack[] = [
                 id: 'step-gather-credentials',
                 order: 2,
                 type: 'question',
-                triggerKeywords: ['stripe', 'airtable', 'hubspot', 'custom', 'internal'],
+                triggerKeywords: ['airtable', 'hubspot', 'custom', 'internal'],
                 thought: "identifying api type... preparing credential collection...",
                 steps: [
                     "Identified: [Service Name]...",

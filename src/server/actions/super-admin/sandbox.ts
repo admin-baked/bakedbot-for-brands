@@ -58,10 +58,10 @@ export async function executeToolAction(params: z.infer<typeof ExecuteToolSchema
     const user = await requireUser();
     if (!await isSuperUser()) throw new Error('Unauthorized');
 
-    // Super user acts as owner (has admin:all permissions)
+    // Super user acts as super_user (has admin:all permissions)
     const mockActor = {
         userId: user.uid,
-        role: 'owner' as const
+        role: 'super_user' as const
     };
 
     const request: ToolRequest = {

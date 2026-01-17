@@ -15,7 +15,7 @@ export interface ChatMessage {
         plan: string[];
     };
     metadata?: {
-        type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context' | 'hire_modal';
+        type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context' | 'hire_modal' | 'system_health';
         data?: any;
         brandId?: string;
         brandName?: string;

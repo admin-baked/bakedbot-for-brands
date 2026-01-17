@@ -24,7 +24,7 @@ async function verifySafeSuperAdmin() {
         const email = decoded.email?.toLowerCase() || '';
         const role = decoded.role || '';
         
-        const isSuper = SUPER_ADMINS.includes(email) || role === 'owner' || role === 'super_admin';
+        const isSuper = SUPER_ADMINS.includes(email) || role === 'super_user';
         if (!isSuper) throw new Error('Forbidden');
         return decoded;
     } catch (e) {

@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export default async function InventoryPage() {
     let user;
     try {
-        user = await requireUser(['brand', 'owner']);
+        user = await requireUser(['brand', 'super_user']);
     } catch {
         redirect('/brand-login');
     }

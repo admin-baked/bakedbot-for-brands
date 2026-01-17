@@ -24,7 +24,7 @@ function AnalyticsSkeleton() {
 export default async function DashboardAnalyticsPage() {
   let user;
   try {
-    user = await requireUser(['brand', 'owner']);
+    user = await requireUser(['brand', 'super_user']);
   } catch (error) {
     redirect('/brand-login');
   }

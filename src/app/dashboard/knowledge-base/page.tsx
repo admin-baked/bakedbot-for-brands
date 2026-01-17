@@ -22,7 +22,7 @@ export default function KnowledgeBasePage() {
     }
 
     // 1. Super User View (Roach's Library)
-    if (role === 'owner') {
+    if (role === 'super_user') {
         return <SuperUserKnowledgeBase />;
     }
 

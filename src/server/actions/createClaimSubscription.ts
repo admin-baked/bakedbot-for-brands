@@ -1,11 +1,12 @@
 'use server';
 
-import { createServerClient } from '@/firebase/server-client';
+import { createServerClient, setUserRole } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
 import { PRICING_PLANS } from '@/lib/config/pricing';
 import { createCustomerProfile, createSubscriptionFromProfile } from '@/lib/payments/authorize-net';
 import { PlanId, computeMonthlyAmount, CoveragePackId, COVERAGE_PACKS } from '@/lib/plans';
+import { cookies } from 'next/headers';
 
 interface ClaimSubscriptionInput {
     // Business Info
@@ -69,7 +70,24 @@ export async function createClaimWithSubscription(
     input: ClaimSubscriptionInput
 ): Promise<ClaimSubscriptionResult> {
     try {
-        const { firestore } = await createServerClient();
+        const { firestore, auth } = await createServerClient();
+
+        // 0. Resolve User from Session
+        let userId: string | null = null;
+        try {
+            const cookieStore = await cookies();
+            const sessionCookie = cookieStore.get('__session')?.value;
+            if (sessionCookie) {
+                const decoded = await auth.verifySessionCookie(sessionCookie, true);
+                userId = decoded.uid;
+            }
+        } catch (e) {
+            logger.warn('Failed to resolve user from session in createClaimWithSubscription', { error: e });
+            // We allow proceeding without a user for now (legacy behavior?), or should we fail?
+            // The prompt implies "silent failure" of user CREATION. 
+            // If the user isn't logged in, they shouldn't be here (middleware usually protects).
+            // But let's proceed and create the claim, logging the issue.
+        }
 
         // 1. Validate plan
         const plan = PRICING_PLANS.find(p => p.id === input.planId);
@@ -118,6 +136,7 @@ export async function createClaimWithSubscription(
             .collection('claims')
             .add({
                 orgId: input.orgId || null, // Link to existing org
+                userId: userId, // Link to User
                 businessName: input.businessName,
                 businessAddress: input.businessAddress,
                 contactName: input.contactName,
@@ -134,6 +153,45 @@ export async function createClaimWithSubscription(
             });
 
         const claimId = claimRef.id;
+
+        // 3a. Ensure User Document Exists & Set Role
+        if (userId) {
+            try {
+                const userRef = firestore.collection('users').doc(userId);
+                const userDoc = await userRef.get();
+                
+                // Prepare user data
+                const userData: any = {
+                    email: input.contactEmail,
+                    displayName: input.contactName,
+                    phoneNumber: input.contactPhone,
+                    updatedAt: FieldValue.serverTimestamp(),
+                    // Flattened role/claims for easy access
+                    role: input.role, 
+                };
+
+                // Link org if applicable (provisional, until claimed)
+                if (input.orgId) {
+                    if (input.role === 'brand') userData.brandId = input.orgId;
+                    if (input.role === 'dispensary') userData.dispensaryId = input.orgId; // Assuming dispensaryId is used
+                }
+
+                await userRef.set(userData, { merge: true });
+
+                // Set Custom Claims for Auth
+                // Cast input.role to valid type or fallback to 'owner' if generic
+                const roleType = (input.role === 'brand' || input.role === 'dispensary') ? input.role : 'owner';
+                await setUserRole(userId, roleType as any, { 
+                    claimId: claimId 
+                });
+                
+                logger.info('User document updated and role set', { userId, role: roleType, claimId });
+
+            } catch (err) {
+                logger.error('Failed to update user document during claim', { userId, error: err });
+                // Don't fail the claim, but this is critical for access.
+            }
+        }
 
         // 3b. Update CRM Record if linked
         if (input.orgId) {

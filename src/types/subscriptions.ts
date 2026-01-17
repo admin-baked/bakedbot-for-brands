@@ -105,8 +105,7 @@ export interface UserSubscription {
     tenantId: string;
     packId: CoveragePackTier;
     status: 'active' | 'canceled' | 'past_due' | 'trialing';
-    stripeSubscriptionId?: string;
-    stripePriceId?: string;
+    // managed via Authorize.net customerProfileId/paymentProfileId on claimdoc
     currentPeriodStart: Date;
     currentPeriodEnd: Date;
     cancelAtPeriodEnd: boolean;

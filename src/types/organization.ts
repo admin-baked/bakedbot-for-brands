@@ -15,7 +15,7 @@ export interface Organization {
     };
 
     billing: {
-        stripeCustomerId?: string;
+        customerId?: string; // Authorize.net Customer Profile ID
         subscriptionStatus: 'active' | 'past_due' | 'trial' | 'canceled' | 'none';
         planId?: string;
     };

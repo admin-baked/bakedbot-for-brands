@@ -8,7 +8,7 @@ interface PageProps {
 }
 
 export default async function AppConfigPage({ params }: PageProps) {
-    await requireUser(['brand', 'owner', 'dispensary']);
+    await requireUser(['brand', 'super_user', 'dispensary']);
     const { appId } = await params;  // Next.js 16: params is a Promise
     return <AppConfigPageClient appId={appId} />;
 }

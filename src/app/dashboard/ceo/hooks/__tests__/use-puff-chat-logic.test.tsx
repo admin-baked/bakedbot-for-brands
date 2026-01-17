@@ -38,7 +38,7 @@ jest.mock('@/server/actions/integrations', () => ({
         gmail: 'active',
         sheets: 'active',
         drive: 'active',
-        stripe: 'active'
+        // stripe: 'active' removed
     }))
 }));
 jest.mock('@/server/actions/chat-persistence', () => ({

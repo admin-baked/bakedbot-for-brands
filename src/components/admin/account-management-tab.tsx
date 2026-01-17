@@ -278,7 +278,7 @@ export function AccountManagementTab() {
                                                                 <span className="text-xs text-muted-foreground">{user.roles.join(', ')}</span>
                                                             )}
                                                             {/* Show Super User Badge if applicable */}
-                                                            {(user.role === 'super_user' || user.role === 'owner' || user.customClaims?.super_user) && (
+                                                            {(user.role === 'super_user' || user.customClaims?.super_user) && (
                                                                 <Badge className="w-fit bg-green-100 text-green-700 border-green-200">Super User</Badge>
                                                             )}
                                                         </div>
@@ -291,7 +291,7 @@ export function AccountManagementTab() {
                                                     <TableCell>
                                                         <div className="flex items-center gap-2">
                                                             {/* Promote Button */}
-                                                            {user.role !== 'owner' && user.role !== 'super_user' && !user.customClaims?.super_user && (
+                                                            {user.role !== 'super_user' && !user.customClaims?.super_user && (
                                                                 <Button
                                                                     variant="outline"
                                                                     size="sm"

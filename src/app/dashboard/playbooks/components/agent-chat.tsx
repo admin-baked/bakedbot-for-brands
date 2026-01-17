@@ -120,7 +120,7 @@ export interface PuffMessage {
     workDuration?: number; // seconds
     steps?: ToolCallStep[];
     metadata?: {
-        type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context' | 'hire_modal';
+        type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context' | 'hire_modal' | 'system_health' | 'permission_info';
         data?: any;
         brandId?: string;
         brandName?: string;
@@ -177,6 +177,7 @@ function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (
         linus: { label: 'Linus', desc: 'CTO & Technology', icon: Wrench },
         glenda: { label: 'Glenda', desc: 'CMO & Marketing', icon: Sparkles },
         mike_exec: { label: 'Mike', desc: 'CFO & Finance', icon: DollarSign },
+        bigworm: { label: 'Big Worm', desc: 'Deep Research', icon: Search },
         // Legacy
         wholesale_analyst: { label: 'Wholesale', desc: 'LeafLink & Inventory', icon: Briefcase },
         menu_watchdog: { label: 'Watchdog', desc: 'Menu Monitoring', icon: ShoppingCart },
@@ -1025,7 +1026,7 @@ export function AgentChat({
                                 value={thinkingLevel} 
                                 onChange={setThinkingLevel} 
                                 userPlan={(user as any)?.planId || 'free'}
-                                isSuperUser={role === 'owner' || role === 'super_admin'}
+                                isSuperUser={role === 'super_user' || (role as string) === 'super_admin'}
                                 unlockResearch={role === 'brand' || role === 'dispensary'}
                             />
                             <ToolSelector

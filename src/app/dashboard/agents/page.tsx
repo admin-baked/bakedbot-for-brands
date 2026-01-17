@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default async function AgentsPage() {
   let agents = [];
   try {
-    const user = await requireUser(['brand', 'owner', 'dispensary']);
+    const user = await requireUser(['brand', 'super_user', 'dispensary']);
     // Assuming simple mapping for now. In reality, we might need a separate call to get the active brand ID if not in token.
     // For single-brand owners:
     const brandId = user.uid; // Mapping user ID to brand ID for now as per project convention, or we'd fetch the specific brand profile.

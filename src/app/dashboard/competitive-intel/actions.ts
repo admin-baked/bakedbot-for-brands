@@ -30,7 +30,7 @@ export type CompetitorSnapshot = {
  * Get competitors for an organization (auto-discovered + manual)
  */
 export async function getCompetitors(orgId: string): Promise<CompetitorSnapshot> {
-    const user = await requireUser(['dispensary', 'owner', 'brand']);
+    const user = await requireUser(['dispensary', 'super_user', 'brand']);
     const { firestore } = await createServerClient();
 
     // Get org settings to check plan
@@ -93,7 +93,7 @@ export async function getCompetitors(orgId: string): Promise<CompetitorSnapshot>
  * Auto-discover competitors based on location (called during onboarding or refresh)
  */
 export async function autoDiscoverCompetitors(orgId: string, forceRefresh = false): Promise<{ discovered: number }> {
-    const user = await requireUser(['dispensary', 'owner', 'brand']);
+    const user = await requireUser(['dispensary', 'super_user', 'brand']);
     const { firestore } = await createServerClient();
 
     // Check if refresh is allowed
@@ -227,7 +227,7 @@ export async function addManualCompetitor(
     orgId: string,
     competitor: { name: string; address?: string; city?: string; state?: string; menuUrl?: string }
 ): Promise<CompetitorEntry> {
-    await requireUser(['dispensary', 'owner', 'brand']);
+    await requireUser(['dispensary', 'super_user', 'brand']);
     const { firestore } = await createServerClient();
 
     const compRef = firestore
@@ -264,7 +264,7 @@ export async function addManualCompetitor(
  * Remove a competitor
  */
 export async function removeCompetitor(orgId: string, competitorId: string): Promise<void> {
-    await requireUser(['dispensary', 'owner', 'brand']);
+    await requireUser(['dispensary', 'super_user', 'brand']);
     const { firestore } = await createServerClient();
 
     await firestore
@@ -279,7 +279,7 @@ export async function removeCompetitor(orgId: string, competitorId: string): Pro
  * Legacy function for backward compatibility
  */
 export async function getNearbyCompetitors(lat: number, lng: number, limit: number = 20) {
-    await requireUser(['dispensary', 'owner']);
+    await requireUser(['dispensary', 'super_user']);
 
     try {
         const cms = new CannMenusService();

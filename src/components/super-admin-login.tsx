@@ -110,7 +110,7 @@ export default function SuperAdminLogin() {
         try {
             console.log('[DevLogin] Step 1: Creating dev token...');
             // 1. Create dev token for owner persona
-            const result = await createDevLoginToken('owner');
+            const result = await createDevLoginToken('super_user');
             if ('error' in result) {
                 throw new Error(result.error);
             }

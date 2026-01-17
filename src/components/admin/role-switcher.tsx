@@ -22,7 +22,7 @@ export function RoleSwitcher() {
     }
 
     const handleImpersonate = (newRole: Role) => {
-        if (newRole === 'owner') {
+        if (newRole === 'super_user') {
             stopImpersonating();
         } else {
             impersonate(newRole);
@@ -54,8 +54,8 @@ export function RoleSwitcher() {
                 <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>Impersonate Role</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleImpersonate('owner')}>
-                        Owner (Reset)
+                    <DropdownMenuItem onClick={() => handleImpersonate('super_user')}>
+                        Super User (Reset)
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleImpersonate('brand')}>
                         Brand User

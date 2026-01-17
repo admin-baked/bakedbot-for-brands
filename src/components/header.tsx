@@ -129,7 +129,7 @@ export function Header() {
                     <div className="hidden md:flex items-center gap-2">
                         {hydrated && user ? (
                             <>
-                                {(user as any).role === 'owner' && <RoleSwitcher />}
+                                {(user as any).role === 'super_user' && <RoleSwitcher />}
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" className="flex items-center gap-2">

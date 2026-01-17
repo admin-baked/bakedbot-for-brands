@@ -5,7 +5,7 @@ import CampaignWizard from '../../components/campaign-wizard';
 
 export default async function NewCampaignPage() {
     try {
-        await requireUser(['brand', 'owner']);
+        await requireUser(['brand', 'super_user']);
     } catch (error) {
         redirect('/dashboard');
     }

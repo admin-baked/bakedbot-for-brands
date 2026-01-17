@@ -38,7 +38,7 @@ export interface CreateScenarioInput {
 }
 
 export async function createScenario(input: CreateScenarioInput): Promise<SimScenario> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const tenantId = user.brandId || user.uid;
     const { firestore } = await createServerClient();
 
@@ -79,7 +79,7 @@ export async function updateScenario(
     scenarioId: string,
     patch: Partial<Pick<SimScenario, 'name' | 'description' | 'interventions' | 'assumptions' | 'horizonDays'>>
 ): Promise<void> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const tenantId = user.brandId || user.uid;
     const { firestore } = await createServerClient();
 
@@ -90,7 +90,7 @@ export async function updateScenario(
 }
 
 export async function deleteScenario(scenarioId: string): Promise<void> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const tenantId = user.brandId || user.uid;
     const { firestore } = await createServerClient();
 
@@ -98,7 +98,7 @@ export async function deleteScenario(scenarioId: string): Promise<void> {
 }
 
 export async function getScenarios(): Promise<SimScenario[]> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const tenantId = user.brandId || user.uid;
     const { firestore } = await createServerClient();
 
@@ -128,7 +128,7 @@ export async function getScenarios(): Promise<SimScenario[]> {
 }
 
 export async function getScenario(scenarioId: string): Promise<SimScenario | null> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const tenantId = user.brandId || user.uid;
 
     return loadScenario(tenantId, scenarioId);
@@ -157,7 +157,7 @@ export interface RunSimulationResult {
  * MVP: Runs synchronously (should move to Cloud Run worker in production).
  */
 export async function runSimulation(input: RunSimulationInput): Promise<RunSimulationResult> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const tenantId = user.brandId || user.uid;
     const { firestore } = await createServerClient();
 
@@ -293,7 +293,7 @@ export async function runSimulation(input: RunSimulationInput): Promise<RunSimul
 // ==========================================
 
 export async function getRuns(): Promise<SimRun[]> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const tenantId = user.brandId || user.uid;
     const { firestore } = await createServerClient();
 
@@ -327,7 +327,7 @@ export async function getRuns(): Promise<SimRun[]> {
 }
 
 export async function getRun(runId: string): Promise<SimRun | null> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const tenantId = user.brandId || user.uid;
     const { firestore } = await createServerClient();
 
@@ -359,7 +359,7 @@ export async function getRun(runId: string): Promise<SimRun | null> {
 }
 
 export async function getDaySummaries(runId: string): Promise<SimDaySummary[]> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const tenantId = user.brandId || user.uid;
     const { firestore } = await createServerClient();
 
@@ -372,7 +372,7 @@ export async function getDaySummaries(runId: string): Promise<SimDaySummary[]> {
 }
 
 export async function getDaySummary(runId: string, date: string): Promise<SimDaySummary | null> {
-    const user = await requireUser(['brand', 'dispensary', 'owner']);
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const tenantId = user.brandId || user.uid;
     const { firestore } = await createServerClient();
 

@@ -62,7 +62,7 @@ export default function DispensaryLoginPage() {
     }
 
     // Check if user has appropriate role for dispensary login
-    if (userRole === 'dispensary' || userRole === 'owner') {
+    if (userRole === 'dispensary' || userRole === 'super_user') {
       window.location.href = '/dashboard';
     } else if (userRole === 'brand') {
       toast({

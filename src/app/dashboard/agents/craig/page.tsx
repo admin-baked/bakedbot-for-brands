@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default async function CraigDashboardPage() {
     try {
-        await requireUser(['brand', 'owner']);
+        await requireUser(['brand', 'super_user']);
     } catch (error) {
         redirect('/dashboard');
     }

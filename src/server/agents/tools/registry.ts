@@ -762,7 +762,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
             properties: {
                 tool: { 
                     type: 'string', 
-                    enum: ['stripe', 'github', 'salesforce', 'hubspot', 'linear', 'jira', 'google_analytics', 'search_console'],
+                    enum: ['github', 'salesforce', 'hubspot', 'linear', 'jira', 'google_analytics', 'search_console'],
                     description: 'The tool to connect.'
                 }
             },

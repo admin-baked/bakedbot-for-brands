@@ -15,7 +15,7 @@ export const POST = withProtection(
   async (req: NextRequest, data?: AgentDispatchRequest) => {
     try {
       // Secure this endpoint: only 'owner' role can trigger it.
-      await requireUser(['owner']);
+      await requireUser(['super_user']);
 
       const { firestore: db } = await createServerClient();
       // Data is already validated by middleware

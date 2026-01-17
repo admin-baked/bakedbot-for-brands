@@ -6,7 +6,7 @@ import { searchNearbyRetailers } from '@/lib/cannmenus-api';
 import { logger } from '@/lib/logger';
 
 export async function getBrandDispensaries() {
-    const user = await requireUser(['brand', 'owner']);
+    const user = await requireUser(['brand', 'super_user']);
     const brandId = user.brandId;
 
     if (!brandId) {
@@ -74,7 +74,7 @@ export async function getBrandDispensaries() {
 }
 
 export async function searchDispensaries(query: string, state: string) {
-    await requireUser(['brand', 'owner']);
+    await requireUser(['brand', 'super_user']);
 
     // CannMenus searchNearbyRetailers uses lat/long. 
     // We might need a text search endpoint or geocode the state/city first.
@@ -123,7 +123,7 @@ export async function searchDispensaries(query: string, state: string) {
 }
 
 export async function addDispensary(dispensary: any) {
-    const user = await requireUser(['brand', 'owner']);
+    const user = await requireUser(['brand', 'super_user']);
     const brandId = user.brandId;
 
     if (!brandId) {

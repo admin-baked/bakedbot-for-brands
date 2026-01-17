@@ -28,7 +28,7 @@ import {
     AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ToolCallStep } from '@/app/dashboard/ceo/components/puff-chat';
+import { ToolCallStep } from '@/app/dashboard/playbooks/components/agent-chat';
 
 interface ThinkingWindowProps {
     steps: ToolCallStep[];

@@ -66,13 +66,13 @@ let mockFlows: LifecycleFlow[] = [
 ];
 
 export async function getLifecycleFlows(): Promise<LifecycleFlow[]> {
-    await requireUser(['brand', 'owner']);
+    await requireUser(['brand', 'super_user']);
     // In real app: Fetch from Firestore
     return mockFlows;
 }
 
 export async function toggleFlow(flowId: string, currentStatus: 'active' | 'inactive'): Promise<LifecycleFlow> {
-    await requireUser(['brand', 'owner']);
+    await requireUser(['brand', 'super_user']);
 
     // In real app: Update Firestore
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
@@ -87,7 +87,7 @@ export async function toggleFlow(flowId: string, currentStatus: 'active' | 'inac
 }
 
 export async function simulateTrigger(flowId: string): Promise<{ success: boolean; message: string; log: any }> {
-    await requireUser(['brand', 'owner']);
+    await requireUser(['brand', 'super_user']);
 
     const flow = mockFlows.find(f => f.id === flowId);
     if (!flow) throw new Error('Flow not found');

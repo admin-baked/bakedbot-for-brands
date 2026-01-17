@@ -112,7 +112,7 @@ const nextConfig = {
                 "frame-ancestors 'self'",
                 "upgrade-insecure-requests",
               ].join('; ')
-              : "default-src 'self' 'unsafe-eval' 'unsafe-inline'; img-src 'self' data: https: blob:; connect-src 'self' http://localhost:* ws://localhost:* https:;",
+              : "default-src 'self' 'unsafe-eval' 'unsafe-inline'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://apis.google.com https://www.googletagmanager.com; img-src 'self' data: https: blob:; connect-src 'self' http://localhost:* ws://localhost:* https:;",
           },
         ],
       },

@@ -59,6 +59,7 @@
 | **Headset** | Ezal | `headset.ts` | Market Trends |
 | **CannMenus** | Ezal | `cannmenus.ts` | Live Pricing |
 | **Green Check** | Deebo | `green-check.ts` | Licensing Data |
+| **Authorize.net** | Money Mike | `authorize-net.ts` | **Payments & Subs** |
 
 ### 🎯 Smokey Recommends: MVP Playbooks (Dispensaries)
 | # | Playbook | Agents | Trigger | Permissions |

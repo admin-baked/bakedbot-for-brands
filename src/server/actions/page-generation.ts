@@ -46,14 +46,14 @@ async function logJobComplete(jobId: string, result: any) {
 export async function runDispensaryScan(limit: number, dryRun: boolean, filters?: ScanFilters) {
     let jobId;
     try {
-        const user = await requireUser(['owner', 'super_admin']);
+        const user = await requireUser(['super_user']);
         jobId = await logJobStart('dispensaries', { limit, dryRun, filters });
 
         const service = new PageGeneratorService();
 
         // Enforce coverage limits only for real runs (not dry runs, or maybe both?)
         // Let's enforce for both to show "upgrade needed" early.
-        if (user.role !== 'owner') {
+        if (user.role !== 'super_user') {
             await service.checkCoverageLimit(user.uid);
         }
 
@@ -78,13 +78,13 @@ export async function runDispensaryScan(limit: number, dryRun: boolean, filters?
 export async function runBrandScan(limit: number, dryRun: boolean, filters?: ScanFilters) {
     let jobId;
     try {
-        const user = await requireUser(['owner', 'super_admin']);
+        const user = await requireUser(['super_user']);
         jobId = await logJobStart('brands', { limit, dryRun, filters });
 
         const service = new PageGeneratorService();
 
         // Enforce for brands too?
-        if (user.role !== 'owner') {
+        if (user.role !== 'super_user') {
             await service.checkCoverageLimit(user.uid);
         }
 
@@ -119,7 +119,7 @@ export async function runStateScan(dryRun: boolean, filters?: ScanFilters) {
 export async function runCityScan(limit: number, dryRun: boolean, filters?: ScanFilters) {
     let jobId;
     try {
-        const user = await requireUser(['owner', 'super_admin']);
+        const user = await requireUser(['super_user']);
         jobId = await logJobStart('cities', { limit, dryRun, filters });
 
         const service = new PageGeneratorService();

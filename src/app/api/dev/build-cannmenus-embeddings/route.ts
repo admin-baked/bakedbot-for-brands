@@ -73,7 +73,7 @@ function buildProductText(
 export async function POST(_req: NextRequest) {
   try {
     // Secure the endpoint by requiring an 'owner' role.
-    await requireUser(['owner']);
+    await requireUser(['super_user']);
 
     const { firestore: db } = await createServerClient();
 

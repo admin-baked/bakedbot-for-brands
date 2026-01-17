@@ -116,11 +116,11 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
             ...tools,
             scanCompetitors: async (location: string) => {
                 logger.info(`[Ezal] Scanning competitors in ${location}...`);
-                // Use CannMenus to find real data
-                const results = await tools.searchProducts({ near: location, limit: 5 });
-                if (!results || results.length === 0) return "No data found for this location. Try a major city.";
+                // Use getCompetitiveIntel which is defined on EzalTools
+                const results = await tools.getCompetitiveIntel(location);
+                if (!results || !results.competitors || results.competitors.length === 0) return "No data found for this location. Try a major city.";
                 // Simple summary
-                return results.map((r: any) => `${r.dispensary_name}: ${r.product_name} ($${r.price})`).join('\n');
+                return results.competitors.map((r: any) => `${r.name}: ${r.product || 'Various products'} ($${r.price || 'N/A'})`).join('\n');
             },
             alertCraig: async (competitorId: string, threat: string, product: string) => {
                 logger.info(`[Ezal] Alerting Craig about ${competitorId}...`);

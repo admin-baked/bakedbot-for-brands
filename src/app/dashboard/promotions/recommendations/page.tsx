@@ -3,7 +3,7 @@ import { getPromotionRecommendations } from './actions';
 import PromoRecommendations from './page-client';
 
 export default async function PromoPage() {
-    const user = await requireUser(['brand', 'owner']);
+    const user = await requireUser(['brand', 'super_user']);
     const brandId = user.brandId || 'demo-brand';
 
     // Fetch

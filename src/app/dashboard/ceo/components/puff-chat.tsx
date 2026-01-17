@@ -34,7 +34,7 @@ import { ChatMediaPreview } from '@/components/chat/chat-media-preview';
 import { AgentResponseCarousel } from '@/components/chat/agent-response-carousel'; // Mobile opt
 import { TypewriterText } from '@/components/landing/typewriter-text'; // Desktop opt
 import { usePuffChatLogic } from '../hooks/use-puff-chat-logic';
-import { AgentPersona } from '../../agents/personas';
+import { AgentPersona } from '../agents/personas';
 import { 
     ToolCallStep, ToolPermission, PuffTrigger, PuffState, ToolMode, AvailableTool
 } from '../types/chat-types';
@@ -403,7 +403,7 @@ export function PuffChat({
 
     // Call Hook
     const {
-        state, input, setInput, isProcessing, streamingMessageId, attachments, integrationStatus,
+        state, input, setInput, isProcessing, setIsProcessing, streamingMessageId, attachments, integrationStatus,
         persona, setPersona, thinkingLevel, setThinkingLevel, selectedProjectId, setSelectedProjectId,
         toolMode, setToolMode, selectedTools, isHireModalOpen, setIsHireModalOpen, selectedHirePlan,
         showPermissions, setShowPermissions, submitMessage, handleFileSelect, handleAudioComplete,
@@ -464,7 +464,7 @@ export function PuffChat({
     // Map store messages to PuffMessage for display logic
     const displayMessages: PuffMessage[] = currentMessages.map(m => ({
         id: m.id,
-        role: m.type, 
+        role: m.type === 'agent' ? 'assistant' : m.type,  
         content: m.content,
         timestamp: new Date(m.timestamp),
         isThinking: m.thinking?.isThinking,
