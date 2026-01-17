@@ -15,23 +15,18 @@ import {
     GenerateVideoOutputSchema 
 } from '@/ai/video-types';
 
-import type { 
-    GenerateVideoInput, 
-    GenerateVideoOutput 
-} from '@/ai/video-types';
-
 import { generateSoraVideo } from '../generators/sora';
 import { generateVeoVideo } from '../generators/veo';
 import { getSafeVideoProviderAction } from '@/server/actions/super-admin/safe-settings';
-
-export type { GenerateVideoInput, GenerateVideoOutput };
 
 const FALLBACK_VIDEO_URL = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
 
 /**
  * Generates a marketing video using Veo 3.1 or Sora based on system settings.
  */
-export async function generateMarketingVideo(input: z.infer<typeof GenerateVideoInputSchema>): Promise<GenerateVideoOutput> {
+export async function generateMarketingVideo(
+    input: z.infer<typeof GenerateVideoInputSchema>
+): Promise<z.infer<typeof GenerateVideoOutputSchema>> {
     return generateVideoFlow(input);
 }
 
