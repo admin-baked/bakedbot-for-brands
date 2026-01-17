@@ -10,9 +10,10 @@
         },
         {
             "id": "test_craig_selects_failing_campaign",
-            "command": "npm test -- craig.test.ts",
+            "command": "npm test -- craig-agent.test.ts",
             "files": [
-                "src/server/agents/craig.ts"
+                "src/server/agents/craig.ts",
+                "tests/server/agents/craig-agent.test.ts"
             ],
             "area": "backend"
         },
@@ -28,7 +29,35 @@
             "id": "test_smokey_logic",
             "command": "npm test -- smokey.test.ts",
             "files": [
-                "src/server/agents/smokey.ts"
+                "src/server/agents/smokey.ts",
+                "tests/server/smokey.test.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_executive_agent",
+            "command": "npm test -- executive-agent.test.ts",
+            "files": [
+                "src/server/agents/executive.ts",
+                "tests/server/agents/executive-agent.test.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_ezal_agent",
+            "command": "npm test -- ezal-agent.test.ts",
+            "files": [
+                "src/server/agents/ezal.ts",
+                "tests/server/agents/ezal-agent.test.ts"
+            ],
+            "area": "backend"
+        },
+        {
+            "id": "test_pops_agent",
+            "command": "npm test -- pops-agent.test.ts",
+            "files": [
+                "src/server/agents/pops.ts",
+                "tests/server/agents/pops-agent.test.ts"
             ],
             "area": "backend"
         },

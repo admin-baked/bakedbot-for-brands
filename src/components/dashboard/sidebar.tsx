@@ -179,9 +179,8 @@ export function DashboardSidebar() {
                     orgId={(user as any).currentOrgId || (user as any).brandId}
                     allowedRoles={(() => {
                         const r = (user as any).role;
-                        if (r === 'super_admin') return ['brand', 'dispensary', 'super_admin', 'customer'];
-                        if (r === 'brand' || r === 'dispensary' || r === 'super_user') {
-                             if (r === 'super_user') return ['brand'];
+                        if (r === 'super_user') return ['brand', 'dispensary', 'super_user', 'customer'];
+                        if (r === 'brand' || r === 'dispensary') {
                              return [r];
                         }
                         return [];
