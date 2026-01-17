@@ -33,11 +33,12 @@
 
 | Metric | Status | Last Verified |
 |--------|--------|---------------|
-| **Build** | 🟢 Passing | 2026-01-09 |
-| **Tests** | 🟢 Passing | 2026-01-09 |
-| **Deploy** | 🟢 Stable | 2026-01-09 |
+| **Build** | 🟢 Passing | 2026-01-17 |
+| **Tests** | 🟢 Passing | 2026-01-17 |
+| **Deploy** | 🟢 Stable | 2026-01-17 |
 
-### Critical Watchlist
+- **Logging**: **STRICTLY** use `logger` from `@/lib/logger`. `console.log` is deprecated.
+- **Type Safety**: Prefer `unknown` over `any`. Use `scripts/fix-as-any-types.js` for remediation.
 - **Firestore**: `ignoreUndefinedProperties: true` enabled
 - **Dispensary Console**: Live data, `retailerId` scoping
 - **Linus**: Now reads `CLAUDE.md` for codebase context
@@ -159,11 +160,17 @@ For detailed documentation, see `.agent/refs/`:
 
 ## 📋 Critical Protocols
 
-### Before ANY Code Changes
 ```bash
+# Verify state before change
 git pull origin main --rebase
 npm run check:types  # Verify build is healthy
 ```
+
+### Structured Logging Protocol
+- **REQUIRED**: All logs must use the structured `logger` utility.
+- **FORBIDDEN**: `console.log`, `console.warn`, `console.error` are banned from production routes.
+- **MIGRATION**: Use `node scripts/migrate-console-to-logger.js [dir]` to clean up legacy logs.
+
 
 > **If build is failing**: Fix build errors FIRST before proceeding with new work.
 > Run `npm run check:types` and resolve any errors before making changes.
