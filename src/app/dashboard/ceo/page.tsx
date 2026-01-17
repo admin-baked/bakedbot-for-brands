@@ -156,7 +156,7 @@ function CeoDashboardContent() {
                             <CardDescription>Invite other users to join as Super Admins.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <InvitationsList allowedRoles={['super_admin']} />
+                             <InvitationsList allowedRoles={['super_user']} />
                         </CardContent>
                     </Card>
                 </div>

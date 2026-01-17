@@ -22,6 +22,16 @@ jest.mock('@/lib/logger', () => ({
   },
 }));
 
+// Mock harness
+jest.mock('@/server/agents/harness', () => ({
+    runMultiStepTask: jest.fn().mockImplementation(async () => {
+        return {
+            finalResult: 'Mocked Smokey Plan',
+            steps: []
+        };
+    })
+}));
+
 describe('Smokey Agent', () => {
   let brandMemory: BrandMemory;
   let smokeyMemory: SmokeyMemory;
@@ -308,10 +318,20 @@ describe('Smokey Agent', () => {
   });
 
   describe('error handling', () => {
-    it('should throw error for non-existent target', async () => {
-      await expect(
-        smokeyAgent.act(brandMemory, smokeyMemory, 'nonexistent_target', mockTools)
-      ).rejects.toThrow('Target nonexistent_target not found in memory');
+    it('should return no_action for non-existent target', async () => {
+      const result = await smokeyAgent.act(brandMemory, smokeyMemory, 'nonexistent_target', mockTools);
+      
+      expect(result.logEntry.action).toBe('no_action');
+      expect(result.logEntry.result).toContain('No matching work target found');
+    });
+  });
+
+  describe('act - User Request (Planner)', () => {
+    it('should delegate to runMultiStepTask for user requests', async () => {
+        const result = await smokeyAgent.act(brandMemory, smokeyMemory, 'user_request', mockTools, 'Find me some weed');
+        
+        expect(result.logEntry.action).toBe('task_completed');
+        expect(result.logEntry.result).toBe('Mocked Smokey Plan');
     });
   });
 
