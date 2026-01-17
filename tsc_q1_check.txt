@@ -1,0 +1,81 @@
+﻿node.exe : 
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (:  
+  String) [], RemoteExc   
+ eption
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+<--- Last few GCs --->
+
+[19580:0000022F62EB7000]  
+  27517 ms: Scavenge 
+(interleaved) 2041.9 
+(2048.6) -> 2040.9 
+(2053.3) MB, pooled: 0 
+MB, 8.64 / 0.00 ms  
+(average mu = 0.317, 
+current mu = 0.272) 
+allocation failure; 
+[19580:0000022F62EB7000]  
+  28151 ms: Mark-Compact 
+(reduce) 2041.0 (2053.3) 
+-> 2040.9 (2046.6) MB, 
+pooled: 0 MB, 490.46 / 
+0.00 ms  (+ 3.2 ms in 1 
+steps since start of 
+marking, biggest step 3.2 
+ms, walltime since start 
+of marking 496 ms) 
+(average mu = 0.30
+FATAL ERROR: Ineffective 
+mark-compacts near heap 
+limit Allocation failed - 
+JavaScript heap out of 
+memory
+----- Native stack trace 
+-----
+
+ 1: 00007FF721CC97FF 
+node::OnFatalError+1343
+ 2: 00007FF72290DA77 v8::F
+unction::NewInstance+423
+ 3: 00007FF72270E327 v8::b
+ase::AddressSpaceReservati
+on::AddressSpaceReservatio
+n+322071
+ 4: 00007FF722712034 v8::b
+ase::AddressSpaceReservati
+on::AddressSpaceReservatio
+n+337700
+ 5: 00007FF722720FCC v8::i
+nternal::StrongRootAllocat
+orBase::deallocate_impl+16
+604
+ 6: 00007FF72272080B v8::i
+nternal::StrongRootAllocat
+orBase::deallocate_impl+14
+619
+ 7: 00007FF723B889AD v8::b
+ase::UnsignedDivisionByCon
+stant<unsigned 
+__int64>+2791325
+ 8: 00007FF72270BDF0 v8::b
+ase::AddressSpaceReservati
+on::AddressSpaceReservatio
+n+312544
+ 9: 00007FF72278F979 v8::U
+nlocker::~Unlocker+9273
+10: 00007FF722305888 v8::S
+tring::Utf8Value::~Utf8Val
+ue+142680
+11: 0000022F1FE7733A 

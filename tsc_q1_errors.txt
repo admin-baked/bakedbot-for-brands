@@ -1,0 +1,4 @@
+﻿.next/dev/types/validator.ts(1925,39): error TS2307: Cannot find module '../../../src/app/api/payments/create-intent/route.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(1934,39): error TS2307: Cannot find module '../../../src/app/api/payments/webhooks/route.js' or its corresponding type declarations.
+src/app/dashboard/ceo/page.tsx(159,62): error TS2322: Type '"super_user"' is not assignable to type '"brand" | "dispensary" | "customer" | "super_admin"'.
+src/server/actions/createClaimSubscription.ts(185,21): error TS2353: Object literal may only specify known properties, and 'claimId' does not exist in type '{ brandId?: string | undefined; locationId?: string | undefined; }'.
