@@ -2928,3 +2928,43 @@ Synchronized the local repository with the remote `main` branch using `git pull 
 ### Result: ✅ Synced
 Repository is up to date and ready for development.
 
+---
+
+## Session: 2026-01-17 (Kusho CLI Setup)
+### Task ID
+kusho_cli_ui_testing_setup
+
+### Summary
+Installed and configured Kusho CLI for automated UI testing of BakedBot applications. Kusho is an AI-powered tool that records user interactions and generates comprehensive Playwright test suites.
+
+### Key Changes
+*   **INSTALL**: Kusho CLI v1.0.0 installed at `c:\Users\admin\BakedBot for Brands\kusho-cli`
+*   **INSTALL**: Playwright browsers (Chromium, Firefox, Webkit)
+*   **CONFIG**: Credentials configured for martez@bakedbot.ai
+*   **NEW**: `docs/kusho-cli-setup.md` - Comprehensive setup and usage guide
+
+### Environment Details
+*   Node.js: v25.2.1 (exceeds v18+ requirement)
+*   npm: v11.6.2
+*   Git: v2.52.0
+*   Editors: vim v9.1, nano v8.7
+
+### Workflow
+1. **Record**: `kusho record [url]` - Record UI interactions in browser
+2. **Extend**: `kusho extend latest` - AI generates test variations
+3. **Run**: `kusho run latest --headed --record` - Execute tests with video
+
+### BakedBot Use Cases
+*   Test user onboarding flows
+*   Validate dashboard interactions
+*   Test agent/chatbot conversations
+*   Verify responsive design on different devices
+
+### Next Steps
+1. Start dev server: `npm run dev`
+2. Try demo: `kusho demo`
+3. Record first BakedBot flow: `kusho record http://localhost:3000`
+
+### Result: ✅ Complete
+Kusho CLI is fully operational and ready for UI test creation.
+
