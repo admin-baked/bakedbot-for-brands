@@ -25,17 +25,17 @@ capabilities:
 tools:
   # Communication
   - gmail_send
-  - sendgrid_send
-  
-  # Research  
+  - mailjet_send
+
+  # Research
   - web_search
   - web_scraper
-  
+
   # Data & Analytics
   - google_sheets_read
   - google_sheets_write
   - google_docs_create
-  
+
   # Integrations
   - cannmenus_product_search
   - cannmenus_retailer_search
@@ -69,7 +69,7 @@ instructions: |
      - Promotional materials
   
   4. **Campaign Execution**
-     - Use Gmail or SendGrid to send emails
+     - Use Gmail or Mailjet to send emails
      - Track campaign performance metrics
      - Store results in Google Sheets for analysis
      - Coordinate with Pops for analytics insights

@@ -1,13 +1,14 @@
 /**
- * Email Tool - SendGrid Integration
- * 
+ * Email Tool - Mailjet Integration
+ *
  * Production email sending capability for Agent Chat.
- * Uses SendGrid API for reliable email delivery.
+ * Uses Mailjet API for reliable email delivery.
  */
 
 import { BaseTool } from './base-tool';
 import type { ToolContext, ToolResult, ToolAuthType } from '@/types/tool';
 import { logger } from '@/lib/logger';
+import { sendGenericEmail } from '@/lib/email/mailjet';
 
 // --- Types ---
 
@@ -38,9 +39,9 @@ export interface EmailSendOutput {
 export class EmailTool extends BaseTool<EmailSendInput, EmailSendOutput> {
     readonly id = 'email.send';
     readonly name = 'Send Email';
-    readonly description = 'Send emails via SendGrid. Supports HTML content, attachments, and multiple recipients.';
+    readonly description = 'Send emails via Mailjet. Supports HTML content and multiple recipients.';
     readonly category = 'communication' as const;
-    readonly version = '1.0.0';
+    readonly version = '1.1.0';
 
     readonly authType: ToolAuthType = 'api_key';
     readonly requiresAuth = true;
@@ -63,14 +64,6 @@ export class EmailTool extends BaseTool<EmailSendInput, EmailSendOutput> {
                 'Send newsletter with images',
                 'Send branded marketing email'
             ]
-        },
-        {
-            name: 'Attachments',
-            description: 'Include file attachments in emails',
-            examples: [
-                'Send report as PDF attachment',
-                'Share product catalog'
-            ]
         }
     ];
 
@@ -91,7 +84,7 @@ export class EmailTool extends BaseTool<EmailSendInput, EmailSendOutput> {
     readonly outputSchema = {
         type: 'object' as const,
         properties: {
-            messageId: { type: 'string', description: 'SendGrid message ID' },
+            messageId: { type: 'string', description: 'Mailjet message ID' },
             sent: { type: 'boolean', description: 'Whether email was sent' },
             recipients: { type: 'array', description: 'List of recipients' },
             timestamp: { type: 'string', description: 'Send timestamp' }
@@ -111,69 +104,49 @@ export class EmailTool extends BaseTool<EmailSendInput, EmailSendOutput> {
                 throw this.createError('INVALID_INPUT', 'Missing required fields: to, subject, body', false);
             }
 
-            // Get SendGrid API key from environment
-            const apiKey = process.env.SENDGRID_API_KEY;
-            if (!apiKey) {
-                throw this.createError('CONFIG_ERROR', 'SENDGRID_API_KEY not configured', false);
+            // Check Mailjet API keys from environment
+            const apiKey = process.env.MAILJET_API_KEY;
+            const secretKey = process.env.MAILJET_SECRET_KEY;
+            if (!apiKey || !secretKey) {
+                throw this.createError('CONFIG_ERROR', 'MAILJET_API_KEY or MAILJET_SECRET_KEY not configured', false);
             }
 
-            // Normalize recipients
+            // Normalize recipients - Mailjet sendGenericEmail handles single recipient
             const recipients = Array.isArray(input.to) ? input.to : [input.to];
 
-            // Build SendGrid payload
-            const payload = {
-                personalizations: [{
-                    to: recipients.map(email => ({ email })),
-                    cc: input.cc?.map(email => ({ email })),
-                    bcc: input.bcc?.map(email => ({ email })),
-                }],
-                from: {
-                    email: process.env.SENDGRID_FROM_EMAIL || 'noreply@bakedbot.ai',
-                    name: process.env.SENDGRID_FROM_NAME || 'BakedBot'
-                },
-                reply_to: input.replyTo ? { email: input.replyTo } : undefined,
-                subject: input.subject,
-                content: [{
-                    type: input.bodyType === 'html' ? 'text/html' : 'text/plain',
-                    value: input.body
-                }],
-                attachments: input.attachments?.map(att => ({
-                    content: att.content,
-                    filename: att.filename,
-                    type: att.contentType,
-                    disposition: 'attachment'
-                }))
-            };
+            // Send to each recipient via Mailjet
+            const results = await Promise.all(
+                recipients.map(async (email) => {
+                    const result = await sendGenericEmail({
+                        to: email,
+                        subject: input.subject,
+                        htmlBody: input.bodyType === 'html' ? input.body : `<pre>${input.body}</pre>`,
+                        textBody: input.bodyType === 'text' ? input.body : undefined
+                    });
+                    return { email, success: result.success, error: result.error };
+                })
+            );
 
-            // Send via SendGrid API
-            const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
+            const successCount = results.filter(r => r.success).length;
+            const failedRecipients = results.filter(r => !r.success);
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                logger.error('SendGrid API error:', { status: response.status, error: errorText });
-                throw this.createError('API_ERROR', `SendGrid error: ${response.status}`, true);
+            if (successCount === 0) {
+                logger.error('All emails failed to send', { results });
+                throw this.createError('API_ERROR', `Mailjet error: ${failedRecipients[0]?.error}`, true);
             }
 
-            // Get message ID from header
-            const messageId = response.headers.get('x-message-id') || `msg_${Date.now()}`;
+            const messageId = `mj_${Date.now()}`;
 
-            logger.info('Email sent successfully', {
+            logger.info('Email sent successfully via Mailjet', {
                 messageId,
-                recipients: recipients.length,
+                recipients: successCount,
                 subject: input.subject
             });
 
             const output: EmailSendOutput = {
                 messageId,
                 sent: true,
-                recipients,
+                recipients: results.filter(r => r.success).map(r => r.email),
                 timestamp: new Date().toISOString()
             };
 
@@ -181,7 +154,7 @@ export class EmailTool extends BaseTool<EmailSendInput, EmailSendOutput> {
                 output,
                 {
                     executionTime: Date.now() - startTime,
-                    apiCalls: 1
+                    apiCalls: recipients.length
                 },
                 {
                     type: 'email',
@@ -191,7 +164,7 @@ export class EmailTool extends BaseTool<EmailSendInput, EmailSendOutput> {
                         subject: input.subject,
                         preview: input.body.substring(0, 200) + (input.body.length > 200 ? '...' : '')
                     },
-                    preview: `Sent to ${recipients.length} recipient(s)`,
+                    preview: `Sent to ${successCount} recipient(s)`,
                     icon: 'mail'
                 },
                 1.0 // High confidence for successful send

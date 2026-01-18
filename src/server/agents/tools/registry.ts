@@ -432,7 +432,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     },
     'marketing.sendEmail': {
         name: 'marketing.sendEmail',
-        description: 'Sends an email via the active provider (Mailjet/SendGrid). Used by playbooks for automated email dispatch.',
+        description: 'Sends an email via Mailjet. Used by playbooks for automated email dispatch.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -527,7 +527,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     },
     'communications.sendTestEmail': {
         name: 'communications.sendTestEmail',
-        description: 'Sends a test email via the active provider (Mailjet/SendGrid).',
+        description: 'Sends a test email via Mailjet.',
         inputSchema: {
             type: 'object',
             properties: {
