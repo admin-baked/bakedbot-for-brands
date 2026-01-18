@@ -54,7 +54,10 @@
       "Bash(git stash:*)",
       "Bash(git -C \"c:\\Users\\admin\\BakedBot for Brands\\bakedbot-for-brands\" log --oneline -20)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(node --version:*)",
+      "Bash(npm --version:*)",
+      "Bash(git --version:*)"
     ],
     "deny": [],
     "ask": []

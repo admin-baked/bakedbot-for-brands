@@ -32,10 +32,10 @@ import {
   Sparkles,
   Percent,
   Gift,
-  Users,
   Building2,
   Briefcase,
   Heart,
+  Rocket,
 } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
 import { DealsTicker } from './deals-ticker';
@@ -50,6 +50,8 @@ interface DemoHeaderProps {
   location?: string;
   onSearch?: (query: string) => void;
   onCategorySelect?: (category: string) => void;
+  onCartClick?: () => void;
+  onAccountClick?: () => void;
 }
 
 const navItems = [
@@ -85,6 +87,8 @@ export function DemoHeader({
   location = 'San Francisco, CA',
   onSearch,
   onCategorySelect,
+  onCartClick,
+  onAccountClick,
 }: DemoHeaderProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -98,7 +102,6 @@ export function DemoHeader({
   };
 
   const primaryColor = brandColors?.primary || '#16a34a';
-  const secondaryColor = brandColors?.secondary || '#064e3b';
 
   return (
     <header className="sticky top-0 z-50 w-full bg-background shadow-sm">
@@ -121,6 +124,14 @@ export function DemoHeader({
                   <SheetTitle className="text-left">{brandName}</SheetTitle>
                 </SheetHeader>
                 <nav className="mt-6 space-y-1">
+                  {/* Get Started CTA in mobile menu */}
+                  <Link href="/get-started" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full mb-4 gap-2" style={{ backgroundColor: primaryColor }}>
+                      <Rocket className="h-4 w-4" />
+                      Get Started Free
+                    </Button>
+                  </Link>
+
                   {navItems.map((item) => (
                     <Link
                       key={item.label}
@@ -201,18 +212,46 @@ export function DemoHeader({
 
             {/* Right Actions */}
             <div className="flex items-center gap-2">
+              {/* Get Started Button (Desktop) */}
+              <Link href="/get-started" className="hidden lg:block">
+                <Button
+                  size="sm"
+                  className="gap-2 font-semibold"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  <Rocket className="h-4 w-4" />
+                  Get Started Free
+                </Button>
+              </Link>
+
               {/* Search (Mobile) */}
               <Button variant="ghost" size="icon" className="md:hidden">
                 <Search className="h-5 w-5" />
               </Button>
 
               {/* User */}
-              <Button variant="ghost" size="icon">
-                <User className="h-5 w-5" />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onAccountClick}
+                asChild={!onAccountClick}
+              >
+                {onAccountClick ? (
+                  <span><User className="h-5 w-5" /></span>
+                ) : (
+                  <Link href="/customer-login">
+                    <User className="h-5 w-5" />
+                  </Link>
+                )}
               </Button>
 
               {/* Cart */}
-              <Button variant="ghost" size="icon" className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                onClick={onCartClick}
+              >
                 <ShoppingCart className="h-5 w-5" />
                 {cartCount > 0 && (
                   <Badge
@@ -265,7 +304,7 @@ export function DemoHeader({
                       </>
                     ) : (
                       <NavigationMenuLink asChild>
-                        <Link 
+                        <Link
                           href={item.href}
                           className="h-12 px-4 font-semibold text-sm inline-flex items-center gap-2 hover:text-primary transition-colors"
                         >
