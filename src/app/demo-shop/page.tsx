@@ -1,4 +1,4 @@
-// src/app/shop/demo/page.tsx
+// src/app/demo-shop/page.tsx
 /**
  * Demo shopping page route wrapper
  * Located outside (customer-menu) to avoid double header/footer

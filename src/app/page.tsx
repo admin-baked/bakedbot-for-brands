@@ -474,7 +474,7 @@ export default function HomePage() {
               <Button size="lg" variant="outline" asChild href="/free-audit">
                 Run Free Audit
               </Button>
-              <Button size="lg" variant="outline" asChild href="/shop/demo">
+              <Button size="lg" variant="outline" asChild href="/demo-shop">
                 See Live Demo
               </Button>
             </div>

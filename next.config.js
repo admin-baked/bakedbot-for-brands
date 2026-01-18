@@ -39,6 +39,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 's3-us-west-2.amazonaws.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.dutchie.com',
+      },
     ],
   },
   serverExternalPackages: [
@@ -142,12 +146,17 @@ const nextConfig = {
     return [
       {
         source: '/demo-menu',
-        destination: '/shop/demo',
+        destination: '/demo-shop',
+        permanent: true,
+      },
+      {
+        source: '/shop/demo',
+        destination: '/demo-shop',
         permanent: true,
       },
       {
         source: '/demo',
-        destination: '/shop/demo',
+        destination: '/demo-shop',
         permanent: true,
       },
     ];

@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { MarketSelector } from '@/components/ui/market-selector';
 import { searchCannMenusRetailers } from '@/server/actions/cannmenus';
 import { WiringScreen } from '@/app/dashboard/settings/link/components/wiring-screen';
+import { CompetitorOnboardingStep } from './components/competitor-onboarding-step';
 import { checkOnboardingStatus } from './status-action';
 import { AnimatePresence } from 'framer-motion';
 import { useFirebase } from '@/firebase/provider';
@@ -33,8 +34,8 @@ type BrandResult = {
   market: string | null;
 };
 
-// V2 Optimization: Removed 'integrations' | 'competitors' | 'features'
-type Step = 'role' | 'market' | 'brand-search' | 'manual' | 'review';
+// V2 Optimization: Re-added 'competitors' for production-ready onboarding
+type Step = 'role' | 'market' | 'brand-search' | 'manual' | 'competitors' | 'review';
 
 export default function OnboardingPage() {
   const { toast } = useToast();
@@ -61,6 +62,23 @@ export default function OnboardingPage() {
   const [password, setPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [marketState, setMarketState] = useState<string>('');
+
+  // Competitor Selection
+  const [selectedCompetitors, setSelectedCompetitors] = useState<any[]>([]);
+
+  const toggleCompetitor = (comp: any) => {
+    setSelectedCompetitors(prev => {
+      const exists = prev.find(c => c.id === comp.id);
+      if (exists) {
+        return prev.filter(c => c.id !== comp.id);
+      }
+      if (prev.length >= 5) {
+        toast({ title: "Limit reached", description: "You can select up to 5 competitors." });
+        return prev;
+      }
+      return [...prev, comp];
+    });
+  };
 
   // Handle URL params for pre-filling (e.g. coming from Claim Page)
   const searchParams = useSearchParams();
@@ -198,8 +216,8 @@ export default function OnboardingPage() {
       }
     }
 
-    // V2 Optimization: Skip integrations/competitors/features
-    setStep('review');
+    // V2 Optimization: Go to competitors step instead of skipping
+    setStep('competitors');
   }
 
   function handleGoToManual() {
@@ -208,8 +226,8 @@ export default function OnboardingPage() {
   }
 
   function handleManualContinue() {
-    // V2 Optimization: Go directly to review
-    setStep('review');
+    // V2 Optimization: Go to competitors step instead of skipping
+    setStep('competitors');
   }
 
   // --- Auth Handlers for "Almost There" Modal ---
@@ -414,6 +432,17 @@ export default function OnboardingPage() {
     </section>
   );
 
+  const renderCompetitorsStep = () => (
+    <CompetitorOnboardingStep
+      role={role as 'brand' | 'dispensary'}
+      marketState={marketState}
+      selectedCompetitors={selectedCompetitors}
+      onToggleCompetitor={toggleCompetitor}
+      onBack={() => setStep(selectedCannMenusEntity ? 'brand-search' : 'manual')}
+      onContinue={() => setStep('review')}
+    />
+  );
+
   const renderReviewStep = () => {
     const selectedName =
       (role === 'brand' && manualBrandName) ? manualBrandName :
@@ -451,6 +480,7 @@ export default function OnboardingPage() {
           <input type="hidden" name="manualProductName" value={manualProductName} />
           <input type="hidden" name="manualDispensaryName" value={manualDispensaryName} />
           <input type="hidden" name="marketState" value={marketState} />
+          <input type="hidden" name="selectedCompetitors" value={JSON.stringify(selectedCompetitors)} />
 
           {/* Intercepted Submit Button */}
           <Button
@@ -508,6 +538,7 @@ export default function OnboardingPage() {
         {step === 'market' && renderMarketSelection()}
         {step === 'brand-search' && renderSearchStep()}
         {step === 'manual' && renderManualStep()}
+        {step === 'competitors' && renderCompetitorsStep()}
         {step === 'review' && renderReviewStep()}
 
         {/* Existing Relogin Modal */}

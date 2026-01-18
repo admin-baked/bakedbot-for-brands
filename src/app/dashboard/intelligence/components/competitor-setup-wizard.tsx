@@ -134,7 +134,8 @@ export function CompetitorSetupWizard({ hasCompetitors, overrideRole }: Competit
                                         value={city} 
                                         onChange={(e) => setCity(e.target.value)} 
                                         className="col-span-3" 
-                                        placeholder="Chicago"
+                                        placeholder="City (e.g. Chicago)"
+                                        data-testid="city-input"
                                     />
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
@@ -142,9 +143,10 @@ export function CompetitorSetupWizard({ hasCompetitors, overrideRole }: Competit
                                     <Input 
                                         value={state} 
                                         onChange={(e) => setState(e.target.value.toUpperCase())} 
-                                        className="col-span-3" 
-                                        placeholder="IL"
+                                        className="w-24" 
+                                        placeholder="State"
                                         maxLength={2}
+                                        data-testid="state-input"
                                     />
                                 </div>
                             </TabsContent>
@@ -156,7 +158,8 @@ export function CompetitorSetupWizard({ hasCompetitors, overrideRole }: Competit
                                         value={zip} 
                                         onChange={(e) => setZip(e.target.value)} 
                                         className="col-span-3" 
-                                        placeholder="e.g. 60601"
+                                        placeholder="Enter ZIP Code"
+                                        data-testid="zip-input"
                                     />
                                 </div>
                             </TabsContent>

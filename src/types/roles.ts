@@ -11,6 +11,7 @@
 
 export type UserRole = 
     | 'super_user' 
+    | 'super_admin'
     | 'brand' 
     | 'dispensary' 
     | 'customer' 
@@ -18,6 +19,7 @@ export type UserRole =
 
 export const ALL_ROLES: UserRole[] = [
     'super_user',
+    'super_admin',
     'brand',
     'dispensary',
     'customer',
@@ -26,6 +28,7 @@ export const ALL_ROLES: UserRole[] = [
 
 export const DASHBOARD_ROLES: UserRole[] = [
     'super_user',
+    'super_admin',
     'brand',
     'dispensary',
     'budtender'

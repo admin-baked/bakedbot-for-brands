@@ -164,6 +164,7 @@ export default function BrandSetupTab() {
                                 required
                                 disabled={status?.nameLocked}
                                 defaultValue={status?.brandName}
+                                data-testid="brand-name-input"
                             />
                             <p className="text-[10px] text-muted-foreground">
                                 {status?.nameLocked
@@ -182,6 +183,7 @@ export default function BrandSetupTab() {
                                 placeholder="60601"
                                 pattern="[0-9]{5}"
                                 required
+                                data-testid="zip-code-input"
                             />
                             <p className="text-[10px] text-muted-foreground">
                                 Used to find nearby retailers and competitive shelf share.
@@ -205,6 +207,7 @@ export default function BrandSetupTab() {
                                     value={slug}
                                     onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
                                     className={slugStatus === 'taken' ? 'border-red-300 pr-10' : slugStatus === 'available' ? 'border-green-300 pr-10' : 'pr-10'}
+                                    data-testid="slug-input"
                                 />
                                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                     {slugStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}

@@ -3058,3 +3058,63 @@ npm run test:e2e:debug tests/e2e/example.spec.js
 ### Result: ✅ Complete
 Playwright is fully configured and ready for UI test creation. Dev team can record and run tests immediately.
 
+## Session: 2026-01-18 (08:30 UTC) - Production Ready Brand Role (Part 2)
+
+### Summary
+Completed the integration of competitive intelligence discovery into the onboarding and settings flows, along with comprehensive unit testing and environment hardening.
+
+### Achievements
+- **Competitor Onboarding Selection**: Integrated a dedicated step in `onboarding-client.tsx` allowing brands and dispensaries to manually select or discover competitors before finishing setup.
+- **Slug Management Actions**: Created and verified `slug-management.ts` for URL-safe slug generation, availability checking, and reservation.
+- **Brand Setup Enhancements**: Added vertically integrated toggle and real-time slug validation to `BrandSetupTab.tsx`.
+- **Unit Testing**:
+    - `slug-management.test.ts`: 100% passing tests for slug logic.
+    - `use-user-role.test.ts`: Verified `orgId` prioritization (currentOrgId > brandId > dispensaryId).
+    - `setup-checklist.test.tsx`: Verified role-awareness and 5-item focused brand checklist.
+    - `products/page.test.tsx`: Verified no demo data fallback for real users.
+    - `dispensaries/page.test.tsx`: Verified graceful error handling for missing data.
+    - Implemented UI mocks and environment polyfills to handle Radix/JSDOM/Genkit conflicts in Jest.
+- **Technical Debt**: Removed redundant "Brand Identity" section from settings, unifying it with the Competitive Intel wizard.
+
+### Verification Results
+- **Automated**: `npm test -- src/server/actions/__tests__/slug-management.test.ts` passed.
+- **Manual**: Onboarding flow updated to handle `selectedCompetitors` via Firestore batch writes.
+
+### Result: ✅ Complete
+The brand role is now production-ready with competitive intel integrated into the first-time user experience.
+
+## Session: 2027-04-15 - Email & UI Transformation
+
+### User Objectives
+- Refactor email provider from SendGrid to Mailjet.
+- Redesign Demo Shop UI with premium aesthetics.
+- Fix TypeScript build errors and reduce technical debt.
+- Implement Menu Import utility for demo users.
+
+### Accomplishments
+- **Email Infrastructure**: 
+    - Implemented `mailjet.ts` service with v3.1 API.
+    - Updated `dispatcher.ts` to default to Mailjet with SendGrid failover.
+    - Updated agents (`Craig`, `Mrs. Parker`) to use `mailjet_send`.
+- **UI Redesign**: 
+    - Redesigned `demo-shop-client.tsx` with "Quality Roots" inspiration.
+    - Added Hero Carousel, Featured Brands, and Category Icons.
+    - Enhanced Product Cards with thc/cbd badges.
+- **Tools & APIs**:
+    - Created `api/demo/import-menu` for URL-based onboarding.
+    - Implemented `SingleLocationBanner` for optimized individual dispensary views.
+- **Technical Debt**:
+    - Standardized `super_admin` role in CEO dashboard.
+    - Fixed `setUserRole` type signature and call sites.
+    - Added missing `navigation-menu.tsx` component.
+
+### Verification Results
+- **Unit Tests**:
+    - `mailjet.test.ts`: ✅ PASS
+    - `dispatcher.test.ts`: ✅ PASS
+    - `email-tool.test.ts`: ✅ PASS
+    - `route.test.ts` (Import API): ✅ PASS
+- **Type Check**: `npm run check:types` verified clean for core business logic.
+
+### Result: ✅ Complete
+The application now features a more robust email system and a highly polished demo experience for prospect brand partners.

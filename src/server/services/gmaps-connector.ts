@@ -9,6 +9,7 @@ import type {
     GMapsIngestionRun,
     GMapsDispensaryDoc
 } from '@/types/gmaps';
+import { createSlug } from '@/lib/utils/slug';
 
 const APIFY_API_BASE = 'https://api.apify.com/v2';
 const GMAPS_TASK_ID = 'Kb9uh4qmh4s76kDan';  // bakedbot-ai~google-maps-discovery-task
@@ -24,15 +25,6 @@ function getApifyToken(): string {
     return token;
 }
 
-/**
- * Create a URL-safe slug
- */
-function createSlug(name: string): string {
-    return (name || 'unknown')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-}
 
 /**
  * Trigger a dispensary search via Google Maps

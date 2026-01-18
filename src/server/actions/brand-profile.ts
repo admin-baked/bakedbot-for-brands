@@ -4,6 +4,7 @@
 import { createServerClient } from '@/firebase/server-client';
 import { DeeboGuardrails } from '@/server/services/deebo-guardrails';
 import { revalidatePath } from 'next/cache';
+import { createSlug } from '@/lib/utils/slug';
 
 export async function updateBrandProfile(brandId: string, formData: FormData) {
     const { firestore } = await createServerClient();
@@ -138,16 +139,6 @@ async function syncDispensariesForBrand(brandId: string, brandName: string, mark
     }
 }
 
-/**
- * Create a URL-safe slug from a brand name
- */
-function createSlug(name: string): string {
-    return name
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-}
 
 /**
  * Request a brand name change (for brands that already have a name set)
