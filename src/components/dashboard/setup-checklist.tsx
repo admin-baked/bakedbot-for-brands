@@ -32,9 +32,9 @@ const BRAND_CHECKLIST: ChecklistItem[] = [
     {
         id: 'add-products',
         title: 'Add your products',
-        description: 'Upload your products manually, CSV, or import from CannMenus',
+        description: 'Import your menu from URL, CannMenus, or add manually',
         estimatedTime: '5 min',
-        href: '/dashboard/products',
+        href: '/dashboard/products/url-import',
         icon: <Package className="h-4 w-4" />,
         status: 'todo'
     },
