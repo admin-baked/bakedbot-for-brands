@@ -6,11 +6,19 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Store, Check, Plus, Search, MapPin } from 'lucide-react';
+import { Loader2, Store, Check, Plus, Search, MapPin, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { searchLocalCompetitors, searchLeaflyCompetitors, finalizeCompetitorSetup } from '../actions/setup';
+import { useUserRole } from '@/hooks/use-user-role';
 
-export function CompetitorSetupWizard({ hasCompetitors }: { hasCompetitors: boolean }) {
+interface CompetitorSetupWizardProps {
+    hasCompetitors: boolean;
+    overrideRole?: 'brand' | 'dispensary'; // Explicit role override
+}
+
+export function CompetitorSetupWizard({ hasCompetitors, overrideRole }: CompetitorSetupWizardProps) {
+    const { role: userRole } = useUserRole();
+    const searchType = overrideRole || (userRole === 'brand' ? 'brand' : 'dispensary');
     const [open, setOpen] = useState(!hasCompetitors);
     const [step, setStep] = useState(1);
     
@@ -105,7 +113,9 @@ export function CompetitorSetupWizard({ hasCompetitors }: { hasCompetitors: bool
                 <DialogHeader>
                     <DialogTitle>Setup Competitive Intelligence</DialogTitle>
                     <DialogDescription>
-                        {step === 1 ? "Where are your competitors located?" : "Select main competitors to track."}
+                        {step === 1 
+                            ? `Where are your ${searchType === 'brand' ? 'competing brands' : 'competitor dispensaries'} located?` 
+                            : `Select ${searchType === 'brand' ? 'brands' : 'dispensaries'} to track.`}
                     </DialogDescription>
                 </DialogHeader>
 
