@@ -1,4 +1,3 @@
-// @ts-expect-error - @google/generative-ai may not have types installed, but package exists
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;

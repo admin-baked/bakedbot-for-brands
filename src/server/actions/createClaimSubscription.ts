@@ -181,10 +181,11 @@ export async function createClaimWithSubscription(
                 // Set Custom Claims for Auth
                 // Cast input.role to valid type or fallback to 'owner' if generic
                 const roleType = (input.role === 'brand' || input.role === 'dispensary') ? input.role : 'owner';
-                await setUserRole(userId, roleType as any, { 
-                    claimId: claimId 
-                });
-                
+                const additionalData: { brandId?: string; locationId?: string } = {};
+                if (input.role === 'brand' && input.orgId) additionalData.brandId = input.orgId;
+                if (input.role === 'dispensary' && input.orgId) additionalData.locationId = input.orgId;
+                await setUserRole(userId, roleType as any, additionalData);
+
                 logger.info('User document updated and role set', { userId, role: roleType, claimId });
 
             } catch (err) {

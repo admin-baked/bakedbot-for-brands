@@ -17,7 +17,108 @@ import { z } from 'zod';
 import { ai } from '@/ai/genkit';
 import { discovery } from '@/server/services/firecrawl';
 
-// ... (existing helper tools) ...
+// ============================================================================
+// TOOL: Web Search with Content Extraction
+// ============================================================================
+export const firecrawlSearch = ai.defineTool({
+    name: 'firecrawl_search',
+    description: 'Search the web and extract content from results. Use for finding information about dispensaries, brands, or products.',
+    inputSchema: z.object({
+        query: z.string().describe('Search query')
+    }),
+    outputSchema: z.any(),
+}, async ({ query }) => {
+    try {
+        if (!discovery.isConfigured()) {
+            return { error: 'Firecrawl not configured.' };
+        }
+        const results = await discovery.search(query);
+        return { success: true, results };
+    } catch (e: any) {
+        return { error: `Search failed: ${e.message}` };
+    }
+});
+
+// ============================================================================
+// TOOL: Batch Scrape Multiple URLs
+// ============================================================================
+export const firecrawlBatchScrape = ai.defineTool({
+    name: 'firecrawl_batch_scrape',
+    description: 'Scrape multiple URLs efficiently in a single batch. Use for scraping multiple pages from the same site.',
+    inputSchema: z.object({
+        urls: z.array(z.string()).describe('Array of URLs to scrape'),
+        format: z.enum(['markdown', 'html']).optional().default('markdown')
+    }),
+    outputSchema: z.any(),
+}, async ({ urls, format }) => {
+    try {
+        if (!discovery.isConfigured()) {
+            return { error: 'Firecrawl not configured.' };
+        }
+        const results = await Promise.all(
+            urls.map(async (url) => {
+                try {
+                    const response = await discovery.discoverUrl(url, [format]);
+                    return { url, success: true, content: response.markdown || response.html };
+                } catch (e: any) {
+                    return { url, success: false, error: e.message };
+                }
+            })
+        );
+        return { success: true, results };
+    } catch (e: any) {
+        return { error: `Batch scrape failed: ${e.message}` };
+    }
+});
+
+// ============================================================================
+// TOOL: Map Site URLs
+// ============================================================================
+export const firecrawlMap = ai.defineTool({
+    name: 'firecrawl_map',
+    description: 'Discover all URLs on a website. Use to find all pages on a dispensary or brand site before scraping.',
+    inputSchema: z.object({
+        url: z.string().describe('Base URL of the site to map')
+    }),
+    outputSchema: z.any(),
+}, async ({ url }) => {
+    try {
+        if (!discovery.isConfigured()) {
+            return { error: 'Firecrawl not configured.' };
+        }
+        const response = await discovery.mapSite(url);
+        return { success: true, urls: response.links || response.urls || [] };
+    } catch (e: any) {
+        return { error: `Map failed: ${e.message}` };
+    }
+});
+
+// ============================================================================
+// TOOL: LLM-Based Structured Data Extraction
+// ============================================================================
+export const firecrawlExtract = ai.defineTool({
+    name: 'firecrawl_extract',
+    description: 'Extract structured data from a webpage using LLM. Use for extracting specific information like product details, prices, or contact info.',
+    inputSchema: z.object({
+        url: z.string().describe('URL to extract data from'),
+        prompt: z.string().describe('Description of what data to extract')
+    }),
+    outputSchema: z.any(),
+}, async ({ url, prompt }) => {
+    try {
+        if (!discovery.isConfigured()) {
+            return { error: 'Firecrawl not configured.' };
+        }
+        // Use a simple schema for extraction
+        const schema = z.object({
+            data: z.any().describe(prompt)
+        });
+        const result = await discovery.extractData(url, schema);
+        return { success: true, data: result };
+    } catch (e: any) {
+        return { error: `Extract failed: ${e.message}` };
+    }
+});
 
 // ============================================================================
 // TOOL: Scrape Menu with Age Gate Bypass
