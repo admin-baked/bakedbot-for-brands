@@ -3,22 +3,35 @@
 
 /**
  * Demo shopping page client component - Quality Roots inspired design
- * Full dispensary experience with ticker, carousels, bundles, and oversized cards
+ * Supports both Dispensary Menu and Brand Menu experiences
+ *
+ * Dispensary Menu: Traditional dispensary shopping experience
+ * Brand Menu: Brand-centric shopping with dispensary pickup routing
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import dynamicImport from 'next/dynamic';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShoppingCart, Search, Upload, X, Sparkles, Filter } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from '@/components/ui/dialog';
+import { ShoppingCart, Search, Upload, X, Sparkles, Store, Leaf, Globe, ArrowRight, Rocket } from 'lucide-react';
 import { demoProducts, demoRetailers } from '@/lib/demo/demo-data';
 import { useStore } from '@/hooks/use-store';
 import { Product, Retailer } from '@/types/domain';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// New demo components
+// Dispensary Menu Components
 import { DemoHeader } from '@/components/demo/demo-header';
 import { DemoFooter } from '@/components/demo/demo-footer';
 import { HeroCarousel } from '@/components/demo/hero-carousel';
@@ -28,10 +41,26 @@ import { BundleDealsSection } from '@/components/demo/bundle-deals-section';
 import { ProductSection } from '@/components/demo/product-section';
 import { OversizedProductCard } from '@/components/demo/oversized-product-card';
 import { MenuImportDialog } from '@/components/demo/menu-import-dialog';
+import { CartSlideOver } from '@/components/demo/cart-slide-over';
+import { BundleDetailDialog } from '@/components/demo/bundle-detail-dialog';
+
+// Brand Menu Components
+import { BrandMenuHeader } from '@/components/demo/brand-menu-header';
+import { BrandHero } from '@/components/demo/brand-hero';
+import { DispensaryLocatorFlow } from '@/components/demo/dispensary-locator-flow';
+import { BrandCheckoutFlow } from '@/components/demo/brand-checkout-flow';
+import { DispensaryClaimCTA } from '@/components/demo/dispensary-claim-cta';
+
 import type { MenuExtraction, ExtractedProduct } from '@/app/api/demo/import-menu/route';
 
 // Dynamic import to prevent Firebase initialization during prerender
 const Chatbot = dynamicImport(() => import('@/components/chatbot'), { ssr: false });
+
+// Menu mode type
+type MenuMode = 'dispensary' | 'brand';
+
+// Brand checkout view type
+type BrandView = 'shop' | 'locator' | 'checkout';
 
 // Helper to convert imported products to our Product type
 function convertImportedProducts(imported: ExtractedProduct[], brandId: string): Product[] {
@@ -57,17 +86,72 @@ function convertImportedProducts(imported: ExtractedProduct[], brandId: string):
 // Category order for display
 const CATEGORY_ORDER = ['Flower', 'Pre-roll', 'Vapes', 'Edibles', 'Concentrates', 'Tinctures', 'Topicals', 'Accessories'];
 
+// Demo brand for brand menu mode
+const demoBrand = {
+    name: '40 Tons',
+    tagline: 'Premium California Cannabis',
+    description: 'Crafted in the heart of California, 40 Tons brings you premium cannabis products grown with care and precision. Our commitment to quality means every product is lab-tested and hand-selected for the perfect experience.',
+    primaryColor: '#8b5cf6',
+    secondaryColor: '#6d28d9',
+    stats: {
+        products: 24,
+        retailers: 150,
+        rating: 4.8,
+    },
+};
+
 export default function DemoShopClient() {
+    // Menu mode state
+    const [menuMode, setMenuMode] = useState<MenuMode>('dispensary');
+    const [brandView, setBrandView] = useState<BrandView>('shop');
+
+    // Common state
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
     const [sortBy, setSortBy] = useState<string>('popular');
-    const [showFilters, setShowFilters] = useState(false);
 
     // Imported menu state
     const [importedData, setImportedData] = useState<MenuExtraction | null>(null);
     const [useImportedMenu, setUseImportedMenu] = useState(false);
 
-    const { addToCart, cartItems } = useStore();
+    // UI state
+    const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
+    const [cartOpen, setCartOpen] = useState(false);
+    const [selectedBundle, setSelectedBundle] = useState<{
+        id: string;
+        name: string;
+        description: string;
+        originalPrice: number;
+        bundlePrice: number;
+        savingsPercent: number;
+        image?: string;
+        products?: string[];
+        badge?: string;
+        backgroundColor?: string;
+    } | null>(null);
+
+    // Brand menu state
+    const [selectedDispensary, setSelectedDispensary] = useState<{
+        id: string;
+        name: string;
+        address: string;
+        city: string;
+        state: string;
+        zip: string;
+        phone?: string;
+        hours?: string;
+    } | null>(null);
+
+    const { addToCart, cartItems, clearCart, removeFromCart, updateQuantity } = useStore();
+
+    // Show welcome dialog on first visit
+    useEffect(() => {
+        const hasVisited = sessionStorage.getItem('demo-visited');
+        if (!hasVisited) {
+            setShowWelcomeDialog(true);
+            sessionStorage.setItem('demo-visited', 'true');
+        }
+    }, []);
 
     // Handle menu import completion
     const handleImportComplete = (data: MenuExtraction) => {
@@ -75,6 +159,7 @@ export default function DemoShopClient() {
         setUseImportedMenu(true);
         setCategoryFilter('all');
         setSearchQuery('');
+        setShowWelcomeDialog(false);
     };
 
     // Clear imported data and revert to demo
@@ -106,15 +191,17 @@ export default function DemoShopClient() {
         : demoProducts.map(p => ({ ...p, brandId: 'demo-40tons' }));
 
     // Get brand info for display
-    const brandName = useImportedMenu && importedData
-        ? importedData.dispensary.name || 'Your Menu'
-        : 'BakedBot Demo';
+    const brandName = menuMode === 'brand'
+        ? demoBrand.name
+        : (useImportedMenu && importedData ? importedData.dispensary.name || 'Your Menu' : 'BakedBot Demo');
 
     // Get custom brand colors for styling
-    const brandColors = useImportedMenu && importedData ? {
-        primary: importedData.dispensary.primaryColor || '#16a34a',
-        secondary: importedData.dispensary.secondaryColor || '#064e3b',
-    } : { primary: '#16a34a', secondary: '#064e3b' };
+    const brandColors = menuMode === 'brand'
+        ? { primary: demoBrand.primaryColor, secondary: demoBrand.secondaryColor }
+        : (useImportedMenu && importedData ? {
+            primary: importedData.dispensary.primaryColor || '#16a34a',
+            secondary: importedData.dispensary.secondaryColor || '#064e3b',
+        } : { primary: '#16a34a', secondary: '#064e3b' });
 
     // Filter and sort products
     const filteredProducts = useMemo(() => {
@@ -168,7 +255,7 @@ export default function DemoShopClient() {
 
     const handleAddToCart = (product: Product, quantity: number = 1) => {
         for (let i = 0; i < quantity; i++) {
-            addToCart(product, retailer.id);
+            addToCart(product, selectedDispensary?.id || retailer.id);
         }
     };
 
@@ -179,7 +266,6 @@ export default function DemoShopClient() {
 
     const handleSearch = (query: string) => {
         setSearchQuery(query);
-        // Scroll to products section
         document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
     };
 
@@ -196,7 +282,468 @@ export default function DemoShopClient() {
         return undefined;
     };
 
-    return (
+    // Handle dispensary selection in brand mode
+    const handleDispensarySelect = (dispensary: typeof selectedDispensary) => {
+        setSelectedDispensary(dispensary);
+        if (dispensary && cartItems.length > 0) {
+            setBrandView('checkout');
+        }
+    };
+
+    // Handle brand checkout completion
+    const handleCheckoutComplete = () => {
+        clearCart();
+        setBrandView('shop');
+        setSelectedDispensary(null);
+    };
+
+    // Cart items for brand checkout
+    const cartItemsWithQuantity = cartItems.map(item => ({
+        ...item,
+        quantity: item.quantity || 1,
+    }));
+
+    // Handle cart quantity update
+    const handleUpdateCartQuantity = (productId: string, quantity: number) => {
+        if (quantity < 1) {
+            removeFromCart(productId);
+        } else {
+            updateQuantity(productId, quantity);
+        }
+    };
+
+    // Default bundles for click handling
+    const defaultBundles = [
+        { id: '1', name: 'Starter Pack', description: 'Pre-roll + Gummies + Grinder', originalPrice: 55, bundlePrice: 40, savingsPercent: 27, badge: 'BEST SELLER', backgroundColor: '#16a34a' },
+        { id: '2', name: 'Weekend Vibes', description: 'Any 3 Edibles for $50', originalPrice: 66, bundlePrice: 50, savingsPercent: 24, badge: 'POPULAR', backgroundColor: '#8b5cf6' },
+        { id: '3', name: 'Concentrate Bundle', description: 'Live Resin + Badder + Diamonds', originalPrice: 160, bundlePrice: 120, savingsPercent: 25, badge: 'PREMIUM', backgroundColor: '#f59e0b' },
+        { id: '4', name: 'Vape Trio', description: '3 Cartridges for $100', originalPrice: 135, bundlePrice: 100, savingsPercent: 26, backgroundColor: '#3b82f6' },
+        { id: '5', name: 'Sleep Bundle', description: 'Indica Flower + Sleep Tincture', originalPrice: 100, bundlePrice: 75, savingsPercent: 25, badge: 'NEW', backgroundColor: '#6366f1' },
+        { id: '6', name: 'First Timer Pack', description: 'CBD Pre-Roll + 1:1 Gummies', originalPrice: 38, bundlePrice: 28, savingsPercent: 26, badge: 'LOW THC', backgroundColor: '#10b981' },
+    ];
+
+    // Handle bundle click
+    const handleBundleClick = (bundleId: string) => {
+        const bundle = defaultBundles.find(b => b.id === bundleId);
+        if (bundle) {
+            setSelectedBundle(bundle);
+        }
+    };
+
+    // Handle adding bundle to cart
+    const handleAddBundleToCart = (bundle: typeof defaultBundles[0], quantity: number) => {
+        // Create a synthetic product for the bundle
+        const bundleProduct: Product = {
+            id: `bundle-${bundle.id}`,
+            name: bundle.name,
+            category: 'Bundle',
+            price: bundle.bundlePrice,
+            prices: {},
+            imageUrl: '',
+            imageHint: 'bundle',
+            description: bundle.description,
+            likes: 100,
+            dislikes: 0,
+            brandId: 'bundle',
+        };
+        for (let i = 0; i < quantity; i++) {
+            addToCart(bundleProduct, selectedDispensary?.id || retailer.id);
+        }
+    };
+
+    // Render welcome dialog with import option
+    const renderWelcomeDialog = () => (
+        <Dialog open={showWelcomeDialog} onOpenChange={setShowWelcomeDialog}>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-xl">
+                        <Sparkles className="h-6 w-6 text-green-600" />
+                        Welcome to BakedBot Demo
+                    </DialogTitle>
+                    <DialogDescription>
+                        Experience how BakedBot can transform your dispensary&apos;s online presence.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 py-4">
+                    {/* Import Option */}
+                    <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-green-500 transition-colors">
+                        <Globe className="h-10 w-10 mx-auto mb-3 text-green-600" />
+                        <h3 className="font-semibold mb-2">Import Your Menu</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Enter your dispensary URL to see your actual products in BakedBot
+                        </p>
+                        <MenuImportDialog
+                            onImportComplete={handleImportComplete}
+                            trigger={
+                                <Button className="gap-2" style={{ backgroundColor: '#16a34a' }}>
+                                    <Upload className="h-4 w-4" />
+                                    Import My Menu
+                                </Button>
+                            }
+                        />
+                    </div>
+
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">or</span>
+                        </div>
+                    </div>
+
+                    {/* Browse Demo Option */}
+                    <Button
+                        variant="outline"
+                        className="w-full h-12"
+                        onClick={() => setShowWelcomeDialog(false)}
+                    >
+                        Browse Demo Menu
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                </div>
+
+                {/* Get Started CTA */}
+                <div className="border-t pt-4">
+                    <p className="text-sm text-muted-foreground text-center mb-3">
+                        Ready to power up your dispensary?
+                    </p>
+                    <Link href="/get-started" className="block">
+                        <Button className="w-full gap-2" variant="default">
+                            <Rocket className="h-4 w-4" />
+                            Get Started Free
+                        </Button>
+                    </Link>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+
+    // Render mode toggle
+    const renderModeToggle = () => (
+        <div className="bg-gradient-to-r from-green-50 to-purple-50 dark:from-green-950 dark:to-purple-950 border-b">
+            <div className="container mx-auto px-4 py-3">
+                <div className="flex items-center justify-center gap-4">
+                    <span className="text-sm font-medium hidden sm:inline">Try Demo Mode:</span>
+                    <Tabs value={menuMode} onValueChange={(v) => {
+                        setMenuMode(v as MenuMode);
+                        setBrandView('shop');
+                        setSelectedDispensary(null);
+                    }}>
+                        <TabsList className="grid grid-cols-2 w-[320px] h-11">
+                            <TabsTrigger value="dispensary" className="gap-2 data-[state=active]:bg-green-600 data-[state=active]:text-white">
+                                <Store className="h-4 w-4" />
+                                Dispensary Menu
+                            </TabsTrigger>
+                            <TabsTrigger value="brand" className="gap-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white">
+                                <Leaf className="h-4 w-4" />
+                                Brand Menu
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </div>
+            </div>
+        </div>
+    );
+
+    // Render Brand Menu Experience
+    const renderBrandMenu = () => {
+        // Show checkout flow if in checkout view with selected dispensary
+        if (brandView === 'checkout' && selectedDispensary && cartItems.length > 0) {
+            return (
+                <div className="min-h-screen bg-background flex flex-col">
+                    <BrandMenuHeader
+                        brandName={demoBrand.name}
+                        brandColors={brandColors}
+                        verified
+                        tagline={demoBrand.tagline}
+                        cartItemCount={cartItems.length}
+                        selectedDispensary={selectedDispensary}
+                        onCartClick={() => setBrandView('checkout')}
+                        onLocationClick={() => setBrandView('locator')}
+                    />
+                    {renderModeToggle()}
+
+                    <main className="flex-1">
+                        <BrandCheckoutFlow
+                            brandName={demoBrand.name}
+                            primaryColor={brandColors.primary}
+                            cartItems={cartItemsWithQuantity}
+                            pickupLocation={selectedDispensary}
+                            onBack={() => setBrandView('locator')}
+                            onComplete={handleCheckoutComplete}
+                        />
+                    </main>
+                </div>
+            );
+        }
+
+        // Show dispensary locator if in locator view
+        if (brandView === 'locator') {
+            return (
+                <div className="min-h-screen bg-background flex flex-col">
+                    <BrandMenuHeader
+                        brandName={demoBrand.name}
+                        brandColors={brandColors}
+                        verified
+                        tagline={demoBrand.tagline}
+                        cartItemCount={cartItems.length}
+                        selectedDispensary={selectedDispensary}
+                        onCartClick={() => cartItems.length > 0 && selectedDispensary && setBrandView('checkout')}
+                        onLocationClick={() => setBrandView('locator')}
+                    />
+                    {renderModeToggle()}
+
+                    <main className="flex-1">
+                        <DispensaryLocatorFlow
+                            brandName={demoBrand.name}
+                            primaryColor={brandColors.primary}
+                            onDispensarySelect={handleDispensarySelect}
+                            selectedDispensary={selectedDispensary}
+                            cartItemCount={cartItems.length}
+                        />
+
+                        {/* Continue Shopping Button */}
+                        {selectedDispensary && (
+                            <div className="container mx-auto px-4 pb-8">
+                                <div className="flex justify-center gap-4">
+                                    <Button
+                                        variant="outline"
+                                        size="lg"
+                                        onClick={() => setBrandView('shop')}
+                                    >
+                                        Continue Shopping
+                                    </Button>
+                                    {cartItems.length > 0 && (
+                                        <Button
+                                            size="lg"
+                                            style={{ backgroundColor: brandColors.primary }}
+                                            onClick={() => setBrandView('checkout')}
+                                        >
+                                            Proceed to Checkout ({cartItems.length} items)
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </main>
+
+                    <DemoFooter
+                        brandName={demoBrand.name}
+                        primaryColor={brandColors.primary}
+                    />
+                </div>
+            );
+        }
+
+        // Default: Brand shopping experience
+        return (
+            <div className="min-h-screen bg-background flex flex-col">
+                <BrandMenuHeader
+                    brandName={demoBrand.name}
+                    brandColors={brandColors}
+                    verified
+                    tagline={demoBrand.tagline}
+                    cartItemCount={cartItems.length}
+                    selectedDispensary={selectedDispensary}
+                    onSearch={handleSearch}
+                    onCartClick={() => {
+                        if (cartItems.length > 0) {
+                            if (selectedDispensary) {
+                                setBrandView('checkout');
+                            } else {
+                                setBrandView('locator');
+                            }
+                        }
+                    }}
+                    onLocationClick={() => setBrandView('locator')}
+                />
+                {renderModeToggle()}
+
+                <main className="flex-1">
+                    {/* Brand Hero */}
+                    <BrandHero
+                        brandName={demoBrand.name}
+                        tagline={demoBrand.tagline}
+                        description={demoBrand.description}
+                        primaryColor={brandColors.primary}
+                        verified
+                        stats={demoBrand.stats}
+                        onFindNearMe={() => setBrandView('locator')}
+                        onShopNow={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
+                    />
+
+                    {/* Selected Dispensary Banner */}
+                    {selectedDispensary && (
+                        <div className="bg-green-50 dark:bg-green-950 border-b">
+                            <div className="container mx-auto px-4 py-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <Badge variant="outline" className="gap-1 bg-green-100 text-green-700 border-green-300">
+                                            <Store className="h-3 w-3" />
+                                            Pickup Location
+                                        </Badge>
+                                        <span className="font-medium">{selectedDispensary.name}</span>
+                                        <span className="text-muted-foreground text-sm">
+                                            {selectedDispensary.city}, {selectedDispensary.state}
+                                        </span>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setBrandView('locator')}
+                                    >
+                                        Change
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Featured Products Section */}
+                    <ProductSection
+                        title="Featured Products"
+                        subtitle="Our most popular items"
+                        products={featuredProducts}
+                        onAddToCart={handleAddToCart}
+                        getCartQuantity={getCartItemQuantity}
+                        primaryColor={brandColors.primary}
+                        layout="carousel"
+                        dealBadge={getDealBadge}
+                    />
+
+                    {/* Category Grid */}
+                    <CategoryGrid
+                        title="Shop by Category"
+                        onCategoryClick={handleCategorySelect}
+                        primaryColor={brandColors.primary}
+                    />
+
+                    {/* All Products Section with Filters */}
+                    <section id="products" className="py-12">
+                        <div className="container mx-auto px-4">
+                            {/* Section Header */}
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                                <div>
+                                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight">All {demoBrand.name} Products</h2>
+                                    <p className="text-muted-foreground">
+                                        {filteredProducts.length} products available
+                                    </p>
+                                </div>
+
+                                {/* Filters */}
+                                <div className="flex flex-wrap gap-3">
+                                    <div className="relative flex-1 min-w-[200px] md:w-[300px]">
+                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Search products..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="pl-10"
+                                        />
+                                    </div>
+                                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                                        <SelectTrigger className="w-[160px]">
+                                            <SelectValue placeholder="Category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All Categories</SelectItem>
+                                            {categories.map((cat) => (
+                                                <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={sortBy} onValueChange={setSortBy}>
+                                        <SelectTrigger className="w-[160px]">
+                                            <SelectValue placeholder="Sort by" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="popular">Most Popular</SelectItem>
+                                            <SelectItem value="price-low">Price: Low to High</SelectItem>
+                                            <SelectItem value="price-high">Price: High to Low</SelectItem>
+                                            <SelectItem value="thc-high">THC: High to Low</SelectItem>
+                                            <SelectItem value="name">Name (A-Z)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            {/* Products Grid */}
+                            {filteredProducts.length === 0 ? (
+                                <Card>
+                                    <CardContent className="flex flex-col items-center justify-center py-16">
+                                        <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
+                                        <p className="text-xl font-medium mb-2">No products found</p>
+                                        <p className="text-muted-foreground mb-4">
+                                            Try adjusting your search or filters
+                                        </p>
+                                        <Button variant="outline" onClick={() => { setSearchQuery(''); setCategoryFilter('all'); }}>
+                                            Clear Filters
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                    {filteredProducts.map((product) => (
+                                        <OversizedProductCard
+                                            key={product.id}
+                                            product={product}
+                                            onAddToCart={handleAddToCart}
+                                            inCart={getCartItemQuantity(product.id)}
+                                            primaryColor={brandColors.primary}
+                                            size="large"
+                                            dealBadge={getDealBadge(product)}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
+                    {/* Find Pickup Location CTA */}
+                    {!selectedDispensary && (
+                        <section className="py-12 bg-muted/50">
+                            <div className="container mx-auto px-4 text-center">
+                                <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to Order?</h2>
+                                <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+                                    Find a licensed dispensary near you that carries {demoBrand.name} products.
+                                    Order online and pick up in store.
+                                </p>
+                                <Button
+                                    size="lg"
+                                    className="font-bold gap-2"
+                                    style={{ backgroundColor: brandColors.primary }}
+                                    onClick={() => setBrandView('locator')}
+                                >
+                                    <Store className="h-5 w-5" />
+                                    Find Pickup Location
+                                </Button>
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Dispensary Claim CTA */}
+                    <DispensaryClaimCTA
+                        brandName={demoBrand.name}
+                        primaryColor={brandColors.primary}
+                        variant="inline"
+                    />
+                </main>
+
+                <DemoFooter
+                    brandName={demoBrand.name}
+                    primaryColor={brandColors.primary}
+                />
+
+                {/* Smokey Chatbot */}
+                <Chatbot products={activeProducts} brandId="demo-40tons" />
+            </div>
+        );
+    };
+
+    // Render Dispensary Menu Experience (existing)
+    const renderDispensaryMenu = () => (
         <div className="min-h-screen bg-background flex flex-col">
             {/* Demo Header with Ticker */}
             <DemoHeader
@@ -206,7 +753,10 @@ export default function DemoShopClient() {
                 location={`${retailer.city}, ${retailer.state}`}
                 onSearch={handleSearch}
                 onCategorySelect={handleCategorySelect}
+                onCartClick={() => setCartOpen(true)}
             />
+
+            {renderModeToggle()}
 
             {/* Import Banner */}
             {useImportedMenu && importedData && (
@@ -251,6 +801,7 @@ export default function DemoShopClient() {
                     title="Bundle & Save"
                     subtitle="Curated packs at special prices. More value, less hassle."
                     primaryColor={brandColors.primary}
+                    onBundleClick={handleBundleClick}
                 />
 
                 {/* Featured Products Section */}
@@ -267,7 +818,7 @@ export default function DemoShopClient() {
 
                 {/* Deals Section */}
                 {dealProducts.length > 0 && (
-                    <div className="bg-gradient-to-r from-red-500/10 via-orange-500/10 to-yellow-500/10 py-2">
+                    <div id="deals" className="bg-gradient-to-r from-red-500/10 via-orange-500/10 to-yellow-500/10 py-2">
                         <ProductSection
                             title="Daily Deals"
                             subtitle="Limited time offers - grab them while they last!"
@@ -453,8 +1004,41 @@ export default function DemoShopClient() {
                 }}
             />
 
+            {/* Cart Slide-Over */}
+            <CartSlideOver
+                open={cartOpen}
+                onClose={() => setCartOpen(false)}
+                items={cartItemsWithQuantity}
+                onUpdateQuantity={handleUpdateCartQuantity}
+                onRemoveItem={removeFromCart}
+                onClearCart={clearCart}
+                onCheckout={() => {
+                    setCartOpen(false);
+                    // In demo mode, just show a message
+                    alert('In production, this would proceed to checkout!');
+                }}
+                primaryColor={brandColors.primary}
+            />
+
+            {/* Bundle Detail Dialog */}
+            <BundleDetailDialog
+                bundle={selectedBundle}
+                open={!!selectedBundle}
+                onClose={() => setSelectedBundle(null)}
+                onAddToCart={handleAddBundleToCart}
+                primaryColor={brandColors.primary}
+            />
+
             {/* Smokey Chatbot */}
             <Chatbot products={activeProducts} brandId={useImportedMenu ? 'imported-brand' : 'demo-40tons'} />
         </div>
+    );
+
+    // Render based on menu mode
+    return (
+        <>
+            {renderWelcomeDialog()}
+            {menuMode === 'brand' ? renderBrandMenu() : renderDispensaryMenu()}
+        </>
     );
 }
