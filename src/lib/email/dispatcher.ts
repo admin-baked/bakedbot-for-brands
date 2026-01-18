@@ -18,13 +18,13 @@ async function getProvider(): Promise<'sendgrid' | 'mailjet'> {
         const firestore = getAdminFirestore();
         const doc = await firestore.collection('settings').doc('system').get();
         const provider = doc.data()?.emailProvider as 'sendgrid' | 'mailjet';
-        
-        cachedProvider = provider === 'mailjet' ? 'mailjet' : 'sendgrid'; // Default to sendgrid
+
+        cachedProvider = provider === 'sendgrid' ? 'sendgrid' : 'mailjet'; // Default to Mailjet
         lastFetch = now;
         return cachedProvider;
     } catch (e) {
-        console.error('Failed to fetch email provider setting, defaulting to SendGrid', e);
-        return 'sendgrid';
+        console.error('Failed to fetch email provider setting, defaulting to Mailjet', e);
+        return 'mailjet';
     }
 }
 

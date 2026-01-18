@@ -23,7 +23,7 @@ capabilities:
 
 tools:
   - gmail_send
-  - sendgrid_send
+  - mailjet_send
   - google_sheets_read
   - google_sheets_write
   - cannmenus_product_search
