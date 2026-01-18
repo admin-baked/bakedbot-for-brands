@@ -67,9 +67,9 @@ export default async function DashboardProductsPage() {
                 redirect('/brand-login');
             }
             logger.error("Failed to fetch products for dashboard:", error instanceof Error ? error : new Error(String(error)));
-            // Fallback to demo data on error for resilience, though you might want a proper error page
-            products = demoProducts;
-            user = { role: 'brand' }; // Fallback user to prevent crash in render
+            // Return empty array on error - never fallback to demo data for real users
+            products = [];
+            user = { role: 'brand', brandId: '' };
         }
     }
 

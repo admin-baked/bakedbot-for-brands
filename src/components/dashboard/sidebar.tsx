@@ -38,7 +38,7 @@ export function DashboardSidebar() {
   const { user } = useUser();
   const { auth } = useFirebase();
   const { toast } = useToast();
-  const { loginRoute } = useUserRole();
+  const { loginRoute, orgId, role: userRoleFromHook } = useUserRole();
   const { planName, planId, isScale, isEnterprise, isGrowthOrHigher, isPaid } = usePlanInfo();
   const { isSuperAdmin } = useSuperAdmin();
 
@@ -173,13 +173,13 @@ export function DashboardSidebar() {
 
         
         {/* Invite Team Member Action */}
-        {!isCeoDashboard && user && (
+        {!isCeoDashboard && user && orgId && (
             <div className="mt-auto p-4">
                <InviteUserDialog 
-                    orgId={(user as any).currentOrgId || (user as any).brandId}
+                    orgId={orgId || undefined}
                     allowedRoles={(() => {
-                        const r = (user as any).role;
-                        if (r === 'super_user') return ['brand', 'dispensary', 'super_user', 'customer'];
+                        const r = userRoleFromHook;
+                        if (r === 'super_user') return ['brand', 'dispensary', 'super_admin', 'customer'];
                         if (r === 'brand' || r === 'dispensary') {
                              return [r];
                         }

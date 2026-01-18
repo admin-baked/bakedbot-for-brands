@@ -96,6 +96,12 @@ export function useUserRole() {
         }
     }, [role]);
 
+    // Organization IDs from claims
+    const brandId = useMemo(() => (user as any)?.brandId || null, [user]);
+    const dispensaryId = useMemo(() => (user as any)?.dispensaryId || null, [user]);
+    const currentOrgId = useMemo(() => (user as any)?.currentOrgId || null, [user]);
+    const orgId = useMemo(() => currentOrgId || brandId || dispensaryId || null, [currentOrgId, brandId, dispensaryId]);
+
     return {
         role,
         isRole,
@@ -106,5 +112,9 @@ export function useUserRole() {
         loginRoute,
         isLoading: isUserLoading,
         user,
+        // Organization IDs for invitations and scoped actions
+        brandId,
+        dispensaryId,
+        orgId,
     };
 }

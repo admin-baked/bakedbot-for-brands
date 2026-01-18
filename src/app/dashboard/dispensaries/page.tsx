@@ -28,8 +28,8 @@ export default function DispensariesPage() {
 
     const loadDispensaries = async () => {
         try {
-            const data = await getBrandDispensaries();
-            setDispensaries(data as any[]);
+            const result = await getBrandDispensaries();
+            setDispensaries(result.partners);
         } catch (error) {
             console.error(error);
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to load dispensaries.' });
