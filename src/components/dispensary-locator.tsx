@@ -18,14 +18,30 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { logger } from '@/lib/logger';
 import { RetailerMap } from '@/components/maps/retailer-map';
+import { SingleLocationBanner } from '@/components/single-location-banner';
 
 interface DispensaryLocatorProps {
   locations?: Retailer[];
   isLoading?: boolean;
   className?: string;
+  /** Force full locator even for single location */
+  forceFullView?: boolean;
+  /** Props to pass to SingleLocationBanner when showing single location */
+  singleLocationProps?: {
+    isOpen?: boolean;
+    hours?: string;
+    rating?: number;
+    reviewCount?: number;
+  };
 }
 
-export default function DispensaryLocator({ locations = [], isLoading = false, className }: DispensaryLocatorProps) {
+export default function DispensaryLocator({
+  locations = [],
+  isLoading = false,
+  className,
+  forceFullView = false,
+  singleLocationProps
+}: DispensaryLocatorProps) {
   const {
     selectedRetailerId,
     setSelectedRetailerId,
@@ -167,6 +183,24 @@ export default function DispensaryLocator({ locations = [], isLoading = false, c
   };
 
   const displayLocations = sortedLocations.length > 0 ? sortedLocations : locations;
+
+  // For single location, show optimized compact banner unless forced to full view
+  if (locations.length === 1 && !forceFullView && !isLoading) {
+    const singleRetailer = locations[0];
+    return (
+      <div className={cn("py-4", className)} id="locator">
+        <SingleLocationBanner
+          retailer={singleRetailer}
+          isOpen={singleLocationProps?.isOpen}
+          hours={singleLocationProps?.hours}
+          rating={singleLocationProps?.rating}
+          reviewCount={singleLocationProps?.reviewCount}
+          isFavorite={_hasHydrated && favoriteRetailerIds.includes(singleRetailer.id)}
+          onFavoriteToggle={() => handleSetFavorite({ stopPropagation: () => {} } as React.MouseEvent, singleRetailer.id)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={cn("py-12 bg-muted/40 rounded-lg", className)} id="locator">

@@ -2,116 +2,174 @@
 'use client';
 
 /**
- * Demo shopping page client component using 40 Tons demo data
- * Standalone layout without the customer-menu wrapper
+ * Demo shopping page client component - Quality Roots inspired design
+ * Full dispensary experience with ticker, carousels, bundles, and oversized cards
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import dynamicImport from 'next/dynamic';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, ShoppingCart, Plus, Heart, Sparkles, ArrowLeft, Grid, List, Building2, Store, Gift } from 'lucide-react';
-import { demoProducts, demoRetailers, demoSlides } from '@/lib/demo/demo-data'; // Added demoSlides
+import { ShoppingCart, Search, Upload, X, Sparkles, Filter } from 'lucide-react';
+import { demoProducts, demoRetailers } from '@/lib/demo/demo-data';
 import { useStore } from '@/hooks/use-store';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Product } from '@/types/domain';
-import DispensaryLocator from '@/components/dispensary-locator';
-import { DealsCarousel } from '@/components/dispensary/deals-carousel'; // Added DealsCarousel
-import { BundleBuilder } from '@/components/dispensary/bundle-builder'; // Added BundleBuilder
-import { BundleDeal } from '@/types/bundles';
+import { Product, Retailer } from '@/types/domain';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
+// New demo components
+import { DemoHeader } from '@/components/demo/demo-header';
+import { DemoFooter } from '@/components/demo/demo-footer';
+import { HeroCarousel } from '@/components/demo/hero-carousel';
+import { FeaturedBrandsCarousel } from '@/components/demo/featured-brands-carousel';
+import { CategoryGrid } from '@/components/demo/category-grid';
+import { BundleDealsSection } from '@/components/demo/bundle-deals-section';
+import { ProductSection } from '@/components/demo/product-section';
+import { OversizedProductCard } from '@/components/demo/oversized-product-card';
+import { MenuImportDialog } from '@/components/demo/menu-import-dialog';
+import type { MenuExtraction, ExtractedProduct } from '@/app/api/demo/import-menu/route';
 
 // Dynamic import to prevent Firebase initialization during prerender
 const Chatbot = dynamicImport(() => import('@/components/chatbot'), { ssr: false });
 
-// Convert demo products to full Product type for chatbot
-const chatProducts: Product[] = demoProducts.map(p => ({
-    ...p,
-    brandId: 'demo-40tons',
-}));
+// Helper to convert imported products to our Product type
+function convertImportedProducts(imported: ExtractedProduct[], brandId: string): Product[] {
+    return imported.map((p, index) => ({
+        id: `imported-${index + 1}`,
+        name: p.name,
+        category: p.category,
+        price: p.price || 0,
+        prices: {},
+        imageUrl: p.imageUrl || '',
+        imageHint: p.category.toLowerCase(),
+        description: p.description || '',
+        likes: Math.floor(Math.random() * 500) + 50,
+        dislikes: Math.floor(Math.random() * 20),
+        brandId,
+        thcPercent: p.thcPercent || undefined,
+        cbdPercent: p.cbdPercent || undefined,
+        strainType: p.strainType,
+        effects: p.effects || [],
+    }));
+}
 
-// Mock bundle deal for demo
-const DEMO_BUNDLE_DEAL: BundleDeal = {
-    id: 'demo-bundle-1',
-    name: 'Sleep & Relax Bundle',
-    description: 'Choose any 3 sleep-focused edibles for a special price.',
-    type: 'mix_match',
-    minProducts: 3,
-    bundlePrice: 50.00,
-    eligibleProductIds: ['demo-40t-gummies', 'demo-40t-cookies'],
-    originalTotal: 66.00,
-
-    // Required properties
-    status: 'active',
-    createdBy: 'brand',
-    brandId: 'demo-40tons',
-    products: [], // Empty for mix & match as selection happens dynamically
-    savingsAmount: 16.00,
-    savingsPercent: 24,
-    currentRedemptions: 0,
-    featured: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    orgId: 'demo-org-40tons'
-};
+// Category order for display
+const CATEGORY_ORDER = ['Flower', 'Pre-roll', 'Vapes', 'Edibles', 'Concentrates', 'Tinctures', 'Topicals', 'Accessories'];
 
 export default function DemoShopClient() {
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
-    const [sortBy, setSortBy] = useState<string>('name');
-    const [viewMode, setViewMode] = useState<'grid' | 'compact'>('grid');
-    const [demoMode, setDemoMode] = useState<'brand' | 'dispensary'>('brand');
-    const [showBundleBuilder, setShowBundleBuilder] = useState(false); // State for bundle builder
+    const [sortBy, setSortBy] = useState<string>('popular');
+    const [showFilters, setShowFilters] = useState(false);
 
-    const handleModeChange = (val: string) => {
-        const mode = val as 'brand' | 'dispensary';
-        setDemoMode(mode);
-        if (mode === 'dispensary') {
-            setViewMode('compact');
-        } else {
-            setViewMode('grid');
-        }
+    // Imported menu state
+    const [importedData, setImportedData] = useState<MenuExtraction | null>(null);
+    const [useImportedMenu, setUseImportedMenu] = useState(false);
+
+    const { addToCart, cartItems } = useStore();
+
+    // Handle menu import completion
+    const handleImportComplete = (data: MenuExtraction) => {
+        setImportedData(data);
+        setUseImportedMenu(true);
+        setCategoryFilter('all');
+        setSearchQuery('');
     };
 
-    const { addToCart, cartItems, setSelectedRetailerId } = useStore();
+    // Clear imported data and revert to demo
+    const handleClearImport = () => {
+        setImportedData(null);
+        setUseImportedMenu(false);
+        setCategoryFilter('all');
+        setSearchQuery('');
+    };
 
-    const retailer = demoRetailers[0]; // Bayside Cannabis
+    // Create retailer from imported data or use demo
+    const retailer: Retailer = useImportedMenu && importedData ? {
+        id: 'imported-retailer',
+        name: importedData.dispensary.name || 'Your Dispensary',
+        address: importedData.dispensary.address || '123 Main St',
+        city: importedData.dispensary.city || 'San Francisco',
+        state: importedData.dispensary.state || 'CA',
+        zip: '94102',
+        phone: importedData.dispensary.phone || '',
+        lat: 37.7749,
+        lon: -122.4194,
+        brandIds: ['imported-brand'],
+        logo: importedData.dispensary.logoUrl,
+    } : demoRetailers[0];
 
-    const filteredProducts = demoProducts
-        .filter(product => {
-            const matchesSearch = product.name
-                .toLowerCase()
-                .includes(searchQuery.toLowerCase());
-            const matchesCategory =
-                categoryFilter === 'all' || product.category === categoryFilter;
-            return matchesSearch && matchesCategory;
-        })
-        .sort((a, b) => {
-            switch (sortBy) {
-                case 'price-low':
-                    return a.price - b.price;
-                case 'price-high':
-                    return b.price - a.price;
-                case 'popular':
-                    return (b.likes || 0) - (a.likes || 0);
-                default:
-                    return a.name.localeCompare(b.name);
+    // Get products based on import state
+    const activeProducts = useImportedMenu && importedData
+        ? convertImportedProducts(importedData.products, 'imported-brand')
+        : demoProducts.map(p => ({ ...p, brandId: 'demo-40tons' }));
+
+    // Get brand info for display
+    const brandName = useImportedMenu && importedData
+        ? importedData.dispensary.name || 'Your Menu'
+        : 'BakedBot Demo';
+
+    // Get custom brand colors for styling
+    const brandColors = useImportedMenu && importedData ? {
+        primary: importedData.dispensary.primaryColor || '#16a34a',
+        secondary: importedData.dispensary.secondaryColor || '#064e3b',
+    } : { primary: '#16a34a', secondary: '#064e3b' };
+
+    // Filter and sort products
+    const filteredProducts = useMemo(() => {
+        return activeProducts
+            .filter(product => {
+                const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    product.description?.toLowerCase().includes(searchQuery.toLowerCase());
+                const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
+                return matchesSearch && matchesCategory;
+            })
+            .sort((a, b) => {
+                switch (sortBy) {
+                    case 'price-low': return a.price - b.price;
+                    case 'price-high': return b.price - a.price;
+                    case 'popular': return (b.likes || 0) - (a.likes || 0);
+                    case 'thc-high': return (b.thcPercent || 0) - (a.thcPercent || 0);
+                    default: return a.name.localeCompare(b.name);
+                }
+            });
+    }, [activeProducts, searchQuery, categoryFilter, sortBy]);
+
+    // Group products by category
+    const productsByCategory = useMemo(() => {
+        const grouped: Record<string, Product[]> = {};
+        activeProducts.forEach(product => {
+            if (!grouped[product.category]) {
+                grouped[product.category] = [];
             }
+            grouped[product.category].push(product);
         });
+        return grouped;
+    }, [activeProducts]);
 
-    const categories = Array.from(new Set(demoProducts.map(p => p.category)));
+    // Get unique categories
+    const categories = useMemo(() => {
+        const cats = Array.from(new Set(activeProducts.map(p => p.category)));
+        return CATEGORY_ORDER.filter(c => cats.includes(c));
+    }, [activeProducts]);
 
-    const handleAddToCart = (product: typeof demoProducts[0]) => {
-        // Convert demo product to domain Product type
-        const domainProduct: Product = {
-            ...product,
-            brandId: 'demo-40tons',
-        };
-        addToCart(domainProduct, retailer.id);
+    // Featured products (highest likes)
+    const featuredProducts = useMemo(() => {
+        return [...activeProducts]
+            .sort((a, b) => (b.likes || 0) - (a.likes || 0))
+            .slice(0, 8);
+    }, [activeProducts]);
+
+    // Deals/Sale products (for demo, products under $30)
+    const dealProducts = useMemo(() => {
+        return activeProducts.filter(p => p.price < 30).slice(0, 8);
+    }, [activeProducts]);
+
+    const handleAddToCart = (product: Product, quantity: number = 1) => {
+        for (let i = 0; i < quantity; i++) {
+            addToCart(product, retailer.id);
+        }
     };
 
     const getCartItemQuantity = (productId: string): number => {
@@ -119,325 +177,284 @@ export default function DemoShopClient() {
         return item?.quantity || 0;
     };
 
+    const handleSearch = (query: string) => {
+        setSearchQuery(query);
+        // Scroll to products section
+        document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const handleCategorySelect = (category: string) => {
+        setCategoryFilter(category);
+        document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    // Get deal badge for products
+    const getDealBadge = (product: Product): string | undefined => {
+        if (product.price < 20) return '2 for $30';
+        if (product.price < 30) return 'DEAL';
+        if ((product.thcPercent || 0) > 28) return 'HIGH THC';
+        return undefined;
+    };
+
     return (
-        <div className="min-h-screen bg-background">
-            {/* Header removed to avoid duplication with AppLayout */}
+        <div className="min-h-screen bg-background flex flex-col">
+            {/* Demo Header with Ticker */}
+            <DemoHeader
+                brandName={brandName}
+                brandLogo={importedData?.dispensary.logoUrl}
+                brandColors={brandColors}
+                location={`${retailer.city}, ${retailer.state}`}
+                onSearch={handleSearch}
+                onCategorySelect={handleCategorySelect}
+            />
 
-            <div className="container mx-auto px-4 py-8">
-                {/* Page Header */}
-                <div className="mb-8">
-                    <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
-                        <div className="w-full md:w-auto">
-                            <Link href="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4">
-                                <ArrowLeft size={16} />
-                                Back to Home
-                            </Link>
-
-                            <Tabs value={demoMode} onValueChange={handleModeChange} className="w-full md:w-[400px]">
-                                <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="brand" className="flex items-center gap-2">
-                                        <Sparkles className="h-4 w-4" />
-                                        Brand Menu
-                                    </TabsTrigger>
-                                    <TabsTrigger value="dispensary" className="flex items-center gap-2">
-                                        <Store className="h-4 w-4" />
-                                        Dispensary Menu
-                                    </TabsTrigger>
-                                </TabsList>
-                            </Tabs>
-                        </div>
+            {/* Import Banner */}
+            {useImportedMenu && importedData && (
+                <div className="bg-green-50 border-b border-green-200 dark:bg-green-950 dark:border-green-800">
+                    <div className="container mx-auto px-4 py-3">
+                        <Alert className="bg-transparent border-0 p-0">
+                            <Sparkles className="h-4 w-4 text-green-600" />
+                            <AlertDescription className="text-green-800 dark:text-green-200 flex items-center justify-between">
+                                <span>
+                                    Previewing your menu from <strong>{importedData.dispensary.name}</strong> with {activeProducts.length} products.
+                                </span>
+                                <Button variant="ghost" size="sm" onClick={handleClearImport} className="gap-1 text-green-700">
+                                    <X className="h-4 w-4" />
+                                    Clear
+                                </Button>
+                            </AlertDescription>
+                        </Alert>
                     </div>
+                </div>
+            )}
 
-                    {/* Carousel - Only show in Dispensary Mode or if verified generally */}
-                    {demoMode === 'dispensary' && (
-                        <div className="mb-8 rounded-xl overflow-hidden shadow-lg border">
-                            <DealsCarousel slides={demoSlides} />
-                        </div>
-                    )}
+            {/* Main Content */}
+            <main className="flex-1">
+                {/* Hero Carousel */}
+                <HeroCarousel primaryColor={brandColors.primary} />
 
-                    <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight">
-                                {demoMode === 'brand' ? '40 Tons Brand Menu' : 'Dispensary Demo Menu'}
-                            </h1>
-                            <p className="text-muted-foreground">
-                                {demoMode === 'brand'
-                                    ? 'Experience a premium, brand-centric shopping experience.'
-                                    : 'Experience a high-volume, inventory-focused dispensary menu.'}
-                            </p>
-                        </div>
-                        {/* Bundle Trigger */}
-                        {demoMode === 'dispensary' && (
-                            <Button
-                                onClick={() => setShowBundleBuilder(true)}
-                                className="bg-purple-600 hover:bg-purple-700 text-white gap-2"
-                            >
-                                <Gift className="h-4 w-4" />
-                                View Bundle Deals
-                            </Button>
-                        )}
-                    </div>
+                {/* Featured Brands */}
+                <FeaturedBrandsCarousel
+                    title="Featured Brands"
+                    primaryColor={brandColors.primary}
+                />
 
-                    {/* Retailer Info */}
-                    <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-                        <CardContent className="py-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-semibold text-green-900">{retailer.name}</p>
-                                    <p className="text-sm text-green-700">{retailer.address}, {retailer.city}, {retailer.state} {retailer.zip}</p>
-                                </div>
-                                <Badge className="bg-green-600">Open Now</Badge>
-                            </div>
-                        </CardContent>
-                    </Card>
+                {/* Category Grid */}
+                <CategoryGrid
+                    title="Shop by Category"
+                    onCategoryClick={handleCategorySelect}
+                    primaryColor={brandColors.primary}
+                />
 
-                    {/* Dispensary Locator */}
-                    <div className="mt-6 mb-6">
-                        <DispensaryLocator
-                            locations={demoRetailers}
-                            className="py-6 bg-card border shadow-sm max-w-none"
+                {/* Bundle Deals */}
+                <BundleDealsSection
+                    title="Bundle & Save"
+                    subtitle="Curated packs at special prices. More value, less hassle."
+                    primaryColor={brandColors.primary}
+                />
+
+                {/* Featured Products Section */}
+                <ProductSection
+                    title="Customer Favorites"
+                    subtitle="Our most loved products based on reviews and sales"
+                    products={featuredProducts}
+                    onAddToCart={handleAddToCart}
+                    getCartQuantity={getCartItemQuantity}
+                    primaryColor={brandColors.primary}
+                    layout="carousel"
+                    dealBadge={getDealBadge}
+                />
+
+                {/* Deals Section */}
+                {dealProducts.length > 0 && (
+                    <div className="bg-gradient-to-r from-red-500/10 via-orange-500/10 to-yellow-500/10 py-2">
+                        <ProductSection
+                            title="Daily Deals"
+                            subtitle="Limited time offers - grab them while they last!"
+                            products={dealProducts}
+                            onAddToCart={handleAddToCart}
+                            getCartQuantity={getCartItemQuantity}
+                            primaryColor="#dc2626"
+                            layout="carousel"
+                            dealBadge={() => 'SALE'}
                         />
                     </div>
-                </div>
-
-                {/* Filters */}
-                <Card className="mb-6">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Search className="h-5 w-5" />
-                            Search & Filter
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div className="md:col-span-2">
-                                <Input
-                                    placeholder="Search 40 Tons products..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full"
-                                />
-                            </div>
-                            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Categories</SelectItem>
-                                    {categories.map((cat) => (
-                                        <SelectItem key={cat} value={cat}>
-                                            {cat}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Select value={sortBy} onValueChange={setSortBy}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Sort by" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="name">Name (A-Z)</SelectItem>
-                                    <SelectItem value="price-low">Price (Low to High)</SelectItem>
-                                    <SelectItem value="price-high">Price (High to Low)</SelectItem>
-                                    <SelectItem value="popular">Most Popular</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Results Count */}
-                <div className="mb-4">
-                    <p className="text-sm text-muted-foreground">
-                        Showing {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
-                    </p>
-                </div>
-
-                {/* View Toggle */}
-                <div className="flex justify-end mb-4">
-                    <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
-                        <Button
-                            variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                            size="sm"
-                            onClick={() => setViewMode('grid')}
-                            className="h-8 w-8 p-0"
-                        >
-                            <Grid className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant={viewMode === 'compact' ? 'secondary' : 'ghost'}
-                            size="sm"
-                            onClick={() => setViewMode('compact')}
-                            className="h-8 w-8 p-0"
-                        >
-                            <List className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-
-                {/* Products Grid */}
-                {filteredProducts.length === 0 ? (
-                    <Card>
-                        <CardContent className="flex flex-col items-center justify-center py-12">
-                            <ShoppingCart className="h-12 w-12 text-muted-foreground mb-4" />
-                            <p className="text-lg font-medium">No products found</p>
-                            <p className="text-sm text-muted-foreground">
-                                Try adjusting your search or filters
-                            </p>
-                        </CardContent>
-                    </Card>
-                ) : (
-                    <div className={viewMode === 'grid'
-                        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                        : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-                    }>
-                        {filteredProducts.map((product) => {
-                            const inCart = getCartItemQuantity(product.id) > 0;
-
-                            if (viewMode === 'compact') {
-                                return (
-                                    <Card key={product.id} className="overflow-hidden hover:shadow-md transition-all flex flex-row h-32">
-                                        <div className="relative w-32 h-full bg-muted shrink-0">
-                                            {product.imageUrl ? (
-                                                <Image
-                                                    src={product.imageUrl}
-                                                    alt={product.name}
-                                                    fill
-                                                    className="object-cover"
-                                                />
-                                            ) : (
-                                                <div className="flex items-center justify-center h-full">
-                                                    <ShoppingCart className="h-8 w-8 text-muted-foreground" />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-col justify-between p-3 flex-1 min-w-0">
-                                            <div>
-                                                <h3 className="font-semibold text-sm line-clamp-1" title={product.name}>{product.name}</h3>
-                                                <p className="text-xs text-muted-foreground line-clamp-1">{product.category}</p>
-                                                <div className="mt-1 font-bold text-sm">${product.price.toFixed(2)}</div>
-                                            </div>
-                                            <Button
-                                                onClick={() => handleAddToCart(product)}
-                                                size="sm"
-                                                variant={inCart ? "secondary" : "outline"}
-                                                className="w-full h-8 text-xs"
-                                            >
-                                                {inCart ? 'In Cart' : 'Add'}
-                                            </Button>
-                                        </div>
-                                    </Card>
-                                );
-                            }
-
-                            return (
-                                <Link key={product.id} href={`/demo-40tons/products/${product.id}`} className="block group">
-                                    <Card className="overflow-hidden hover:shadow-lg transition-all h-full flex flex-col">
-                                        {/* Product Image */}
-                                        <div className="aspect-square relative bg-muted">
-                                            {product.imageUrl ? (
-                                                <Image
-                                                    src={product.imageUrl}
-                                                    alt={product.name}
-                                                    fill
-                                                    className="object-cover group-hover:scale-105 transition-transform"
-                                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                                                />
-                                            ) : (
-                                                <div className="flex items-center justify-center h-full">
-                                                    <ShoppingCart className="h-12 w-12 text-muted-foreground" />
-                                                </div>
-                                            )}
-
-                                            {/* Quick Actions */}
-                                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Button size="icon" variant="secondary" className="rounded-full" onClick={(e) => { e.preventDefault(); /* Like logic? */ }}>
-                                                    <Heart className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-
-                                            {/* Brand Badge */}
-                                            <Badge className="absolute top-2 left-2 bg-black/70">
-                                                40 Tons
-                                            </Badge>
-                                        </div>
-
-                                        {/* Product Info */}
-                                        <CardHeader className="p-4">
-                                            <div className="space-y-1">
-                                                <CardTitle className="text-base line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                                                    {product.name}
-                                                </CardTitle>
-                                                <CardDescription className="text-xs line-clamp-2">
-                                                    {product.description}
-                                                </CardDescription>
-                                            </div>
-                                        </CardHeader>
-
-                                        <CardContent className="p-4 pt-0 space-y-3 mt-auto">
-                                            {/* Category Badge */}
-                                            <Badge variant="outline" className="text-xs">
-                                                {product.category}
-                                            </Badge>
-
-                                            {/* Engagement */}
-                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                <span>👍 {product.likes}</span>
-                                            </div>
-
-                                            {/* Price and Add to Cart */}
-                                            <div className="flex items-center justify-between pt-2 border-t">
-                                                <span className="text-lg font-bold">
-                                                    ${product.price.toFixed(2)}
-                                                </span>
-                                            </div>
-
-                                            <Button
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    handleAddToCart(product);
-                                                }}
-                                                className="w-full"
-                                                size="sm"
-                                                variant={inCart ? "secondary" : "default"}
-                                            >
-                                                {inCart ? (
-                                                    <>
-                                                        <ShoppingCart className="h-4 w-4 mr-2" />
-                                                        In Cart ({getCartItemQuantity(product.id)})
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Plus className="h-4 w-4 mr-2" />
-                                                        Add to Cart
-                                                    </>
-                                                )}
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                </Link>
-                            );
-                        })}
-                    </div>
                 )}
-            </div>
 
-            {/* Simple Footer */}
-            <footer className="border-t bg-muted/40 py-6 mt-12">
-                <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-                    © 2025 BakedBot AI - Agentic Commerce OS for Cannabis
-                </div>
-            </footer>
+                {/* Import Your Menu CTA */}
+                {!useImportedMenu && (
+                    <section className="py-12 bg-muted/50">
+                        <div className="container mx-auto px-4">
+                            <Card className="overflow-hidden">
+                                <div className="grid md:grid-cols-2 gap-0">
+                                    <div
+                                        className="p-8 md:p-12 flex flex-col justify-center"
+                                        style={{ backgroundColor: brandColors.primary }}
+                                    >
+                                        <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                                            See Your Menu in BakedBot
+                                        </h2>
+                                        <p className="text-white/90 mb-6">
+                                            Enter your dispensary URL and we&apos;ll import your products, branding, and deals
+                                            to show you exactly how your menu would look.
+                                        </p>
+                                        <MenuImportDialog
+                                            onImportComplete={handleImportComplete}
+                                            trigger={
+                                                <Button size="lg" className="w-fit bg-white text-black hover:bg-white/90 font-bold gap-2">
+                                                    <Upload className="h-5 w-5" />
+                                                    Import Your Menu
+                                                </Button>
+                                            }
+                                        />
+                                    </div>
+                                    <div className="p-8 md:p-12 bg-background">
+                                        <h3 className="font-bold text-lg mb-4">What we&apos;ll extract:</h3>
+                                        <ul className="space-y-3 text-muted-foreground">
+                                            <li className="flex items-center gap-2">
+                                                <span className="h-6 w-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm">✓</span>
+                                                All your products with prices, THC/CBD, categories
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <span className="h-6 w-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm">✓</span>
+                                                Your brand colors and logo
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <span className="h-6 w-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm">✓</span>
+                                                Current deals and promotions
+                                            </li>
+                                            <li className="flex items-center gap-2">
+                                                <span className="h-6 w-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm">✓</span>
+                                                Store info and hours
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </Card>
+                        </div>
+                    </section>
+                )}
+
+                {/* All Products Section with Filters */}
+                <section id="products" className="py-12">
+                    <div className="container mx-auto px-4">
+                        {/* Section Header */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                            <div>
+                                <h2 className="text-2xl md:text-3xl font-bold tracking-tight">All Products</h2>
+                                <p className="text-muted-foreground">
+                                    {filteredProducts.length} products available
+                                </p>
+                            </div>
+
+                            {/* Filters */}
+                            <div className="flex flex-wrap gap-3">
+                                <div className="relative flex-1 min-w-[200px] md:w-[300px]">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search products..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="pl-10"
+                                    />
+                                </div>
+                                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                                    <SelectTrigger className="w-[160px]">
+                                        <SelectValue placeholder="Category" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Categories</SelectItem>
+                                        {categories.map((cat) => (
+                                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Select value={sortBy} onValueChange={setSortBy}>
+                                    <SelectTrigger className="w-[160px]">
+                                        <SelectValue placeholder="Sort by" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="popular">Most Popular</SelectItem>
+                                        <SelectItem value="price-low">Price: Low to High</SelectItem>
+                                        <SelectItem value="price-high">Price: High to Low</SelectItem>
+                                        <SelectItem value="thc-high">THC: High to Low</SelectItem>
+                                        <SelectItem value="name">Name (A-Z)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        {/* Products Grid */}
+                        {filteredProducts.length === 0 ? (
+                            <Card>
+                                <CardContent className="flex flex-col items-center justify-center py-16">
+                                    <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
+                                    <p className="text-xl font-medium mb-2">No products found</p>
+                                    <p className="text-muted-foreground mb-4">
+                                        Try adjusting your search or filters
+                                    </p>
+                                    <Button variant="outline" onClick={() => { setSearchQuery(''); setCategoryFilter('all'); }}>
+                                        Clear Filters
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {filteredProducts.map((product) => (
+                                    <OversizedProductCard
+                                        key={product.id}
+                                        product={product}
+                                        onAddToCart={handleAddToCart}
+                                        inCart={getCartItemQuantity(product.id)}
+                                        primaryColor={brandColors.primary}
+                                        size="large"
+                                        dealBadge={getDealBadge(product)}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </section>
+
+                {/* Category Sections */}
+                {categoryFilter === 'all' && categories.map((category) => {
+                    const categoryProducts = productsByCategory[category] || [];
+                    if (categoryProducts.length === 0) return null;
+
+                    return (
+                        <ProductSection
+                            key={category}
+                            title={category}
+                            subtitle={`${categoryProducts.length} products`}
+                            products={categoryProducts.slice(0, 8)}
+                            onAddToCart={handleAddToCart}
+                            getCartQuantity={getCartItemQuantity}
+                            primaryColor={brandColors.primary}
+                            layout="carousel"
+                            onViewAll={() => handleCategorySelect(category)}
+                            dealBadge={getDealBadge}
+                        />
+                    );
+                })}
+            </main>
+
+            {/* Footer */}
+            <DemoFooter
+                brandName={brandName}
+                brandLogo={importedData?.dispensary.logoUrl}
+                primaryColor={brandColors.primary}
+                location={{
+                    address: retailer.address,
+                    city: retailer.city,
+                    state: retailer.state,
+                    zip: retailer.zip,
+                    phone: retailer.phone,
+                    hours: importedData?.dispensary.hours || '9AM - 10PM',
+                }}
+            />
 
             {/* Smokey Chatbot */}
-            <Chatbot products={chatProducts} brandId="demo-40tons" />
-
-            {/* Bundle Builder Modal */}
-            <BundleBuilder
-                deal={DEMO_BUNDLE_DEAL}
-                open={showBundleBuilder}
-                onOpenChange={setShowBundleBuilder}
-            />
+            <Chatbot products={activeProducts} brandId={useImportedMenu ? 'imported-brand' : 'demo-40tons'} />
         </div>
     );
 }
