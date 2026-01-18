@@ -42,7 +42,9 @@ import { ProductSection } from '@/components/demo/product-section';
 import { OversizedProductCard } from '@/components/demo/oversized-product-card';
 import { MenuImportDialog } from '@/components/demo/menu-import-dialog';
 import { CartSlideOver } from '@/components/demo/cart-slide-over';
-import { BundleDetailDialog } from '@/components/demo/bundle-detail-dialog';
+import { BundleDetailDialog, BundleDeal } from '@/components/demo/bundle-detail-dialog';
+
+
 
 // Brand Menu Components
 import { BrandMenuHeader } from '@/components/demo/brand-menu-header';
@@ -117,18 +119,7 @@ export default function DemoShopClient() {
     // UI state
     const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
     const [cartOpen, setCartOpen] = useState(false);
-    const [selectedBundle, setSelectedBundle] = useState<{
-        id: string;
-        name: string;
-        description: string;
-        originalPrice: number;
-        bundlePrice: number;
-        savingsPercent: number;
-        image?: string;
-        products?: string[];
-        badge?: string;
-        backgroundColor?: string;
-    } | null>(null);
+    const [selectedBundle, setSelectedBundle] = useState<BundleDeal | null>(null);
 
     // Brand menu state
     const [selectedDispensary, setSelectedDispensary] = useState<{
@@ -274,6 +265,8 @@ export default function DemoShopClient() {
         document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
     };
 
+
+
     // Get deal badge for products
     const getDealBadge = (product: Product): string | undefined => {
         if (product.price < 20) return '2 for $30';
@@ -331,7 +324,7 @@ export default function DemoShopClient() {
     };
 
     // Handle adding bundle to cart
-    const handleAddBundleToCart = (bundle: typeof defaultBundles[0], quantity: number) => {
+    const handleAddBundleToCart = (bundle: BundleDeal, quantity: number) => {
         // Create a synthetic product for the bundle
         const bundleProduct: Product = {
             id: `bundle-${bundle.id}`,

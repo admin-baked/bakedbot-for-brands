@@ -22,7 +22,7 @@ import {
   Leaf,
 } from 'lucide-react';
 
-interface BundleDeal {
+export interface BundleDeal {
   id: string;
   name: string;
   description: string;

@@ -1,3 +1,39 @@
+## Session: 2026-01-18 (Brand and Dispensary Headless Menu Implementation)
+### Task ID
+brand_dispensary_headless_menus
+
+### Summary
+Implemented role-specific headless menus for Brands and Dispensaries, replicating the `/demo-shop` design. Created URL Import for onboarding, Brand Menu dashboard with slug/URL configuration, and Dispensary Menu publish dashboard.
+
+### Key Changes
+*   **NEW**: `src/app/dashboard/products/url-import/page.tsx` - URL import page
+*   **NEW**: `src/app/dashboard/products/url-import/url-import-client.tsx` - Full import UI
+*   **NEW**: `src/app/dashboard/brand-page/page.tsx` - Brand Menu dashboard
+*   **NEW**: `src/app/dashboard/brand-page/brand-page-client.tsx` - Slug config, preview, publish
+*   **NEW**: `src/app/dashboard/brand-page/components/slug-config-panel.tsx` - URL configuration
+*   **NEW**: `src/app/dashboard/brand-page/components/launch-dialog.tsx` - Publish confirmation
+*   **NEW**: `src/app/dashboard/menu/publish/page.tsx` - Dispensary Menu dashboard
+*   **NEW**: `src/app/dashboard/menu/publish/menu-publish-client.tsx` - Overview, preview, publish
+*   **NEW**: `src/app/dashboard/menu/publish/components/publish-dialog.tsx` - Publish confirmation
+*   **MOD**: `src/app/dashboard/products/actions.ts` - Added `saveImportedProducts` action
+*   **MOD**: `src/types/products.ts` - Added 'url-import' to Product source type
+*   **MOD**: `src/components/dashboard/setup-checklist.tsx` - Updated "Add products" href
+
+### Public URLs
+| Role | URL Pattern |
+|------|-------------|
+| Brand | `bakedbot.ai/{slug}` (e.g., `bakedbot.ai/40tons`) |
+| Dispensary | `bakedbot.ai/shop/{locationId}` |
+
+### Tests Run
+*   Browser verification of `/dashboard/brand-page` route (Active ✅)
+*   Route is protected by authentication as expected
+
+### Result: ✅ Implementation Complete
+Brand and Dispensary headless menu dashboards are ready for testing.
+
+---
+
 ## Session: 2026-01-13 (RAG Infrastructure Upgrade - Phase 1)
 ### Task ID
 rag_infrastructure_phase1

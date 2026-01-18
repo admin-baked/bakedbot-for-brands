@@ -6,6 +6,69 @@ import { Product } from '@/types/domain';
 import { logger } from '@/lib/logger';
 import { CannMenusService } from '@/server/services/cannmenus';
 import { FREE_ACCOUNT_LIMITS } from '@/lib/config/limits';
+import type { ExtractedProduct } from '@/app/api/demo/import-menu/route';
+
+/**
+ * Save products imported from URL to the user's catalog
+ * Used by the URL Import feature in onboarding
+ */
+export async function saveImportedProducts(
+    products: ExtractedProduct[]
+): Promise<{ success: boolean; count?: number; error?: string }> {
+    try {
+        const user = await requireUser(['brand', 'super_user', 'dispensary']);
+        const { firestore } = await createServerClient();
+
+        // Determine the organization ID based on role
+        const orgId = user.brandId || user.locationId || user.uid;
+        if (!orgId) {
+            return { success: false, error: 'No organization found for user' };
+        }
+
+        const batch = firestore.batch();
+        const productsCollection = firestore.collection('products');
+        let importedCount = 0;
+
+        for (const p of products) {
+            const newProductRef = productsCollection.doc();
+            const domainProduct: Product = {
+                id: newProductRef.id,
+                name: p.name,
+                category: p.category,
+                price: p.price || 0,
+                imageUrl: p.imageUrl || '',
+                imageHint: p.category.toLowerCase(),
+                description: p.description || '',
+                brandId: orgId,
+                thcPercent: p.thcPercent || undefined,
+                cbdPercent: p.cbdPercent || undefined,
+                strainType: p.strainType,
+                effects: p.effects || [],
+                source: 'url-import',
+                sourceTimestamp: new Date(),
+            };
+
+            batch.set(newProductRef, domainProduct);
+            importedCount++;
+        }
+
+        await batch.commit();
+
+        logger.info('[URL Import] Products saved successfully', {
+            userId: user.uid,
+            orgId,
+            count: importedCount,
+        });
+
+        return { success: true, count: importedCount };
+    } catch (error) {
+        logger.error('[URL Import] Failed to save products', error instanceof Error ? error : new Error(String(error)));
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to save products',
+        };
+    }
+}
 
 // Mock fallback results for demo
 const MOCK_PRODUCTS = [
