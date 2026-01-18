@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,20 +6,54 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { setupBrandAndCompetitors } from '@/server/actions/brand-setup';
 import { getBrandStatus } from '@/app/dashboard/products/actions';
-import { Loader2, Store, Target, MapPin, CheckCircle2, Lock } from 'lucide-react';
+import { checkSlugAvailability, getBrandSlug } from '@/server/actions/slug-management';
+import { Loader2, Store, Target, MapPin, CheckCircle2, Lock, Globe, AlertCircle, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useUserRole } from '@/hooks/use-user-role';
 
 export default function BrandSetupTab() {
-    const { role } = useUserRole();
+    const { role, brandId } = useUserRole();
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [status, setStatus] = useState<any>(null);
     const { toast } = useToast();
+    
+    // Slug management state
+    const [slug, setSlug] = useState('');
+    const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+    const [slugSuggestion, setSlugSuggestion] = useState<string | null>(null);
+    const [existingSlug, setExistingSlug] = useState<string | null>(null);
 
     useEffect(() => {
         getBrandStatus().then(setStatus);
-    }, []);
+        // Load existing slug if brand has one
+        if (brandId) {
+            getBrandSlug(brandId).then((s) => {
+                if (s) {
+                    setExistingSlug(s);
+                    setSlug(s);
+                    setSlugStatus('available');
+                }
+            });
+        }
+    }, [brandId]);
+    
+    // Debounced slug availability check
+    useEffect(() => {
+        if (!slug || slug.length < 3 || slug === existingSlug) {
+            setSlugStatus(slug === existingSlug ? 'available' : 'idle');
+            return;
+        }
+        
+        setSlugStatus('checking');
+        const timeout = setTimeout(async () => {
+            const result = await checkSlugAvailability(slug);
+            setSlugStatus(result.available ? 'available' : 'taken');
+            setSlugSuggestion(result.suggestion || null);
+        }, 500);
+        
+        return () => clearTimeout(timeout);
+    }, [slug, existingSlug]);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -149,6 +183,47 @@ export default function BrandSetupTab() {
                                 Used to find nearby retailers and competitive shelf share.
                             </p>
                         </div>
+                    </div>
+                    
+                    {/* Custom Menu URL Section */}
+                    <div className="space-y-2">
+                        <Label htmlFor="slug" className="flex items-center gap-2">
+                            <Globe className="h-3 w-3" />
+                            Custom Menu URL
+                        </Label>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">bakedbot.ai/</span>
+                            <div className="relative flex-1">
+                                <Input
+                                    id="slug"
+                                    name="slug"
+                                    placeholder="your-brand"
+                                    value={slug}
+                                    onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+                                    className={slugStatus === 'taken' ? 'border-red-300 pr-10' : slugStatus === 'available' ? 'border-green-300 pr-10' : 'pr-10'}
+                                />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    {slugStatus === 'checking' && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                                    {slugStatus === 'available' && <Check className="h-4 w-4 text-green-600" />}
+                                    {slugStatus === 'taken' && <AlertCircle className="h-4 w-4 text-red-500" />}
+                                </div>
+                            </div>
+                        </div>
+                        {slugStatus === 'taken' && (
+                            <p className="text-xs text-red-600 flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                This URL is taken.{slugSuggestion && <button type="button" className="underline" onClick={() => setSlug(slugSuggestion)}>Try {slugSuggestion}</button>}
+                            </p>
+                        )}
+                        {slugStatus === 'available' && slug.length >= 3 && (
+                            <p className="text-xs text-green-600 flex items-center gap-1">
+                                <Check className="h-3 w-3" />
+                                bakedbot.ai/{slug} is available!
+                            </p>
+                        )}
+                        <p className="text-[10px] text-muted-foreground">
+                            This is where your headless menu will live. Customers will find you at bakedbot.ai/{slug || 'your-brand'}
+                        </p>
                     </div>
 
                     <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-lg">
