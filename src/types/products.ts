@@ -80,6 +80,8 @@ export type Retailer = {
     status?: 'active' | 'inactive';
     claimStatus?: 'claimed' | 'unclaimed';
     updatedAt?: Date | string;
+    brandIds?: string[];
+    logo?: string;
 };
 
 export type Location = Retailer & { zipCode?: string };
