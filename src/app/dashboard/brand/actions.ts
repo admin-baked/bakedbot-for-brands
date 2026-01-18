@@ -52,8 +52,8 @@ export async function getBrandDashboardData(brandId: string) {
         const { getBrandDispensaries } = await import('@/app/dashboard/dispensaries/actions');
         let coverageCount = 0;
         try {
-            const dispensaries = await getBrandDispensaries();
-            coverageCount = dispensaries.length;
+            const result = await getBrandDispensaries();
+            coverageCount = result.partners.length;
         } catch (err) {
             console.error('Failed to get dispensary count for dashboard', err);
         }
@@ -187,8 +187,8 @@ export async function getNextBestActions(brandId: string): Promise<NextBestActio
         const { getBrandDispensaries } = await import('@/app/dashboard/dispensaries/actions');
         let dispensaryCount = 0;
         try {
-            const dispensaries = await getBrandDispensaries();
-            dispensaryCount = dispensaries.length;
+            const result = await getBrandDispensaries();
+            dispensaryCount = result.partners.length;
         } catch { /* ignore */ }
         
         if (dispensaryCount === 0) {

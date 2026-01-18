@@ -113,7 +113,7 @@ export function CompetitorSetupWizard({ hasCompetitors }: { hasCompetitors: bool
                     <div className="py-4">
                         <Tabs defaultValue="city" onValueChange={(v) => setMode(v as 'city' | 'zip')}>
                             <TabsList className="grid w-full grid-cols-2 mb-4">
-                                <TabsTrigger value="city">City Search (Leafly)</TabsTrigger>
+                                <TabsTrigger value="city">BakedBot Discovery</TabsTrigger>
                                 <TabsTrigger value="zip">ZIP Search (Direct)</TabsTrigger>
                             </TabsList>
                             

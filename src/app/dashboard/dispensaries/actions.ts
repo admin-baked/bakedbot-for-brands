@@ -5,12 +5,13 @@ import { createServerClient } from '@/firebase/server-client';
 import { searchNearbyRetailers } from '@/lib/cannmenus-api';
 import { logger } from '@/lib/logger';
 
-export async function getBrandDispensaries() {
+export async function getBrandDispensaries(): Promise<{ partners: any[]; needsSetup?: boolean }> {
     const user = await requireUser(['brand', 'super_user']);
     const brandId = user.brandId;
 
+    // Return empty state for brands without complete setup instead of throwing
     if (!brandId) {
-        throw new Error('No brand ID associated with user');
+        return { partners: [], needsSetup: true };
     }
 
     const { firestore } = await createServerClient();
@@ -70,7 +71,7 @@ export async function getBrandDispensaries() {
         }
     });
 
-    return allPartners;
+    return { partners: allPartners };
 }
 
 export async function searchDispensaries(query: string, state: string) {

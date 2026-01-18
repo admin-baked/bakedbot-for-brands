@@ -27,12 +27,12 @@ interface ChecklistItem {
     status: 'todo' | 'done' | 'dismissed';
 }
 
-// Brand checklist items
+// Brand checklist items - focused on getting headless menu live with Smokey
 const BRAND_CHECKLIST: ChecklistItem[] = [
     {
         id: 'add-products',
-        title: 'Add products',
-        description: 'Upload your products manually or via CSV',
+        title: 'Add your products',
+        description: 'Upload your products manually, CSV, or import from CannMenus',
         estimatedTime: '5 min',
         href: '/dashboard/products',
         icon: <Package className="h-4 w-4" />,
@@ -48,11 +48,20 @@ const BRAND_CHECKLIST: ChecklistItem[] = [
         status: 'todo'
     },
     {
-        id: 'install-smokey',
-        title: 'Install Smokey',
-        description: 'Add AI budtender widget to your website',
+        id: 'launch-menu',
+        title: 'Launch your Headless Menu',
+        description: 'Go live at bakedbot.ai/yourbrand with your product catalog',
         estimatedTime: '2 min',
-        href: '/dashboard/settings',
+        href: '/dashboard/brand-page',
+        icon: <Store className="h-4 w-4" />,
+        status: 'todo'
+    },
+    {
+        id: 'activate-smokey',
+        title: 'Activate Smokey AI Budtender',
+        description: 'Enable AI-powered product recommendations on your menu',
+        estimatedTime: '2 min',
+        href: '/dashboard/agents',
         icon: <Bot className="h-4 w-4" />,
         status: 'todo'
     },
@@ -63,24 +72,6 @@ const BRAND_CHECKLIST: ChecklistItem[] = [
         estimatedTime: '1 min',
         href: '/dashboard/audit',
         icon: <FileSearch className="h-4 w-4" />,
-        status: 'todo'
-    },
-    {
-        id: 'compliance-defaults',
-        title: 'Set compliance defaults',
-        description: 'Configure Deebo for your state and channels',
-        estimatedTime: '3 min',
-        href: '/dashboard/settings/compliance',
-        icon: <Shield className="h-4 w-4" />,
-        status: 'todo'
-    },
-    {
-        id: 'launch-campaign',
-        title: 'Launch first campaign',
-        description: 'Create your first marketing campaign with Craig',
-        estimatedTime: '10 min',
-        href: '/dashboard/craig/campaigns/new',
-        icon: <Megaphone className="h-4 w-4" />,
         status: 'todo'
     }
 ];
@@ -267,7 +258,7 @@ export function SetupChecklist() {
             </CardHeader>
             <CardContent className="pt-2">
                 <div className="space-y-1">
-                    {items.slice(0, 4).map((item) => (
+                    {items.map((item) => (
                         <Link
                             key={item.id}
                             href={item.href}
@@ -306,13 +297,6 @@ export function SetupChecklist() {
                         </Link>
                     ))}
                 </div>
-                {items.length > 4 && (
-                    <Button variant="link" size="sm" className="mt-2 p-0 h-auto" asChild>
-                        <Link href="/dashboard/setup">
-                            View all {items.length} tasks →
-                        </Link>
-                    </Button>
-                )}
             </CardContent>
         </Card>
     );
