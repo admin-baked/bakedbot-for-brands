@@ -7,9 +7,10 @@ import { useToast } from '@/hooks/use-toast';
 import { setupBrandAndCompetitors } from '@/server/actions/brand-setup';
 import { getBrandStatus } from '@/app/dashboard/products/actions';
 import { checkSlugAvailability, getBrandSlug } from '@/server/actions/slug-management';
-import { Loader2, Store, Target, MapPin, CheckCircle2, Lock, Globe, AlertCircle, Check } from 'lucide-react';
+import { Loader2, Store, Target, MapPin, CheckCircle2, Lock, Globe, AlertCircle, Check, Building2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useUserRole } from '@/hooks/use-user-role';
+import { Switch } from '@/components/ui/switch';
 
 export default function BrandSetupTab() {
     const { role, brandId } = useUserRole();
@@ -23,6 +24,9 @@ export default function BrandSetupTab() {
     const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
     const [slugSuggestion, setSlugSuggestion] = useState<string | null>(null);
     const [existingSlug, setExistingSlug] = useState<string | null>(null);
+    
+    // Vertically integrated state (brand owns dispensaries)
+    const [isVerticallyIntegrated, setIsVerticallyIntegrated] = useState(false);
 
     useEffect(() => {
         getBrandStatus().then(setStatus);
@@ -225,6 +229,38 @@ export default function BrandSetupTab() {
                             This is where your headless menu will live. Customers will find you at bakedbot.ai/{slug || 'your-brand'}
                         </p>
                     </div>
+                    
+                    {/* Vertically Integrated Toggle */}
+                    {role === 'brand' && (
+                        <div className="space-y-3 border rounded-lg p-4 bg-muted/20">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                                    <Label htmlFor="vertically-integrated" className="text-sm font-medium">
+                                        Vertically Integrated
+                                    </Label>
+                                </div>
+                                <Switch
+                                    id="vertically-integrated"
+                                    checked={isVerticallyIntegrated}
+                                    onCheckedChange={setIsVerticallyIntegrated}
+                                />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Enable if your brand owns or operates retail dispensary locations.
+                            </p>
+                            {isVerticallyIntegrated && (
+                                <div className="p-3 bg-amber-50 border border-amber-200 rounded-md mt-2">
+                                    <p className="text-xs text-amber-800">
+                                        <strong>POS Integration Available</strong>: As a vertically integrated operator, 
+                                        you can connect your dispensary POS system for real-time inventory sync. 
+                                        Configure this in Settings → Integrations.
+                                    </p>
+                                </div>
+                            )}
+                            <input type="hidden" name="isVerticallyIntegrated" value={isVerticallyIntegrated ? 'true' : 'false'} />
+                        </div>
+                    )}
 
                     <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-lg">
                         <h4 className="text-sm font-bold text-blue-900 mb-1 flex items-center gap-2">
