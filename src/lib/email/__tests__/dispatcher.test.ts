@@ -85,14 +85,14 @@ describe('Email Dispatcher', () => {
         expect(sendgrid.sendGenericEmail).not.toHaveBeenCalled();
     });
 
-    it('should default to SendGrid if firestore fails', async () => {
+    it('should default to Mailjet if firestore fails', async () => {
         // Mock Firestore failure
         mockGet.mockRejectedValue(new Error('Firestore error'));
 
         // Force cache expiration
         jest.spyOn(Date, 'now').mockReturnValue(new Date().getTime() + 300000);
 
-        (sendgrid.sendGenericEmail as jest.Mock).mockResolvedValue({ success: true });
+        (mailjet.sendGenericEmail as jest.Mock).mockResolvedValue({ success: true });
 
         const result = await sendGenericEmail({
             to: 'test@example.com',
@@ -100,7 +100,8 @@ describe('Email Dispatcher', () => {
             htmlBody: 'Body'
         });
 
-        expect(sendgrid.sendGenericEmail).toHaveBeenCalled();
+        expect(mailjet.sendGenericEmail).toHaveBeenCalled();
+        expect(result.success).toBe(true);
     });
 
     it('should failover to SendGrid if Mailjet fails', async () => {

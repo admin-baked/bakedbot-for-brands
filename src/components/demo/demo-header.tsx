@@ -154,7 +154,7 @@ export function DemoHeader({
             </Sheet>
 
             {/* Logo */}
-            <Link href="/shop/demo" className="flex items-center gap-2">
+            <Link href="/demo-shop" className="flex items-center gap-2">
               {brandLogo ? (
                 <Image
                   src={brandLogo}
@@ -264,8 +264,11 @@ export function DemoHeader({
                         </NavigationMenuContent>
                       </>
                     ) : (
-                      <Link href={item.href} legacyBehavior passHref>
-                        <NavigationMenuLink className="h-12 px-4 font-semibold text-sm inline-flex items-center gap-2 hover:text-primary transition-colors">
+                      <NavigationMenuLink asChild>
+                        <Link 
+                          href={item.href}
+                          className="h-12 px-4 font-semibold text-sm inline-flex items-center gap-2 hover:text-primary transition-colors"
+                        >
                           {item.label}
                           {item.badge && (
                             <Badge
@@ -275,8 +278,8 @@ export function DemoHeader({
                               {item.badge}
                             </Badge>
                           )}
-                        </NavigationMenuLink>
-                      </Link>
+                        </Link>
+                      </NavigationMenuLink>
                     )}
                   </NavigationMenuItem>
                 ))}

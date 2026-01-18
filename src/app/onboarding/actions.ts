@@ -30,7 +30,8 @@ const OnboardingSchema = z.object({
   posApiKey: z.string().optional(),
   posDispensaryId: z.string().optional(), // For Jane or Dutchie ID
   features: z.string().optional(), // JSON string
-  competitors: z.string().optional() // JSON or comma-separated
+  competitors: z.string().optional(), // JSON or comma-separated
+  selectedCompetitors: z.string().optional() // JSON array of competitor objects
 });
 
 export async function completeOnboarding(prevState: any, formData: FormData) {
@@ -71,7 +72,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       manualBrandName, manualProductName, manualDispensaryName,
       chatbotPersonality, chatbotTone, chatbotSellingPoints,
       posProvider, posApiKey, posDispensaryId,
-      competitors
+      competitors, selectedCompetitors
     } = validatedFields.data;
 
     // Proceed with Firestore logic...
@@ -176,6 +177,33 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
           marketState,
           updatedAt: FieldValue.serverTimestamp()
         });
+      }
+
+      // --- HANDLE SELECTED COMPETITORS ---
+      if (orgId && selectedCompetitors) {
+        try {
+          const comps = JSON.parse(selectedCompetitors);
+          if (Array.isArray(comps) && comps.length > 0) {
+            const batch = firestore.batch();
+            for (const comp of comps) {
+              const compRef = firestore
+                .collection('organizations')
+                .doc(orgId)
+                .collection('competitors')
+                .doc(comp.id);
+              
+              batch.set(compRef, {
+                ...comp,
+                source: 'onboarding',
+                lastUpdated: FieldValue.serverTimestamp()
+              }, { merge: true });
+            }
+            await batch.commit();
+            logger.info(`Saved ${comps.length} competitors during onboarding`, { orgId });
+          }
+        } catch (e) {
+          logger.error('Failed to parse selectedCompetitors during onboarding', { error: e });
+        }
       }
     }
 

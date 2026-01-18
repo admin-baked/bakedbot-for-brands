@@ -197,7 +197,7 @@ export async function setUserClaims(
  */
 export async function setUserRole(
   uid: string,
-  role: 'brand' | 'dispensary' | 'customer' | 'owner',
+  role: 'brand' | 'dispensary' | 'customer' | 'super_user' | 'super_admin',
   additionalData?: { brandId?: string; locationId?: string }
 ): Promise<void> {
   const claims = {

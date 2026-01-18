@@ -9,7 +9,7 @@ import { devPersonas } from '@/lib/dev-personas';
 import { SUPER_ADMIN_EMAILS } from '@/lib/super-admin-config';
 
 // Define the roles used in the application for type safety.
-export type Role = 'brand' | 'dispensary' | 'customer' | 'super_user';
+export type Role = 'brand' | 'dispensary' | 'customer' | 'super_user' | 'super_admin';
 
 /**
  * A server-side utility to require an authenticated user and optionally enforce roles.

@@ -2,17 +2,8 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
+import { createSlug } from '@/lib/utils/slug';
 
-/**
- * Create a URL-safe slug from a brand name
- */
-export function createSlug(name: string): string {
-    return name
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-}
 
 /**
  * Check if a slug is available for use
