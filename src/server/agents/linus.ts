@@ -848,16 +848,21 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
                             
                             if (failed > 0) {
                                 status = 'failed';
-                                notes = `Lint check warning: ${output.slice(-200) || 'Unknown lint error'}`;
-                                metrics.lintCheck = 'warning';
+                                confidence = 0.5;
+                                notes = `Tests failed: ${failed} failed, ${passed} passed.`;
+                                metrics.testsPassed = passed;
+                                metrics.testsFailed = failed;
+                            } else {
+                                notes = `All tests passed (${passed} tests).`;
+                                metrics.testsPassed = passed;
+                                metrics.testsFailed = 0;
                             }
+                        } catch (e: any) {
+                            status = 'warning';
+                            confidence = 0.6;
+                            notes = `Test run error: ${e.message?.slice(0, 200) || 'Unknown error'}`;
+                            metrics.testCheck = 'error';
                         }
-                        break;
-                        
-                    case 6: // ChaosMoney - Performance / Load
-                        // Simplified check (simulation)
-                        notes = 'Performance baseline check passed (simulated).';
-                        metrics.perfCheck = 'passed';
                         break;
                         
                     case 7: // Linus - Synthesis
