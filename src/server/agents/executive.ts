@@ -205,6 +205,16 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                     cwd: z.string().optional(),
                     timeout: z.number().optional()
                 })
+            },
+            {
+                name: "browse_web",
+                description: "Advanced web browsing capability to read pages, take screenshots, click elements, and type text. Useful for verification and deep research.",
+                schema: z.object({
+                    url: z.string(),
+                    action: z.enum(['read', 'screenshot', 'click', 'type', 'search']).optional().describe('Action to perform (default: read)'),
+                    selector: z.string().optional().describe('CSS selector for click/type actions'),
+                    inputValue: z.string().optional().describe('Text to type')
+                })
             }
         ];
 

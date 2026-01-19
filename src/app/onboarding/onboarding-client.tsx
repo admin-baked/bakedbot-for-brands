@@ -14,6 +14,7 @@ import { MarketSelector } from '@/components/ui/market-selector';
 import { searchCannMenusRetailers } from '@/server/actions/cannmenus';
 import { WiringScreen } from '@/app/dashboard/settings/link/components/wiring-screen';
 import { CompetitorOnboardingStep } from './components/competitor-onboarding-step';
+import { MenuImportStep } from './components/menu-import-step';
 import { checkOnboardingStatus } from './status-action';
 import { AnimatePresence } from 'framer-motion';
 import { useFirebase } from '@/firebase/provider';
@@ -35,7 +36,7 @@ type BrandResult = {
 };
 
 // V2 Optimization: Re-added 'competitors' for production-ready onboarding
-type Step = 'role' | 'market' | 'brand-search' | 'manual' | 'competitors' | 'review';
+type Step = 'role' | 'market' | 'brand-search' | 'manual' | 'competitors' | 'review' | 'menu-import';
 
 export default function OnboardingPage() {
   const { toast } = useToast();
@@ -51,6 +52,8 @@ export default function OnboardingPage() {
   const [manualBrandName, setManualBrandName] = useState('');
   const [manualProductName, setManualProductName] = useState('');
   const [manualDispensaryName, setManualDispensaryName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [zipCode, setZipCode] = useState('');
 
   // Form State
   const [formState, formAction] = useFormState(completeOnboarding, { message: '', error: false });
@@ -344,7 +347,14 @@ export default function OnboardingPage() {
       <div className="pt-4 flex justify-between items-center">
         <Button variant="ghost" onClick={() => setStep('role')}>Back</Button>
         <Button
-          onClick={() => setStep('brand-search')}
+          onClick={() => {
+            // For Dispensaries, go to Quick Setup (Menu Import) first
+            if (role === 'dispensary') {
+              setStep('menu-import');
+            } else {
+              setStep('brand-search');
+            }
+          }}
           disabled={!marketState}
         >
           Continue
@@ -443,6 +453,19 @@ export default function OnboardingPage() {
     />
   );
 
+  const renderMenuImportStep = () => (
+    <MenuImportStep
+      onComplete={(data) => {
+        setManualDispensaryName(data.importedName);
+        setSlug(data.slug);
+        setZipCode(data.zip);
+        setStep('review');
+      }}
+      // If skipped, go to standard search/manual flow
+      onSkip={() => setStep('brand-search')}
+    />
+  );
+
   const renderReviewStep = () => {
     const selectedName =
       (role === 'brand' && manualBrandName) ? manualBrandName :
@@ -479,7 +502,10 @@ export default function OnboardingPage() {
           <input type="hidden" name="manualBrandName" value={manualBrandName} />
           <input type="hidden" name="manualProductName" value={manualProductName} />
           <input type="hidden" name="manualDispensaryName" value={manualDispensaryName} />
+          <input type="hidden" name="manualDispensaryName" value={manualDispensaryName} />
           <input type="hidden" name="marketState" value={marketState} />
+          <input type="hidden" name="slug" value={slug} />
+          <input type="hidden" name="zipCode" value={zipCode} />
           <input type="hidden" name="selectedCompetitors" value={JSON.stringify(selectedCompetitors)} />
 
           {/* Intercepted Submit Button */}
@@ -536,6 +562,7 @@ export default function OnboardingPage() {
 
         {step === 'role' && renderRoleSelection()}
         {step === 'market' && renderMarketSelection()}
+        {step === 'menu-import' && renderMenuImportStep()}
         {step === 'brand-search' && renderSearchStep()}
         {step === 'manual' && renderManualStep()}
         {step === 'competitors' && renderCompetitorsStep()}

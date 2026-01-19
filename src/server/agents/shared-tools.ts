@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { browserToolDefs, BrowserTools } from '../tools/browser-tools';
 
 // ============================================================================
 // CONTEXT OS TOOL DEFINITIONS
@@ -172,7 +173,7 @@ export interface IntuitionOsTools {
 // ALL SHARED TOOL DEFINITIONS
 // ============================================================================
 
-export const allSharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs, ...intuitionOsToolDefs];
+export const allSharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs, ...intuitionOsToolDefs, ...browserToolDefs];
 
 // Extended interface with all tools
-export interface AllSharedTools extends SharedTools, IntuitionOsTools {}
+export interface AllSharedTools extends SharedTools, IntuitionOsTools, BrowserTools {}

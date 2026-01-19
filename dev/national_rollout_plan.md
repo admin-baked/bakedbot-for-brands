@@ -124,6 +124,7 @@ We utilize the **Agent Sandbox** (`/dashboard/ceo/sandbox`) as the primary testi
 *   **Tool Verification**: Test individual tools (`marketing.sendEmail`, `geo.search`, etc.) in isolation.
 *   **Debug Reports**: Analyze execution traces and cost/latency metrics for each agent step.
 *   **Seed Data**: Use the "Seed Sandbox" action to generate ephemeral test scenarios without polluting production data.
+*   **Browser Capability Audit**: Verify Linus and Builder Agent can successfully navigate, audit, and extract data from live pages using the new Playwright/Cheerio service.
 
 ### CannMenus Data Pull (Hydration)
 

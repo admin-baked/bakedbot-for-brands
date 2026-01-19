@@ -34,6 +34,7 @@ export const chatRequestSchema = z.object({
   sessionId: z.string().optional(),
   brandId: z.string().optional().default('10982'),
   state: z.string().optional().default('Illinois'),
+  products: z.array(z.any()).optional(), // Context injection for demo
 });
 
 export type ChatRequest = z.infer<typeof chatRequestSchema>;

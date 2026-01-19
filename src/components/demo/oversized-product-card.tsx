@@ -19,6 +19,7 @@ interface OversizedProductCardProps {
   showQuickAdd?: boolean;
   size?: 'normal' | 'large' | 'xlarge';
   dealBadge?: string;
+  onClick?: () => void;
 }
 
 export function OversizedProductCard({
@@ -31,6 +32,7 @@ export function OversizedProductCard({
   showQuickAdd = true,
   size = 'large',
   dealBadge,
+  onClick,
 }: OversizedProductCardProps) {
   const [quantity, setQuantity] = useState(1);
   const [isHovered, setIsHovered] = useState(false);
@@ -82,6 +84,7 @@ export function OversizedProductCard({
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={onClick}
     >
       {/* Image Container */}
       <div className={cn('relative bg-muted overflow-hidden', imageSizeClasses[size])}>

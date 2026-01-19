@@ -21,6 +21,8 @@ const OnboardingSchema = z.object({
   manualBrandName: z.string().optional(),
   manualProductName: z.string().optional(),
   manualDispensaryName: z.string().optional(),
+  slug: z.string().optional(),
+  zipCode: z.string().optional(),
   // Chatbot config
   chatbotPersonality: z.string().optional(),
   chatbotTone: z.string().optional(),
@@ -70,6 +72,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     const {
       role, marketState, locationId, brandId, brandName,
       manualBrandName, manualProductName, manualDispensaryName,
+      slug, zipCode,
       chatbotPersonality, chatbotTone, chatbotSellingPoints,
       posProvider, posApiKey, posDispensaryId,
       competitors, selectedCompetitors
@@ -157,9 +160,11 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         await orgRef.set({
           id: orgId,
           name: finalBrandName || manualDispensaryName || 'My Organization',
+          slug: slug || null, // Clean URL slug
           type: orgType,
           ownerId: uid,
           marketState: marketState || null, // Store selected market/state
+          zipCode: zipCode || null,
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
           settings: {
@@ -219,6 +224,8 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
         id: locId,
         orgId: orgId,
         name: manualDispensaryName || 'Main Location',
+        slug: slug || null,
+        zipCode: zipCode || null,
         posConfig: userProfileData.posConfig || { provider: 'none', status: 'inactive' },
         cannMenusId: locationId, // Save the mapping
         competitorIds: competitors ? competitors.split(',') : [], // Save competitors
