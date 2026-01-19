@@ -97,6 +97,22 @@ export function ProductForm({ product, userRole, brands = [] }: ProductFormProps
                   <Label htmlFor="imageHint">Image Hint (for AI)</Label>
                   <Input id="imageHint" name="imageHint" placeholder="e.g., cannabis edible" defaultValue={product?.imageHint || ''} />
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-center space-x-2">
+                    <input
+                        type="checkbox"
+                        id="featured"
+                        name="featured"
+                        defaultChecked={product?.featured || false}
+                        className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <Label htmlFor="featured" className="font-normal">Featured Product</Label>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="sortOrder">Sort Order</Label>
+                    <Input id="sortOrder" name="sortOrder" type="number" placeholder="0" defaultValue={product?.sortOrder || ''} />
+                </div>
+            </div>
           </CardContent>
           <CardFooter className="justify-end gap-2">
             <Button variant="ghost" asChild>

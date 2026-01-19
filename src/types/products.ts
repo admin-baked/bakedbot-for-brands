@@ -68,6 +68,8 @@ export type Product = {
     source?: 'manual' | 'pos' | 'cannmenus' | 'leafly' | 'discovery' | 'url-import'; // Data source
     sourceTimestamp?: Date; // Last synced with source
     strainType?: string;
+    featured?: boolean; // Show in featured section
+    sortOrder?: number; // Custom sort order (lower = higher priority)
 };
 
 export type Retailer = {

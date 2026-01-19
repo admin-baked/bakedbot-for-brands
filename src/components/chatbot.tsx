@@ -614,9 +614,10 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   const startFreeChat = () => {
     setHasStartedChat(true);
     setIsOnboarding(false);
+    const welcomeText = chatbotConfig?.welcomeMessage || `Of course! What's on your mind? You can ask me about a specific product or tell me what you're looking for.`;
     const botMessage: Message = {
       id: Date.now(),
-      text: `Of course! What's on your mind? You can ask me about a specific product or tell me what you're looking for.`,
+      text: welcomeText,
       sender: 'bot'
     };
     setMessages([botMessage]);
