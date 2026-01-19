@@ -5,11 +5,13 @@
  * - Ask why past decisions were made
  * - Log important business decisions
  * - Query the decision history
+ * - Create and link entities (Phase 3)
+ * - Traverse the knowledge graph (Phase 3)
  */
 
 import { z } from 'zod';
 import { tool } from 'genkit';
-import { DecisionLogService } from '../services/context-os';
+import { DecisionLogService, EntityService, RelationshipService, GraphQuery } from '../services/context-os';
 
 /**
  * Ask the Context Graph why a specific decision was made
@@ -125,11 +127,128 @@ export const contextGetAgentHistory = tool({
   }
 });
 
+// ==========================================
+// Phase 3: GraphRAG Tools
+// ==========================================
+
+/**
+ * Create or update an entity in the Context Graph
+ */
+export const contextCreateEntity = tool({
+  name: 'context_create_entity',
+  description: 'Create or update a business entity in the Context Graph. Entities can be products, brands, customers, campaigns, competitors, or regulations.',
+  inputSchema: z.object({
+    type: z.enum(['product', 'brand', 'customer', 'campaign', 'competitor', 'regulation']).describe('Type of entity'),
+    name: z.string().describe('Name of the entity (e.g., "Sour Diesel", "40 Tons", "VIP Customer Program")'),
+    attributes: z.record(z.any()).optional().describe('Additional attributes for the entity')
+  }),
+  outputSchema: z.string(),
+}, async ({ type, name, attributes = {} }) => {
+  try {
+    const entity = await EntityService.getOrCreateEntity(type, name, attributes);
+    
+    return `Entity created/updated in Context Graph:\n` +
+      `- ID: ${entity.id}\n` +
+      `- Type: ${entity.type}\n` +
+      `- Name: ${entity.name}\n` +
+      `This entity can now be linked to other entities and queried.`;
+    
+  } catch (error: any) {
+    return `Error creating entity: ${error.message}`;
+  }
+});
+
+/**
+ * Create a relationship between two entities
+ */
+export const contextLinkEntities = tool({
+  name: 'context_link_entities',
+  description: 'Create a relationship between two entities in the Context Graph. This builds the knowledge graph.',
+  inputSchema: z.object({
+    sourceType: z.enum(['product', 'brand', 'customer', 'campaign', 'competitor', 'regulation', 'agent']).describe('Type of source entity'),
+    sourceName: z.string().describe('Name of source entity'),
+    relationship: z.enum(['influences', 'triggers', 'depends_on', 'competes_with', 'regulates', 'decided_by']).describe('Type of relationship'),
+    targetType: z.enum(['product', 'brand', 'customer', 'campaign', 'competitor', 'regulation', 'agent']).describe('Type of target entity'),
+    targetName: z.string().describe('Name of target entity'),
+    weight: z.number().optional().describe('Strength of relationship 0-1 (default: 0.5)')
+  }),
+  outputSchema: z.string(),
+}, async ({ sourceType, sourceName, relationship, targetType, targetName, weight = 0.5 }) => {
+  try {
+    // Get or create both entities
+    const source = await EntityService.getOrCreateEntity(sourceType, sourceName);
+    const target = await EntityService.getOrCreateEntity(targetType, targetName);
+    
+    // Create relationship
+    const relId = await RelationshipService.createRelationship({
+      sourceId: source.id,
+      targetId: target.id,
+      type: relationship,
+      weight: weight,
+    });
+    
+    return `Relationship created in Context Graph:\n` +
+      `- ${source.name} (${source.type}) -[${relationship}]-> ${target.name} (${target.type})\n` +
+      `- Weight: ${weight}\n` +
+      `- Relationship ID: ${relId}`;
+    
+  } catch (error: any) {
+    return `Error linking entities: ${error.message}`;
+  }
+});
+
+/**
+ * Find entities related to a given entity
+ */
+export const contextFindRelated = tool({
+  name: 'context_find_related',
+  description: 'Find entities related to a given entity by traversing the Context Graph. Useful for understanding connections.',
+  inputSchema: z.object({
+    entityType: z.enum(['product', 'brand', 'customer', 'campaign', 'competitor', 'regulation', 'agent']).describe('Type of entity to search from'),
+    entityName: z.string().describe('Name of the entity'),
+    maxDepth: z.number().optional().describe('How many hops to traverse (default: 2)'),
+    minWeight: z.number().optional().describe('Minimum relationship weight to follow (default: 0.3)')
+  }),
+  outputSchema: z.string(),
+}, async ({ entityType, entityName, maxDepth = 2, minWeight = 0.3 }) => {
+  try {
+    // Find the entity
+    const entities = await EntityService.findEntities({ type: entityType, name: entityName, limit: 1 });
+    
+    if (entities.length === 0) {
+      return `Entity "${entityName}" (${entityType}) not found in Context Graph.`;
+    }
+    
+    const entity = entities[0];
+    
+    // Find related entities
+    const related = await GraphQuery.findRelatedEntities(entity.id, maxDepth, minWeight);
+    
+    if (related.length === 0) {
+      return `No related entities found for "${entityName}" within ${maxDepth} hops.`;
+    }
+    
+    const summary = related.map((r: { entity: { name: string; type: string }; relationship: { type: string }; depth: number; weight: number }) => 
+      `• ${r.entity.name} (${r.entity.type}) - ${r.relationship.type} [depth: ${r.depth}, weight: ${(r.weight * 100).toFixed(0)}%]`
+    ).join('\n');
+    
+    return `Found ${related.length} entities related to "${entityName}":\n\n${summary}`;
+    
+  } catch (error: any) {
+    return `Error finding related entities: ${error.message}`;
+  }
+});
+
 /**
  * All Context OS tools for agent registration
  */
 export const contextOsTools = [
+  // Phase 1-2: Decision tools
   contextAskWhy,
   contextLogDecision,
   contextGetAgentHistory,
+  // Phase 3: Graph tools
+  contextCreateEntity,
+  contextLinkEntities,
+  contextFindRelated,
 ];
