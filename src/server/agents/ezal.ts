@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { calculateGapScore } from '../algorithms/ezal-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 
 // --- Tool Definitions ---
 
@@ -91,8 +92,8 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
     if (targetId === 'respond_to_user') {
         const userQuery = typeof stimulus === 'string' ? stimulus : JSON.stringify(stimulus);
 
-        // 1. Definition of Tools for the LLM
-        const toolsDef = [
+        // 1. Definition of Tools for the LLM (Agent-specific + Shared Context OS & Letta tools)
+        const ezalSpecificTools = [
             {
                 name: "scanCompetitors",
                 description: "Scan local competitors in a specific city/zip to find pricing and menus.",
@@ -110,6 +111,9 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                 })
             }
         ];
+
+        // Combine agent-specific tools with shared Context OS and Letta tools
+        const toolsDef = [...ezalSpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
 
         // === SHIM: Implement new tools locally (Keep It Simple) ===
         const shimmedTools = {

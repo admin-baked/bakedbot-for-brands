@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { calculateCampaignPriority } from '../algorithms/craig-algo';
 import { ai } from '@/ai/genkit';
+import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 
 // --- Tool Definitions ---
 
@@ -110,8 +111,8 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;
         
-        // 1. Tool Definitions
-        const toolsDef = [
+        // 1. Tool Definitions (Agent-specific + Shared Context OS & Letta tools)
+        const craigSpecificTools = [
             {
                 name: "generateCopy",
                 description: "Draft creative text for emails, SMS, or social posts.",
@@ -137,14 +138,6 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
                 })
             },
             {
-                name: "lettaSaveFact",
-                description: "Save a marketing insight or rule to memory.",
-                schema: z.object({
-                    fact: z.string(),
-                    category: z.string().optional()
-                })
-            },
-            {
                 name: "crmListUsers",
                 description: "List real platform users to build segments.",
                 schema: z.object({
@@ -152,16 +145,11 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
                     lifecycleStage: z.enum(['prospect', 'contacted', 'demo_scheduled', 'trial', 'customer', 'vip', 'churned', 'winback']).optional(),
                     limit: z.number().optional()
                 })
-            },
-            {
-                name: "lettaUpdateCoreMemory",
-                description: "Update your own Core Memory (Persona) with new marketing rules or nurture templates.",
-                schema: z.object({
-                    section: z.enum(['persona', 'human']),
-                    content: z.string()
-                })
             }
         ];
+
+        // Combine agent-specific tools with shared Context OS and Letta tools
+        const toolsDef = [...craigSpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Claude) ===

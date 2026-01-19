@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { detectAnomaly } from '../algorithms/pops-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 
 // --- Tool Definitions ---
 
@@ -77,8 +78,8 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;
         
-        // 1. Tool Definitions
-        const toolsDef = [
+        // 1. Tool Definitions (Agent-specific + Shared Context OS & Letta tools)
+        const popsSpecificTools = [
             {
                 name: "analyzeData",
                 description: "Query business data to get insights and trends.",
@@ -92,34 +93,13 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
                 description: "Check if a specific metric has statistically significant anomalies.",
                 schema: z.object({
                     metric: z.string(),
-                    history: z.array(z.number()).describe("Array of historical values") // In real flow, agent would fetch this first
-                })
-            },
-            {
-                name: "lettaSaveFact",
-                description: "Save a key business insight to memory.",
-                schema: z.object({
-                    fact: z.string(),
-                    category: z.string().optional()
-                })
-            },
-            {
-                name: "lettaUpdateCoreMemory",
-                description: "Update your core persona or knowledge about the user.",
-                schema: z.object({
-                    section: z.enum(['persona', 'human']),
-                    content: z.string()
-                })
-            },
-            {
-                name: "lettaMessageAgent",
-                description: "Send a message to another agent (e.g. Leo, Craig).",
-                schema: z.object({
-                    toAgent: z.string(),
-                    message: z.string()
+                    history: z.array(z.number()).describe("Array of historical values")
                 })
             }
         ];
+
+        // Combine agent-specific tools with shared Context OS and Letta tools
+        const toolsDef = [...popsSpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
 
         try {
             // 2. PLAN
