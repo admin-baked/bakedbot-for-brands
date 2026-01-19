@@ -33,15 +33,16 @@
 
 | Metric | Status | Last Verified |
 |--------|--------|---------------|
-| **Build** | 🟢 Passing | 2026-01-17 |
-| **Tests** | 🟢 Passing | 2026-01-17 |
-| **Deploy** | 🟢 Stable | 2026-01-17 |
+| **Build** | 🟢 Passing | 2026-01-19 |
+| **Tests** | 🟢 48 Passing | 2026-01-19 |
+| **Deploy** | 🟢 Stable | 2026-01-19 |
 
 - **Logging**: **STRICTLY** use `logger` from `@/lib/logger`. `console.log` is deprecated.
 - **Type Safety**: Prefer `unknown` over `any`. Use `scripts/fix-as-any-types.js` for remediation.
 - **Firestore**: `ignoreUndefinedProperties: true` enabled
 - **Dispensary Console**: Live data, `retailerId` scoping
-- **Linus**: Now reads `CLAUDE.md` for codebase context
+- **Linus**: Enhanced CTO with bug hunting tools + KushoAI integration
+- **KushoAI CLI**: Installed and configured for API/UI test generation
 
 ### 🗺️ Codebase Map
 | Domain | Services Path | Tool Wrappers |
@@ -61,6 +62,25 @@
 | **CannMenus** | Ezal | `cannmenus.ts` | Live Pricing |
 | **Green Check** | Deebo | `green-check.ts` | Licensing Data |
 | **Authorize.net** | Money Mike | `authorize-net.ts` | **Payments & Subs** |
+
+### 🧪 KushoAI Integration (API & UI Testing)
+| Mode | Command | Purpose |
+|------|---------|---------|
+| **CLI Record** | `kusho record --url <url>` | Record UI interactions as Playwright tests |
+| **CLI Extend** | `kusho extend <test.ts>` | AI-generate test variations |
+| **Docker Run** | See below | Run test suites in CI/CD |
+
+```bash
+# Docker Test Runner (CI/CD)
+docker run -e BASE_URL=https://be.kusho.ai \
+  -e ENVIRONMENT_ID=<your-id> \
+  -e API_KEY=<your-key> \
+  -e TEST_SUITE_UUID=<suite-id> \
+  public.ecr.aws/y5g4u6y7/kusho-test-runner:latest
+```
+
+**Credentials**: martez@bakedbot.ai (configured in CLI)
+**Docs**: [KushoAI CI/CD](https://docs.kusho.ai/16-ci-cd/)
 
 ### 🎯 Smokey Recommends: MVP Playbooks (Dispensaries)
 | # | Playbook | Agents | Trigger | Permissions |
@@ -138,6 +158,16 @@ For detailed documentation, see `.agent/refs/`:
 
 ## 🕵️ Agent Squad
 
+### Executive Boardroom (Super Users Only)
+| Agent | Role | Domain | Key Tools |
+|-------|------|--------|-----------|
+| **Leo** | COO | Operations Orchestrator | Delegation, scheduling |
+| **Jack** | CRO | Revenue & Sales | CRM, deal management, revenue metrics |
+| **Linus** | CTO | Code Eval & Bug Hunting | Git, search, KushoAI, file ops |
+| **Glenda** | CMO | Marketing & Brand | Content, campaigns, SEO, analytics |
+| **Mike** | CFO | Finance & Billing | Pricing, margins, Authorize.net |
+
+### Support Staff
 | Agent | Role | Domain |
 |-------|------|--------|
 | **Smokey** | Budtender | Product Search & Recs |
@@ -147,14 +177,23 @@ For detailed documentation, see `.agent/refs/`:
 | **Money Mike** | Banker | Pricing & Margins |
 | **Mrs. Parker** | Hostess | Loyalty & VIP |
 | **Deebo** | Enforcer | Compliance & Regs |
-| **Leo** | COO | Operations Orchestrator |
-| **Jack** | CRO | Revenue Growth |
-| **Linus** | CTO | Code Eval, Claude API |
-| **Glenda** | CMO | Marketing & Funnel |
-| **Mike** | CFO | Finance & Billing |
 | **Day Day** | Growth | SEO & Traffic |
-| **Felisha** | Ops | Scheduling & HR |
-| **Roach** | Librarian | Research & Compliance |
+| **Felisha** | Ops | Scheduling & Triage |
+| **Big Worm** | Researcher | Deep Research & Intel |
+
+### Linus CTO Tools
+| Tool | Description |
+|------|-------------|
+| `search_codebase` | Ripgrep pattern search across files |
+| `find_files` | Glob-based file discovery |
+| `git_log` / `git_diff` / `git_blame` | Git history and changes |
+| `analyze_stack_trace` | Parse errors, extract file locations |
+| `run_specific_test` | Run targeted Jest tests |
+| `kusho_generate_tests` | KushoAI API test generation |
+| `kusho_record_ui` | KushoAI UI recording sessions |
+| `read_file` / `write_file` | File operations |
+| `run_build` / `run_tests` | Build and test execution |
+| `archive_work` | Document decisions to work archive |
 
 ---
 
@@ -221,6 +260,16 @@ git push origin main
 | Orchestrator | `.agent/orchestrator.md` |
 | Workflows | `.agent/workflows/` |
 | Skills | `.agent/skills/` |
+
+### Key Agent Files
+| Agent | Implementation | Tests |
+|-------|---------------|-------|
+| **Linus (CTO)** | `src/server/agents/linus.ts` | N/A (Claude API) |
+| **Jack (CRO)** | `src/server/agents/jack.ts` | `tests/server/agents/executive-agents.test.ts` |
+| **Glenda (CMO)** | `src/server/agents/glenda.ts` | `tests/server/agents/executive-agents.test.ts` |
+| **Agent Runner** | `src/server/agents/agent-runner.ts` | — |
+| **Agent Definitions** | `src/server/agents/agent-definitions.ts` | `tests/server/agents/agent-definitions.test.ts` |
+| **Support Agents** | `src/server/agents/*.ts` | `tests/server/agents/support-agents.test.ts` |
 
 ---
 
