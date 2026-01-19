@@ -186,5 +186,6 @@ export function useUserRole() {
         isDispensaryRole: role ? isDispensaryRole(role) : false,
         isBrandAdmin: role ? isBrandAdmin(role) : false,
         isDispensaryAdmin: role ? isDispensaryAdmin(role) : false,
+        isSuperUser: role === 'super_user' || role === 'super_admin',
     };
 }

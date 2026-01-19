@@ -7,11 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Search, Plus, Play, Clock, Bot, TrendingUp, AlertCircle, ShoppingBag, FileText, Settings, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getDispensaryPlaybooks, toggleDispensaryPlaybook, type DispensaryPlaybook } from '../actions';
+import { useUserRole } from '@/hooks/use-user-role';
 
 interface Playbook extends DispensaryPlaybook {}
 
 export function DispensaryPlaybooksList({ dispensaryId }: { dispensaryId: string }) {
     const { toast } = useToast();
+    const { hasDispensaryAdminAccess } = useUserRole();
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('all');
     const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
@@ -161,6 +163,7 @@ export function DispensaryPlaybooksList({ dispensaryId }: { dispensaryId: string
                                 <Switch
                                     checked={pb.active}
                                     onCheckedChange={() => togglePlaybook(pb.id, pb.active)}
+                                    disabled={!hasDispensaryAdminAccess}
                                 />
                             </div>
                         </CardHeader>

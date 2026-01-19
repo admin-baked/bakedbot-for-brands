@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
+import { requireDispensaryAccess, requirePermission } from '@/server/auth/rbac';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export interface DispensaryDashboardData {
@@ -39,6 +40,9 @@ export async function getDispensaryDashboardData(dispensaryId: string): Promise<
     try {
         const { firestore } = await createServerClient();
         const user = await requireUser();
+
+        // Security Check: Verify user owns this dispensary
+        requireDispensaryAccess(user as any, dispensaryId);
 
         // Fetch dispensary document
         const dispensaryDoc = await firestore.collection('dispensaries').doc(dispensaryId).get();
@@ -280,6 +284,11 @@ export interface DispensaryPlaybook {
 export async function getDispensaryPlaybooks(dispensaryId: string): Promise<DispensaryPlaybook[]> {
     try {
         const { firestore } = await createServerClient();
+        const user = await requireUser();
+        
+        // Security Check
+        requireDispensaryAccess(user as any, dispensaryId);
+
         const snap = await firestore.collection('system_playbooks')
             .where('type', '==', 'dispensary')
             .get();
@@ -308,6 +317,12 @@ export async function getDispensaryPlaybooks(dispensaryId: string): Promise<Disp
 export async function toggleDispensaryPlaybook(dispensaryId: string, playbookId: string, active: boolean) {
     try {
         const { firestore } = await createServerClient();
+        const user = await requireUser();
+        
+        // Security Checks
+        requireDispensaryAccess(user as any, dispensaryId);
+        requirePermission(user as any, 'manage:playbooks');
+
         await firestore.collection('system_playbooks').doc(playbookId).update({
             [`statusMap.${dispensaryId}`]: active
         });

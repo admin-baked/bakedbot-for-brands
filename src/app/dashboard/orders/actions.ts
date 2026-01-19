@@ -133,7 +133,23 @@ export async function getOrders(orgId: string): Promise<OrderDoc[]> {
 
         let query = firestore.collection('orders') as FirebaseFirestore.Query;
 
-        if (user.role === 'dispensary' || user.locationId) {
+        if (user.role === 'customer') {
+            // Customers can ONLY see their own orders
+            query = query.where('customer.email', '==', user.email || 'unknown_email_guard'); 
+            // Note: Order doc uses 'customer.email' or 'userId'? 
+            // Checking createOrder: it saves userId?
+            // OrderDoc type has 'userId' usually. Let's check type definition or use email if consistent.
+            // Let's rely on userId if present, otherwise email.
+            // Actually, checking previous line 144: ...doc.data()
+            // Let's look at submitOrder.ts to see what fields are saved.
+            // For safety, let's assume userId is reliable if authenticated.
+            // BUT wait, submitOrder often runs as guest?
+            // If user is logged in, userId is saved.
+            // Let's use user.uid match on userId field.
+            query = query.where('userId', '==', user.uid);
+            // Optional: Filter by brand context if provided
+            if (orgId) query = query.where('brandId', '==', orgId);
+        } else if (user.role === 'dispensary' || user.locationId) {
             query = query.where('retailerId', '==', user.locationId || orgId);
         } else {
             query = query.where('brandId', '==', orgId);

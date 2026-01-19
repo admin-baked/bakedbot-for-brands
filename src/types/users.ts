@@ -1,9 +1,11 @@
+import { UserRole } from './roles';
+
 export type DomainUserProfile = {
     id: string;
     uid: string;
     email: string | null;
     displayName: string | null;
-    role: 'brand' | 'dispensary' | 'customer' | 'budtender' | 'super_user' | null;
+    role: UserRole | null;
 
     // Enterprise Context
     organizationIds: string[]; // List of IDs this user belongs to
