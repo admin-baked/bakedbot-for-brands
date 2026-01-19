@@ -32,9 +32,24 @@ interface ProductGridProps {
   variant?: 'standard' | 'brand';
   /** Enable add-to-cart for claimed pages only */
   isClaimedPage?: boolean;
+  /** Modal trigger callback */
+  onProductClick?: (product: Product) => void;
+  /** Favorite toggle callback */
+  onFavorite?: (productId: string) => void;
+  /** Set of favorited product IDs */
+  favorites?: Set<string>;
 }
 
-export function ProductGrid({ products, isLoading, brandSlug, variant = 'standard', isClaimedPage = false }: ProductGridProps) {
+export function ProductGrid({
+  products,
+  isLoading,
+  brandSlug,
+  variant = 'standard',
+  isClaimedPage = false,
+  onProductClick,
+  onFavorite,
+  favorites,
+}: ProductGridProps) {
   const { isDemo } = useDemoMode();
 
   if (isLoading) {
@@ -81,6 +96,9 @@ export function ProductGrid({ products, isLoading, brandSlug, variant = 'standar
           brandSlug={brandSlug}
           variant={variant === 'brand' ? 'large' : 'standard'}
           isClaimedPage={isClaimedPage}
+          onClick={onProductClick}
+          onFavorite={onFavorite}
+          isFavorite={favorites?.has(product.id)}
         />
       ))}
     </div>
