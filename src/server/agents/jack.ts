@@ -9,8 +9,9 @@ import { AgentImplementation } from './harness';
 import { ExecutiveMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools } from './shared-tools';
 
-export interface JackTools {
+export interface JackTools extends Partial<AllSharedTools> {
     // CRM & Pipeline Tools
     crmListUsers?(search?: string, lifecycleStage?: string, limit?: number): Promise<any>;
     crmGetStats?(): Promise<any>;
@@ -29,9 +30,6 @@ export interface JackTools {
 
     // Communication
     sendEmail?(to: string, subject: string, content: string): Promise<any>;
-
-    // Memory
-    lettaSaveFact?(fact: string, category?: string): Promise<any>;
 }
 
 export const jackAgent: AgentImplementation<ExecutiveMemory, JackTools> = {
@@ -117,7 +115,8 @@ export const jackAgent: AgentImplementation<ExecutiveMemory, JackTools> = {
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
 
-            const toolsDef = [
+            // Jack-specific tools for CRM and revenue management
+            const jackSpecificTools = [
                 {
                     name: "crmListUsers",
                     description: "List users from CRM by search or lifecycle stage (prospect, contacted, demo_scheduled, trial, customer, vip, churned).",
@@ -170,15 +169,15 @@ export const jackAgent: AgentImplementation<ExecutiveMemory, JackTools> = {
                         subject: z.string(),
                         content: z.string()
                     })
-                },
-                {
-                    name: "lettaSaveFact",
-                    description: "Save a revenue insight or deal note to memory.",
-                    schema: z.object({
-                        fact: z.string(),
-                        category: z.string().optional()
-                    })
                 }
+            ];
+
+            // Combine Jack-specific tools with shared Context OS, Letta Memory, and Intuition OS tools
+            const toolsDef = [
+                ...jackSpecificTools,
+                ...contextOsToolDefs,
+                ...lettaToolDefs,
+                ...intuitionOsToolDefs
             ];
 
             try {

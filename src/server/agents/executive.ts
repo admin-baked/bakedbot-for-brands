@@ -5,28 +5,28 @@ export type { ExecutiveMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools } from './shared-tools';
 
-export interface ExecutiveTools {
+export interface ExecutiveTools extends Partial<AllSharedTools> {
   // Common tools for the executive floor
   generateSnapshot?(query: string, context: any): Promise<string>;
   delegateTask?(personaId: string, task: string, context?: any): Promise<any>;
   broadcast?(message: string, channels: string[], recipients: string[]): Promise<any>;
-  
+
   // RTRvr Advanced Web Tools
   rtrvrAgent?(prompt: string, options?: any): Promise<any>;
   rtrvrScrape?(url: string): Promise<any>;
   rtrvrMcp?(serverName: string, args: any): Promise<any>;
-  
+
   // Digital Worker / Playbooks
   createPlaybook?(name: string, description: string, steps: any[], schedule?: string): Promise<any>;
   use_mcp_tool?(serverName: string, toolName: string, args: any): Promise<any>;
 
-  // CRM & Data Tools (NEW)
+  // CRM & Data Tools
   crmListUsers?(search?: string, lifecycleStage?: string, limit?: number): Promise<any>;
   crmGetStats?(): Promise<any>;
-  lettaSaveFact?(fact: string, category?: string): Promise<any>;
 
-  // Executive Productivity Suite [NEW]
+  // Executive Productivity Suite
   driveUploadFile?(name: string, content: string, mimeType: string): Promise<any>;
   sendEmail?(to: string, subject: string, content: string): Promise<any>;
   bashExecute?(command: string, cwd?: string, timeout?: number): Promise<any>;
@@ -96,8 +96,8 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;
         
-        // 1. Tool Definitions
-        const toolsDef = [
+        // Executive-specific tools for high-level operations
+        const executiveSpecificTools = [
             {
                 name: "generateSnapshot",
                 description: "Get a quick strategic overview of a topic.",
@@ -106,9 +106,9 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
             {
                 name: "delegateTask",
                 description: "Assign a task to a specialized agent (Craig, Smokey, Ezal, Pops).",
-                schema: z.object({ 
-                    personaId: z.enum(['craig', 'smokey', 'ezal', 'pops', 'money_mike', 'mrs_parker']), 
-                    task: z.string() 
+                schema: z.object({
+                    personaId: z.enum(['craig', 'smokey', 'ezal', 'pops', 'money_mike', 'mrs_parker']),
+                    task: z.string()
                 })
             },
             {
@@ -124,10 +124,10 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
             {
                 name: "createPlaybook",
                 description: "Spawn a Digital Worker (recurring playbook) to handle a task daily/weekly.",
-                schema: z.object({ 
-                    name: z.string(), 
-                    description: z.string(), 
-                    steps: z.array(z.any()), 
+                schema: z.object({
+                    name: z.string(),
+                    description: z.string(),
+                    steps: z.array(z.any()),
                     schedule: z.string().optional().describe("CRON string e.g. '0 9 * * *'")
                 })
             },
@@ -138,14 +138,6 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                     serverName: z.string().describe("ID of the MCP server (e.g., 'filesystem', 'github')"),
                     toolName: z.string(),
                     args: z.record(z.any())
-                })
-            },
-            {
-                name: "lettaSaveFact",
-                description: "Save a strategic insight or directive to memory.",
-                schema: z.object({
-                    fact: z.string(),
-                    category: z.string().optional()
                 })
             },
             {
@@ -198,15 +190,6 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                 })
             },
             {
-                name: "bashExecute",
-                description: "Execute a shell command (System Admin / CTO Level only).",
-                schema: z.object({
-                    command: z.string(),
-                    cwd: z.string().optional(),
-                    timeout: z.number().optional()
-                })
-            },
-            {
                 name: "browse_web",
                 description: "Advanced web browsing capability to read pages, take screenshots, click elements, and type text. Useful for verification and deep research.",
                 schema: z.object({
@@ -216,6 +199,14 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                     inputValue: z.string().optional().describe('Text to type')
                 })
             }
+        ];
+
+        // Combine Executive-specific tools with shared Context OS, Letta Memory, and Intuition OS tools
+        const toolsDef = [
+            ...executiveSpecificTools,
+            ...contextOsToolDefs,
+            ...lettaToolDefs,
+            ...intuitionOsToolDefs
         ];
 
         try {
