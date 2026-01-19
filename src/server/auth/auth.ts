@@ -5,11 +5,50 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@/firebase/server-client';
 import { DecodedIdToken } from 'firebase-admin/auth';
-import { devPersonas } from '@/lib/dev-personas';
 import { SUPER_ADMIN_EMAILS } from '@/lib/super-admin-config';
+import { 
+    UserRole, 
+    isBrandRole, 
+    isDispensaryRole, 
+    BRAND_ALL_ROLES, 
+    DISPENSARY_ALL_ROLES 
+} from '@/types/roles';
 
-// Define the roles used in the application for type safety.
-export type Role = 'brand' | 'dispensary' | 'customer' | 'super_user' | 'super_admin';
+// Re-export Role type for backward compatibility
+export type Role = UserRole;
+
+/**
+ * Check if a user's role matches one of the required roles.
+ * Handles role hierarchy (e.g., brand_admin can act as brand_member)
+ */
+function roleMatches(userRole: string, requiredRoles: Role[]): boolean {
+    // Direct match
+    if (requiredRoles.includes(userRole as Role)) {
+        return true;
+    }
+    
+    // Check for role group matches
+    for (const required of requiredRoles) {
+        // If 'brand' is required, accept any brand role (admin or member)
+        if (required === 'brand' && isBrandRole(userRole)) {
+            return true;
+        }
+        // If 'dispensary' is required, accept any dispensary role
+        if (required === 'dispensary' && isDispensaryRole(userRole)) {
+            return true;
+        }
+        // If 'brand_member' is required, brand_admin also qualifies
+        if (required === 'brand_member' && (userRole === 'brand_admin' || userRole === 'brand')) {
+            return true;
+        }
+        // If 'dispensary_staff' is required, dispensary_admin also qualifies
+        if (required === 'dispensary_staff' && (userRole === 'dispensary_admin' || userRole === 'dispensary')) {
+            return true;
+        }
+    }
+    
+    return false;
+}
 
 /**
  * A server-side utility to require an authenticated user and optionally enforce roles.
@@ -17,6 +56,7 @@ export type Role = 'brand' | 'dispensary' | 'customer' | 'super_user' | 'super_a
  * In development, it uses a bypass to return a default persona.
  *
  * @param requiredRoles - An optional array of roles. If provided, the user must have one of these roles.
+ *                        Supports role groups: 'brand' matches brand_admin/brand_member/brand
  * @returns The decoded token of the authenticated user.
  * @throws An error if the user is not authenticated or does not have the required role.
  */
@@ -46,7 +86,7 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
 
       // Apply role check for the mock token
       if (requiredRoles && requiredRoles.length > 0) {
-        if (!requiredRoles.includes(simulatedRole)) {
+        if (!roleMatches(simulatedRole, requiredRoles)) {
           throw new Error(`Forbidden: Dev user (role=${simulatedRole}) missing required permissions.`);
         }
       }
@@ -69,14 +109,14 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
 
   // --- ROLE SIMULATION LOGIC ---
   // Only allow simulation if the REAL user has the 'super_user' role.
-  if (decodedToken.role === 'super_user') {
+  if (decodedToken.role === 'super_user' || decodedToken.role === 'super_admin') {
     const simulatedRole = cookieStore.get('x-simulated-role')?.value as Role | undefined;
-    if (simulatedRole && ['brand', 'dispensary', 'customer'].includes(simulatedRole)) {
+    if (simulatedRole && ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'customer'].includes(simulatedRole)) {
       // Override the role in the returned token
       decodedToken = { ...decodedToken, role: simulatedRole };
 
-      // If simulating a brand, inject a demo brand ID to prevent "You are not associated with a brand" errors
-      if (simulatedRole === 'brand') {
+      // If simulating a brand role, inject a demo brand ID to prevent "You are not associated with a brand" errors
+      if (isBrandRole(simulatedRole)) {
         decodedToken = { ...decodedToken, brandId: 'default' };
       }
       // Note: We are NOT modifying the actual session cookie, just the decoded object for this request context.
@@ -84,10 +124,10 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
   }
 
   // Determine user details
-  const userRole = (decodedToken.role as Role) || null;
+  const userRole = (decodedToken.role as string) || null;
   const userEmail = (decodedToken.email as string)?.toLowerCase() || '';
   const isSuperAdminByEmail = SUPER_ADMIN_EMAILS.some(e => e.toLowerCase() === userEmail);
-  const isSuperUserRole = userRole === 'super_user';
+  const isSuperUserRole = userRole === 'super_user' || userRole === 'super_admin';
 
   // --- GLOBAL APPROVAL CHECK ---
   // Block access if the account is pending/rejected, UNLESS they are a super admin.
@@ -103,8 +143,11 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
 
   // --- ROLE CHECK (Optional) ---
   if (requiredRoles && requiredRoles.length > 0) {
-    if (!isSuperAdminByEmail && (!userRole || !requiredRoles.includes(userRole))) {
-      throw new Error('Forbidden: You do not have the required permissions.');
+    // Super admins (by email or role) bypass role checks
+    if (!isSuperAdminByEmail && !isSuperUserRole) {
+      if (!userRole || !roleMatches(userRole, requiredRoles)) {
+        throw new Error('Forbidden: You do not have the required permissions.');
+      }
     }
   }
 
@@ -113,7 +156,7 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
 
 /**
  * Check if the current user is a Super Admin
- * @returns true if the user has owner/super_admin role OR is in the super admin email whitelist
+ * @returns true if the user has super_user/super_admin role OR is in the super admin email whitelist
  */
 export async function isSuperUser(): Promise<boolean> {
   try {
@@ -122,7 +165,7 @@ export async function isSuperUser(): Promise<boolean> {
     const email = (user.email as string)?.toLowerCase() || '';
     
     // Check 1: Role-based access
-    if (role === 'super_user') {
+    if (role === 'super_user' || role === 'super_admin') {
       return true;
     }
     
@@ -132,6 +175,32 @@ export async function isSuperUser(): Promise<boolean> {
     }
     
     return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if the current user is a brand admin (owner-level access)
+ */
+export async function isBrandAdmin(): Promise<boolean> {
+  try {
+    const user = await requireUser();
+    const role = (user.role as string) || '';
+    return ['brand_admin', 'brand', 'super_user', 'super_admin'].includes(role);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if the current user has any brand role
+ */
+export async function hasBrandRole(): Promise<boolean> {
+  try {
+    const user = await requireUser();
+    const role = (user.role as string) || '';
+    return isBrandRole(role) || role === 'super_user' || role === 'super_admin';
   } catch {
     return false;
   }

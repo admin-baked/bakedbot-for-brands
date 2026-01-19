@@ -1,5 +1,5 @@
 
-import { UserRole } from '@/types/roles';
+import { UserRole, isBrandRole, isDispensaryRole } from '@/types/roles';
 import { LettaAgent } from './client';
 import { CustomerAgentManager } from './customer-agent-manager';
 import { createServerClient } from '@/firebase/server-client';
@@ -31,7 +31,7 @@ export class RolePermissionService {
         }
 
         // SCENARIO 2: Dispensary / Brand (Tenant Scoped)
-        if (role === 'dispensary' || role === 'brand') {
+        if (isDispensaryRole(role) || isBrandRole(role)) {
             if (!customerId) {
                 throw new Error('Customer ID required for dispensary/brand role');
             }

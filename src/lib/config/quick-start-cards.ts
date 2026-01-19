@@ -144,6 +144,20 @@ export const PROMPT_CHIPS = {
         "Run a pricing snapshot vs local competitors",
         "Generate a loyalty win-back email template"
     ],
+    dispensary_admin: [
+        "Launch my headless menu",
+        "Install Smokey on my site",
+        "Enable daily competitive intel",
+        "Manage team access",
+        "Configure billing settings",
+        "Run a pricing snapshot vs local competitors"
+    ],
+    dispensary_staff: [
+        "Check inventory levels",
+        "View today's orders",
+        "Run customer lookup",
+        "Check product availability"
+    ],
     brand: [
         "Launch my brand page + where-to-buy",
         "Run a footprint audit",
@@ -152,6 +166,21 @@ export const PROMPT_CHIPS = {
         "Draft compliant outreach emails",
         "Analyze pricing trends across all retailers",
         "Generate a social media image for our new drop"
+    ],
+    brand_admin: [
+        "Launch my brand page + where-to-buy",
+        "Run a footprint audit",
+        "Manage team access",
+        "Configure billing settings",
+        "Enable daily brand snapshot",
+        "Generate revenue report"
+    ],
+    brand_member: [
+        "Run a footprint audit",
+        "Find retailers that carry competitors, not us",
+        "Draft compliant outreach emails",
+        "Analyze pricing trends across all retailers",
+        "Enable daily brand snapshot"
     ],
     owner: [
         "Show me platform analytics",
@@ -213,10 +242,18 @@ export function getRandomPromptsForRole(role: string, count: number = 3): string
 /**
  * First-login welcome messages by role
  */
-export const WELCOME_MESSAGES = {
+export const WELCOME_MESSAGES: Record<string, string> = {
     dispensary: "Welcome! I can get you live today. Choose one: launch your headless menu, install Smokey, connect your menu/POS, or turn on daily intel. Paste your menu link or tell me your dispensary name + city.",
 
+    dispensary_admin: "Welcome! As an admin, you have full access to your dispensary operations including billing, team management, and analytics. What would you like to set up first?",
+
+    dispensary_staff: "Welcome! I'm here to help you with day-to-day operations — checking orders, inventory, and serving customers better.",
+
     brand: "Welcome! I can set up your brand presence and show where you're winning or missing. Paste your website or a listing link (Leafly/Weedmaps) to match your products.",
+
+    brand_admin: "Welcome! As a brand admin, you have full access including billing, team management, and brand settings. Let's set up your brand presence.",
+
+    brand_member: "Welcome! I'm here to help you grow your brand. Run footprint audits, analyze pricing, and draft outreach campaigns.",
 
     owner: "Welcome to Baked HQ. I can help you manage the platform, review analytics, configure compliance, or generate reports. What would you like to focus on?",
 
@@ -226,5 +263,5 @@ export const WELCOME_MESSAGES = {
     
     super_user: "Welcome Super User. Access restricted to monitoring and basic administration.",
 
-    budtender: "Welcome! I'm here to help you serve customers better. improve product knowledge, and finding the right recommendations."
+    budtender: "Welcome! I'm here to help you serve customers better, improve product knowledge, and find the right recommendations."
 };

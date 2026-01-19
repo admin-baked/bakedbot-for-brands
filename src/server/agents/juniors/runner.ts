@@ -1,4 +1,4 @@
-import { checkPermission } from '@/server/services/permissions';
+import { checkToolPermission } from '@/server/services/tool-permissions';
 import { getJuniorWork } from './registry';
 import { JuniorContext } from './definition';
 
@@ -10,7 +10,7 @@ export async function runJuniorWork(userId: string, workId: string, inputs: any)
     }
 
     // 1. Permission Check
-    const hasAccess = await checkPermission(userId, work.id);
+    const hasAccess = await checkToolPermission(userId, work.id);
     if (!hasAccess) {
         throw new Error(`PERMISSION_REQUIRED: ${work.id}`);
     }

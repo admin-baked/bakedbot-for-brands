@@ -312,7 +312,23 @@ export function useDashboardConfig() {
       // If no role logic is active, hide restricted links
       if (!normalizedRole) return false;
 
-      return link.roles.includes(normalizedRole);
+      // Direct match
+      if (link.roles.includes(normalizedRole)) return true;
+      
+      // Role hierarchy matching:
+      // If link requires 'brand', allow brand_admin and brand_member
+      if (link.roles.includes('brand' as Role) && 
+          ['brand_admin', 'brand_member'].includes(normalizedRole)) {
+        return true;
+      }
+      
+      // If link requires 'dispensary', allow dispensary_admin and dispensary_staff
+      if (link.roles.includes('dispensary' as Role) && 
+          ['dispensary_admin', 'dispensary_staff'].includes(normalizedRole)) {
+        return true;
+      }
+      
+      return false;
     });
 
     // Mark active link

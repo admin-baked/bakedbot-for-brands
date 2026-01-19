@@ -19,7 +19,7 @@ export interface MenuData {
 export async function syncMenu(): Promise<{ success: boolean; count?: number; error?: string }> {
     try {
         const { firestore } = await createServerClient();
-        const user = await requireUser();
+        const user = await requireUser(['dispensary', 'super_user']);
         // Use DutchieClient adapter directly for robust GraphQL support
         const { DutchieClient } = await import('@/lib/pos/adapters/dutchie');
 
@@ -134,7 +134,7 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
 export async function getMenuData(): Promise<MenuData> {
     try {
         const { firestore } = await createServerClient();
-        const user = await requireUser();
+        const user = await requireUser(['brand', 'dispensary', 'super_user']);
         
         const locationId = user.locationId;
         const brandId = user.brandId; // For Brands
