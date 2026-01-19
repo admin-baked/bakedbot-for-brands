@@ -29,6 +29,11 @@ export interface PlaybookStep {
     agent?: string;          // For delegation
     condition?: string;      // Optional if condition
     label?: string;          // Human-readable step name
+    
+    // Validation & Retry (Self-Validating Agent Pattern)
+    retryOnFailure?: boolean;       // Retry step if validation fails
+    maxRetries?: number;            // Max retry attempts (default: 3)
+    validationThreshold?: number;   // Override pass threshold (0-100)
 }
 
 export interface Playbook {
@@ -99,6 +104,13 @@ export interface PlaybookRun {
         result?: unknown;
         error?: string;
         durationMs?: number;
+        validation?: {
+            valid: boolean;
+            score: number;
+            issues: string[];
+            remediation?: string;
+        };
+        retryCount?: number;
     }[];
 }
 

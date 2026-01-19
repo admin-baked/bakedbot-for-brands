@@ -52,6 +52,7 @@ export async function scheduleTask(params: ScheduleParams): Promise<ScheduleResu
                     task: params.task,
                     agentId: params.agentId || 'general',
                     enabled: params.enabled ?? true,
+                    params: params.params || {}, // Save the params!
                     createdAt: FieldValue.serverTimestamp(),
                 });
                 return {
