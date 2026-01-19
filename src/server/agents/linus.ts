@@ -330,6 +330,241 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: []
         }
+    },
+    // ========================================================================
+    // NEW BUG FINDING & FIXING TOOLS
+    // ========================================================================
+    {
+        name: 'search_codebase',
+        description: 'Search for patterns in the codebase using ripgrep. Find function definitions, imports, error strings, or any text pattern.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                pattern: {
+                    type: 'string',
+                    description: 'Regex pattern to search for (e.g., "sendEmail", "catch.*Error", "TODO")'
+                },
+                filePattern: {
+                    type: 'string',
+                    description: 'Glob pattern to filter files (e.g., "*.ts", "src/**/*.tsx")'
+                },
+                caseSensitive: {
+                    type: 'boolean',
+                    description: 'Case-sensitive search (default: false)'
+                },
+                contextLines: {
+                    type: 'number',
+                    description: 'Lines of context around matches (default: 2)'
+                }
+            },
+            required: ['pattern']
+        }
+    },
+    {
+        name: 'find_files',
+        description: 'Find files matching a glob pattern. Useful for locating test files, configs, or components.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                pattern: {
+                    type: 'string',
+                    description: 'Glob pattern (e.g., "**/*.test.ts", "src/components/**/*.tsx", "**/package.json")'
+                },
+                maxResults: {
+                    type: 'number',
+                    description: 'Maximum results to return (default: 50)'
+                }
+            },
+            required: ['pattern']
+        }
+    },
+    {
+        name: 'git_log',
+        description: 'Get recent git commit history. Useful for understanding what changed recently.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                count: {
+                    type: 'number',
+                    description: 'Number of commits to show (default: 10)'
+                },
+                file: {
+                    type: 'string',
+                    description: 'Optional: filter commits affecting a specific file'
+                },
+                author: {
+                    type: 'string',
+                    description: 'Optional: filter by author name/email'
+                },
+                since: {
+                    type: 'string',
+                    description: 'Optional: commits since date (e.g., "2 days ago", "2024-01-01")'
+                }
+            },
+            required: []
+        }
+    },
+    {
+        name: 'git_diff',
+        description: 'Show git diff for staged, unstaged, or between commits. Essential for understanding changes.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                target: {
+                    type: 'string',
+                    description: 'What to diff: "staged", "unstaged", "HEAD~1", commit hash, or branch name',
+                    enum: ['staged', 'unstaged', 'HEAD~1', 'HEAD~3', 'main']
+                },
+                file: {
+                    type: 'string',
+                    description: 'Optional: limit diff to specific file'
+                }
+            },
+            required: []
+        }
+    },
+    {
+        name: 'git_blame',
+        description: 'Show git blame for a file to understand who changed what and when.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                file: {
+                    type: 'string',
+                    description: 'Path to the file'
+                },
+                lineStart: {
+                    type: 'number',
+                    description: 'Start line number (optional)'
+                },
+                lineEnd: {
+                    type: 'number',
+                    description: 'End line number (optional)'
+                }
+            },
+            required: ['file']
+        }
+    },
+    {
+        name: 'analyze_stack_trace',
+        description: 'Parse and analyze an error stack trace to identify the root cause and suggest fixes.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                stackTrace: {
+                    type: 'string',
+                    description: 'The full error stack trace'
+                },
+                errorMessage: {
+                    type: 'string',
+                    description: 'The error message'
+                }
+            },
+            required: ['stackTrace']
+        }
+    },
+    {
+        name: 'run_specific_test',
+        description: 'Run a specific test file or test pattern for quick iteration during debugging.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                testPath: {
+                    type: 'string',
+                    description: 'Path to test file or pattern (e.g., "agents/linus.test.ts", "--grep login")'
+                },
+                watch: {
+                    type: 'boolean',
+                    description: 'Run in watch mode (default: false)'
+                },
+                verbose: {
+                    type: 'boolean',
+                    description: 'Verbose output (default: true)'
+                }
+            },
+            required: ['testPath']
+        }
+    },
+    {
+        name: 'list_directory',
+        description: 'List contents of a directory to understand project structure.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                path: {
+                    type: 'string',
+                    description: 'Directory path relative to project root'
+                },
+                recursive: {
+                    type: 'boolean',
+                    description: 'List recursively (default: false, limited depth)'
+                }
+            },
+            required: ['path']
+        }
+    },
+    // ========================================================================
+    // KUSHO AI - API TEST GENERATION
+    // ========================================================================
+    {
+        name: 'kusho_generate_tests',
+        description: 'Use KushoAI to automatically generate API tests from OpenAPI spec or endpoint definition.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                specPath: {
+                    type: 'string',
+                    description: 'Path to OpenAPI/Swagger spec file, or "auto" to detect'
+                },
+                endpoint: {
+                    type: 'string',
+                    description: 'Specific endpoint to generate tests for (e.g., "/api/users")'
+                },
+                method: {
+                    type: 'string',
+                    description: 'HTTP method (GET, POST, PUT, DELETE)',
+                    enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
+                }
+            },
+            required: []
+        }
+    },
+    {
+        name: 'kusho_run_suite',
+        description: 'Run a KushoAI test suite by ID or tag.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                suiteId: {
+                    type: 'string',
+                    description: 'Test suite UUID from KushoAI'
+                },
+                tag: {
+                    type: 'string',
+                    description: 'Run suites matching this tag'
+                },
+                environment: {
+                    type: 'string',
+                    description: 'Target environment: local, staging, production',
+                    enum: ['local', 'staging', 'production']
+                }
+            },
+            required: []
+        }
+    },
+    {
+        name: 'kusho_analyze_coverage',
+        description: 'Analyze API test coverage and identify gaps using KushoAI.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                specPath: {
+                    type: 'string',
+                    description: 'Path to OpenAPI spec to analyze coverage against'
+                }
+            },
+            required: []
+        }
     }
 ];
 
@@ -803,8 +1038,8 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
             try {
                 const { archiveRecentCommits } = await import('@/server/services/work-archive');
                 const count = await archiveRecentCommits(days || 7);
-                return { 
-                    success: true, 
+                return {
+                    success: true,
                     message: `Archived ${count} commits from last ${days || 7} days.`,
                     archivedCount: count
                 };
@@ -812,7 +1047,408 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
                 return { success: false, error: (e as Error).message };
             }
         }
-        
+
+        // ====================================================================
+        // NEW BUG FINDING & FIXING TOOL EXECUTORS
+        // ====================================================================
+
+        case 'search_codebase': {
+            const { pattern, filePattern, caseSensitive, contextLines } = input as {
+                pattern: string;
+                filePattern?: string;
+                caseSensitive?: boolean;
+                contextLines?: number;
+            };
+            try {
+                // Use ripgrep (rg) or fallback to grep
+                const caseFlag = caseSensitive ? '' : '-i';
+                const contextFlag = contextLines ? `-C ${contextLines}` : '-C 2';
+                const globFlag = filePattern ? `--glob "${filePattern}"` : '';
+
+                // Try ripgrep first, fallback to grep
+                let cmd = `rg ${caseFlag} ${contextFlag} ${globFlag} "${pattern}" --max-count 100 2>/dev/null || grep -r ${caseFlag} "${pattern}" . --include="${filePattern || '*.ts'}" 2>/dev/null | head -100`;
+
+                const { stdout } = await execAsync(cmd, { cwd: PROJECT_ROOT, timeout: 30000 });
+                const matches = stdout.split('\n').filter(Boolean).slice(0, 100);
+
+                return {
+                    success: true,
+                    matchCount: matches.length,
+                    matches: matches.slice(0, 50), // Limit response size
+                    truncated: matches.length > 50
+                };
+            } catch (e: any) {
+                // No matches found returns exit code 1
+                if (e.code === 1) {
+                    return { success: true, matchCount: 0, matches: [], message: 'No matches found' };
+                }
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'find_files': {
+            const { pattern, maxResults } = input as { pattern: string; maxResults?: number };
+            try {
+                const limit = maxResults || 50;
+                // Use find with glob pattern
+                const cmd = `find . -type f -name "${pattern.replace('**/', '')}" 2>/dev/null | head -${limit} || dir /s /b "${pattern}" 2>nul | head -${limit}`;
+
+                const { stdout } = await execAsync(cmd, { cwd: PROJECT_ROOT, timeout: 30000 });
+                const files = stdout.split('\n').filter(Boolean).map(f => f.replace('./', ''));
+
+                return {
+                    success: true,
+                    count: files.length,
+                    files,
+                    truncated: files.length >= limit
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'git_log': {
+            const { count, file, author, since } = input as {
+                count?: number;
+                file?: string;
+                author?: string;
+                since?: string;
+            };
+            try {
+                const n = count || 10;
+                let cmd = `git log -n ${n} --pretty=format:"%h|%an|%ar|%s"`;
+                if (author) cmd += ` --author="${author}"`;
+                if (since) cmd += ` --since="${since}"`;
+                if (file) cmd += ` -- "${file}"`;
+
+                const { stdout } = await execAsync(cmd, { cwd: PROJECT_ROOT, timeout: 15000 });
+                const commits = stdout.split('\n').filter(Boolean).map(line => {
+                    const [hash, authorName, date, ...messageParts] = line.split('|');
+                    return { hash, author: authorName, date, message: messageParts.join('|') };
+                });
+
+                return { success: true, commits };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'git_diff': {
+            const { target, file } = input as { target?: string; file?: string };
+            try {
+                let cmd = 'git diff';
+                if (target === 'staged') {
+                    cmd = 'git diff --cached';
+                } else if (target === 'unstaged') {
+                    cmd = 'git diff';
+                } else if (target) {
+                    cmd = `git diff ${target}`;
+                }
+                if (file) cmd += ` -- "${file}"`;
+
+                const { stdout } = await execAsync(cmd, { cwd: PROJECT_ROOT, timeout: 30000 });
+
+                return {
+                    success: true,
+                    diff: stdout.slice(0, 10000), // Limit size
+                    truncated: stdout.length > 10000,
+                    linesChanged: stdout.split('\n').length
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'git_blame': {
+            const { file, lineStart, lineEnd } = input as {
+                file: string;
+                lineStart?: number;
+                lineEnd?: number;
+            };
+            try {
+                let cmd = `git blame "${file}"`;
+                if (lineStart && lineEnd) {
+                    cmd = `git blame -L ${lineStart},${lineEnd} "${file}"`;
+                }
+
+                const { stdout } = await execAsync(cmd, { cwd: PROJECT_ROOT, timeout: 30000 });
+
+                return {
+                    success: true,
+                    blame: stdout.slice(0, 5000),
+                    truncated: stdout.length > 5000
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'analyze_stack_trace': {
+            const { stackTrace, errorMessage } = input as { stackTrace: string; errorMessage?: string };
+            try {
+                // Parse stack trace to extract file locations
+                const linePattern = /at\s+(?:.*?\s+\()?(.+?):(\d+):(\d+)\)?/g;
+                const matches: Array<{ file: string; line: number; column: number }> = [];
+                let match;
+
+                while ((match = linePattern.exec(stackTrace)) !== null) {
+                    matches.push({
+                        file: match[1],
+                        line: parseInt(match[2]),
+                        column: parseInt(match[3])
+                    });
+                }
+
+                // Read the first few files for context
+                const fileContents: Record<string, string> = {};
+                for (const m of matches.slice(0, 3)) {
+                    try {
+                        const filePath = path.join(PROJECT_ROOT, m.file.replace(/.*\/src\//, 'src/'));
+                        const content = await fs.readFile(filePath, 'utf-8');
+                        const lines = content.split('\n');
+                        const start = Math.max(0, m.line - 5);
+                        const end = Math.min(lines.length, m.line + 5);
+                        fileContents[m.file] = lines.slice(start, end).map((l, i) => `${start + i + 1}: ${l}`).join('\n');
+                    } catch {
+                        // File not found, skip
+                    }
+                }
+
+                return {
+                    success: true,
+                    errorMessage: errorMessage || 'Unknown error',
+                    locations: matches,
+                    primaryLocation: matches[0],
+                    codeContext: fileContents,
+                    suggestion: `Error at ${matches[0]?.file}:${matches[0]?.line}. Check the code context for issues.`
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'run_specific_test': {
+            const { testPath, watch, verbose } = input as {
+                testPath: string;
+                watch?: boolean;
+                verbose?: boolean;
+            };
+            try {
+                let cmd = `npm test -- "${testPath}"`;
+                if (watch) cmd += ' --watch';
+                if (verbose !== false) cmd += ' --verbose';
+                cmd += ' --passWithNoTests';
+
+                const { stdout, stderr } = await execAsync(cmd, { cwd: PROJECT_ROOT, timeout: 120000 });
+
+                // Parse results
+                const passMatch = stdout.match(/Tests:\s+(\d+)\s+passed/);
+                const failMatch = stdout.match(/Tests:\s+(\d+)\s+failed/);
+                const passed = passMatch ? parseInt(passMatch[1]) : 0;
+                const failed = failMatch ? parseInt(failMatch[1]) : 0;
+
+                return {
+                    success: failed === 0,
+                    passed,
+                    failed,
+                    output: stdout.slice(-3000),
+                    stderr: stderr ? stderr.slice(-500) : undefined
+                };
+            } catch (e: any) {
+                return {
+                    success: false,
+                    passed: 0,
+                    failed: 1,
+                    error: e.message,
+                    output: e.stdout?.slice(-3000),
+                    stderr: e.stderr?.slice(-1000)
+                };
+            }
+        }
+
+        case 'list_directory': {
+            const { path: dirPath, recursive } = input as { path: string; recursive?: boolean };
+            try {
+                const fullPath = path.join(PROJECT_ROOT, dirPath);
+
+                if (recursive) {
+                    const { stdout } = await execAsync(`find "${fullPath}" -maxdepth 3 -type f 2>/dev/null | head -100 || dir /s /b "${fullPath}" 2>nul | head -100`, { cwd: PROJECT_ROOT, timeout: 15000 });
+                    return {
+                        success: true,
+                        path: dirPath,
+                        entries: stdout.split('\n').filter(Boolean).map(f => f.replace(fullPath, '').replace(/^[/\\]/, ''))
+                    };
+                } else {
+                    const entries = await fs.readdir(fullPath, { withFileTypes: true });
+                    return {
+                        success: true,
+                        path: dirPath,
+                        entries: entries.map(e => ({
+                            name: e.name,
+                            type: e.isDirectory() ? 'directory' : 'file'
+                        }))
+                    };
+                }
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        // ====================================================================
+        // KUSHO AI TOOL EXECUTORS
+        // ====================================================================
+
+        case 'kusho_generate_tests': {
+            const { specPath, endpoint, method } = input as {
+                specPath?: string;
+                endpoint?: string;
+                method?: string;
+            };
+            try {
+                // Check for KushoAI credentials
+                const apiKey = process.env.KUSHO_API_KEY;
+                const environmentId = process.env.KUSHO_ENVIRONMENT_ID;
+
+                if (!apiKey || !environmentId) {
+                    return {
+                        success: false,
+                        error: 'KushoAI not configured. Set KUSHO_API_KEY and KUSHO_ENVIRONMENT_ID environment variables.',
+                        setupInstructions: {
+                            step1: 'Sign up at https://kusho.ai',
+                            step2: 'Get API key from Manage Workspace > API Keys',
+                            step3: 'Add KUSHO_API_KEY and KUSHO_ENVIRONMENT_ID to environment'
+                        }
+                    };
+                }
+
+                // Find OpenAPI spec if not provided
+                let spec = specPath;
+                if (!spec || spec === 'auto') {
+                    const possiblePaths = ['openapi.json', 'openapi.yaml', 'swagger.json', 'api/openapi.json'];
+                    for (const p of possiblePaths) {
+                        try {
+                            await fs.access(path.join(PROJECT_ROOT, p));
+                            spec = p;
+                            break;
+                        } catch {
+                            // Continue
+                        }
+                    }
+                }
+
+                // For now, return instructions for manual integration
+                // In production, this would call KushoAI API
+                return {
+                    success: true,
+                    message: 'KushoAI test generation prepared',
+                    specPath: spec,
+                    endpoint,
+                    method,
+                    nextSteps: [
+                        'Run docker pull public.ecr.aws/y5g4u6y7/kusho-test-runner:latest',
+                        `Upload spec to KushoAI dashboard or use CLI`,
+                        'Generated tests will be available in test suites'
+                    ],
+                    dockerCommand: `docker run -e BASE_URL=https://be.kusho.ai -e ENVIRONMENT_ID=${environmentId} -e API_KEY=${apiKey} public.ecr.aws/y5g4u6y7/kusho-test-runner:latest`
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'kusho_run_suite': {
+            const { suiteId, tag, environment } = input as {
+                suiteId?: string;
+                tag?: string;
+                environment?: string;
+            };
+            try {
+                const apiKey = process.env.KUSHO_API_KEY;
+                const environmentId = process.env.KUSHO_ENVIRONMENT_ID;
+
+                if (!apiKey || !environmentId) {
+                    return {
+                        success: false,
+                        error: 'KushoAI not configured. Set KUSHO_API_KEY and KUSHO_ENVIRONMENT_ID.'
+                    };
+                }
+
+                const env = environment || 'staging';
+                let runCommand = '';
+
+                if (suiteId) {
+                    runCommand = `docker run -e BASE_URL=https://be.kusho.ai -e ENVIRONMENT_ID=${environmentId} -e API_KEY=${apiKey} -e TEST_SUITE_ID=${suiteId} public.ecr.aws/y5g4u6y7/kusho-test-runner:latest`;
+                } else if (tag) {
+                    runCommand = `docker run -e BASE_URL=https://be.kusho.ai -e ENVIRONMENT_ID=${environmentId} -e API_KEY=${apiKey} -e TAG=${tag} public.ecr.aws/y5g4u6y7/kusho-test-runner:latest`;
+                }
+
+                if (runCommand) {
+                    try {
+                        const { stdout, stderr } = await execAsync(runCommand, { cwd: PROJECT_ROOT, timeout: 300000 });
+                        return {
+                            success: true,
+                            environment: env,
+                            suiteId,
+                            tag,
+                            output: stdout.slice(-5000),
+                            stderr: stderr?.slice(-1000)
+                        };
+                    } catch (e: any) {
+                        return {
+                            success: false,
+                            error: 'Test execution failed',
+                            output: e.stdout?.slice(-3000),
+                            stderr: e.stderr?.slice(-1000)
+                        };
+                    }
+                }
+
+                return {
+                    success: false,
+                    error: 'Must provide either suiteId or tag'
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'kusho_analyze_coverage': {
+            const { specPath } = input as { specPath?: string };
+            try {
+                const apiKey = process.env.KUSHO_API_KEY;
+
+                if (!apiKey) {
+                    return {
+                        success: false,
+                        error: 'KushoAI not configured. Set KUSHO_API_KEY.',
+                        manualCoverage: {
+                            instructions: 'For manual coverage analysis:',
+                            step1: 'Export your test suite from KushoAI dashboard',
+                            step2: 'Compare against OpenAPI spec endpoints',
+                            step3: 'Identify untested endpoints'
+                        }
+                    };
+                }
+
+                // In production, this would call KushoAI API
+                // For now, provide guidance
+                return {
+                    success: true,
+                    message: 'Coverage analysis requires KushoAI dashboard access',
+                    specPath,
+                    instructions: [
+                        'Log into KushoAI dashboard',
+                        'Navigate to Test Coverage view',
+                        'Upload or sync your OpenAPI spec',
+                        'View endpoint coverage percentage'
+                    ],
+                    recommendation: 'For CI/CD integration, use the kusho-test-runner Docker image with --coverage flag'
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
         default:
             throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -862,6 +1498,25 @@ YOUR RESPONSIBILITIES:
 2. Make GO/NO-GO decisions: MISSION_READY | NEEDS_REVIEW | BLOCKED
 3. Report to the Executive Boardroom with structured metrics
 4. Write and push code when needed
+5. **Find and fix bugs** - investigate issues, trace errors, and implement fixes
+6. **Code review and quality** - search codebase, analyze patterns, suggest improvements
+
+BUG HUNTING WORKFLOW:
+When investigating a bug:
+1. Use \`search_codebase\` to find relevant code patterns
+2. Use \`git_log\` and \`git_diff\` to see recent changes
+3. Use \`analyze_stack_trace\` to parse error traces
+4. Use \`read_file\` to examine the affected files
+5. Use \`run_specific_test\` to verify the issue
+6. Use \`write_file\` to implement the fix
+7. Run tests again to confirm the fix
+8. Use \`archive_work\` to document what was done
+
+API TESTING (KUSHOAI):
+For API testing, you have access to KushoAI tools:
+- \`kusho_generate_tests\`: Auto-generate tests from OpenAPI specs
+- \`kusho_run_suite\`: Run test suites by ID or tag
+- \`kusho_analyze_coverage\`: Check API test coverage gaps
 
 DECISION FRAMEWORK:
 - MISSION_READY: All 7 layers pass with ≥90% confidence
