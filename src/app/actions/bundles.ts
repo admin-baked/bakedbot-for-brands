@@ -123,3 +123,32 @@ export async function deleteBundle(id: string): Promise<{ success: boolean; erro
         return { success: false, error: 'Failed to delete bundle' };
     }
 }
+
+/**
+ * Get active bundles for public menu display (no auth required)
+ */
+export async function getActiveBundles(orgId: string): Promise<BundleDeal[]> {
+    try {
+        if (!orgId) return [];
+
+        const db = getAdminFirestore();
+        const snapshot = await db.collection(BUNDLES_COLLECTION)
+            .where('orgId', '==', orgId)
+            .where('status', '==', 'active')
+            .orderBy('createdAt', 'desc')
+            .limit(10)
+            .get();
+
+        return snapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id,
+            createdAt: (doc.data().createdAt as any)?.toDate?.() || new Date(),
+            updatedAt: (doc.data().updatedAt as any)?.toDate?.() || new Date(),
+            startDate: doc.data().startDate ? ((doc.data().startDate as any).toDate?.() || undefined) : undefined,
+            endDate: doc.data().endDate ? ((doc.data().endDate as any).toDate?.() || undefined) : undefined,
+        })) as BundleDeal[];
+    } catch (error) {
+        console.error('Error fetching active bundles:', error);
+        return [];
+    }
+}

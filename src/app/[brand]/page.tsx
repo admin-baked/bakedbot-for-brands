@@ -9,6 +9,7 @@ import type { Metadata } from 'next';
 import DispensaryLocator from '@/components/dispensary-locator';
 import { DispensaryHeader } from '@/components/dispensary/dispensary-header';
 import { BrandMenuClient } from './brand-menu-client';
+import { getActiveBundles } from '@/app/actions/bundles';
 
 export default async function BrandPage({ params }: { params: Promise<{ brand: string }> }) {
     const { brand: brandParam } = await params;
@@ -37,6 +38,9 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
         notFound();
     }
 
+    // Fetch active bundles for this brand/org
+    const bundles = await getActiveBundles(brand.id);
+
     return (
         <main className="relative min-h-screen">
             <BrandMenuClient
@@ -44,6 +48,7 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
                 products={products}
                 retailers={retailers}
                 brandSlug={brandParam}
+                bundles={bundles}
             />
         </main>
     );
