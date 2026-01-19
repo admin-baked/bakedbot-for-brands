@@ -57,7 +57,14 @@
       "Bash(grep:*)",
       "Bash(node --version:*)",
       "Bash(npm --version:*)",
-      "Bash(git --version:*)"
+      "Bash(git --version:*)",
+      "Bash(git rm:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat\\(demo\\): Add cart slide-over, bundle details, and welcome dialog\n\n- Add CartSlideOver component with quantity controls and checkout\n- Add BundleDetailDialog showing bundle contents with add-to-cart\n- Add welcome dialog on first visit with menu import option\n- Add Get Started Free button to header \\(desktop and mobile\\)\n- Fix cart button to open cart drawer\n- Improve mode toggle visibility with colored active states\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git stash pop:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat\\(agents\\): Add specialized Jack \\(CRO\\) and Glenda \\(CMO\\) agents\n\n- Create jack.ts with revenue/sales focused CRO agent\n- Create glenda.ts with marketing/brand focused CMO agent\n- Update agent-runner.ts to use specialized implementations\n- Add comprehensive unit tests for executive and support agents\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(kusho --version:*)",
+      "Bash(kusho:*)",
+      "Bash(taskkill:*)"
     ],
     "deny": [],
     "ask": []
