@@ -565,6 +565,33 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: []
         }
+    },
+    {
+        name: 'kusho_record_ui',
+        description: 'Start a KushoAI UI recording session to capture user interactions and generate tests.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                url: {
+                    type: 'string',
+                    description: 'URL to start recording from (e.g., "http://localhost:3000" or "https://staging.bakedbot.ai")'
+                },
+                testName: {
+                    type: 'string',
+                    description: 'Name for this test recording'
+                }
+            },
+            required: ['url']
+        }
+    },
+    {
+        name: 'kusho_setup',
+        description: 'Check KushoAI CLI installation status and provide setup instructions.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {},
+            required: []
+        }
     }
 ];
 
@@ -1306,17 +1333,36 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
             };
             try {
                 // Check for KushoAI credentials
+                const kushoToken = process.env.KUSHO_AUTH_TOKEN;
                 const apiKey = process.env.KUSHO_API_KEY;
                 const environmentId = process.env.KUSHO_ENVIRONMENT_ID;
 
-                if (!apiKey || !environmentId) {
+                // Check if kusho CLI is installed
+                let kushoCliAvailable = false;
+                try {
+                    await execAsync('kusho --version', { cwd: PROJECT_ROOT, timeout: 5000 });
+                    kushoCliAvailable = true;
+                } catch {
+                    // CLI not installed
+                }
+
+                if (!kushoCliAvailable && !apiKey) {
                     return {
                         success: false,
-                        error: 'KushoAI not configured. Set KUSHO_API_KEY and KUSHO_ENVIRONMENT_ID environment variables.',
+                        error: 'KushoAI not configured.',
                         setupInstructions: {
-                            step1: 'Sign up at https://kusho.ai',
-                            step2: 'Get API key from Manage Workspace > API Keys',
-                            step3: 'Add KUSHO_API_KEY and KUSHO_ENVIRONMENT_ID to environment'
+                            cliSetup: [
+                                'git clone https://github.com/kusho-co/kusho-cli.git',
+                                'cd kusho-cli && npm install && npm link',
+                                'kusho credentials',
+                                'Enter email: martez@bakedbot.ai',
+                                'Enter token from KushoAI dashboard'
+                            ],
+                            envVars: [
+                                'KUSHO_API_KEY - Get from Manage Workspace > API Keys',
+                                'KUSHO_ENVIRONMENT_ID - Your workspace environment ID',
+                                'KUSHO_AUTH_TOKEN - CLI authentication token'
+                            ]
                         }
                     };
                 }
@@ -1336,20 +1382,38 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
                     }
                 }
 
-                // For now, return instructions for manual integration
-                // In production, this would call KushoAI API
+                // If CLI is available, use it for UI test recording
+                if (kushoCliAvailable) {
+                    return {
+                        success: true,
+                        message: 'KushoAI CLI ready for test generation',
+                        cliAvailable: true,
+                        specPath: spec,
+                        endpoint,
+                        method,
+                        commands: {
+                            recordUI: 'kusho record --url <your-app-url>',
+                            generateFromSpec: spec ? `kusho generate --spec ${spec}` : 'kusho generate --spec <path-to-openapi.json>',
+                            listSuites: 'kusho suites list'
+                        }
+                    };
+                }
+
+                // Fallback to Docker approach
                 return {
                     success: true,
-                    message: 'KushoAI test generation prepared',
+                    message: 'KushoAI test generation prepared (Docker mode)',
                     specPath: spec,
                     endpoint,
                     method,
                     nextSteps: [
                         'Run docker pull public.ecr.aws/y5g4u6y7/kusho-test-runner:latest',
-                        `Upload spec to KushoAI dashboard or use CLI`,
+                        'Upload spec to KushoAI dashboard or use CLI',
                         'Generated tests will be available in test suites'
                     ],
-                    dockerCommand: `docker run -e BASE_URL=https://be.kusho.ai -e ENVIRONMENT_ID=${environmentId} -e API_KEY=${apiKey} public.ecr.aws/y5g4u6y7/kusho-test-runner:latest`
+                    dockerCommand: environmentId && apiKey
+                        ? `docker run -e BASE_URL=https://be.kusho.ai -e ENVIRONMENT_ID=${environmentId} -e API_KEY=${apiKey} public.ecr.aws/y5g4u6y7/kusho-test-runner:latest`
+                        : 'Set KUSHO_API_KEY and KUSHO_ENVIRONMENT_ID first'
                 };
             } catch (e: any) {
                 return { success: false, error: e.message };
@@ -1443,6 +1507,152 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
                         'View endpoint coverage percentage'
                     ],
                     recommendation: 'For CI/CD integration, use the kusho-test-runner Docker image with --coverage flag'
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'kusho_record_ui': {
+            const { url, testName } = input as { url: string; testName?: string };
+            try {
+                // Check if kusho CLI is installed
+                let kushoCliAvailable = false;
+                try {
+                    await execAsync('kusho --version', { cwd: PROJECT_ROOT, timeout: 5000 });
+                    kushoCliAvailable = true;
+                } catch {
+                    // CLI not installed
+                }
+
+                if (!kushoCliAvailable) {
+                    return {
+                        success: false,
+                        error: 'KushoAI CLI not installed',
+                        setupInstructions: {
+                            step1: 'git clone https://github.com/kusho-co/kusho-cli.git',
+                            step2: 'cd kusho-cli && npm install && npm link',
+                            step3: 'kusho credentials',
+                            step4: 'Enter email: martez@bakedbot.ai',
+                            step5: 'Enter token: Aj8abdWTeCTAWpStp2v7KYUgc_wDDQL74F8lVbt2a_Y'
+                        }
+                    };
+                }
+
+                // Build the record command
+                let cmd = `kusho record --url "${url}"`;
+                if (testName) {
+                    cmd += ` --name "${testName}"`;
+                }
+
+                // Note: Recording is interactive, so we return the command to run
+                return {
+                    success: true,
+                    message: 'KushoAI UI recording ready',
+                    command: cmd,
+                    instructions: [
+                        `Run: ${cmd}`,
+                        'A browser will open at the specified URL',
+                        'Perform your test actions in the browser',
+                        'Press Ctrl+C when done to save the recording',
+                        'Edit the generated test script when prompted'
+                    ],
+                    url,
+                    testName: testName || 'untitled-test'
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'kusho_setup': {
+            try {
+                const results: Record<string, unknown> = {
+                    nodeVersion: null,
+                    kushoCliInstalled: false,
+                    credentialsConfigured: false,
+                    envVars: {
+                        KUSHO_API_KEY: !!process.env.KUSHO_API_KEY,
+                        KUSHO_ENVIRONMENT_ID: !!process.env.KUSHO_ENVIRONMENT_ID,
+                        KUSHO_AUTH_TOKEN: !!process.env.KUSHO_AUTH_TOKEN
+                    }
+                };
+
+                // Check Node.js version
+                try {
+                    const { stdout } = await execAsync('node --version', { cwd: PROJECT_ROOT, timeout: 5000 });
+                    results.nodeVersion = stdout.trim();
+                } catch {
+                    results.nodeVersion = 'Not found';
+                }
+
+                // Check if kusho CLI is installed
+                try {
+                    const { stdout } = await execAsync('kusho --version', { cwd: PROJECT_ROOT, timeout: 5000 });
+                    results.kushoCliInstalled = true;
+                    results.kushoVersion = stdout.trim();
+                } catch {
+                    results.kushoCliInstalled = false;
+                }
+
+                // Check if credentials are configured
+                try {
+                    const { stdout } = await execAsync('kusho whoami', { cwd: PROJECT_ROOT, timeout: 5000 });
+                    results.credentialsConfigured = true;
+                    results.kushoUser = stdout.trim();
+                } catch {
+                    results.credentialsConfigured = false;
+                }
+
+                if (!results.kushoCliInstalled) {
+                    return {
+                        success: true,
+                        status: 'NOT_INSTALLED',
+                        ...results,
+                        setupInstructions: {
+                            prerequisites: [
+                                'Node.js 18+ (install via: nvm install 18 && nvm use 18)',
+                                'Git (for cloning the repo)',
+                                'Terminal editor like vim or nano'
+                            ],
+                            installation: [
+                                'git clone https://github.com/kusho-co/kusho-cli.git',
+                                'cd kusho-cli',
+                                'npm install',
+                                'npm link'
+                            ],
+                            authentication: [
+                                'kusho credentials',
+                                'Email: martez@bakedbot.ai',
+                                'Token: Aj8abdWTeCTAWpStp2v7KYUgc_wDDQL74F8lVbt2a_Y'
+                            ]
+                        }
+                    };
+                }
+
+                if (!results.credentialsConfigured) {
+                    return {
+                        success: true,
+                        status: 'NEEDS_AUTH',
+                        ...results,
+                        authInstructions: [
+                            'Run: kusho credentials',
+                            'Email: martez@bakedbot.ai',
+                            'Token: Aj8abdWTeCTAWpStp2v7KYUgc_wDDQL74F8lVbt2a_Y'
+                        ]
+                    };
+                }
+
+                return {
+                    success: true,
+                    status: 'READY',
+                    ...results,
+                    availableCommands: {
+                        record: 'kusho record --url <app-url>',
+                        generate: 'kusho generate --spec <openapi.json>',
+                        run: 'kusho run --suite <suite-id>',
+                        list: 'kusho suites list'
+                    }
                 };
             } catch (e: any) {
                 return { success: false, error: e.message };
