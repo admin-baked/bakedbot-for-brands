@@ -120,3 +120,59 @@ export interface LettaTools {
 }
 
 export interface SharedTools extends ContextOsTools, LettaTools {}
+
+// ============================================================================
+// INTUITION OS TOOL DEFINITIONS
+// System 1 (fast) heuristics and confidence routing
+// ============================================================================
+
+export const intuitionOsToolDefs = [
+    {
+        name: "intuitionEvaluateHeuristics",
+        description: "Evaluate all applicable heuristics for the current context. Returns fast-path recommendations without full LLM reasoning.",
+        schema: z.object({
+            customerProfile: z.object({
+                potencyTolerance: z.enum(['low', 'medium', 'high']).optional(),
+                preferredEffects: z.array(z.string()).optional(),
+                preferredCategories: z.array(z.string()).optional(),
+            }).optional().describe("Customer preferences and profile data"),
+            products: z.array(z.any()).optional().describe("List of products to filter/rank"),
+            sessionContext: z.any().optional().describe("Additional session context")
+        })
+    },
+    {
+        name: "intuitionGetConfidence",
+        description: "Calculate confidence score to determine if fast-path (heuristics) or slow-path (full LLM reasoning) should be used.",
+        schema: z.object({
+            interactionCount: z.number().describe("Number of past interactions with this customer"),
+            heuristicsMatched: z.number().describe("Number of heuristics that matched"),
+            totalHeuristics: z.number().describe("Total available heuristics"),
+            isAnomalous: z.boolean().optional().describe("Whether this request seems anomalous")
+        })
+    },
+    {
+        name: "intuitionLogOutcome",
+        description: "Log the outcome of a recommendation or action for feedback learning.",
+        schema: z.object({
+            heuristicId: z.string().optional().describe("ID of the heuristic that was applied"),
+            action: z.string().describe("What action was taken"),
+            outcome: z.enum(['positive', 'negative', 'neutral']).describe("Result of the action"),
+            metadata: z.any().optional().describe("Additional outcome data")
+        })
+    }
+];
+
+export interface IntuitionOsTools {
+    intuitionEvaluateHeuristics(customerProfile?: any, products?: any[], sessionContext?: any): Promise<any>;
+    intuitionGetConfidence(interactionCount: number, heuristicsMatched: number, totalHeuristics: number, isAnomalous?: boolean): Promise<any>;
+    intuitionLogOutcome(action: string, outcome: 'positive' | 'negative' | 'neutral', heuristicId?: string, metadata?: any): Promise<any>;
+}
+
+// ============================================================================
+// ALL SHARED TOOL DEFINITIONS
+// ============================================================================
+
+export const allSharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs, ...intuitionOsToolDefs];
+
+// Extended interface with all tools
+export interface AllSharedTools extends SharedTools, IntuitionOsTools {}
