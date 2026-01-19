@@ -2,12 +2,13 @@
 
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, Code, Download, Store, Users, Palette } from 'lucide-react';
+import { Globe, Code, Download, Store, Users, Palette, Bot } from 'lucide-react';
 import DomainSettingsTab from './components/domain-tab';
 import EmbedGeneratorTab from './components/embed-tab';
 import WordPressPluginTab from './components/wordpress-tab';
 import BrandSetupTab from './components/brand-setup-tab';
 import BrandThemingTab from './components/brand-theming-tab';
+import { ChatbotSettingsTab } from './components/chatbot-settings-tab';
 import { InvitationsList } from '@/components/invitations/invitations-list';
 import { CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { BillingForm } from './components/billing-form';
@@ -19,11 +20,14 @@ import Link from 'next/link';
 import { useUserRole } from '@/hooks/use-user-role';
 import { useUser } from '@/firebase/auth/use-user';
 import { useState, useEffect } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/firebase/client';
 
 export default function SettingsPage() {
   const { role, isBrandRole, isDispensaryRole, hasBrandAdminAccess, hasDispensaryAdminAccess, isSuperUser } = useUserRole();
   const { user } = useUser();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [planId, setPlanId] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (!user) return;
@@ -36,8 +40,17 @@ export default function SettingsPage() {
     } else if (isDispensaryRole && profile.locationId) {
       setPreviewUrl(`/shop/${profile.locationId}`);
     } else if (isSuperUser) {
-      // Owners might want to see demo or a specific one, fallback to demo for now
       setPreviewUrl('/demo');
+    }
+    
+    // Fetch plan ID for chatbot config
+    const orgId = profile.brandId || profile.locationId;
+    if (orgId) {
+      getDoc(doc(db, 'tenants', orgId)).then((snap) => {
+        if (snap.exists()) {
+          setPlanId(snap.data()?.planId);
+        }
+      }).catch(console.error);
     }
   }, [user, isBrandRole, isDispensaryRole, isSuperUser]);
 
@@ -74,6 +87,10 @@ export default function SettingsPage() {
             <Palette className="mr-2 h-4 w-4" />
             Theming
           </TabsTrigger>
+          <TabsTrigger value="chatbot">
+            <Bot className="mr-2 h-4 w-4" />
+            Chatbot
+          </TabsTrigger>
           <TabsTrigger value="domain">
             <Globe className="mr-2 h-4 w-4" />
             Domain
@@ -102,6 +119,10 @@ export default function SettingsPage() {
 
         <TabsContent value="theming" className="space-y-4">
           <BrandThemingTab />
+        </TabsContent>
+
+        <TabsContent value="chatbot" className="space-y-4">
+          <ChatbotSettingsTab planId={planId} />
         </TabsContent>
 
         <TabsContent value="embeds" className="space-y-4">

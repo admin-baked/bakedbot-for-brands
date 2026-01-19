@@ -310,9 +310,18 @@ type ChatbotProps = {
   className?: string; // For the trigger button container
   windowClassName?: string; // For the chat window
   isSuperAdmin?: boolean; // New prop for Super Admin mode
+  // Chatbot config (from brand.chatbotConfig)
+  chatbotConfig?: {
+    enabled?: boolean;
+    welcomeMessage?: string;
+    botName?: string;
+    mascotImageUrl?: string;
+  };
 };
 
-export default function Chatbot({ products = [], brandId = "", dispensaryId, entityName, initialOpen = false, positionStrategy = 'fixed', className, windowClassName, isSuperAdmin = false }: ChatbotProps) {
+export default function Chatbot({ products = [], brandId = "", dispensaryId, entityName, initialOpen = false, positionStrategy = 'fixed', className, windowClassName, isSuperAdmin = false, chatbotConfig }: ChatbotProps) {
+  // If chatbot is explicitly disabled, don't render
+  if (chatbotConfig?.enabled === false) return null;
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
@@ -726,6 +735,8 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
         <Button size="icon" className="h-20 w-20 rounded-full shadow-lg overflow-hidden p-0 bg-transparent hover:bg-transparent" onClick={() => setIsOpen(!isOpen)} aria-label="Toggle Chatbot">
           {isOpen ? (
             <X className="h-8 w-8 text-primary" />
+          ) : chatbotConfig?.mascotImageUrl ? (
+            <img src={chatbotConfig.mascotImageUrl} alt={chatbotConfig.botName || 'AI Assistant'} className="h-full w-full object-cover" />
           ) : (
             <ChatbotIcon />
           )}
