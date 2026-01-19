@@ -37,9 +37,10 @@ async function getToolImplementations(): Promise<Record<string, any>> {
 
     try {
         // Dynamically import to avoid test initialization issues
-        const [contextTools, lettaTools] = await Promise.all([
+        const [contextTools, lettaTools, intuitionTools] = await Promise.all([
             import('@/server/tools/context-tools'),
-            import('@/server/tools/letta-memory')
+            import('@/server/tools/letta-memory'),
+            import('@/server/tools/intuition-tools')
         ]);
 
         toolImplementations = {
@@ -57,7 +58,12 @@ async function getToolImplementations(): Promise<Record<string, any>> {
             lettaSearchMemory: lettaTools.lettaSearchMemory,
             lettaUpdateCoreMemory: lettaTools.lettaUpdateCoreMemory,
             lettaMessageAgent: lettaTools.lettaMessageAgent,
-            lettaReadSharedBlock: lettaTools.lettaReadSharedBlock
+            lettaReadSharedBlock: lettaTools.lettaReadSharedBlock,
+
+            // Intuition OS Tools
+            intuitionEvaluateHeuristics: intuitionTools.intuitionEvaluateHeuristics,
+            intuitionGetConfidence: intuitionTools.intuitionGetConfidence,
+            intuitionLogOutcome: intuitionTools.intuitionLogOutcome
         };
 
         logger.info('[ToolExecutor] Tool implementations loaded successfully');
@@ -175,6 +181,28 @@ export function createAgentToolset(
 
     toolset.lettaReadSharedBlock = async (blockLabel: string) => {
         return executeTool('lettaReadSharedBlock', { blockLabel }, context);
+    };
+
+    // Create wrapper functions for Intuition OS tools
+    toolset.intuitionEvaluateHeuristics = async (customerProfile?: any, products?: any[], sessionContext?: any) => {
+        return executeTool('intuitionEvaluateHeuristics', { customerProfile, products, sessionContext }, context);
+    };
+
+    toolset.intuitionGetConfidence = async (interactionCount: number, heuristicsMatched: number, totalHeuristics: number, isAnomalous?: boolean) => {
+        return executeTool('intuitionGetConfidence', { interactionCount, heuristicsMatched, totalHeuristics, isAnomalous }, context);
+    };
+
+    toolset.intuitionLogOutcome = async (
+        action: string,
+        outcome: 'positive' | 'negative' | 'neutral',
+        heuristicId?: string,
+        recommendedProducts?: string[],
+        selectedProduct?: string,
+        confidenceScore?: number
+    ) => {
+        return executeTool('intuitionLogOutcome', {
+            heuristicId, action, outcome, recommendedProducts, selectedProduct, confidenceScore
+        }, context);
     };
 
     // Merge additional agent-specific tools
