@@ -29,7 +29,7 @@ export interface CreateScoutInput {
 }
 
 export async function createScoutAction(input: CreateScoutInput) {
-    const user = await requireUser();
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const tenantId = user.tenantId || user.orgId || user.uid;
     
     const scout = await createScout(tenantId, user.uid, input.query, {
@@ -43,7 +43,7 @@ export async function createScoutAction(input: CreateScoutInput) {
 }
 
 export async function getScoutsAction() {
-    const user = await requireUser();
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const tenantId = user.tenantId || user.orgId || user.uid;
     
     const scouts = await getScouts(tenantId, user.uid);
@@ -51,7 +51,7 @@ export async function getScoutsAction() {
 }
 
 export async function deleteScoutAction(scoutId: string) {
-    const user = await requireUser();
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const tenantId = user.tenantId || user.orgId || user.uid;
     
     await deleteScout(tenantId, scoutId);
@@ -59,7 +59,7 @@ export async function deleteScoutAction(scoutId: string) {
 }
 
 export async function runScoutNowAction(scoutId: string) {
-    const user = await requireUser();
+    const user = await requireUser(['brand', 'dispensary', 'super_user']);
     const tenantId = user.tenantId || user.orgId || user.uid;
     
     // Fetch the scout first

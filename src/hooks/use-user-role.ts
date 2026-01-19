@@ -3,8 +3,14 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import type { DomainUserProfile } from '@/types/domain';
-
-import { UserRole } from '@/types/roles';
+import { 
+    UserRole, 
+    isBrandRole, 
+    isBrandAdmin, 
+    isDispensaryRole, 
+    isDispensaryAdmin,
+    DASHBOARD_ROLES 
+} from '@/types/roles';
 
 // Role is now synonymous with UserRole
 export type Role = UserRole;
@@ -54,46 +60,103 @@ export function useUserRole() {
         return (checkRole: Role) => role === checkRole;
     }, [role]);
 
+    /**
+     * Check if user has any of the specified roles.
+     * Handles role hierarchy (e.g., brand_admin matches 'brand')
+     */
     const hasAnyRole = useMemo(() => {
         return (roles: Role[]) => {
             if (!role) return false;
-            return roles.includes(role);
+            
+            // Direct match
+            if (roles.includes(role)) return true;
+            
+            // Check for group matches
+            for (const r of roles) {
+                // 'brand' matches any brand role
+                if (r === 'brand' && isBrandRole(role)) return true;
+                // 'dispensary' matches any dispensary role
+                if (r === 'dispensary' && isDispensaryRole(role)) return true;
+                // brand_member matches brand_admin (admin >= member)
+                if (r === 'brand_member' && (role === 'brand_admin' || role === 'brand')) return true;
+                // dispensary_staff matches dispensary_admin
+                if (r === 'dispensary_staff' && (role === 'dispensary_admin' || role === 'dispensary')) return true;
+            }
+            
+            return false;
         };
     }, [role]);
 
     const canAccessDashboard = useMemo(() => {
-        return role === 'brand' || role === 'dispensary' || role === 'super_user' || role === 'customer' || role === 'budtender';
+        if (!role) return false;
+        // Check if role is in dashboard roles list
+        if (DASHBOARD_ROLES.includes(role as UserRole)) return true;
+        // Also check brand/dispensary role helpers
+        return isBrandRole(role) || isDispensaryRole(role) || role === 'customer' || role === 'super_user' || role === 'super_admin';
     }, [role]);
 
     const canAccessAdminFeatures = useMemo(() => {
-        return realRole === 'super_user';
+        return realRole === 'super_user' || realRole === 'super_admin';
     }, [realRole]);
 
+    /**
+     * Check if user has brand admin privileges (can manage billing, team, etc.)
+     */
+    const hasBrandAdminAccess = useMemo(() => {
+        if (!role) return false;
+        return isBrandAdmin(role) || role === 'super_user' || role === 'super_admin';
+    }, [role]);
+
+    /**
+     * Check if user has dispensary admin privileges
+     */
+    const hasDispensaryAdminAccess = useMemo(() => {
+        if (!role) return false;
+        return isDispensaryAdmin(role) || role === 'super_user' || role === 'super_admin';
+    }, [role]);
+
     const defaultRoute = useMemo(() => {
-        switch (role) {
-            case 'brand':
-            case 'dispensary':
-            case 'customer':
-            case 'budtender':
-                return '/dashboard'; // All dashboards on Overview now
-            case 'super_user':
-                return '/dashboard/playbooks';
-            default:
-                return '/';
+        if (!role) return '/';
+        
+        // Super users go to playbooks
+        if (role === 'super_user' || role === 'super_admin') {
+            return '/dashboard/playbooks';
         }
+        
+        // All brand roles go to dashboard
+        if (isBrandRole(role)) {
+            return '/dashboard';
+        }
+        
+        // All dispensary roles go to dashboard
+        if (isDispensaryRole(role)) {
+            return '/dashboard';
+        }
+        
+        // Customer and budtender
+        if (role === 'customer' || role === 'budtender') {
+            return '/dashboard';
+        }
+        
+        return '/';
     }, [role]);
 
     const loginRoute = useMemo(() => {
-        switch (role) {
-            case 'brand':
-                return '/brand-login';
-            case 'dispensary':
-                return '/dispensary-login';
-            case 'customer':
-                return '/customer-login';
-            default:
-                return '/customer-login';
+        if (!role) return '/customer-login';
+        
+        if (isBrandRole(role)) {
+            return '/brand-login';
         }
+        
+        if (isDispensaryRole(role)) {
+            return '/dispensary-login';
+        }
+        
+        if (role === 'customer') {
+            return '/customer-login';
+        }
+        
+        return '/customer-login';
     }, [role]);
 
     // Organization IDs from claims
@@ -108,6 +171,8 @@ export function useUserRole() {
         hasAnyRole,
         canAccessDashboard,
         canAccessAdminFeatures,
+        hasBrandAdminAccess,
+        hasDispensaryAdminAccess,
         defaultRoute,
         loginRoute,
         isLoading: isUserLoading,
@@ -116,5 +181,10 @@ export function useUserRole() {
         brandId,
         dispensaryId,
         orgId,
+        // Helper checks
+        isBrandRole: role ? isBrandRole(role) : false,
+        isDispensaryRole: role ? isDispensaryRole(role) : false,
+        isBrandAdmin: role ? isBrandAdmin(role) : false,
+        isDispensaryAdmin: role ? isDispensaryAdmin(role) : false,
     };
 }

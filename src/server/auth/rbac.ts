@@ -1,6 +1,14 @@
 // src/server/auth/rbac.ts
 
 import { DomainUserProfile } from '@/types/domain';
+import { 
+    UserRole as RoleType, 
+    isBrandRole, 
+    isBrandAdmin, 
+    isDispensaryRole, 
+    isDispensaryAdmin,
+    normalizeRole 
+} from '@/types/roles';
 
 export type Permission =
     | 'read:products'
@@ -13,17 +21,55 @@ export type Permission =
     | 'manage:agents'
     | 'manage:brand'
     | 'manage:users'
+    | 'manage:billing'
+    | 'manage:team'
     | 'sync:menus'
-    | 'manage:users'
     | 'admin:all';
 
-export type UserRole = 'brand' | 'dispensary' | 'customer' | 'budtender' | 'super_user';
+// Re-export UserRole from types/roles.ts for backward compatibility
+export type UserRole = RoleType;
 
 /**
  * Role-based permission matrix
+ * 
+ * New hierarchy:
+ * - brand_admin: Full brand access (products, billing, team, settings)
+ * - brand_member: Operational access (products, analytics, campaigns)
+ * - dispensary_admin: Full dispensary access
+ * - dispensary_staff: Operational access
  */
-const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
+const ROLE_PERMISSIONS: Record<string, Permission[]> = {
+    // Platform level
     super_user: ['admin:all'],
+    super_admin: ['admin:all'], // Legacy, same as super_user
+    
+    // Brand admin (owner) - full access
+    brand_admin: [
+        'read:products',
+        'write:products',
+        'read:orders',
+        'read:analytics',
+        'manage:campaigns',
+        'manage:playbooks',
+        'manage:agents',
+        'manage:brand',
+        'manage:billing',   // Admin only
+        'manage:team',      // Admin only
+        'manage:users',     // Admin only
+        'sync:menus',
+    ],
+    
+    // Brand member (team) - operational access
+    brand_member: [
+        'read:products',
+        'write:products',
+        'read:orders',
+        'read:analytics',
+        'manage:campaigns',
+        // NO: manage:billing, manage:team, manage:users
+    ],
+    
+    // Legacy brand role (treated as brand_admin for backward compat)
     brand: [
         'read:products',
         'write:products',
@@ -33,22 +79,55 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
         'manage:playbooks',
         'manage:agents',
         'manage:brand',
-        'sync:menus',
+        'manage:billing',
+        'manage:team',
         'manage:users',
+        'sync:menus',
     ],
+    
+    // Dispensary admin (owner) - full access
+    dispensary_admin: [
+        'read:products',
+        'read:orders',
+        'write:orders',
+        'read:analytics',
+        'manage:playbooks',
+        'manage:billing',
+        'manage:team',
+        'manage:users',
+        'sync:menus',
+    ],
+    
+    // Dispensary staff - operational access
+    dispensary_staff: [
+        'read:products',
+        'read:orders',
+        'write:orders',
+        'read:analytics',
+        // NO: manage:billing, manage:team, manage:users
+    ],
+    
+    // Legacy dispensary role (treated as dispensary_admin)
     dispensary: [
         'read:products',
         'read:orders',
         'write:orders',
         'read:analytics',
+        'manage:playbooks',
+        'manage:billing',
+        'manage:team',
+        'manage:users',
+        'sync:menus',
     ],
+    
     // Budtender: FREE role - dispensary employees with limited access
-    // They can read products for recommendations and manage orders at their location
     budtender: [
         'read:products',  // For AI recommendations
         'read:orders',    // For their dispensary only
         'write:orders',   // To update order status
     ],
+    
+    // Customer: End consumers
     customer: [
         'read:products',
         'read:orders', // Only their own orders
@@ -56,11 +135,30 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 };
 
 /**
- * Check if a user has a specific role
+ * Check if a user has a specific role (or equivalent)
  */
 export function hasRole(user: DomainUserProfile | null, role: UserRole): boolean {
     if (!user || !user.role) return false;
-    return user.role === role || user.role === 'super_user';
+    
+    const userRole = user.role as string;
+    
+    // Super users have all roles
+    if (userRole === 'super_user' || userRole === 'super_admin') return true;
+    
+    // Direct match
+    if (userRole === role) return true;
+    
+    // Brand hierarchy: brand_admin can act as brand_member
+    if (role === 'brand_member' && isBrandAdmin(userRole)) return true;
+    
+    // Dispensary hierarchy: dispensary_admin can act as dispensary_staff or budtender
+    if ((role === 'dispensary_staff' || role === 'budtender') && isDispensaryAdmin(userRole)) return true;
+    
+    // Legacy compatibility: 'brand' check should match brand_admin/brand_member
+    if (role === 'brand' && isBrandRole(userRole)) return true;
+    if (role === 'dispensary' && isDispensaryRole(userRole)) return true;
+    
+    return false;
 }
 
 /**
@@ -72,10 +170,12 @@ export function hasPermission(
 ): boolean {
     if (!user || !user.role) return false;
 
+    const userRole = user.role as string;
+    
     // Super Users have all permissions
-    if (user.role === 'super_user') return true;
+    if (userRole === 'super_user' || userRole === 'super_admin') return true;
 
-    const userPermissions = ROLE_PERMISSIONS[user.role as UserRole] || [];
+    const userPermissions = ROLE_PERMISSIONS[userRole] || [];
     return userPermissions.includes(permission) || userPermissions.includes('admin:all');
 }
 
@@ -83,7 +183,7 @@ export function hasPermission(
  * Check permission by role directly
  */
 export function hasRolePermission(role: UserRole, permission: Permission): boolean {
-    if (role === 'super_user') return true;
+    if (role === 'super_user' || role === 'super_admin') return true;
     const permissions = ROLE_PERMISSIONS[role] || [];
     return permissions.includes(permission) || permissions.includes('admin:all');
 }
@@ -97,11 +197,13 @@ export function canAccessBrand(
 ): boolean {
     if (!user) return false;
 
+    const userRole = user.role as string;
+    
     // Super Users can access all brands
-    if (user.role === 'super_user') return true;
+    if (userRole === 'super_user' || userRole === 'super_admin') return true;
 
-    // Brand users can only access their own brand
-    if (user.role === 'brand') {
+    // Any brand role can access their own brand
+    if (isBrandRole(userRole)) {
         return user.brandId === brandId;
     }
 
@@ -117,11 +219,13 @@ export function canAccessDispensary(
 ): boolean {
     if (!user) return false;
 
+    const userRole = user.role as string;
+    
     // Super Users can access all dispensaries
-    if (user.role === 'super_user') return true;
+    if (userRole === 'super_user' || userRole === 'super_admin') return true;
 
-    // Dispensary users can only access their own location
-    if (user.role === 'dispensary') {
+    // Any dispensary role can access their own location
+    if (isDispensaryRole(userRole)) {
         return user.locationId === dispensaryId;
     }
 
@@ -137,26 +241,23 @@ export function canAccessOrder(
 ): boolean {
     if (!user) return false;
 
+    const userRole = user.role as string;
+    
     // Super Users can access all orders
-    if (user.role === 'super_user') return true;
+    if (userRole === 'super_user' || userRole === 'super_admin') return true;
 
     // Customers can only access their own orders
-    if (user.role === 'customer') {
+    if (userRole === 'customer') {
         return order.userId === user.uid;
     }
 
-    // Brands can access orders for their brand
-    if (user.role === 'brand' && order.brandId) {
+    // Brand roles can access orders for their brand
+    if (isBrandRole(userRole) && order.brandId) {
         return user.brandId === order.brandId;
     }
 
-    // Dispensaries can access orders for their location
-    if (user.role === 'dispensary' && order.retailerId) {
-        return user.locationId === order.retailerId;
-    }
-
-    // Budtenders can access orders for their dispensary
-    if (user.role === 'budtender' && order.retailerId) {
+    // Dispensary roles can access orders for their location
+    if (isDispensaryRole(userRole) && order.retailerId) {
         return user.locationId === order.retailerId;
     }
 
@@ -168,7 +269,7 @@ export function canAccessOrder(
  */
 export function getUserPermissions(user: DomainUserProfile | null): Permission[] {
     if (!user || !user.role) return [];
-    return ROLE_PERMISSIONS[user.role as UserRole] || [];
+    return ROLE_PERMISSIONS[user.role as string] || [];
 }
 
 /**
@@ -203,3 +304,18 @@ export function requireBrandAccess(
         throw new Error(`Unauthorized: cannot access brand ${brandId}`);
     }
 }
+
+/**
+ * Require dispensary access (throws error if not authorized)
+ */
+export function requireDispensaryAccess(
+    user: DomainUserProfile | null,
+    dispensaryId: string
+): void {
+    if (!canAccessDispensary(user, dispensaryId)) {
+        throw new Error(`Unauthorized: cannot access dispensary ${dispensaryId}`);
+    }
+}
+
+// Re-export helper functions for convenience
+export { isBrandRole, isBrandAdmin, isDispensaryRole, isDispensaryAdmin, normalizeRole };

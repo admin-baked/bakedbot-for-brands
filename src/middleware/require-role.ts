@@ -25,7 +25,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from 'firebase-admin';
 import { logger } from '@/lib/logger';
 
-import { UserRole } from '@/types/roles';
+import { UserRole, isBrandRole, isDispensaryRole } from '@/types/roles';
 
 export type { UserRole }; // Re-export for compatibility
 
@@ -118,12 +118,31 @@ export async function requireRole(
   const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
 
   // Super User has access to everything
-  if (user.role === 'super_user') {
+  if (user.role === 'super_user' || user.role === 'super_admin') {
     return user;
   }
 
-  // Check if user has one of the required roles
-  if (!allowedRoles.includes(user.role)) {
+  // Check for role hierarchy matching
+  const hasRole = allowedRoles.some(required => {
+    // Direct match
+    if (user.role === required) return true;
+    
+    // 'brand' matches any brand role (brand_admin, brand_member)
+    if (required === 'brand' && isBrandRole(user.role)) return true;
+    
+    // 'dispensary' matches any dispensary role
+    if (required === 'dispensary' && isDispensaryRole(user.role)) return true;
+    
+    // brand_member is satisfied by brand_admin
+    if (required === 'brand_member' && (user.role === 'brand_admin' || user.role === 'brand')) return true;
+    
+    // dispensary_staff is satisfied by dispensary_admin
+    if (required === 'dispensary_staff' && (user.role === 'dispensary_admin' || user.role === 'dispensary')) return true;
+    
+    return false;
+  });
+
+  if (!hasRole) {
     logger.error('[P0-SEC-RBAC-API] Forbidden - insufficient role', {
       path: req.nextUrl.pathname,
       userRole: user.role,
@@ -150,8 +169,8 @@ export async function requireBrandAccess(
     return user;
   }
 
-  // Brand managers can only access their own brand
-  if (user.role === 'brand' && user.brandId === brandId) {
+  // Brand roles can only access their own brand
+  if (isBrandRole(user.role) && user.brandId === brandId) {
     return user;
   }
 

@@ -1,3 +1,50 @@
+## Session: 2026-01-19 (Brand Role Enhancements — Team Hierarchy)
+### Task ID
+brand_role_enhancements
+
+### Summary
+Implemented team role hierarchy for brands and dispensaries, enabling differentiated permissions for admin vs member roles. Includes `brand_admin`/`brand_member` and `dispensary_admin`/`dispensary_staff`.
+
+### Key Changes
+*   **MOD**: `src/types/roles.ts` — Added new role types and helper functions (`isBrandRole`, `isBrandAdmin`, `isDispensaryRole`, `isDispensaryAdmin`, `normalizeRole`)
+*   **MOD**: `src/server/auth/rbac.ts` — Updated permission matrix with granular permissions (billing, team for admins only)
+*   **MOD**: `src/server/auth/auth.ts` — Updated `requireUser()` to handle role hierarchy matching
+*   **MOD**: `src/middleware/require-role.ts` — API route middleware now supports role hierarchy
+*   **MOD**: `src/hooks/use-user-role.ts` — Added `hasBrandAdminAccess`, `hasDispensaryAdminAccess` helpers
+*   **MOD**: `src/hooks/use-dashboard-config.ts` — Updated navigation filtering for new roles
+*   **MOD**: `src/components/dashboard/role-badge.tsx` — Added badge configs for all new roles
+*   **MOD**: `src/lib/config/quick-start-cards.ts` — Added welcome messages and prompts for new roles
+*   **MOD**: `src/server/services/letta/role-permissions.ts` — Updated to use role helpers
+*   **RENAMED**: `src/server/services/permissions.ts` → `src/server/services/tool-permissions.ts` — Clarified purpose
+*   **MOD**: `.agent/refs/roles.md` — Updated documentation to reflect actual implementation
+
+### Security Fixes
+*   Added explicit role arrays to `src/app/dashboard/scouts/actions.ts` 
+*   Added explicit role arrays to `src/app/dashboard/menu/actions.ts`
+
+### Permission Matrix (Brand Roles)
+| Permission | brand_admin | brand_member |
+|------------|-------------|--------------|
+| `write:products` | ✅ | ✅ |
+| `read:analytics` | ✅ | ✅ |
+| `manage:campaigns` | ✅ | ✅ |
+| `manage:billing` | ✅ | ❌ |
+| `manage:team` | ✅ | ❌ |
+| `manage:users` | ✅ | ❌ |
+
+### Backward Compatibility
+*   Legacy `brand` role → Treated as `brand_admin`
+*   Legacy `dispensary` role → Treated as `dispensary_admin`
+*   Existing users retain full access
+
+### Tests Run
+*   `npm run check:types` (Passed ✅)
+
+### Result: ✅ Complete
+Brand team hierarchy implemented and verified.
+
+---
+
 ## Session: 2026-01-18 (Brand and Dispensary Headless Menu Implementation)
 ### Task ID
 brand_dispensary_headless_menus
