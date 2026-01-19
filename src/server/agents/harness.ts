@@ -146,6 +146,30 @@ export interface MultiStepPlan {
 import { executeWithTools } from '@/ai/claude';
 import { zodToClaudeSchema } from '@/server/utils/zod-to-json';
 
+// ============================================================================
+// VALIDATION HOOK TYPES
+// ============================================================================
+
+export interface PreToolHookResult {
+    /** Whether to proceed with tool execution */
+    proceed: boolean;
+    /** Optionally modify the args before execution */
+    modifiedArgs?: any;
+    /** Reason if not proceeding */
+    reason?: string;
+}
+
+export interface PostToolHookResult {
+    /** Whether validation passed */
+    valid: boolean;
+    /** Issues found during validation */
+    issues?: string[];
+    /** Instructions for remediation */
+    remediation?: string;
+    /** Whether agent should retry with remediation */
+    shouldRetry?: boolean;
+}
+
 export interface MultiStepContext {
     userQuery: string;
     systemInstructions: string;
@@ -153,10 +177,124 @@ export interface MultiStepContext {
     tools: any;
     maxIterations?: number;
     model?: string;
+    /** Agent ID for validation pipeline selection */
+    agentId?: string;
+    /** Maximum remediation attempts before failing */
+    maxRemediationAttempts?: number;
+
+    // === EXISTING CALLBACKS ===
     onStepComplete?: (step: number, toolName: string, result: any) => Promise<void>;
     onHITLRequired?: (params: { tool: string; args: any; reason: string }) => Promise<{ approved: boolean; reason?: string }>;
     onReplanRequired?: (toolName: string, error: string) => Promise<void>;
     onDriftDetected?: (pei: any) => Promise<void>;
+
+    // === NEW VALIDATION HOOKS ===
+    /** Called before tool execution - can block or modify args */
+    onPreToolUse?: (toolName: string, args: any) => Promise<PreToolHookResult>;
+    /** Called after tool execution - validates result */
+    onPostToolUse?: (toolName: string, args: any, result: any) => Promise<PostToolHookResult>;
+    /** Called when validation fails after max remediation attempts */
+    onValidationFailed?: (toolName: string, issues: string[], remediation: string) => Promise<void>;
+}
+
+// ============================================================================
+// VALIDATION HELPER
+// ============================================================================
+
+/**
+ * Execute a tool with validation hooks and auto-remediation.
+ * Returns the result if valid, or throws if validation fails after max attempts.
+ */
+async function executeToolWithValidation(
+    toolName: string,
+    args: any,
+    toolFn: Function,
+    context: MultiStepContext,
+    addRemediationPrompt: (remediation: string) => void
+): Promise<{ result: any; skipped: boolean }> {
+    const maxAttempts = context.maxRemediationAttempts ?? 2;
+    let attempts = 0;
+    let currentArgs = args;
+
+    // === PRE-TOOL VALIDATION ===
+    if (context.onPreToolUse) {
+        const preResult = await context.onPreToolUse(toolName, currentArgs);
+        if (!preResult.proceed) {
+            logger.info(`[Harness:Validation] Pre-tool check blocked ${toolName}: ${preResult.reason}`);
+            return {
+                result: { blocked: true, reason: preResult.reason || 'Pre-validation failed' },
+                skipped: true
+            };
+        }
+        if (preResult.modifiedArgs) {
+            currentArgs = preResult.modifiedArgs;
+        }
+    }
+
+    while (attempts < maxAttempts) {
+        attempts++;
+
+        // === EXECUTE TOOL ===
+        let result: any;
+        try {
+            const argValues = Object.values(currentArgs);
+            result = await toolFn(...argValues);
+        } catch (e: any) {
+            result = { error: e.message };
+            if (context.onReplanRequired) {
+                await context.onReplanRequired(toolName, e.message);
+            }
+            return { result, skipped: false };
+        }
+
+        // === POST-TOOL VALIDATION ===
+        if (context.onPostToolUse) {
+            const postResult = await context.onPostToolUse(toolName, currentArgs, result);
+
+            if (!postResult.valid) {
+                logger.warn(`[Harness:Validation] Post-tool validation failed for ${toolName} (attempt ${attempts}/${maxAttempts})`);
+
+                if (postResult.shouldRetry && attempts < maxAttempts && postResult.remediation) {
+                    // Inject remediation into agent context
+                    addRemediationPrompt(
+                        `⚠️ VALIDATION FAILED for ${toolName}:\n` +
+                        `Issues: ${postResult.issues?.join(', ') || 'Unknown'}\n\n` +
+                        `Remediation: ${postResult.remediation}\n\n` +
+                        `Please fix and try again.`
+                    );
+                    continue; // Retry with remediation
+                }
+
+                // Max attempts reached or no retry
+                if (context.onValidationFailed) {
+                    await context.onValidationFailed(
+                        toolName,
+                        postResult.issues || ['Validation failed'],
+                        postResult.remediation || 'No remediation available'
+                    );
+                }
+
+                // Return result with validation metadata
+                return {
+                    result: {
+                        ...result,
+                        _validation: {
+                            valid: false,
+                            issues: postResult.issues,
+                            attempts
+                        }
+                    },
+                    skipped: false
+                };
+            }
+        }
+
+        // Validation passed
+        return { result, skipped: false };
+    }
+
+    // Should not reach here, but fallback
+    return { result: { error: 'Max validation attempts exceeded' }, skipped: false };
 }
 
 /**
@@ -256,20 +394,44 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                 }
             }
             
-            // EXECUTE
+            // EXECUTE with VALIDATION
             const toolFn = tools[decision.toolName];
             let result: any = { error: 'Tool not found' };
-            
+
             if (typeof toolFn === 'function') {
-                try {
-                    const argValues = Object.values(decision.args);
-                    result = await toolFn(...argValues);
-                } catch (e: any) {
-                    result = { error: e.message };
-                    if (context.onReplanRequired) await context.onReplanRequired(decision.toolName, e.message);
+                // Use validation helper if hooks are provided
+                if (context.onPreToolUse || context.onPostToolUse) {
+                    let remediationPrompt = '';
+                    const validatedResult = await executeToolWithValidation(
+                        decision.toolName,
+                        decision.args,
+                        toolFn,
+                        context,
+                        (remediation) => { remediationPrompt = remediation; }
+                    );
+                    result = validatedResult.result;
+
+                    // If validation failed with remediation, add to history for re-planning
+                    if (remediationPrompt) {
+                        steps.push({
+                            tool: decision.toolName,
+                            args: decision.args,
+                            result: { ...result, _remediationRequested: remediationPrompt }
+                        });
+                        continue; // Re-plan with remediation context
+                    }
+                } else {
+                    // Original execution without validation
+                    try {
+                        const argValues = Object.values(decision.args);
+                        result = await toolFn(...argValues);
+                    } catch (e: any) {
+                        result = { error: e.message };
+                        if (context.onReplanRequired) await context.onReplanRequired(decision.toolName, e.message);
+                    }
                 }
             }
-            
+
             steps.push({ tool: decision.toolName, args: decision.args, result });
             if (onStepComplete) await onStepComplete(steps.length, decision.toolName, result);
         }
@@ -323,12 +485,28 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
             let result: any = { error: 'Tool not found' };
 
             if (typeof toolFn === 'function') {
-                try {
-                    const argValues = Object.values(args);
-                    result = await toolFn(...argValues);
-                } catch (e: any) {
-                    result = { error: e.message };
-                     if (context.onReplanRequired) await context.onReplanRequired(toolName, e.message);
+                // Use validation helper if hooks are provided
+                if (context.onPreToolUse || context.onPostToolUse) {
+                    const validatedResult = await executeToolWithValidation(
+                        toolName,
+                        args,
+                        toolFn,
+                        context,
+                        (remediation) => {
+                            // For Claude path, we return remediation in result for Claude to handle
+                            logger.info(`[Harness:Claude] Remediation requested: ${remediation.slice(0, 100)}`);
+                        }
+                    );
+                    result = validatedResult.result;
+                } else {
+                    // Original execution without validation
+                    try {
+                        const argValues = Object.values(args);
+                        result = await toolFn(...argValues);
+                    } catch (e: any) {
+                        result = { error: e.message };
+                        if (context.onReplanRequired) await context.onReplanRequired(toolName, e.message);
+                    }
                 }
             }
 
