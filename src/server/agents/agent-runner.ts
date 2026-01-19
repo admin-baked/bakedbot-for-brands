@@ -19,6 +19,7 @@ import { deeboAgent } from '@/server/agents/deebo-agent-impl';
 import { linusAgent } from '@/server/agents/linus';
 import { jackAgent } from '@/server/agents/jack';
 import { glendaAgent } from '@/server/agents/glenda';
+import { leoAgent } from '@/server/agents/leo';
 import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { httpRequest, HttpRequestOptions } from '@/server/tools/http-client';
 import { browserAction, BrowserActionParams } from '@/server/tools/browser';
@@ -89,7 +90,7 @@ const AGENT_MAP = {
     felisha: felisha,
     // Executive Boardroom
     executive_base: executiveAgent,
-    leo: executiveAgent, // COO
+    leo: leoAgent, // COO - Operations & Orchestration
     jack: jackAgent, // CRO - Revenue & Sales
     glenda: glendaAgent, // CMO - Marketing & Brand
     mike: executiveAgent, // CFO
