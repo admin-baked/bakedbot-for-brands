@@ -34,7 +34,7 @@
 | Metric | Status | Last Verified |
 |--------|--------|---------------|
 | **Build** | 🟢 Passing | 2026-01-19 |
-| **Tests** | 🟢 48 Passing | 2026-01-19 |
+| **Tests** | 🟢 45+ Agent Tests Passing | 2026-01-19 |
 | **Deploy** | 🟢 Stable | 2026-01-19 |
 
 - **Logging**: **STRICTLY** use `logger` from `@/lib/logger`. `console.log` is deprecated.
@@ -270,6 +270,32 @@ git push origin main
 | **Agent Runner** | `src/server/agents/agent-runner.ts` | — |
 | **Agent Definitions** | `src/server/agents/agent-definitions.ts` | `tests/server/agents/agent-definitions.test.ts` |
 | **Support Agents** | `src/server/agents/*.ts` | `tests/server/agents/support-agents.test.ts` |
+
+### Shared Agent Tools Architecture
+All agents have access to standardized tools via the shared tools system:
+
+| File | Purpose |
+|------|---------|
+| `src/server/agents/shared-tools.ts` | Tool definitions (Zod schemas) for all shared tools |
+| `src/server/agents/tool-executor.ts` | Bridges definitions to Genkit implementations |
+| `src/server/tools/context-tools.ts` | Context OS tool implementations |
+| `src/server/tools/letta-memory.ts` | Letta Memory tool implementations |
+| `src/server/tools/intuition-tools.ts` | Intuition OS tool implementations |
+
+**Tool Categories:**
+| Category | Tools | Description |
+|----------|-------|-------------|
+| **Context OS** | `contextLogDecision`, `contextAskWhy`, `contextGetAgentHistory` | Decision lineage and reasoning |
+| **Letta Memory** | `lettaSaveFact`, `lettaAsk`, `lettaSearchMemory`, `lettaMessageAgent` | Persistent memory and inter-agent comms |
+| **Intuition OS** | `intuitionEvaluateHeuristics`, `intuitionGetConfidence`, `intuitionLogOutcome` | System 1/2 routing and feedback |
+
+**Usage in Agents:**
+```typescript
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs } from './shared-tools';
+
+// In act() method:
+const toolsDef = [...agentSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...intuitionOsToolDefs];
+```
 
 ---
 
