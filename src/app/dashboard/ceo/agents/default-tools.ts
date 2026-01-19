@@ -943,7 +943,17 @@ export const defaultExecutiveBoardTools = {
     },
     
     // NEW: Spawn Agent Capability (Super User / Executive)
-    spawnAgent: superUserTools.spawnAgent
+    spawnAgent: superUserTools.spawnAgent,
+
+    // NEW: Advanced Web Browsing (Playwright)
+    browse_web: async (url: string, action: 'read' | 'screenshot' | 'click' | 'type' | 'search' = 'read', selector?: string, inputValue?: string) => {
+        try {
+            const { browserService } = await import('@/server/services/browser-service');
+            return await browserService.browse(url, action, selector, inputValue);
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    }
 };
 
 // Export common tools for direct use in agents

@@ -18,6 +18,9 @@ interface ProductSectionProps {
   showViewAll?: boolean;
   onViewAll?: () => void;
   dealBadge?: (product: Product) => string | undefined;
+  onProductClick?: (product: Product) => void;
+  onFavorite?: (productId: string) => void;
+  favorites?: Set<string>;
 }
 
 export function ProductSection({
@@ -115,6 +118,9 @@ export function ProductSection({
                   primaryColor={primaryColor}
                   size="large"
                   dealBadge={dealBadge?.(product)}
+                  onClick={() => onProductClick?.(product)}
+                  onFavorite={onFavorite}
+                  isFavorite={favorites?.has(product.id)}
                 />
               </div>
             ))}

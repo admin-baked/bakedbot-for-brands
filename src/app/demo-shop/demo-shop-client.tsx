@@ -43,6 +43,7 @@ import { OversizedProductCard } from '@/components/demo/oversized-product-card';
 import { MenuImportDialog } from '@/components/demo/menu-import-dialog';
 import { CartSlideOver } from '@/components/demo/cart-slide-over';
 import { BundleDetailDialog, BundleDeal } from '@/components/demo/bundle-detail-dialog';
+import { ProductDetailModal } from '@/components/demo/product-detail-modal';
 
 
 
@@ -120,6 +121,28 @@ export default function DemoShopClient() {
     const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
     const [cartOpen, setCartOpen] = useState(false);
     const [selectedBundle, setSelectedBundle] = useState<BundleDeal | null>(null);
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    
+    // Favorites state (persisted in localStorage in a real app, mock for now)
+    const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        const storedFavorites = localStorage.getItem('demo-favorites');
+        if (storedFavorites) {
+            setFavorites(new Set(JSON.parse(storedFavorites)));
+        }
+    }, []);
+
+    const toggleFavorite = (productId: string) => {
+        const newFavorites = new Set(favorites);
+        if (newFavorites.has(productId)) {
+            newFavorites.delete(productId);
+        } else {
+            newFavorites.add(productId);
+        }
+        setFavorites(newFavorites);
+        localStorage.setItem('demo-favorites', JSON.stringify(Array.from(newFavorites)));
+    };
 
     // Brand menu state
     const [selectedDispensary, setSelectedDispensary] = useState<{
@@ -604,6 +627,9 @@ export default function DemoShopClient() {
                         primaryColor={brandColors.primary}
                         layout="carousel"
                         dealBadge={getDealBadge}
+                        onProductClick={setSelectedProduct}
+                        onFavorite={toggleFavorite}
+                        favorites={favorites}
                     />
 
                     {/* Category Grid */}
@@ -687,6 +713,9 @@ export default function DemoShopClient() {
                                             primaryColor={brandColors.primary}
                                             size="large"
                                             dealBadge={getDealBadge(product)}
+                                            onClick={() => setSelectedProduct(product)}
+                                            onFavorite={toggleFavorite}
+                                            isFavorite={favorites.has(product.id)}
                                         />
                                     ))}
                                 </div>
@@ -953,6 +982,9 @@ export default function DemoShopClient() {
                                         primaryColor={brandColors.primary}
                                         size="large"
                                         dealBadge={getDealBadge(product)}
+                                        onClick={() => setSelectedProduct(product)}
+                                        onFavorite={toggleFavorite}
+                                        isFavorite={favorites.has(product.id)}
                                     />
                                 ))}
                             </div>
@@ -977,6 +1009,9 @@ export default function DemoShopClient() {
                             layout="carousel"
                             onViewAll={() => handleCategorySelect(category)}
                             dealBadge={getDealBadge}
+                            onProductClick={setSelectedProduct}
+                            onFavorite={toggleFavorite}
+                            favorites={favorites}
                         />
                     );
                 })}
@@ -1019,6 +1054,17 @@ export default function DemoShopClient() {
                 open={!!selectedBundle}
                 onClose={() => setSelectedBundle(null)}
                 onAddToCart={handleAddBundleToCart}
+                primaryColor={brandColors.primary}
+            />
+
+            {/* Product Detail Modal */}
+            <ProductDetailModal
+                product={selectedProduct}
+                open={!!selectedProduct}
+                onClose={() => setSelectedProduct(null)}
+                onAddToCart={handleAddToCart}
+                onFavorite={toggleFavorite}
+                isFavorite={selectedProduct ? favorites.has(selectedProduct.id) : false}
                 primaryColor={brandColors.primary}
             />
 

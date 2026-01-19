@@ -25,11 +25,13 @@ import { SyncToggle } from '@/components/dashboard/sync-toggle';
 
 import { ManagedPagesList } from '@/components/dashboard/managed-pages-list';
 import { SetupChecklist } from '@/components/dashboard/setup-checklist';
+import { QuickSetupCard } from '@/components/dashboard/quick-setup-card';
 import { getDispensaryDashboardData, type DispensaryDashboardData } from './actions';
 
 export default function DispensaryDashboardClient({ brandId }: { brandId: string }) {
     const [liveData, setLiveData] = useState<DispensaryDashboardData | null>(null);
     const [dispensaryName, setDispensaryName] = useState<string | null>(null);
+    const [showQuickSetup, setShowQuickSetup] = useState(true);
 
     // Fetch data for widgets
     useEffect(() => {
@@ -95,6 +97,14 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
                     />
                 </div>
             </div>
+
+            {/* Quick Setup Card - Show if no products imported yet */}
+            {productsCount === 0 && showQuickSetup && (
+                <QuickSetupCard 
+                    className="mb-6" 
+                    onDismiss={() => setShowQuickSetup(false)} 
+                />
+            )}
 
             {/* Setup Checklist - Onboarding v2 progressive disclosure */}
             <SetupChecklist />

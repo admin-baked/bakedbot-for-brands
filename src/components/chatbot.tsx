@@ -438,6 +438,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
         brandId: effectiveDispensaryId || effectiveBrandId || undefined,
         state: 'Illinois',
         isOnboarding: true,
+        products: products, // Pass products for context
       };
 
       const response = await fetch('/api/chat', {
@@ -520,6 +521,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
         brandId: effectiveDispensaryId || effectiveBrandId || undefined, // Use page context, props, or undefined
         entityName: effectiveEntityName, // Pass entity name for personalization
         state: 'Illinois',
+        products: products, // Pass active products for personalization
       };
 
       if (isSuperAdmin) {

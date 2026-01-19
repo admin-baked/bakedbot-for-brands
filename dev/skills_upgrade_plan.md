@@ -99,7 +99,7 @@ Update `runAgentChat` to:
 - [ ] Port **"Analysis"** (`core/analysis`) for `Pops` (Data REPL).
 - [ ] Update `Deebo` and `Pops` personas.
 - [x] Port **"Core Email"** (`src/skills/core/email`).
-- [x] Port **"Core Browser"** (`src/skills/core/browser`).
+- [x] Port **"Core Browser"** (`src/skills/core/browser`) - [ ] Verify with Linus/Builder
 - [x] Update `Craig` & `Puff` personas.
 - [ ] mechanism to import third-party skills from `agentskills.io`.
 
