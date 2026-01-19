@@ -20,7 +20,7 @@ import { useUser } from '@/firebase/auth/use-user';
 import { useState, useEffect } from 'react';
 
 export default function SettingsPage() {
-  const { role } = useUserRole();
+  const { role, isBrandRole, isDispensaryRole, hasBrandAdminAccess, hasDispensaryAdminAccess, isSuperUser } = useUserRole();
   const { user } = useUser();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -30,15 +30,15 @@ export default function SettingsPage() {
     // Cast user to any to access role-specific fields
     const profile = user as any;
 
-    if (role === 'brand' && profile.brandId) {
+    if (isBrandRole && profile.brandId) {
       setPreviewUrl(`/${profile.brandId}`);
-    } else if (role === 'dispensary' && profile.locationId) {
+    } else if (isDispensaryRole && profile.locationId) {
       setPreviewUrl(`/shop/${profile.locationId}`);
-    } else if (role === 'super_user') {
+    } else if (isSuperUser) {
       // Owners might want to see demo or a specific one, fallback to demo for now
       setPreviewUrl('/demo');
     }
-  }, [user, role]);
+  }, [user, isBrandRole, isDispensaryRole, isSuperUser]);
 
   return (
     <div className="space-y-6">
@@ -77,13 +77,13 @@ export default function SettingsPage() {
             <Download className="mr-2 h-4 w-4" />
             WordPress Plugin
           </TabsTrigger>
-          {(role === 'brand' || role === 'dispensary' || role === 'super_user') && (
+          {(hasBrandAdminAccess || hasDispensaryAdminAccess) && (
             <TabsTrigger value="team">
               <Users className="mr-2 h-4 w-4" />
               Team
             </TabsTrigger>
           )}
-          {(role === 'brand' || role === 'dispensary' || role === 'super_user') && (
+          {(hasBrandAdminAccess || hasDispensaryAdminAccess) && (
             <TabsTrigger value="billing">
               <CreditCard className="mr-2 h-4 w-4" />
               Billing
@@ -117,7 +117,7 @@ export default function SettingsPage() {
               {/* Pass role context dynamically. For now assuming active org context is set in invite dialog or server action */}
               <InvitationsList
                 orgId={(user as any)?.brandId || (user as any)?.locationId} // Simplified context passing
-                allowedRoles={role === 'brand' ? ['brand'] : ['dispensary']}
+                allowedRoles={isBrandRole ? ['brand_admin', 'brand_member'] : ['dispensary_admin', 'dispensary_staff']}
               />
             </CardContent>
           </Card>

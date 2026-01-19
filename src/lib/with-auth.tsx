@@ -29,7 +29,7 @@ export function withAuth<P extends object>(
     return function ProtectedComponent(props: P) {
         const router = useRouter();
         const pathname = usePathname();
-        const { role, isLoading: isAuthLoading, user, defaultRoute, loginRoute } = useUserRole();
+        const { role, isLoading: isAuthLoading, user, defaultRoute, loginRoute, hasAnyRole } = useUserRole();
         const [superAdminChecked, setSuperAdminChecked] = useState(false);
         const [isSuperAdmin, setIsSuperAdmin] = useState(false);
         const [hasSessionCookie, setHasSessionCookie] = useState(false);
@@ -89,7 +89,7 @@ export function withAuth<P extends object>(
 
             // Role check for non-super admins (skip if Firebase is still syncing)
             if (allowedRoles && allowedRoles.length > 0 && user) {
-                if (!role || !allowedRoles.includes(role as Role)) {
+                if (!role || !hasAnyRole(allowedRoles)) {
                     router.push(redirectTo || defaultRoute);
                     return;
                 }
@@ -119,7 +119,7 @@ export function withAuth<P extends object>(
         }
 
         // Regular users need correct role
-        if (allowedRoles && allowedRoles.length > 0 && (!role || !allowedRoles.includes(role as Role))) {
+        if (allowedRoles && allowedRoles.length > 0 && (!role || !hasAnyRole(allowedRoles))) {
             return null;
         }
 

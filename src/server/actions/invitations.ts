@@ -7,6 +7,7 @@ import { requireUser, isSuperUser } from '@/server/auth/auth';
 import type { Invitation, InvitationRole, InvitationStatus } from '@/types/invitation';
 import { CreateInvitationSchema, AcceptInvitationSchema } from '@/types/invitation';
 import { FieldValue } from 'firebase-admin/firestore';
+import { requireBrandAccess, requireDispensaryAccess, requirePermission, isBrandRole, isDispensaryRole, isBrandAdmin, isDispensaryAdmin } from '@/server/auth/rbac';
 
 // --- ACTIONS ---
 
@@ -24,12 +25,23 @@ export async function createInvitationAction(input: z.infer<typeof CreateInvitat
             if (!isSuper) {
                 throw new Error('Unauthorized: Only Super Admins can invite other Super Admins.');
             }
-        } else if (input.role === 'brand' || input.role === 'dispensary') {
-            // Must be admin/owner of that org OR super admin
+        } else if (isBrandRole(input.role)) {
+            // Must be admin of that brand
             if (!input.targetOrgId) {
                 throw new Error('Target Organization ID is required for this role.');
             }
-            // TODO: Add stricter check if user is admin of targetOrgId
+            // Enforce Access & Permission
+            requireBrandAccess(user as any, input.targetOrgId);
+            requirePermission(user as any, 'manage:team');
+            
+        } else if (isDispensaryRole(input.role)) {
+            // Must be admin of that dispensary
+            if (!input.targetOrgId) {
+                throw new Error('Target Organization ID is required for this role.');
+            }
+            // Enforce Access & Permission
+            requireDispensaryAccess(user as any, input.targetOrgId);
+            requirePermission(user as any, 'manage:team');
         }
         
         // Generate Secure Token
@@ -109,14 +121,24 @@ export async function getInvitationsAction(orgId?: string) {
         let query = firestore.collection('invitations').where('status', '==', 'pending');
 
         if (orgId) {
+            // Security: Ensure user has access to this org
+            // We assume orgId matches user's context, but explicit check is safer
+            const userRole = (user as any).role;
+            
+            if (isBrandRole(userRole)) {
+                requireBrandAccess(user as any, orgId);
+            } else if (isDispensaryRole(userRole)) {
+                requireDispensaryAccess(user as any, orgId);
+            }
+            
             query = query.where('targetOrgId', '==', orgId);
         } else {
-            // If no orgId, assume Super Admin looking for system invites
+            // If no orgId, only Super Admin can query all (or filtered by system role)
              const isSuper = await isSuperUser();
              if (isSuper) {
                  query = query.where('role', '==', 'super_admin');
              } else {
-                 return []; // Adding safety
+                 return []; // Unauthorized
              }
         }
 
@@ -139,10 +161,48 @@ export async function getInvitationsAction(orgId?: string) {
  */
 export async function revokeInvitationAction(invitationId: string) {
     try {
-        await requireUser();
+        const user = await requireUser();
         const firestore = getAdminFirestore();
         
-        await firestore.collection('invitations').doc(invitationId).update({
+        const inviteRef = firestore.collection('invitations').doc(invitationId);
+        const inviteDoc = await inviteRef.get();
+        if (!inviteDoc.exists) throw new Error('Invitation not found.');
+        
+        const invite = inviteDoc.data() as Invitation;
+        
+        // Ownership Check: 
+        // 1. Inviter can revoke
+        // 2. Admin of the target org can revoke
+        const isInviter = invite.invitedBy === user.uid;
+        let isAdminOfTarget = false;
+        
+        if (invite.targetOrgId) {
+             const userRole = (user as any).role;
+             if (isBrandRole(userRole)) {
+                  // Check if user is admin of target brand
+                  // requireBrandAccess checks if user is LINKED to brand.
+                  // requirePermission checks if user is ADMIN.
+                  try {
+                      requireBrandAccess(user as any, invite.targetOrgId);
+                      requirePermission(user as any, 'manage:team');
+                      isAdminOfTarget = true;
+                  } catch {}
+             } else if (isDispensaryRole(userRole)) {
+                  try {
+                      requireDispensaryAccess(user as any, invite.targetOrgId);
+                      requirePermission(user as any, 'manage:team');
+                      isAdminOfTarget = true;
+                  } catch {}
+             }
+        }
+        
+        const isSuper = await isSuperUser();
+
+        if (!isInviter && !isAdminOfTarget && !isSuper) {
+             throw new Error('Unauthorized to revoke this invitation.');
+        }
+        
+        await inviteRef.update({
             status: 'revoked'
         });
 

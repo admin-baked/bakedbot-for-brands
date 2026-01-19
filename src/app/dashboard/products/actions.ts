@@ -208,7 +208,22 @@ export async function deleteProduct(productId: string) {
   const { firestore } = await createServerClient();
 
   try {
-    await firestore.collection('products').doc(productId).delete();
+    const productRef = firestore.collection('products').doc(productId);
+    const doc = await productRef.get();
+    
+    if (!doc.exists) return { error: true, message: 'Product not found' };
+    
+    const data = doc.data();
+    // Ownership Check
+    if (user.role !== 'super_user') {
+        const ownerId = user.brandId || user.locationId || user.uid;
+        // Check both brandId and generic ownership fields if they exist
+        if (data?.brandId !== ownerId && data?.dispensaryId !== ownerId) {
+             return { error: true, message: 'Unauthorized: You do not own this product' };
+        }
+    }
+
+    await productRef.delete();
     return { message: 'Product deleted successfully' };
   } catch (error) {
     logger.error('Error deleting product:', error instanceof Error ? error : new Error(String(error)));
@@ -239,7 +254,12 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
   const price = parseFloat(priceStr);
   const imageUrl = formData.get('imageUrl') as string;
   const imageHint = formData.get('imageHint') as string;
-  const brandId = formData.get('brandId') as string || user.brandId;
+  
+  // SECURITY: Enforce brandId from session unless super_user
+  let brandId = user.brandId || user.locationId || user.uid;
+  if (user.role === 'super_user') {
+      brandId = (formData.get('brandId') as string) || brandId;
+  }
 
   // Basic validation
   const errors: Record<string, string[]> = {};
@@ -265,6 +285,14 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
 
   try {
     if (id) {
+      // Ownership check for update
+      if (user.role !== 'super_user') {
+          const existing = await productRepo.getById(id);
+          const ownerId = user.brandId || user.locationId || user.uid;
+          if (existing && existing.brandId !== ownerId && (existing as any).dispensaryId !== ownerId) {
+              return { message: 'Unauthorized update', error: true };
+          }
+      }
       await productRepo.update(id, productData);
       return { message: 'Product updated successfully', error: false };
     } else {

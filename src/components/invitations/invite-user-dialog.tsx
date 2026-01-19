@@ -14,9 +14,11 @@ import { createInvitationAction } from '@/server/actions/invitations';
 import { Loader2, Mail, Copy, Check } from 'lucide-react';
 import { CreateInvitationSchema } from '@/types/invitation';
 
+import { UserRole } from '@/types/roles';
+
 interface InviteUserDialogProps {
     orgId?: string; // Optional context
-    allowedRoles: ('brand' | 'dispensary' | 'super_admin' | 'customer')[];
+    allowedRoles: UserRole[];
     onInviteSent?: () => void;
     trigger?: React.ReactNode;
 }

@@ -1,7 +1,9 @@
 
 import { z } from 'zod';
 
-export type InvitationRole = 'brand' | 'dispensary' | 'super_admin' | 'customer';
+import { UserRole, ROLES } from './roles';
+
+export type InvitationRole = UserRole;
 export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked';
 
 export interface Invitation {
@@ -24,7 +26,7 @@ export interface Invitation {
 
 export const CreateInvitationSchema = z.object({
     email: z.string().email(),
-    role: z.enum(['brand', 'dispensary', 'super_admin', 'customer']),
+    role: z.enum(ROLES), // Use the tuple from roles.ts if available, else standard Zod enum
     targetOrgId: z.string().optional(), // Required if role is brand/dispensary
 });
 

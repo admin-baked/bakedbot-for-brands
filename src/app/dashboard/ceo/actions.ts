@@ -411,6 +411,7 @@ import type { Coupon } from '@/firebase/converters';
 
 export async function getBrands(): Promise<Brand[]> {
   try {
+    await requireUser(['super_user']);
     // Note: getAdminFirestore() uses firebase-admin which bypasses security rules
     const firestore = getAdminFirestore();
     const snapshot = await firestore.collection('brands').get();
@@ -498,6 +499,7 @@ export async function createDispensaryAction(data: {
 
 export async function getDispensaries(): Promise<{ id: string; name: string }[]> {
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const snapshot = await firestore
       .collection('organizations')
@@ -519,6 +521,7 @@ export async function getDispensaries(): Promise<{ id: string; name: string }[]>
 
 export async function getCoupons(): Promise<Coupon[]> {
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const snapshot = await firestore.collection('coupons').get();
 
@@ -780,6 +783,7 @@ import type { EzalInsight, Competitor } from '@/types/ezal-discovery';
 
 export async function getEzalInsights(tenantId: string, limitVal: number = 20): Promise<EzalInsight[]> {
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const snapshot = await firestore
       .collection('ezal_insights')

@@ -50,7 +50,8 @@ export const BRAND_ALL_ROLES: UserRole[] = ['brand_admin', 'brand_member', 'bran
 export const DISPENSARY_ADMIN_ROLES: UserRole[] = ['dispensary_admin', 'dispensary'];
 export const DISPENSARY_ALL_ROLES: UserRole[] = ['dispensary_admin', 'dispensary_staff', 'dispensary', 'budtender'];
 
-export const ALL_ROLES: UserRole[] = [
+// Export as tuple for Zod schemas
+export const ROLES = [
     'super_user',
     'super_admin',
     'brand_admin',
@@ -61,7 +62,9 @@ export const ALL_ROLES: UserRole[] = [
     'dispensary',
     'budtender',
     'customer'
-];
+] as const;
+
+export const ALL_ROLES: UserRole[] = [...ROLES];
 
 export const DASHBOARD_ROLES: UserRole[] = [
     'super_user',

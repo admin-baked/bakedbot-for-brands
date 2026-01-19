@@ -11,9 +11,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Trash2, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
+import { UserRole } from '@/types/roles';
+
 interface InvitationsListProps {
     orgId?: string;
-    allowedRoles: ('brand' | 'dispensary' | 'super_admin' | 'customer')[];
+    allowedRoles: UserRole[];
 }
 
 export function InvitationsList({ orgId, allowedRoles }: InvitationsListProps) {
