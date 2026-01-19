@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { sidecar } from '@/server/services/python-sidecar';
+import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 
 // --- Big Worm (Deep Research) Memory ---
 // For now extending generic AgentMemory, can add specific fields later
@@ -61,8 +62,8 @@ export const bigWormAgent: AgentImplementation<BigWormMemory, BigWormTools> = {
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
             
-            // 1. Tool Definitions
-            const toolsDef = [
+            // 1. Tool Definitions (Agent-specific + Shared Context OS & Letta tools)
+            const bigWormSpecificTools = [
                 {
                     name: "pythonAnalyze",
                     description: "Run advanced data analysis or trend forecasting using Python.",
@@ -78,16 +79,11 @@ export const bigWormAgent: AgentImplementation<BigWormMemory, BigWormTools> = {
                         researchId: z.string(),
                         finding: z.string()
                     })
-                },
-                {
-                    name: "lettaSaveFact",
-                    description: "Save a general fact to memory.",
-                    schema: z.object({
-                        fact: z.string(),
-                        category: z.string().optional()
-                    })
                 }
             ];
+
+            // Combine agent-specific tools with shared Context OS and Letta tools
+            const toolsDef = [...bigWormSpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
 
             try {
                 // === MULTI-STEP PLANNING (Run by Harness + Claude) ===

@@ -3,6 +3,7 @@ import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
+import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 
 export interface DayDayTools {
     auditPage(url: string, pageType: 'dispensary' | 'brand' | 'city' | 'zip'): Promise<any>;
@@ -51,7 +52,8 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
 
-            const toolsDef = [
+            // Tool Definitions (Agent-specific + Shared Context OS & Letta tools)
+            const dayDaySpecificTools = [
                 {
                     name: "auditPage",
                     description: "Run an SEO audit on a specific URL.",
@@ -83,6 +85,9 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
                     schema: z.object({})
                 }
             ];
+
+            // Combine agent-specific tools with shared Context OS and Letta tools
+            const toolsDef = [...dayDaySpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');

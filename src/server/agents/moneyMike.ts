@@ -10,6 +10,7 @@ import { MoneyMikeMemory } from './schemas';
 import { deebo } from './deebo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 
 // ... (Existing Event Handling Code remains unchanged, we only replace the AgentImplementation part)
 
@@ -69,8 +70,8 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;
         
-        // 1. Tool Definitions
-        const toolsDef = [
+        // 1. Tool Definitions (Agent-specific + Shared Context OS & Letta tools)
+        const moneyMikeSpecificTools = [
             {
                 name: "forecastRevenueImpact",
                 description: "Predict how a price change will affect revenue.",
@@ -87,32 +88,11 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
                     newPrice: z.number(),
                     costBasis: z.number()
                 })
-            },
-            {
-                name: "lettaSaveFact",
-                description: "Save a financial rule or insight to memory.",
-                schema: z.object({
-                    fact: z.string(),
-                    category: z.string().optional()
-                })
-            },
-            {
-                name: "lettaUpdateCoreMemory",
-                description: "Update your core persona or knowledge about the user.",
-                schema: z.object({
-                    section: z.enum(['persona', 'human']),
-                    content: z.string()
-                })
-            },
-            {
-                name: "lettaMessageAgent",
-                description: "Send a message to another agent (e.g. Leo, Craig).",
-                schema: z.object({
-                    toAgent: z.string(),
-                    message: z.string()
-                })
             }
         ];
+
+        // Combine agent-specific tools with shared Context OS and Letta tools
+        const toolsDef = [...moneyMikeSpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Claude) ===

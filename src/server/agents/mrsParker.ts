@@ -10,6 +10,7 @@ import { MrsParkerMemory } from './schemas';
 import { deebo } from './deebo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 
 // ... (Existing Event Handling Code remains unchanged, replacing AgentImplementation)
 
@@ -66,7 +67,8 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;
 
-        const toolsDef = [
+        // Tool Definitions (Agent-specific + Shared Context OS & Letta tools)
+        const mrsParkerSpecificTools = [
             {
                 name: "predictChurnRisk",
                 description: "Predict churn probability for a customer or segment.",
@@ -90,32 +92,11 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
                     emailType: z.enum(['welcome', 'onboarding', 'promotion', 'winback']),
                     context: z.record(z.any()).optional()
                 })
-            },
-            {
-                name: "lettaSaveFact",
-                description: "Save a preference or key detail to long-term memory.",
-                schema: z.object({
-                    fact: z.string(),
-                    category: z.string().optional()
-                })
-            },
-            {
-                name: "lettaUpdateCoreMemory",
-                description: "Update your own Core Memory (Persona) with new rules or protocols.",
-                schema: z.object({
-                    section: z.enum(['persona', 'human']),
-                    content: z.string()
-                })
-            },
-            {
-                name: "lettaMessageAgent",
-                description: "Send a message to another agent (e.g. Craig) to request help.",
-                schema: z.object({
-                    toAgent: z.string(),
-                    message: z.string()
-                })
             }
         ];
+
+        // Combine agent-specific tools with shared Context OS and Letta tools
+        const toolsDef = [...mrsParkerSpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Gemini 3) ===

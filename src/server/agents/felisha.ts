@@ -3,6 +3,7 @@ import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
+import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 
 export interface FelishaTools {
     processMeetingTranscript(transcript: string): Promise<any>;
@@ -35,7 +36,8 @@ export const felishaAgent: AgentImplementation<AgentMemory, FelishaTools> = {
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
 
-            const toolsDef = [
+            // Tool Definitions (Agent-specific + Shared Context OS & Letta tools)
+            const felishaSpecificTools = [
                 {
                     name: "processMeetingTranscript",
                     description: "Extract notes and action items from a raw meeting transcript.",
@@ -51,6 +53,9 @@ export const felishaAgent: AgentImplementation<AgentMemory, FelishaTools> = {
                     })
                 }
             ];
+
+            // Combine agent-specific tools with shared Context OS and Letta tools
+            const toolsDef = [...felishaSpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
 
             try {
                 // === MULTI-STEP PLANNING (Run by Harness + Claude) ===

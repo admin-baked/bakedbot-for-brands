@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { computeSkuScore } from '../algorithms/smokey-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 
 // --- Tool Definitions ---
 
@@ -97,8 +98,8 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
         if (targetId === 'user_request' && stimulus) {
              const userQuery = stimulus;
         
-            // 1. Tool Definitions
-            const toolsDef = [
+            // 1. Tool Definitions (Agent-specific + Shared Context OS & Letta tools)
+            const smokeySpecificTools = [
                 {
                     name: "rankProductsForSegment",
                     description: "Find and rank products matching a specific customer segment or need.",
@@ -130,39 +131,11 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                         task: z.string().describe("The user's original request or specific subtask"),
                         context: z.any().optional()
                     })
-                },
-                {
-                    name: "lettaSaveFact",
-                    description: "Save a fact to long-term memory.",
-                    schema: z.object({
-                        fact: z.string(),
-                        category: z.string().optional()
-                    })
-                },
-                {
-                    name: "lettaAsk",
-                    description: "Ask long-term memory a question.",
-                    schema: z.object({
-                        question: z.string()
-                    })
-                },
-                {
-                    name: "lettaUpdateCoreMemory",
-                    description: "Update your core persona or knowledge about the user.",
-                    schema: z.object({
-                        section: z.enum(['persona', 'human']),
-                        content: z.string()
-                    })
-                },
-                {
-                    name: "lettaMessageAgent",
-                    description: "Send a message to another agent (e.g. Leo, Craig).",
-                    schema: z.object({
-                        toAgent: z.string(),
-                        message: z.string()
-                    })
                 }
             ];
+
+            // Combine agent-specific tools with shared Context OS and Letta tools
+            const toolsDef = [...smokeySpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');
