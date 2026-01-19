@@ -10,7 +10,7 @@ import { useUserRole } from '@/hooks/use-user-role';
 import { Loader2, Palette, Image as ImageIcon, Check, Upload } from 'lucide-react';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '@/firebase/client-config';
+import { db, storage } from '@/firebase/client';
 
 interface ThemeConfig {
   primaryColor: string;
