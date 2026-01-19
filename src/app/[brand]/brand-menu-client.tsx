@@ -141,6 +141,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         products={products}
         brandId={brand.id}
         initialOpen={false}
+        chatbotConfig={brand.chatbotConfig}
       />
     </>
   );

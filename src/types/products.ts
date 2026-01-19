@@ -10,6 +10,9 @@ export type Brand = {
         personality?: string;
         tone?: string;
         sellingPoints?: string;
+        enabled?: boolean; // Toggle chatbot on/off
+        botName?: string; // Custom name (Empire only)
+        mascotImageUrl?: string; // Custom mascot image (Empire only)
         updatedAt?: any;
     };
     theme?: {
