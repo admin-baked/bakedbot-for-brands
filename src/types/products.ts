@@ -12,6 +12,11 @@ export type Brand = {
         sellingPoints?: string;
         updatedAt?: any;
     };
+    theme?: {
+        primaryColor?: string;
+        secondaryColor?: string;
+        heroImageUrl?: string;
+    };
     verificationStatus?: 'verified' | 'unverified' | 'featured';
     dispensaryCount?: number;
     slug?: string;

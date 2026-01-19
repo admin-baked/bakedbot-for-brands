@@ -16,10 +16,15 @@ interface BrandMenuClientProps {
   brandSlug: string;
 }
 
+const DEFAULT_PRIMARY_COLOR = '#16a34a';
+
 export function BrandMenuClient({ brand, products, retailers, brandSlug }: BrandMenuClientProps) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const { addToCart } = useStore();
+
+  // Extract theme color with fallback
+  const primaryColor = brand.theme?.primaryColor || DEFAULT_PRIMARY_COLOR;
 
   // Load favorites from localStorage on mount
   useEffect(() => {
@@ -49,8 +54,19 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug }: Brand
   return (
     <>
       <div className="container mx-auto py-12 px-4 md:px-8">
+        {/* Hero Image */}
+        {brand.theme?.heroImageUrl && (
+          <div className="mb-12 -mt-4 -mx-4 md:-mx-8">
+            <img
+              src={brand.theme.heroImageUrl}
+              alt={`${brand.name} banner`}
+              className="w-full h-48 md:h-64 object-cover"
+            />
+          </div>
+        )}
+
         <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-8">Our Products</h2>
+          <h2 className="text-3xl font-bold mb-8" style={{ color: primaryColor }}>Our Products</h2>
           <ProductGrid
             products={products}
             isLoading={false}
@@ -90,6 +106,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug }: Brand
         onAddToCart={handleAddToCart}
         onFavorite={toggleFavorite}
         isFavorite={selectedProduct ? favorites.has(selectedProduct.id) : false}
+        primaryColor={primaryColor}
       />
 
       {/* Chatbot integrated with real products */}
