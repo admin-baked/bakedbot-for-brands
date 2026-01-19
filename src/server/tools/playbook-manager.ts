@@ -42,6 +42,7 @@ export async function createPlaybook(params: CreatePlaybookParams) {
             description: params.description,
             steps: params.steps,
             active: params.active ?? true,
+            status: (params.active ?? true) ? 'active' : 'draft', // Ensure status reflects active state
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
             schedule: params.schedule || null
@@ -69,5 +70,39 @@ export async function createPlaybook(params: CreatePlaybookParams) {
     } catch (error: any) {
         console.error('[createPlaybook] Error:', error);
         return { success: false, error: error.message };
+    }
+}
+
+export async function getPlaybook(playbookId: string) {
+    const db = getAdminFirestore();
+    const doc = await db.collection('playbooks').doc(playbookId).get();
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() } as any;
+}
+
+export async function executePlaybook(playbookId: string) {
+    try {
+        const playbook = await getPlaybook(playbookId);
+        if (!playbook) throw new Error(`Playbook ${playbookId} not found`);
+
+        if (!playbook.active) throw new Error(`Playbook ${playbookId} is not active`);
+
+        const stepsPrompt = playbook.steps.map((s: any, i: number) => 
+            `${i + 1}. ${s.action} ${JSON.stringify(s.params || {})}`
+        ).join('\n');
+
+        const prompt = `CORE DIRECTIVE: Execute the following playbook "${playbook.name}" immediately.\n\nDescription: ${playbook.description}\n\nSteps:\n${stepsPrompt}\n\nReport status upon completion.`;
+
+        const targetAgent = playbook.agentId || 'linus'; 
+
+        const { runAgentChat } = await import('@/app/dashboard/ceo/agents/actions');
+        
+        const result = await runAgentChat(prompt, targetAgent as any, { source: 'pulse' });
+
+        return { success: true, agentResponse: result };
+
+    } catch (error: any) {
+         console.error('[executePlaybook] Error:', error);
+         return { success: false, error: error.message };
     }
 }

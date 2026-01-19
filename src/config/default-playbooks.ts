@@ -50,8 +50,8 @@ steps:
       { id: 'trigger-2', type: 'event', name: 'Price Change Event', config: { eventPattern: 'competitor.price.changed' }, enabled: true }
     ],
     steps: [
-      { action: 'delegate', params: { agent: 'ezal', task: 'Scan competitor menus' } },
-      { action: 'analyze', params: { agent: 'money_mike' } },
+      { action: 'delegate', params: { agent: 'ezal', task: 'Scan competitor menus' }, retryOnFailure: true },
+      { action: 'analyze', params: { agent: 'money_mike' }, retryOnFailure: true, validationThreshold: 85 },
       { action: 'notify', params: { channels: ['email', 'sms'] } }
     ],
     runCount: 0,
@@ -115,9 +115,9 @@ steps:
       { id: 'trigger-2', type: 'event', name: 'Low Stock Alert', config: { eventPattern: 'inventory.low_stock' }, enabled: true }
     ],
     steps: [
-      { action: 'query', params: { agent: 'pops' } },
-      { action: 'forecast', params: { agent: 'pops' } },
-      { action: 'analyze', params: { agent: 'money_mike' } },
+      { action: 'query', params: { agent: 'pops' }, retryOnFailure: true },
+      { action: 'forecast', params: { agent: 'pops' }, retryOnFailure: true, validationThreshold: 80 },
+      { action: 'analyze', params: { agent: 'money_mike' }, retryOnFailure: true, validationThreshold: 90 },
       { action: 'notify', params: { channels: ['email'] } }
     ],
     runCount: 0,
@@ -197,10 +197,10 @@ steps:
       { id: 'trigger-3', type: 'manual', name: 'On Demand', config: {}, enabled: true }
     ],
     steps: [
-      { action: 'query', params: { agent: 'pops' } },
-      { action: 'generate', params: { agent: 'craig', type: 'blog' } },
-      { action: 'generate', params: { agent: 'craig', type: 'social' } },
-      { action: 'review', params: { agent: 'deebo' } },
+      { action: 'query', params: { agent: 'pops', task: 'trend_analysis' }, retryOnFailure: true },
+      { action: 'generate', params: { agent: 'craig', type: 'blog' }, retryOnFailure: true, validationThreshold: 85 },
+      { action: 'generate', params: { agent: 'craig', type: 'social' }, retryOnFailure: true, validationThreshold: 80 },
+      { action: 'review', params: { agent: 'deebo', task: 'compliance_review' }, retryOnFailure: true },
       { action: 'notify', params: { channels: ['email'] } }
     ],
     runCount: 0,
@@ -296,10 +296,10 @@ steps:
       { id: 'trigger-2', type: 'event', name: 'Manual Kickoff', config: { eventPattern: 'daily.kickoff' }, enabled: true }
     ],
     steps: [
-      { action: 'parallel', params: { agents: ['smokey', 'ezal', 'pops'] } },
-      { action: 'delegate', params: { agent: 'money_mike' } },
-      { action: 'delegate', params: { agent: 'craig' } },
-      { action: 'delegate', params: { agent: 'deebo' } },
+      { action: 'parallel', params: { agents: ['smokey', 'ezal', 'pops'] }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'money_mike' }, retryOnFailure: true, validationThreshold: 85 },
+      { action: 'delegate', params: { agent: 'craig' }, retryOnFailure: true, validationThreshold: 85 },
+      { action: 'delegate', params: { agent: 'deebo' }, retryOnFailure: true, validationThreshold: 100 },
       { action: 'notify', params: { channels: ['email', 'sms'] } }
     ],
     runCount: 0,
@@ -402,10 +402,10 @@ steps:
       { id: 'trigger-3', type: 'event', name: 'Price Change', config: { eventPattern: 'competitor.price.changed' }, enabled: true }
     ],
     steps: [
-      { action: 'parallel', params: { agents: ['ezal'] } },
-      { action: 'delegate', params: { agent: 'money_mike' } },
-      { action: 'generate', params: { type: 'table' } },
-      { action: 'apply', params: { autoApply: true, threshold: 85 } },
+      { action: 'parallel', params: { agents: ['ezal'] }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'money_mike' }, retryOnFailure: true, validationThreshold: 90 },
+      { action: 'generate', params: { type: 'table' }, retryOnFailure: true },
+      { action: 'apply', params: { autoApply: true, threshold: 85 }, agent: 'money_mike', retryOnFailure: true, validationThreshold: 95 },
       { action: 'notify', params: { channels: ['email', 'dashboard'] } }
     ],
     runCount: 0,
@@ -464,10 +464,10 @@ steps:
       { id: 'trigger-2', type: 'event', name: 'Signup', config: { eventPattern: 'user.signup' }, enabled: true }
     ],
     steps: [
-      { action: 'query', params: { agent: 'pops' } },
-      { action: 'parallel', params: { agent: 'craig' } },
-      { action: 'delegate', params: { agent: 'deebo' } },
-      { action: 'send_email', params: { track: true } }
+      { action: 'query', params: { agent: 'pops', task: 'segmentation' }, retryOnFailure: true },
+      { action: 'parallel', params: { agent: 'craig', task: 'content_generation' }, retryOnFailure: true, validationThreshold: 90 },
+      { action: 'delegate', params: { agent: 'deebo', task: 'compliance_check' }, retryOnFailure: true, validationThreshold: 100 },
+      { action: 'send_email', params: { track: true }, retryOnFailure: true }
     ],
     runCount: 0,
     successCount: 0,
@@ -581,10 +581,10 @@ steps:
       { id: 'trigger-3', type: 'event', name: 'Queue Alert', config: { eventPattern: 'vision.queue_long' }, enabled: true }
     ],
     steps: [
-      { action: 'query', params: { agent: 'pops', data: 'vision' } },
-      { action: 'delegate', params: { agent: 'smokey' } },
-      { action: 'delegate', params: { agent: 'money_mike' } },
-      { action: 'generate', params: { type: 'recommendations' } },
+      { action: 'query', params: { agent: 'pops', data: 'vision' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'smokey' }, retryOnFailure: true, validationThreshold: 80 },
+      { action: 'delegate', params: { agent: 'money_mike' }, retryOnFailure: true, validationThreshold: 85 },
+      { action: 'generate', params: { type: 'recommendations' }, retryOnFailure: true },
       { action: 'notify', params: { channels: ['email', 'dashboard'] } }
     ],
     runCount: 0,
@@ -694,11 +694,11 @@ steps:
       { id: 'trigger-2', type: 'manual', name: 'Manual Join', config: {}, enabled: true }
     ],
     steps: [
-      { action: 'join_meeting', params: { agent: 'smokey' } },
-      { action: 'transcribe', params: { language: 'auto' } },
-      { action: 'delegate', params: { agent: 'smokey', task: 'notes' } },
-      { action: 'delegate', params: { agent: 'pops', task: 'recommendations' } },
-      { action: 'generate', params: { type: 'recommendations' } },
+      { action: 'join_meeting', params: { agent: 'smokey' }, retryOnFailure: true },
+      { action: 'transcribe', params: { language: 'auto' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'smokey', task: 'notes' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'pops', task: 'recommendations' }, retryOnFailure: true, validationThreshold: 80 },
+      { action: 'generate', params: { type: 'recommendations' }, retryOnFailure: true },
       { action: 'notify', params: { channels: ['email', 'dashboard'] } }
     ],
     runCount: 0,
@@ -784,9 +784,9 @@ steps:
       { id: 'trigger-2', type: 'manual', name: 'Manual Run', config: {}, enabled: true }
     ],
     steps: [
-      { action: 'parallel', params: { agents: ['deebo'], tasks: ['scan_compliance'] } },
-      { action: 'analyze', params: { agent: 'deebo', task: 'diff_knowledge' } },
-      { action: 'queue_discovery', params: { status: 'pending_review' } },
+      { action: 'parallel', params: { agents: ['deebo'], tasks: ['scan_compliance'] }, retryOnFailure: true },
+      { action: 'analyze', params: { agent: 'deebo', task: 'diff_knowledge' }, retryOnFailure: true },
+      { action: 'queue_discovery', params: { status: 'pending_review' }, retryOnFailure: true },
       { action: 'notify', params: { channels: ['dashboard', 'email'] } }
     ],
     runCount: 0,
@@ -834,8 +834,8 @@ steps:
         { id: 'trigger-2', type: 'manual', name: 'Manual Run', config: {}, enabled: true }
     ],
     steps: [
-        { action: 'tool', params: { tool: 'intel.scanCompetitors' } },
-        { action: 'tool', params: { tool: 'intel.generateCompetitiveReport' } },
+        { action: 'tool', params: { tool: 'intel.scanCompetitors' }, retryOnFailure: true },
+        { action: 'tool', params: { tool: 'intel.generateCompetitiveReport' }, retryOnFailure: true },
         { action: 'notify', params: { channels: ['dashboard', 'email'] } }
     ],
     runCount: 0,
@@ -915,9 +915,9 @@ steps:
         { id: 'trigger-2', type: 'manual', name: 'Run Now', config: {}, enabled: true }
     ],
     steps: [
-        { action: 'tool', params: { tool: 'intel.generateWeeklyReport' } },
-        { action: 'delegate', params: { agent: 'pops', task: 'market_analysis' } },
-        { action: 'delegate', params: { agent: 'money_mike', task: 'recommendations' } },
+        { action: 'tool', params: { tool: 'intel.generateWeeklyReport' }, retryOnFailure: true },
+        { action: 'delegate', params: { agent: 'pops', task: 'market_analysis' }, retryOnFailure: true },
+        { action: 'delegate', params: { agent: 'money_mike', task: 'recommendations' }, retryOnFailure: true, validationThreshold: 85 },
         { action: 'notify', params: { channels: ['email', 'dashboard'] } }
     ],
     runCount: 0,
@@ -1013,10 +1013,10 @@ steps:
       { id: 'trigger-2', type: 'manual', name: 'Manual Run', config: {}, enabled: true }
     ],
     steps: [
-      { action: 'tool', params: { tool: 'weedmaps.discover', agent: 'ezal' } },
-      { action: 'transform', params: { agent: 'ezal' } },
-      { action: 'tool', params: { tool: 'sheets.append' } },
-      { action: 'delegate', params: { agent: 'pops' } },
+      { action: 'tool', params: { tool: 'weedmaps.discover', agent: 'ezal' }, retryOnFailure: true },
+      { action: 'transform', params: { agent: 'ezal' }, retryOnFailure: true },
+      { action: 'tool', params: { tool: 'sheets.append' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'pops' }, retryOnFailure: true },
       { action: 'notify', params: { channels: ['dashboard'] } }
     ],
     runCount: 0,
@@ -1071,12 +1071,14 @@ steps:
       {
         id: 'scan',
         action: 'discovery.scan',
-        params: { url: '{{config.target_urls}}' }
+        params: { url: '{{config.target_urls}}' },
+        retryOnFailure: true
       },
       {
         id: 'submit',
         action: 'tracker.submit',
-        params: { orgs: '{{scan.data}}' }
+        params: { orgs: '{{scan.data}}' },
+        retryOnFailure: true
       }
     ],
     runCount: 0,
@@ -1142,8 +1144,8 @@ steps:
       { id: 'trigger-2', type: 'manual', name: 'Run Now', config: {}, enabled: true }
     ],
     steps: [
-      { action: 'tool', params: { tool: 'intel.scanCompetitors', agent: 'ezal' } },
-      { action: 'delegate', params: { agent: 'money_mike' } },
+      { action: 'tool', params: { tool: 'intel.scanCompetitors', agent: 'ezal' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'money_mike' }, retryOnFailure: true, validationThreshold: 85 },
       { action: 'notify', params: { channels: ['email', 'dashboard'], conditional: true } }
     ],
     runCount: 0,
@@ -1218,8 +1220,8 @@ steps:
       { id: 'trigger-2', type: 'manual', name: 'Generate', config: {}, enabled: true }
     ],
     steps: [
-      { action: 'delegate', params: { agent: 'smokey', task: 'generate_response' } },
-      { action: 'delegate', params: { agent: 'deebo', task: 'compliance_check' } },
+      { action: 'delegate', params: { agent: 'smokey', task: 'generate_response' }, retryOnFailure: true, validationThreshold: 90 },
+      { action: 'delegate', params: { agent: 'deebo', task: 'compliance_check' }, retryOnFailure: true, validationThreshold: 100 },
       { action: 'tool', params: { tool: 'reviews.postResponse', conditional: true } },
       { action: 'notify', params: { channels: ['dashboard'] } }
     ],
@@ -1288,9 +1290,9 @@ steps:
       { id: 'trigger-2', type: 'manual', name: 'Run Now', config: {}, enabled: true }
     ],
     steps: [
-      { action: 'tool', params: { tool: 'crm.findInactiveCustomers', agent: 'mrs_parker' } },
-      { action: 'delegate', params: { agent: 'craig', task: 'personalize' } },
-      { action: 'tool', params: { tool: 'email.sendBatch' } },
+      { action: 'tool', params: { tool: 'crm.findInactiveCustomers', agent: 'mrs_parker' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'craig', task: 'personalize' }, retryOnFailure: true, validationThreshold: 95 },
+      { action: 'tool', params: { tool: 'email.sendBatch' }, retryOnFailure: true },
       { action: 'notify', params: { channels: ['dashboard'] } }
     ],
     runCount: 0,
@@ -1367,9 +1369,9 @@ steps:
       { id: 'trigger-2', type: 'manual', name: 'Generate', config: {}, enabled: true }
     ],
     steps: [
-      { action: 'tool', params: { tool: 'pos.getTopSellers', agent: 'pops' } },
-      { action: 'delegate', params: { agent: 'money_mike', conditional: true } },
-      { action: 'delegate', params: { agent: 'pops', task: 'summary' } },
+      { action: 'tool', params: { tool: 'pos.getTopSellers', agent: 'pops' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'money_mike', conditional: true }, retryOnFailure: true, validationThreshold: 85 },
+      { action: 'delegate', params: { agent: 'pops', task: 'summary' }, retryOnFailure: true },
       { action: 'notify', params: { channels: ['email'] } }
     ],
     runCount: 0,
@@ -1439,8 +1441,8 @@ steps:
       { id: 'trigger-3', type: 'manual', name: 'Check Now', config: {}, enabled: true }
     ],
     steps: [
-      { action: 'tool', params: { tool: 'pos.getInventory', agent: 'pops' } },
-      { action: 'delegate', params: { agent: 'smokey', task: 'analyze' } },
+      { action: 'tool', params: { tool: 'pos.getInventory', agent: 'pops' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'smokey', task: 'analyze' }, retryOnFailure: true, validationThreshold: 80 },
       { action: 'notify', params: { channels: ['dashboard', 'email'], conditional: true } }
     ],
     runCount: 0,
@@ -1505,8 +1507,8 @@ steps:
       { id: 'trigger-2', type: 'manual', name: 'Check Now', config: {}, enabled: true }
     ],
     steps: [
-      { action: 'tool', params: { tool: 'scanner.scanMenus', agent: 'ezal' } },
-      { action: 'delegate', params: { agent: 'money_mike' } },
+      { action: 'tool', params: { tool: 'scanner.scanMenus', agent: 'ezal' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'money_mike' }, retryOnFailure: true, validationThreshold: 90 },
       { action: 'notify', params: { channels: ['email', 'dashboard'], conditional: true } }
     ],
     runCount: 0,
@@ -1577,9 +1579,9 @@ steps:
       { id: 'trigger-2', type: 'manual', name: 'Run Search', config: {}, enabled: true }
     ],
     steps: [
-      { action: 'tool', params: { tool: 'intel.findNewLicenses', agent: 'deebo' } },
-      { action: 'delegate', params: { agent: 'craig' } },
-      { action: 'tool', params: { tool: 'email.sendBatch', conditional: true } },
+      { action: 'tool', params: { tool: 'intel.findNewLicenses', agent: 'deebo' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'craig' }, retryOnFailure: true, validationThreshold: 90 },
+      { action: 'tool', params: { tool: 'email.sendBatch', conditional: true }, retryOnFailure: true },
       { action: 'notify', params: { channels: ['dashboard'] } }
     ],
     runCount: 0,
@@ -1644,8 +1646,8 @@ steps:
       { id: 'trigger-2', type: 'manual', name: 'Check Now', config: {}, enabled: true }
     ],
     steps: [
-      { action: 'tool', params: { tool: 'scanner.checkAvailability', agent: 'pops' } },
-      { action: 'delegate', params: { agent: 'craig' } },
+      { action: 'tool', params: { tool: 'scanner.checkAvailability', agent: 'pops' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'craig' }, retryOnFailure: true, validationThreshold: 90 },
       { action: 'notify', params: { channels: ['email', 'dashboard'], conditional: true } }
     ],
     runCount: 0,
@@ -2065,6 +2067,331 @@ steps:
     successCount: 0,
     failureCount: 0,
     version: 1
+  },
+
+  // 11. Daily Financial Summary (Super User)
+  {
+    name: 'Daily Financial Summary',
+    description: 'Automated daily revenue and margin analysis with strict financial validation.',
+    status: 'draft',
+    yaml: `name: Daily Financial Summary
+description: Daily revenue and margin check with validation
+triggers:
+  - type: schedule
+    cron: "0 8 * * *"
+steps:
+  - action: query
+    agent: pops
+    task: Aggregate yesterday's revenue
+    retryOnFailure: true
+  - action: analyze
+    agent: money_mike
+    task: Calculate margins vs targets
+  - action: notify
+    channels: [email, dashboard]
+    to: "{{user.email}}"
+    subject: "💰 Daily Financial Summary"
+    body: "{{money_mike.analysis}}"
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Daily Morning', config: { cron: '0 8 * * *' }, enabled: true }
+    ],
+    steps: [
+      { action: 'query', params: { agent: 'pops', task: 'revenue_aggregation' }, retryOnFailure: true, maxRetries: 3 },
+      { action: 'analyze', params: { agent: 'money_mike', task: 'margin_calc' } },
+      { action: 'notify', params: { channels: ['email', 'dashboard'] } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1,
+    agent: 'money_mike',
+    category: 'reporting',
+    ownerId: 'system',
+    isCustom: false,
+    requiresApproval: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: 'system',
+    orgId: 'system'
+  },
+
+  // 12. System Health Pipeline (Super User)
+  {
+    name: 'System Health Pipeline',
+    description: 'Monitor API latency, database connections, and webhook endpoints with technical validation.',
+    status: 'draft',
+    yaml: `name: System Health Pipeline
+description: Technical health check with self-healing validation
+triggers:
+  - type: schedule
+    cron: "0 * * * *" # Hourly
+steps:
+  - action: check_health
+    agent: linus
+    task: Verify API latency and database connectivity
+    retryOnFailure: true
+    validationThreshold: 90
+  - action: notify
+    condition: "{{linus.status != 'healthy'}}"
+    channels: [sms]
+    to: "{{user.phone}}"
+    subject: "🚨 System Health Alert"
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Hourly Check', config: { cron: '0 * * * *' }, enabled: true }
+    ],
+    steps: [
+      { action: 'check_health', params: { agent: 'linus' }, retryOnFailure: true, validationThreshold: 90 },
+      { action: 'notify', params: { channels: ['sms'] }, condition: "{{linus.status != 'healthy'}}" }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1,
+    agent: 'linus',
+    category: 'ops',
+    ownerId: 'system',
+    isCustom: false,
+    requiresApproval: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: 'system',
+    orgId: 'system'
+  },
+
+  // 13. POS Reconciliation (Dispensary)
+  {
+    name: 'POS Reconciliation',
+    description: 'Compare POS transaction logs with expected drawer counts. Validates financial integrity.',
+    status: 'draft',
+    yaml: `name: POS Reconciliation
+description: Validate POS transactions against drawer counts
+triggers:
+  - type: schedule
+    cron: "0 6 * * *"
+steps:
+  - action: query
+    agent: pops
+    task: Fetch POS transactions
+    retryOnFailure: true
+  - action: analyze
+    agent: money_mike
+    task: Compare to expected drawer count
+  - condition: "{{money_mike.discrepancy > 5}}"
+    action: notify
+    channels: [sms]
+    urgency: high
+    message: "⚠️ Cash drawer discrepancy detected: \${{money_mike.discrepancy}}"
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Daily Audit', config: { cron: '0 6 * * *' }, enabled: true }
+    ],
+    steps: [
+      { action: 'query', params: { agent: 'pops', task: 'pos_fetch' }, retryOnFailure: true },
+      { action: 'analyze', params: { agent: 'money_mike', task: 'drawer_compare' } },
+      { action: 'notify', params: { channels: ['sms'] }, condition: "{{money_mike.discrepancy > 5}}" }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1,
+    agent: 'pops',
+    category: 'ops',
+    ownerId: 'system',
+    isCustom: false,
+    requiresApproval: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: 'system',
+    orgId: 'system'
+  },
+
+  // 14. Inventory Audit (Dispensary)
+  {
+    name: 'Inventory Audit',
+    description: 'Cross-reference METRC data with physical inventory counts. Validates compliance and data accuracy.',
+    status: 'draft',
+    yaml: `name: Inventory Audit
+description: METRC vs Physical Inventory Check
+triggers:
+  - type: schedule
+    cron: "0 23 * * 0" # Weekly on Sunday
+steps:
+  - action: query
+    agent: pops
+    task: Fetch METRC package data
+    retryOnFailure: true
+  - action: analyze
+    agent: smokey
+    task: Compare with latest cycle count
+  - action: report
+    agent: deebo
+    task: Generate compliance discrepancy report
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Weekly Audit', config: { cron: '0 23 * * 0' }, enabled: true }
+    ],
+    steps: [
+      { action: 'query', params: { agent: 'pops', task: 'metrc_fetch' }, retryOnFailure: true },
+      { action: 'analyze', params: { agent: 'smokey', task: 'cycle_count_compare' } },
+      { action: 'report', params: { agent: 'deebo', task: 'compliance_report' } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1,
+    agent: 'deebo',
+    category: 'compliance',
+    ownerId: 'system',
+    isCustom: false,
+    requiresApproval: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: 'system',
+    orgId: 'system'
+  },
+
+  // 15. Product Launch Validator (Brand)
+  {
+    name: 'Product Launch Validator',
+    description: 'Ensure new products meet compliance and SEO standards before launch. Prevents costly take-downs.',
+    status: 'draft',
+    yaml: `name: Product Launch Validator
+description: Compliance and SEO check for new products
+triggers:
+  - type: event
+    pattern: "product.created"
+steps:
+  - action: validate
+    agent: deebo
+    task: Check product image compliance
+    retryOnFailure: false
+  - action: generate
+    agent: craig
+    task: Create SEO description
+    retryOnFailure: true
+  - action: validate
+    agent: deebo
+    task: Compliance check on copy
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'event', name: 'New Product', config: { eventPattern: 'product.created' }, enabled: true }
+    ],
+    steps: [
+      { action: 'validate', params: { agent: 'deebo', task: 'image_check' }, retryOnFailure: false },
+      { action: 'generate', params: { agent: 'craig', task: 'seo_desc' }, retryOnFailure: true },
+      { action: 'validate', params: { agent: 'deebo', task: 'copy_check' } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1,
+    agent: 'deebo',
+    category: 'compliance',
+    ownerId: 'system',
+    isCustom: false,
+    requiresApproval: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: 'system',
+    orgId: 'system'
+  },
+
+  // 16. Weekly Brand Performance (Brand)
+  {
+    name: 'Weekly Brand Performance',
+    description: 'Weekly sales and margin report for Brand Managers. Tracks sell-through and competitive positioning.',
+    status: 'draft',
+    yaml: `name: Weekly Brand Performance
+description: Weekly sales and margin check
+triggers:
+  - type: schedule
+    cron: "0 9 * * 1" # Weekly Monday 9am
+steps:
+  - action: query
+    agent: pops
+    task: Aggregate weekly sales by SKU
+    retryOnFailure: true
+  - action: analyze
+    agent: money_mike
+    task: Compare sales against weekly targets
+  - action: forecast
+    agent: money_mike
+    task: Forecast next week demand
+  - action: notify
+    channels: [email]
+    to: "{{user.email}}"
+    subject: "📈 Weekly Brand Performance"
+`,
+    triggers: [
+      { id: 'trigger-1', type: 'schedule', name: 'Weekly Monday', config: { cron: '0 9 * * 1' }, enabled: true }
+    ],
+    steps: [
+      { action: 'query', params: { agent: 'pops', task: 'sales_agg' }, retryOnFailure: true },
+      { action: 'analyze', params: { agent: 'money_mike', task: 'target_compare' } },
+      { action: 'forecast', params: { agent: 'money_mike', task: 'demand_forecast' } },
+      { action: 'notify', params: { channels: ['email'] } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1,
+    agent: 'money_mike',
+    category: 'reporting',
+    ownerId: 'system',
+    isCustom: false,
+    requiresApproval: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: 'system',
+    orgId: 'system'
+  },
+  // 26. Linus Zero Bug Tolerance
+  {
+    name: 'Protocol: Zero Bug Tolerance',
+    description: 'Proactive bug hunting and codebase health verification by Linus (CTO).',
+    status: 'active',
+    yaml: `name: Protocol: Zero Bug Tolerance
+description: Pulse check for codebase health
+triggers:
+  - type: schedule
+    cron: "0 * * * *" # Hourly
+steps:
+  - action: git_log
+    count: 5
+  - action: run_health_check
+    scope: build_only
+  - action: search_codebase
+    pattern: "FIXME"
+`,
+    triggers: [
+       { id: 'linus-pulse', type: 'schedule', name: 'Hourly Pulse', config: { cron: '0 * * * *' }, enabled: true }
+    ],
+    steps: [
+        { action: 'git_log', params: { count: 5 } },
+        { action: 'run_health_check', params: { scope: 'build_only' } },
+        { action: 'read_support_tickets', params: { status: 'new', limit: 5 } },
+        { action: 'search_codebase', params: { pattern: 'FIXME|TODO: HIGH PRIORITY' } },
+        { action: 'context_log_decision', params: { decision: 'Completed Routine Sweep', reasoning: 'Hourly Pulse', category: 'operations' } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1,
+    schedule: '0 * * * *',
+    agentId: 'linus',
+    
+    // Fields that match the previous item's structure
+    agent: 'linus',
+    category: 'operations',
+    ownerId: 'system',
+    isCustom: false,
+    requiresApproval: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: 'system',
+    orgId: 'system'
   }
 ];
 

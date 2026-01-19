@@ -4,11 +4,17 @@
 /**
  * Playbook Executor
  * Runs playbook workflows by delegating to appropriate agents
+ * 
+ * Integrates with .claude/hooks/validators for self-validating agent pattern.
  */
 
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import { FieldValue } from 'firebase-admin/firestore';
+
+// Validation Pipeline - Self-Validating Agent Pattern
+import { createValidationPipeline } from '@/server/validators/validation-pipeline';
+import type { ValidationResult } from '@/server/validators/base-validator';
 
 // Types
 export interface PlaybookExecutionRequest {
@@ -37,6 +43,15 @@ export interface StepResult {
     completedAt?: Date;
     output?: any;
     error?: string;
+    // Validation tracking
+    validation?: {
+        valid: boolean;
+        score: number;
+        issues: string[];
+        remediation?: string;
+        validatorsRun?: string[];
+    };
+    retryCount?: number;
 }
 
 // Agent Handler Types
@@ -310,6 +325,116 @@ function getNestedValue(obj: any, path: string): any {
 }
 
 // =============================================================================
+// VALIDATION - Self-Validating Agent Pattern
+// =============================================================================
+
+interface ValidationInfo {
+    valid: boolean;
+    score: number;
+    issues: string[];
+    remediation?: string;
+    validatorsRun?: string[];
+}
+
+/**
+ * Run validation pipeline for a step if it has an agent specified.
+ * Returns validation result that can be used for retry logic.
+ */
+async function runStepValidation(
+    step: any,
+    output: any,
+    context: ExecutionContext
+): Promise<ValidationInfo | null> {
+    const agent = step.agent || step.params?.agent;
+    
+    // No agent means no validation
+    if (!agent) {
+        return null;
+    }
+    
+    try {
+        const pipeline = createValidationPipeline(agent);
+        const action = step.action || 'delegate';
+        const params = step.params || {};
+        
+        const result = await pipeline.validate(action, params, output);
+        
+        logger.info('[PlaybookExecutor] Validation result:', {
+            agent,
+            action,
+            valid: result.valid,
+            score: result.score,
+            issues: result.issues,
+        });
+        
+        return {
+            valid: result.valid,
+            score: result.score,
+            issues: result.issues,
+            remediation: result.remediation,
+            validatorsRun: result.metadata?.validatorsRun as string[] | undefined,
+        };
+    } catch (error) {
+        logger.warn('[PlaybookExecutor] Validation error:', {
+            agent,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        // Validation errors don't fail the step, just log
+        return null;
+    }
+}
+
+/**
+ * Execute a step with validation and optional retry
+ */
+async function executeStepWithValidation(
+    step: any,
+    context: ExecutionContext,
+    stepExecutor: () => Promise<any>,
+    maxRetries: number = 3
+): Promise<{ output: any; validation: ValidationInfo | null; retryCount: number }> {
+    let output: any;
+    let validation: ValidationInfo | null = null;
+    let retryCount = 0;
+    
+    const shouldRetry = step.retryOnFailure === true;
+    const threshold = step.validationThreshold ?? 60;
+    
+    while (retryCount <= maxRetries) {
+        // Execute the step
+        output = await stepExecutor();
+        
+        // Run validation
+        validation = await runStepValidation(step, output, context);
+        
+        // If no validation or passed, we're done
+        if (!validation || validation.valid || validation.score >= threshold) {
+            break;
+        }
+        
+        // If validation failed and retry is enabled
+        if (shouldRetry && retryCount < maxRetries) {
+            logger.info('[PlaybookExecutor] Retrying step due to validation failure:', {
+                retryCount: retryCount + 1,
+                score: validation.score,
+                threshold,
+                remediation: validation.remediation,
+            });
+            
+            // Add remediation context for next attempt
+            context.variables._remediation = validation.remediation;
+            context.variables._previousIssues = validation.issues;
+            retryCount++;
+        } else {
+            // No retry, exit loop
+            break;
+        }
+    }
+    
+    return { output, validation, retryCount };
+}
+
+// =============================================================================
 // MAIN EXECUTOR
 // =============================================================================
 
@@ -419,6 +544,59 @@ export async function executePlaybook(
                     default:
                         logger.warn('[PlaybookExecutor] Unknown action:', step.action);
                         output = { warning: `Unknown action: ${step.action}` };
+                }
+
+                // Run validation if step has an agent
+                const validation = await runStepValidation(step, output, context);
+                if (validation) {
+                    stepResult.validation = validation;
+                    
+                    // If validation failed and retry is enabled, handle retry
+                    if (!validation.valid && step.retryOnFailure) {
+                        const maxRetries = step.maxRetries ?? 3;
+                        const threshold = step.validationThreshold ?? 60;
+                        let retryCount = 0;
+                        
+                        while (!stepResult.validation?.valid && 
+                               (stepResult.validation?.score ?? 0) < threshold && 
+                               retryCount < maxRetries) {
+                            retryCount++;
+                            logger.info('[PlaybookExecutor] Retrying step:', {
+                                stepIndex: i,
+                                retryCount,
+                                score: stepResult.validation?.score,
+                            });
+                            
+                            // Add remediation context
+                            context.variables._remediation = validation.remediation;
+                            
+                            // Re-execute the step (simplified - uses same action)
+                            switch (step.action) {
+                                case 'delegate':
+                                case 'analyze':
+                                case 'forecast':
+                                case 'review':
+                                    output = await executeDelegate(step, context);
+                                    break;
+                                case 'query':
+                                    output = await executeQuery(step, context);
+                                    break;
+                                case 'generate':
+                                    output = await executeGenerate(step, context);
+                                    break;
+                                default:
+                                    break;
+                            }
+                            
+                            // Re-validate
+                            const newValidation = await runStepValidation(step, output, context);
+                            if (newValidation) {
+                                stepResult.validation = newValidation;
+                            }
+                        }
+                        
+                        stepResult.retryCount = retryCount;
+                    }
                 }
 
                 stepResult.status = 'completed';

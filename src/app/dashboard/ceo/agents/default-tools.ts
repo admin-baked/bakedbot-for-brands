@@ -324,8 +324,25 @@ const commonDelegationTools = {
     }
 };
 
+const commonPlaybookTools = {
+    draft_playbook: async (name: string, description: string, steps: any[], schedule?: string) => {
+        try {
+            const { createPlaybook } = await import('@/server/tools/playbook-manager');
+            // Force active: false / status: 'draft' by using the appropriate default behavior or param
+            // createPlaybook({ name, ... }) -> defaults default-playbooks logic?
+            // Wait, looking at playbook-manager.ts:
+            // export async function createPlaybook(params: CreatePlaybookParams) { ... active: params.active ?? true ... }
+            // So we MUST explicitly pass active: false.
+            return await createPlaybook({ name, description, steps, schedule, active: false });
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    }
+};
+
 export const defaultCraigTools = {
     ...commonMemoryTools,
+    ...commonPlaybookTools,
     generateCopy: async (prompt: string, context: any) => {
         try {
             const response = await ai.generate({
@@ -363,6 +380,7 @@ export const defaultCraigTools = {
 export const defaultSmokeyTools = {
     ...commonMemoryTools,
     ...commonDelegationTools,
+    ...commonPlaybookTools,
     analyzeExperimentResults: async (experimentId: string, data: any[]) => {
         return { winner: 'Variant B', confidence: 0.98 };
     },
@@ -440,6 +458,7 @@ export const defaultPopsTools = {
 
 export const defaultEzalTools = {
     ...commonMemoryTools,
+    ...commonPlaybookTools,
     discoverMenu: async (url: string, context?: any) => {
         try {
             const { discovery } = await import('@/server/services/firecrawl');
@@ -603,6 +622,7 @@ export const defaultEzalTools = {
 
 export const defaultMoneyMikeTools = {
     ...commonMemoryTools,
+    ...commonPlaybookTools,
     forecastRevenueImpact: async (skuId: string, priceDelta: number) => {
         const result = { projected_revenue_change: priceDelta * 100, confidence: 0.85 };
         await commonMemoryTools.lettaSaveFact(`Forecast: Price delta ${priceDelta} on ${skuId} impacts revenue by $${result.projected_revenue_change}`, 'finance_forecast');
@@ -635,6 +655,7 @@ export const defaultMrsParkerTools = {
 
 export const defaultDeeboTools = {
     ...commonMemoryTools,
+    ...commonPlaybookTools,
     checkCompliance: async (content: string, jurisdiction: string, channel: string) => {
         try {
             // Import the SDK dynamically or from top level if safe

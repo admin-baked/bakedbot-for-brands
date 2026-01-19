@@ -18,6 +18,7 @@ import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { browserService } from '../services/browser-service';
 import { browserToolDefs } from '../tools/browser-tools';
+import { getAdminFirestore } from '@/firebase/admin';
 
 // ============================================================================
 // LINUS TOOLS - Code Eval & Deployment
@@ -763,6 +764,25 @@ const LINUS_TOOLS: ClaudeTool[] = [
                 }
             },
             required: ['action', 'outcome']
+        }
+    },
+    {
+        name: 'read_support_tickets',
+        description: 'Read support tickets submitted by users or system. Check for reported bugs.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                status: {
+                    type: 'string',
+                    description: 'Filter by status: new, in_progress, resolved, closed',
+                    enum: ['new', 'in_progress', 'resolved', 'closed']
+                },
+                limit: {
+                    type: 'number',
+                    description: 'Max tickets to return (default: 10)'
+                }
+            },
+            required: []
         }
     }
 ];
@@ -1513,6 +1533,38 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
             } catch (e: any) {
                 return { success: false, error: e.message };
             }
+        }
+
+        // ====================================================================
+
+        case 'read_support_tickets': {
+            const { status, limit = 10 } = input as { status?: string, limit?: number };
+            const db = getAdminFirestore();
+            let query = db.collection('tickets').limit(limit);
+            
+            if (status) {
+                query = query.where('status', '==', status);
+            }
+            
+            // Order by newest first
+            query = query.orderBy('createdAt', 'desc');
+
+            const snapshot = await query.get();
+            const tickets = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    title: data.title,
+                    description: data.description,
+                    status: data.status,
+                    priority: data.priority,
+                    category: data.category,
+                    reporterEmail: data.reporterEmail,
+                    createdAt: data.createdAt?.toDate?.() || data.createdAt
+                };
+            });
+
+            return { success: true, count: tickets.length, tickets };
         }
 
         // ====================================================================
