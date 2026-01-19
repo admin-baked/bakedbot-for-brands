@@ -8,7 +8,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import DispensaryLocator from '@/components/dispensary-locator';
 import { DispensaryHeader } from '@/components/dispensary/dispensary-header';
-import { LeadCaptureForm } from '@/components/leads/lead-capture-form';
+import { BrandMenuClient } from './brand-menu-client';
 
 export default async function BrandPage({ params }: { params: Promise<{ brand: string }> }) {
     const { brand: brandParam } = await params;
@@ -39,47 +39,11 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
 
     return (
         <main className="relative min-h-screen">
-            {/* Removed Dispensary-specific CategoryNav and DealsCarousel for cleaner Brand look */}
-
-            <div className="container mx-auto py-12 px-4 md:px-8">
-
-                {/* Brand Header Section could go here if needed, but DispensaryHeader handles top nav */}
-
-                <section className="mb-16">
-                    <h2 className="text-3xl font-bold mb-8">Our Products</h2>
-                    <ProductGrid
-                        products={products}
-                        isLoading={false}
-                        brandSlug={brandParam}
-                        variant="brand"
-                        isClaimedPage={brand.claimStatus === 'claimed'}
-                    />
-                </section>
-
-                <section className="mb-16">
-                    <h2 className="text-2xl font-bold mb-6">Where to Buy</h2>
-                    <DispensaryLocator locations={retailers} />
-                </section>
-
-                <section className="max-w-xl mx-auto mt-20">
-                    <div className="text-center mb-8">
-                        <h2 className="text-2xl font-bold">Connect with {brand.name}</h2>
-                        <p className="text-slate-500">Have questions about our products? Send us a message.</p>
-                    </div>
-                    <LeadCaptureForm 
-                        orgId={brand.id} 
-                        orgName={brand.name} 
-                        orgType="brand" 
-                        variant="inline" 
-                    />
-                </section>
-            </div>
-
-            {/* Chatbot integrated with real products */}
-            <Chatbot
+            <BrandMenuClient
+                brand={brand}
                 products={products}
-                brandId={brand.id}
-                initialOpen={false} // Closed by default on real sites usually
+                retailers={retailers}
+                brandSlug={brandParam}
             />
         </main>
     );
