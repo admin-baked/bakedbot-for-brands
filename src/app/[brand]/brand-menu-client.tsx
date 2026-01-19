@@ -6,7 +6,9 @@ import { ProductDetailModal } from '@/components/product-detail-modal';
 import DispensaryLocator from '@/components/dispensary-locator';
 import { LeadCaptureForm } from '@/components/leads/lead-capture-form';
 import Chatbot from '@/components/chatbot';
+import { BundleDealsSection } from '@/components/demo/bundle-deals-section';
 import type { Product, Retailer, Brand } from '@/types/domain';
+import type { BundleDeal } from '@/types/bundles';
 import { useStore } from '@/hooks/use-store';
 
 interface BrandMenuClientProps {
@@ -14,11 +16,12 @@ interface BrandMenuClientProps {
   products: Product[];
   retailers: Retailer[];
   brandSlug: string;
+  bundles?: BundleDeal[];
 }
 
 const DEFAULT_PRIMARY_COLOR = '#16a34a';
 
-export function BrandMenuClient({ brand, products, retailers, brandSlug }: BrandMenuClientProps) {
+export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [] }: BrandMenuClientProps) {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const { addToCart } = useStore();
@@ -51,6 +54,20 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug }: Brand
     }
   };
 
+  // Convert BundleDeal to BundleDealsSection format
+  const bundlesForDisplay = bundles.map(b => ({
+    id: b.id,
+    name: b.name,
+    description: b.description,
+    originalPrice: b.originalTotal,
+    bundlePrice: b.bundlePrice,
+    savingsPercent: b.savingsPercent,
+    image: b.imageUrl,
+    products: b.products.map(p => p.name),
+    badge: b.badgeText,
+    backgroundColor: primaryColor,
+  }));
+
   return (
     <>
       <div className="container mx-auto py-12 px-4 md:px-8">
@@ -63,6 +80,16 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug }: Brand
               className="w-full h-48 md:h-64 object-cover"
             />
           </div>
+        )}
+
+        {/* Bundle Deals Section (if any) */}
+        {bundlesForDisplay.length > 0 && (
+          <BundleDealsSection
+            bundles={bundlesForDisplay}
+            title="Bundle Deals"
+            subtitle="Save more when you bundle! Curated packs at special prices."
+            primaryColor={primaryColor}
+          />
         )}
 
         <section className="mb-16">
