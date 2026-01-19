@@ -254,6 +254,9 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
   const price = parseFloat(priceStr);
   const imageUrl = formData.get('imageUrl') as string;
   const imageHint = formData.get('imageHint') as string;
+  const featured = formData.get('featured') === 'on';
+  const sortOrderStr = formData.get('sortOrder') as string;
+  const sortOrder = sortOrderStr ? parseInt(sortOrderStr, 10) : undefined;
   
   // SECURITY: Enforce brandId from session unless super_user
   let brandId = user.brandId || user.locationId || user.uid;
@@ -281,6 +284,8 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
     brandId: brandId || user.uid,
     source: 'manual' as const, // Explicit manual source
     sourceTimestamp: new Date(),
+    featured,
+    sortOrder,
   };
 
   try {
