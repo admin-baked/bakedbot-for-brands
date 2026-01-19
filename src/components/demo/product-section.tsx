@@ -35,6 +35,9 @@ export function ProductSection({
   showViewAll = true,
   onViewAll,
   dealBadge,
+  onProductClick,
+  onFavorite,
+  favorites,
 }: ProductSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -136,6 +139,9 @@ export function ProductSection({
                 primaryColor={primaryColor}
                 size="large"
                 dealBadge={dealBadge?.(product)}
+                onClick={() => onProductClick?.(product)}
+                onFavorite={onFavorite}
+                isFavorite={favorites?.has(product.id)}
               />
             ))}
           </div>

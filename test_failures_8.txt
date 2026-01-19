@@ -1,0 +1,76 @@
+
+> nextn@0.1.0 test
+> jest tests/components/demo
+
+PASS tests/components/demo/product-section.test.tsx
+PASS tests/components/demo/oversized-product-card.test.tsx
+PASS tests/components/demo/product-detail-modal.test.tsx
+  ??? Console
+
+    console.error
+      Warning: validateDOMNesting(...): <div> cannot appear as a descendant of <p>.
+          at div
+          at p
+          at div
+          at div
+          at div
+          at div
+          at C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-primitive\src\primitive.tsx:40:13
+          at C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-dismissable-layer\src\dismissable-layer.tsx:64:7
+          at C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-primitive\node_modules\@radix-ui\react-slot\src\slot.tsx:68:13
+          at C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-primitive\node_modules\@radix-ui\react-slot\src\slot.tsx:15:13
+          at C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-primitive\src\primitive.tsx:40:13
+          at C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-focus-scope\src\focus-scope.tsx:50:5
+          at C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-dialog\src\dialog.tsx:386:13
+          at C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-dialog\src\dialog.tsx:261:58
+          at Presence (C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-presence\src\presence.tsx:12:11)
+          at C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-dialog\src\dialog.tsx:236:64
+          at C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-primitive\node_modules\@radix-ui\react-slot\src\slot.tsx:68:13
+          at C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-primitive\node_modules\@radix-ui\react-slot\src\slot.tsx:15:13
+          at C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-primitive\src\primitive.tsx:40:13
+          at C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-portal\src\portal.tsx:22:22
+          at Presence (C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-presence\src\presence.tsx:12:11)
+          at Provider (C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-context\src\create-context.tsx:59:15)
+          at DialogPortal (C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-dialog\src\dialog.tsx:146:11)
+          at className (C:\Users\marte\Baked for Brands\bakedbot-for-brands\src\components\ui\dialog.tsx:36:6)
+          at Provider (C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-context\src\create-context.tsx:59:15)
+          at Dialog (C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\@radix-ui\react-dialog\src\dialog.tsx:52:5)
+          at product (C:\Users\marte\Baked for Brands\bakedbot-for-brands\src\components\demo\product-detail-modal.tsx:23:3)
+
+    [0m [90m 26 |[39m describe([32m'ProductDetailModal'[39m[33m,[39m () [33m=>[39m {
+     [90m 27 |[39m   it([32m'should render product details when open'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 28 |[39m     render(
+     [90m    |[39m           [31m[1m^[22m[39m
+     [90m 29 |[39m       [33m<[39m[33mProductDetailModal[39m
+     [90m 30 |[39m         product[33m=[39m{mockProduct}
+     [90m 31 |[39m         open[33m=[39m{[36mtrue[39m}[0m
+
+      at printWarning (node_modules/react-dom/cjs/react-dom.development.js:86:30)
+      at error (node_modules/react-dom/cjs/react-dom.development.js:60:7)
+      at validateDOMNesting (node_modules/react-dom/cjs/react-dom.development.js:10849:7)
+      at createInstance (node_modules/react-dom/cjs/react-dom.development.js:10930:5)
+      at completeWork (node_modules/react-dom/cjs/react-dom.development.js:22226:28)
+      at completeUnitOfWork (node_modules/react-dom/cjs/react-dom.development.js:26632:16)
+      at performUnitOfWork (node_modules/react-dom/cjs/react-dom.development.js:26607:5)
+      at workLoopSync (node_modules/react-dom/cjs/react-dom.development.js:26505:5)
+      at renderRootSync (node_modules/react-dom/cjs/react-dom.development.js:26473:7)
+      at performSyncWorkOnRoot (node_modules/react-dom/cjs/react-dom.development.js:26124:20)
+      at flushSyncCallbacks (node_modules/react-dom/cjs/react-dom.development.js:12042:22)
+      at commitRootImpl (node_modules/react-dom/cjs/react-dom.development.js:26998:3)
+      at commitRoot (node_modules/react-dom/cjs/react-dom.development.js:26721:5)
+      at finishConcurrentRender (node_modules/react-dom/cjs/react-dom.development.js:26020:9)
+      at performConcurrentWorkOnRoot (node_modules/react-dom/cjs/react-dom.development.js:25848:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:2667:24)
+      at act (node_modules/react/cjs/react.development.js:2582:11)
+      at node_modules/@testing-library/react/dist/act-compat.js:46:25
+      at renderRoot (node_modules/@testing-library/react/dist/pure.js:189:26)
+      at render (node_modules/@testing-library/react/dist/pure.js:291:10)
+      at Object.<anonymous> (tests/components/demo/product-detail-modal.test.tsx:28:11)
+
+PASS tests/components/demo/demo-shop-client.test.tsx (6.466 s)
+
+Test Suites: 4 passed, 4 total
+Tests:       10 passed, 10 total
+Snapshots:   0 total
+Time:        9.76 s
+Ran all test suites matching /tests\\components\\demo/i.
