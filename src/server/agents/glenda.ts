@@ -9,8 +9,9 @@ import { AgentImplementation } from './harness';
 import { ExecutiveMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools } from './shared-tools';
 
-export interface GlendaTools {
+export interface GlendaTools extends Partial<AllSharedTools> {
     // Marketing Analytics
     getGA4Traffic?(): Promise<any>;
     getSearchConsoleStats?(): Promise<any>;
@@ -33,9 +34,6 @@ export interface GlendaTools {
 
     // Communication
     sendEmail?(to: string, subject: string, content: string): Promise<any>;
-
-    // Memory
-    lettaSaveFact?(fact: string, category?: string): Promise<any>;
 }
 
 export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
@@ -128,7 +126,8 @@ export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
 
-            const toolsDef = [
+            // Glenda-specific tools for marketing and brand management
+            const glendaSpecificTools = [
                 {
                     name: "getGA4Traffic",
                     description: "Get Google Analytics 4 traffic data - sessions, users, engagement, top pages.",
@@ -207,15 +206,15 @@ export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
                         subject: z.string(),
                         content: z.string()
                     })
-                },
-                {
-                    name: "lettaSaveFact",
-                    description: "Save a marketing insight or brand guideline to memory.",
-                    schema: z.object({
-                        fact: z.string(),
-                        category: z.string().optional()
-                    })
                 }
+            ];
+
+            // Combine Glenda-specific tools with shared Context OS, Letta Memory, and Intuition OS tools
+            const toolsDef = [
+                ...glendaSpecificTools,
+                ...contextOsToolDefs,
+                ...lettaToolDefs,
+                ...intuitionOsToolDefs
             ];
 
             try {

@@ -619,6 +619,151 @@ const LINUS_TOOLS: ClaudeTool[] = [
             properties: {},
             required: []
         }
+    },
+    // ========================================================================
+    // CONTEXT OS TOOLS - Decision Lineage
+    // ========================================================================
+    {
+        name: 'context_log_decision',
+        description: 'Log an important technical decision with reasoning. Use for architecture choices, deployment decisions, or code changes.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                decision: {
+                    type: 'string',
+                    description: 'What was decided (e.g., "Refactored auth flow to use JWT")'
+                },
+                reasoning: {
+                    type: 'string',
+                    description: 'Why this decision was made'
+                },
+                category: {
+                    type: 'string',
+                    description: 'Category of the decision',
+                    enum: ['pricing', 'marketing', 'compliance', 'operations', 'strategy', 'other']
+                }
+            },
+            required: ['decision', 'reasoning', 'category']
+        }
+    },
+    {
+        name: 'context_ask_why',
+        description: 'Ask the Context Graph why a specific decision was made in the past. Use to understand historical reasoning.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                question: {
+                    type: 'string',
+                    description: 'E.g., "Why did we choose this architecture?" or "What was the reasoning for the refactor?"'
+                }
+            },
+            required: ['question']
+        }
+    },
+    {
+        name: 'context_get_agent_history',
+        description: 'Get the recent decision history for a specific agent.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                agentId: {
+                    type: 'string',
+                    description: 'The agent ID (e.g., "linus", "jack", "craig")'
+                },
+                limit: {
+                    type: 'number',
+                    description: 'Maximum number of decisions to return (default: 5)'
+                }
+            },
+            required: ['agentId']
+        }
+    },
+    // ========================================================================
+    // INTUITION OS TOOLS - System 1/2 Routing
+    // ========================================================================
+    {
+        name: 'intuition_evaluate_heuristics',
+        description: 'Evaluate applicable heuristics for the current context. Returns fast-path recommendations.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                customerProfile: {
+                    type: 'object',
+                    description: 'Customer preferences and profile data'
+                },
+                products: {
+                    type: 'array',
+                    description: 'List of products to filter/rank'
+                },
+                sessionContext: {
+                    type: 'object',
+                    description: 'Additional session context'
+                }
+            },
+            required: []
+        }
+    },
+    {
+        name: 'intuition_get_confidence',
+        description: 'Calculate confidence score to determine if fast-path or slow-path should be used.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                interactionCount: {
+                    type: 'number',
+                    description: 'Number of past interactions'
+                },
+                heuristicsMatched: {
+                    type: 'number',
+                    description: 'Number of heuristics that matched'
+                },
+                totalHeuristics: {
+                    type: 'number',
+                    description: 'Total available heuristics'
+                },
+                isAnomalous: {
+                    type: 'boolean',
+                    description: 'Whether this request seems anomalous'
+                }
+            },
+            required: ['interactionCount', 'heuristicsMatched', 'totalHeuristics']
+        }
+    },
+    {
+        name: 'intuition_log_outcome',
+        description: 'Log the outcome of a recommendation or action for feedback learning.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                heuristicId: {
+                    type: 'string',
+                    description: 'ID of the heuristic that was applied'
+                },
+                action: {
+                    type: 'string',
+                    description: 'What action was taken'
+                },
+                outcome: {
+                    type: 'string',
+                    description: 'Result of the action',
+                    enum: ['positive', 'negative', 'neutral']
+                },
+                recommendedProducts: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Products that were recommended'
+                },
+                selectedProduct: {
+                    type: 'string',
+                    description: 'Product that was selected'
+                },
+                confidenceScore: {
+                    type: 'number',
+                    description: 'Confidence score at time of recommendation'
+                }
+            },
+            required: ['action', 'outcome']
+        }
     }
 ];
 
@@ -1626,6 +1771,7 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
                         KUSHO_AUTH_TOKEN: !!process.env.KUSHO_AUTH_TOKEN
                     }
                 };
+                // Rest of kusho_setup implementation follows...
 
                 // Check Node.js version
                 try {
@@ -1703,6 +1849,118 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
                         list: 'kusho suites list'
                     }
                 };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        // ====================================================================
+        // CONTEXT OS TOOL EXECUTORS
+        // ====================================================================
+
+        case 'context_log_decision': {
+            const { decision, reasoning, category } = input as {
+                decision: string;
+                reasoning: string;
+                category: string;
+            };
+            try {
+                const { contextLogDecision } = await import('@/server/tools/context-tools');
+                // Set global context for tools
+                (global as any).currentAgentContext = { agentId: 'linus', brandId: 'bakedbot' };
+                const result = await contextLogDecision({ decision, reasoning, category });
+                return { success: true, message: 'Decision logged to Context Graph', result };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'context_ask_why': {
+            const { question } = input as { question: string };
+            try {
+                const { contextAskWhy } = await import('@/server/tools/context-tools');
+                (global as any).currentAgentContext = { agentId: 'linus', brandId: 'bakedbot' };
+                const result = await contextAskWhy({ question });
+                return { success: true, answer: result };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'context_get_agent_history': {
+            const { agentId, limit } = input as { agentId: string; limit?: number };
+            try {
+                const { contextGetAgentHistory } = await import('@/server/tools/context-tools');
+                (global as any).currentAgentContext = { agentId: 'linus', brandId: 'bakedbot' };
+                const result = await contextGetAgentHistory({ agentId, limit: limit || 5 });
+                return { success: true, history: result };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        // ====================================================================
+        // INTUITION OS TOOL EXECUTORS
+        // ====================================================================
+
+        case 'intuition_evaluate_heuristics': {
+            const { customerProfile, products, sessionContext } = input as {
+                customerProfile?: any;
+                products?: any[];
+                sessionContext?: any;
+            };
+            try {
+                const { intuitionEvaluateHeuristics } = await import('@/server/tools/intuition-tools');
+                (global as any).currentAgentContext = { agentId: 'linus', brandId: 'bakedbot' };
+                const result = await intuitionEvaluateHeuristics({ customerProfile, products, sessionContext });
+                return { success: true, ...result };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'intuition_get_confidence': {
+            const { interactionCount, heuristicsMatched, totalHeuristics, isAnomalous } = input as {
+                interactionCount: number;
+                heuristicsMatched: number;
+                totalHeuristics: number;
+                isAnomalous?: boolean;
+            };
+            try {
+                const { intuitionGetConfidence } = await import('@/server/tools/intuition-tools');
+                const result = await intuitionGetConfidence({
+                    interactionCount,
+                    heuristicsMatched,
+                    totalHeuristics,
+                    isAnomalous: isAnomalous || false
+                });
+                return { success: true, ...result };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'intuition_log_outcome': {
+            const { heuristicId, action, outcome, recommendedProducts, selectedProduct, confidenceScore } = input as {
+                heuristicId?: string;
+                action: string;
+                outcome: 'positive' | 'negative' | 'neutral';
+                recommendedProducts?: string[];
+                selectedProduct?: string;
+                confidenceScore?: number;
+            };
+            try {
+                const { intuitionLogOutcome } = await import('@/server/tools/intuition-tools');
+                (global as any).currentAgentContext = { agentId: 'linus', brandId: 'bakedbot' };
+                const result = await intuitionLogOutcome({
+                    heuristicId,
+                    action,
+                    outcome,
+                    recommendedProducts,
+                    selectedProduct,
+                    confidenceScore
+                });
+                return { success: true, message: result };
             } catch (e: any) {
                 return { success: false, error: e.message };
             }
