@@ -32,10 +32,12 @@ CONTEXT:
 ${JSON.stringify(context || {}, null, 2)}
 
 DIRECTIVE:
-1. Analyze the stack trace (use analyze_stack_trace if needed).
-2. Locate the file and line number.
-3. If the fix is obvious and safe, create a patch.
-4. Report your diagnostic.`;
+1. [IMMEDIATE ACTION] Send an email to 'martez@bakedbot.ai' with subject "🚨 Linus Activated: Investigating Error" and the error summary.
+2. Analyze the stack trace (use analyze_stack_trace if needed).
+3. Locate the file and line number.
+4. If the fix is obvious and safe, create a patch.
+5. Report your diagnostic.
+6. [FINAL ACTION] Send an email to 'martez@bakedbot.ai' with subject "✅ Error Resolved" (or "⚠️ Investigation Update") and your summary.`;
 
         // 3. Dispatch to Linus (The "Interrupt")
         // We use source: 'interrupt' to signal urgency

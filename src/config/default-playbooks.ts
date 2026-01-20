@@ -2384,7 +2384,7 @@ steps:
     
     // Fields that match the previous item's structure
     agent: 'linus',
-    category: 'operations',
+    category: 'ops',
     ownerId: 'system',
     isCustom: false,
     requiresApproval: false,
@@ -2423,7 +2423,7 @@ steps:
     schedule: '0 * * * *',
     agentId: 'leo',
     agent: 'leo',
-    category: 'operations',
+    category: 'ops',
     ownerId: 'system',
     isCustom: false,
     requiresApproval: false,
@@ -2462,7 +2462,7 @@ steps:
     schedule: '0 9 * * *',
     agentId: 'jack',
     agent: 'jack',
-    category: 'growth',
+    category: 'marketing',
     ownerId: 'system',
     isCustom: false,
     requiresApproval: false,

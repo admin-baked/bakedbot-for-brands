@@ -1,6 +1,6 @@
 
 
-export type PlanId = "free" | "claim_pro" | "founders_claim" | "growth_5" | "scale_10" | "pro_25" | "enterprise" | "empire";
+export type PlanId = "scout" | "pro" | "growth" | "empire" | "free" | "claim_pro" | "founders_claim" | "growth_5" | "scale_10" | "pro_25" | "enterprise";
 
 export interface PlanConfig {
   id: PlanId;
@@ -39,75 +39,44 @@ export const COVERAGE_PACKS: Record<CoveragePackId, CoveragePackConfig> = {
 };
 
 export const PLANS: Record<PlanId, PlanConfig> = {
-  free: {
-    id: "free",
+  scout: {
+    id: "scout",
     name: "The Scout",
-    description: "Unclaimed listing + Digital Worker Briefing.",
+    description: "Monitor your market and keep an eye on competitors.",
     baseAmount: 0,
     includedLocations: 1,
     extraPerLocation: null,
   },
-  claim_pro: {
-    id: "claim_pro",
-    name: "Claim Pro",
-    description: "Verified badge, edits, analytics, and control.",
+  pro: {
+    id: "pro",
+    name: "Pro",
+    description: "Turn your menu into your #1 sales channel.",
     baseAmount: 99,
     includedLocations: 1,
-    extraPerLocation: 49, // Assuming upsell for extra locations on Claim Pro? Or just keep it single? Plan implies "Upsell to Growth". Let's say null or high. Setting to 49 for now as standard add-on or null if strict. I'll use 49.
-    includedZips: 25,
-  },
-  founders_claim: {
-    id: "founders_claim",
-    name: "Founders Claim",
-    description: "Locked-in pricing for life. All Claim Pro benefits.",
-    baseAmount: 79,
-    includedLocations: 1,
     extraPerLocation: 49,
-    includedZips: 25,
+    includedZips: 3,
   },
-  growth_5: {
-    id: "growth_5",
+  growth: {
+    id: "growth",
     name: "Growth",
-    description: "Up to 5 locations + marketing playbooks.",
-    baseAmount: 350,
+    description: "Scale your reach and automate retention.",
+    baseAmount: 249,
     includedLocations: 5,
     extraPerLocation: 25,
-    includedZips: 50,
-  },
-  scale_10: {
-    id: "scale_10",
-    name: "Scale",
-    description: "Up to 10 locations + automation.",
-    baseAmount: 700,
-    includedLocations: 10,
-    extraPerLocation: 25,
-    includedZips: 100,
-  },
-  pro_25: {
-    id: "pro_25",
-    name: "Pro",
-    description: "Up to 25 locations.",
-    baseAmount: 1500,
-    includedLocations: 25,
-    extraPerLocation: 15,
-    includedZips: 250,
-  },
-  enterprise: {
-    id: "enterprise",
-    name: "Enterprise",
-    description: "25+ locations with custom pricing and terms.",
-    baseAmount: 0,
-    includedLocations: 0,
-    extraPerLocation: null,
+    includedZips: 10,
   },
   empire: {
     id: "empire",
-    name: "The Empire",
-    description: "The full fleet. 7 Digital Workers + Custom Integrations.",
-    baseAmount: 1499,
-    includedLocations: 999, // Effectively unlimited or highcap
+    name: "Empire",
+    description: "Full autonomy at scale.",
+    baseAmount: 0, // Custom
+    includedLocations: 999,
     extraPerLocation: null,
   },
+  // Legacy mappings for safety
+  free: { id: "scout", name: "The Scout", description: "", baseAmount: 0, includedLocations: 1, extraPerLocation: null },
+  claim_pro: { id: "pro", name: "Pro", description: "", baseAmount: 99, includedLocations: 1, extraPerLocation: 49 },
+  founders_claim: { id: "pro", name: "Founders Claim", description: "", baseAmount: 79, includedLocations: 1, extraPerLocation: 49 },
 };
 
 export function computeMonthlyAmount(planId: PlanId, locationCount: number, coveragePackIds: CoveragePackId[] = []): number {
