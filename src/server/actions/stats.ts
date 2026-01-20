@@ -13,11 +13,12 @@ export async function getPlatformStats(): Promise<PlatformStats> {
         const { firestore } = await createServerClient();
 
         // Run counts in parallel
-        const [dispensariesSnapshot, brandsSnapshot] = await Promise.all([
+        // Run counts in parallel
+        const [dispensariesSnapshot, brandsSnapshot, seoDispSnapshot, zipPagesSnapshot] = await Promise.all([
             firestore.collection('dispensaries').count().get(),
             firestore.collection('brands').count().get(),
-            // We don't have a single 'pages' collection, pages are dynamically generated or stored in 'seo_pages' / 'generated_pages_metadata'
-            // For now we'll estimate pages based on coverage + entities
+            firestore.collection('seo_pages_dispensary').count().get(),
+            firestore.collection('foot_traffic').doc('config').collection('zip_pages').count().get()
         ]);
 
         const dispensaries = dispensariesSnapshot.data().count;
