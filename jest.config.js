@@ -13,7 +13,7 @@ const createJestConfig = nextJest({
 // Add any custom config to be passed to Jest
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  modulePathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/usr/'],
+  modulePathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/usr/', '<rootDir>/.firebase', '<rootDir>/coverage/', '<rootDir>/dist/'],
   moduleNameMapper: {
     // Specific mocks (Must come before generic aliases)
     '^@/ai/genkit$': '<rootDir>/tests/__mocks__/genkit.ts',
