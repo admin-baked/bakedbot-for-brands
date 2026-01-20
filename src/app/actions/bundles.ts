@@ -29,17 +29,26 @@ export async function getBundles(orgId: string): Promise<{ success: boolean; dat
             .orderBy('createdAt', 'desc')
             .get();
 
-        const bundles = snapshot.docs.map(doc => ({
-            ...doc.data(),
-            id: doc.id,
-            // Convert timestamps to Date objects if needed, or keeping them as Firestore Timestamps which might fail serialization
-            // Admin SDK returns Timestamps. Client needs JSON serializable.
-            createdAt: (doc.data().createdAt as any).toDate ? (doc.data().createdAt as any).toDate() : new Date(doc.data().createdAt),
-            updatedAt: (doc.data().updatedAt as any).toDate ? (doc.data().updatedAt as any).toDate() : new Date(doc.data().updatedAt),
-            // Handle optional dates
-            startDate: doc.data().startDate ? ((doc.data().startDate as any).toDate?.() || new Date(doc.data().startDate)) : undefined,
-            endDate: doc.data().endDate ? ((doc.data().endDate as any).toDate?.() || new Date(doc.data().endDate)) : undefined,
-        })) as BundleDeal[];
+        // Helper to convert Firestore Timestamps to ISO strings for serialization
+        const toISOString = (val: any): string | undefined => {
+            if (!val) return undefined;
+            if (val.toDate) return val.toDate().toISOString();
+            if (val instanceof Date) return val.toISOString();
+            if (typeof val === 'string') return val;
+            return undefined;
+        };
+
+        const bundles = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                ...data,
+                id: doc.id,
+                createdAt: toISOString(data.createdAt) || new Date().toISOString(),
+                updatedAt: toISOString(data.updatedAt) || new Date().toISOString(),
+                startDate: toISOString(data.startDate),
+                endDate: toISOString(data.endDate),
+            };
+        }) as unknown as BundleDeal[];
 
         return { success: true, data: bundles };
     } catch (error) {
@@ -126,6 +135,7 @@ export async function deleteBundle(id: string): Promise<{ success: boolean; erro
 
 /**
  * Get active bundles for public menu display (no auth required)
+ * Returns serializable data (ISO strings for dates) for Server->Client Component passing
  */
 export async function getActiveBundles(orgId: string): Promise<BundleDeal[]> {
     try {
@@ -139,14 +149,27 @@ export async function getActiveBundles(orgId: string): Promise<BundleDeal[]> {
             .limit(10)
             .get();
 
-        return snapshot.docs.map(doc => ({
-            ...doc.data(),
-            id: doc.id,
-            createdAt: (doc.data().createdAt as any)?.toDate?.() || new Date(),
-            updatedAt: (doc.data().updatedAt as any)?.toDate?.() || new Date(),
-            startDate: doc.data().startDate ? ((doc.data().startDate as any).toDate?.() || undefined) : undefined,
-            endDate: doc.data().endDate ? ((doc.data().endDate as any).toDate?.() || undefined) : undefined,
-        })) as BundleDeal[];
+        // Convert Firestore Timestamps to ISO strings for serialization
+        // (Date objects cannot be passed from Server to Client Components)
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            const toISOString = (val: any): string | undefined => {
+                if (!val) return undefined;
+                if (val.toDate) return val.toDate().toISOString();
+                if (val instanceof Date) return val.toISOString();
+                if (typeof val === 'string') return val;
+                return undefined;
+            };
+
+            return {
+                ...data,
+                id: doc.id,
+                createdAt: toISOString(data.createdAt) || new Date().toISOString(),
+                updatedAt: toISOString(data.updatedAt) || new Date().toISOString(),
+                startDate: toISOString(data.startDate),
+                endDate: toISOString(data.endDate),
+            };
+        }) as unknown as BundleDeal[];
     } catch (error) {
         console.error('Error fetching active bundles:', error);
         return [];

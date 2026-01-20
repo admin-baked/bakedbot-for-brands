@@ -3,6 +3,43 @@ import type { Brand, Product, Retailer } from '@/types/domain';
 import { CannMenusService } from '@/server/services/cannmenus';
 import { RetailerDoc } from '@/types/cannmenus';
 
+/**
+ * Sanitize Firestore data for Server->Client Component serialization.
+ * Converts Firestore Timestamps and Date objects to ISO strings.
+ * This prevents "Error: An error occurred in the Server Components render" errors.
+ */
+function sanitizeForSerialization<T>(data: any): T {
+    if (data === null || data === undefined) return data;
+
+    // Handle Firestore Timestamp (has toDate method)
+    if (data.toDate && typeof data.toDate === 'function') {
+        return data.toDate().toISOString() as unknown as T;
+    }
+
+    // Handle Date objects
+    if (data instanceof Date) {
+        return data.toISOString() as unknown as T;
+    }
+
+    // Handle arrays
+    if (Array.isArray(data)) {
+        return data.map(item => sanitizeForSerialization(item)) as unknown as T;
+    }
+
+    // Handle plain objects (but not class instances other than Date)
+    if (typeof data === 'object' && data.constructor === Object) {
+        const result: any = {};
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                result[key] = sanitizeForSerialization(data[key]);
+            }
+        }
+        return result as T;
+    }
+
+    return data;
+}
+
 // Helper to map RetailerDoc (storage) to Retailer (domain)
 function mapRetailerDocToDomain(doc: RetailerDoc): Retailer {
     return {
@@ -20,6 +57,7 @@ function mapRetailerDocToDomain(doc: RetailerDoc): Retailer {
 }
 
 export async function fetchBrandPageData(brandParam: string) {
+    try {
     const { firestore } = await createServerClient();
 
     let brand: Brand | null = null;
@@ -171,7 +209,18 @@ export async function fetchBrandPageData(brandParam: string) {
         // Fail gracefully, retailers will be empty - page still loads
     }
 
-    return { brand, products, retailers };
+    // Sanitize all data for Server->Client Component serialization
+    // This converts Firestore Timestamps and Date objects to ISO strings
+    return {
+        brand: sanitizeForSerialization<Brand>(brand),
+        products: sanitizeForSerialization<Product[]>(products),
+        retailers: sanitizeForSerialization<Retailer[]>(retailers)
+    };
+    } catch (error) {
+        console.error('[fetchBrandPageData] Error fetching brand data:', error);
+        // Return null brand to trigger the "not found" page gracefully
+        return { brand: null, products: [], retailers: [] };
+    }
 }
 
 /**
