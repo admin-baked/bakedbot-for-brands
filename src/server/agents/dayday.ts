@@ -15,6 +15,13 @@ export interface DayDayTools {
     findSEOOpportunities(): Promise<any>;
 }
 
+// ... imports
+import { searchConsoleService } from '@/server/services/growth/search-console';
+import { googleAnalyticsService } from '@/server/services/growth/google-analytics';
+import { sitemapManager } from '@/server/services/growth/sitemap-manager';
+
+// ... DayDayTools interface ...
+
 export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
     agentName: 'day_day',
 
@@ -30,13 +37,21 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
             4. **Opportunity Finding**: Identify low-competition keywords and markets.
             
             DATA SOURCES:
-            - Google Search Console: Rankings, clicks, impressions, CTR
-            - Google Analytics 4: Traffic, sessions, user engagement
+            - Google Search Console: Rankings, clicks, impressions, CTR.
+            - Google Analytics 4: Traffic, sessions, user engagement.
             
-            DAILY TASKS:
-            - Find 5-10 low-competition markets
-            - Generate unique SEO content for new pages
-            - Auto-publish optimized pages
+            PROTOCOLS:
+            
+            [WEEKLY_GROWTH_REVIEW]
+            When asked to "perform weekly review" or when identifying optimization candidates:
+            1. Use 'findSEOOpportunities' to identify pages with high impressions but low CTR.
+            2. For each candidate, analyze WHY it's failing (e.g., boring title, irrelevant meta description).
+            3. Propose a new Title Tag and Meta Description.
+            4. Suggest one content addition (e.g., "Add a FAQ about X").
+            
+            [DAILY_DISCOVERY]
+            - Find 5-10 low-competition markets using your knowledge of cannabis deserts.
+            - Generate unique SEO content for new pages.
             
             Tone: Technical, precise, growth-hacking.
         `;
@@ -83,11 +98,47 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
                     name: "findSEOOpportunities",
                     description: "Find low-competition keywords and markets with high potential.",
                     schema: z.object({})
+                },
+                {
+                   name: "refreshSitemap",
+                   description: "Ping Google to refresh the sitemap index.",
+                   schema: z.object({})
                 }
             ];
 
+            // Implement specific tools
+            const specificImplementations = {
+                getSearchConsoleStats: async () => {
+                    return await searchConsoleService.getSiteSummary(7);
+                },
+                getGA4Traffic: async () => {
+                    return await googleAnalyticsService.getTrafficReport('28daysAgo', 'today');
+                },
+                findSEOOpportunities: async () => {
+                    return await searchConsoleService.findLowCompetitionOpportunities(10);
+                },
+                refreshSitemap: async () => {
+                    const success = await sitemapManager.pingGoogle();
+                    return { success, message: success ? 'Pinged Google' : 'Ping failed' };
+                },
+                auditPage: async ({ url }: { url: string }) => {
+                    // Placeholder for real audit logic (e.g. Firecrawl or Puppeteer)
+                    return { url, score: 85, issues: ['Missing H1', 'Slow LCP'] };
+                },
+                generateMetaTags: async ({ contentSample }: { contentSample: string }) => {
+                     const { text } = await ai.generate({
+                        prompt: `Generate SEO title and meta description for: ${contentSample.substring(0, 500)}...`,
+                        model: 'googleai/gemini-1.5-flash'
+                    });
+                    return { meta: text };
+                }
+            };
+
             // Combine agent-specific tools with shared Context OS and Letta tools
             const toolsDef = [...dayDaySpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
+            
+            // Merge implementations
+            const allTools = { ...tools, ...specificImplementations };
 
             try {
                 const { runMultiStepTask } = await import('./harness');
@@ -96,7 +147,7 @@ export const dayDayAgent: AgentImplementation<AgentMemory, DayDayTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools,
+                    tools: allTools,
                     model: 'claude',
                     maxIterations: 5
                 });
