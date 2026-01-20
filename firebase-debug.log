@@ -1,0 +1,846 @@
+[debug] [2026-01-20T18:42:34.326Z] ----------------------------------------------------------------------
+[debug] [2026-01-20T18:42:34.363Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\marte\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2026-01-20T18:42:34.365Z] CLI Version:   15.1.0
+[debug] [2026-01-20T18:42:34.365Z] Platform:      win32
+[debug] [2026-01-20T18:42:34.365Z] Node Version:  v24.11.1
+[debug] [2026-01-20T18:42:34.366Z] Time:          Tue Jan 20 2026 12:42:34 GMT-0600 (Central Standard Time)
+[debug] [2026-01-20T18:42:34.366Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-01-20T18:42:37.736Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-20T18:42:37.736Z] > authorizing via signed-in user (martez@bakedbot.ai)
+[debug] [2026-01-20T18:42:37.736Z] [iam] checking project studio-567050101-bc6e8 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-01-20T18:42:37.738Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:42:37.738Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:42:37.739Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions [none]
+[debug] [2026-01-20T18:42:37.739Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions x-goog-quota-user=projects/studio-567050101-bc6e8
+[debug] [2026-01-20T18:42:37.740Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-01-20T18:42:38.216Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions 200
+[debug] [2026-01-20T18:42:38.216Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-01-20T18:42:38.217Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:42:38.217Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:42:38.218Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/studio-567050101-bc6e8 [none]
+[debug] [2026-01-20T18:42:38.720Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/studio-567050101-bc6e8 200
+[debug] [2026-01-20T18:42:38.720Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/studio-567050101-bc6e8 {"projectId":"studio-567050101-bc6e8","projectNumber":"1016399212569","displayName":"Firebase app","name":"projects/studio-567050101-bc6e8","resources":{"hostingSite":"studio-567050101-bc6e8"},"state":"ACTIVE","etag":"1_de70cd1c-1a7d-45af-baab-810380006a43"}
+[debug] [2026-01-20T18:42:47.063Z] defaultcredentials: writing to file C:\Users\marte\AppData\Roaming\firebase\martez_bakedbot_ai_application_default_credentials.json
+[debug] [2026-01-20T18:42:47.103Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:42:47.103Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:42:47.104Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites pageToken=&pageSize=10
+[debug] [2026-01-20T18:42:47.745Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites 200
+[debug] [2026-01-20T18:42:47.745Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites {"sites":[{"name":"projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8","defaultUrl":"https://studio-567050101-bc6e8.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2026-01-20T18:42:47.746Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:42:47.746Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:42:47.746Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites 
+[debug] [2026-01-20T18:42:48.044Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites 200
+[debug] [2026-01-20T18:42:48.045Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites {"sites":[{"name":"projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8","defaultUrl":"https://studio-567050101-bc6e8.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2026-01-20T18:42:48.045Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:42:48.045Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:42:48.045Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/webApps/-/config [none]
+[debug] [2026-01-20T18:42:48.652Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/webApps/-/config 200
+[debug] [2026-01-20T18:42:48.652Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/webApps/-/config {"projectId":"studio-567050101-bc6e8","appId":"1:1016399212569:web:d9c43842ea4d824e13ba88","storageBucket":"studio-567050101-bc6e8.firebasestorage.app","apiKey":"AIzaSyASUULiUcdtqVnPrTqZTsxoNiXdFPJ5e7E","authDomain":"studio-567050101-bc6e8.firebaseapp.com","messagingSenderId":"1016399212569","measurementId":"G-B4FT9QTWD1","projectNumber":"1016399212569","version":"2"}
+[info] 
+   Thank you for trying our early preview of Next.js support on Firebase Hosting.
+   During the preview, support is best-effort and breaking changes can be expected. Proceed with caution.
+   The integration is known to work with Next.js version 12 - 15.0. You may encounter errors.
+
+   Documentation: https://firebase.google.com/docs/hosting/frameworks/nextjs
+   File a bug: https://github.com/firebase/firebase-tools/issues/new?template=bug_report.md
+   Submit a feature request: https://github.com/firebase/firebase-tools/issues/new?template=feature_request.md
+
+   We'd love to learn from you. Express your interest in helping us shape the future of Firebase Hosting: https://goo.gle/41enW5X
+
+[debug] [2026-01-20T18:43:00.127Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:43:00.127Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:43:00.127Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8 [none]
+[debug] [2026-01-20T18:43:00.430Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8 200
+[debug] [2026-01-20T18:43:00.430Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8 {"name":"projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8","defaultUrl":"https://studio-567050101-bc6e8.web.app","type":"DEFAULT_SITE"}
+[info] ▲ Next.js 16.1.2 (Turbopack)
+
+[info] - Environments: .env.local, .env
+
+
+[info] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+[info]   Creating an optimized production build ...
+
+[info] ✓ Compiled successfully in 5.5min
+
+[info]   Skipping validation of types
+
+[info]   Collecting page data using 11 workers ...
+
+[info] ⨯ Next.js build worker exited with code: 3221226505 and signal: null
+
+[debug] [2026-01-20T18:49:12.277Z] Error: ENOENT: no such file or directory, open 'C:\Users\marte\Baked for Brands\bakedbot-for-brands\.next\export-marker.json'
+[error] 
+[error] Error: An unexpected error has occurred.
+[debug] [2026-01-20T18:49:56.111Z] ----------------------------------------------------------------------
+[debug] [2026-01-20T18:49:56.115Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\marte\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2026-01-20T18:49:56.115Z] CLI Version:   15.1.0
+[debug] [2026-01-20T18:49:56.115Z] Platform:      win32
+[debug] [2026-01-20T18:49:56.115Z] Node Version:  v24.11.1
+[debug] [2026-01-20T18:49:56.116Z] Time:          Tue Jan 20 2026 12:49:56 GMT-0600 (Central Standard Time)
+[debug] [2026-01-20T18:49:56.116Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-01-20T18:50:03.604Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-20T18:50:03.604Z] > authorizing via signed-in user (martez@bakedbot.ai)
+[debug] [2026-01-20T18:50:03.604Z] [iam] checking project studio-567050101-bc6e8 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-01-20T18:50:03.606Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:50:03.606Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:50:03.607Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions [none]
+[debug] [2026-01-20T18:50:03.607Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions x-goog-quota-user=projects/studio-567050101-bc6e8
+[debug] [2026-01-20T18:50:03.607Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-01-20T18:50:04.397Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions 200
+[debug] [2026-01-20T18:50:04.397Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-01-20T18:50:04.397Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:50:04.397Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:50:04.398Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/studio-567050101-bc6e8 [none]
+[debug] [2026-01-20T18:50:04.983Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/studio-567050101-bc6e8 200
+[debug] [2026-01-20T18:50:04.983Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/studio-567050101-bc6e8 {"projectId":"studio-567050101-bc6e8","projectNumber":"1016399212569","displayName":"Firebase app","name":"projects/studio-567050101-bc6e8","resources":{"hostingSite":"studio-567050101-bc6e8"},"state":"ACTIVE","etag":"1_de70cd1c-1a7d-45af-baab-810380006a43"}
+[debug] [2026-01-20T18:50:13.152Z] defaultcredentials: writing to file C:\Users\marte\AppData\Roaming\firebase\martez_bakedbot_ai_application_default_credentials.json
+[debug] [2026-01-20T18:50:13.157Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:50:13.157Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:50:13.158Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites pageToken=&pageSize=10
+[debug] [2026-01-20T18:50:13.585Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites 200
+[debug] [2026-01-20T18:50:13.585Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites {"sites":[{"name":"projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8","defaultUrl":"https://studio-567050101-bc6e8.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2026-01-20T18:50:13.586Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:50:13.586Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:50:13.586Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites 
+[debug] [2026-01-20T18:50:13.794Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites 200
+[debug] [2026-01-20T18:50:13.795Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites {"sites":[{"name":"projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8","defaultUrl":"https://studio-567050101-bc6e8.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2026-01-20T18:50:13.795Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:50:13.795Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:50:13.795Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/webApps/-/config [none]
+[debug] [2026-01-20T18:50:14.521Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/webApps/-/config 200
+[debug] [2026-01-20T18:50:14.521Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/webApps/-/config {"projectId":"studio-567050101-bc6e8","appId":"1:1016399212569:web:d9c43842ea4d824e13ba88","storageBucket":"studio-567050101-bc6e8.firebasestorage.app","apiKey":"AIzaSyASUULiUcdtqVnPrTqZTsxoNiXdFPJ5e7E","authDomain":"studio-567050101-bc6e8.firebaseapp.com","messagingSenderId":"1016399212569","measurementId":"G-B4FT9QTWD1","projectNumber":"1016399212569","version":"2"}
+[info] 
+   Thank you for trying our early preview of Next.js support on Firebase Hosting.
+   During the preview, support is best-effort and breaking changes can be expected. Proceed with caution.
+   The integration is known to work with Next.js version 12 - 15.0. You may encounter errors.
+
+   Documentation: https://firebase.google.com/docs/hosting/frameworks/nextjs
+   File a bug: https://github.com/firebase/firebase-tools/issues/new?template=bug_report.md
+   Submit a feature request: https://github.com/firebase/firebase-tools/issues/new?template=feature_request.md
+
+   We'd love to learn from you. Express your interest in helping us shape the future of Firebase Hosting: https://goo.gle/41enW5X
+
+[debug] [2026-01-20T18:50:25.752Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:50:25.752Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:50:25.752Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8 [none]
+[debug] [2026-01-20T18:50:26.077Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8 200
+[debug] [2026-01-20T18:50:26.077Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8 {"name":"projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8","defaultUrl":"https://studio-567050101-bc6e8.web.app","type":"DEFAULT_SITE"}
+[info] ▲ Next.js 16.1.2 (Turbopack)
+
+[info] - Environments: .env.local, .env
+
+
+[info] ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+
+[info]   Creating an optimized production build ...
+
+[info] ✓ Compiled successfully in 5.0min
+
+[info]   Skipping validation of types
+
+[info]   Collecting page data using 11 workers ...
+
+[info] [DiscoveryService] Initializing...
+[DiscoveryService] Env Key Exists: true
+[DiscoveryService] Key Length: 35
+[DiscoveryService] App Initialized Successfully
+
+[info] [DiscoveryService] Initializing...
+
+[info] [DiscoveryService] Env Key Exists: true
+[DiscoveryService] Key Length: 35
+[DiscoveryService] App Initialized Successfully
+
+[info] [DiscoveryService] Initializing...
+
+[info] [DiscoveryService] Env Key Exists: true
+[DiscoveryService] Key Length: 35
+[DiscoveryService] App Initialized Successfully
+
+[info] {
+  "timestamp": "2026-01-20T18:56:02.102Z",
+  "level": "warn",
+  "message": "SENDGRID_API_KEY is missing. Emails will not be sent."
+}
+
+[info]   Generating static pages using 11 workers (0/161) ...
+
+[info] Initializing Firebase Admin. Key present: false
+
+[info] [server-client] Current working directory: C:\Users\marte\Baked for Brands\bakedbot-for-brands
+[server-client] Checking for SA at: C:\Users\marte\Baked for Brands\bakedbot-for-brands\service-account.json
+[server-client] LOADED credentials from: C:\Users\marte\Baked for Brands\bakedbot-for-brands\service-account.json
+[src/firebase/server-client.ts] Key Normalized. BodyLen: 1624
+
+[info] Firebase initialized with Service Account config (isolated app)
+
+[info]   Generating static pages using 11 workers (40/161) 
+
+[info] Failed to read treasury memory from Firestore: Error: Treasury memory document not found in Firestore
+    at h.read (C:\Users\marte\Baked for Brands\bakedbot-for-brands\.next\server\chunks\ssr\[root-of-the-server]__d9e92687._.js:5:5028)
+    at async h (C:\Users\marte\Baked for Brands\bakedbot-for-brands\.next\server\chunks\ssr\[root-of-the-server]__d9e92687._.js:5:6290)
+    at async j (C:\Users\marte\Baked for Brands\bakedbot-for-brands\.next\server\chunks\ssr\[root-of-the-server]__eb5e7a05._.js:1:4816)
+Failed to fetch treasury overview: Error: Treasury memory document not found in Firestore
+    at h.read (C:\Users\marte\Baked for Brands\bakedbot-for-brands\.next\server\chunks\ssr\[root-of-the-server]__d9e92687._.js:5:5028)
+    at async h (C:\Users\marte\Baked for Brands\bakedbot-for-brands\.next\server\chunks\ssr\[root-of-the-server]__d9e92687._.js:5:6290)
+    at async j (C:\Users\marte\Baked for Brands\bakedbot-for-brands\.next\server\chunks\ssr\[root-of-the-server]__eb5e7a05._.js:1:4816)
+
+[info] [DiscoveryService] Initializing...
+
+[info] [DiscoveryService] Env Key Exists: true
+[DiscoveryService] Key Length: 35
+
+[info] [DiscoveryService] App Initialized Successfully
+
+[info]   Generating static pages using 11 workers (80/161) 
+
+[info] Initializing Firebase Admin. Key present: false
+[server-client] Current working directory: C:\Users\marte\Baked for Brands\bakedbot-for-brands
+[server-client] Checking for SA at: C:\Users\marte\Baked for Brands\bakedbot-for-brands\service-account.json
+[server-client] LOADED credentials from: C:\Users\marte\Baked for Brands\bakedbot-for-brands\service-account.json
+[src/firebase/server-client.ts] Key Normalized. BodyLen: 1624
+
+[info] Firebase initialized with Service Account config (isolated app)
+
+[info] {
+  "timestamp": "2026-01-20T18:56:28.667Z",
+  "level": "warn",
+  "message": "SENDGRID_API_KEY is missing. Emails will not be sent."
+}
+
+[info] [DiscoveryService] Initializing...
+
+[info] [DiscoveryService] Env Key Exists: true
+[DiscoveryService] Key Length: 35
+
+[info] [DiscoveryService] App Initialized Successfully
+
+[info]   Generating static pages using 11 workers (120/161) 
+
+[info] Initializing Firebase Admin. Key present: false
+
+[info] [server-client] Current working directory: C:\Users\marte\Baked for Brands\bakedbot-for-brands
+[server-client] Checking for SA at: C:\Users\marte\Baked for Brands\bakedbot-for-brands\service-account.json
+[server-client] LOADED credentials from: C:\Users\marte\Baked for Brands\bakedbot-for-brands\service-account.json
+
+[info] [src/firebase/server-client.ts] Key Normalized. BodyLen: 1624
+
+[info] Firebase initialized with Service Account config (isolated app)
+
+[info] ✓ Generating static pages using 11 workers (161/161) in 17.3s
+
+[info]   Finalizing page optimization ...
+
+[info] ⚠ Failed to copy traced files for C:\Users\marte\Baked for Brands\bakedbot-for-brands\.next\server\app\_not-found\page.js Error: EINVAL: invalid argument, copyfile 'C:\Users\marte\Baked for Brands\bakedbot-for-brands\.next\server\chunks\ssr\[externals]_node:inspector_7a4283c6._.js' -> 'C:\Users\marte\Baked for Brands\bakedbot-for-brands\.next\standalone\.next\server\chunks\ssr\[externals]_node:inspector_7a4283c6._.js'
+    at ignore-listed frames {
+  errno: -4071,
+  code: 'EINVAL',
+  syscall: 'copyfile',
+  path: 'C:\\Users\\marte\\Baked for Brands\\bakedbot-for-brands\\.next\\server\\chunks\\ssr\\[externals]_node:inspector_7a4283c6._.js',
+  dest: 'C:\\Users\\marte\\Baked for Brands\\bakedbot-for-brands\\.next\\standalone\\.next\\server\\chunks\\ssr\\[externals]_node:inspector_7a4283c6._.js'
+}
+
+[info] ⚠ Failed to copy traced files for C:\Users\marte\Baked for Brands\bakedbot-for-brands\.next\server\app\api\admin\fix-essex\route.js Error: EINVAL: invalid argument, copyfile 'C:\Users\marte\Baked for Brands\bakedbot-for-brands\.next\server\chunks\[externals]_node:inspector_7a4283c6._.js' -> 'C:\Users\marte\Baked for Brands\bakedbot-for-brands\.next\standalone\.next\server\chunks\[externals]_node:inspector_7a4283c6._.js'
+    at ignore-listed frames {
+  errno: -4071,
+  code: 'EINVAL',
+  syscall: 'copyfile',
+  path: 'C:\\Users\\marte\\Baked for Brands\\bakedbot-for-brands\\.next\\server\\chunks\\[externals]_node:inspector_7a4283c6._.js',
+  dest: 'C:\\Users\\marte\\Baked for Brands\\bakedbot-for-brands\\.next\\standalone\\.next\\server\\chunks\\[externals]_node:inspector_7a4283c6._.js'
+}
+
+[info] 
+
+[info] Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /[brand]
+├ ƒ /[brand]/collections/[slug]
+├ ƒ /[brand]/products/[productId]
+├ ƒ /account
+├ ƒ /admin-login
+├ ƒ /admin/claims
+├ ƒ /admin/treasury
+├ ƒ /api/admin/enrich
+├ ƒ /api/admin/fix-essex
+├ ƒ /api/admin/seed
+├ ƒ /api/agents/craig/dispatch
+├ ƒ /api/agents/dispatch
+├ ƒ /api/analytics/forecast
+├ ƒ /api/auth/google
+├ ƒ /api/auth/google/callback
+├ ƒ /api/auth/session
+├ ƒ /api/billing/authorize-net
+├ ƒ /api/brands/[brandId]/availability
+├ ƒ /api/cannmenus/brands
+├ ƒ /api/cannmenus/product-search
+├ ƒ /api/cannmenus/products
+├ ƒ /api/cannmenus/retailers
+├ ƒ /api/cannmenus/semantic-search
+├ ƒ /api/cannmenus/sync
+├ ƒ /api/chat
+├ ƒ /api/checkout/cannpay
+├ ƒ /api/checkout/cannpay/authorize
+├ ƒ /api/checkout/process-payment
+├ ƒ /api/checkout/smokey-pay
+├ ƒ /api/claim-status
+├ ƒ /api/cron/brand-pilot
+├ ƒ /api/cron/cleanup-brands
+├ ƒ /api/cron/dayday-discovery
+├ ƒ /api/cron/dayday-review
+├ ƒ /api/cron/evaluate-alerts
+├ ƒ /api/cron/seo-pilot
+├ ƒ /api/cron/tick
+├ ƒ /api/csrf
+├ ƒ /api/debug/auth
+├ ƒ /api/debug/env
+├ ƒ /api/demo/agent
+├ ƒ /api/demo/import-menu
+├ ƒ /api/demo/lead
+├ ƒ /api/dev/build-cannmenus-embeddings
+├ ƒ /api/dev/crawl
+├ ƒ /api/dev/delete-all-pages
+├ ƒ /api/dev/normalize
+├ ƒ /api/dev/run-pilot
+├ ƒ /api/dev/seed-cannmenus-stub
+├ ƒ /api/dev/seed-test-pages
+├ ƒ /api/dev/verify-pilot
+├ ƒ /api/discovery/status
+├ ƒ /api/dispensary/orders
+├ ƒ /api/dispensary/orders/[orderId]/status
+├ ƒ /api/drop-alerts
+├ ƒ /api/experiments/[experimentId]/assign
+├ ƒ /api/experiments/[experimentId]/track
+├ ƒ /api/ezal/competitors
+├ ƒ /api/ezal/discovery
+├ ƒ /api/ezal/insights
+├ ƒ /api/foot-traffic/checkout
+├ ƒ /api/foot-traffic/discover
+├ ƒ /api/foot-traffic/zones
+├ ƒ /api/internal/email-test-results
+├ ƒ /api/inventory/check
+├ ƒ /api/inventory/forecast
+├ ƒ /api/jobs/agent
+├ ƒ /api/jobs/process
+├ ƒ /api/marketing/generate
+├ ƒ /api/playbooks/execute
+├ ƒ /api/pricing/recommendations
+├ ƒ /api/reach/entry
+├ ƒ /api/recommendations/feedback
+├ ƒ /api/recommendations/personalized
+├ ƒ /api/reviews
+├ ƒ /api/route-request
+├ ƒ /api/seo/zip/[zipCode]
+├ ƒ /api/smokey/alert/create
+├ ƒ /api/smokey/cart/prepare
+├ ƒ /api/smokey/find
+├ ƒ /api/subscriptions/coverage-pack
+├ ƒ /api/tasks/[taskId]/execute
+├ ƒ /api/tasks/create
+├ ƒ /api/tickets
+├ ƒ /api/user/linked-dispensary
+├ ƒ /api/webhooks/agent/[id]
+├ ƒ /api/webhooks/cannpay
+├ ƒ /api/webhooks/error-report
+├ ƒ /artifacts/[shareId]
+├ ƒ /brand-login
+├ ƒ /brands
+├ ƒ /brands/[brandSlug]
+├ ƒ /brands/[brandSlug]/near/[zip]
+├ ƒ /brands/claim
+├ ƒ /budtender
+├ ƒ /case-studies
+├ ƒ /checkout
+├ ƒ /checkout/subscription
+├ ƒ /cities/[citySlug]
+├ ƒ /city/[citySlug]
+├ ƒ /claim
+├ ƒ /contact
+├ ƒ /customer-login
+├ ƒ /customer/forgot-password
+├ ƒ /customer/login
+├ ƒ /customer/profile
+├ ƒ /customer/register
+├ ƒ /customer/verify-email
+├ ƒ /dashboard
+├ ƒ /dashboard/agents
+├ ƒ /dashboard/agents/[agentId]
+├ ƒ /dashboard/agents/craig
+├ ƒ /dashboard/agents/craig/campaigns/new
+├ ƒ /dashboard/ambassador
+├ ƒ /dashboard/analytics
+├ ƒ /dashboard/apps
+├ ƒ /dashboard/apps/[appId]
+├ ƒ /dashboard/audit
+├ ƒ /dashboard/brand-page
+├ ƒ /dashboard/brand/creative
+├ ƒ /dashboard/bundles
+├ ƒ /dashboard/carousels
+├ ƒ /dashboard/ceo
+├ ƒ /dashboard/ceo/agents
+├ ƒ /dashboard/ceo/agents/knowledge
+├ ƒ /dashboard/ceo/approvals
+├ ƒ /dashboard/ceo/playbooks
+├ ƒ /dashboard/ceo/projects
+├ ƒ /dashboard/ceo/projects/[projectId]
+├ ƒ /dashboard/ceo/treasury
+├ ƒ /dashboard/ceo/users
+├ ƒ /dashboard/chat
+├ ƒ /dashboard/claims/analytics
+├ ƒ /dashboard/competitive-intel
+├ ƒ /dashboard/compliance
+├ ƒ /dashboard/content
+├ ƒ /dashboard/content/brand-page
+├ ƒ /dashboard/customer/orders
+├ ƒ /dashboard/customers
+├ ƒ /dashboard/customers/segments
+├ ƒ /dashboard/dispensaries
+├ ƒ /dashboard/dispensary/orders
+├ ƒ /dashboard/distribution
+├ ƒ /dashboard/favorites
+├ ƒ /dashboard/financials
+├ ƒ /dashboard/integrations
+├ ƒ /dashboard/intelligence
+├ ƒ /dashboard/inventory
+├ ƒ /dashboard/knowledge-base
+├ ƒ /dashboard/leads
+├ ƒ /dashboard/loyalty
+├ ƒ /dashboard/marketing
+├ ƒ /dashboard/marketing/campaigns/new
+├ ƒ /dashboard/marketing/lifecycle
+├ ƒ /dashboard/menu
+├ ƒ /dashboard/menu-sync
+├ ƒ /dashboard/menu/publish
+├ ƒ /dashboard/orders
+├ ƒ /dashboard/playbooks
+├ ƒ /dashboard/playbooks/knowledge
+├ ƒ /dashboard/pricing
+├ ƒ /dashboard/products
+├ ƒ /dashboard/products/[id]/edit
+├ ƒ /dashboard/products/import
+├ ƒ /dashboard/products/new
+├ ƒ /dashboard/products/url-import
+├ ƒ /dashboard/projects
+├ ƒ /dashboard/projects/[projectId]
+├ ƒ /dashboard/promotions/bundles
+├ ƒ /dashboard/promotions/carousel
+├ ƒ /dashboard/promotions/recommendations
+├ ƒ /dashboard/research
+├ ƒ /dashboard/segments
+├ ƒ /dashboard/settings
+├ ƒ /dashboard/settings/fix-essex
+├ ƒ /dashboard/settings/link
+├ ƒ /dashboard/setup
+├ ƒ /dashboard/simulation
+├ ƒ /dashboard/simulation/[runId]
+├ ƒ /dashboard/simulation/edit/[id]
+├ ƒ /dashboard/simulation/new
+├ ƒ /dashboard/tasks
+├ ƒ /dashboard/tasks/[taskId]
+├ ƒ /dashboard/team
+├ ƒ /dashboard/treasury
+├ ƒ /dashboard/vision
+├ ƒ /dashboard/workspace
+├ ƒ /data
+├ ƒ /data/brand-availability
+├ ƒ /data/desert-index
+├ ƒ /data/freshness-index
+├ ƒ /debug/discovery
+├ ƒ /debug/playbooks
+├ ƒ /demo
+├ ƒ /demo-shop
+├ ƒ /deserts/[state]
+├ ƒ /dev/cannmenus
+├ ƒ /dispensaries
+├ ƒ /dispensaries/[dispensarySlug]
+├ ƒ /dispensary-login
+├ ƒ /find/[productId]
+├ ƒ /free-audit
+├ ƒ /get-started
+├ ƒ /health
+├ ƒ /highroad-thailand
+├ ƒ /invite/[token]
+├ ƒ /join/[brandId]
+├ ƒ /local
+├ ƒ /local/[zipCode]
+├ ƒ /local/[zipCode]/[category]
+├ ƒ /local/[zipCode]/brand/[brandSlug]
+├ ƒ /local/[zipCode]/rankings
+├ ƒ /local/[zipCode]/search
+├ ƒ /local/search
+├ ƒ /login
+├ ƒ /loyalty/scan
+├ ƒ /menu
+├ ƒ /menu/[brandId]
+├ ƒ /onboarding
+├ ƒ /onboarding/passport
+├ ƒ /order-confirmation/[orderId]
+├ ƒ /p/[userId]
+├ ƒ /pricing
+├ ƒ /pricing/launch
+├ ƒ /privacy
+├ ƒ /product-locator
+├ ○ /robots.txt
+├ ƒ /scan/[orderId]
+├ ○ /sitemap.xml
+├ ƒ /states/[stateSlug]
+├ ƒ /terms
+├ ƒ /thank-you
+├ ƒ /vs-alpine-iq
+├ ƒ /vs-leafly
+├ ƒ /vs-springbig
+├ ƒ /vs-terpli
+└ ƒ /zip/[slug]
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+
+[info] Building a Cloud Function to run this application. This is needed due to:
+[info]  • middleware
+[info]  • non-static component /[brand]/collections/[slug]/page
+[info]  • non-static component /[brand]/page
+[info]  • non-static component /[brand]/products/[productId]/page
+[info]  • non-static component /_not-found/page
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /account/page
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /admin-login/page
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /admin/claims/page
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /admin/treasury/page
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/admin/enrich/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/admin/fix-essex/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/admin/seed/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/agents/craig/dispatch/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/agents/dispatch/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/analytics/forecast/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/auth/google/callback/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/auth/google/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/auth/session/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/billing/authorize-net/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/brands/[brandId]/availability/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/cannmenus/brands/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/cannmenus/product-search/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/cannmenus/products/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/cannmenus/retailers/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/cannmenus/semantic-search/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/cannmenus/sync/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/chat/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/checkout/cannpay/authorize/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/checkout/cannpay/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/checkout/process-payment/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/checkout/smokey-pay/route
+[debug] [2026-01-20T18:57:34.753Z]  • non-static component /api/claim-status/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/cron/brand-pilot/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/cron/cleanup-brands/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/cron/dayday-discovery/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/cron/dayday-review/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/cron/evaluate-alerts/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/cron/seo-pilot/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/cron/tick/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/csrf/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/debug/auth/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/debug/env/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/demo/agent/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/demo/import-menu/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/demo/lead/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/dev/build-cannmenus-embeddings/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/dev/crawl/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/dev/delete-all-pages/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/dev/normalize/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/dev/run-pilot/route
+[debug] [2026-01-20T18:57:34.754Z]  • non-static component /api/dev/seed-cannmenus-stub/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/dev/seed-test-pages/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/dev/verify-pilot/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/discovery/status/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/dispensary/orders/[orderId]/status/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/dispensary/orders/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/drop-alerts/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/experiments/[experimentId]/assign/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/experiments/[experimentId]/track/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/ezal/competitors/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/ezal/discovery/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/ezal/insights/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/foot-traffic/checkout/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/foot-traffic/discover/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/foot-traffic/zones/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/internal/email-test-results/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/inventory/check/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/inventory/forecast/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/jobs/agent/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/jobs/process/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/marketing/generate/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/playbooks/execute/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/pricing/recommendations/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/reach/entry/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/recommendations/feedback/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/recommendations/personalized/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/reviews/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/route-request/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/seo/zip/[zipCode]/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/smokey/alert/create/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/smokey/cart/prepare/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/smokey/find/route
+[debug] [2026-01-20T18:57:34.755Z]  • non-static component /api/subscriptions/coverage-pack/route
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /api/tasks/[taskId]/execute/route
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /api/tasks/create/route
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /api/tickets/route
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /api/user/linked-dispensary/route
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /api/webhooks/agent/[id]/route
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /api/webhooks/cannpay/route
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /api/webhooks/error-report/route
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /artifacts/[shareId]/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /brand-login/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /brands/[brandSlug]/near/[zip]/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /brands/[brandSlug]/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /brands/claim/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /brands/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /budtender/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /case-studies/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /checkout/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /checkout/subscription/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /cities/[citySlug]/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /city/[citySlug]/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /claim/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /contact/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /customer-login/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /customer/forgot-password/page
+[debug] [2026-01-20T18:57:34.756Z]  • non-static component /customer/login/page
+[debug] [2026-01-20T18:57:34.761Z]  • non-static component /customer/profile/page
+[debug] [2026-01-20T18:57:34.761Z]  • non-static component /customer/register/page
+[debug] [2026-01-20T18:57:34.761Z]  • non-static component /customer/verify-email/page
+[debug] [2026-01-20T18:57:34.761Z]  • non-static component /dashboard/agents/[agentId]/page
+[debug] [2026-01-20T18:57:34.761Z]  • non-static component /dashboard/agents/craig/campaigns/new/page
+[debug] [2026-01-20T18:57:34.761Z]  • non-static component /dashboard/agents/craig/page
+[debug] [2026-01-20T18:57:34.761Z]  • non-static component /dashboard/agents/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/ambassador/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/analytics/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/apps/[appId]/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/apps/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/audit/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/brand-page/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/brand/creative/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/bundles/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/carousels/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/ceo/agents/knowledge/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/ceo/agents/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/ceo/approvals/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/ceo/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/ceo/playbooks/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/ceo/projects/[projectId]/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/ceo/projects/page
+[debug] [2026-01-20T18:57:34.762Z]  • non-static component /dashboard/ceo/treasury/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/ceo/users/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/chat/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/claims/analytics/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/competitive-intel/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/compliance/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/content/brand-page/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/content/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/customer/orders/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/customers/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/customers/segments/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/dispensaries/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/dispensary/orders/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/distribution/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/favorites/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/financials/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/integrations/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/intelligence/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/inventory/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/knowledge-base/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/leads/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/loyalty/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/marketing/campaigns/new/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/marketing/lifecycle/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/marketing/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/menu-sync/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/menu/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/menu/publish/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/orders/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/page
+[debug] [2026-01-20T18:57:34.763Z]  • non-static component /dashboard/playbooks/knowledge/page
+[debug] [2026-01-20T18:57:34.764Z]  • non-static component /dashboard/playbooks/page
+[debug] [2026-01-20T18:57:34.764Z]  • non-static component /dashboard/pricing/page
+[debug] [2026-01-20T18:57:34.764Z]  • non-static component /dashboard/products/[id]/edit/page
+[debug] [2026-01-20T18:57:34.764Z]  • non-static component /dashboard/products/import/page
+[debug] [2026-01-20T18:57:34.764Z]  • non-static component /dashboard/products/new/page
+[debug] [2026-01-20T18:57:34.764Z]  • non-static component /dashboard/products/page
+[debug] [2026-01-20T18:57:34.764Z]  • non-static component /dashboard/products/url-import/page
+[debug] [2026-01-20T18:57:34.764Z]  • non-static component /dashboard/projects/[projectId]/page
+[debug] [2026-01-20T18:57:34.764Z]  • non-static component /dashboard/projects/page
+[debug] [2026-01-20T18:57:34.765Z]  • non-static component /dashboard/promotions/bundles/page
+[debug] [2026-01-20T18:57:34.765Z]  • non-static component /dashboard/promotions/carousel/page
+[debug] [2026-01-20T18:57:34.765Z]  • non-static component /dashboard/promotions/recommendations/page
+[debug] [2026-01-20T18:57:34.766Z]  • non-static component /dashboard/research/page
+[debug] [2026-01-20T18:57:34.769Z]  • non-static component /dashboard/segments/page
+[debug] [2026-01-20T18:57:34.769Z]  • non-static component /dashboard/settings/fix-essex/page
+[debug] [2026-01-20T18:57:34.769Z]  • non-static component /dashboard/settings/link/page
+[debug] [2026-01-20T18:57:34.769Z]  • non-static component /dashboard/settings/page
+[debug] [2026-01-20T18:57:34.769Z]  • non-static component /dashboard/setup/page
+[debug] [2026-01-20T18:57:34.769Z]  • non-static component /dashboard/simulation/[runId]/page
+[debug] [2026-01-20T18:57:34.769Z]  • non-static component /dashboard/simulation/edit/[id]/page
+[debug] [2026-01-20T18:57:34.769Z]  • non-static component /dashboard/simulation/new/page
+[debug] [2026-01-20T18:57:34.769Z]  • non-static component /dashboard/simulation/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /dashboard/tasks/[taskId]/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /dashboard/tasks/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /dashboard/team/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /dashboard/treasury/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /dashboard/vision/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /dashboard/workspace/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /data/brand-availability/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /data/desert-index/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /data/freshness-index/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /data/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /debug/discovery/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /debug/playbooks/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /demo-shop/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /demo/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /deserts/[state]/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /dev/cannmenus/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /dispensaries/[dispensarySlug]/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /dispensaries/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /dispensary-login/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /find/[productId]/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /free-audit/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /get-started/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /health/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /highroad-thailand/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /invite/[token]/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /join/[brandId]/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /local/[zipCode]/[category]/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /local/[zipCode]/brand/[brandSlug]/page
+[debug] [2026-01-20T18:57:34.770Z]  • non-static component /local/[zipCode]/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /local/[zipCode]/rankings/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /local/[zipCode]/search/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /local/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /local/search/route
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /login/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /loyalty/scan/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /menu/[brandId]/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /menu/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /onboarding/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /onboarding/passport/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /order-confirmation/[orderId]/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /p/[userId]/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /pricing/launch/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /pricing/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /privacy/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /product-locator/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /scan/[orderId]/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /states/[stateSlug]/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /terms/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /thank-you/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /vs-alpine-iq/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /vs-leafly/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /vs-springbig/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /vs-terpli/page
+[debug] [2026-01-20T18:57:34.771Z]  • non-static component /zip/[slug]/page
+[debug] [2026-01-20T18:57:34.771Z]  • route with server action /
+[debug] [2026-01-20T18:57:34.771Z]  • route with server action /dashboard/ceo
+[debug] [2026-01-20T18:57:34.771Z]  • route with server action /dashboard/chat
+[debug] [2026-01-20T18:57:34.771Z]  • route with server action /dashboard
+[debug] [2026-01-20T18:57:34.771Z]  • route with server action /dashboard/playbooks
+[debug] [2026-01-20T18:57:34.771Z]  • route with server action /dashboard/ceo/playbooks
+[debug] [2026-01-20T18:57:34.771Z]  • route with server action /dashboard/workspace
+[debug] [2026-01-20T18:57:34.771Z]  • route with server action /[brand]
+[debug] [2026-01-20T18:57:34.771Z]  • route with server action /dispensaries/[dispensarySlug]
+[debug] [2026-01-20T18:57:34.771Z]  • route with server action /join/[brandId]
+[debug] [2026-01-20T18:57:34.771Z]  • route with server action /dashboard/bundles
+[debug] [2026-01-20T18:57:34.771Z]  • route with server action /admin-login
+[debug] [2026-01-20T18:57:34.771Z]  • route with server action /brands/[brandSlug]/near/[zip]
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /brands/[brandSlug]
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /local/[zipCode]
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /brands/claim
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /checkout
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /checkout/subscription
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/agents/[agentId]
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/agents/craig/campaigns/new
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/agents/craig
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/agents
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/ambassador
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/analytics
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/apps/[appId]
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/apps
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/audit
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/brand-page
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/brand/creative
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/carousels
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/ceo/agents/knowledge
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/ceo/agents
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/ceo/approvals
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/ceo/projects/[projectId]
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/ceo/projects
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/ceo/treasury
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/ceo/users
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/claims/analytics
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/competitive-intel
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/compliance
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/content/brand-page
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/content
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/customer/orders
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/customers
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/customers/segments
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/dispensaries
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/dispensary/orders
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/distribution
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/favorites
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/financials
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/integrations
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/intelligence
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/inventory
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/knowledge-base
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/leads
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/loyalty
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/marketing/campaigns/new
+[debug] [2026-01-20T18:57:34.772Z]  • route with server action /dashboard/marketing/lifecycle
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/marketing
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/menu-sync
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/menu
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/menu/publish
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/orders
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/playbooks/knowledge
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/pricing
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/products/[id]/edit
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/products/import
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/products/new
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/products
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/products/url-import
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/projects/[projectId]
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/projects
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/promotions/bundles
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/promotions/carousel
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/promotions/recommendations
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/research
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/segments
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/settings/fix-essex
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/settings/link
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/settings
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/setup
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/simulation/[runId]
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/simulation/edit/[id]
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/simulation/new
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/simulation
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/tasks/[taskId]
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/tasks
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/team
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/treasury
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /dashboard/vision
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /invite/[token]
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /loyalty/scan
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /menu/[brandId]
+[debug] [2026-01-20T18:57:34.773Z]  • route with server action /onboarding/passport
+[debug] [2026-01-20T18:57:34.774Z]  • route with server action /scan/[orderId]
+[info]  • and 328 other reasons, use --debug to see more
+[info] 
+[debug] [2026-01-20T18:57:50.383Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:57:50.383Z] Checked if tokens are valid: true, expires at: 1768938143830
+[debug] [2026-01-20T18:57:50.383Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8 [none]
+[debug] [2026-01-20T18:57:50.910Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8 200
+[debug] [2026-01-20T18:57:50.910Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8 {"name":"projects/studio-567050101-bc6e8/sites/studio-567050101-bc6e8","defaultUrl":"https://studio-567050101-bc6e8.web.app","type":"DEFAULT_SITE"}
+[debug] [2026-01-20T18:58:19.232Z] Error: EPERM: operation not permitted, symlink 'C:\Users\marte\Baked for Brands\bakedbot-for-brands\node_modules\puppeteer-core' -> 'C:\Users\marte\Baked for Brands\bakedbot-for-brands\.firebase\studio-567050101-bc6e8\functions\.next\node_modules\puppeteer-core-3cc12a7b2479c6f0'
