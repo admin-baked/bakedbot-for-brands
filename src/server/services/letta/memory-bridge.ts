@@ -19,7 +19,7 @@
 import { logger } from '@/lib/logger';
 import { lettaClient } from './client';
 import { lettaBlockManager, BLOCK_LABELS } from './block-manager';
-import { db } from '@/lib/firebase-admin';
+import { getAdminFirestore } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 // =============================================================================
@@ -79,6 +79,7 @@ export class MemoryBridgeService {
             const strategicChunks = this.parseStrategicContext(executiveWorkspace, brandContext);
 
             // Store in Firestore for RAG access
+            const db = getAdminFirestore();
             const batch = db.batch();
 
             for (const chunk of strategicChunks) {
@@ -106,7 +107,7 @@ export class MemoryBridgeService {
         }
 
         // Record sync
-        await db.collection(BRIDGE_COLLECTION).doc(record.id).set(record);
+        await getAdminFirestore().collection(BRIDGE_COLLECTION).doc(record.id).set(record);
 
         return record;
     }
@@ -154,7 +155,7 @@ export class MemoryBridgeService {
             logger.error('[MemoryBridge] Metrics sync failed:', error);
         }
 
-        await db.collection(BRIDGE_COLLECTION).doc(record.id).set(record);
+        await getAdminFirestore().collection(BRIDGE_COLLECTION).doc(record.id).set(record);
 
         return record;
     }
@@ -210,7 +211,7 @@ export class MemoryBridgeService {
             logger.error('[MemoryBridge] Customer sync failed:', error);
         }
 
-        await db.collection(BRIDGE_COLLECTION).doc(record.id).set(record);
+        await getAdminFirestore().collection(BRIDGE_COLLECTION).doc(record.id).set(record);
 
         return record;
     }

@@ -18,7 +18,7 @@
 
 import { logger } from '@/lib/logger';
 import { lettaClient } from './client';
-import { db } from '@/lib/firebase-admin';
+import { getAdminFirestore } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 // =============================================================================
@@ -172,6 +172,7 @@ export class ArchivalTagsService {
      * Get all tags used by a tenant.
      */
     async getTenantTags(tenantId: string): Promise<TagIndex[]> {
+        const db = getAdminFirestore();
         const snapshot = await db
             .collection(TAG_INDEX_COLLECTION)
             .where('tenantId', '==', tenantId)
@@ -179,7 +180,7 @@ export class ArchivalTagsService {
             .limit(100)
             .get();
 
-        return snapshot.docs.map(doc => ({
+        return snapshot.docs.map((doc: FirebaseFirestore.DocumentSnapshot) => ({
             tag: doc.data().tag,
             tenantId: doc.data().tenantId,
             count: doc.data().count,
@@ -193,7 +194,7 @@ export class ArchivalTagsService {
      */
     async getAgentTags(tenantId: string, agentName: string): Promise<TagIndex[]> {
         const agentTag = `agent:${agentName.toLowerCase()}`;
-
+        const db = getAdminFirestore();
         const snapshot = await db
             .collection(TAG_INDEX_COLLECTION)
             .where('tenantId', '==', tenantId)
@@ -202,7 +203,7 @@ export class ArchivalTagsService {
             .limit(50)
             .get();
 
-        return snapshot.docs.map(doc => ({
+        return snapshot.docs.map((doc: FirebaseFirestore.DocumentSnapshot) => ({
             tag: doc.data().tag,
             tenantId: doc.data().tenantId,
             count: doc.data().count,
@@ -271,6 +272,7 @@ export class ArchivalTagsService {
      */
     async consolidateTags(tenantId: string): Promise<number> {
         const tags = await this.getTenantTags(tenantId);
+        const db = getAdminFirestore();
 
         // Group by normalized form
         const groups = new Map<string, TagIndex[]>();
@@ -374,6 +376,7 @@ export class ArchivalTagsService {
         tags: string[],
         agentId: string
     ): Promise<void> {
+        const db = getAdminFirestore();
         const batch = db.batch();
 
         for (const tag of tags) {
