@@ -60,7 +60,12 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
     }
 
     // Fetch active bundles for this brand/org
-    const bundles = await getActiveBundles(brand.id);
+    let bundles = [];
+    try {
+        bundles = await getActiveBundles(brand.id);
+    } catch (e) {
+        console.error('Failed to fetch bundles:', e);
+    }
 
     return (
         <main className="relative min-h-screen">

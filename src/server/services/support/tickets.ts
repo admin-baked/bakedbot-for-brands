@@ -24,21 +24,27 @@ export const supportService = {
             metadata
         };
         
-        await firestore.collection('support_tickets').doc(id).set(ticket);
+        // Use 'tickets' collection to align with API
+        await firestore.collection('tickets').doc(id).set(ticket);
         return ticket;
     },
 
     async getOpenTickets(limit: number = 10): Promise<SupportTicket[]> {
         const { firestore } = await createServerClient();
-        const snapshot = await firestore.collection('support_tickets')
-            .where('status', 'in', ['open', 'investigating'])
+        // Query 'tickets' collection
+        // Note: API uses 'status' = 'new', service used 'open'. Let's support both or align.
+        // API defaults status to 'new'. 
+        // Let's query for 'new', 'open', 'investigating'.
+        const snapshot = await firestore.collection('tickets')
+            .where('status', 'in', ['new', 'open', 'investigating'])
             .orderBy('createdAt', 'desc')
             .limit(limit)
             .get();
             
         return snapshot.docs.map(d => ({
             ...d.data(),
-            createdAt: d.data().createdAt?.toDate()
+            id: d.id, // Ensure ID is included
+            createdAt: d.data().createdAt?.toDate ? d.data().createdAt.toDate() : new Date(d.data().createdAt)
         })) as SupportTicket[];
     }
 };
