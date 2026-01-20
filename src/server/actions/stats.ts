@@ -12,7 +12,7 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     try {
         const { firestore } = await createServerClient();
 
-        // Run counts in parallel
+
         // Run counts in parallel
         const [dispensariesSnapshot, brandsSnapshot, seoDispSnapshot, zipPagesSnapshot] = await Promise.all([
             firestore.collection('dispensaries').count().get(),
