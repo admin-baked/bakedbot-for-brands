@@ -248,6 +248,11 @@ npm run check:types  # Verify build is healthy
 6. **Archive work** — Use `archive_work` or add to `dev/work_archive/`
 7. Log progress in `dev/progress_log.md` with artifact reference
 
+## ⚡ Development Environment
+
+- **Shell**: PowerShell (v5+) is the REQUIRED default shell for all commands.
+- **Commands**: Use `;` for chaining, not `&&`.
+
 ---
 
 ## 🚀 Deployment
