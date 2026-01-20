@@ -5,6 +5,7 @@ import { detectAnomaly } from '../algorithms/pops-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import { analyticsToolDefs, analyticsToolImplementations } from './tools/analytics-tools';
 
 // --- Tool Definitions ---
 
@@ -98,8 +99,16 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
             }
         ];
 
-        // Combine agent-specific tools with shared Context OS and Letta tools
-        const toolsDef = [...popsSpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
+        // Combine agent-specific tools with shared Context OS, Letta tools, AND Analytics tools
+        const toolsDef = [
+            ...popsSpecificTools, 
+            ...analyticsToolDefs,
+            ...contextOsToolDefs, 
+            ...lettaToolDefs
+        ];
+
+        // Merge implementations
+        const allTools = { ...tools, ...analyticsToolImplementations };
 
         try {
             // 2. PLAN
@@ -123,7 +132,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
                 output: {
                     schema: z.object({
                         thought: z.string(),
-                        toolName: z.enum(['analyzeData', 'detectAnomalies', 'lettaSaveFact', 'lettaUpdateCoreMemory', 'lettaMessageAgent', 'null']),
+                        toolName: z.enum(['analyzeData', 'detectAnomalies', 'lettaSaveFact', 'lettaUpdateCoreMemory', 'lettaMessageAgent', 'getSearchConsoleStats', 'getGA4Traffic', 'findSEOOpportunities', 'null']),
                         args: z.record(z.any())
                     })
                 }
@@ -157,6 +166,15 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
                 output = await tools.lettaUpdateCoreMemory(decision.args.section, decision.args.content);
             } else if (decision.toolName === 'lettaMessageAgent') {
                 output = await tools.lettaMessageAgent(decision.args.toAgent, decision.args.message);
+            } else if (decision.toolName === 'getSearchConsoleStats') {
+                // @ts-ignore - dynamic mixin
+                output = await allTools.getSearchConsoleStats();
+            } else if (decision.toolName === 'getGA4Traffic') {
+                // @ts-ignore - dynamic mixin
+                output = await allTools.getGA4Traffic();
+            } else if (decision.toolName === 'findSEOOpportunities') {
+                // @ts-ignore - dynamic mixin
+                output = await allTools.findSEOOpportunities(decision.args);
             }
 
             // 4. SYNTHESIZE
