@@ -1,0 +1,20 @@
+name: PHASE 2 - Day Day Daily Discovery
+
+on:
+  schedule:
+    # Run at 5:00 AM UTC daily (approx Midnight CST - Chicago time)
+    - cron: '0 5 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  dayday-discovery:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Day Day SEO Generation
+        run: |
+          # Hitting the Production Endpoint
+          curl -X GET https://bakedbot.ai/api/cron/dayday-discovery \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+          
+      - name: Log Execution
+        run: echo "Day Day Discovery triggered at $(date)"
