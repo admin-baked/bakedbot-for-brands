@@ -10,6 +10,7 @@ import { ExecutiveMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools } from './shared-tools';
+import { analyticsToolDefs, analyticsToolImplementations } from './tools/analytics-tools';
 
 export interface GlendaTools extends Partial<AllSharedTools> {
     // Marketing Analytics
@@ -129,16 +130,6 @@ export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
             // Glenda-specific tools for marketing and brand management
             const glendaSpecificTools = [
                 {
-                    name: "getGA4Traffic",
-                    description: "Get Google Analytics 4 traffic data - sessions, users, engagement, top pages.",
-                    schema: z.object({})
-                },
-                {
-                    name: "getSearchConsoleStats",
-                    description: "Get Google Search Console data - rankings, clicks, impressions, CTR.",
-                    schema: z.object({})
-                },
-                {
                     name: "getSocialMetrics",
                     description: "Get social media metrics for a platform (instagram, twitter, facebook, linkedin).",
                     schema: z.object({
@@ -179,11 +170,6 @@ export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
                     })
                 },
                 {
-                    name: "findSEOOpportunities",
-                    description: "Find low-competition keywords and content opportunities.",
-                    schema: z.object({})
-                },
-                {
                     name: "auditPage",
                     description: "Run an SEO and content audit on a specific URL.",
                     schema: z.object({
@@ -209,13 +195,17 @@ export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
                 }
             ];
 
-            // Combine Glenda-specific tools with shared Context OS, Letta Memory, and Intuition OS tools
+            // Combine Glenda-specific tools with shared Context OS, Letta Memory, Intuition OS, AND Analytics tools
             const toolsDef = [
                 ...glendaSpecificTools,
+                ...analyticsToolDefs,
                 ...contextOsToolDefs,
                 ...lettaToolDefs,
                 ...intuitionOsToolDefs
             ];
+            
+            // Merge implementations
+            const allTools = { ...tools, ...analyticsToolImplementations };
 
             try {
                 const { runMultiStepTask } = await import('./harness');
@@ -224,7 +214,7 @@ export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools,
+                    tools: allTools,
                     model: 'claude',
                     maxIterations: 5
                 });
