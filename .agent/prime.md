@@ -156,6 +156,24 @@ For detailed documentation, see `.agent/refs/`:
 
 ---
 
+## ⚡ "Always On" Architecture (Pulse & Interrupt)
+Agents are no longer passive. They operate on a Pulse (Proactive) and Interrupt (Reactive) model.
+
+### 1. The Pulse (Proactive)
+*   **Mechanism**: GitHub Actions (`.github/workflows/pulse.yaml`) triggers `/api/cron/tick` every 10 minutes.
+*   **Active Protocols**:
+    *   **Linus**: `Protocol: Zero Bug Tolerance` (Hourly) - Checks code, tickets, builds.
+    *   **Leo**: `Protocol: Operations Heartbeat` (Hourly) - Checks system health.
+    *   **Jack**: `Protocol: Revenue Pulse` (Daily) - Checks MRR/Pipeline.
+    *   **Glenda**: `Protocol: Brand Watch` (Daily) - Checks Traffic/Socials.
+
+### 2. The Interrupt (Reactive)
+*   **Mechanism**: Webhook Receiver (`/api/webhooks/error-report`).
+*   **Trigger**: Critical errors or external alerts.
+*   **Action**: Wakes up Linus immediately with `source: 'interrupt'`.
+
+---
+
 ## 🕵️ Agent Squad
 
 ### Executive Boardroom (Super Users Only)
