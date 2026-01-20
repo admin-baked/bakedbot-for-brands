@@ -376,120 +376,132 @@ interface ChatExtraOptions {
     audioInput?: string; // base64
     attachments?: { name: string; type: string; base64: string }[];
     projectId?: string; // Project context for system instructions
+    source?: string; // Source identifier (e.g., 'interrupt', 'pulse')
+    priority?: string; // Priority level (e.g., 'high', 'normal')
 }
 
 export async function runAgentChat(userMessage: string, personaId?: string, extraOptions?: ChatExtraOptions): Promise<AgentResult> {
     console.log('[runAgentChat] Dispatching Async Job:', userMessage.substring(0, 50));
-    
-    // 0. Intelligent Routing (Overriding Persona)
-    let finalPersonaId = personaId;
-    
-    // INTENT CHECK: Hire / Upgrade
-    const lowerMsg = userMessage.toLowerCase();
-    if (lowerMsg.includes('hire') || lowerMsg.includes('upgrade') || lowerMsg.includes('subscribe')) {
-        // Return immediate "Hire" trigger
-        return {
-            content: "I can help you build your digital workforce. Let's get you upgraded.",
-            toolCalls: [],
-            metadata: {
-                type: 'hire_modal',
-                data: { plan: lowerMsg.includes('team') || lowerMsg.includes('empire') ? 'empire' : 'specialist' }
-            }
-        };
-    }
 
-    // Only route if no specific persona was forced (or if it's the default 'puff')
-    // We allow explicit persona selection to stick, but 'puff' implies "General Assistant" who delegates.
-    if (!personaId || personaId === 'puff') {
-        try {
-            const analysis = await analyzeQuery(userMessage);
-            console.log('[runAgentChat] Routing Analysis:', analysis);
+    try {
+        // 0. Intelligent Routing (Overriding Persona)
+        let finalPersonaId = personaId;
 
-            if (analysis.searchType === 'marketing') {
-                finalPersonaId = 'craig';
-            } else if (analysis.searchType === 'competitive') {
-                finalPersonaId = 'ezal';
-            } else if (analysis.searchType === 'compliance') {
-                finalPersonaId = 'deebo';
-            } else if (analysis.searchType === 'analytics') {
-                finalPersonaId = 'pops';
-            } else if (analysis.searchType === 'semantic' || analysis.searchType === 'keyword' || analysis.searchType === 'filtered') {
-                // Product search -> Smokey
-                finalPersonaId = 'smokey';
-            } else if (userMessage.toLowerCase().includes('price') || userMessage.toLowerCase().includes('cost') || userMessage.toLowerCase().includes('margin') || userMessage.toLowerCase().includes('billing')) {
-                 // Money Mike fallback for financial terms not caught by complex analysis
-                 finalPersonaId = 'money_mike';
-            }
-        } catch (e) {
-            console.warn('[runAgentChat] Routing failed, defaulting to Puff:', e);
+        // INTENT CHECK: Hire / Upgrade
+        const lowerMsg = userMessage.toLowerCase();
+        if (lowerMsg.includes('hire') || lowerMsg.includes('upgrade') || lowerMsg.includes('subscribe')) {
+            // Return immediate "Hire" trigger
+            return {
+                content: "I can help you build your digital workforce. Let's get you upgraded.",
+                toolCalls: [],
+                metadata: {
+                    type: 'hire_modal',
+                    data: { plan: lowerMsg.includes('team') || lowerMsg.includes('empire') ? 'empire' : 'specialist' }
+                }
+            };
         }
-    }
 
-    // 1. Get User
-    const { requireUser } = await import('@/server/auth/auth');
-    const user = await requireUser();
+        // Only route if no specific persona was forced (or if it's the default 'puff')
+        // We allow explicit persona selection to stick, but 'puff' implies "General Assistant" who delegates.
+        if (!personaId || personaId === 'puff') {
+            try {
+                const analysis = await analyzeQuery(userMessage);
+                console.log('[runAgentChat] Routing Analysis:', analysis);
 
-    // 2. Generate Job ID
-    const jobId = crypto.randomUUID();
+                if (analysis.searchType === 'marketing') {
+                    finalPersonaId = 'craig';
+                } else if (analysis.searchType === 'competitive') {
+                    finalPersonaId = 'ezal';
+                } else if (analysis.searchType === 'compliance') {
+                    finalPersonaId = 'deebo';
+                } else if (analysis.searchType === 'analytics') {
+                    finalPersonaId = 'pops';
+                } else if (analysis.searchType === 'semantic' || analysis.searchType === 'keyword' || analysis.searchType === 'filtered') {
+                    // Product search -> Smokey
+                    finalPersonaId = 'smokey';
+                } else if (userMessage.toLowerCase().includes('price') || userMessage.toLowerCase().includes('cost') || userMessage.toLowerCase().includes('margin') || userMessage.toLowerCase().includes('billing')) {
+                     // Money Mike fallback for financial terms not caught by complex analysis
+                     finalPersonaId = 'money_mike';
+                }
+            } catch (e) {
+                console.warn('[runAgentChat] Routing failed, defaulting to Puff:', e);
+            }
+        }
 
-    // 3. Create Job Document (Synchronous to avoid race condition with polling)
-    const { getFirestore, FieldValue } = await import('firebase-admin/firestore');
-    const db = getFirestore();
-    await db.collection('jobs').doc(jobId).set({
-        status: 'pending',
-        userId: user.uid,
-        userInput: userMessage,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        persona: finalPersonaId || 'puff',
-        brandId: user.brandId || null,
-        thoughts: [] // Initialize empty thoughts
-    });
+        // 1. Get User
+        const { requireUser } = await import('@/server/auth/auth');
+        const user = await requireUser();
 
-    // 4. Dispatch
-    const { dispatchAgentJob } = await import('@/server/jobs/dispatch');
-    const payload = {
-        userId: user.uid,
-        userInput: userMessage,
-        persona: (finalPersonaId as AgentPersona) || 'puff',
-        options: {
-            modelLevel: (['leo', 'jack', 'linus', 'glenda', 'mike_exec'].includes(finalPersonaId || '') ? 'genius' : (extraOptions?.modelLevel as any)) || 'standard',
-            audioInput: extraOptions?.audioInput,
-            attachments: extraOptions?.attachments,
-            brandId: user.brandId,
-            projectId: extraOptions?.projectId // Pass project context
-        },
-        jobId
-    };
+        // 2. Generate Job ID
+        const jobId = crypto.randomUUID();
 
-    const dispatch = await dispatchAgentJob(payload);
-
-    if (!dispatch.success) {
-        console.error('Dispatch failed:', dispatch.error);
-        // Mark as failed in DB
-        await db.collection('jobs').doc(jobId).update({
-            status: 'failed',
-            error: dispatch.error,
-            updatedAt: FieldValue.serverTimestamp()
+        // 3. Create Job Document (Synchronous to avoid race condition with polling)
+        const { getFirestore, FieldValue } = await import('firebase-admin/firestore');
+        const db = getFirestore();
+        await db.collection('jobs').doc(jobId).set({
+            status: 'pending',
+            userId: user.uid,
+            userInput: userMessage,
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+            persona: finalPersonaId || 'puff',
+            brandId: user.brandId || null,
+            thoughts: [] // Initialize empty thoughts
         });
 
+        // 4. Dispatch
+        const { dispatchAgentJob } = await import('@/server/jobs/dispatch');
+        const payload = {
+            userId: user.uid,
+            userInput: userMessage,
+            persona: (finalPersonaId as AgentPersona) || 'puff',
+            options: {
+                modelLevel: (['leo', 'jack', 'linus', 'glenda', 'mike_exec'].includes(finalPersonaId || '') ? 'genius' : (extraOptions?.modelLevel as any)) || 'standard',
+                audioInput: extraOptions?.audioInput,
+                attachments: extraOptions?.attachments,
+                brandId: user.brandId,
+                projectId: extraOptions?.projectId // Pass project context
+            },
+            jobId
+        };
+
+        const dispatch = await dispatchAgentJob(payload);
+
+        if (!dispatch.success) {
+            console.error('Dispatch failed:', dispatch.error);
+            // Mark as failed in DB
+            await db.collection('jobs').doc(jobId).update({
+                status: 'failed',
+                error: dispatch.error,
+                updatedAt: FieldValue.serverTimestamp()
+            });
+
+            return {
+                content: `**Error**: Failed to start agent job. ${dispatch.error}`,
+                toolCalls: [],
+                metadata: { jobId: undefined }
+            };
+        }
+
         return {
-            content: `**Error**: Failed to start agent job. ${dispatch.error}`,
+            content: '', // Frontend should handle this state
             toolCalls: [],
-            metadata: { jobId: undefined }
+            metadata: {
+                jobId,
+                agentName: finalPersonaId || 'BakedBot',
+                type: 'session_context',
+                brandId: user.brandId
+            }
+        };
+    } catch (error: any) {
+        // Catch-all error handler to prevent Server Components render errors
+        console.error('[runAgentChat] Unexpected error:', error);
+        return {
+            content: `**Error**: ${error.message || 'An unexpected error occurred. Please try again.'}`,
+            toolCalls: [],
+            metadata: { type: 'session_context' }
         };
     }
-
-    return {
-        content: '', // Frontend should handle this state
-        toolCalls: [],
-        metadata: {
-            jobId,
-            agentName: finalPersonaId || 'BakedBot',
-            type: 'session_context',
-            brandId: user.brandId
-        }
-    };
 }
 
 export async function cancelAgentJob(jobId: string) {

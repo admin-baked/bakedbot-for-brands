@@ -91,10 +91,21 @@ export async function POST(req: NextRequest) {
         // Since this is async, we can't return the result to the user directly within the chat request.
         // We typically write the result to a "Job Status" document or push a notification.
         // For Phase 2, we just log it. The UI (polling) would check `jobs/{jobId}`.
-        
+
+        // Sanitize result to ensure it's Firestore-serializable (remove functions, circular refs)
+        const sanitizedResult = JSON.parse(JSON.stringify(result, (key, value) => {
+            // Remove functions and undefined values
+            if (typeof value === 'function') return undefined;
+            // Truncate very long strings to prevent Firestore size limits
+            if (typeof value === 'string' && value.length > 50000) {
+                return value.substring(0, 50000) + '... [truncated]';
+            }
+            return value;
+        }));
+
         await firestore.collection('jobs').doc(jobId).set({
             status: 'completed',
-            result: result,
+            result: sanitizedResult,
             completedAt: new Date()
         }, { merge: true });
 
