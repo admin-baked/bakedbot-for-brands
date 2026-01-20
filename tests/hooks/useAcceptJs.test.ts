@@ -86,4 +86,73 @@ describe('useAcceptJs', () => {
 
         expect(result.current.error).toBe('Invalid Card');
     });
+
+    it('provides retryLoad function to re-attempt script loading', async () => {
+        const { result } = renderHook(() => useAcceptJs({ clientKey: 'key', apiLoginId: 'login' }));
+
+        // Initially not loaded
+        expect(result.current.isLoaded).toBe(false);
+
+        // Simulate Accept being available after retry
+        (window as any).Accept = { dispatchData: mockDispatchData };
+
+        await act(async () => {
+            result.current.retryLoad();
+        });
+
+        // After retry with Accept available, should become loaded
+        await waitFor(() => expect(result.current.isLoaded).toBe(true));
+    });
+
+    it('clears error when retryLoad is called', async () => {
+        // Pre-set Accept so hook loads immediately
+        (window as any).Accept = {
+            dispatchData: (data: any, cb: any) => {
+                cb({
+                    messages: {
+                        resultCode: 'Error',
+                        message: [{ text: 'Test Error' }]
+                    }
+                });
+            }
+        };
+
+        const { result } = renderHook(() => useAcceptJs({ clientKey: 'key', apiLoginId: 'login' }));
+
+        await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+        // Trigger an error
+        await act(async () => {
+            try {
+                await result.current.tokenizeCard({
+                    cardNumber: '1234',
+                    expirationMonth: '12',
+                    expirationYear: '25',
+                    cvv: '123'
+                });
+            } catch (e) {
+                // Expected
+            }
+        });
+
+        expect(result.current.error).toBe('Test Error');
+
+        // Now fix Accept for successful tokenization
+        (window as any).Accept = {
+            dispatchData: (data: any, cb: any) => {
+                cb({
+                    messages: { resultCode: 'Ok' },
+                    opaqueData: { dataDescriptor: 'desc', dataValue: 'val' }
+                });
+            }
+        };
+
+        // retryLoad clears the error state
+        await act(async () => {
+            result.current.retryLoad();
+        });
+
+        // Error should be cleared after retry
+        await waitFor(() => expect(result.current.error).toBe(null));
+    });
 });
