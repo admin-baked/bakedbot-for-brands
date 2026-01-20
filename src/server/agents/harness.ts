@@ -145,6 +145,8 @@ export interface MultiStepPlan {
 
 import { executeWithTools } from '@/ai/claude';
 import { zodToClaudeSchema } from '@/server/utils/zod-to-json';
+import { persistWorkflowFromHarness } from '@/server/services/letta/procedural-memory';
+import { sleepTimeService } from '@/server/services/letta/sleeptime-agent';
 
 // ============================================================================
 // VALIDATION HOOK TYPES
@@ -361,13 +363,37 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                     Steps Taken: ${steps.length}
                     Final Thought: ${decision.thought}
                     All Results: ${JSON.stringify(steps.map(s => s.result)).slice(0, 2000)}
-                    
+
                     Synthesize a comprehensive response for the user.`,
                     [], // No tools for synthesis
                     async () => ({}), // Dummy executor
                     { maxIterations: 1 }
                 );
-                
+
+                // === PROCEDURAL MEMORY: Persist successful workflows ===
+                if (steps.length >= 2 && context.agentId && decision.status === 'COMPLETE') {
+                    try {
+                        await persistWorkflowFromHarness(
+                            context.agentId,
+                            (global as any).currentTenantId || 'default',
+                            userQuery,
+                            steps,
+                            synthesisResult.content
+                        );
+                    } catch (e) {
+                        logger.warn('[Harness] Failed to persist workflow:', e);
+                    }
+                }
+
+                // === SLEEP-TIME: Check if consolidation should trigger ===
+                if (context.agentId && sleepTimeService.shouldTrigger(context.agentId)) {
+                    // Run consolidation in background (fire and forget)
+                    sleepTimeService.runConsolidation(
+                        context.agentId,
+                        (global as any).currentTenantId || 'default'
+                    ).catch(e => logger.warn('[Harness] Sleep-time consolidation failed:', e));
+                }
+
                 return { finalResult: synthesisResult.content, steps };
             }
             
@@ -437,9 +463,24 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
         }
         
         // Fallback synthesis if loop exits without COMPLETE
-        return { 
-            finalResult: `Completed ${steps.length} steps. Last thought: ${steps[steps.length - 1]?.result || 'No steps taken.'}`, 
-            steps 
+        // === PROCEDURAL MEMORY: Persist successful workflows ===
+        if (steps.length >= 2 && context.agentId) {
+            try {
+                await persistWorkflowFromHarness(
+                    context.agentId,
+                    (global as any).currentTenantId || 'default',
+                    userQuery,
+                    steps,
+                    `Completed ${steps.length} steps`
+                );
+            } catch (e) {
+                logger.warn('[Harness] Failed to persist workflow:', e);
+            }
+        }
+
+        return {
+            finalResult: `Completed ${steps.length} steps. Last thought: ${steps[steps.length - 1]?.result || 'No steps taken.'}`,
+            steps
         };
     }
     
