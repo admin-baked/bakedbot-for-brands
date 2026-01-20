@@ -7,7 +7,7 @@ import { AgentTrigger } from './agent-config';
 
 export type PlaybookStatus = 'draft' | 'active' | 'paused' | 'archived';
 
-export type PlaybookCategory = 'intel' | 'marketing' | 'ops' | 'seo' | 'reporting' | 'compliance' | 'custom';
+export type PlaybookCategory = 'intel' | 'marketing' | 'ops' | 'seo' | 'reporting' | 'compliance' | 'custom' | 'operations' | 'growth';
 export type TriggerType = 'manual' | 'schedule' | 'event' | 'calendar';
 
 export interface PlaybookTrigger {

@@ -152,7 +152,7 @@ export class BrowserService {
         
         $('h1, h2, h3, h4, h5, h6, p, li, blockquote').each((_, el) => {
              const $el = $(el);
-             const tag = el.tagName.toLowerCase();
+             const tag = (el as any).tagName?.toLowerCase() || '';
              const text = $el.text().trim();
              
              if (!text) return;

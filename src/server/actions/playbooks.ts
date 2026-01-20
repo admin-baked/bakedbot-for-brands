@@ -130,7 +130,7 @@ export async function assignPlaybookToOrg(
         const { firestore } = await createServerClient();
 
         // Find the template playbook in defaults
-        const template = DEFAULT_PLAYBOOKS.find(pb => pb.name.toLowerCase().includes(templateId.replace(/-/g, ' ')));
+        const template = DEFAULT_PLAYBOOKS.find(pb => pb.name?.toLowerCase().includes(templateId.replace(/-/g, ' ')));
         
         if (!template) {
             console.warn(`[Playbooks] Template not found: ${templateId}`);

@@ -5,7 +5,7 @@
 
 import { Playbook } from '@/types/playbook';
 
-export const DEFAULT_PLAYBOOKS: Omit<Playbook, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'orgId' | 'agent' | 'category' | 'ownerId' | 'ownerName' | 'isCustom' | 'requiresApproval'>[] = [
+export const DEFAULT_PLAYBOOKS: Partial<Playbook>[] = [
   // 1. Competitive Alerts
   {
     name: 'Competitive Price Watch',
@@ -2379,10 +2379,6 @@ steps:
     successCount: 0,
     failureCount: 0,
     version: 1,
-    schedule: '0 * * * *',
-    agentId: 'linus',
-    
-    // Fields that match the previous item's structure
     agent: 'linus',
     category: 'ops',
     ownerId: 'system',
@@ -2420,8 +2416,6 @@ steps:
     successCount: 0,
     failureCount: 0,
     version: 1,
-    schedule: '0 * * * *',
-    agentId: 'leo',
     agent: 'leo',
     category: 'ops',
     ownerId: 'system',
@@ -2459,8 +2453,6 @@ steps:
     successCount: 0,
     failureCount: 0,
     version: 1,
-    schedule: '0 9 * * *',
-    agentId: 'jack',
     agent: 'jack',
     category: 'marketing',
     ownerId: 'system',
@@ -2498,8 +2490,6 @@ steps:
     successCount: 0,
     failureCount: 0,
     version: 1,
-    schedule: '0 9 * * *',
-    agentId: 'glenda',
     agent: 'glenda',
     category: 'marketing',
     ownerId: 'system',
@@ -2516,12 +2506,12 @@ steps:
  * Get a default playbook by name
  */
 export function getDefaultPlaybook(name: string) {
-  return DEFAULT_PLAYBOOKS.find(p => p.name.toLowerCase().includes(name.toLowerCase()));
+  return DEFAULT_PLAYBOOKS.find(p => p.name?.toLowerCase().includes(name.toLowerCase()));
 }
 
 /**
  * Get all default playbook names for display
  */
 export function getDefaultPlaybookNames(): string[] {
-  return DEFAULT_PLAYBOOKS.map(p => p.name);
+  return DEFAULT_PLAYBOOKS.map(p => p.name).filter((name): name is string => !!name);
 }

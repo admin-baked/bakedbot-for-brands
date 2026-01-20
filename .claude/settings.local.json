@@ -64,7 +64,14 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat\\(agents\\): Add specialized Jack \\(CRO\\) and Glenda \\(CMO\\) agents\n\n- Create jack.ts with revenue/sales focused CRO agent\n- Create glenda.ts with marketing/brand focused CMO agent\n- Update agent-runner.ts to use specialized implementations\n- Add comprehensive unit tests for executive and support agents\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(kusho --version:*)",
       "Bash(kusho:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(npx jest:*)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(node:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: Resolve 11 Brand Role testing issues\n\nCritical Issues:\n- Fix Chat/AI feature error by adding auth check and isAuthenticated prop\n- Fix UnrecognizedActionError by proper authentication handling\n\nHigh Priority:\n- Fix Create Playbook button - integrate CreatePlaybookDialog with handlers\n- Fix Products page \"Not Associated with Brand\" - fallback to user.uid\n- Fix Brand Page \"No Brand Associated\" - fallback brandId logic\n- Fix Cancel button logout - redirect to dashboard if authenticated\n\nMedium Priority:\n- Fix Run History API error display - add error details and logs\n- Fix Run History Details button - add collapsible expansion\n- Fix Craig Agent data inconsistency - show zeros for empty campaigns\n- Fix broken image in Creative Center - add ImageWithFallback component\n- Fix Review Queue button - add Sheet component with empty state\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(disable ad blockers or try a different browser.\"\n   - Added Retry Loading button in billing form when script fails\n\n3. Service Worker - Fixed Brand Page Caching:\n   - Bumped cache version to v2 to invalidate old caches\n   - Added isDynamicBrandPage function to identify brand URLs\n   - Brand pages now use network-first strategy \\(no caching\\)\n   - Dashboard pages also use network-first\n   - Only static assets \\(js, css, images, fonts\\) are cached\n\nTests:\n- Added retryLoad tests for useAcceptJs hook \\(6 tests passing\\)\n- Added service worker caching logic tests \\(11 tests passing\\)\n- Updated products page tests with lucide-react mock \\(5 tests passing\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git fetch:*)",
+      "Bash(git diff:*)"
     ],
     "deny": [],
     "ask": []

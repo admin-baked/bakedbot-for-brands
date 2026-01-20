@@ -137,8 +137,9 @@ export class ComplianceValidator extends BaseValidator {
         }
 
         // Check for emoji patterns that may appeal to minors
-        const childishEmojis = /[\u{1F476}\u{1F47C}\u{1F3AE}\u{1F3B2}\u{1F9F8}\u{1F36D}\u{1F36C}]/gu;
-        if (childishEmojis.test(content)) {
+        // Using literal emoji characters instead of Unicode escapes to avoid needing 'u' flag
+        const childishEmojis = ['👶', '👼', '🎮', '🎲', '🧸', '🍭', '🍬'];
+        if (childishEmojis.some(emoji => content.includes(emoji))) {
             found.push('childish emojis');
         }
 

@@ -17,7 +17,7 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
     // Fetch real data
     const { brand, products, retailers } = await fetchBrandPageData(brandParam);
 
-    // If brand not found, show 404
+    // If brand not found, show helpful page or demo
     if (!brand) {
         // Fallback for "demo" slug to show the placeholder experience
         if (brandParam === 'demo' || brandParam === 'demo-brand') {
@@ -35,7 +35,28 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
                 </main>
             );
         }
-        notFound();
+        // Show a friendly "brand not found" page instead of hard 404
+        // This helps users who haven't completed setup yet
+        return (
+            <main className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center max-w-md mx-auto p-8">
+                    <div className="text-6xl mb-4">🌿</div>
+                    <h1 className="text-2xl font-bold mb-2">Brand Not Found</h1>
+                    <p className="text-gray-600 mb-6">
+                        The brand page &quot;{brandParam}&quot; hasn&apos;t been set up yet.
+                    </p>
+                    <p className="text-sm text-gray-500 mb-6">
+                        If you own this brand, please complete your setup in the dashboard.
+                    </p>
+                    <a
+                        href="/dashboard/brand-page"
+                        className="inline-block bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition"
+                    >
+                        Set Up Your Brand Page
+                    </a>
+                </div>
+            </main>
+        );
     }
 
     // Fetch active bundles for this brand/org

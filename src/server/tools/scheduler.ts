@@ -20,6 +20,7 @@ export interface ScheduleParams {
     task?: string;     // e.g. "Check competitor prices"
     agentId?: string;  // e.g. "smokey"
     enabled?: boolean;
+    params?: Record<string, any>; // Additional params like playbookId
 }
 
 export interface ScheduleResult {

@@ -34,37 +34,51 @@ export async function checkSlugAvailability(slug: string): Promise<{ available: 
  * Reserve a slug for a brand (set the brand document with slug field)
  */
 export async function reserveSlug(slug: string, brandId: string): Promise<{ success: boolean; error?: string }> {
-    await requireUser(['brand', 'super_user']);
+    const user = await requireUser(['brand', 'super_user']);
     const { firestore } = await createServerClient();
-    
+
     const normalizedSlug = createSlug(slug);
-    
+
     if (!normalizedSlug || normalizedSlug.length < 3) {
         return { success: false, error: 'Slug must be at least 3 characters' };
     }
-    
+
     // Check availability first
     const { available } = await checkSlugAvailability(normalizedSlug);
-    
+
     if (!available) {
         return { success: false, error: 'This URL is already taken. Try a different one.' };
     }
-    
-    // Reserve the slug by creating/updating the brand document
+
+    // Get existing organization data to populate brand
+    const orgDoc = await firestore.collection('organizations').doc(brandId).get();
+    const orgData = orgDoc.exists ? orgDoc.data() : null;
+
+    // Determine brand name - use org name, user display name, or slug
+    const brandName = orgData?.name || (user as any)?.displayName || normalizedSlug;
+
+    // Reserve the slug by creating/updating the brand document with full brand info
     await firestore.collection('brands').doc(normalizedSlug).set({
         id: normalizedSlug,
         slug: normalizedSlug,
+        name: brandName,
         originalBrandId: brandId,
+        ownerId: user.uid,
+        description: orgData?.description || '',
+        logoUrl: orgData?.logoUrl || '',
+        verificationStatus: 'verified',
+        claimStatus: 'claimed',
+        type: 'brand',
         createdAt: new Date(),
         updatedAt: new Date(),
     }, { merge: true });
-    
+
     // Also update the organization with the slug
     await firestore.collection('organizations').doc(brandId).set({
         slug: normalizedSlug,
         updatedAt: new Date(),
     }, { merge: true });
-    
+
     return { success: true };
 }
 

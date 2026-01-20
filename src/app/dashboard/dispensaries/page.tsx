@@ -9,9 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { getBrandDispensaries, searchDispensaries, addDispensary } from './actions';
+import { getBrandDispensaries, searchDispensaries, addDispensary, getPurchaseModel, updatePurchaseModel } from './actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus, MapPin, Store } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Loader2, Plus, MapPin, Store, Globe, ShoppingCart, ExternalLink } from 'lucide-react';
 
 export default function DispensariesPage() {
     const [dispensaries, setDispensaries] = useState<any[]>([]);
@@ -20,21 +21,61 @@ export default function DispensariesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [purchaseModel, setPurchaseModel] = useState<'online_only' | 'local_pickup'>('local_pickup');
+    const [checkoutUrl, setCheckoutUrl] = useState('');
+    const [isSavingModel, setIsSavingModel] = useState(false);
     const { toast } = useToast();
 
     useEffect(() => {
-        loadDispensaries();
+        loadData();
     }, []);
 
-    const loadDispensaries = async () => {
+    const loadData = async () => {
         try {
-            const result = await getBrandDispensaries();
-            setDispensaries(result.partners);
+            const [dispensaryResult, modelResult] = await Promise.all([
+                getBrandDispensaries(),
+                getPurchaseModel()
+            ]);
+            setDispensaries(dispensaryResult.partners);
+            setPurchaseModel(modelResult.model);
+            setCheckoutUrl(modelResult.checkoutUrl || '');
         } catch (error) {
             console.error(error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load dispensaries.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load data.' });
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleModelChange = async (model: 'online_only' | 'local_pickup') => {
+        setPurchaseModel(model);
+        if (model === 'local_pickup') {
+            // Auto-save when switching to local pickup
+            setIsSavingModel(true);
+            try {
+                await updatePurchaseModel(model);
+                toast({ title: 'Saved', description: 'Purchase model updated to local pickup.' });
+            } catch (error) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Failed to save.' });
+            } finally {
+                setIsSavingModel(false);
+            }
+        }
+    };
+
+    const handleSaveOnlineModel = async () => {
+        if (!checkoutUrl) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please enter a checkout URL.' });
+            return;
+        }
+        setIsSavingModel(true);
+        try {
+            await updatePurchaseModel('online_only', checkoutUrl);
+            toast({ title: 'Saved', description: 'Purchase model updated to online-only.' });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to save.' });
+        } finally {
+            setIsSavingModel(false);
         }
     };
 
@@ -62,7 +103,7 @@ export default function DispensariesPage() {
             await addDispensary(dispensary);
             toast({ title: 'Success', description: 'Dispensary added to your partners.' });
             setIsSearchOpen(false);
-            loadDispensaries();
+            loadData();
         } catch (error) {
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to add dispensary.' });
         }
@@ -72,8 +113,76 @@ export default function DispensariesPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Dispensary Partners</h1>
-                    <p className="text-muted-foreground">Manage the dispensaries that carry your products.</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Where to Buy</h1>
+                    <p className="text-muted-foreground">Configure how customers purchase your products.</p>
+                </div>
+            </div>
+
+            {/* Purchase Model Selection */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Purchase Model</CardTitle>
+                    <CardDescription>Choose how customers can buy your products</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <RadioGroup value={purchaseModel} onValueChange={(v) => handleModelChange(v as any)} className="space-y-4">
+                        <div className={`flex items-start space-x-4 p-4 rounded-lg border-2 transition-colors ${purchaseModel === 'online_only' ? 'border-primary bg-primary/5' : 'border-muted'}`}>
+                            <RadioGroupItem value="online_only" id="online_only" className="mt-1" />
+                            <div className="flex-1">
+                                <Label htmlFor="online_only" className="text-base font-medium flex items-center gap-2 cursor-pointer">
+                                    <Globe className="h-5 w-5 text-blue-500" />
+                                    Online Only (Hemp / DTC)
+                                </Label>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    Customers buy directly from your website. Perfect for hemp products shipped nationwide.
+                                </p>
+                                {purchaseModel === 'online_only' && (
+                                    <div className="mt-4 space-y-3">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="checkoutUrl">Checkout URL</Label>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    id="checkoutUrl"
+                                                    placeholder="https://yourstore.com/checkout"
+                                                    value={checkoutUrl}
+                                                    onChange={(e) => setCheckoutUrl(e.target.value)}
+                                                />
+                                                <Button onClick={handleSaveOnlineModel} disabled={isSavingModel}>
+                                                    {isSavingModel ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+                                                </Button>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                Where should "Buy Now" buttons link to?
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className={`flex items-start space-x-4 p-4 rounded-lg border-2 transition-colors ${purchaseModel === 'local_pickup' ? 'border-primary bg-primary/5' : 'border-muted'}`}>
+                            <RadioGroupItem value="local_pickup" id="local_pickup" className="mt-1" />
+                            <div className="flex-1">
+                                <Label htmlFor="local_pickup" className="text-base font-medium flex items-center gap-2 cursor-pointer">
+                                    <Store className="h-5 w-5 text-green-500" />
+                                    Local Pickup (Dispensary Network)
+                                </Label>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    Customers find nearby dispensaries carrying your products. Orders route to retail partners.
+                                </p>
+                            </div>
+                        </div>
+                    </RadioGroup>
+                </CardContent>
+            </Card>
+
+            {/* Dispensary Partners Section - Only show for local_pickup model */}
+            {purchaseModel === 'local_pickup' && (
+            <>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-xl font-semibold">Dispensary Partners</h2>
+                    <p className="text-sm text-muted-foreground">Manage the dispensaries that carry your products.</p>
                 </div>
                 <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
                     <DialogTrigger asChild>
@@ -220,6 +329,8 @@ export default function DispensariesPage() {
                         </TableBody>
                     </Table>
                 </Card>
+            )}
+            </>
             )}
         </div>
     );
