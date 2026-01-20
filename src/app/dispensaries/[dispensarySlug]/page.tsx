@@ -17,6 +17,8 @@ import { PageViewTracker } from '@/components/analytics/PageViewTracker';
 import { ChatbotPageContext } from '@/components/chatbot-page-context';
 import { Button } from '@/components/ui/button';
 import { LeadCaptureForm } from '@/components/leads/lead-capture-form';
+import { DispensaryMenuClient } from './dispensary-menu-client';
+import { getActiveBundles } from '@/app/actions/bundles';
 
 // Common categories for SEO
 const CATEGORIES = ['Flower', 'Vapes', 'Edibles', 'Concentrates', 'Pre-Rolls', 'Topicals'];
@@ -47,8 +49,47 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
     if (!dispensary) {
         notFound();
     }
-    
-    // Use discovered logo or fallback
+
+    // Check if this dispensary is claimed/verified - show full menu experience
+    const isClaimed = dispensary.claimStatus === 'claimed';
+
+    if (isClaimed && products.length > 0) {
+        // Fetch bundles for claimed dispensaries
+        let bundles: import('@/types/bundles').BundleDeal[] = [];
+        try {
+            bundles = await getActiveBundles(dispensary.id);
+        } catch (e) {
+            console.error('Failed to fetch bundles:', e);
+        }
+
+        // Render full dispensary menu experience
+        return (
+            <main className="relative min-h-screen">
+                <PageViewTracker
+                    pageType="dispensary"
+                    pageId={dispensary.id}
+                    pageSlug={dispensarySlug}
+                />
+                <ChatbotPageContext
+                    dispensaryId={dispensary.id}
+                    entityName={dispensary.name}
+                    entityType="dispensary"
+                />
+                <DispensaryMenuClient
+                    dispensary={{
+                        ...dispensary,
+                        primaryColor: (dispensary as any).primaryColor,
+                        secondaryColor: (dispensary as any).secondaryColor,
+                        hours: (dispensary as any).hours,
+                    }}
+                    products={products}
+                    bundles={bundles}
+                />
+            </main>
+        );
+    }
+
+    // Otherwise, show B2B lead-gen page for unclaimed dispensaries
     const logoUrl = seoPage?.logoUrl;
     const aboutText = seoPage?.about || seoPage?.seoTags?.metaDescription;
     // Freshness date
@@ -134,7 +175,7 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
                                     <MapPin className="w-4 h-4" /> {dispensary.city}, {dispensary.state} • <span className="text-green-600">Open Now</span>
                                 </p>
                             </div>
-                           
+
                              {/* Mobile Rating (Desktop uses absolute logo or rating, simpler to just hide rating on mobile if conflicting, but lets keep existing rating structure but specialized) */}
                              {/* Existing Rating Block */}
                              <div className="flex items-center gap-1 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
@@ -153,7 +194,7 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
                                 <div className="text-slate-600 text-sm leading-relaxed prose prose-sm max-w-none">
                                     {aboutText.length > 300 ? (
                                         <>
-                                            {aboutText.slice(0, 300)}... 
+                                            {aboutText.slice(0, 300)}...
                                             <span className="text-green-600 font-medium cursor-pointer hover:underline">Read more</span>
                                         </>
                                     ) : aboutText}
@@ -295,7 +336,7 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
                     </div>
 
                     <div id="contact">
-                        <LeadCaptureForm 
+                        <LeadCaptureForm
                             orgId={dispensary.id.startsWith('disp_') ? dispensary.id : `disp_${dispensary.id}`}
                             orgName={dispensary.name}
                             orgType="dispensary"
