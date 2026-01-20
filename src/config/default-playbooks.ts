@@ -2392,6 +2392,123 @@ steps:
     updatedAt: new Date(),
     createdBy: 'system',
     orgId: 'system'
+  },
+
+  // 27. Leo Operations Heartbeat
+  {
+    name: 'Protocol: Operations Heartbeat',
+    description: 'Hourly system health and workflow monitoring by Leo (COO).',
+    status: 'active',
+    yaml: `name: Protocol: Operations Heartbeat
+description: Hourly system health check
+triggers:
+  - type: schedule
+    cron: "0 * * * *"
+steps:
+  - action: getSystemHealth
+  - action: getQueueStatus
+`,
+    triggers: [
+       { id: 'leo-pulse', type: 'schedule', name: 'Hourly Pulse', config: { cron: '0 * * * *' }, enabled: true }
+    ],
+    steps: [
+        { action: 'getSystemHealth', params: {} },
+        { action: 'getQueueStatus', params: {} },
+        { action: 'context_log_decision', params: { decision: 'Operations Logged', reasoning: 'Hourly Heartbeat', category: 'operations' } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1,
+    schedule: '0 * * * *',
+    agentId: 'leo',
+    agent: 'leo',
+    category: 'operations',
+    ownerId: 'system',
+    isCustom: false,
+    requiresApproval: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: 'system',
+    orgId: 'system'
+  },
+
+  // 28. Jack Revenue Pulse
+  {
+    name: 'Protocol: Revenue Pulse',
+    description: 'Daily revenue and pipeline health check by Jack (CRO).',
+    status: 'active',
+    yaml: `name: Protocol: Revenue Pulse
+description: Daily revenue check
+triggers:
+  - type: schedule
+    cron: "0 9 * * *"
+steps:
+  - action: getRevenueMetrics
+  - action: crmGetStats
+`,
+    triggers: [
+       { id: 'jack-pulse', type: 'schedule', name: 'Daily Morning', config: { cron: '0 9 * * *' }, enabled: true }
+    ],
+    steps: [
+        { action: 'getRevenueMetrics', params: { period: 'day' } },
+        { action: 'crmGetStats', params: {} },
+        { action: 'context_log_decision', params: { decision: 'Revenue Logged', reasoning: 'Daily Pulse', category: 'finance' } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1,
+    schedule: '0 9 * * *',
+    agentId: 'jack',
+    agent: 'jack',
+    category: 'growth',
+    ownerId: 'system',
+    isCustom: false,
+    requiresApproval: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: 'system',
+    orgId: 'system'
+  },
+
+  // 29. Glenda Brand Watch
+  {
+    name: 'Protocol: Brand Watch',
+    description: 'Daily brand sentiment and traffic monitoring by Glenda (CMO).',
+    status: 'active',
+    yaml: `name: Protocol: Brand Watch
+description: Daily brand sentiment check
+triggers:
+  - type: schedule
+    cron: "0 9 * * *"
+steps:
+  - action: getGA4Traffic
+  - action: getSocialMetrics
+`,
+    triggers: [
+       { id: 'glenda-pulse', type: 'schedule', name: 'Daily Morning', config: { cron: '0 9 * * *' }, enabled: true }
+    ],
+    steps: [
+        { action: 'getGA4Traffic', params: {} },
+        { action: 'getSocialMetrics', params: { platform: 'instagram' } },
+        { action: 'context_log_decision', params: { decision: 'Marketing Logged', reasoning: 'Daily Pulse', category: 'marketing' } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1,
+    schedule: '0 9 * * *',
+    agentId: 'glenda',
+    agent: 'glenda',
+    category: 'marketing',
+    ownerId: 'system',
+    isCustom: false,
+    requiresApproval: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: 'system',
+    orgId: 'system'
   }
 ];
 
