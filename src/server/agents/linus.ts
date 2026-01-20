@@ -1914,7 +1914,7 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
             const { decision, reasoning, category } = input as {
                 decision: string;
                 reasoning: string;
-                category: string;
+                category: 'pricing' | 'marketing' | 'compliance' | 'operations' | 'strategy' | 'other';
             };
             try {
                 const { contextLogDecision } = await import('@/server/tools/context-tools');

@@ -150,3 +150,53 @@ export async function addDispensary(dispensary: any) {
 
     return { success: true };
 }
+
+/**
+ * Get purchase model settings for the brand
+ * @returns Purchase model: 'online_only' (hemp/DTC) or 'local_pickup' (dispensary network)
+ */
+export async function getPurchaseModel(): Promise<{ model: 'online_only' | 'local_pickup'; checkoutUrl?: string }> {
+    const user = await requireUser(['brand', 'super_user']);
+    const brandId = user.brandId;
+
+    if (!brandId) {
+        return { model: 'local_pickup' }; // Default to dispensary model
+    }
+
+    const { firestore } = await createServerClient();
+    const brandDoc = await firestore.collection('brands').doc(brandId).get();
+    const data = brandDoc.data();
+
+    return {
+        model: data?.purchaseModel || 'local_pickup',
+        checkoutUrl: data?.checkoutUrl
+    };
+}
+
+/**
+ * Update purchase model settings
+ * @param model - 'online_only' for hemp/DTC brands, 'local_pickup' for dispensary-routed orders
+ * @param checkoutUrl - External checkout URL for online-only brands
+ */
+export async function updatePurchaseModel(
+    model: 'online_only' | 'local_pickup',
+    checkoutUrl?: string
+): Promise<{ success: boolean }> {
+    const user = await requireUser(['brand', 'super_user']);
+    const brandId = user.brandId;
+
+    if (!brandId) {
+        throw new Error('No brand ID associated with user');
+    }
+
+    const { firestore } = await createServerClient();
+    const brandRef = firestore.collection('brands').doc(brandId);
+
+    await brandRef.update({
+        purchaseModel: model,
+        checkoutUrl: model === 'online_only' ? checkoutUrl : null,
+        updatedAt: new Date().toISOString()
+    });
+
+    return { success: true };
+}

@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
-import parser from 'cron-parser';
+import { CronExpressionParser } from 'cron-parser';
 import { executePlaybook } from '@/server/tools/playbook-manager';
 
 export const dynamic = 'force-dynamic'; // Prevent caching
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
             const lastRunDate = lastRun ? lastRun.toDate() : schedule.createdAt.toDate();
             
             try {
-                const interval = parser.parseExpression(cron, { currentDate: lastRunDate });
+                const interval = CronExpressionParser.parse(cron, { currentDate: lastRunDate });
                 const nextRun = interval.next().toDate();
                 const now = new Date();
 

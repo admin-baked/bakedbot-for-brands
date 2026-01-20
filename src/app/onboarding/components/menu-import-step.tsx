@@ -109,7 +109,7 @@ export function MenuImportStep({ onComplete, onSkip }: MenuImportStepProps) {
                 </div>
                 <h3 className="text-2xl font-bold">Setup Complete!</h3>
                 <p className="text-muted-foreground">Your menu is imported and Ezal is watching the competition.</p>
-                <Button onClick={() => onComplete(successData)} className="mt-4">
+                <Button onClick={() => onComplete({ importedName: successData.name, slug: successData.slug, zip: successData.zip })} className="mt-4">
                     Continue to Dashboard <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
             </div>

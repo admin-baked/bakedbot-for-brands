@@ -8,14 +8,17 @@
 export {
     BaseValidator,
     ValidationPipeline,
-    ValidationResult,
-    ValidatorConfig,
-    PreToolHookResult,
-    PostToolHookResult,
     hasPlaceholders,
     isValidCurrency,
     findSecrets,
     COMPLIANCE_RED_FLAGS
+} from './base-validator';
+
+export type {
+    ValidationResult,
+    ValidatorConfig,
+    PreToolHookResult,
+    PostToolHookResult
 } from './base-validator';
 
 // Domain-specific validators
@@ -28,4 +31,5 @@ export { RecommendationValidator } from './recommendation-validator';
 export { OrchestrationValidator } from './orchestration-validator';
 
 // Pipeline factory
-export { createValidationPipeline, AgentRole } from './validation-pipeline';
+export { createValidationPipeline } from './validation-pipeline';
+export type { AgentRole } from './validation-pipeline';

@@ -32,16 +32,16 @@ const BRAND_CHECKLIST: ChecklistItem[] = [
     {
         id: 'add-products',
         title: 'Add your products',
-        description: 'Import your menu from URL, CannMenus, or add manually',
+        description: 'Import from URL, CannMenus, or add products manually',
         estimatedTime: '5 min',
-        href: '/dashboard/products/url-import',
+        href: '/dashboard/products',
         icon: <Package className="h-4 w-4" />,
         status: 'todo'
     },
     {
         id: 'add-retailers',
-        title: 'Add "Where to Buy" retailers',
-        description: 'Connect dispensaries that carry your products',
+        title: 'Configure "Where to Buy"',
+        description: 'Choose online-only or connect retail partners for local pickup',
         estimatedTime: '3 min',
         href: '/dashboard/dispensaries',
         icon: <Store className="h-4 w-4" />,
@@ -59,18 +59,18 @@ const BRAND_CHECKLIST: ChecklistItem[] = [
     {
         id: 'activate-smokey',
         title: 'Activate Smokey AI Budtender',
-        description: 'Enable AI-powered product recommendations on your menu',
+        description: 'Configure your AI-powered budtender for product recommendations',
         estimatedTime: '2 min',
-        href: '/dashboard/agents',
+        href: '/dashboard/settings?tab=chatbot',
         icon: <Bot className="h-4 w-4" />,
         status: 'todo'
     },
     {
-        id: 'run-audit',
-        title: 'Run Menu + SEO Audit',
-        description: 'Get an instant report on your online presence',
-        estimatedTime: '1 min',
-        href: '/dashboard/audit',
+        id: 'setup-intel',
+        title: 'Set Up Competitive Intelligence',
+        description: 'Track competitor pricing and get daily/weekly market reports',
+        estimatedTime: '3 min',
+        href: '/dashboard/competitive-intel',
         icon: <FileSearch className="h-4 w-4" />,
         status: 'todo'
     }
