@@ -4,6 +4,23 @@ import BrandPageManager from '../page';
 import { useUser } from '@/firebase/auth/use-user';
 import { useToast } from '@/hooks/use-toast';
 
+// Mock lucide-react icons with a Proxy to handle any icon dynamically
+jest.mock('lucide-react', () => {
+    const createMockIcon = (name: string) => {
+        return ({ className }: { className?: string }) => <span className={className} data-testid={`icon-${name.toLowerCase()}`} />;
+    };
+
+    // Return a Proxy that creates mock icons for any accessed property
+    return new Proxy({}, {
+        get: (target, prop) => {
+            if (typeof prop === 'string') {
+                return createMockIcon(prop);
+            }
+            return undefined;
+        }
+    });
+});
+
 // Mock helpers
 const mockToast = jest.fn();
 jest.mock('@/hooks/use-toast', () => ({
@@ -52,15 +69,48 @@ describe('BrandPageManager', () => {
         expect(document.querySelector('.animate-spin')).toBeInTheDocument();
     });
 
-    it('shows no brand associated state if user doc missing brandId', async () => {
+    it('uses user.uid as brandId fallback for brand users without explicit brandId', async () => {
         (useUser as jest.Mock).mockReturnValue({ user: { uid: '123' }, isUserLoading: false });
 
-        // Mock Firestore user doc response
+        // Mock Firestore user doc with role='brand' but no brandId
+        // The fix should use uid as fallback brandId
+        let callCount = 0;
         mockGetDoc.mockImplementation((ref) => {
-            // Check if it's the user doc check
+            callCount++;
+            if (callCount === 1) {
+                // User doc - has role='brand' but no brandId
+                return Promise.resolve({
+                    exists: () => true,
+                    data: () => ({ name: 'Test User', role: 'brand' })
+                });
+            } else {
+                // Brand doc lookup using uid ('123') as fallback
+                return Promise.resolve({
+                    exists: () => true,
+                    data: () => ({
+                        name: 'Fallback Brand',
+                        description: 'Brand using uid as id'
+                    })
+                });
+            }
+        });
+
+        render(<BrandPageManager />);
+
+        await waitFor(() => {
+            // Should find brand using uid fallback
+            expect(screen.getByDisplayValue('Fallback Brand')).toBeInTheDocument();
+        });
+    });
+
+    it('shows no brand associated state if user has neither brandId nor brand role', async () => {
+        (useUser as jest.Mock).mockReturnValue({ user: { uid: '123' }, isUserLoading: false });
+
+        // Mock Firestore user doc response - no brandId and no brand role
+        mockGetDoc.mockImplementation((ref) => {
             return Promise.resolve({
                 exists: () => true,
-                data: () => ({ name: 'Test User' }) // No brandId
+                data: () => ({ name: 'Test User' }) // No brandId, no role
             });
         });
 

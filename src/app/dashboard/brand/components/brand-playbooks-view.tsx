@@ -103,7 +103,6 @@ export function BrandPlaybooksView({ brandId }: { brandId: string }) {
                 description: data.description,
                 agent: data.agent,
                 category: data.category,
-                status: 'paused',
                 triggers: [],
                 steps: []
             });
