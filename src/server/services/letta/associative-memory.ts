@@ -15,7 +15,7 @@
 
 import { logger } from '@/lib/logger';
 import { MemoryEdge, MemoryEdgeSchema, MemoryUnit } from './memory-types';
-import { db } from '@/lib/firebase-admin';
+import { getAdminFirestore } from '@/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 // =============================================================================
@@ -60,6 +60,7 @@ export class AssociativeMemoryService {
         MemoryEdgeSchema.parse(edge);
 
         // Store in Firestore
+        const db = getAdminFirestore();
         await db
             .collection(EDGES_COLLECTION)
             .doc(edge.id)
@@ -90,6 +91,7 @@ export class AssociativeMemoryService {
         }
     ): Promise<Array<{ edge: MemoryEdge; direction: 'outgoing' | 'incoming' }>> {
         const results: Array<{ edge: MemoryEdge; direction: 'outgoing' | 'incoming' }> = [];
+        const db = getAdminFirestore();
 
         // Find outgoing edges (this memory → other)
         let outgoingQuery = db
@@ -317,6 +319,7 @@ export class AssociativeMemoryService {
      * Strengthen an edge (when the relationship is reinforced).
      */
     async reinforceEdge(edgeId: string, increment: number = 0.1): Promise<void> {
+        const db = getAdminFirestore();
         const edgeRef = db.collection(EDGES_COLLECTION).doc(edgeId);
         const doc = await edgeRef.get();
 
@@ -334,6 +337,7 @@ export class AssociativeMemoryService {
      * Weaken an edge (decay over time or explicit downweight).
      */
     async weakenEdge(edgeId: string, decrement: number = 0.1): Promise<void> {
+        const db = getAdminFirestore();
         const edgeRef = db.collection(EDGES_COLLECTION).doc(edgeId);
         const doc = await edgeRef.get();
 
@@ -359,6 +363,7 @@ export class AssociativeMemoryService {
         edgesByRelation: Record<string, number>;
         avgStrength: number;
     }> {
+        const db = getAdminFirestore();
         const snapshot = await db
             .collection(EDGES_COLLECTION)
             .where('tenantId', '==', tenantId)

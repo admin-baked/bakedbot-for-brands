@@ -380,8 +380,8 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                             steps,
                             synthesisResult.content
                         );
-                    } catch (e) {
-                        logger.warn('[Harness] Failed to persist workflow:', e);
+                    } catch (e: unknown) {
+                        logger.warn('[Harness] Failed to persist workflow:', e as Record<string, any>);
                     }
                 }
 
@@ -473,8 +473,8 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                     steps,
                     `Completed ${steps.length} steps`
                 );
-            } catch (e) {
-                logger.warn('[Harness] Failed to persist workflow:', e);
+            } catch (e: unknown) {
+                logger.warn('[Harness] Failed to persist workflow:', e as Record<string, any>);
             }
         }
 

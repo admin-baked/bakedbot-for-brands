@@ -34,32 +34,35 @@
  */
 
 // Core Letta Client
-export { lettaClient, LettaClient, LettaAgent, LettaBlock, LettaMessage } from './client';
+export { lettaClient, LettaClient } from './client';
+export type { LettaAgent, LettaBlock, LettaMessage } from './client';
 
 // Shared Memory Blocks (Working Memory)
 export { lettaBlockManager, LettaBlockManager, BLOCK_LABELS } from './block-manager';
 
 // Memory Type Schemas
 export {
-    MemoryUnit,
     MemoryUnitSchema,
-    EpisodicMemory,
     EpisodicMemorySchema,
-    SemanticMemory,
     SemanticMemorySchema,
-    ProceduralMemory,
     ProceduralMemorySchema,
     WorkflowStepSchema,
-    MemoryEdge,
     MemoryEdgeSchema,
-    MemorySearchResult,
     MemorySearchResultSchema,
-    MemoryWeightingConfig,
     MemoryWeightingConfigSchema,
-    ConversationContext,
     ConversationContextSchema,
-    SleepTimeConsolidation,
     SleepTimeConsolidationSchema,
+} from './memory-types';
+export type {
+    MemoryUnit,
+    EpisodicMemory,
+    SemanticMemory,
+    ProceduralMemory,
+    MemoryEdge,
+    MemorySearchResult,
+    MemoryWeightingConfig,
+    ConversationContext,
+    SleepTimeConsolidation,
 } from './memory-types';
 
 // Episodic Memory Service (Conversation Search)
@@ -70,42 +73,38 @@ export {
     proceduralMemoryService,
     ProceduralMemoryService,
     persistWorkflowFromHarness,
-    WorkflowStep,
-    WorkflowTrajectory,
 } from './procedural-memory';
+export type { WorkflowStep, WorkflowTrajectory } from './procedural-memory';
 
 // Sleep-Time Agent (Background Consolidation)
 export {
     sleepTimeService,
     SleepTimeAgentService,
-    SleepTimeConfig,
     runScheduledConsolidation,
 } from './sleeptime-agent';
+export type { SleepTimeConfig } from './sleeptime-agent';
 
 // Associative Memory (Graph Relationships)
 export {
     associativeMemoryService,
     AssociativeMemoryService,
-    RelationType,
-    CreateEdgeParams,
 } from './associative-memory';
+export type { RelationType, CreateEdgeParams } from './associative-memory';
 
 // Memory Bridge (Letta <-> Firestore Sync)
 export {
     memoryBridgeService,
     MemoryBridgeService,
-    SyncRecord,
     runScheduledMemoryBridgeSync,
 } from './memory-bridge';
+export type { SyncRecord } from './memory-bridge';
 
 // Conversations API (Parallel Threads)
 export {
     conversationsService,
     ConversationsService,
-    LettaConversation,
-    ConversationMessage,
-    SendMessageOptions,
 } from './conversations';
+export type { LettaConversation, ConversationMessage, SendMessageOptions } from './conversations';
 
 // Archival Tags (Memory Organization)
 export {
@@ -114,6 +113,5 @@ export {
     TAG_PREFIXES,
     CATEGORY_TAGS,
     AGENT_TAGS,
-    TaggedMemory,
-    TagIndex,
 } from './archival-tags';
+export type { TaggedMemory, TagIndex } from './archival-tags';
