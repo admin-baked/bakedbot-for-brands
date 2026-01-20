@@ -1270,14 +1270,41 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
     if (def.name === 'system.generateConnectionLink') {
         // Map tools to their dashboard settings URLs
         const toolMap: Record<string, string> = {
-            'stripe': '/dashboard/settings/billing', // Better than general settings
-            'github': '/dashboard/settings/integrations?connect=github',
+            // Finance
+            'stripe': '/dashboard/settings/billing',
+            'authorize_net': '/dashboard/settings/billing',
+            
+            // CRM & Communication
             'salesforce': '/dashboard/settings/integrations?connect=salesforce',
             'hubspot': '/dashboard/settings/integrations?connect=hubspot',
+            'slack': '/dashboard/settings/integrations?connect=slack',
+            'twilio_sms': '/dashboard/settings/integrations?connect=twilio_sms',
+            'springbig': '/dashboard/settings/integrations?connect=springbig',
+            'alpineiq': '/dashboard/settings/integrations?connect=alpineiq',
+            'gmail': '/dashboard/settings/integrations?connect=gmail',
+            
+            // Ops & Project Management
             'linear': '/dashboard/settings/integrations?connect=linear',
             'jira': '/dashboard/settings/integrations?connect=jira',
-            'google_analytics': '/dashboard/settings/analytics?enable=true', // Direct to analytics tab
-            'search_console': '/dashboard/settings/seo?enable=true'  // Direct to SEO tab
+            'github': '/dashboard/settings/integrations?connect=github',
+            
+            // POS
+            'dutchie': '/dashboard/settings/integrations?connect=dutchie',
+            'flowhub': '/dashboard/settings/integrations?connect=flowhub',
+            'jane': '/dashboard/settings/integrations?connect=jane',
+            
+            // Wholesale
+            'leaflink': '/dashboard/settings/integrations?connect=leaflink',
+            
+            // Google Workspace
+            'google_drive': '/dashboard/settings/integrations?connect=google_drive',
+            'google_calendar': '/dashboard/settings/integrations?connect=google_calendar',
+            'google_sheets': '/dashboard/settings/integrations?connect=google_sheets',
+            
+            // Analytics
+            'google_analytics': '/dashboard/settings/analytics?enable=true',
+            'search_console': '/dashboard/settings/seo?enable=true', // Legacy key
+            'google_search_console': '/dashboard/settings/seo?enable=true', // New key
         };
 
         const targetUrl = toolMap[inputs.tool];
@@ -1301,11 +1328,37 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         };
     }
 
+    // --- Internal Support Tools (Felisha & Linus) ---
+    if (def.name === 'triageError') {
+        try {
+            const { supportService } = await import('@/server/services/support/tickets');
+            const ticket = await supportService.createTicket(inputs.errorLog, request.actor.userId, inputs.metadata);
+            return {
+                status: 'success',
+                data: { ticketId: ticket.id, message: "Ticket created. Linus will review it." }
+            };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+
+    if (def.name === 'read_support_tickets') {
+        try {
+            const { supportService } = await import('@/server/services/support/tickets');
+            const tickets = await supportService.getOpenTickets(inputs.limit);
+            return {
+                status: 'success',
+                data: { tickets }
+            };
+        } catch (e: any) {
+            return { status: 'failed', error: e.message };
+        }
+    }
+
     return {
         status: 'success',
         data: { message: `Executed tool: ${def.name}`, inputs }
     };
-
 }
 
 /**
