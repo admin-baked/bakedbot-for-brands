@@ -41,9 +41,9 @@ export default async function CraigDashboardPage() {
                         <Mail className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">3</div>
+                        <div className="text-2xl font-bold">0</div>
                         <p className="text-xs text-muted-foreground">
-                            +1 from last week
+                            Create your first campaign
                         </p>
                     </CardContent>
                 </Card>
@@ -53,9 +53,9 @@ export default async function CraigDashboardPage() {
                         <MessageSquare className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">1,240</div>
+                        <div className="text-2xl font-bold">0</div>
                         <p className="text-xs text-muted-foreground">
-                            +18% from last month
+                            No emails sent yet
                         </p>
                     </CardContent>
                 </Card>
@@ -65,9 +65,9 @@ export default async function CraigDashboardPage() {
                         <BarChart3 className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">24.5%</div>
+                        <div className="text-2xl font-bold">--</div>
                         <p className="text-xs text-muted-foreground">
-                            +2.1% from last month
+                            Not enough data
                         </p>
                     </CardContent>
                 </Card>

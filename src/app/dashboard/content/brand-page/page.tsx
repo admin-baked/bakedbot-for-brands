@@ -104,7 +104,8 @@ export default function BrandPageManager() {
                 }
 
                 const userData = userDoc.data();
-                const bId = userData?.brandId;
+                // Use brandId from user doc, fallback to uid for brand users
+                const bId = userData?.brandId || (userData?.role === 'brand' ? user.uid : null);
 
                 console.log('[BrandPage] Brand ID from user doc:', bId);
 
