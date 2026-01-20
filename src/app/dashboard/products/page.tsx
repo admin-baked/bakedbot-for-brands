@@ -32,7 +32,8 @@ export default async function DashboardProductsPage() {
     } else {
         try {
             user = await requireUser(['brand', 'super_user', 'dispensary']);
-            const brandId = user.brandId;
+            // For brand users, use brandId from claims, fallback to uid
+            const brandId = user.brandId || (user.role === 'brand' ? user.uid : null);
 
             const { firestore } = await createServerClient();
             const productRepo = makeProductRepo(firestore);
@@ -60,7 +61,7 @@ export default async function DashboardProductsPage() {
             } else {
                 // This case should ideally not be hit if role is 'brand'
                 // but it's a good safeguard for brand users without a brandId.
-                return <p>You are not associated with a brand.</p>
+                products = [];
             }
         } catch (error) {
             if ((error as Error).message.includes('Unauthorized')) {

@@ -394,7 +394,14 @@ function ClaimWizard() {
                         </Button>
                     </div>
                     <div className="text-center">
-                         <Button variant="link" onClick={() => router.push('/')}>Cancel</Button>
+                         <Button variant="link" onClick={() => {
+                             // If user is logged in, go back to dashboard; otherwise go to home
+                             if (auth?.currentUser) {
+                                 router.push('/dashboard');
+                             } else {
+                                 router.push('/');
+                             }
+                         }}>Cancel</Button>
                     </div>
                 </div>
             )}

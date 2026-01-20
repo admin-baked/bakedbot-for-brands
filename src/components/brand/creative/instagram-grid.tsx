@@ -1,6 +1,7 @@
 'use client';
 
-import { Heart, MessageCircle } from 'lucide-react';
+import { useState } from 'react';
+import { Heart, MessageCircle, ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DeeboBadge } from './deebo-badge';
 
@@ -16,6 +17,31 @@ export interface InstagramPost {
 interface InstagramGridProps {
   posts: InstagramPost[];
   onSelect: (post: InstagramPost) => void;
+}
+
+function ImageWithFallback({ src, alt, className, isDraft }: { src: string; alt: string; className?: string; isDraft?: boolean }) {
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    return (
+      <div className={cn("w-full h-full bg-slate-200 flex items-center justify-center", className)}>
+        <ImageOff className="h-8 w-8 text-slate-400" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={cn(
+        "w-full h-full object-cover transition-transform duration-500 group-hover:scale-105",
+        isDraft && "opacity-75 blur-[1px]",
+        className
+      )}
+      onError={() => setHasError(true)}
+    />
+  );
 }
 
 export function InstagramGrid({ posts, onSelect }: InstagramGridProps) {
@@ -37,18 +63,15 @@ export function InstagramGrid({ posts, onSelect }: InstagramGridProps) {
       {/* Grid */}
       <div className="grid grid-cols-3 gap-[1px] bg-slate-100 dark:bg-slate-800">
         {posts.map((post) => (
-          <div 
-            key={post.id} 
+          <div
+            key={post.id}
             className="group relative aspect-square bg-slate-50 cursor-pointer overflow-hidden"
             onClick={() => onSelect(post)}
           >
-            <img 
-                src={post.imageUrl} 
-                alt="" 
-                className={cn(
-                    "w-full h-full object-cover transition-transform duration-500 group-hover:scale-105",
-                    post.isDraft && "opacity-75 blur-[1px]"
-                )}
+            <ImageWithFallback
+                src={post.imageUrl}
+                alt=""
+                isDraft={post.isDraft}
             />
             
             {/* Overlay for live posts */}
