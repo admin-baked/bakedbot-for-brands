@@ -58,6 +58,7 @@ export function useAcceptJs({ clientKey, apiLoginId }: UseAcceptJsOptions) {
     const [isLoaded, setIsLoaded] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [retryCount, setRetryCount] = useState(0);
     const scriptLoaded = useRef(false);
 
     // Load Accept.js script
@@ -66,6 +67,7 @@ export function useAcceptJs({ clientKey, apiLoginId }: UseAcceptJsOptions) {
         if (typeof window !== 'undefined' && (window as any).Accept) {
             setIsLoaded(true);
             scriptLoaded.current = true;
+            setError(null);
             return;
         }
 
@@ -79,9 +81,17 @@ export function useAcceptJs({ clientKey, apiLoginId }: UseAcceptJsOptions) {
         // Check if already loaded by src
         const existingScript = document.querySelector(`script[src="${scriptSrc}"]`);
         if (existingScript) {
-            // Assume loading if in DOM, but safer to check global above
-            setIsLoaded(true); 
-            scriptLoaded.current = true;
+            // Wait a moment for the script to initialize
+            const checkLoaded = setInterval(() => {
+                if ((window as any).Accept) {
+                    setIsLoaded(true);
+                    scriptLoaded.current = true;
+                    setError(null);
+                    clearInterval(checkLoaded);
+                }
+            }, 100);
+            // Clear after 5 seconds if still not loaded
+            setTimeout(() => clearInterval(checkLoaded), 5000);
             return;
         }
 
@@ -91,9 +101,10 @@ export function useAcceptJs({ clientKey, apiLoginId }: UseAcceptJsOptions) {
         script.onload = () => {
             setIsLoaded(true);
             scriptLoaded.current = true;
+            setError(null);
         };
         script.onerror = () => {
-            setError('Failed to load payment processor');
+            setError('Payment processor unavailable. Please disable ad blockers or try a different browser.');
         };
 
         document.head.appendChild(script);
@@ -101,6 +112,15 @@ export function useAcceptJs({ clientKey, apiLoginId }: UseAcceptJsOptions) {
         return () => {
             // Don't remove the script on unmount, it may be needed by other components
         };
+    }, [retryCount]);
+
+    /**
+     * Retry loading the payment processor script
+     */
+    const retryLoad = useCallback(() => {
+        scriptLoaded.current = false;
+        setError(null);
+        setRetryCount(c => c + 1);
     }, []);
 
     /**
@@ -160,7 +180,8 @@ export function useAcceptJs({ clientKey, apiLoginId }: UseAcceptJsOptions) {
         isLoaded,
         isLoading,
         error,
-        tokenizeCard
+        tokenizeCard,
+        retryLoad
     };
 }
 

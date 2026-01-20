@@ -2,15 +2,40 @@
 // BakedBot PWA Service Worker
 // Provides offline functionality and caching
 
-const CACHE_NAME = 'bakedbot-v1';
+const CACHE_NAME = 'bakedbot-v2'; // Bump version to invalidate old caches
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
-  '/',
   '/offline.html',
   '/manifest.json',
 ];
+
+// Paths that should NEVER be cached (dynamic content)
+const NO_CACHE_PATHS = [
+  '/api/',
+  '/dashboard/',
+  '/_next/webpack-hmr', // HMR for dev
+];
+
+// Check if a URL is a dynamic brand page (single segment after root)
+function isDynamicBrandPage(url) {
+  const path = new URL(url).pathname;
+  // Match patterns like /brandname, /ecstaticedibles, etc.
+  // But NOT /dashboard, /api, /pricing, /_next, etc.
+  const staticPaths = ['dashboard', 'api', 'pricing', 'checkout', 'onboarding', 'brand-login', 'claim', '_next', 'static'];
+  const segments = path.split('/').filter(Boolean);
+
+  // Single segment path that's not a known static path = likely a brand page
+  if (segments.length === 1 && !staticPaths.includes(segments[0])) {
+    return true;
+  }
+  // Also match /brandname/collection patterns
+  if (segments.length >= 1 && !staticPaths.includes(segments[0])) {
+    return true;
+  }
+  return false;
+}
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
@@ -54,8 +79,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const url = event.request.url;
+
   // Network-first strategy for API calls
-  if (event.request.url.includes('/api/')) {
+  if (url.includes('/api/')) {
     event.respondWith(
       fetch(event.request)
         .catch(() => {
@@ -68,7 +95,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first strategy for static assets
+  // Network-first (no cache) for dashboard and dynamic brand pages
+  if (url.includes('/dashboard/') || isDynamicBrandPage(url)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Return the response directly without caching
+          return response;
+        })
+        .catch(() => {
+          // On network failure for navigation, show offline page
+          if (event.request.mode === 'navigate') {
+            return caches.match(OFFLINE_URL).then((offlineResp) => offlineResp || new Response('', { status: 503 }));
+          }
+          return new Response('', { status: 503 });
+        })
+    );
+    return;
+  }
+
+  // Cache-first strategy for truly static assets only
   event.respondWith(
     caches.match(event.request).then((response) => {
       if (response) {
@@ -77,21 +123,27 @@ self.addEventListener('fetch', (event) => {
 
       return fetch(event.request).then((networkResponse) => {
         // Only treat actual network errors or 5xx server errors as offline
-        // Allow 2xx, 3xx (redirects), and 4xx (client errors) to pass through
         if (!networkResponse || networkResponse.status >= 500 || networkResponse.type === 'error') {
           return caches.match(OFFLINE_URL).then((offlineResp) => offlineResp || new Response('', { status: 503 }));
         }
 
-        // Clone and cache the successful response
-        const responseToCache = networkResponse.clone();
+        // Only cache truly static assets (not HTML pages)
+        const contentType = networkResponse.headers.get('content-type') || '';
+        const shouldCache = contentType.includes('javascript') ||
+                           contentType.includes('css') ||
+                           contentType.includes('image') ||
+                           contentType.includes('font') ||
+                           url.includes('/manifest.json');
 
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
+        if (shouldCache) {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
 
         return networkResponse;
       }).catch(() => {
-        // On fetch failure, return offline page for navigation requests or a 503 response for others
         if (event.request.mode === 'navigate') {
           return caches.match(OFFLINE_URL).then((offlineResp) => offlineResp || new Response('', { status: 503 }));
         }

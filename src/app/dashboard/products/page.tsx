@@ -15,7 +15,7 @@ import { DEMO_BRAND_ID } from '@/lib/config';
 
 import { logger } from '@/lib/logger';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal } from "lucide-react";
+import { Terminal, AlertCircle } from "lucide-react";
 export const dynamic = 'force-dynamic';
 
 
@@ -24,6 +24,7 @@ export default async function DashboardProductsPage() {
 
     let products: Product[] = [];
     let showPosAlert = false;
+    let showNoBrandAlert = false;
     let user: any = null;
 
     if (isDemo) {
@@ -59,8 +60,8 @@ export default async function DashboardProductsPage() {
             } else if (brandId) {
                 products = await productRepo.getAllByBrand(brandId);
             } else {
-                // This case should ideally not be hit if role is 'brand'
-                // but it's a good safeguard for brand users without a brandId.
+                // Brand user without a brandId - show helpful alert
+                showNoBrandAlert = true;
                 products = [];
             }
         } catch (error) {
@@ -76,6 +77,19 @@ export default async function DashboardProductsPage() {
 
     return (
         <div className="flex flex-col gap-6">
+            {showNoBrandAlert && (
+                <Alert className="bg-red-500/10 border-red-500/50 text-red-600 dark:text-red-400">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Brand Setup Required</AlertTitle>
+                    <AlertDescription>
+                        Your account is not yet linked to a brand. Please complete your{' '}
+                        <Link href="/dashboard/content/brand-page" className="underline font-medium hover:text-red-700">
+                            Brand Page setup
+                        </Link>{' '}
+                        to manage products. If you believe this is an error, please contact support.
+                    </AlertDescription>
+                </Alert>
+            )}
             {showPosAlert && (
                 <Alert className="bg-yellow-500/10 border-yellow-500/50 text-yellow-600 dark:text-yellow-400">
                     <Terminal className="h-4 w-4" />

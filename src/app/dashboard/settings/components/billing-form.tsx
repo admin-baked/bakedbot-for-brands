@@ -32,7 +32,7 @@ export function BillingForm(props: BillingFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize Accept.js
-  const { isLoaded: isAcceptLoaded, tokenizeCard, error: acceptError } = useAcceptJs({
+  const { isLoaded: isAcceptLoaded, tokenizeCard, error: acceptError, retryLoad } = useAcceptJs({
     clientKey: process.env.NEXT_PUBLIC_AUTHNET_CLIENT_KEY || "",
     apiLoginId: process.env.NEXT_PUBLIC_AUTHNET_API_LOGIN_ID || "",
   });
@@ -293,9 +293,21 @@ export function BillingForm(props: BillingFormProps) {
 
         {/* Script Load Error */}
         {acceptError && (
-          <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-alert-circle"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-            <span>Payment System Error: {acceptError}</span>
+          <div className="bg-destructive/10 text-destructive text-sm p-4 rounded-md space-y-2">
+            <div className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-alert-circle"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+              <span className="font-medium">Payment System Error</span>
+            </div>
+            <p className="text-sm">{acceptError}</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={retryLoad}
+              className="mt-2"
+            >
+              Retry Loading
+            </Button>
           </div>
         )}
 
