@@ -1,6 +1,19 @@
 {
     "features": [
         {
+            "id": "task_fix_support_service_tests",
+            "title": "Fix Unit Tests: Support Service",
+            "status": "pending",
+            "priority": "high",
+            "description": "Fix the Jest configuration execution issues preventing `tests/server/services/support/tickets.test.ts` from running. The test file exists but fails to run with 0 tests executed.",
+            "acceptance_tests": [
+                "tests/server/services/support/tickets.test.ts passes"
+            ],
+            "owner": "ai_builder_swarm",
+            "area": "testing",
+            "created_at": "2026-01-20T14:15:00Z"
+        },
+        {
             "id": "task_test_unified_claim_flow",
             "title": "Unit Test: Unified Claim Flow",
             "status": "pending",

@@ -756,13 +756,28 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
     // ===================================
     'system.generateConnectionLink': {
         name: 'system.generateConnectionLink',
-        description: 'Generates a deep link to connect a third-party tool (Stripe, GitHub, etc).',
+        description: 'Generates a deep link to connect a third-party tool (Stripe, GitHub, POS, etc).',
         inputSchema: {
             type: 'object',
             properties: {
                 tool: { 
                     type: 'string', 
-                    enum: ['github', 'salesforce', 'hubspot', 'linear', 'jira', 'google_analytics', 'search_console'],
+                    enum: [
+                        // Finance
+                        'stripe', 'authorize_net',
+                        // Ops
+                        'github', 'linear', 'jira', 
+                        // CRM & Comm
+                        'salesforce', 'hubspot', 'slack', 'twilio_sms', 'springbig', 'alpineiq', 'gmail',
+                        // POS
+                        'dutchie', 'flowhub', 'jane',
+                        // Wholesale
+                        'leaflink',
+                        // Workspace
+                        'google_drive', 'google_calendar', 'google_sheets',
+                        // Analytics
+                        'google_analytics', 'search_console', 'google_search_console'
+                    ],
                     description: 'The tool to connect.'
                 }
             },
@@ -1246,6 +1261,36 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         },
         category: 'read',
         requiredPermission: 'read:analytics'
+    },
+
+    // ===================================
+    // 17. Internal Support (Felisha & Linus)
+    // ===================================
+    'triageError': {
+        name: 'triageError',
+        description: 'Analyze a system error log and file a support ticket.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                errorLog: { type: 'string', description: 'The error message or stack trace' }
+            },
+            required: ['errorLog']
+        },
+        category: 'write',
+        requiredPermission: 'read:analytics'
+    },
+    'read_support_tickets': {
+        name: 'read_support_tickets',
+        description: 'Read open support tickets to identify bugs to fix.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                limit: { type: 'number', default: 10 }
+            },
+            required: []
+        },
+        category: 'read',
+        requiredPermission: 'manage:brand' // Linus/Admins only
     }
 };
 
