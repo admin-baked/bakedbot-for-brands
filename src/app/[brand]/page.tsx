@@ -60,7 +60,7 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
     }
 
     // Fetch active bundles for this brand/org
-    let bundles = [];
+    let bundles: import('@/types/bundles').BundleDeal[] = [];
     try {
         bundles = await getActiveBundles(brand.id);
     } catch (e) {

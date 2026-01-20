@@ -4,6 +4,7 @@ export type Brand = {
     id: string;
     name: string;
     logoUrl?: string;
+    tagline?: string; // Short brand tagline
     chatbotConfig?: {
         basePrompt?: string;
         welcomeMessage?: string;
