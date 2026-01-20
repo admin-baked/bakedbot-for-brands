@@ -12,7 +12,6 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     try {
         const { firestore } = await createServerClient();
 
-
         // Run counts in parallel
         const [dispensariesSnapshot, brandsSnapshot, seoDispSnapshot, zipPagesSnapshot] = await Promise.all([
             firestore.collection('dispensaries').count().get(),
@@ -23,22 +22,11 @@ export async function getPlatformStats(): Promise<PlatformStats> {
 
         const dispensaries = dispensariesSnapshot.data().count;
         const brands = brandsSnapshot.data().count;
+        const seoDispensaryPages = seoDispSnapshot.data().count;
+        const zipPages = zipPagesSnapshot.data().count;
 
-        // Estimate pages: (Brands * 50 states) + (Dispensaries) + (ZIPs covered)
-        // Detailed count is expensive. We'll use a heuristic or stored counter if available.
-        // For MVP National Rollout, let's assume 1 page per entity + 250 ZIPs (placeholder)
-        // Or check if 'seo_pages' collection exists
-
-        let pages = 0;
-        try {
-            const pagesSnapshot = await firestore.collection('seo_pages').count().get();
-            pages = pagesSnapshot.data().count;
-        } catch {
-            // collection might not exist
-        }
-
-        // Add entity pages count (since they act as pages too)
-        const totalPages = pages + dispensaries + brands;
+        // Total Pages = (Entity Pages) +  (Generated SEO Pages) + (Nationwide ZIP Landing Pages)
+        const totalPages = dispensaries + brands + seoDispensaryPages + zipPages;
 
         return {
             dispensaries,
