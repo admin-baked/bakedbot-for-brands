@@ -341,8 +341,15 @@ export function usePuffChatLogic({
             }
 
             // URL Input (Deebo Follow-up)
-            const askedForUrl = lastBot?.type === 'agent' && lastBot.content.includes("Paste the URL");
+            const askedForUrl = lastBot?.type === 'agent' && (lastBot.content.includes("Paste") && lastBot.content.includes("URL"));
             const urlRegex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+
+            // Handle "run demo" for compliance
+            if (askedForUrl && lowerInput.includes("demo")) {
+                executeComplianceDemoScan(displayContent);
+                return;
+            }
+
             if (askedForUrl && urlRegex.test(trimmedInput)) {
                  executeComplianceScan(trimmedInput, displayContent);
                  return;
@@ -350,11 +357,16 @@ export function usePuffChatLogic({
 
             // Location Input (Market Scout)
             const zipOrCityRegex = /^\d{5}$/
-            const isCity = /^[a-zA-Z\s]{3,30}$/.test(trimmedInput) && !lowerInput.includes('http');
-            const askedForLocation = lastBot?.type === 'agent' && (lastBot.content.includes("What City/Zip?") || lastBot.content.includes("search?"));
-            
+            const isCity = /^[a-zA-Z\s,]{3,40}$/.test(trimmedInput) && !lowerInput.includes('http');
+            const askedForLocation = lastBot?.type === 'agent' && (
+                lastBot.content.includes("City or ZIP") ||
+                lastBot.content.includes("What City/Zip?") ||
+                lastBot.content.includes("competitive scan") ||
+                lastBot.content.includes("Find Retail Partners")
+            );
+
             if (askedForLocation && (zipOrCityRegex.test(trimmedInput) || isCity)) {
-                 const isBrand = lastBot.content.includes("find dispensary partners"); // Context check
+                 const isBrand = lastBot.content.includes("Retail Partners") || lastBot.content.includes("dispensary partners");
                  executeMarketScout(trimmedInput, displayContent, isBrand);
                  return;
             }
@@ -363,6 +375,25 @@ export function usePuffChatLogic({
                 // Check mode
                 const isBrandMode = trimmedInput.includes("Find retail partners");
                 promptForLocation(displayContent, isBrandMode);
+                return;
+            }
+
+            // Find Dispensaries Near Me (Dispensary Mode)
+            if (lowerInput.includes("find dispensaries") || lowerInput.includes("dispensaries near me")) {
+                promptForDispensarySearch(displayContent);
+                return;
+            }
+
+            // Handle ZIP/Location input for dispensary search
+            const askedForDispensary = lastBot?.type === 'agent' && lastBot.content.includes("find dispensaries in your area");
+            if (askedForDispensary && (zipOrCityRegex.test(trimmedInput) || isCity)) {
+                executeDispensarySearch(trimmedInput, displayContent);
+                return;
+            }
+
+            // How does BakedBot work? (Generic Info)
+            if (lowerInput.includes("how does bakedbot work") || lowerInput.includes("what is bakedbot") || lowerInput.includes("explain bakedbot")) {
+                executeBakedBotExplainer(displayContent);
                 return;
             }
         }
@@ -561,22 +592,93 @@ const content = `### Draft: ${'New Drop'}\n\n**SMS**: ${c.sms.text}\n\n**Email**
          addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
          setInput(''); setIsProcessing(true);
          const thinkingId = `agent-${Date.now()}`;
-         addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'scan', toolName: "Market Scout", description: `Scanning ${location}...`, status: 'in-progress' }], plan: [] } });
-         
-         const { searchDemoRetailers } = await import('@/app/dashboard/intelligence/actions/demo-setup');
-         const result = await searchDemoRetailers(location);
-         await new Promise(r => setTimeout(r, 1500));
-         
-         const count = result.daa ? result.daa.length : 0;
-         const itemsMarkdown = result.daa?.slice(0, 3).map((c: any, idx: number) => (
-            `### Competitor #${idx+1}: ${c.name}\n${c.address || 'Address pending'}\n\n**Intelligence:**\n- Pricing: ${c.pricingStrategy}\n- Risk: ${c.riskScore}\n- Verified: ${c.isEnriched ? 'Yes' : 'Pending'}`
-         )).join('\n\n') || `No specific data for ${location} found.`;
 
-         const finalContent = `### 🏪 RETAIL OPPORTUNITIES\nI've analyzed the market in **${location}**. Found ${count} locations.\n\n### 📊 COMPETITIVE LANDSCAPE\n${itemsMarkdown}`;
+         // Realistic thinking steps
+         const steps = [
+             { id: 'geo', toolName: "Geocoder", description: `Resolving ${location}...`, status: 'in-progress' as const },
+             { id: 'scan', toolName: "Market Scout", description: "Scanning local market...", status: 'pending' as const },
+             { id: 'enrich', toolName: "Discovery", description: "Enriching top results...", status: 'pending' as const }
+         ];
+         addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps, plan: [] } });
+
+         const { searchDemoRetailers } = await import('@/app/dashboard/intelligence/actions/demo-setup');
+
+         // Update step 1 complete
+         await new Promise(r => setTimeout(r, 600));
+         updateMessage(thinkingId, { thinking: { isThinking: true, steps: steps.map((s, i) => i === 0 ? {...s, status: 'completed'} : i === 1 ? {...s, status: 'in-progress'} : s), plan: [] } });
+
+         const result = await searchDemoRetailers(location);
+
+         // Update step 2 complete
+         await new Promise(r => setTimeout(r, 500));
+         updateMessage(thinkingId, { thinking: { isThinking: true, steps: steps.map((s, i) => i <= 1 ? {...s, status: 'completed'} : {...s, status: 'in-progress'}), plan: [] } });
+
+         await new Promise(r => setTimeout(r, 400));
+
+         const competitors = result.daa || [];
+         const count = competitors.length;
+
+         // Build varied response based on mode
+         let finalContent = '';
+
+         if (isBrandMode) {
+             // BRAND MODE: Find retail partners
+             finalContent = `### 🏪 Retail Partners in ${result.location || location}\n\nFound **${count}** potential retail partners for your brand.\n\n`;
+
+             if (count > 0) {
+                 competitors.slice(0, 5).forEach((c: any, idx: number) => {
+                     const partnerStatus = c.isEnriched ? '🟢 Open to New Brands' : '⚪ Contact Pending';
+                     finalContent += `**${idx + 1}. ${c.name}**\n`;
+                     finalContent += `   📍 ${c.address || 'Address pending'}\n`;
+                     finalContent += `   📊 Menu Size: ~${c.skuCount} SKUs | Strategy: ${c.pricingStrategy}\n`;
+                     finalContent += `   Status: ${partnerStatus}\n\n`;
+                 });
+
+                 finalContent += `---\n\n### 🎯 Next Steps\n`;
+                 finalContent += `1. **Request introductions** to unclaimed dispensaries\n`;
+                 finalContent += `2. **Upload your catalog** to streamline onboarding\n`;
+                 finalContent += `3. **Set wholesale pricing** for partner margins\n\n`;
+                 finalContent += `📧 **Get the full partner list** - reply with your email.`;
+             } else {
+                 finalContent += `No specific retailers found. Try a larger metro area or different ZIP.`;
+             }
+         } else {
+             // DISPENSARY MODE: Spy on competitors
+             finalContent = `### 👁️ Competitive Intelligence: ${result.location || location}\n\nAnalyzed **${count}** competitors in your market.\n\n`;
+
+             if (count > 0) {
+                 // Find enriched one for highlight
+                 const enrichedIdx = competitors.findIndex((c: any) => c.isEnriched);
+
+                 competitors.slice(0, 5).forEach((c: any, idx: number) => {
+                     const riskEmoji = c.riskScore === 'High' ? '🔴' : c.riskScore === 'Med' ? '🟡' : '🟢';
+                     const isHighlight = idx === enrichedIdx;
+
+                     finalContent += isHighlight ? `### ⭐ Deep Dive: ${c.name}\n` : `**${idx + 1}. ${c.name}**\n`;
+                     finalContent += `   📍 ${c.address || 'Address pending'}\n`;
+                     finalContent += `   💰 Pricing: ${c.pricingStrategy} | ${riskEmoji} Threat: ${c.riskScore}\n`;
+                     finalContent += `   📦 Est. SKUs: ${c.skuCount}\n`;
+                     if (c.isEnriched && c.enrichmentSummary) {
+                         finalContent += `   🔍 Intel: ${c.enrichmentSummary}\n`;
+                     }
+                     finalContent += '\n';
+                 });
+
+                 finalContent += `---\n\n### 📈 Market Summary\n`;
+                 const premiumCount = competitors.filter((c: any) => c.pricingStrategy?.includes('Premium')).length;
+                 const promoCount = competitors.filter((c: any) => c.pricingStrategy?.includes('Promo') || c.pricingStrategy?.includes('Aggressive')).length;
+                 finalContent += `- **${premiumCount}** competitors using premium pricing\n`;
+                 finalContent += `- **${promoCount}** running aggressive promotions\n`;
+                 finalContent += `- Recommended strategy: ${promoCount > premiumCount ? 'Focus on value differentiation' : 'Consider loyalty programs'}\n\n`;
+                 finalContent += `📧 **Get weekly competitor alerts** - reply with your email.`;
+             } else {
+                 finalContent += `No competitors found for "${location}". Try a different ZIP or city.`;
+             }
+         }
 
          updateMessage(thinkingId, {
              content: finalContent,
-             thinking: { isThinking: false, steps: [{ id: 'scan', toolName: "Market Scout", description: `Scanned ${location}`, status: 'completed' }], plan: [] }
+             thinking: { isThinking: false, steps: steps.map(s => ({...s, status: 'completed'})), plan: [] }
          });
          setIsProcessing(false);
          if(focusInput) focusInput();
@@ -636,7 +738,12 @@ const content = `### Draft: ${'New Drop'}\n\n**SMS**: ${c.sms.text}\n\n**Email**
         addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
         setInput(''); setIsProcessing(false);
         setTimeout(() => {
-             addMessage({ id: `agent-${Date.now()}`, type: 'agent', content: "**Paste the URL you want me to scan.**", timestamp: new Date() });
+             addMessage({
+                 id: `agent-${Date.now()}`,
+                 type: 'agent',
+                 content: `🔒 **Deebo is ready** to scan your menu for compliance issues.\n\n**Option 1:** Paste your dispensary or menu URL and I'll run a full audit\n\n**Option 2:** Type **"run demo"** to see a sample compliance scan\n\n### Common Issues I Detect:\n- ❌ Medical claims without disclaimers\n- ❌ Missing age-gate requirements\n- ❌ THC percentage formatting errors\n- ❌ Appeals to minors (prohibited imagery/language)\n\n*Which would you like?*`,
+                 timestamp: new Date()
+             });
              if(focusInput) focusInput();
         }, 500);
     }
@@ -645,31 +752,164 @@ const content = `### Draft: ${'New Drop'}\n\n**SMS**: ${c.sms.text}\n\n**Email**
         addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
         setInput(''); setIsProcessing(true);
         const thinkingId = `agent-${Date.now()}`;
-        addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'scan', toolName: "Deebo", description: `Scanning ${url}...`, status: 'in-progress' }], plan: [] } });
-        
+
+        const steps = [
+            { id: 'fetch', toolName: "Discovery", description: `Fetching ${url}...`, status: 'in-progress' as const },
+            { id: 'scan', toolName: "Deebo", description: "Running compliance checks...", status: 'pending' as const },
+            { id: 'report', toolName: "Report", description: "Generating findings...", status: 'pending' as const }
+        ];
+        addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps, plan: [] } });
+
         const { scanDemoCompliance } = await import('@/app/dashboard/intelligence/actions/demo-compliance');
+
+        // Update step 1
+        await new Promise(r => setTimeout(r, 800));
+        updateMessage(thinkingId, { thinking: { isThinking: true, steps: steps.map((s, i) => i === 0 ? {...s, status: 'completed'} : i === 1 ? {...s, status: 'in-progress'} : s), plan: [] } });
+
         const result = await scanDemoCompliance(url);
-        
+
+        // Update step 2
+        await new Promise(r => setTimeout(r, 500));
+        updateMessage(thinkingId, { thinking: { isThinking: true, steps: steps.map((s, i) => i <= 1 ? {...s, status: 'completed'} : {...s, status: 'in-progress'}), plan: [] } });
+
+        await new Promise(r => setTimeout(r, 300));
         setIsProcessing(false);
-        const content = result.success 
-            ? `### Compliance Audit: ${url}\n${result.preview}\n\n### Action Items\nAdd FDA Disclaimer to footer. | Verify age barrier on entrance.`
-            : "### Error\nFailed to scan the specified URL. Please ensure it is a public dispensary menu.";
+
+        let content = '';
+        if (result.success) {
+            const domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
+            content = `### 🔒 Compliance Audit: ${domain}\n\n${result.preview || 'Scan completed successfully.'}\n\n`;
+            content += `---\n\n### 📋 Action Items\n`;
+            content += `1. Add FDA disclaimer to footer\n`;
+            content += `2. Verify age-gate barrier on entrance\n`;
+            content += `3. Review product descriptions for health claims\n\n`;
+            content += `📧 **Get the full compliance report** - reply with your email.`;
+        } else {
+            content = `### ⚠️ Scan Error\n\nCould not complete compliance scan for "${url}".\n\n**Possible reasons:**\n- Site may be blocking automated access\n- URL may be invalid or unreachable\n- Site may require authentication\n\nTry a different URL or type **"run demo"** to see a sample scan.`;
+        }
 
         updateMessage(thinkingId, {
             content,
-            thinking: { isThinking: false, steps: [{ id: 'scan', toolName: "Deebo", description: "Scan complete", status: 'completed' }], plan: [] }
+            thinking: { isThinking: false, steps: steps.map(s => ({...s, status: 'completed'})), plan: [] }
         });
+        if(focusInput) focusInput();
+    }
+
+    // Demo compliance scan without URL
+    function executeComplianceDemoScan(displayContent: string) {
+        addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
+        setInput(''); setIsProcessing(true);
+        const thinkingId = `agent-${Date.now()}`;
+
+        const steps = [
+            { id: 'load', toolName: "Demo Data", description: "Loading sample menu...", status: 'in-progress' as const },
+            { id: 'scan', toolName: "Deebo", description: "Running compliance checks...", status: 'pending' as const },
+            { id: 'report', toolName: "Report", description: "Generating findings...", status: 'pending' as const }
+        ];
+        addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps, plan: [] } });
+
+        setTimeout(() => {
+            updateMessage(thinkingId, { thinking: { isThinking: true, steps: steps.map((s, i) => i === 0 ? {...s, status: 'completed'} : i === 1 ? {...s, status: 'in-progress'} : s), plan: [] } });
+        }, 600);
+
+        setTimeout(() => {
+            updateMessage(thinkingId, { thinking: { isThinking: true, steps: steps.map((s, i) => i <= 1 ? {...s, status: 'completed'} : {...s, status: 'in-progress'}), plan: [] } });
+        }, 1200);
+
+        setTimeout(() => {
+            setIsProcessing(false);
+
+            const content = `### 🔒 Demo Compliance Audit: sample-dispensary.com\n\n**Overall Score: 72/100** ⚠️ Needs Attention\n\n### ✅ Passing Checks\n- Age verification gate detected\n- No appeals to minors found\n- Contact information present\n\n### ❌ Issues Found\n\n**1. Missing FDA Disclaimer** (High Priority)\n   Location: Product pages, footer\n   Fix: Add required disclaimer text\n\n**2. Health Claims Detected** (Medium Priority)\n   Found: "relieves pain", "reduces anxiety"\n   Fix: Remove or add medical disclaimers\n\n**3. THC Format Error** (Low Priority)\n   Found: "25% THC" should be "25.0% THC"\n   Fix: Standardize percentage formatting\n\n---\n\n### 📋 Recommended Actions\n1. Add FDA disclaimer to all product pages\n2. Review and revise health-related language\n3. Standardize potency labeling format\n\n📧 **Get weekly compliance monitoring** - reply with your email.`;
+
+            updateMessage(thinkingId, {
+                content,
+                thinking: { isThinking: false, steps: steps.map(s => ({...s, status: 'completed'})), plan: [] }
+            });
+            if(focusInput) focusInput();
+        }, 1800);
     }
 
     function promptForLocation(displayContent: string, isBrandMode: boolean) {
         addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
         setInput(''); setIsProcessing(false);
         setTimeout(() => {
-             addMessage({ id: `agent-${Date.now()}`, type: 'agent', content: isBrandMode ? "finding dispensary partners. **What City/Zip?**" : "competitor scan. **What City/Zip?**", timestamp: new Date() });
+             const content = isBrandMode
+                 ? `### 🏪 Find Retail Partners\n\nI'll search for dispensaries open to carrying new brands in your target market.\n\n**Enter a City or ZIP code** to find dispensary partners.\n\n*Example: "Denver, CO" or "80202"*`
+                 : `### 👁️ Competitor Intelligence\n\nI'll scan the local market for competitor pricing, menu sizes, and promotional strategies.\n\n**Enter a City or ZIP code** to start the competitive scan.\n\n*Example: "Los Angeles" or "90210"*`;
+             addMessage({ id: `agent-${Date.now()}`, type: 'agent', content, timestamp: new Date() });
              if(focusInput) focusInput();
         }, 500);
     }
 
+    // NEW: Find Dispensaries Near Me prompt
+    function promptForDispensarySearch(displayContent: string) {
+        addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
+        setInput(''); setIsProcessing(false);
+        setTimeout(() => {
+            addMessage({
+                id: `agent-${Date.now()}`,
+                type: 'agent',
+                content: `📍 **Enter your ZIP code** and I'll find dispensaries in your area.\n\nOr try these demo results for **Denver, CO 80202**:\n\n1. **Green Leaf Wellness** - 1420 Cannabis Ave\n   Status: Unclaimed | Hours: 9am-9pm\n   \n2. **Mile High Dispensary** - 710 Terpene St  \n   Status: Claimed Pro | Hours: 10am-10pm\n   \n3. **Rocky Mountain Relief** - 303 Indica Blvd\n   Status: Unclaimed | Hours: 8am-8pm\n\n*Want to claim your listing? Reply with your dispensary name.*\n\n📧 **Get the full list** - reply with your email.`,
+                timestamp: new Date()
+            });
+            if(focusInput) focusInput();
+        }, 500);
+    }
+
+    // NEW: Execute dispensary search with location
+    async function executeDispensarySearch(location: string, displayContent: string) {
+        addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
+        setInput(''); setIsProcessing(true);
+        const thinkingId = `agent-${Date.now()}`;
+        addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'search', toolName: "Discovery", description: `Searching ${location}...`, status: 'in-progress' }], plan: [] } });
+
+        const { searchDemoRetailers } = await import('@/app/dashboard/intelligence/actions/demo-setup');
+        const result = await searchDemoRetailers(location);
+        await new Promise(r => setTimeout(r, 1200));
+
+        const dispensaries = result.daa || [];
+        const count = dispensaries.length;
+
+        let content = `### 📍 Dispensaries Near ${location}\n\nFound **${count}** dispensaries in your area.\n\n`;
+
+        if (count > 0) {
+            dispensaries.slice(0, 5).forEach((d: any, idx: number) => {
+                const status = d.isEnriched ? '✅ Claimed Pro' : '⚪ Unclaimed';
+                content += `**${idx + 1}. ${d.name}**\n`;
+                content += `   ${d.address || 'Address pending'}\n`;
+                content += `   Status: ${status} | ${d.distance?.toFixed(1) || '?'} miles away\n\n`;
+            });
+            content += `---\n\n🏪 **Own a dispensary?** [Claim your free listing →](https://bakedbot.ai/join)\n\n📧 **Want the full report?** Reply with your email.`;
+        } else {
+            content += `No dispensaries found for "${location}". Try a different ZIP code or city name.`;
+        }
+
+        updateMessage(thinkingId, {
+            content,
+            thinking: { isThinking: false, steps: [{ id: 'search', toolName: "Discovery", description: `Found ${count} results`, status: 'completed' }], plan: [] }
+        });
+        setIsProcessing(false);
+        if(focusInput) focusInput();
+    }
+
+    // NEW: BakedBot Explainer
+    function executeBakedBotExplainer(displayContent: string) {
+        addMessage({ id: `user-${Date.now()}`, type: 'user', content: displayContent, timestamp: new Date() });
+        setInput(''); setIsProcessing(true);
+        const thinkingId = `agent-${Date.now()}`;
+        addMessage({ id: thinkingId, type: 'agent', content: '', timestamp: new Date(), thinking: { isThinking: true, steps: [{ id: 'explain', toolName: "Puff", description: "Preparing overview...", status: 'in-progress' }], plan: [] } });
+
+        setTimeout(() => {
+            const content = `### 🤖 How BakedBot Works\n\nBakedBot is an **Agentic Commerce OS** for the cannabis industry. Think of it as a team of AI employees working 24/7 for your business.\n\n**Meet Your Squad:**\n- 🌿 **Smokey** - Digital Budtender (product recommendations)\n- 📱 **Craig** - Marketing Automation (campaigns, SMS, email)\n- 👁️ **Ezal** - Market Scout (competitive intelligence)\n- 📊 **Pops** - Analytics & Insights (revenue, trends)\n- 🔒 **Deebo** - Compliance Guard (regulatory safety)\n- 💰 **Money Mike** - Pricing Strategy (margins, deals)\n\n**How It Works:**\n1. You chat naturally (like this!)\n2. Agents execute tasks in the background\n3. Results delivered instantly or via email/SMS\n\n**Try it now** - click any preset above or ask me anything!\n\n📧 **Want a demo?** Reply with your email.`;
+
+            updateMessage(thinkingId, {
+                content,
+                thinking: { isThinking: false, steps: [{ id: 'explain', toolName: "Puff", description: "Overview ready", status: 'completed' }], plan: [] }
+            });
+            setIsProcessing(false);
+            if(focusInput) focusInput();
+        }, 800);
+    }
 
     // ----------- UTILS -----------
 

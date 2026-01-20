@@ -196,8 +196,8 @@ describe('usePuffChatLogic', () => {
     });
 
     it('should handle Market Scout location follow-up', async () => {
-        const { result, rerender } = renderHook(() => usePuffChatLogic({ 
-            isAuthenticated: false 
+        const { result, rerender } = renderHook(() => usePuffChatLogic({
+            isAuthenticated: false
         }));
 
         // 1. Initial trigger
@@ -210,17 +210,23 @@ describe('usePuffChatLogic', () => {
         });
 
         expect(mockAddMessage).toHaveBeenCalledWith(expect.objectContaining({
-            content: expect.stringContaining('What City/Zip?')
+            content: expect.stringContaining('City or ZIP')
         }));
 
-        // 2. Prepare follow-up
+        // 2. Prepare follow-up - simulate the bot has asked for location
         (useAgentChatStore as unknown as jest.Mock).mockReturnValue({
             currentMessages: [
-                { id: '1', role: 'assistant', content: 'What City/Zip?' }
+                { id: '1', type: 'agent', content: 'Enter a City or ZIP code to start the competitive scan' }
             ],
             addMessage: mockAddMessage,
             updateMessage: mockUpdateMessage,
             createSession: mockCreateSession,
+            currentArtifacts: [],
+            activeArtifactId: null,
+            isArtifactPanelOpen: false,
+            addArtifact: jest.fn(),
+            setActiveArtifact: jest.fn(),
+            setArtifactPanelOpen: jest.fn(),
             sessions: []
         });
 
@@ -232,22 +238,26 @@ describe('usePuffChatLogic', () => {
         });
 
         await act(async () => {
-            jest.advanceTimersByTime(2000);
+            jest.advanceTimersByTime(5000);
         });
 
-        // 4. Verify updateMessage called with headers
+        // 4. Verify updateMessage was called with thinking steps (Market Scout flow)
         expect(mockUpdateMessage).toHaveBeenCalledWith(
             expect.any(String),
             expect.objectContaining({
-                content: expect.stringContaining('RETAIL OPPORTUNITIES')
+                thinking: expect.objectContaining({
+                    steps: expect.arrayContaining([
+                        expect.objectContaining({ toolName: 'Geocoder' })
+                    ])
+                })
             })
         );
     });
 
     it('should verify Executive Boardroom agents use rich headers', async () => {
-        const { result } = renderHook(() => usePuffChatLogic({ 
+        const { result } = renderHook(() => usePuffChatLogic({
             isAuthenticated: true,
-            persona: 'leo' 
+            persona: 'leo'
         }));
 
         await act(async () => {
@@ -256,10 +266,220 @@ describe('usePuffChatLogic', () => {
 
         // Check if runAgentChat was called
         expect(actions.runAgentChat).toHaveBeenCalled();
-        
+
         // The hook calls updateMessage for the final sync response
         expect(mockUpdateMessage).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
             content: expect.stringContaining('### Strategic Snapshot')
         }));
+    });
+
+    // ============================================
+    // NEW TESTS FOR DEMO PRESET HANDLERS
+    // ============================================
+
+    describe('Demo Preset Handlers', () => {
+        it('should intercept "Find dispensaries near me" for unauthenticated users', async () => {
+            const { result } = renderHook(() => usePuffChatLogic({
+                isAuthenticated: false
+            }));
+
+            await act(async () => {
+                result.current.submitMessage('Find dispensaries near me');
+            });
+
+            await act(async () => {
+                jest.advanceTimersByTime(1000);
+            });
+
+            // Should show the dispensary search prompt with demo results
+            expect(mockAddMessage).toHaveBeenCalledWith(expect.objectContaining({
+                content: expect.stringContaining('Enter your ZIP code')
+            }));
+        });
+
+        it('should intercept "How does BakedBot work" and explain platform', async () => {
+            const { result } = renderHook(() => usePuffChatLogic({
+                isAuthenticated: false
+            }));
+
+            await act(async () => {
+                result.current.submitMessage('How does BakedBot work?');
+            });
+
+            await act(async () => {
+                jest.advanceTimersByTime(1500);
+            });
+
+            // Should explain the platform
+            expect(mockUpdateMessage).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({
+                    content: expect.stringContaining('Agentic Commerce OS')
+                })
+            );
+        });
+
+        it('should show compliance demo option when Deebo is triggered', async () => {
+            const { result } = renderHook(() => usePuffChatLogic({
+                isAuthenticated: false
+            }));
+
+            await act(async () => {
+                result.current.submitMessage('Send Deebo');
+            });
+
+            await act(async () => {
+                jest.advanceTimersByTime(1000);
+            });
+
+            // Should offer both URL input and demo option
+            expect(mockAddMessage).toHaveBeenCalledWith(expect.objectContaining({
+                content: expect.stringContaining('run demo')
+            }));
+        });
+
+        it('should handle "run demo" for compliance scan', async () => {
+            // Setup: Simulate Deebo has asked for URL
+            (useAgentChatStore as unknown as jest.Mock).mockReturnValue({
+                currentMessages: [
+                    { id: '1', type: 'agent', content: 'Paste your dispensary or menu URL' }
+                ],
+                addMessage: mockAddMessage,
+                updateMessage: mockUpdateMessage,
+                createSession: mockCreateSession,
+                currentArtifacts: [],
+                activeArtifactId: null,
+                isArtifactPanelOpen: false,
+                addArtifact: jest.fn(),
+                setActiveArtifact: jest.fn(),
+                setArtifactPanelOpen: jest.fn(),
+                sessions: []
+            });
+
+            const { result } = renderHook(() => usePuffChatLogic({
+                isAuthenticated: false
+            }));
+
+            await act(async () => {
+                result.current.submitMessage('run demo');
+            });
+
+            await act(async () => {
+                jest.advanceTimersByTime(2500);
+            });
+
+            // Should show demo compliance report
+            expect(mockUpdateMessage).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({
+                    content: expect.stringContaining('Demo Compliance Audit')
+                })
+            );
+        });
+
+        it('should differentiate Brand vs Dispensary mode in Market Scout', async () => {
+            const { result } = renderHook(() => usePuffChatLogic({
+                isAuthenticated: false
+            }));
+
+            // Test Brand Mode prompt
+            await act(async () => {
+                result.current.submitMessage('Hire a Market Scout (Find retail partners)');
+            });
+
+            await act(async () => {
+                jest.advanceTimersByTime(1000);
+            });
+
+            // Should show brand-specific prompt
+            expect(mockAddMessage).toHaveBeenCalledWith(expect.objectContaining({
+                content: expect.stringContaining('Find Retail Partners')
+            }));
+        });
+
+        it('should show competitor intelligence prompt for Dispensary mode', async () => {
+            const { result } = renderHook(() => usePuffChatLogic({
+                isAuthenticated: false
+            }));
+
+            // Test Dispensary Mode (Spy on Competitors)
+            await act(async () => {
+                result.current.submitMessage('Hire a Market Scout (Spy on Competitors)');
+            });
+
+            await act(async () => {
+                jest.advanceTimersByTime(1000);
+            });
+
+            // Should show competitor-specific prompt
+            expect(mockAddMessage).toHaveBeenCalledWith(expect.objectContaining({
+                content: expect.stringContaining('Competitor Intelligence')
+            }));
+        });
+
+        it('should handle city input with comma (e.g., "Denver, CO")', async () => {
+            // Setup: Simulate Market Scout has asked for location
+            (useAgentChatStore as unknown as jest.Mock).mockReturnValue({
+                currentMessages: [
+                    { id: '1', type: 'agent', content: 'Enter a City or ZIP code to start the competitive scan' }
+                ],
+                addMessage: mockAddMessage,
+                updateMessage: mockUpdateMessage,
+                createSession: mockCreateSession,
+                currentArtifacts: [],
+                activeArtifactId: null,
+                isArtifactPanelOpen: false,
+                addArtifact: jest.fn(),
+                setActiveArtifact: jest.fn(),
+                setArtifactPanelOpen: jest.fn(),
+                sessions: []
+            });
+
+            const { result } = renderHook(() => usePuffChatLogic({
+                isAuthenticated: false
+            }));
+
+            await act(async () => {
+                result.current.submitMessage('Denver, CO');
+            });
+
+            await act(async () => {
+                jest.advanceTimersByTime(5000);
+            });
+
+            // Should execute market scout - check that thinking steps were shown
+            expect(mockUpdateMessage).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({
+                    thinking: expect.objectContaining({
+                        steps: expect.arrayContaining([
+                            expect.objectContaining({ toolName: 'Geocoder' })
+                        ])
+                    })
+                })
+            );
+        });
+
+        it('should include lead capture CTA in responses', async () => {
+            const { result } = renderHook(() => usePuffChatLogic({
+                isAuthenticated: false
+            }));
+
+            await act(async () => {
+                result.current.submitMessage('How does BakedBot work?');
+            });
+
+            await act(async () => {
+                jest.advanceTimersByTime(1500);
+            });
+
+            // Should include email capture CTA (Reply with your email)
+            expect(mockUpdateMessage).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.objectContaining({
+                    content: expect.stringContaining('Reply with your email')
+                })
+            );
+        });
     });
 });

@@ -66,19 +66,19 @@ const DEMO_RESPONSES: Record<string, {
     ezal: {
         items: [
             {
-                title: "Market Scout Report: Ready",
-                description: "I've analyzed 50 local competitors. 3 are undercutting you on Edibles. I have the full pricing breakdown ready.",
-                meta: "Status: Analysis Complete"
+                title: "🎯 Market Scout Ready",
+                description: "Give me a **City or ZIP code** and I'll scan the local market for competitors, pricing intelligence, and retail opportunities.",
+                meta: "Action: Enter location to start"
             },
             {
-                title: "Competitor Alert",
-                description: "Green Leaf Dispensary just dropped prices on Stiiizy pods by 15%. This is 5% below your current floor price.",
-                meta: "Impact: High Risk"
+                title: "What I Can Find",
+                description: "• Live competitor pricing & menu sizes\n• Promotional strategies being used\n• Gaps in the market for your products\n• Potential retail partners (Brand Mode)",
+                meta: "Powered by: BakedBot Discovery"
             },
             {
-                title: "Want this Report?",
-                description: "Reply with your email address (e.g. 'send to name@example.com') and I'll send you the full PDF report instantly.",
-                meta: "Action: Awaiting Email"
+                title: "Try It Now",
+                description: "Type a location like **'Denver, CO'** or **'90210'** to see live market intelligence.",
+                meta: "Demo: No signup required"
             }
         ],
         totalCount: 3
