@@ -142,7 +142,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       console.error('[Sitemap] Failed to fetch retailers:', e);
     }
 
-    // 7. Location Discovery Pages (National Rollout Layer)
+      // 7. Location Discovery Pages (National Rollout Layer)
     let locationRoutes: MetadataRoute.Sitemap = [];
     try {
       // States
@@ -166,38 +166,67 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       if (!citiesSnapshot.empty) {
         locationRoutes = locationRoutes.concat(
           citiesSnapshot.docs.map((doc) => {
-            const data = doc.data();
-            return {
-              url: `${BASE_URL}/cities/${data.slug || doc.id}`,
-              lastModified: new Date(),
-              changeFrequency: 'weekly' as const,
-              priority: 0.7,
-            };
+             const data = doc.data();
+             return {
+               url: `${BASE_URL}/cities/${data.slug || doc.id}`,
+               lastModified: new Date(),
+               changeFrequency: 'weekly' as const,
+               priority: 0.7,
+             };
           })
         );
       }
 
-      // ZIP pages (seeded pages for National Discovery)
+      // ZIP pages (Using correct path: foot_traffic/config/zip_pages)
       const zipSnapshot = await firestore
+        .collection('foot_traffic')
+        .doc('config')
         .collection('zip_pages')
-        .limit(1000)
+        .where('published', '==', true)
+        .limit(2000)
         .get();
+
       if (!zipSnapshot.empty) {
         locationRoutes = locationRoutes.concat(
           zipSnapshot.docs.map((doc) => {
             const data = doc.data();
+            // Use doc.id (e.g. 'zip_60601') or data.slug if available
+            // Route convention: /zip/60601
+            const zipCode = doc.id.replace('zip_', '');
             return {
-              url: `${BASE_URL}/zip/${data.slug || doc.id}`,
-              lastModified: new Date(),
+              url: `${BASE_URL}/zip/${zipCode}`,
+              lastModified: new Date(), // Could use data.publishedAt
               changeFrequency: 'daily' as const,
               priority: 0.7,
             };
           })
         );
       }
+
+      // Mass-Generated Dispensary SEO Pages
+      const seoDispSnapshot = await firestore
+        .collection('seo_pages_dispensary')
+        .where('published', '==', true)
+        .limit(2000)
+        .get();
+
+      if (!seoDispSnapshot.empty) {
+        locationRoutes = locationRoutes.concat(
+          seoDispSnapshot.docs.map((doc) => {
+            // URL Structure: /dispensaries/[id] (id = slug_zip)
+            return {
+              url: `${BASE_URL}/dispensaries/${doc.id}`,
+              lastModified: new Date(),
+              changeFrequency: 'weekly' as const,
+              priority: 0.8,
+            };
+          })
+        );
+      }
+
     } catch (e) {
       // Collections may not exist yet - that's okay
-      console.log('[Sitemap] Location collections not available:', e);
+      console.log('[Sitemap] Location collections retrieval failed:', e);
     }
 
     // 8. Cannabis Desert Indices

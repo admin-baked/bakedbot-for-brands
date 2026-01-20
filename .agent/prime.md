@@ -119,6 +119,7 @@ For detailed documentation, see `.agent/refs/`:
 | **Context OS** | `refs/context-os.md` | Decision lineage |
 | **Intuition OS** | `refs/intuition-os.md` | Proactive intelligence |
 | **Intention OS** | `refs/intention-os.md` | Intent parsing |
+| **Business Plan** | `dev/business_plan.md` | Strategic vision and operational model |
 
 ---
 

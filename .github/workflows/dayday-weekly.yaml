@@ -1,0 +1,17 @@
+name: Day Day Weekly Review
+
+on:
+  schedule:
+    # Run at 9:00 AM UTC every Monday
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  weekly-growth-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Day Day Weekly Review
+        run: |
+          curl -X GET ${{ secrets.SEARCH_CONSOLE_SITE_URL }}/api/cron/dayday-review \
+          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          --fail
