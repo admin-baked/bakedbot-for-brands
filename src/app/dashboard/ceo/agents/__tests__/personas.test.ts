@@ -4,10 +4,10 @@ import { PERSONAS } from '../personas';
 describe('Agent Personas Configuration', () => {
     it('should have all required personas', () => {
         const requiredPersonas = [
-            'puff', 
-            'smokey', 
-            'craig', 
-            'pops', 
+            'puff',
+            'smokey',
+            'craig',
+            'pops',
             'ezal',
             'money_mike',
             'mrs_parker',
@@ -31,7 +31,10 @@ describe('Agent Personas Configuration', () => {
                  expect(persona.systemPrompt.length).toBeGreaterThan(50); // Ensure prompt is substantial
             }
             expect(Array.isArray(persona.tools)).toBe(true);
-            expect(persona.tools.length).toBeGreaterThan(0);
+            // Personas may have tools OR skills (new modular system)
+            // At least one of them must be defined
+            const hasToolsOrSkills = persona.tools.length > 0 || (persona.skills && persona.skills.length > 0);
+            expect(hasToolsOrSkills).toBe(true);
         });
     });
 
@@ -39,12 +42,13 @@ describe('Agent Personas Configuration', () => {
         expect(PERSONAS.puff.tools).toContain('all');
     });
 
-    it('specialized personas should have specific tools', () => {
-        // Legacy
-        expect(PERSONAS.wholesale_analyst.tools).toContain('all'); 
-        
-        // New Squad
-        expect(PERSONAS.smokey.tools).toContain('cannmenus_discovery');
+    it('specialized personas should have specific skills or tools', () => {
+        // Legacy agents use tools array
+        expect(PERSONAS.wholesale_analyst.tools).toContain('all');
+
+        // New Squad uses skills system (or may have legacy tools too)
+        // Check for skills as primary, fallback to tools for backwards compatibility
+        expect(PERSONAS.smokey.skills).toContain('domain/cannmenus');
         expect(PERSONAS.craig.tools).toContain('gmail_action');
         expect(PERSONAS.pops.tools).toContain('sheets_action');
         expect(PERSONAS.ezal.tools).toContain('web_search');
