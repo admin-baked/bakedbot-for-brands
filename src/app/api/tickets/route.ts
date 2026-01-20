@@ -3,6 +3,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import { verifySession, verifySuperAdmin } from '@/server/utils/auth-check';
 import { createTicketSchema } from '@/app/api/schemas';
+import { runAgentChat } from '@/app/dashboard/ceo/agents/actions';
 
 export async function GET(request: NextRequest) {
     try {
@@ -60,6 +61,38 @@ export async function POST(request: NextRequest) {
         };
 
         const docRef = await firestore.collection('tickets').add(newTicket);
+
+        // === LINUS INTERRUPT: Auto-dispatch for high-priority system errors ===
+        if (data.priority === 'high' && data.category === 'system_error') {
+            try {
+                const linusPrompt = `CRITICAL INTERRUPT: A production error has been reported via support ticket.
+
+TICKET ID: ${docRef.id}
+ERROR: ${data.title}
+DESCRIPTION: ${data.description || 'No description provided'}
+PAGE URL: ${data.pageUrl || 'Unknown'}
+ERROR STACK:
+${data.errorStack || 'No stack trace available'}
+ERROR DIGEST: ${data.errorDigest || 'N/A'}
+
+DIRECTIVE:
+1. Analyze the error and stack trace.
+2. Search the codebase for the affected file/function.
+3. Determine root cause.
+4. If fix is safe and obvious, propose a patch.
+5. Update the ticket with your findings.`;
+
+                // Fire-and-forget dispatch to Linus (don't block ticket creation)
+                runAgentChat(linusPrompt, 'linus', { source: 'interrupt', priority: 'high' })
+                    .then(result => logger.info('[Tickets API] Linus dispatched', { ticketId: docRef.id, result: result.metadata }))
+                    .catch(err => logger.warn('[Tickets API] Linus dispatch failed (non-blocking)', { error: err }));
+
+                logger.info(`[Tickets API] Linus interrupt triggered for ticket ${docRef.id}`);
+            } catch (linusError) {
+                // Don't fail ticket creation if Linus dispatch fails
+                logger.warn('[Tickets API] Failed to dispatch to Linus', { error: linusError });
+            }
+        }
 
         return NextResponse.json({
             id: docRef.id,

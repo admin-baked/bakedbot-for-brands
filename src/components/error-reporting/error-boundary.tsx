@@ -17,10 +17,46 @@ export default function FelishaErrorBoundary({ error, reset }: ErrorBoundaryProp
     const { toast } = useToast();
     const [description, setDescription] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [autoReported, setAutoReported] = useState(false);
 
     useEffect(() => {
         console.error('Felisha Error Boundary Caught:', error);
-    }, [error]);
+
+        // Auto-report critical errors to Linus (fire-and-forget)
+        // This ensures Linus is notified even if user doesn't click "Report"
+        const autoReportError = async () => {
+            if (autoReported) return; // Prevent double-reporting
+
+            try {
+                const res = await fetch('/api/tickets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: `[Auto] ${error.message || 'System Error'}`,
+                        description: 'Automatically captured by Error Boundary - Linus notified',
+                        priority: 'high',
+                        category: 'system_error',
+                        pageUrl: typeof window !== 'undefined' ? window.location.href : 'unknown',
+                        reporterEmail: 'auto-boundary',
+                        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server',
+                        errorDigest: error.digest,
+                        errorStack: error.stack
+                    })
+                });
+                if (res.ok) {
+                    setAutoReported(true);
+                    console.log('[FelishaErrorBoundary] Auto-reported to Linus');
+                }
+            } catch (e) {
+                console.warn('[FelishaErrorBoundary] Auto-report failed (non-critical):', e);
+            }
+        };
+
+        // Auto-report in production, skip in dev to avoid spam
+        if (process.env.NODE_ENV === 'production') {
+            autoReportError();
+        }
+    }, [error, autoReported]);
 
     const handleCopyDetails = () => {
         const details = `Error: ${error.message}\nDigest: ${error.digest || 'N/A'}\nLocation: ${window.location.href}\nUser Agent: ${navigator.userAgent}`;
@@ -83,7 +119,7 @@ export default function FelishaErrorBoundary({ error, reset }: ErrorBoundaryProp
                     </div>
                     <CardTitle className="text-lg">Something went wrong</CardTitle>
                     <CardDescription>
-                        A critical error occurred. Felisha has logged this event.
+                        A critical error occurred. Linus (AI CTO) has been automatically notified and is investigating.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
