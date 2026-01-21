@@ -39,7 +39,8 @@ import {
     Wallet,
     FolderKanban,
     Compass,
-    Chrome
+    Chrome,
+    Rocket
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
@@ -365,6 +366,14 @@ export function SuperAdminSidebar() {
                                 <Link href="/dashboard/ceo?tab=browser">
                                     <Chrome />
                                     <span>BakedBot in Chrome</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive("pilot-setup")}>
+                                <Link href="/dashboard/ceo?tab=pilot-setup">
+                                    <Rocket />
+                                    <span>Pilot Setup</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
