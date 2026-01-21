@@ -11,6 +11,10 @@ import { DispensaryHeader } from '@/components/dispensary/dispensary-header';
 import { BrandMenuClient } from './brand-menu-client';
 import { getActiveBundles } from '@/app/actions/bundles';
 
+// Disable caching to ensure fresh data on each request
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function BrandPage({ params }: { params: Promise<{ brand: string }> }) {
     const { brand: brandParam } = await params;
 
