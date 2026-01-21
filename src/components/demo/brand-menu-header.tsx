@@ -19,6 +19,7 @@ import {
   ArrowRight,
   Heart,
   Store,
+  Truck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -32,6 +33,9 @@ interface BrandMenuHeaderProps {
   verified?: boolean;
   tagline?: string;
   cartItemCount?: number;
+  // E-commerce model support
+  purchaseModel?: 'online_only' | 'local_pickup' | 'hybrid';
+  shipsNationwide?: boolean;
   selectedDispensary?: {
     name: string;
     city: string;
@@ -42,11 +46,25 @@ interface BrandMenuHeaderProps {
   onLocationClick?: () => void;
 }
 
-const navLinks = [
-  { label: 'Products', href: '#products' },
-  { label: 'About', href: '#about' },
-  { label: 'Find Near Me', href: '#locations', highlight: true },
-];
+interface NavLink {
+  label: string;
+  href: string;
+  highlight?: boolean;
+}
+
+const getNavLinks = (purchaseModel?: string): NavLink[] => {
+  const baseLinks: NavLink[] = [
+    { label: 'Products', href: '#products' },
+    { label: 'About', href: '#about' },
+  ];
+
+  // Only show "Find Near Me" for local_pickup or hybrid models
+  if (purchaseModel !== 'online_only') {
+    baseLinks.push({ label: 'Find Near Me', href: '#locations', highlight: true });
+  }
+
+  return baseLinks;
+};
 
 export function BrandMenuHeader({
   brandName,
@@ -55,6 +73,8 @@ export function BrandMenuHeader({
   verified = true,
   tagline,
   cartItemCount = 0,
+  purchaseModel = 'local_pickup',
+  shipsNationwide = false,
   selectedDispensary,
   onSearch,
   onCartClick,
@@ -62,6 +82,9 @@ export function BrandMenuHeader({
 }: BrandMenuHeaderProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const isOnlineOnly = purchaseModel === 'online_only';
+  const navLinks = getNavLinks(purchaseModel);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,13 +105,24 @@ export function BrandMenuHeader({
               Lab Tested Products
             </span>
             <span className="hidden sm:flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5" />
-              Order Online, Pickup at Dispensary
+              {isOnlineOnly ? (
+                <>
+                  <Truck className="h-3.5 w-3.5" />
+                  {shipsNationwide ? 'Ships Nationwide' : 'Free Shipping'}
+                </>
+              ) : (
+                <>
+                  <MapPin className="h-3.5 w-3.5" />
+                  Order Online, Pickup at Dispensary
+                </>
+              )}
             </span>
-            <span className="hidden md:flex items-center gap-1.5">
-              <Store className="h-3.5 w-3.5" />
-              500+ Retail Partners
-            </span>
+            {!isOnlineOnly && (
+              <span className="hidden md:flex items-center gap-1.5">
+                <Store className="h-3.5 w-3.5" />
+                500+ Retail Partners
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -165,8 +199,23 @@ export function BrandMenuHeader({
 
                   <div className="border-t my-4" />
 
-                  {/* Selected Location */}
-                  {selectedDispensary ? (
+                  {/* Mobile CTA - Conditional based on purchase model */}
+                  {isOnlineOnly ? (
+                    // Online Only: Show checkout button if cart has items
+                    cartItemCount > 0 && (
+                      <Button
+                        className="w-full gap-2"
+                        style={{ backgroundColor: brandColors.primary }}
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          onCartClick?.();
+                        }}
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                        Checkout ({cartItemCount} items)
+                      </Button>
+                    )
+                  ) : selectedDispensary ? (
                     <div className="p-4 bg-muted rounded-lg">
                       <p className="text-xs text-muted-foreground mb-1">Pickup Location</p>
                       <p className="font-medium">{selectedDispensary.name}</p>

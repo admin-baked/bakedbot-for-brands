@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, ArrowRight, CheckCircle, Star, Leaf } from 'lucide-react';
+import { MapPin, ArrowRight, CheckCircle, Star, Leaf, Truck, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BrandHeroProps {
@@ -19,6 +19,9 @@ interface BrandHeroProps {
     retailers?: number;
     rating?: number;
   };
+  // E-commerce model support
+  purchaseModel?: 'online_only' | 'local_pickup' | 'hybrid';
+  shipsNationwide?: boolean;
   onFindNearMe?: () => void;
   onShopNow?: () => void;
 }
@@ -32,10 +35,16 @@ export function BrandHero({
   primaryColor = '#16a34a',
   verified = true,
   stats,
+  purchaseModel = 'local_pickup',
+  shipsNationwide = false,
   onFindNearMe,
   onShopNow,
 }: BrandHeroProps) {
-  const defaultDescription = `Discover ${brandName}'s collection of premium cannabis products. Order online and pick up at a dispensary near you.`;
+  const isOnlineOnly = purchaseModel === 'online_only';
+
+  const defaultDescription = isOnlineOnly
+    ? `Discover ${brandName}'s collection of premium products. Shop online and get them shipped directly to your door.`
+    : `Discover ${brandName}'s collection of premium cannabis products. Order online and pick up at a dispensary near you.`;
 
   return (
     <section className="relative overflow-hidden">
@@ -141,20 +150,28 @@ export function BrandHero({
 
             {/* CTA Buttons */}
             <div className="flex flex-wrap gap-4 pt-2">
+              {!isOnlineOnly && (
+                <Button
+                  size="lg"
+                  className="bg-white text-black hover:bg-white/90 font-bold gap-2 px-8 h-14 text-lg"
+                  onClick={onFindNearMe}
+                >
+                  <MapPin className="h-5 w-5" />
+                  Find Near Me
+                </Button>
+              )}
               <Button
                 size="lg"
-                className="bg-white text-black hover:bg-white/90 font-bold gap-2 px-8 h-14 text-lg"
-                onClick={onFindNearMe}
-              >
-                <MapPin className="h-5 w-5" />
-                Find Near Me
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-2 border-white text-white hover:bg-white/20 font-bold gap-2 px-8 h-14 text-lg"
+                variant={isOnlineOnly ? 'default' : 'outline'}
+                className={cn(
+                  'font-bold gap-2 px-8 h-14 text-lg',
+                  isOnlineOnly
+                    ? 'bg-white text-black hover:bg-white/90'
+                    : 'border-2 border-white text-white hover:bg-white/20'
+                )}
                 onClick={onShopNow}
               >
+                {isOnlineOnly && <ShoppingCart className="h-5 w-5" />}
                 Shop Products
                 <ArrowRight className="h-5 w-5" />
               </Button>
@@ -172,7 +189,9 @@ export function BrandHero({
               </span>
               <span className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4" />
-                Order Online, Pickup In Store
+                {isOnlineOnly
+                  ? (shipsNationwide ? 'Ships Nationwide' : 'Shop Online, Shipped Direct')
+                  : 'Order Online, Pickup In Store'}
               </span>
             </div>
           </div>
@@ -190,14 +209,23 @@ export function BrandHero({
               <div className="relative bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-center border border-white/20">
                 <div className="space-y-4">
                   <div className="text-5xl font-bold">
-                    Order Online
+                    {isOnlineOnly ? 'Shop Online' : 'Order Online'}
                   </div>
                   <div className="text-2xl text-white/80">
-                    Pick Up at a Dispensary
+                    {isOnlineOnly ? 'Shipped Direct to You' : 'Pick Up at a Dispensary'}
                   </div>
                   <div className="flex items-center justify-center gap-2 text-lg text-white/70">
-                    <MapPin className="h-5 w-5" />
-                    Near You
+                    {isOnlineOnly ? (
+                      <>
+                        <Truck className="h-5 w-5" />
+                        {shipsNationwide ? 'Nationwide Delivery' : 'Fast Shipping'}
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="h-5 w-5" />
+                        Near You
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

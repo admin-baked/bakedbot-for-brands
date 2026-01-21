@@ -24,6 +24,8 @@ interface DemoFooterProps {
   brandName?: string;
   brandLogo?: string;
   primaryColor?: string;
+  // E-commerce model support
+  purchaseModel?: 'online_only' | 'local_pickup' | 'hybrid';
   location?: {
     address?: string;
     city?: string;
@@ -33,9 +35,13 @@ interface DemoFooterProps {
     email?: string;
     hours?: string;
   };
+  // Custom links (optional overrides)
+  customShopLinks?: Array<{ label: string; href: string }>;
+  customCompanyLinks?: Array<{ label: string; href: string }>;
 }
 
-const shopLinks = [
+// Default shop links for dispensary/local pickup
+const dispensaryShopLinks = [
   { label: 'All Products', href: '#products' },
   { label: 'Flower', href: '#flower' },
   { label: 'Pre-Rolls', href: '#prerolls' },
@@ -46,13 +52,30 @@ const shopLinks = [
   { label: 'Topicals', href: '#topicals' },
 ];
 
-const companyLinks = [
+// Shop links for online_only (hemp e-commerce)
+const onlineShopLinks = [
+  { label: 'All Products', href: '#products' },
+  { label: 'Edibles', href: '#edibles' },
+  { label: 'Best Sellers', href: '#bestsellers' },
+  { label: 'Merchandise', href: '#merchandise' },
+];
+
+// Company links for dispensary/local pickup
+const dispensaryCompanyLinks = [
   { label: 'About Us', href: '#about' },
   { label: 'Careers', href: '#careers' },
   { label: 'Locations', href: '#locations' },
   { label: 'Contact', href: '#contact' },
   { label: 'Blog', href: '#blog' },
   { label: 'Press', href: '#press' },
+];
+
+// Company links for online_only
+const onlineCompanyLinks = [
+  { label: 'About Us', href: '#about' },
+  { label: 'Contact', href: '#contact' },
+  { label: 'Shipping Info', href: '#shipping' },
+  { label: 'FAQ', href: '#faq' },
 ];
 
 const supportLinks = [
@@ -74,6 +97,7 @@ export function DemoFooter({
   brandName = 'BakedBot Demo',
   brandLogo,
   primaryColor = '#16a34a',
+  purchaseModel = 'local_pickup',
   location = {
     address: '420 Cannabis Ave',
     city: 'San Francisco',
@@ -83,8 +107,15 @@ export function DemoFooter({
     email: 'hello@bakedbot.ai',
     hours: 'Mon-Sun: 9AM - 10PM',
   },
+  customShopLinks,
+  customCompanyLinks,
 }: DemoFooterProps) {
   const secondaryColor = '#064e3b';
+  const isOnlineOnly = purchaseModel === 'online_only';
+
+  // Select appropriate links based on purchase model
+  const shopLinks = customShopLinks || (isOnlineOnly ? onlineShopLinks : dispensaryShopLinks);
+  const companyLinks = customCompanyLinks || (isOnlineOnly ? onlineCompanyLinks : dispensaryCompanyLinks);
 
   return (
     <footer className="bg-[#1a1a2e] text-white">
@@ -106,8 +137,10 @@ export function DemoFooter({
                 <Truck className="h-6 w-6" style={{ color: primaryColor }} />
               </div>
               <div>
-                <h4 className="font-semibold">Fast Delivery</h4>
-                <p className="text-sm text-white/60">Same-day delivery available</p>
+                <h4 className="font-semibold">{isOnlineOnly ? 'Free Shipping' : 'Fast Delivery'}</h4>
+                <p className="text-sm text-white/60">
+                  {isOnlineOnly ? 'Free shipping on all orders' : 'Same-day delivery available'}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
