@@ -1,4 +1,3 @@
-
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useAcceptJs } from '@/hooks/useAcceptJs';
 
@@ -16,7 +15,9 @@ describe('useAcceptJs', () => {
     it('sets isLoaded to true immediately if window.Accept exists', () => {
         (window as any).Accept = { dispatchData: mockDispatchData };
 
-        const { result } = renderHook(() => useAcceptJs({ clientKey: 'key', apiLoginId: 'login' }));
+        const { result } = renderHook(() =>
+            useAcceptJs({ clientKey: 'key', apiLoginId: 'login' })
+        );
 
         expect(result.current.isLoaded).toBe(true);
     });
@@ -38,11 +39,13 @@ describe('useAcceptJs', () => {
             }
         };
 
-        const { result } = renderHook(() => useAcceptJs({ clientKey: 'key', apiLoginId: 'login' }));
+        const { result } = renderHook(() =>
+            useAcceptJs({ clientKey: 'key', apiLoginId: 'login' })
+        );
 
         await waitFor(() => expect(result.current.isLoaded).toBe(true));
 
-        let token;
+        let token: any;
         await act(async () => {
             token = await result.current.tokenizeCard({
                 cardNumber: '1234',
@@ -55,19 +58,21 @@ describe('useAcceptJs', () => {
         expect(token).toEqual({ dataDescriptor: 'desc', dataValue: 'val' });
     });
 
-    it('handles tokenization error', async () => {
+    it('handles tokenization error (single message)', async () => {
         (window as any).Accept = {
             dispatchData: (data: any, cb: any) => {
                 cb({
                     messages: {
                         resultCode: 'Error',
-                        message: [{ text: 'Invalid Card' }]
+                        message: [{ code: 'E00001', text: 'Invalid Card' }]
                     }
                 });
             }
         };
 
-        const { result } = renderHook(() => useAcceptJs({ clientKey: 'key', apiLoginId: 'login' }));
+        const { result } = renderHook(() =>
+            useAcceptJs({ clientKey: 'key', apiLoginId: 'login' })
+        );
 
         await waitFor(() => expect(result.current.isLoaded).toBe(true));
 
@@ -85,5 +90,42 @@ describe('useAcceptJs', () => {
         });
 
         expect(result.current.error).toBe('Invalid Card');
+    });
+
+    it('handles tokenization error (multiple messages joined)', async () => {
+        (window as any).Accept = {
+            dispatchData: (data: any, cb: any) => {
+                cb({
+                    messages: {
+                        resultCode: 'Error',
+                        message: [
+                            { code: 'E00001', text: 'Invalid Card' },
+                            { code: 'E00002', text: 'Invalid Expiration Date' }
+                        ]
+                    }
+                });
+            }
+        };
+
+        const { result } = renderHook(() =>
+            useAcceptJs({ clientKey: 'key', apiLoginId: 'login' })
+        );
+
+        await waitFor(() => expect(result.current.isLoaded).toBe(true));
+
+        await act(async () => {
+            try {
+                await result.current.tokenizeCard({
+                    cardNumber: '1234',
+                    expirationMonth: '12',
+                    expirationYear: '25',
+                    cvv: '123'
+                });
+            } catch (e) {
+                // Expected
+            }
+        });
+
+        expect(result.current.error).toBe('Invalid Card | Invalid Expiration Date');
     });
 });
