@@ -49,7 +49,9 @@ const elements = {
   authSection: document.getElementById('auth-section'),
   mainSection: document.getElementById('main-section'),
   apiUrl: document.getElementById('api-url'),
+  connectionToken: document.getElementById('connection-token'),
   loginBtn: document.getElementById('login-btn'),
+  connectTokenBtn: document.getElementById('connect-token-btn'),
   logoutBtn: document.getElementById('logout-btn'),
   statusBar: document.getElementById('status-bar'),
   statusText: document.getElementById('status-text'),
@@ -265,6 +267,60 @@ async function handleLogin() {
 }
 
 /**
+ * Handle token connection
+ */
+async function handleTokenConnect() {
+  const token = elements.connectionToken.value.trim();
+  const apiUrl = elements.apiUrl.value.trim() || 'https://bakedbot.ai';
+
+  if (!token) {
+    alert('Please paste your connection token from the dashboard');
+    return;
+  }
+
+  // Save API URL
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.SETTINGS]: { apiUrl },
+  });
+
+  // Validate token with the server
+  try {
+    const response = await fetch(`${apiUrl}/api/browser/extension/connect`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token }),
+    });
+
+    const data = await response.json();
+
+    if (data.success && data.userId) {
+      // Send credentials to background script
+      const result = await sendMessage(MESSAGE_TYPES.AUTH_LOGIN, {
+        token: token,
+        userId: data.userId,
+      });
+
+      if (result?.success) {
+        state.isAuthenticated = true;
+        updateAuthUI();
+        await checkRecordingStatus();
+        await loadWorkflows();
+        elements.connectionToken.value = '';
+      } else {
+        alert(result?.error || 'Failed to authenticate');
+      }
+    } else {
+      alert(data.error || 'Invalid or expired token');
+    }
+  } catch (error) {
+    console.error('[BakedBot] Token validation error:', error);
+    alert('Failed to connect. Please check your API URL and try again.');
+  }
+}
+
+/**
  * Handle logout
  */
 async function handleLogout() {
@@ -443,7 +499,15 @@ function openSettings() {
 
 // Auth
 elements.loginBtn.addEventListener('click', handleLogin);
+elements.connectTokenBtn.addEventListener('click', handleTokenConnect);
 elements.logoutBtn.addEventListener('click', handleLogout);
+
+// Enter key on connection token input
+elements.connectionToken.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    handleTokenConnect();
+  }
+});
 
 // Recording
 elements.startRecordingBtn.addEventListener('click', startRecording);
