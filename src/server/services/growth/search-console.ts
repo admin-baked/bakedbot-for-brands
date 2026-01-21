@@ -29,9 +29,11 @@ export interface TopQueriesReport {
 
 export interface LowCompetitionOpportunity {
     query: string;
+    page: string;
     impressions: number;
     clicks: number;
     position: number;
+    ctr: number;
     opportunity: 'high' | 'medium' | 'low';
     reason: string;
 }

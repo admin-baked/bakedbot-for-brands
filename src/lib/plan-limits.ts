@@ -11,6 +11,24 @@ interface EzalLimit {
 }
 
 export const CANNMENUS_LIMITS: Record<PlanId, CannMenusLimit> = {
+    // Current plan IDs
+    scout: {
+        maxRetailers: 1,
+        maxProducts: 10
+    },
+    pro: {
+        maxRetailers: 1,
+        maxProducts: 10000
+    },
+    growth: {
+        maxRetailers: 5,
+        maxProducts: 10000
+    },
+    empire: {
+        maxRetailers: 10000,
+        maxProducts: 1000000
+    },
+    // Legacy plan IDs (mapped to equivalents)
     free: {
         maxRetailers: 1,
         maxProducts: 10
@@ -25,7 +43,7 @@ export const CANNMENUS_LIMITS: Record<PlanId, CannMenusLimit> = {
     },
     growth_5: {
         maxRetailers: 5,
-        maxProducts: 10000 // Effectively unlimited
+        maxProducts: 10000
     },
     scale_10: {
         maxRetailers: 10,
@@ -38,23 +56,24 @@ export const CANNMENUS_LIMITS: Record<PlanId, CannMenusLimit> = {
     enterprise: {
         maxRetailers: 1000,
         maxProducts: 100000
-    },
-    empire: {
-        maxRetailers: 10000,
-        maxProducts: 1000000
     }
 };
 
 // Ezal Lite: Free = weekly (10080 mins), Paid = daily (1440 mins)
 export const EZAL_LIMITS: Record<PlanId, EzalLimit> = {
+    // Current plan IDs
+    scout: { frequencyMinutes: 60 * 24 * 7, maxCompetitors: 3 }, // Weekly, 3 competitors
+    pro: { frequencyMinutes: 60 * 24, maxCompetitors: 10 }, // Daily
+    growth: { frequencyMinutes: 60 * 24, maxCompetitors: 20 }, // Daily
+    empire: { frequencyMinutes: 15, maxCompetitors: 1000 }, // 15 mins
+    // Legacy plan IDs
     free: { frequencyMinutes: 60 * 24 * 7, maxCompetitors: 3 }, // Weekly, 3 competitors
     claim_pro: { frequencyMinutes: 60 * 24, maxCompetitors: 10 }, // Daily
     founders_claim: { frequencyMinutes: 60 * 24, maxCompetitors: 10 },
     growth_5: { frequencyMinutes: 60 * 24, maxCompetitors: 20 },
     scale_10: { frequencyMinutes: 60 * 12, maxCompetitors: 50 }, // Twice daily
     pro_25: { frequencyMinutes: 60 * 6, maxCompetitors: 100 }, // Every 6 hours
-    enterprise: { frequencyMinutes: 60, maxCompetitors: 500 }, // Hourly
-    empire: { frequencyMinutes: 15, maxCompetitors: 1000 } // 15 mins
+    enterprise: { frequencyMinutes: 60, maxCompetitors: 500 } // Hourly
 };
 
 export function getPlanLimits(planId: string): CannMenusLimit {

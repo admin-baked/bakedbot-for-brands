@@ -799,6 +799,44 @@ export const defaultDayDayTools = {
         } catch (e: any) {
             return { title: 'Error', description: 'Could not generate tags' };
         }
+    },
+    getSearchConsoleStats: async () => {
+        try {
+            // Stub - would use searchConsoleService.getTopQueries() in production
+            return {
+                queries: [],
+                totalClicks: 0,
+                totalImpressions: 0,
+                avgPosition: 0,
+                dateRange: { start: '', end: '' }
+            };
+        } catch (e: any) {
+            return { error: e.message, queries: [] };
+        }
+    },
+    getGA4Traffic: async () => {
+        try {
+            // Stub - would use googleAnalyticsService in production
+            return {
+                sessions: 0,
+                pageviews: 0,
+                bounceRate: 0,
+                topPages: []
+            };
+        } catch (e: any) {
+            return { error: e.message, sessions: 0 };
+        }
+    },
+    findSEOOpportunities: async () => {
+        try {
+            // Stub - would use searchConsoleService.findLowCompetitionOpportunities() in production
+            return {
+                opportunities: [],
+                count: 0
+            };
+        } catch (e: any) {
+            return { error: e.message, opportunities: [] };
+        }
     }
 };
 
