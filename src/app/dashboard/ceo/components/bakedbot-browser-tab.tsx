@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,8 @@ import {
   Download,
   CheckCircle2,
   ArrowRight,
+  Link,
+  Copy,
 } from 'lucide-react';
 
 import { BrowserSessionPanel } from './browser-automation/browser-session-panel';
@@ -61,6 +64,8 @@ import type {
 } from '@/types/browser-automation';
 
 export default function BakedBotBrowserTab() {
+  const searchParams = useSearchParams();
+
   // State
   const [activeSession, setActiveSession] = useState<BrowserSession | null>(null);
   const [sessionState, setSessionState] = useState<SessionState | null>(null);
@@ -73,6 +78,44 @@ export default function BakedBotBrowserTab() {
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Extension connection state
+  const [extensionToken, setExtensionToken] = useState<string | null>(null);
+  const [showExtensionConnect, setShowExtensionConnect] = useState(false);
+  const [tokenCopied, setTokenCopied] = useState(false);
+
+  // Handle extension connection request
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'connect-extension') {
+      setShowExtensionConnect(true);
+      // Generate a token for the extension
+      generateExtensionToken();
+    }
+  }, [searchParams]);
+
+  const generateExtensionToken = async () => {
+    try {
+      const response = await fetch('/api/browser/extension/connect');
+      const data = await response.json();
+      if (data.success && data.token) {
+        setExtensionToken(data.token);
+      }
+    } catch (err) {
+      console.error('Failed to generate extension token:', err);
+    }
+  };
+
+  const copyTokenToClipboard = async () => {
+    if (!extensionToken) return;
+    try {
+      await navigator.clipboard.writeText(extensionToken);
+      setTokenCopied(true);
+      setTimeout(() => setTokenCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy token:', err);
+    }
+  };
 
   // Handle extension download
   const handleDownloadExtension = async () => {
@@ -275,6 +318,71 @@ export default function BakedBotBrowserTab() {
         <Card className="border-destructive bg-destructive/10">
           <CardContent className="py-3">
             <p className="text-sm text-destructive">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Extension Connection Card - shown when extension is trying to connect */}
+      {showExtensionConnect && (
+        <Card className="border-green-500 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 dark:border-green-700">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-green-500 to-emerald-600">
+                  <Link className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Connect Chrome Extension</CardTitle>
+                  <CardDescription>
+                    Copy the token below and paste it in your extension to authenticate
+                  </CardDescription>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowExtensionConnect(false)}
+              >
+                Dismiss
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {extensionToken ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 rounded-lg bg-muted p-3 font-mono text-sm break-all">
+                    {extensionToken}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyTokenToClipboard}
+                    className="shrink-0"
+                  >
+                    {tokenCopied ? (
+                      <>
+                        <CheckCircle2 className="mr-2 h-4 w-4 text-green-500" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy Token
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <div className="rounded-lg bg-amber-50 dark:bg-amber-950/20 p-3 text-sm text-amber-800 dark:text-amber-200">
+                  <strong>Next steps:</strong> Go back to the Chrome extension popup, enter this token in the connection field, and click Connect.
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Generating connection token...
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
