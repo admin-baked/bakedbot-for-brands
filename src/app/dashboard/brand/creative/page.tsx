@@ -7,7 +7,8 @@ import { TikTokPreview, TikTokPost } from '@/components/brand/creative/tiktok-pr
 import { LinkedInPreview, LinkedInPost } from '@/components/brand/creative/linkedin-preview';
 import { ContentQueue, ContentItem } from '@/components/brand/creative/content-queue';
 import { Button } from '@/components/ui/button';
-import { Sparkles, LayoutGrid, Video, Linkedin, RefreshCw, Plus, Loader2 } from 'lucide-react';
+import { Sparkles, LayoutGrid, Video, Linkedin, RefreshCw, Plus, Loader2, ImageIcon } from 'lucide-react';
+import { CarouselGenerator } from '@/components/brand/creative/carousel-generator';
 import { useCreativeContent } from '@/hooks/use-creative-content';
 import { useBrandId } from '@/hooks/use-brand-id';
 import type { CreativeContent, SocialPlatform } from '@/types/creative-content';
@@ -271,7 +272,7 @@ export default function CreativeCommandCenterPage() {
                         className="w-full"
                         onValueChange={(v) => setSelectedPlatform(v as SocialPlatform)}
                     >
-                        <TabsList className="grid w-full grid-cols-3 max-w-[500px] mb-6">
+                        <TabsList className="grid w-full grid-cols-4 max-w-[650px] mb-6">
                             <TabsTrigger value="instagram" className="gap-2">
                                 <LayoutGrid className="w-4 h-4" /> Instagram
                             </TabsTrigger>
@@ -280,6 +281,9 @@ export default function CreativeCommandCenterPage() {
                             </TabsTrigger>
                             <TabsTrigger value="linkedin" className="gap-2">
                                 <Linkedin className="w-4 h-4" /> LinkedIn
+                            </TabsTrigger>
+                            <TabsTrigger value="carousel" className="gap-2">
+                                <ImageIcon className="w-4 h-4" /> Hero Carousel
                             </TabsTrigger>
                         </TabsList>
 
@@ -319,6 +323,21 @@ export default function CreativeCommandCenterPage() {
                                     </p>
                                 </div>
                                 <LinkedInPreview post={featuredLinkedIn} />
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="carousel" className="mt-0">
+                            <div className="flex flex-col items-center">
+                                <div className="text-center mb-6 max-w-md mx-auto">
+                                    <h3 className="font-semibold text-lg">Homepage Carousel Generator</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        Create AI-generated hero slides for your brand menu homepage.
+                                    </p>
+                                </div>
+                                <CarouselGenerator
+                                    brandId={brandId || ''}
+                                    brandName="Your Brand"
+                                />
                             </div>
                         </TabsContent>
                     </Tabs>

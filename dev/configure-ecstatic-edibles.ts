@@ -91,11 +91,22 @@ async function main() {
         // E-commerce settings
         purchaseModel: 'online_only',
         shipsNationwide: true,
+        menuDesign: 'brand', // Use brand hero design
+
+        // Shipping address for footer
+        shippingAddress: {
+            street: '25690 Frampton Ave #422',
+            city: 'Harbor City',
+            state: 'CA',
+            zip: '90710',
+        },
+        contactEmail: 'ecstaticedibles@bakedbot.ai',
+        contactPhone: '',
 
         createdAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
     }, { merge: true });
-    console.log('✅ Brand created with red/white/black theme');
+    console.log('✅ Brand created with red/white/black theme and shipping address');
 
     // 2. Create Organization with pilot/enterprise features
     console.log('🏢 Creating organization');
@@ -188,7 +199,13 @@ async function main() {
     });
     console.log('✅ Custom claims set');
 
-    // 5. Verify the configuration
+    // 5. Revoke refresh tokens to force re-authentication
+    // This prevents 400 errors from old tokens after claims change
+    console.log('🔄 Revoking old refresh tokens');
+    await auth.revokeRefreshTokens(UID);
+    console.log('✅ Refresh tokens revoked - user must sign in fresh');
+
+    // 6. Verify the configuration
     console.log('\n🔍 Verifying configuration...');
     const updatedUser = await auth.getUser(UID);
     console.log('   New Claims:', JSON.stringify(updatedUser.customClaims));
@@ -210,7 +227,8 @@ async function main() {
     console.log('📦 Purchase Model: Online Only (Shipping)');
     console.log('💰 Plan: Pilot Partner (Free)');
     console.log('');
-    console.log('⚠️  IMPORTANT: User must LOG OUT and LOG BACK IN for claims to take effect!');
+    console.log('⚠️  IMPORTANT: Clear browser data and sign in fresh!');
+    console.log('   All existing tokens have been revoked.');
     console.log('='.repeat(60));
 }
 

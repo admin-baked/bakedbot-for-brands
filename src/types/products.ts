@@ -19,6 +19,7 @@ export type Brand = {
     theme?: {
         primaryColor?: string;
         secondaryColor?: string;
+        accentColor?: string;
         heroImageUrl?: string;
     };
     verificationStatus?: 'verified' | 'unverified' | 'featured';
@@ -27,6 +28,23 @@ export type Brand = {
     claimStatus?: 'claimed' | 'unclaimed';
     description?: string;
     website?: string;
+
+    // E-Commerce Configuration
+    purchaseModel?: 'online_only' | 'local_pickup' | 'hybrid';
+    shipsNationwide?: boolean;
+
+    // Menu Design Choice (dispensary = hero carousel, brand = brand hero)
+    menuDesign?: 'dispensary' | 'brand';
+
+    // Contact Info (for online_only brands)
+    contactEmail?: string;
+    contactPhone?: string;
+    shippingAddress?: {
+        street: string;
+        city: string;
+        state: string;
+        zip: string;
+    };
 };
 
 export type ReviewSummaryEmbedding = {

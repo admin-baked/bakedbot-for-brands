@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Search, Store } from 'lucide-react';
+import { ShoppingCart, Search, Store, Truck } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
 import type { Product, Retailer, Brand } from '@/types/domain';
 import type { BundleDeal } from '@/types/bundles';
@@ -34,6 +34,7 @@ import { DemoFooter } from '@/components/demo/demo-footer';
 import { ProductDetailModal } from '@/components/demo/product-detail-modal';
 import { BundleDealsSection } from '@/components/demo/bundle-deals-section';
 import { CartSlideOver } from '@/components/demo/cart-slide-over';
+import { ShippingCheckoutFlow } from '@/components/checkout/shipping-checkout-flow';
 import Chatbot from '@/components/chatbot';
 
 interface BrandMenuClientProps {
@@ -49,7 +50,7 @@ const CATEGORY_ORDER = ['Flower', 'Pre-roll', 'Vapes', 'Edibles', 'Concentrates'
 
 const DEFAULT_PRIMARY_COLOR = '#16a34a';
 
-type BrandView = 'shop' | 'locator' | 'checkout';
+type BrandView = 'shop' | 'locator' | 'checkout' | 'shipping-checkout';
 
 export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [] }: BrandMenuClientProps) {
   // View state
@@ -82,6 +83,11 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
   const primaryColor = brand.theme?.primaryColor || DEFAULT_PRIMARY_COLOR;
   const secondaryColor = brand.theme?.secondaryColor || '#064e3b';
   const brandColors = { primary: primaryColor, secondary: secondaryColor };
+
+  // Extract purchase model settings
+  const purchaseModel = brand.purchaseModel || 'local_pickup';
+  const isOnlineOnly = purchaseModel === 'online_only';
+  const shipsNationwide = brand.shipsNationwide || false;
 
   // Load favorites from localStorage on mount
   useEffect(() => {
@@ -217,7 +223,45 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     rating: 4.8, // Could be calculated from reviews in the future
   };
 
-  // Checkout view
+  // Shipping Checkout view (for online_only brands)
+  if (brandView === 'shipping-checkout' && isOnlineOnly && cartItems.length > 0) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <BrandMenuHeader
+          brandName={brand.name}
+          brandLogo={brand.logoUrl}
+          brandColors={brandColors}
+          verified={brand.verificationStatus === 'verified'}
+          tagline={brand.tagline || ''}
+          cartItemCount={cartItems.length}
+          purchaseModel={purchaseModel}
+          shipsNationwide={shipsNationwide}
+          onCartClick={() => setBrandView('shipping-checkout')}
+        />
+
+        <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
+          <ShippingCheckoutFlow brandId={brand.id} />
+        </main>
+
+        <DemoFooter
+          brandName={brand.name}
+          brandLogo={brand.logoUrl}
+          primaryColor={primaryColor}
+          purchaseModel={purchaseModel}
+          location={brand.shippingAddress ? {
+            address: brand.shippingAddress.street,
+            city: brand.shippingAddress.city,
+            state: brand.shippingAddress.state,
+            zip: brand.shippingAddress.zip,
+            email: brand.contactEmail,
+            phone: brand.contactPhone,
+          } : undefined}
+        />
+      </div>
+    );
+  }
+
+  // Local Pickup Checkout view
   if (brandView === 'checkout' && selectedDispensary && cartItems.length > 0) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -228,6 +272,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           verified={brand.verificationStatus === 'verified'}
           tagline={brand.tagline || ''}
           cartItemCount={cartItems.length}
+          purchaseModel={purchaseModel}
           selectedDispensary={selectedDispensary}
           onCartClick={() => setBrandView('checkout')}
           onLocationClick={() => setBrandView('locator')}
@@ -247,8 +292,8 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     );
   }
 
-  // Locator view
-  if (brandView === 'locator') {
+  // Locator view (only for local_pickup/hybrid models)
+  if (brandView === 'locator' && !isOnlineOnly) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <BrandMenuHeader
@@ -258,6 +303,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           verified={brand.verificationStatus === 'verified'}
           tagline={brand.tagline || ''}
           cartItemCount={cartItems.length}
+          purchaseModel={purchaseModel}
           selectedDispensary={selectedDispensary}
           onCartClick={() => cartItems.length > 0 && selectedDispensary && setBrandView('checkout')}
           onLocationClick={() => setBrandView('locator')}
@@ -316,18 +362,23 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         verified={brand.verificationStatus === 'verified'}
         tagline={brand.tagline || ''}
         cartItemCount={cartItems.length}
+        purchaseModel={purchaseModel}
+        shipsNationwide={shipsNationwide}
         selectedDispensary={selectedDispensary}
         onSearch={handleSearch}
         onCartClick={() => {
           if (cartItems.length > 0) {
-            if (selectedDispensary) {
+            if (isOnlineOnly) {
+              // For online_only, go directly to shipping checkout
+              setBrandView('shipping-checkout');
+            } else if (selectedDispensary) {
               setBrandView('checkout');
             } else {
               setCartOpen(true);
             }
           }
         }}
-        onLocationClick={() => setBrandView('locator')}
+        onLocationClick={() => !isOnlineOnly && setBrandView('locator')}
       />
 
       <main className="flex-1">
@@ -341,12 +392,14 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           verified={brand.verificationStatus === 'verified'}
           stats={brandStats}
           heroImage={brand.theme?.heroImageUrl}
-          onFindNearMe={() => setBrandView('locator')}
+          purchaseModel={purchaseModel}
+          shipsNationwide={shipsNationwide}
+          onFindNearMe={() => !isOnlineOnly && setBrandView('locator')}
           onShopNow={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
         />
 
-        {/* Selected Dispensary Banner */}
-        {selectedDispensary && (
+        {/* Selected Dispensary Banner - only for local pickup */}
+        {!isOnlineOnly && selectedDispensary && (
           <div className="bg-green-50 dark:bg-green-950 border-b">
             <div className="container mx-auto px-4 py-3">
               <div className="flex items-center justify-between">
@@ -490,26 +543,52 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           </div>
         </section>
 
-        {/* Find Pickup Location CTA */}
-        {!selectedDispensary && retailers.length > 0 && (
-          <section className="py-12 bg-muted/50">
-            <div className="container mx-auto px-4 text-center">
-              <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to Order?</h2>
-              <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-                Find a licensed dispensary near you that carries {brand.name} products.
-                Order online and pick up in store.
-              </p>
-              <Button
-                size="lg"
-                className="font-bold gap-2"
-                style={{ backgroundColor: primaryColor }}
-                onClick={() => setBrandView('locator')}
-              >
-                <Store className="h-5 w-5" />
-                Find Pickup Location
-              </Button>
-            </div>
-          </section>
+        {/* Ready to Order CTA - Conditional based on purchase model */}
+        {isOnlineOnly ? (
+          // Online Only: Show checkout CTA if cart has items
+          cartItems.length > 0 && (
+            <section className="py-12 bg-muted/50">
+              <div className="container mx-auto px-4 text-center">
+                <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to Checkout?</h2>
+                <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+                  {shipsNationwide
+                    ? `Your ${brand.name} products will be shipped directly to your door. Free shipping on all orders!`
+                    : `Complete your order and we'll ship your ${brand.name} products directly to you.`}
+                </p>
+                <Button
+                  size="lg"
+                  className="font-bold gap-2"
+                  style={{ backgroundColor: primaryColor }}
+                  onClick={() => setBrandView('shipping-checkout')}
+                >
+                  <Truck className="h-5 w-5" />
+                  Proceed to Checkout
+                </Button>
+              </div>
+            </section>
+          )
+        ) : (
+          // Local Pickup: Show find location CTA
+          !selectedDispensary && retailers.length > 0 && (
+            <section className="py-12 bg-muted/50">
+              <div className="container mx-auto px-4 text-center">
+                <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to Order?</h2>
+                <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+                  Find a licensed dispensary near you that carries {brand.name} products.
+                  Order online and pick up in store.
+                </p>
+                <Button
+                  size="lg"
+                  className="font-bold gap-2"
+                  style={{ backgroundColor: primaryColor }}
+                  onClick={() => setBrandView('locator')}
+                >
+                  <Store className="h-5 w-5" />
+                  Find Pickup Location
+                </Button>
+              </div>
+            </section>
+          )
         )}
       </main>
 
@@ -517,6 +596,15 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         brandName={brand.name}
         brandLogo={brand.logoUrl}
         primaryColor={primaryColor}
+        purchaseModel={purchaseModel}
+        location={brand.shippingAddress ? {
+          address: brand.shippingAddress.street,
+          city: brand.shippingAddress.city,
+          state: brand.shippingAddress.state,
+          zip: brand.shippingAddress.zip,
+          email: brand.contactEmail,
+          phone: brand.contactPhone,
+        } : undefined}
       />
 
       {/* Cart Slide-Over */}
@@ -529,7 +617,11 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         onClearCart={clearCart}
         onCheckout={() => {
           setCartOpen(false);
-          setBrandView('locator');
+          if (isOnlineOnly) {
+            setBrandView('shipping-checkout');
+          } else {
+            setBrandView('locator');
+          }
         }}
         primaryColor={primaryColor}
       />
