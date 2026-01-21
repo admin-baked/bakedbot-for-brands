@@ -38,7 +38,8 @@
     "scripting",
     "contextMenus",
     "notifications",
-    "alarms"
+    "alarms",
+    "webNavigation"
   ],
   "host_permissions": [
     "https://*.bakedbot.ai/*",
