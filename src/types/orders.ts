@@ -13,6 +13,22 @@ export type CartItem = Product & { quantity: number };
 
 export type OrderStatus = 'pending' | 'submitted' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled';
 
+// Shipping address for e-commerce orders
+export type ShippingAddress = {
+    street: string;
+    street2?: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+};
+
+// Fulfillment status for shipped orders
+export type FulfillmentStatus = 'pending' | 'processing' | 'shipped' | 'delivered';
+
+// Purchase model for brand/tenant
+export type PurchaseModel = 'local_pickup' | 'online_only' | 'hybrid';
+
 export type OrderDoc = {
     id: string;
     brandId: string;
@@ -20,6 +36,7 @@ export type OrderDoc = {
     customer: {
         name: string;
         email: string;
+        phone?: string;
     };
     items: Array<{
         productId: string;
@@ -33,6 +50,7 @@ export type OrderDoc = {
         tax: number;
         discount?: number;
         fees?: number;
+        shipping?: number;
         total: number;
     };
     coupon?: {
@@ -45,6 +63,15 @@ export type OrderDoc = {
     status: OrderStatus;
     mode: 'demo' | 'live';
     updatedAt?: Timestamp;
+
+    // Shipping fields for e-commerce orders
+    purchaseModel?: PurchaseModel;
+    shippingAddress?: ShippingAddress;
+    fulfillmentStatus?: FulfillmentStatus;
+    trackingNumber?: string;
+    shippingCarrier?: string;
+    shippedAt?: Timestamp;
+    deliveredAt?: Timestamp;
 };
 
 export type ServerOrderPayload = {

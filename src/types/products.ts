@@ -71,6 +71,14 @@ export type Product = {
     strainType?: string;
     featured?: boolean; // Show in featured section
     sortOrder?: number; // Custom sort order (lower = higher priority)
+
+    // Hemp E-Commerce Fields
+    weight?: number; // Product weight in grams
+    weightUnit?: 'g' | 'oz'; // Weight unit
+    servings?: number; // Number of servings (for edibles)
+    mgPerServing?: number; // mg CBD/THC per serving
+    shippable?: boolean; // Can this product be shipped?
+    shippingRestrictions?: string[]; // State codes where shipping is blocked
 };
 
 export type Retailer = {
