@@ -1,13 +1,23 @@
 'use client';
 
 /**
- * Brand Menu Client - Production Brand Page Experience
- * Mirrors the demo-shop Brand Menu with full features:
+ * Brand Menu Client - Production Brand/Dispensary Page Experience
+ * Supports two menu modes based on brand.menuDesign:
+ *
+ * DISPENSARY MODE (menuDesign: 'dispensary'):
+ * - Hero carousel with promotions
+ * - Featured brands carousel
+ * - Category grid
+ * - Bundle deals
+ * - Featured/deal products
+ * - All products with filters
+ *
+ * BRAND MODE (menuDesign: 'brand' or default):
  * - Brand hero with stats and CTAs
  * - Category grid
  * - Featured/all products with filters
- * - Dispensary locator flow
- * - Checkout flow (for local pickup model)
+ * - Dispensary locator flow (for local pickup)
+ * - Checkout flow
  * - Smokey AI Chatbot
  */
 
@@ -37,6 +47,11 @@ import { BundleDealsSection } from '@/components/demo/bundle-deals-section';
 import { CartSlideOver } from '@/components/demo/cart-slide-over';
 import { ShippingCheckoutFlow } from '@/components/checkout/shipping-checkout-flow';
 import Chatbot from '@/components/chatbot';
+
+// Dispensary Menu Components
+import { DemoHeader } from '@/components/demo/demo-header';
+import { HeroCarousel } from '@/components/demo/hero-carousel';
+import { FeaturedBrandsCarousel } from '@/components/demo/featured-brands-carousel';
 
 interface BrandMenuClientProps {
   brand: Brand;
@@ -104,6 +119,9 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
   const purchaseModel = brand.purchaseModel || 'local_pickup';
   const isOnlineOnly = purchaseModel === 'online_only';
   const shipsNationwide = brand.shipsNationwide || false;
+
+  // Determine menu design mode
+  const isDispensaryMenu = brand.menuDesign === 'dispensary' || brand.type === 'dispensary';
 
   // Load favorites from localStorage on mount
   useEffect(() => {
@@ -205,6 +223,21 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     return [...products]
       .sort((a, b) => (b.likes || 0) - (a.likes || 0))
       .slice(0, 8);
+  }, [products]);
+
+  // Deal products (for dispensary menu - products under $30)
+  const dealProducts = useMemo(() => {
+    return products.filter(p => p.price < 30).slice(0, 8);
+  }, [products]);
+
+  // Products grouped by category (for dispensary menu category sections)
+  const productsByCategory = useMemo(() => {
+    return products.reduce((acc, product) => {
+      const cat = product.category;
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(product);
+      return acc;
+    }, {} as Record<string, Product[]>);
   }, [products]);
 
   // Deal badge helper
@@ -397,6 +430,268 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     );
   }
 
+  // ============================================
+  // DISPENSARY MENU MODE
+  // ============================================
+  // Render dispensary-style menu with hero carousel, featured brands, deals
+  if (isDispensaryMenu) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        {/* Dispensary Header */}
+        <DemoHeader
+          brandName={brand.name}
+          brandLogo={brand.logoUrl}
+          brandColors={brandColors}
+          location={brand.location ? `${brand.location.city}, ${brand.location.state}` : `${brand.city || ''}, ${brand.state || ''}`}
+          onSearch={handleSearch}
+          onCategorySelect={handleCategorySelect}
+          onCartClick={() => setCartOpen(true)}
+        />
+
+        <main className="flex-1">
+          {/* Hero Carousel */}
+          <HeroCarousel primaryColor={primaryColor} />
+
+          {/* Featured Brands */}
+          <FeaturedBrandsCarousel
+            title="Featured Brands"
+            primaryColor={primaryColor}
+          />
+
+          {/* Category Grid - Dynamic from actual products */}
+          {categoryGridData.length > 0 && (
+            <CategoryGrid
+              title="Shop by Category"
+              categories={categoryGridData}
+              onCategoryClick={(categoryId) => {
+                const cat = categoryGridData.find(c => c.id === categoryId);
+                if (cat) handleCategorySelect(cat.name);
+              }}
+              primaryColor={primaryColor}
+            />
+          )}
+
+          {/* Bundle Deals Section (if any) */}
+          {bundlesForDisplay.length > 0 ? (
+            <BundleDealsSection
+              bundles={bundlesForDisplay}
+              title="Bundle & Save"
+              subtitle="Curated packs at special prices. More value, less hassle."
+              primaryColor={primaryColor}
+            />
+          ) : (
+            <BundleDealsSection
+              title="Bundle & Save"
+              subtitle="Curated packs at special prices. More value, less hassle."
+              primaryColor={primaryColor}
+            />
+          )}
+
+          {/* Featured Products Section */}
+          {featuredProducts.length > 0 && (
+            <ProductSection
+              title="Customer Favorites"
+              subtitle="Our most loved products based on reviews and sales"
+              products={featuredProducts}
+              onAddToCart={handleAddToCart}
+              getCartQuantity={getCartItemQuantity}
+              primaryColor={primaryColor}
+              layout="carousel"
+              dealBadge={getDealBadge}
+              onProductClick={setSelectedProduct}
+              onFavorite={toggleFavorite}
+              favorites={favorites}
+            />
+          )}
+
+          {/* Deal Products Section */}
+          {dealProducts.length > 0 && (
+            <div id="deals" className="bg-gradient-to-r from-red-500/10 via-orange-500/10 to-yellow-500/10 py-2">
+              <ProductSection
+                title="Daily Deals"
+                subtitle="Limited time offers - grab them while they last!"
+                products={dealProducts}
+                onAddToCart={handleAddToCart}
+                getCartQuantity={getCartItemQuantity}
+                primaryColor="#dc2626"
+                layout="carousel"
+                dealBadge={() => 'SALE'}
+                onProductClick={setSelectedProduct}
+                onFavorite={toggleFavorite}
+                favorites={favorites}
+              />
+            </div>
+          )}
+
+          {/* All Products Section with Filters */}
+          <section id="products" className="py-12">
+            <div className="container mx-auto px-4">
+              {/* Section Header */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-bold tracking-tight">All Products</h2>
+                  <p className="text-muted-foreground">
+                    {filteredProducts.length} products available
+                  </p>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap gap-3">
+                  <div className="relative flex-1 min-w-[200px] md:w-[300px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search products..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="popular">Most Popular</SelectItem>
+                      <SelectItem value="price-low">Price: Low to High</SelectItem>
+                      <SelectItem value="price-high">Price: High to Low</SelectItem>
+                      <SelectItem value="thc-high">THC: High to Low</SelectItem>
+                      <SelectItem value="name">Name (A-Z)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Products Grid */}
+              {filteredProducts.length === 0 ? (
+                <Card>
+                  <CardContent className="flex flex-col items-center justify-center py-16">
+                    <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
+                    <p className="text-xl font-medium mb-2">No products found</p>
+                    <p className="text-muted-foreground mb-4">
+                      Try adjusting your search or filters
+                    </p>
+                    <Button variant="outline" onClick={() => { setSearchQuery(''); setCategoryFilter('all'); }}>
+                      Clear Filters
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {filteredProducts.map((product) => (
+                    <OversizedProductCard
+                      key={product.id}
+                      product={product}
+                      onAddToCart={handleAddToCart}
+                      inCart={getCartItemQuantity(product.id)}
+                      primaryColor={primaryColor}
+                      size="large"
+                      dealBadge={getDealBadge(product)}
+                      onClick={() => setSelectedProduct(product)}
+                      onFavorite={toggleFavorite}
+                      isFavorite={favorites.has(product.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Category Sections */}
+          {categoryFilter === 'all' && categories.map((category) => {
+            const categoryProducts = productsByCategory[category] || [];
+            if (categoryProducts.length === 0) return null;
+
+            return (
+              <ProductSection
+                key={category}
+                title={category}
+                subtitle={`${categoryProducts.length} products`}
+                products={categoryProducts.slice(0, 8)}
+                onAddToCart={handleAddToCart}
+                getCartQuantity={getCartItemQuantity}
+                primaryColor={primaryColor}
+                layout="carousel"
+                onViewAll={() => handleCategorySelect(category)}
+                dealBadge={getDealBadge}
+                onProductClick={setSelectedProduct}
+                onFavorite={toggleFavorite}
+                favorites={favorites}
+              />
+            );
+          })}
+        </main>
+
+        {/* Footer with Dispensary Location */}
+        <DemoFooter
+          brandName={brand.name}
+          brandLogo={brand.logoUrl}
+          primaryColor={primaryColor}
+          location={brand.location ? {
+            address: brand.location.address,
+            city: brand.location.city,
+            state: brand.location.state,
+            zip: brand.location.zip,
+            phone: brand.location.phone || brand.phone,
+          } : {
+            address: brand.address || '',
+            city: brand.city || '',
+            state: brand.state || '',
+            zip: brand.zip || '',
+            phone: brand.phone,
+          }}
+        />
+
+        {/* Cart Slide-Over */}
+        <CartSlideOver
+          open={cartOpen}
+          onClose={() => setCartOpen(false)}
+          items={cartItemsWithQuantity}
+          onUpdateQuantity={handleUpdateCartQuantity}
+          onRemoveItem={removeFromCart}
+          onClearCart={clearCart}
+          onCheckout={() => {
+            setCartOpen(false);
+            // For dispensary, just close cart - they order in-store
+          }}
+          primaryColor={primaryColor}
+        />
+
+        {/* Product Detail Modal */}
+        <ProductDetailModal
+          product={selectedProduct}
+          open={!!selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onAddToCart={handleAddToCart}
+          onFavorite={toggleFavorite}
+          isFavorite={selectedProduct ? favorites.has(selectedProduct.id) : false}
+          primaryColor={primaryColor}
+        />
+
+        {/* Smokey AI Chatbot */}
+        <Chatbot
+          products={products}
+          brandId={brand.id}
+          initialOpen={false}
+          chatbotConfig={brand.chatbotConfig}
+        />
+      </div>
+    );
+  }
+
+  // ============================================
+  // BRAND MENU MODE (Default)
+  // ============================================
   // Default: Shopping view
   return (
     <div className="min-h-screen bg-background flex flex-col">

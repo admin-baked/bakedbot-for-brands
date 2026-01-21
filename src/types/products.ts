@@ -29,6 +29,9 @@ export type Brand = {
     description?: string;
     website?: string;
 
+    // Entity Type (brand or dispensary)
+    type?: 'brand' | 'dispensary';
+
     // E-Commerce Configuration
     purchaseModel?: 'online_only' | 'local_pickup' | 'hybrid';
     shipsNationwide?: boolean;
@@ -44,6 +47,29 @@ export type Brand = {
         city: string;
         state: string;
         zip: string;
+    };
+
+    // Dispensary-specific location fields (when type = 'dispensary')
+    location?: {
+        address: string;
+        city: string;
+        state: string;
+        zip: string;
+        phone?: string;
+        lat?: number;
+        lng?: number;
+    };
+    // Flat location fields (alternative structure)
+    address?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    phone?: string;
+    hours?: Record<string, string>;
+    licenseNumber?: string;
+    coordinates?: {
+        lat: number;
+        lng: number;
     };
 };
 
