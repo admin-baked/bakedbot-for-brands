@@ -1,0 +1,223 @@
+/**
+ * BakedBot AI Chrome Extension - Content Script Styles
+ *
+ * Styles for recording overlay, highlights, and notifications.
+ */
+
+/* Recording Overlay */
+#bakedbot-recording-overlay {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 2147483647;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  pointer-events: none;
+}
+
+.bakedbot-recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid #22c55e;
+  border-radius: 24px;
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.bakedbot-recording-dot {
+  width: 10px;
+  height: 10px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: bakedbot-pulse 1.5s ease-in-out infinite;
+}
+
+/* Element Highlight */
+#bakedbot-highlight,
+#bakedbot-picker-highlight {
+  position: fixed;
+  border: 2px solid #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 2147483646;
+  transition: all 0.15s ease;
+}
+
+#bakedbot-picker-highlight {
+  border-style: dashed;
+}
+
+/* Click Feedback */
+.bakedbot-click-ripple {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  background: rgba(34, 197, 94, 0.5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  animation: bakedbot-ripple 0.4s ease-out forwards;
+  pointer-events: none;
+  z-index: 2147483647;
+}
+
+/* Toast Notifications */
+.bakedbot-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: white;
+  border-radius: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 2147483647;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: 4px solid #3b82f6;
+  max-width: 400px;
+}
+
+.bakedbot-toast-visible {
+  transform: translateX(-50%) translateY(0);
+}
+
+.bakedbot-toast-success {
+  border-left-color: #22c55e;
+}
+
+.bakedbot-toast-error {
+  border-left-color: #ef4444;
+}
+
+.bakedbot-toast-warning {
+  border-left-color: #f59e0b;
+}
+
+.bakedbot-toast-info {
+  border-left-color: #3b82f6;
+}
+
+/* Animations */
+@keyframes bakedbot-ripple {
+  to {
+    transform: translate(-50%, -50%) scale(3);
+    opacity: 0;
+  }
+}
+
+@keyframes bakedbot-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes bakedbot-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* High Risk Warning Modal */
+#bakedbot-confirm-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483647;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.bakedbot-confirm-dialog {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  color: white;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: bakedbot-fade-in 0.2s ease;
+}
+
+.bakedbot-confirm-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bakedbot-confirm-title svg {
+  color: #f59e0b;
+}
+
+.bakedbot-confirm-message {
+  font-size: 14px;
+  color: #94a3b8;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.bakedbot-confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.bakedbot-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+}
+
+.bakedbot-btn-cancel {
+  background: #374151;
+  color: white;
+}
+
+.bakedbot-btn-cancel:hover {
+  background: #4b5563;
+}
+
+.bakedbot-btn-confirm {
+  background: #22c55e;
+  color: white;
+}
+
+.bakedbot-btn-confirm:hover {
+  background: #16a34a;
+}
+
+.bakedbot-btn-danger {
+  background: #ef4444;
+  color: white;
+}
+
+.bakedbot-btn-danger:hover {
+  background: #dc2626;
+}

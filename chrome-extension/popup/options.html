@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BakedBot AI - Settings</title>
+  <link rel="stylesheet" href="popup.css">
+  <style>
+    body {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 24px;
+      min-height: auto;
+    }
+
+    .settings-page {
+      padding: 0;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .page-header img {
+      border-radius: 8px;
+    }
+
+    .page-header h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .settings-group {
+      margin-bottom: 24px;
+    }
+
+    .settings-group h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-secondary);
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--border-radius);
+      margin-bottom: 8px;
+    }
+
+    .setting-info {
+      flex: 1;
+    }
+
+    .setting-label {
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .setting-description {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: var(--bg-tertiary);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .toggle.active {
+      background: var(--accent-primary);
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: var(--transition);
+    }
+
+    .toggle.active::after {
+      left: 22px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group input {
+      width: 100%;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .success-message {
+      padding: 12px 16px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid var(--accent-primary);
+      border-radius: var(--border-radius);
+      color: var(--accent-primary);
+      font-size: 13px;
+      margin-top: 16px;
+      display: none;
+    }
+
+    .success-message.visible {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="settings-page">
+    <header class="page-header">
+      <img src="../icons/icon48.png" alt="BakedBot AI" width="48" height="48">
+      <div>
+        <h1>BakedBot AI Settings</h1>
+        <p class="text-muted">Configure your browser automation preferences</p>
+      </div>
+    </header>
+
+    <div class="settings-group">
+      <h2>Connection</h2>
+      <div class="form-group">
+        <label for="api-url">API URL</label>
+        <input type="url" id="api-url" placeholder="https://bakedbot.ai">
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h2>Recording</h2>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Record Clicks</div>
+          <div class="setting-description">Capture click events during recording</div>
+        </div>
+        <div class="toggle active" data-setting="recordClicks"></div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Record Typing</div>
+          <div class="setting-description">Capture text input during recording</div>
+        </div>
+        <div class="toggle active" data-setting="recordTyping"></div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Record Navigation</div>
+          <div class="setting-description">Capture page navigation events</div>
+        </div>
+        <div class="toggle active" data-setting="recordNavigation"></div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Record Scrolls</div>
+          <div class="setting-description">Capture scroll positions (can be intensive)</div>
+        </div>
+        <div class="toggle" data-setting="recordScrolls"></div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h2>Interface</h2>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Show Recording Overlay</div>
+          <div class="setting-description">Display recording indicator on pages</div>
+        </div>
+        <div class="toggle active" data-setting="showOverlay"></div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Enable Notifications</div>
+          <div class="setting-description">Show desktop notifications for events</div>
+        </div>
+        <div class="toggle active" data-setting="notificationsEnabled"></div>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Keyboard Shortcuts</div>
+          <div class="setting-description">Enable keyboard shortcuts for quick actions</div>
+        </div>
+        <div class="toggle active" data-setting="keyboardShortcuts"></div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <h2>Security</h2>
+
+      <div class="setting-row">
+        <div class="setting-info">
+          <div class="setting-label">Confirm High-Risk Actions</div>
+          <div class="setting-description">Require confirmation for purchases, deletions, etc.</div>
+        </div>
+        <div class="toggle active" data-setting="confirmHighRisk"></div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button id="save-btn" class="btn btn-primary">Save Settings</button>
+      <button id="reset-btn" class="btn btn-secondary">Reset to Defaults</button>
+    </div>
+
+    <div id="success-message" class="success-message">
+      Settings saved successfully!
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'bakedbot_settings';
+
+    const DEFAULT_SETTINGS = {
+      apiUrl: 'https://bakedbot.ai',
+      recordClicks: true,
+      recordTyping: true,
+      recordNavigation: true,
+      recordScrolls: false,
+      showOverlay: true,
+      confirmHighRisk: true,
+      notificationsEnabled: true,
+      keyboardShortcuts: true,
+    };
+
+    let settings = { ...DEFAULT_SETTINGS };
+
+    // Load settings
+    chrome.storage.local.get([STORAGE_KEY], (result) => {
+      settings = { ...DEFAULT_SETTINGS, ...result[STORAGE_KEY] };
+      updateUI();
+    });
+
+    // Update UI from settings
+    function updateUI() {
+      document.getElementById('api-url').value = settings.apiUrl || '';
+
+      document.querySelectorAll('.toggle').forEach((toggle) => {
+        const key = toggle.dataset.setting;
+        if (settings[key]) {
+          toggle.classList.add('active');
+        } else {
+          toggle.classList.remove('active');
+        }
+      });
+    }
+
+    // Toggle click handlers
+    document.querySelectorAll('.toggle').forEach((toggle) => {
+      toggle.addEventListener('click', () => {
+        toggle.classList.toggle('active');
+        const key = toggle.dataset.setting;
+        settings[key] = toggle.classList.contains('active');
+      });
+    });
+
+    // Save settings
+    document.getElementById('save-btn').addEventListener('click', () => {
+      settings.apiUrl = document.getElementById('api-url').value.trim() || DEFAULT_SETTINGS.apiUrl;
+
+      chrome.storage.local.set({ [STORAGE_KEY]: settings }, () => {
+        const msg = document.getElementById('success-message');
+        msg.classList.add('visible');
+        setTimeout(() => msg.classList.remove('visible'), 3000);
+      });
+    });
+
+    // Reset to defaults
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      if (confirm('Reset all settings to defaults?')) {
+        settings = { ...DEFAULT_SETTINGS };
+        updateUI();
+
+        chrome.storage.local.set({ [STORAGE_KEY]: settings }, () => {
+          const msg = document.getElementById('success-message');
+          msg.textContent = 'Settings reset to defaults!';
+          msg.classList.add('visible');
+          setTimeout(() => {
+            msg.classList.remove('visible');
+            msg.textContent = 'Settings saved successfully!';
+          }, 3000);
+        });
+      }
+    });
+  </script>
+</body>
+</html>

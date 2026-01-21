@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generate BakedBot Icons</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #1a1a2e; color: white; }
+    .icon-container { display: flex; gap: 20px; flex-wrap: wrap; margin: 20px 0; }
+    canvas { border: 1px solid #333; }
+    .instructions { background: #16213e; padding: 15px; border-radius: 8px; margin-top: 20px; }
+    a { color: #22c55e; }
+  </style>
+</head>
+<body>
+  <h1>BakedBot AI Icon Generator</h1>
+  <p>Right-click each icon and "Save image as..." to download.</p>
+
+  <div class="icon-container">
+    <div>
+      <canvas id="icon16" width="16" height="16"></canvas>
+      <p>16x16</p>
+    </div>
+    <div>
+      <canvas id="icon32" width="32" height="32"></canvas>
+      <p>32x32</p>
+    </div>
+    <div>
+      <canvas id="icon48" width="48" height="48"></canvas>
+      <p>48x48</p>
+    </div>
+    <div>
+      <canvas id="icon128" width="128" height="128"></canvas>
+      <p>128x128</p>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <h3>Instructions:</h3>
+    <ol>
+      <li>Open this file in a browser</li>
+      <li>Right-click each icon canvas</li>
+      <li>Select "Save image as..."</li>
+      <li>Save as icon16.png, icon32.png, icon48.png, icon128.png</li>
+      <li>Place them in the chrome-extension/icons/ folder</li>
+    </ol>
+  </div>
+
+  <script>
+    function drawIcon(canvas) {
+      const ctx = canvas.getContext('2d');
+      const size = canvas.width;
+      const padding = size * 0.1;
+
+      // Background - dark gradient
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#1a1a2e');
+      gradient.addColorStop(1, '#16213e');
+
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.roundRect(0, 0, size, size, size * 0.15);
+      ctx.fill();
+
+      // Border
+      ctx.strokeStyle = '#22c55e';
+      ctx.lineWidth = Math.max(1, size * 0.03);
+      ctx.beginPath();
+      ctx.roundRect(padding/2, padding/2, size - padding, size - padding, size * 0.12);
+      ctx.stroke();
+
+      // "B" letter
+      ctx.fillStyle = '#22c55e';
+      ctx.font = `bold ${size * 0.6}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('B', size/2, size/2 + size * 0.03);
+
+      // Small dot (like recording indicator)
+      if (size >= 32) {
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(size * 0.75, size * 0.25, size * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Draw all sizes
+    drawIcon(document.getElementById('icon16'));
+    drawIcon(document.getElementById('icon32'));
+    drawIcon(document.getElementById('icon48'));
+    drawIcon(document.getElementById('icon128'));
+  </script>
+</body>
+</html>
