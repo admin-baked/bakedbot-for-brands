@@ -308,6 +308,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         <BrandMenuHeader
           brandName={brand.name}
           brandLogo={brand.logoUrl}
+          useLogoInHeader={brand.useLogoInHeader}
           brandColors={brandColors}
           verified={brand.verificationStatus === 'verified'}
           tagline={brand.tagline || ''}
@@ -346,6 +347,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         <BrandMenuHeader
           brandName={brand.name}
           brandLogo={brand.logoUrl}
+          useLogoInHeader={brand.useLogoInHeader}
           brandColors={brandColors}
           verified={brand.verificationStatus === 'verified'}
           tagline={brand.tagline || ''}
@@ -441,6 +443,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         <DemoHeader
           brandName={brand.name}
           brandLogo={brand.logoUrl}
+          useLogoInHeader={brand.useLogoInHeader}
           brandColors={brandColors}
           location={brand.location ? `${brand.location.city}, ${brand.location.state}` : `${brand.city || ''}, ${brand.state || ''}`}
           onSearch={handleSearch}
@@ -698,6 +701,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
       <BrandMenuHeader
         brandName={brand.name}
         brandLogo={brand.logoUrl}
+        useLogoInHeader={brand.useLogoInHeader}
         brandColors={brandColors}
         verified={brand.verificationStatus === 'verified'}
         tagline={brand.tagline || ''}
