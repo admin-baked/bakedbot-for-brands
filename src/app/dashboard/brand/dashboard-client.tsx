@@ -50,10 +50,17 @@ export default function BrandDashboardClient({ brandId }: { brandId: string }) {
     // Fetch data for widgets
     useEffect(() => {
         async function loadData() {
-            const data = await getBrandDashboardData(brandId);
-            if (data) setLiveData(data);
+            try {
+                const data = await getBrandDashboardData(brandId);
+                if (data) setLiveData(data);
+            } catch (error) {
+                console.error('Failed to load brand dashboard data:', error);
+                // Continue with empty data - components handle null gracefully
+            }
         }
-        loadData();
+        if (brandId) {
+            loadData();
+        }
     }, [brandId]);
 
     const brandName = liveData?.meta?.name || brandId || 'Brand';
