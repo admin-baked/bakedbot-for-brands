@@ -38,7 +38,8 @@ import {
     Globe,
     Wallet,
     FolderKanban,
-    Compass
+    Compass,
+    Chrome
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
@@ -356,6 +357,14 @@ export function SuperAdminSidebar() {
                                 <Link href="/dashboard/ceo?tab=sandbox">
                                     <Bot />
                                     <span>Agent Sandbox</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive("browser")}>
+                                <Link href="/dashboard/ceo?tab=browser">
+                                    <Chrome />
+                                    <span>BakedBot in Chrome</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
