@@ -22,11 +22,39 @@ jest.mock('lucide-react', () => ({
     Edit2: () => <div data-testid="icon-edit" />,
     CheckCircle2: () => <div data-testid="icon-check" />,
     XCircle: () => <div data-testid="icon-x" />,
+    RefreshCw: () => <div data-testid="icon-refresh" />,
+    Plus: () => <div data-testid="icon-plus" />,
+    Loader2: () => <div data-testid="icon-loader" />,
+    ImageOff: () => <div data-testid="icon-image-off" />,
 }));
 
 // Mock DeeboBadge since it uses Tooltip which might need provider
 jest.mock('@/components/brand/creative/deebo-badge', () => ({
     DeeboBadge: ({ status }: any) => <div data-testid={`deebo-${status}`}>Badge</div>
+}));
+
+// Mock the useCreativeContent hook
+jest.mock('@/hooks/use-creative-content', () => ({
+    useCreativeContent: () => ({
+        content: [],
+        loading: false,
+        error: null,
+        generate: jest.fn(),
+        approve: jest.fn(),
+        revise: jest.fn(),
+        remove: jest.fn(),
+        refresh: jest.fn(),
+        isGenerating: false,
+        isApproving: null,
+    })
+}));
+
+// Mock the useBrandId hook
+jest.mock('@/hooks/use-brand-id', () => ({
+    useBrandId: () => ({
+        brandId: null,
+        loading: false,
+    })
 }));
 
 describe('Creative Command Center', () => {
