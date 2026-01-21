@@ -3,6 +3,13 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { InstagramGrid, InstagramPost } from '../instagram-grid';
 import '@testing-library/jest-dom';
 
+// Mock lucide-react icons
+jest.mock('lucide-react', () => ({
+    Heart: ({ className }: { className?: string }) => <span data-testid="heart-icon" className={className}>♥</span>,
+    MessageCircle: ({ className }: { className?: string }) => <span data-testid="message-icon" className={className}>💬</span>,
+    ImageOff: ({ className }: { className?: string }) => <span data-testid="image-off-icon" className={className}>🖼</span>,
+}));
+
 // Mock DeeboBadge component
 jest.mock('../deebo-badge', () => ({
     DeeboBadge: jest.fn(({ status }) => (
@@ -27,7 +34,8 @@ describe('InstagramGrid', () => {
         it('renders all posts in the grid', () => {
             render(<InstagramGrid posts={mockPosts} onSelect={mockOnSelect} />);
 
-            const images = screen.getAllByRole('img');
+            // Images have alt="" so they have role="presentation", use querySelectorAll instead
+            const images = document.querySelectorAll('img[src^="https://example.com"]');
             expect(images).toHaveLength(3);
         });
 
@@ -41,8 +49,8 @@ describe('InstagramGrid', () => {
         it('calls onSelect when post is clicked', () => {
             render(<InstagramGrid posts={mockPosts} onSelect={mockOnSelect} />);
 
-            const images = screen.getAllByRole('img');
-            fireEvent.click(images[0].closest('.group')!);
+            const postContainers = document.querySelectorAll('.group');
+            fireEvent.click(postContainers[0]);
 
             expect(mockOnSelect).toHaveBeenCalledWith(mockPosts[0]);
         });
@@ -77,20 +85,21 @@ describe('InstagramGrid', () => {
         it('renders images with correct src', () => {
             render(<InstagramGrid posts={mockPosts} onSelect={mockOnSelect} />);
 
-            const images = screen.getAllByRole('img');
+            // Images have alt="" so they have role="presentation", use querySelector instead
+            const images = document.querySelectorAll('img[src^="https://example.com"]');
             expect(images[0]).toHaveAttribute('src', 'https://example.com/image1.jpg');
         });
 
         it('shows fallback icon when image fails to load', () => {
             render(<InstagramGrid posts={mockPosts} onSelect={mockOnSelect} />);
 
-            const images = screen.getAllByRole('img');
+            const images = document.querySelectorAll('img[src^="https://example.com"]');
 
             // Simulate image load error
             fireEvent.error(images[0]);
 
             // After error, the image should be replaced with fallback
-            // The ImageOff icon should now be visible (rendered as svg)
+            // The ImageOff icon should now be visible (rendered as span with data-testid)
             const fallbackContainer = document.querySelector('.bg-slate-200');
             expect(fallbackContainer).toBeInTheDocument();
         });
@@ -98,7 +107,7 @@ describe('InstagramGrid', () => {
         it('applies blur class to draft images', () => {
             render(<InstagramGrid posts={mockPosts} onSelect={mockOnSelect} />);
 
-            const images = screen.getAllByRole('img');
+            const images = document.querySelectorAll('img[src^="https://example.com"]');
             // The second image (index 1) is a draft
             expect(images[1]).toHaveClass('blur-[1px]');
         });
