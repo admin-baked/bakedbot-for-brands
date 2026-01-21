@@ -9,21 +9,64 @@ BakedBot uses Next.js App Router API routes located in `src/app/api/`.
 
 ```
 src/app/api/
-├── chat/
-│   └── route.ts          # Main chat endpoint (Genkit flows)
-├── demo/
-│   └── agent/
-│       └── route.ts      # Demo agent for homepage playground
-├── jobs/
-│   └── process/
-│       └── route.ts      # Background job processor
-├── webhooks/
-│   ├── stripe/           # Stripe payment webhooks
-│   └── pos/              # POS integration webhooks
-├── auth/
-│   └── [...nextauth]/    # NextAuth.js routes
-└── cron/
-    └── route.ts          # Scheduled task handlers
+├── auth/                 # Authentication
+│   ├── google/           # Google OAuth
+│   └── session/          # Session management
+├── chat/                 # Main chat endpoint (Genkit flows)
+├── demo/                 # Demo endpoints (unauthenticated)
+│   ├── agent/            # Homepage demo agent
+│   ├── lead/             # Lead capture
+│   └── import-menu/      # Menu import demo
+├── agents/               # Agent dispatch
+│   ├── dispatch/         # General agent dispatch
+│   └── craig/dispatch/   # Craig-specific dispatch
+├── jobs/                 # Background processing
+│   ├── process/          # Job processor
+│   └── agent/            # Agent job handler
+├── cron/                 # Scheduled tasks
+│   ├── tick/             # 10-minute pulse
+│   ├── evaluate-alerts/  # Alert evaluation
+│   ├── brand-pilot/      # Brand pilot automation
+│   ├── seo-pilot/        # SEO pilot automation
+│   ├── dayday-discovery/ # Day Day discovery
+│   ├── dayday-review/    # Day Day review
+│   └── cleanup-brands/   # Brand cleanup
+├── webhooks/             # External webhooks
+│   ├── agent/[id]/       # Agent webhooks
+│   ├── cannpay/          # CannPay payments
+│   └── error-report/     # Error reporting (Linus interrupt)
+├── cannmenus/            # CannMenus integration
+│   ├── retailers/        # Retailer search
+│   ├── products/         # Product lookup
+│   ├── brands/           # Brand search
+│   ├── sync/             # Menu sync
+│   ├── product-search/   # Product search
+│   └── semantic-search/  # Vector search
+├── billing/              # Payments
+│   └── authorize-net/    # Authorize.net
+├── checkout/             # E-commerce
+│   ├── cannpay/          # CannPay checkout
+│   ├── smokey-pay/       # Smokey Pay
+│   └── process-payment/  # Payment processing
+├── ezal/                 # Competitive intelligence
+│   ├── competitors/      # Competitor data
+│   ├── discovery/        # Market discovery
+│   └── insights/         # Intel insights
+├── smokey/               # Smokey (Budtender)
+│   ├── find/             # Product finder
+│   ├── alert/create/     # Alert creation
+│   └── cart/prepare/     # Cart preparation
+├── admin/                # Admin operations
+│   ├── seed/             # Data seeding
+│   ├── enrich/           # Data enrichment
+│   └── fix-essex/        # Data fixes
+├── dev/                  # Development routes
+│   ├── crawl/            # Test crawling
+│   ├── normalize/        # Data normalization
+│   ├── run-pilot/        # Pilot testing
+│   ├── verify-pilot/     # Pilot verification
+│   └── seed-*/           # Seeding utilities
+└── ... (more routes)
 ```
 
 ---
@@ -65,6 +108,50 @@ Handles async background tasks:
 - `product_sync` — Menu hydration waterfall
 - `competitor_scan` — Ezal intelligence
 - `email_campaign` — Craig automations
+
+### Cron Tick (Always-On Pulse)
+**Path**: `POST /api/cron/tick`
+
+Triggered every 10 minutes by GitHub Actions. Activates agent protocols:
+- Linus: Zero Bug Tolerance (Hourly)
+- Leo: Operations Heartbeat (Hourly)
+- Jack: Revenue Pulse (Daily)
+- Glenda: Brand Watch (Daily)
+
+### Agent Dispatch
+**Path**: `POST /api/agents/dispatch`
+
+General-purpose agent dispatch endpoint for programmatic agent invocation.
+
+### CannMenus Endpoints
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/cannmenus/retailers` | GET | Search dispensaries |
+| `/api/cannmenus/products` | GET | Get menu products |
+| `/api/cannmenus/brands` | GET | Search brands |
+| `/api/cannmenus/sync` | POST | Trigger menu sync |
+| `/api/cannmenus/semantic-search` | POST | Vector-based search |
+
+### Ezal (Competitive Intel)
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/ezal/competitors` | GET | Get competitor data |
+| `/api/ezal/discovery` | POST | Discover new competitors |
+| `/api/ezal/insights` | GET | Get market insights |
+
+### Smokey (Product Search)
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/smokey/find` | POST | Find products |
+| `/api/smokey/alert/create` | POST | Create price/stock alert |
+| `/api/smokey/cart/prepare` | POST | Prepare cart |
+
+### Webhooks
+| Endpoint | Purpose |
+|----------|---------|
+| `/api/webhooks/error-report` | Linus interrupt trigger |
+| `/api/webhooks/cannpay` | Payment webhooks |
+| `/api/webhooks/agent/[id]` | Agent-specific webhooks |
 
 ---
 
