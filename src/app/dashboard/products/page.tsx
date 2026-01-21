@@ -64,9 +64,13 @@ export default async function DashboardProductsPage() {
                 showNoBrandAlert = true;
                 products = [];
             }
-        } catch (error) {
-            if ((error as Error).message.includes('Unauthorized')) {
+        } catch (error: any) {
+            const errorMessage = error?.message || String(error);
+            if (errorMessage.includes('Unauthorized') || errorMessage.includes('session cookie')) {
                 redirect('/brand-login');
+            }
+            if (errorMessage.includes('Forbidden') && errorMessage.includes('pending')) {
+                redirect('/brand-login?error=pending');
             }
             logger.error("Failed to fetch products for dashboard:", error instanceof Error ? error : new Error(String(error)));
             // Return empty array on error - never fallback to demo data for real users
