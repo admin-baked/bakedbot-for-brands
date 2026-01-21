@@ -17,7 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Search, Store, Truck } from 'lucide-react';
+import { ShoppingCart, Search, Store, Truck, Cookie, Shirt, Leaf, Wind, Sparkles, Droplet, Heart, Package } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
 import type { Product, Retailer, Brand } from '@/types/domain';
 import type { BundleDeal } from '@/types/bundles';
@@ -46,7 +47,22 @@ interface BrandMenuClientProps {
 }
 
 // Category order for display
-const CATEGORY_ORDER = ['Flower', 'Pre-roll', 'Vapes', 'Edibles', 'Concentrates', 'Tinctures', 'Topicals', 'Accessories'];
+const CATEGORY_ORDER = ['Flower', 'Pre-roll', 'Vapes', 'Edibles', 'Concentrates', 'Tinctures', 'Topicals', 'Accessories', 'Merchandise', 'Apparel'];
+
+// Icon mapping for categories
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  'Flower': Leaf,
+  'Pre-roll': Wind,
+  'Pre-Rolls': Wind,
+  'Vapes': Wind,
+  'Edibles': Cookie,
+  'Concentrates': Sparkles,
+  'Tinctures': Droplet,
+  'Topicals': Heart,
+  'Accessories': Package,
+  'Merchandise': Shirt,
+  'Apparel': Shirt,
+};
 
 const DEFAULT_PRIMARY_COLOR = '#16a34a';
 
@@ -149,10 +165,39 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
       });
   }, [products, searchQuery, categoryFilter, sortBy]);
 
-  // Get unique categories
+  // Get unique categories (for filter dropdown)
   const categories = useMemo(() => {
     const cats = Array.from(new Set(products.map(p => p.category)));
     return CATEGORY_ORDER.filter(c => cats.includes(c));
+  }, [products]);
+
+  // Build category grid data with actual counts from products
+  const categoryGridData = useMemo(() => {
+    // Count products per category
+    const categoryCounts: Record<string, number> = {};
+    products.forEach(p => {
+      if (p.category) {
+        categoryCounts[p.category] = (categoryCounts[p.category] || 0) + 1;
+      }
+    });
+
+    // Build category objects with icons and counts
+    return Object.entries(categoryCounts)
+      .map(([name, count]) => ({
+        id: name.toLowerCase().replace(/\s+/g, '-'),
+        name,
+        icon: CATEGORY_ICONS[name] || Package,
+        productCount: count,
+      }))
+      .sort((a, b) => {
+        // Sort by CATEGORY_ORDER if present, otherwise alphabetically
+        const aIndex = CATEGORY_ORDER.indexOf(a.name);
+        const bIndex = CATEGORY_ORDER.indexOf(b.name);
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+        if (aIndex !== -1) return -1;
+        if (bIndex !== -1) return 1;
+        return a.name.localeCompare(b.name);
+      });
   }, [products]);
 
   // Featured products (highest likes or first 8)
@@ -452,12 +497,19 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           />
         )}
 
-        {/* Category Grid */}
-        <CategoryGrid
-          title="Shop by Category"
-          onCategoryClick={handleCategorySelect}
-          primaryColor={primaryColor}
-        />
+        {/* Category Grid - Dynamic from actual products */}
+        {categoryGridData.length > 0 && (
+          <CategoryGrid
+            title="Shop by Category"
+            categories={categoryGridData}
+            onCategoryClick={(categoryId) => {
+              // Find the category name from the ID
+              const cat = categoryGridData.find(c => c.id === categoryId);
+              if (cat) handleCategorySelect(cat.name);
+            }}
+            primaryColor={primaryColor}
+          />
+        )}
 
         {/* All Products Section with Filters */}
         <section id="products" className="py-12">
