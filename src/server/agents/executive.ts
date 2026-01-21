@@ -34,6 +34,14 @@ export interface ExecutiveTools extends Partial<AllSharedTools> {
   // Brain Upgrades (Hive Mind & Learning)
   sleepAndReflect?(): Promise<any>;
   agentMountSkill?(skillName: string): Promise<any>;
+
+  // BakedBot AI in Chrome - Browser Automation
+  'browserSession.create'?(options?: { taskDescription?: string; initialUrl?: string }): Promise<any>;
+  'browserSession.navigate'?(url: string): Promise<any>;
+  'browserSession.interact'?(action: 'click' | 'type' | 'scroll', selector: string, value?: string): Promise<any>;
+  'browserSession.screenshot'?(): Promise<any>;
+  'browserSession.runWorkflow'?(workflowId: string, variables?: Record<string, string>): Promise<any>;
+  'browserSession.scheduleTask'?(name: string, workflowId: string | undefined, scheduleType: string, time: string): Promise<any>;
 }
 
 /**
@@ -197,6 +205,54 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
                     action: z.enum(['read', 'screenshot', 'click', 'type', 'search']).optional().describe('Action to perform (default: read)'),
                     selector: z.string().optional().describe('CSS selector for click/type actions'),
                     inputValue: z.string().optional().describe('Text to type')
+                })
+            },
+            // === BakedBot AI in Chrome Tools ===
+            {
+                name: "browserSession.create",
+                description: "Create a new browser automation session for running multi-step tasks on Chrome.",
+                schema: z.object({
+                    taskDescription: z.string().optional().describe("Description of what this session will accomplish"),
+                    initialUrl: z.string().optional().describe("URL to navigate to when session starts")
+                })
+            },
+            {
+                name: "browserSession.navigate",
+                description: "Navigate to a URL in the active browser session.",
+                schema: z.object({
+                    url: z.string().url().describe("URL to navigate to")
+                })
+            },
+            {
+                name: "browserSession.interact",
+                description: "Click, type, or interact with elements in the browser session.",
+                schema: z.object({
+                    action: z.enum(['click', 'type', 'scroll']).describe("Action type"),
+                    selector: z.string().describe("CSS selector for the target element"),
+                    value: z.string().optional().describe("Value to type (for type action)")
+                })
+            },
+            {
+                name: "browserSession.screenshot",
+                description: "Take a screenshot of the current page in the browser session.",
+                schema: z.object({})
+            },
+            {
+                name: "browserSession.runWorkflow",
+                description: "Run a saved browser automation workflow by ID.",
+                schema: z.object({
+                    workflowId: z.string().describe("ID of the workflow to run"),
+                    variables: z.record(z.string()).optional().describe("Variable substitutions")
+                })
+            },
+            {
+                name: "browserSession.scheduleTask",
+                description: "Schedule a browser automation task to run on a recurring schedule.",
+                schema: z.object({
+                    name: z.string().describe("Name of the scheduled task"),
+                    workflowId: z.string().optional().describe("Workflow to run"),
+                    scheduleType: z.enum(['daily', 'weekly', 'monthly']).describe("Schedule frequency"),
+                    time: z.string().describe("Time to run (HH:mm format)")
                 })
             }
         ];

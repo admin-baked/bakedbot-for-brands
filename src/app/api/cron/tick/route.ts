@@ -1,9 +1,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { CronExpressionParser } from 'cron-parser';
 import { executePlaybook } from '@/server/tools/playbook-manager';
+import { taskScheduler } from '@/server/services/browser-automation';
 
 export const dynamic = 'force-dynamic'; // Prevent caching
 export const maxDuration = 60; // Allow 1 minute for processing
@@ -69,7 +70,42 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        return NextResponse.json({ success: true, processed: results.length, details: results });
+        // 6. Process Browser Automation Tasks (BakedBot AI in Chrome)
+        const browserTaskResults = [];
+        try {
+            const dueTasks = await taskScheduler.getDueTasks();
+
+            for (const task of dueTasks) {
+                try {
+                    console.log(`[Pulse] Executing browser task ${task.id}: ${task.name}`);
+                    const taskResult = await taskScheduler.executeTask(task.id);
+                    browserTaskResults.push({
+                        id: task.id,
+                        name: task.name,
+                        status: taskResult.success ? 'executed' : 'failed',
+                        result: taskResult,
+                    });
+                } catch (err: unknown) {
+                    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+                    console.error(`[Pulse] Browser task ${task.id} failed:`, err);
+                    browserTaskResults.push({
+                        id: task.id,
+                        name: task.name,
+                        status: 'error',
+                        error: errorMessage,
+                    });
+                }
+            }
+        } catch (err) {
+            console.warn('[Pulse] Failed to process browser tasks:', err);
+        }
+
+        return NextResponse.json({
+            success: true,
+            processed: results.length,
+            details: results,
+            browserTasks: browserTaskResults,
+        });
 
     } catch (error: any) {
         console.error('[Pulse] Error:', error);
