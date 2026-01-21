@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useFormState } from 'react-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,7 @@ import { SubmitButton } from '@/app/dashboard/ceo/components/submit-button';
 import Link from 'next/link';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ProductImageUpload } from './product-image-upload';
 
 const initialState: ProductFormState = { message: '', error: false };
 
@@ -27,6 +28,7 @@ export function ProductForm({ product, userRole, brands = [] }: ProductFormProps
   const [state, formAction] = useFormState(saveProduct, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
+  const [imageUrl, setImageUrl] = useState(product?.imageUrl || '');
 
   useEffect(() => {
     // Only show toast for general (non-field) errors.
@@ -88,14 +90,21 @@ export function ProductForm({ product, userRole, brands = [] }: ProductFormProps
                     {state.fieldErrors?.price && <p className="text-sm text-destructive">{state.fieldErrors.price[0]}</p>}
                 </div>
             </div>
-             <div className="space-y-2">
-                  <Label htmlFor="imageUrl">Image URL</Label>
-                  <Input id="imageUrl" name="imageUrl" type="url" placeholder="https://example.com/image.png" defaultValue={product?.imageUrl || ''} />
-                  {state.fieldErrors?.imageUrl && <p className="text-sm text-destructive">{state.fieldErrors.imageUrl[0]}</p>}
-            </div>
-             <div className="space-y-2">
-                  <Label htmlFor="imageHint">Image Hint (for AI)</Label>
-                  <Input id="imageHint" name="imageHint" placeholder="e.g., cannabis edible" defaultValue={product?.imageHint || ''} />
+            {/* Product Image - Upload or URL */}
+            <ProductImageUpload
+                currentImageUrl={product?.imageUrl || ''}
+                onImageChange={setImageUrl}
+                brandId={product?.brandId}
+                productId={product?.id}
+                fieldError={state.fieldErrors?.imageUrl?.[0]}
+            />
+
+            <div className="space-y-2">
+                <Label htmlFor="imageHint">Image Hint (for AI)</Label>
+                <Input id="imageHint" name="imageHint" placeholder="e.g., cannabis edible" defaultValue={product?.imageHint || ''} />
+                <p className="text-xs text-muted-foreground">
+                    Describe the image for AI-generated placeholders if no image is provided
+                </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-center space-x-2">
