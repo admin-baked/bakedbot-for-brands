@@ -120,6 +120,7 @@ const ChatWindow = ({
   setIsOnboarding,
   setMessages,
   setIsBotTyping,
+  botName = 'Smokey',
 }: {
   products: Product[];
   onAskSmokey: (product: Product) => void;
@@ -148,6 +149,7 @@ const ChatWindow = ({
   setIsOnboarding: (value: boolean) => void;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   setIsBotTyping: (value: boolean) => void;
+  botName?: string;
 }) => {
   const { chatExperience } = useStore();
   const pathname = usePathname();
@@ -176,7 +178,7 @@ const ChatWindow = ({
           {!hasStartedChat ? (
             <div className="p-4 h-full flex flex-col justify-center">
               <div className="text-center mb-6">
-                <h2 className="text-lg font-semibold">Hi, I'm Smokey.</h2>
+                <h2 className="text-lg font-semibold">Hi, I&apos;m {botName}.</h2>
                 <p className="text-muted-foreground text-sm mt-1">
                   {pathname === '/' ? "I'm the AI agent powering this platform. Ask me anything!" : "How can I help you?"}
                 </p>
@@ -772,6 +774,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
           setIsOnboarding={setIsOnboarding}
           setMessages={setMessages}
           setIsBotTyping={setIsBotTyping}
+          botName={chatbotConfig?.botName || 'Smokey'}
         />
       )}
     </>
