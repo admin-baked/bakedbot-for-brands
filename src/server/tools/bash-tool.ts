@@ -27,21 +27,38 @@ const execAsync = promisify(exec);
 const BLOCKED_COMMANDS = [
     // System destructive commands
     'sudo', 'su', 'rm -rf /', 'rm -rf /*', 'mkfs', 'dd',
-    'chmod 777', 'format', 'del /f', 'shutdown', 'reboot',
+    'chmod 777', 'chmod -R 777', 'chown -R', 'format', 'del /f',
+    'shutdown', 'reboot', 'init 0', 'init 6', 'halt', 'poweroff',
     ':(){:|:&};:', // fork bomb
+    '> /dev/sda', '> /dev/hda', // disk wipe
     // Network commands
-    'curl', 'wget', 'nc', 'netcat', 'ssh', 'scp', 'rsync',
+    'curl', 'wget', 'nc', 'netcat', 'ssh', 'scp', 'rsync', 'ftp', 'sftp',
+    'telnet', 'nmap', 'ping -f', // flood ping
     // Code execution via interpreters
-    'node -e', 'python -c', 'python3 -c', 'ruby -e', 'perl -e',
+    'node -e', 'node --eval', 'python -c', 'python3 -c',
+    'ruby -e', 'perl -e', 'php -r', 'lua -e',
+    'eval ', 'exec ', // shell builtins
     // Package management (dangerous operations)
-    'npm publish', 'npm unpublish', 'npm install -g',
-    'yarn publish', 'pnpm publish',
+    'npm publish', 'npm unpublish', 'npm install -g', 'npm link',
+    'yarn publish', 'yarn global', 'pnpm publish', 'pnpm add -g',
+    'pip install --user', 'gem install',
     // Git dangerous operations
     'git push --force', 'git push -f', 'git reset --hard origin',
+    'git clean -fd', 'git checkout --', // data loss commands
+    'git remote set-url', 'git config --global', // config tampering
     // AWS/Cloud
-    'aws ', 'gcloud ', 'az ', 'kubectl delete',
+    'aws ', 'gcloud ', 'az ', 'firebase ', 'heroku ',
+    'kubectl delete', 'kubectl exec', 'kubectl apply', 'kubectl edit',
+    'docker rm', 'docker rmi', 'docker system prune',
     // Database
-    'drop database', 'drop table', 'truncate table'
+    'drop database', 'drop table', 'truncate table', 'delete from',
+    'mongo --eval', 'psql -c', 'mysql -e', 'redis-cli flushall',
+    // Environment / secrets
+    'printenv', 'env', 'export ', 'set ', // could leak secrets
+    'cat /etc/passwd', 'cat /etc/shadow',
+    // Windows specific
+    'reg delete', 'reg add', 'net user', 'net localgroup',
+    'taskkill /f', 'Remove-Item -Recurse -Force',
 ];
 
 // Max output length to prevent memory issues
