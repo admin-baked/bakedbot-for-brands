@@ -115,6 +115,34 @@ export const PLATFORM_PLANS: PricingPlan[] = [
 // Combine all for backward compatibility and simple lists
 export const PRICING_PLANS = [...DIRECTORY_PLANS, ...PLATFORM_PLANS];
 
+// Legacy plan ID aliases - map old plan IDs to current plans
+export const LEGACY_PLAN_ALIASES: Record<string, string> = {
+    'claim_pro': 'pro',
+    'founders_claim': 'pro',
+    'free': 'scout',
+    'growth_5': 'growth',
+    'scale_10': 'growth',
+    'pro_25': 'growth',
+    'enterprise': 'empire',
+};
+
+/**
+ * Find a pricing plan by ID, supporting legacy aliases
+ */
+export function findPricingPlan(planId: string): PricingPlan | undefined {
+    // First try direct match
+    let plan = PRICING_PLANS.find(p => p.id === planId);
+    if (plan) return plan;
+
+    // Try legacy alias
+    const aliasedId = LEGACY_PLAN_ALIASES[planId];
+    if (aliasedId) {
+        return PRICING_PLANS.find(p => p.id === aliasedId);
+    }
+
+    return undefined;
+}
+
 // ----------------------------------------------------------------------
 // USAGE & OVERAGES
 // ----------------------------------------------------------------------

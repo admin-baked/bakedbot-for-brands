@@ -15,21 +15,29 @@ interface CheckoutLayoutProps {
 }
 
 async function getCheckoutData() {
-    let locations: Retailer[];
-    const isDemo = (await cookies()).get('isUsingDemoData')?.value === 'true';
+    let locations: Retailer[] = [];
 
-    if (isDemo) {
-        locations = demoRetailers;
-    } else {
-        try {
-            const { firestore } = await createServerClient();
-            const locationsSnap = await firestore.collection('dispensaries').get();
-            locations = locationsSnap.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() })) as Retailer[];
-        } catch (error) {
-            logger.error(`[CheckoutLayout] Failed to fetch data:`, error instanceof Error ? error : new Error(String(error)));
+    try {
+        const isDemo = (await cookies()).get('isUsingDemoData')?.value === 'true';
+
+        if (isDemo) {
             locations = demoRetailers;
+        } else {
+            try {
+                const { firestore } = await createServerClient();
+                const locationsSnap = await firestore.collection('dispensaries').get();
+                locations = locationsSnap.docs.map((doc: DocumentData) => ({ id: doc.id, ...doc.data() })) as Retailer[];
+            } catch (error) {
+                logger.error(`[CheckoutLayout] Failed to fetch Firestore data:`, error instanceof Error ? error : new Error(String(error)));
+                locations = demoRetailers;
+            }
         }
+    } catch (error) {
+        // If cookies() or any other operation fails, gracefully fallback to demo data
+        logger.error(`[CheckoutLayout] getCheckoutData failed:`, error instanceof Error ? error : new Error(String(error)));
+        locations = demoRetailers;
     }
+
     return { locations };
 }
 
