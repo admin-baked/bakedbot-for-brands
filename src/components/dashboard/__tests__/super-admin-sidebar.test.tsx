@@ -48,6 +48,7 @@ jest.mock('lucide-react', () => ({
     FolderKanban: () => <div data-testid="icon-folder" />,
     Compass: () => <div data-testid="icon-compass" />,
     Chrome: () => <div data-testid="icon-chrome" />,
+    Rocket: () => <div data-testid="icon-rocket" />,
 }));
 
 jest.mock('@/components/ui/collapsible', () => ({

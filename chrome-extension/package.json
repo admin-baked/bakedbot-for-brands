@@ -1,0 +1,28 @@
+{
+  "name": "bakedbot-ai-chrome-extension",
+  "version": "1.0.0",
+  "description": "BakedBot AI - Browser automation for cannabis brands",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "package": "node scripts/package.js",
+    "dev": "node scripts/build.js --watch",
+    "test": "jest",
+    "lint": "eslint src popup --ext .js"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.260",
+    "archiver": "^6.0.1",
+    "chokidar": "^3.5.3",
+    "jest": "^29.7.0"
+  },
+  "keywords": [
+    "chrome-extension",
+    "browser-automation",
+    "bakedbot",
+    "cannabis",
+    "workflow"
+  ],
+  "author": "BakedBot AI",
+  "license": "UNLICENSED",
+  "private": true
+}
