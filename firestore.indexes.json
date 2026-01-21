@@ -111,26 +111,6 @@
             ]
         },
         {
-            "collectionGroup": "analytics",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "date",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
-            "collectionGroup": "chatSessions",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "expiresAt",
-                    "order": "ASCENDING"
-                }
-            ]
-        },
-        {
             "collectionGroup": "site_permissions",
             "queryScope": "COLLECTION",
             "fields": [
