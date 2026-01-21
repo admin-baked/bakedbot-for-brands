@@ -39,6 +39,7 @@ const EmailTesterTab = dynamic(() => import("./components/email-tester-tab"), { 
 const BoardroomTab = dynamic(() => import("./components/boardroom-tab"), { loading: TabLoader, ssr: false });
 const CodeEvalsTab = dynamic(() => import("./components/code-evals-tab"), { loading: TabLoader, ssr: false });
 const TalkTracksTab = dynamic(() => import("./components/talk-tracks-tab"), { loading: TabLoader, ssr: false });
+const BakedBotBrowserTab = dynamic(() => import("./components/bakedbot-browser-tab"), { loading: TabLoader, ssr: false });
 
 
 import { useSuperAdmin } from '@/hooks/use-super-admin';
@@ -145,6 +146,7 @@ function CeoDashboardContent() {
             case 'boardroom': return <BoardroomTab />;
             case 'code-evals': return <CodeEvalsTab />;
             case 'talk-tracks': return <TalkTracksTab />;
+            case 'browser': return <BakedBotBrowserTab />;
             case 'invites': return (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
