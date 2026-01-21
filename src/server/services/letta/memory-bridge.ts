@@ -189,6 +189,7 @@ export class MemoryBridgeService {
             const preferences = this.extractCustomerPreferences(messages);
 
             // Store in Firestore customer profile
+            const db = getAdminFirestore();
             await db
                 .collection('customers')
                 .doc(customerId)
@@ -248,8 +249,8 @@ export class MemoryBridgeService {
                     query,
                     limit
                 );
-            } catch (e) {
-                logger.warn('[MemoryBridge] Letta search failed:', e);
+            } catch (e: unknown) {
+                logger.warn('[MemoryBridge] Letta search failed:', e as Record<string, any>);
             }
         }
 
@@ -257,6 +258,7 @@ export class MemoryBridgeService {
         if (options?.includeFirestore !== false) {
             try {
                 // Simple text search (would use vector search in production)
+                const db = getAdminFirestore();
                 const snap = await db
                     .collection(STRATEGIC_CONTEXT_COLLECTION)
                     .where('tenantId', '==', tenantId)
@@ -276,8 +278,8 @@ export class MemoryBridgeService {
                         });
                     }
                 }
-            } catch (e) {
-                logger.warn('[MemoryBridge] Firestore search failed:', e);
+            } catch (e: unknown) {
+                logger.warn('[MemoryBridge] Firestore search failed:', e as Record<string, any>);
             }
         }
 
@@ -291,6 +293,7 @@ export class MemoryBridgeService {
         tenantId: string,
         limit: number = 10
     ): Promise<SyncRecord[]> {
+        const db = getAdminFirestore();
         const snap = await db
             .collection(BRIDGE_COLLECTION)
             .where('tenantId', '==', tenantId)
@@ -298,9 +301,9 @@ export class MemoryBridgeService {
             .limit(limit)
             .get();
 
-        return snap.docs.map(doc => ({
+        return snap.docs.map((doc: FirebaseFirestore.DocumentSnapshot) => ({
             ...doc.data(),
-            lastSyncAt: doc.data().lastSyncAt?.toDate() || new Date(),
+            lastSyncAt: doc.data()?.lastSyncAt?.toDate() || new Date(),
         })) as SyncRecord[];
     }
 
@@ -361,6 +364,7 @@ export class MemoryBridgeService {
 
     private async gatherBusinessMetrics(tenantId: string): Promise<Record<string, any>> {
         const metrics: Record<string, any> = {};
+        const db = getAdminFirestore();
 
         try {
             // Example: Get order count
@@ -461,7 +465,7 @@ export async function runScheduledMemoryBridgeSync(tenantId: string): Promise<vo
         logger.info(
             `[MemoryBridge] Sync complete: strategic=${result.strategicSync.status}, metrics=${result.metricsSync.status}`
         );
-    } catch (error) {
-        logger.error('[MemoryBridge] Scheduled sync failed:', error);
+    } catch (error: unknown) {
+        logger.error('[MemoryBridge] Scheduled sync failed:', error as Record<string, any>);
     }
 }

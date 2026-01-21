@@ -180,13 +180,16 @@ export class ArchivalTagsService {
             .limit(100)
             .get();
 
-        return snapshot.docs.map((doc: FirebaseFirestore.DocumentSnapshot) => ({
-            tag: doc.data().tag,
-            tenantId: doc.data().tenantId,
-            count: doc.data().count,
-            lastUsed: doc.data().lastUsed?.toDate() || new Date(),
-            agents: doc.data().agents || [],
-        }));
+        return snapshot.docs.map((doc: FirebaseFirestore.DocumentSnapshot) => {
+            const data = doc.data();
+            return {
+                tag: data?.tag ?? '',
+                tenantId: data?.tenantId ?? '',
+                count: data?.count ?? 0,
+                lastUsed: data?.lastUsed?.toDate() || new Date(),
+                agents: data?.agents || [],
+            };
+        });
     }
 
     /**
@@ -203,13 +206,16 @@ export class ArchivalTagsService {
             .limit(50)
             .get();
 
-        return snapshot.docs.map((doc: FirebaseFirestore.DocumentSnapshot) => ({
-            tag: doc.data().tag,
-            tenantId: doc.data().tenantId,
-            count: doc.data().count,
-            lastUsed: doc.data().lastUsed?.toDate() || new Date(),
-            agents: doc.data().agents || [],
-        }));
+        return snapshot.docs.map((doc: FirebaseFirestore.DocumentSnapshot) => {
+            const data = doc.data();
+            return {
+                tag: data?.tag ?? '',
+                tenantId: data?.tenantId ?? '',
+                count: data?.count ?? 0,
+                lastUsed: data?.lastUsed?.toDate() || new Date(),
+                agents: data?.agents || [],
+            };
+        });
     }
 
     /**
