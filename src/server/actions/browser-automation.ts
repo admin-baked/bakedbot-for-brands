@@ -51,9 +51,14 @@ export async function createBrowserSession(
  * Get active browser session
  */
 export async function getActiveBrowserSession(): Promise<ActionResult<BrowserSession | null>> {
-  const session = await requireSuperUser();
-  const browserSession = await browserSessionManager.getActiveSession(session.uid);
-  return { success: true, data: browserSession };
+  try {
+    const session = await requireSuperUser();
+    const browserSession = await browserSessionManager.getActiveSession(session.uid);
+    return { success: true, data: browserSession };
+  } catch (error) {
+    logger.error('[BrowserAutomation] getActiveBrowserSession failed', { error });
+    return { success: true, data: null }; // Return null instead of failing
+  }
 }
 
 /**
@@ -302,9 +307,14 @@ export async function blockSiteDomain(domain: string): Promise<ActionResult> {
  * List site permissions
  */
 export async function listSitePermissions(): Promise<ActionResult<SitePermission[]>> {
-  const session = await requireSuperUser();
-  const permissions = await permissionGuard.listPermissions(session.uid);
-  return { success: true, data: permissions };
+  try {
+    const session = await requireSuperUser();
+    const permissions = await permissionGuard.listPermissions(session.uid);
+    return { success: true, data: permissions };
+  } catch (error) {
+    logger.error('[BrowserAutomation] listSitePermissions failed', { error });
+    return { success: true, data: [] }; // Return empty array instead of failing
+  }
 }
 
 /**
@@ -463,9 +473,14 @@ export async function cancelWorkflowRecording(recordingId: string): Promise<Acti
  * Get active recording
  */
 export async function getActiveRecording(): Promise<ActionResult<RecordingSession | null>> {
-  const session = await requireSuperUser();
-  const recording = await workflowRecorder.getActiveRecording(session.uid);
-  return { success: true, data: recording };
+  try {
+    const session = await requireSuperUser();
+    const recording = await workflowRecorder.getActiveRecording(session.uid);
+    return { success: true, data: recording };
+  } catch (error) {
+    logger.error('[BrowserAutomation] getActiveRecording failed', { error });
+    return { success: true, data: null }; // Return null instead of failing
+  }
 }
 
 // ============================================================================
@@ -549,9 +564,14 @@ export async function listWorkflows(options?: {
   status?: string;
   limit?: number;
 }): Promise<ActionResult<RecordedWorkflow[]>> {
-  const session = await requireSuperUser();
-  const workflows = await workflowRecorder.listWorkflows(session.uid, options);
-  return { success: true, data: workflows };
+  try {
+    const session = await requireSuperUser();
+    const workflows = await workflowRecorder.listWorkflows(session.uid, options);
+    return { success: true, data: workflows };
+  } catch (error) {
+    logger.error('[BrowserAutomation] listWorkflows failed', { error });
+    return { success: true, data: [] }; // Return empty array instead of failing
+  }
 }
 
 /**
@@ -679,9 +699,14 @@ export async function getBrowserTask(
 export async function listBrowserTasks(options?: {
   limit?: number;
 }): Promise<ActionResult<BrowserTask[]>> {
-  const session = await requireSuperUser();
-  const tasks = await taskScheduler.listTasks(session.uid, options);
-  return { success: true, data: tasks };
+  try {
+    const session = await requireSuperUser();
+    const tasks = await taskScheduler.listTasks(session.uid, options);
+    return { success: true, data: tasks };
+  } catch (error) {
+    logger.error('[BrowserAutomation] listBrowserTasks failed', { error });
+    return { success: true, data: [] }; // Return empty array instead of failing
+  }
 }
 
 /**
