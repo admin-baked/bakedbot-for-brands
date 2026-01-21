@@ -190,8 +190,8 @@ Respond in JSON format:
                             'SleepTimeAgent'
                         );
                         result.blocksUpdated.push(label);
-                    } catch (e) {
-                        logger.warn(`[SleepTime] Failed to update block ${label}:`, e);
+                    } catch (e: unknown) {
+                        logger.warn(`[SleepTime] Failed to update block ${label}:`, e as Record<string, any>);
                     }
                 }
             }
@@ -201,8 +201,8 @@ Respond in JSON format:
                 try {
                     await lettaClient.insertPassage(primaryAgentId, fact);
                     result.newArchivalEntries++;
-                } catch (e) {
-                    logger.warn(`[SleepTime] Failed to archive fact:`, e);
+                } catch (e: unknown) {
+                    logger.warn(`[SleepTime] Failed to archive fact:`, e as Record<string, any>);
                 }
             }
 
@@ -215,8 +215,8 @@ Respond in JSON format:
             );
 
             return result;
-        } catch (error) {
-            logger.error('[SleepTime] Consolidation failed:', error);
+        } catch (error: unknown) {
+            logger.error('[SleepTime] Consolidation failed:', error as Record<string, any>);
             result.status = 'failed';
             result.completedAt = new Date();
             return result;
@@ -263,8 +263,8 @@ Respond in JSON format:
             try {
                 const result = await this.runConsolidation(agentId, tenantId);
                 results.push(result);
-            } catch (error) {
-                logger.error(`[SleepTime] Failed consolidation for ${agentId}:`, error);
+            } catch (error: unknown) {
+                logger.error(`[SleepTime] Failed consolidation for ${agentId}:`, error as Record<string, any>);
             }
         }
 
@@ -307,7 +307,7 @@ export async function runScheduledConsolidation(tenantId: string): Promise<void>
             `[SleepTime] Scheduled consolidation complete: ${results.length} agents, ` +
             `${totalInsights} insights, ${totalArchived} facts archived`
         );
-    } catch (error) {
-        logger.error('[SleepTime] Scheduled consolidation failed:', error);
+    } catch (error: unknown) {
+        logger.error('[SleepTime] Scheduled consolidation failed:', error as Record<string, any>);
     }
 }

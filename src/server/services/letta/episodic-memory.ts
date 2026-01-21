@@ -63,8 +63,8 @@ export class EpisodicMemoryService {
             );
 
             return this.transformToMemoryResults(response, 'episodic');
-        } catch (error) {
-            logger.error('[EpisodicMemory] Conversation search failed:', error);
+        } catch (error: unknown) {
+            logger.error('[EpisodicMemory] Conversation search failed:', error as Record<string, any>);
             return [];
         }
     }
@@ -90,8 +90,8 @@ export class EpisodicMemoryService {
             );
 
             return this.transformToMemoryResults(response, 'episodic');
-        } catch (error) {
-            logger.error('[EpisodicMemory] Date range search failed:', error);
+        } catch (error: unknown) {
+            logger.error('[EpisodicMemory] Date range search failed:', error as Record<string, any>);
             return [];
         }
     }
@@ -119,8 +119,8 @@ export class EpisodicMemoryService {
                 tags: [],
                 references: [],
             }));
-        } catch (error) {
-            logger.error('[EpisodicMemory] Failed to get recent context:', error);
+        } catch (error: unknown) {
+            logger.error('[EpisodicMemory] Failed to get recent context:', error as Record<string, any>);
             return [];
         }
     }
@@ -143,8 +143,8 @@ export class EpisodicMemoryService {
 
             const result = await lettaClient.insertPassage(agentId, content);
             return result.id || `ep-${Date.now()}`;
-        } catch (error) {
-            logger.error('[EpisodicMemory] Failed to store episode:', error);
+        } catch (error: unknown) {
+            logger.error('[EpisodicMemory] Failed to store episode:', error as Record<string, any>);
             throw error;
         }
     }

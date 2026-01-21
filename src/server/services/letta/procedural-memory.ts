@@ -29,7 +29,7 @@ export interface WorkflowStep {
     stepNumber: number;
     toolName: string;
     args: Record<string, unknown>;
-    result: unknown;
+    result?: unknown;
     success: boolean;
     duration_ms?: number;
 }
@@ -100,8 +100,8 @@ export class ProceduralMemoryService {
             );
 
             return result.id || memory.id;
-        } catch (error) {
-            logger.error('[ProceduralMemory] Failed to store workflow:', error);
+        } catch (error: unknown) {
+            logger.error('[ProceduralMemory] Failed to store workflow:', error as Record<string, any>);
             return null;
         }
     }
@@ -150,8 +150,8 @@ export class ProceduralMemoryService {
             }
 
             return workflows.slice(0, limit);
-        } catch (error) {
-            logger.error('[ProceduralMemory] Search failed:', error);
+        } catch (error: unknown) {
+            logger.error('[ProceduralMemory] Search failed:', error as Record<string, any>);
             return [];
         }
     }
@@ -208,8 +208,8 @@ export class ProceduralMemoryService {
             }
 
             return bestWorkflow;
-        } catch (error) {
-            logger.error('[ProceduralMemory] Best practice search failed:', error);
+        } catch (error: unknown) {
+            logger.error('[ProceduralMemory] Best practice search failed:', error as Record<string, any>);
             return null;
         }
     }
@@ -295,7 +295,7 @@ export async function persistWorkflowFromHarness(
         stepNumber: idx + 1,
         toolName: step.tool,
         args: step.args,
-        result: step.result,
+        result: step.result ?? null,
         success: !step.result?.error && !step.result?.blocked,
     }));
 

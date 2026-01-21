@@ -4,7 +4,6 @@ import { searchConsoleService } from '@/server/services/growth/search-console';
 import { googleAnalyticsService } from '@/server/services/growth/google-analytics';
 import { logger } from '@/lib/logger';
 import { sendEmail } from '@/server/services/email-service';
-import { db } from '@/lib/firebase-admin'; // Assuming firebase-admin is where db is
 
 /**
  * Run Day Day Weekly Growth Review

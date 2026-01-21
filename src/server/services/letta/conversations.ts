@@ -286,8 +286,8 @@ export class ConversationsService {
                 try {
                     await this.deleteConversation(conv.id);
                     archived++;
-                } catch (e) {
-                    logger.warn(`[Conversations] Failed to archive ${conv.id}:`, e);
+                } catch (e: unknown) {
+                    logger.warn(`[Conversations] Failed to archive ${conv.id}:`, e as Record<string, any>);
                 }
             }
         }
