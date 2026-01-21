@@ -351,6 +351,7 @@ export async function addPilotProducts(
         thcPercent?: number;
         cbdPercent?: number;
         weight?: string;
+        imageUrl?: string;
         featured?: boolean;
     }>
 ): Promise<{ success: boolean; count: number; error?: string }> {
@@ -373,6 +374,7 @@ export async function addPilotProducts(
                 weight: product.weight || '',
                 thcPercent: product.thcPercent || null,
                 cbdPercent: product.cbdPercent || null,
+                imageUrl: product.imageUrl || '',
                 featured: product.featured || false,
                 sortOrder: count,
                 inStock: true,
@@ -390,6 +392,90 @@ export async function addPilotProducts(
         return {
             success: false,
             count: 0,
+            error: error instanceof Error ? error.message : String(error),
+        };
+    }
+}
+
+export interface ImportedMenuData {
+    dispensary: {
+        name: string;
+        tagline?: string;
+        description?: string;
+        logoUrl?: string;
+        primaryColor?: string;
+        secondaryColor?: string;
+        phone?: string;
+        address?: string;
+        city?: string;
+        state?: string;
+        hours?: string;
+    };
+    products: Array<{
+        name: string;
+        brand?: string;
+        category: string;
+        price: number | null;
+        thcPercent?: number | null;
+        cbdPercent?: number | null;
+        strainType?: string;
+        description?: string;
+        imageUrl?: string;
+        effects?: string[];
+        weight?: string;
+    }>;
+    promotions?: Array<{
+        title: string;
+        subtitle?: string;
+        description?: string;
+    }>;
+}
+
+/**
+ * Import menu data from a dispensary URL (Weedmaps, Dutchie, etc.)
+ * Uses the existing menu import API with Firecrawl
+ */
+export async function importMenuFromUrl(url: string): Promise<{
+    success: boolean;
+    data?: ImportedMenuData;
+    error?: string;
+}> {
+    try {
+        // Call the internal menu import API
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://bakedbot.ai';
+        const response = await fetch(`${baseUrl}/api/demo/import-menu`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            return {
+                success: false,
+                error: errorData.error || `Failed to import menu: ${response.status}`,
+            };
+        }
+
+        const result = await response.json();
+
+        if (!result.success || !result.data) {
+            return {
+                success: false,
+                error: result.error || 'No data extracted from URL',
+            };
+        }
+
+        return {
+            success: true,
+            data: result.data as ImportedMenuData,
+        };
+    } catch (error) {
+        console.error('Import menu error:', error);
+        return {
+            success: false,
             error: error instanceof Error ? error.message : String(error),
         };
     }

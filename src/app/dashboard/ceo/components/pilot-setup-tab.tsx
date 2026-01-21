@@ -11,8 +11,9 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { setupPilotCustomer, addPilotProducts, type BrandPilotConfig, type DispensaryPilotConfig } from '@/server/actions/pilot-setup';
-import { Loader2, Rocket, Store, Building2, CheckCircle, Copy, ExternalLink, Plus, Trash2 } from 'lucide-react';
+import { setupPilotCustomer, addPilotProducts, importMenuFromUrl, type BrandPilotConfig, type DispensaryPilotConfig, type ImportedMenuData } from '@/server/actions/pilot-setup';
+import { Loader2, Rocket, Store, Building2, CheckCircle, Copy, ExternalLink, Plus, Trash2, Globe, Download, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 
 // Default sample products for dispensaries
@@ -99,6 +100,13 @@ export default function PilotSetupTab() {
     const [addSampleProducts, setAddSampleProducts] = useState(true);
     const [zipInput, setZipInput] = useState('');
 
+    // URL Import state
+    const [importUrl, setImportUrl] = useState('');
+    const [isImporting, setIsImporting] = useState(false);
+    const [importError, setImportError] = useState<string | null>(null);
+    const [importedProducts, setImportedProducts] = useState<ImportedMenuData['products']>([]);
+    const [importSource, setImportSource] = useState<'website' | 'weedmaps' | 'leafly' | null>(null);
+
     // Auto-generate slug from name
     const generateSlug = (name: string) => {
         return name.toLowerCase().replace(/[^a-z0-9]+/g, '').substring(0, 30);
@@ -124,8 +132,23 @@ export default function PilotSetupTab() {
             });
 
             if (result.success && result.data) {
-                // Add sample products if enabled
-                if (addSampleProducts) {
+                // Add imported products or sample products
+                if (importedProducts.length > 0) {
+                    const productsToAdd = importedProducts.map(p => ({
+                        name: p.name,
+                        description: p.description || '',
+                        category: p.category,
+                        price: p.price || 0,
+                        brandName: p.brand || '',
+                        thcPercent: p.thcPercent || undefined,
+                        cbdPercent: p.cbdPercent || undefined,
+                        weight: p.weight || '',
+                        imageUrl: p.imageUrl || '',
+                        featured: false,
+                    }));
+                    await addPilotProducts(result.data.brandId, productsToAdd);
+                    toast({ title: 'Products Added', description: `Added ${productsToAdd.length} imported products` });
+                } else if (addSampleProducts) {
                     await addPilotProducts(result.data.brandId, DEFAULT_BRAND_PRODUCTS);
                 }
 
@@ -137,6 +160,9 @@ export default function PilotSetupTab() {
                     email: brandForm.email || generateEmail(brandForm.brandSlug),
                     password: brandForm.password,
                 });
+
+                // Clear import state
+                clearImportedData();
 
                 toast({ title: 'Success!', description: result.message });
             } else {
@@ -164,8 +190,23 @@ export default function PilotSetupTab() {
             });
 
             if (result.success && result.data) {
-                // Add sample products if enabled
-                if (addSampleProducts) {
+                // Add imported products or sample products
+                if (importedProducts.length > 0) {
+                    const productsToAdd = importedProducts.map(p => ({
+                        name: p.name,
+                        description: p.description || '',
+                        category: p.category,
+                        price: p.price || 0,
+                        brandName: p.brand || '',
+                        thcPercent: p.thcPercent || undefined,
+                        cbdPercent: p.cbdPercent || undefined,
+                        weight: p.weight || '',
+                        imageUrl: p.imageUrl || '',
+                        featured: false,
+                    }));
+                    await addPilotProducts(result.data.brandId, productsToAdd);
+                    toast({ title: 'Products Added', description: `Added ${productsToAdd.length} imported products` });
+                } else if (addSampleProducts) {
                     await addPilotProducts(result.data.brandId, DEFAULT_DISPENSARY_PRODUCTS);
                 }
 
@@ -177,6 +218,9 @@ export default function PilotSetupTab() {
                     email: dispensaryForm.email || generateEmail(dispensaryForm.dispensarySlug),
                     password: dispensaryForm.password,
                 });
+
+                // Clear import state
+                clearImportedData();
 
                 toast({ title: 'Success!', description: result.message });
             } else {
@@ -209,6 +253,129 @@ export default function PilotSetupTab() {
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         toast({ title: 'Copied!', description: 'Copied to clipboard' });
+    };
+
+    // Import menu from URL with fallback chain: website -> weedmaps -> leafly
+    const handleImportMenu = async (type: 'dispensary' | 'brand') => {
+        if (!importUrl) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please enter a URL' });
+            return;
+        }
+
+        setIsImporting(true);
+        setImportError(null);
+        setImportedProducts([]);
+
+        // Detect URL type
+        const isWeedmaps = importUrl.includes('weedmaps.com');
+        const isLeafly = importUrl.includes('leafly.com');
+        const isDutchie = importUrl.includes('dutchie.com');
+
+        // Build fallback chain based on input URL
+        const urlsToTry: { url: string; source: 'website' | 'weedmaps' | 'leafly' }[] = [];
+
+        if (isWeedmaps || isLeafly || isDutchie) {
+            // User provided a menu aggregator URL, use it directly
+            urlsToTry.push({
+                url: importUrl,
+                source: isWeedmaps ? 'weedmaps' : isLeafly ? 'leafly' : 'website'
+            });
+        } else {
+            // User provided a website URL, try it first then fallbacks
+            urlsToTry.push({ url: importUrl, source: 'website' });
+
+            // Extract domain/name for constructing fallback URLs
+            const slug = type === 'dispensary' ? dispensaryForm.dispensarySlug : brandForm.brandSlug;
+            if (slug) {
+                urlsToTry.push({
+                    url: `https://weedmaps.com/dispensaries/${slug}`,
+                    source: 'weedmaps'
+                });
+                urlsToTry.push({
+                    url: `https://www.leafly.com/dispensary-info/${slug}`,
+                    source: 'leafly'
+                });
+            }
+        }
+
+        let lastError: string | null = null;
+
+        for (const { url, source } of urlsToTry) {
+            try {
+                toast({
+                    title: 'Importing...',
+                    description: `Trying ${source === 'website' ? 'website' : source}...`
+                });
+
+                const result = await importMenuFromUrl(url);
+
+                if (result.success && result.data) {
+                    // Found products, populate form
+                    const data = result.data;
+
+                    // Update dispensary/brand info
+                    if (type === 'dispensary') {
+                        setDispensaryForm(prev => ({
+                            ...prev,
+                            dispensaryName: data.dispensary.name || prev.dispensaryName,
+                            dispensarySlug: data.dispensary.name ? generateSlug(data.dispensary.name) : prev.dispensarySlug,
+                            tagline: data.dispensary.tagline || prev.tagline,
+                            description: data.dispensary.description || prev.description,
+                            primaryColor: data.dispensary.primaryColor || prev.primaryColor,
+                            secondaryColor: data.dispensary.secondaryColor || prev.secondaryColor,
+                            phone: data.dispensary.phone || prev.phone,
+                            address: data.dispensary.address || prev.address,
+                            city: data.dispensary.city || prev.city,
+                            state: data.dispensary.state || prev.state,
+                        }));
+                    } else {
+                        setBrandForm(prev => ({
+                            ...prev,
+                            brandName: data.dispensary.name || prev.brandName,
+                            brandSlug: data.dispensary.name ? generateSlug(data.dispensary.name) : prev.brandSlug,
+                            tagline: data.dispensary.tagline || prev.tagline,
+                            description: data.dispensary.description || prev.description,
+                            primaryColor: data.dispensary.primaryColor || prev.primaryColor,
+                            secondaryColor: data.dispensary.secondaryColor || prev.secondaryColor,
+                            contactPhone: data.dispensary.phone || prev.contactPhone,
+                        }));
+                    }
+
+                    // Store imported products
+                    setImportedProducts(data.products);
+                    setImportSource(source);
+                    setAddSampleProducts(false); // Disable sample products since we have real ones
+
+                    toast({
+                        title: 'Import Successful!',
+                        description: `Imported ${data.products.length} products from ${source}`
+                    });
+                    setIsImporting(false);
+                    return; // Success, stop trying
+                }
+
+                lastError = result.error || 'No products found';
+            } catch (error) {
+                lastError = String(error);
+            }
+        }
+
+        // All URLs failed
+        setImportError(lastError || 'Failed to import menu from any source');
+        toast({
+            variant: 'destructive',
+            title: 'Import Failed',
+            description: 'Could not extract products. Try adding them manually.'
+        });
+        setIsImporting(false);
+    };
+
+    // Clear imported data
+    const clearImportedData = () => {
+        setImportedProducts([]);
+        setImportSource(null);
+        setImportUrl('');
+        setImportError(null);
     };
 
     // Success view
@@ -352,6 +519,81 @@ export default function PilotSetupTab() {
                                         />
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* URL Import Section */}
+                            <div className="border-t pt-4">
+                                <h4 className="font-medium mb-2">Import from Website</h4>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Automatically import products from the dispensary website, Weedmaps, or Leafly.
+                                    We&apos;ll try the website first, then fallback to Weedmaps/Leafly.
+                                </p>
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="flex-1 relative">
+                                        <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="https://dispensary-website.com or weedmaps.com/dispensaries/..."
+                                            value={importUrl}
+                                            onChange={(e) => setImportUrl(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleImportMenu('dispensary')}
+                                            className="pl-10"
+                                            disabled={isImporting}
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => handleImportMenu('dispensary')}
+                                        disabled={isImporting || !importUrl}
+                                    >
+                                        {isImporting ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Download className="h-4 w-4" />
+                                        )}
+                                        <span className="ml-2">{isImporting ? 'Importing...' : 'Import'}</span>
+                                    </Button>
+                                </div>
+
+                                {importError && (
+                                    <Alert variant="destructive" className="mb-4">
+                                        <AlertCircle className="h-4 w-4" />
+                                        <AlertDescription>{importError}</AlertDescription>
+                                    </Alert>
+                                )}
+
+                                {importedProducts.length > 0 && (
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                                <span className="font-medium text-green-900">
+                                                    {importedProducts.length} products imported from {importSource}
+                                                </span>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={clearImportedData}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                            {importedProducts.slice(0, 5).map((p, i) => (
+                                                <Badge key={i} variant="secondary" className="text-xs">
+                                                    {p.name}
+                                                </Badge>
+                                            ))}
+                                            {importedProducts.length > 5 && (
+                                                <Badge variant="secondary" className="text-xs">
+                                                    +{importedProducts.length - 5} more
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Location */}
@@ -533,10 +775,19 @@ export default function PilotSetupTab() {
                             <div className="border-t pt-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <h4 className="font-medium">Add Sample Products</h4>
-                                        <p className="text-sm text-muted-foreground">Add {DEFAULT_DISPENSARY_PRODUCTS.length} sample products to get started</p>
+                                        <h4 className="font-medium">
+                                            {importedProducts.length > 0 ? 'Products' : 'Add Sample Products'}
+                                        </h4>
+                                        <p className="text-sm text-muted-foreground">
+                                            {importedProducts.length > 0
+                                                ? `${importedProducts.length} imported products will be added`
+                                                : `Add ${DEFAULT_DISPENSARY_PRODUCTS.length} sample products to get started`
+                                            }
+                                        </p>
                                     </div>
-                                    <Switch checked={addSampleProducts} onCheckedChange={setAddSampleProducts} />
+                                    {importedProducts.length === 0 && (
+                                        <Switch checked={addSampleProducts} onCheckedChange={setAddSampleProducts} />
+                                    )}
                                 </div>
                             </div>
 
@@ -637,6 +888,80 @@ export default function PilotSetupTab() {
                                     value={brandForm.tagline}
                                     onChange={(e) => setBrandForm({ ...brandForm, tagline: e.target.value })}
                                 />
+                            </div>
+
+                            {/* URL Import Section for Brands */}
+                            <div className="border-t pt-4">
+                                <h4 className="font-medium mb-2">Import from Website</h4>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Automatically import products from the brand website.
+                                </p>
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="flex-1 relative">
+                                        <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="https://brand-website.com/shop"
+                                            value={importUrl}
+                                            onChange={(e) => setImportUrl(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleImportMenu('brand')}
+                                            className="pl-10"
+                                            disabled={isImporting}
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => handleImportMenu('brand')}
+                                        disabled={isImporting || !importUrl}
+                                    >
+                                        {isImporting ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Download className="h-4 w-4" />
+                                        )}
+                                        <span className="ml-2">{isImporting ? 'Importing...' : 'Import'}</span>
+                                    </Button>
+                                </div>
+
+                                {importError && (
+                                    <Alert variant="destructive" className="mb-4">
+                                        <AlertCircle className="h-4 w-4" />
+                                        <AlertDescription>{importError}</AlertDescription>
+                                    </Alert>
+                                )}
+
+                                {importedProducts.length > 0 && (
+                                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2">
+                                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                                <span className="font-medium text-green-900">
+                                                    {importedProducts.length} products imported from {importSource}
+                                                </span>
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={clearImportedData}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                            {importedProducts.slice(0, 5).map((p, i) => (
+                                                <Badge key={i} variant="secondary" className="text-xs">
+                                                    {p.name}
+                                                </Badge>
+                                            ))}
+                                            {importedProducts.length > 5 && (
+                                                <Badge variant="secondary" className="text-xs">
+                                                    +{importedProducts.length - 5} more
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Purchase Model */}
@@ -821,10 +1146,19 @@ export default function PilotSetupTab() {
                             <div className="border-t pt-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <h4 className="font-medium">Add Sample Products</h4>
-                                        <p className="text-sm text-muted-foreground">Add {DEFAULT_BRAND_PRODUCTS.length} sample products to get started</p>
+                                        <h4 className="font-medium">
+                                            {importedProducts.length > 0 ? 'Products' : 'Add Sample Products'}
+                                        </h4>
+                                        <p className="text-sm text-muted-foreground">
+                                            {importedProducts.length > 0
+                                                ? `${importedProducts.length} imported products will be added`
+                                                : `Add ${DEFAULT_BRAND_PRODUCTS.length} sample products to get started`
+                                            }
+                                        </p>
                                     </div>
-                                    <Switch checked={addSampleProducts} onCheckedChange={setAddSampleProducts} />
+                                    {importedProducts.length === 0 && (
+                                        <Switch checked={addSampleProducts} onCheckedChange={setAddSampleProducts} />
+                                    )}
                                 </div>
                             </div>
 
