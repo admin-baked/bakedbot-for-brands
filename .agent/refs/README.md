@@ -56,6 +56,8 @@ Each file provides comprehensive context for a specific domain.
 | File | Topic |
 |------|-------|
 | `work-archive.md` | Historical context, artifacts |
+| `session-handoff.md` | Mid-session work continuation |
+| `pilot-setup.md` | Pilot customer provisioning |
 
 ---
 
