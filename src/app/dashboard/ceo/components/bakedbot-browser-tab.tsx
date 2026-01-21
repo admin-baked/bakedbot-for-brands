@@ -25,6 +25,9 @@ import {
   Loader2,
   ExternalLink,
   Monitor,
+  Download,
+  CheckCircle2,
+  ArrowRight,
 } from 'lucide-react';
 
 import { BrowserSessionPanel } from './browser-automation/browser-session-panel';
@@ -68,7 +71,32 @@ export default function BakedBotBrowserTab() {
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreatingSession, setIsCreatingSession] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Handle extension download
+  const handleDownloadExtension = async () => {
+    setIsDownloading(true);
+    try {
+      const response = await fetch('/api/download/chrome-extension');
+      if (!response.ok) {
+        throw new Error('Failed to download extension');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bakedbot-chrome-extension.zip';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      setError('Failed to download extension');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   // Load initial data
   const loadData = useCallback(async () => {
@@ -250,6 +278,86 @@ export default function BakedBotBrowserTab() {
           </CardContent>
         </Card>
       )}
+
+      {/* Chrome Extension Download Card */}
+      <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 dark:border-blue-800">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600">
+                <Download className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Install Chrome Extension</CardTitle>
+                <CardDescription>
+                  Record workflows and automate tasks directly in your browser
+                </CardDescription>
+              </div>
+            </div>
+            <Button
+              onClick={handleDownloadExtension}
+              disabled={isDownloading}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+            >
+              {isDownloading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Download Extension
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-4 gap-4">
+            <div className="flex items-start gap-2">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400">
+                <span className="text-xs font-bold">1</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium">Download</p>
+                <p className="text-xs text-muted-foreground">
+                  Click the button above to download the .zip file
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400">
+                <span className="text-xs font-bold">2</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium">Unzip</p>
+                <p className="text-xs text-muted-foreground">
+                  Extract the downloaded file to a folder
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400">
+                <span className="text-xs font-bold">3</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium">Load in Chrome</p>
+                <p className="text-xs text-muted-foreground">
+                  Go to{' '}
+                  <code className="rounded bg-muted px-1 text-xs">chrome://extensions</code>
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-400">
+                <CheckCircle2 className="h-3 w-3" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">Enable Developer Mode</p>
+                <p className="text-xs text-muted-foreground">
+                  Toggle on, then &quot;Load unpacked&quot;
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Recording indicator */}
       {recording && recording.status === 'recording' && (
