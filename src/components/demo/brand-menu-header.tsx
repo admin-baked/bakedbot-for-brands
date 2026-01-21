@@ -32,6 +32,7 @@ interface BrandMenuHeaderProps {
   };
   verified?: boolean;
   tagline?: string;
+  useLogoInHeader?: boolean;
   cartItemCount?: number;
   // E-commerce model support
   purchaseModel?: 'online_only' | 'local_pickup' | 'hybrid';
@@ -72,6 +73,7 @@ export function BrandMenuHeader({
   brandColors = { primary: '#16a34a', secondary: '#064e3b' },
   verified = true,
   tagline,
+  useLogoInHeader,
   cartItemCount = 0,
   purchaseModel = 'local_pickup',
   shipsNationwide = false,
@@ -159,7 +161,7 @@ export function BrandMenuHeader({
                         <Leaf className="h-5 w-5 text-white" />
                       </div>
                     )}
-                    {brandName}
+                    {!useLogoInHeader && brandName}
                   </SheetTitle>
                 </SheetHeader>
 
@@ -271,21 +273,23 @@ export function BrandMenuHeader({
                   <Leaf className="h-6 w-6 text-white" />
                 </div>
               )}
-              <div className="hidden sm:flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-lg md:text-xl tracking-tight">
-                    {brandName}
-                  </span>
-                  {verified && (
-                    <CheckCircle className="h-4 w-4 text-blue-500 fill-blue-50" />
+              {!useLogoInHeader && (
+                <div className="hidden sm:flex flex-col">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-lg md:text-xl tracking-tight">
+                      {brandName}
+                    </span>
+                    {verified && (
+                      <CheckCircle className="h-4 w-4 text-blue-500 fill-blue-50" />
+                    )}
+                  </div>
+                  {tagline && (
+                    <span className="text-xs text-muted-foreground">
+                      {tagline}
+                    </span>
                   )}
                 </div>
-                {tagline && (
-                  <span className="text-xs text-muted-foreground">
-                    {tagline}
-                  </span>
-                )}
-              </div>
+              )}
             </Link>
           </div>
 

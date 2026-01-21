@@ -47,6 +47,7 @@ interface DemoHeaderProps {
     primary: string;
     secondary: string;
   };
+  useLogoInHeader?: boolean;
   location?: string;
   onSearch?: (query: string) => void;
   onCategorySelect?: (category: string) => void;
@@ -84,6 +85,7 @@ export function DemoHeader({
   brandName = 'BakedBot Demo',
   brandLogo,
   brandColors,
+  useLogoInHeader,
   location = 'San Francisco, CA',
   onSearch,
   onCategorySelect,
@@ -121,7 +123,9 @@ export function DemoHeader({
               </SheetTrigger>
               <SheetContent side="left" className="w-80">
                 <SheetHeader>
-                  <SheetTitle className="text-left">{brandName}</SheetTitle>
+                  <SheetTitle className="text-left">
+                    {!useLogoInHeader && brandName}
+                  </SheetTitle>
                 </SheetHeader>
                 <nav className="mt-6 space-y-1">
                   {/* Get Started CTA in mobile menu */}
@@ -182,7 +186,9 @@ export function DemoHeader({
                   >
                     <Leaf className="h-6 w-6 text-white" />
                   </div>
-                  <span className="font-bold text-xl hidden sm:block">{brandName}</span>
+                  <span className="font-bold text-xl hidden sm:block">
+                    {!useLogoInHeader && brandName}
+                  </span>
                 </div>
               )}
             </Link>
