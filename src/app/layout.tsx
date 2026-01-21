@@ -27,6 +27,11 @@ export const metadata: Metadata = {
   title: 'BakedBot AI',
   description: 'Agentic Commerce OS for Cannabis',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/assets/agents/smokey-main.png',
+    shortcut: '/assets/agents/smokey-main.png',
+    apple: '/assets/agents/smokey-main.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
