@@ -12,9 +12,6 @@ export async function generateMetadata({ params }: { params: Promise<{ brand: st
 
 import { WebAgeGate } from '@/components/verification/web-age-gate';
 
-import { fetchBrandPageData } from '@/lib/brand-data';
-import { DispensaryHeader } from '@/components/dispensary/dispensary-header';
-
 export default async function BrandLayout({
     children,
     params,
@@ -22,20 +19,11 @@ export default async function BrandLayout({
     children: React.ReactNode;
     params: Promise<{ brand: string }>;
 }) {
-    const { brand: brandSlug } = await params;
-
-    // Fetch brand data for the header
-    const { brand } = await fetchBrandPageData(brandSlug);
-
+    // Note: Header is rendered by BrandMenuClient to support both
+    // dispensary and brand menu modes with appropriate styling
     return (
         <div className="min-h-screen bg-background text-foreground">
             <WebAgeGate />
-            {brand && (
-                <DispensaryHeader
-                    brandName={brand.name}
-                    logoUrl={brand.logoUrl}
-                />
-            )}
             {children}
         </div>
     );
