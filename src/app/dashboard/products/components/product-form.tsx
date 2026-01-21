@@ -113,6 +113,35 @@ export function ProductForm({ product, userRole, brands = [] }: ProductFormProps
                     <Input id="sortOrder" name="sortOrder" type="number" placeholder="0" defaultValue={product?.sortOrder || ''} />
                 </div>
             </div>
+
+            {/* Hemp E-Commerce Section */}
+            <div className="border-t pt-6 mt-2">
+                <h3 className="text-sm font-semibold mb-4 text-muted-foreground">Hemp / Edibles Details (Optional)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="weight">Weight (g)</Label>
+                        <Input id="weight" name="weight" type="number" step="0.1" placeholder="10" defaultValue={product?.weight || ''} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="servings">Servings</Label>
+                        <Input id="servings" name="servings" type="number" placeholder="10" defaultValue={product?.servings || ''} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="mgPerServing">mg per Serving</Label>
+                        <Input id="mgPerServing" name="mgPerServing" type="number" step="0.1" placeholder="25" defaultValue={product?.mgPerServing || ''} />
+                    </div>
+                </div>
+                <div className="flex items-center space-x-2 mt-4">
+                    <input
+                        type="checkbox"
+                        id="shippable"
+                        name="shippable"
+                        defaultChecked={product?.shippable ?? true}
+                        className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <Label htmlFor="shippable" className="font-normal">Available for Shipping</Label>
+                </div>
+            </div>
           </CardContent>
           <CardFooter className="justify-end gap-2">
             <Button variant="ghost" asChild>

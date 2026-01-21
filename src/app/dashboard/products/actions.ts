@@ -257,7 +257,16 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
   const featured = formData.get('featured') === 'on';
   const sortOrderStr = formData.get('sortOrder') as string;
   const sortOrder = sortOrderStr ? parseInt(sortOrderStr, 10) : undefined;
-  
+
+  // Hemp e-commerce fields
+  const weightStr = formData.get('weight') as string;
+  const weight = weightStr ? parseFloat(weightStr) : undefined;
+  const servingsStr = formData.get('servings') as string;
+  const servings = servingsStr ? parseInt(servingsStr, 10) : undefined;
+  const mgPerServingStr = formData.get('mgPerServing') as string;
+  const mgPerServing = mgPerServingStr ? parseFloat(mgPerServingStr) : undefined;
+  const shippable = formData.get('shippable') === 'on';
+
   // SECURITY: Enforce brandId from session unless super_user
   let brandId = user.brandId || user.locationId || user.uid;
   if (user.role === 'super_user') {
@@ -286,6 +295,12 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
     sourceTimestamp: new Date(),
     featured,
     sortOrder,
+    // Hemp e-commerce fields
+    weight,
+    weightUnit: weight ? 'g' as const : undefined,
+    servings,
+    mgPerServing,
+    shippable,
   };
 
   try {
