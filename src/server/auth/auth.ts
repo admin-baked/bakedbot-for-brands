@@ -205,3 +205,27 @@ export async function hasBrandRole(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Require the current user to be a Super User (CEO/CTO level access).
+ * Use this to protect sensitive operations like agent execution, bash commands, etc.
+ * @throws Error if user is not authenticated or not a super user
+ * @returns The decoded token of the authenticated super user
+ */
+export async function requireSuperUser(): Promise<DecodedIdToken> {
+  const user = await requireUser();
+  const role = (user.role as string) || '';
+  const email = (user.email as string)?.toLowerCase() || '';
+
+  // Check 1: Role-based access
+  if (role === 'super_user' || role === 'super_admin') {
+    return user;
+  }
+
+  // Check 2: Email whitelist
+  if (email && SUPER_ADMIN_EMAILS.some(adminEmail => adminEmail.toLowerCase() === email)) {
+    return user;
+  }
+
+  throw new Error('Forbidden: This action requires Super User privileges.');
+}
