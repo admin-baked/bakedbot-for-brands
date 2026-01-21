@@ -4,6 +4,7 @@ import { searchConsoleService } from '@/server/services/growth/search-console';
 import { googleAnalyticsService } from '@/server/services/growth/google-analytics';
 import { logger } from '@/lib/logger';
 import { sendEmail } from '@/server/services/email-service';
+import { defaultDayDayTools } from '@/app/dashboard/ceo/agents/default-tools';
 
 /**
  * Run Day Day Weekly Growth Review
@@ -58,12 +59,12 @@ export async function runDayDayWeeklyReview() {
                 const memory = { system_instructions: "You are Day Day, an SEO expert." }; // Minimal memory for this task
                 // We use specific Day Day logic if agent framework allows, or direct call
                 // Assuming dayDayAgent.act is the entry point
-                
+
                 const response = await dayDayAgent.act(
                     {} as any, // Brand memory (empty for now)
                     memory as any,
                     "user_request",
-                    {}, // Tools
+                    defaultDayDayTools, // DayDay tools
                     userQuery
                 );
 

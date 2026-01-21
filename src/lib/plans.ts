@@ -77,6 +77,10 @@ export const PLANS: Record<PlanId, PlanConfig> = {
   free: { id: "scout", name: "The Scout", description: "", baseAmount: 0, includedLocations: 1, extraPerLocation: null },
   claim_pro: { id: "pro", name: "Pro", description: "", baseAmount: 99, includedLocations: 1, extraPerLocation: 49 },
   founders_claim: { id: "pro", name: "Founders Claim", description: "", baseAmount: 79, includedLocations: 1, extraPerLocation: 49 },
+  growth_5: { id: "growth", name: "Growth", description: "", baseAmount: 249, includedLocations: 5, extraPerLocation: 25 },
+  scale_10: { id: "growth", name: "Scale", description: "", baseAmount: 349, includedLocations: 10, extraPerLocation: 25 },
+  pro_25: { id: "growth", name: "Pro 25", description: "", baseAmount: 499, includedLocations: 25, extraPerLocation: 20 },
+  enterprise: { id: "empire", name: "Enterprise", description: "", baseAmount: 0, includedLocations: 999, extraPerLocation: null },
 };
 
 export function computeMonthlyAmount(planId: PlanId, locationCount: number, coveragePackIds: CoveragePackId[] = []): number {
