@@ -66,6 +66,24 @@ const nextConfig = {
     const isProd = process.env.NODE_ENV === 'production';
 
     return [
+      // Embed routes - allow iframe embedding from any origin
+      {
+        source: '/embed/:path*',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'ALLOWALL',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors *",
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+        ],
+      },
       // Security headers for all routes
       {
         source: '/(.*)',
@@ -108,7 +126,7 @@ const nextConfig = {
                 "img-src 'self' data: https: blob:",
                 "media-src 'self' data: https: blob: https://storage.googleapis.com https://commondatastorage.googleapis.com", 
                 "font-src 'self' data: https://fonts.gstatic.com",
-                "connect-src 'self' https://*.googleapis.com https://apis.google.com https://*.firebaseio.com wss://*.firebaseio.com https://api.cannmenus.com https://api.anthropic.com https://www.google.com/recaptcha/ https://accounts.google.com",
+                "connect-src 'self' https://*.googleapis.com https://apis.google.com https://*.firebaseio.com wss://*.firebaseio.com https://api.cannmenus.com https://api.anthropic.com https://www.google.com/recaptcha/ https://accounts.google.com https://www.google-analytics.com https://www.googletagmanager.com https://analytics.google.com",
                 "frame-src 'self' https://www.google.com https://accounts.google.com https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://studio-567050101-bc6e8.firebaseapp.com",
                 "object-src 'none'",
                 "base-uri 'self'",
