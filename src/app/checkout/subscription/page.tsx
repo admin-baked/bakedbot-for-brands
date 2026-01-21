@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { PRICING_PLANS } from '@/lib/config/pricing';
+import { findPricingPlan } from '@/lib/config/pricing';
 import { PaymentCreditCard } from '@/components/checkout/payment-credit-card';
 import { createSubscription } from '../actions/createSubscription';
 
@@ -20,9 +20,9 @@ function SubscriptionCheckoutContent() {
     const router = useRouter();
     const { toast } = useToast();
 
-    // Get plan from URL or default to Growth
+    // Get plan from URL or default to Growth (supports legacy plan IDs like claim_pro)
     const planId = searchParams?.get('plan') || 'growth';
-    const plan = PRICING_PLANS.find(p => p.id === planId);
+    const plan = findPricingPlan(planId);
 
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState<'details' | 'payment'>('details');
