@@ -1,4 +1,24 @@
+## Session: 2026-01-21 (Ecstatic Edibles Image Uploads)
+### Task ID
+ecstatic_edibles_image_uploads
+
+### Summary
+Uploaded product images (Snickerdoodle Bites, Cheesecake Bliss Gummies, and Hoodie) for the "Ecstatic Edibles" pilot brand and updated Firestore records to link these images to the headless menu.
+
+### Key Changes
+*   **Firebase Storage**: Uploaded `Snickerdoodle Bites`, `Cheesecake Bliss Gummies`, and `If You Hit This We Go Together Hoodie` images to `bakedbot-global-assets` bucket.
+*   **Firestore**: Updated `products` collection for `brandId: brand_ecstatic_edibles` with public URLs for the images.
+
+### Verification Results
+*   Firestore records updated with `imageUrl` starting with `https://storage.googleapis.com/bakedbot-global-assets/`.
+*   Verified product names exactly matched: `Snickerdoodle Bites` and `Cheesecake Bliss Gummies`.
+
+### Result: ✅ Complete
+
+---
+
 ## Session: 2026-01-19 (Brand Role Enhancements — Team Hierarchy)
+
 ### Task ID
 brand_role_enhancements
 
