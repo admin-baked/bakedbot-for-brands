@@ -47,6 +47,7 @@ jest.mock('lucide-react', () => ({
     Wallet: () => <div data-testid="icon-wallet" />,
     FolderKanban: () => <div data-testid="icon-folder" />,
     Compass: () => <div data-testid="icon-compass" />,
+    Chrome: () => <div data-testid="icon-chrome" />,
 }));
 
 jest.mock('@/components/ui/collapsible', () => ({
@@ -114,5 +115,34 @@ describe('SuperAdminSidebar', () => {
         // But verifying it renders "Invite Team Member" implies the component integration exists.
         render(<SuperAdminSidebar />);
         expect(screen.getByText('Invite Team Member')).toBeInTheDocument();
+    });
+
+    it('renders the BakedBot in Chrome link', () => {
+        render(<SuperAdminSidebar />);
+
+        const browserLink = screen.getByText('BakedBot in Chrome');
+        expect(browserLink).toBeInTheDocument();
+
+        // Check it links to the correct tab
+        const link = browserLink.closest('a');
+        expect(link).toHaveAttribute('href', '/dashboard/ceo?tab=browser');
+    });
+
+    it('renders the Chrome icon for browser automation', () => {
+        render(<SuperAdminSidebar />);
+
+        const chromeIcon = screen.getByTestId('icon-chrome');
+        expect(chromeIcon).toBeInTheDocument();
+    });
+
+    it('highlights browser tab when active', () => {
+        (useSearchParams as jest.Mock).mockReturnValue({
+            get: jest.fn().mockReturnValue('browser')
+        });
+
+        render(<SuperAdminSidebar />);
+
+        const browserLink = screen.getByText('BakedBot in Chrome');
+        expect(browserLink).toBeInTheDocument();
     });
 });

@@ -101,6 +101,7 @@ For detailed documentation, see `.agent/refs/`:
 |-------|------|-------------|
 | **🧠 BakedBot Intelligence** | `refs/bakedbot-intelligence.md` | Letta memory, Hive Mind, archival |
 | **🔍 BakedBot Discovery** | `refs/bakedbot-discovery.md` | Web search, Firecrawl, RTRVR |
+| **🌐 Autonomous Browsing** | `refs/autonomous-browsing.md` | BakedBot AI in Chrome, workflows, scheduling |
 | **🤖 Agentic Coding** | `refs/agentic-coding.md` | Best practices, evals, workflows |
 | **API** | `refs/api.md` | Routes, endpoints, patterns |
 | **Backend** | `refs/backend.md` | Services, server actions, Firebase |
