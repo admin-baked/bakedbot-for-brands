@@ -4,13 +4,22 @@ import { initializeApp, cert, getApps, getApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { DutchieClient } from '@/lib/pos/adapters/dutchie';
 import { POSConfig } from '@/lib/pos/types';
+import { requireSuperUser } from '@/server/auth/auth';
+import { logger } from '@/lib/logger';
 import fs from 'fs';
 import path from 'path';
 
+/**
+ * Admin action to fix Essex Apothecary organization configuration.
+ * SECURITY: Requires Super User privileges.
+ */
 export async function fixEssexApothecary() {
+    // Security gate: Only super users can run this admin action
+    await requireSuperUser();
+
     const logs: string[] = [];
     const log = (msg: string) => {
-        console.log(`[FixEssex] ${msg}`);
+        logger.info(`[FixEssex] ${msg}`);
         logs.push(`[${new Date().toISOString()}] ${msg}`);
     };
     
@@ -107,13 +116,21 @@ export async function fixEssexApothecary() {
         });
         log('Plan updated.');
 
-        // 5. Update Dutchie Credentials
+        // 5. Update Dutchie Credentials (from environment variables)
         log('Updating Dutchie integration credentials...');
         const integrationRef = orgDoc.ref.collection('integrations').doc('dutchie');
-        
+
+        const dutchieStoreId = process.env.ESSEX_DUTCHIE_STORE_ID;
+        const dutchieApiKey = process.env.ESSEX_DUTCHIE_API_KEY;
+
+        if (!dutchieStoreId || !dutchieApiKey) {
+            log('ERROR: Missing ESSEX_DUTCHIE_STORE_ID or ESSEX_DUTCHIE_API_KEY environment variables.');
+            return { success: false, logs };
+        }
+
         const config: POSConfig = {
-            storeId: '3af693f9-ee33-43de-9d68-2a8c25881517', // Location ID
-            apiKey: '487c94ca-684f-4237-b3ef-6adb996437f1',   // API Key
+            storeId: dutchieStoreId,
+            apiKey: dutchieApiKey,
             environment: 'production'
         };
 

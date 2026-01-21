@@ -5,6 +5,7 @@ import { ai } from '@/ai/genkit';
 import { getGenerateOptions } from '@/ai/model-selector';
 import { runAgent } from '@/server/agents/harness';
 import { persistence } from '@/server/agents/persistence';
+import { requireSuperUser } from '@/server/auth/auth';
 
 import { craigAgent } from '@/server/agents/craig';
 import { smokeyAgent } from '@/server/agents/smokey';
@@ -65,7 +66,14 @@ import {
     defaultBigWormTools
 } from './default-tools';
 
+/**
+ * Trigger an agent run by name.
+ * SECURITY: Requires Super User privileges to prevent arbitrary agent execution.
+ */
 export async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOverride?: string) {
+    // Security gate: Only super users can trigger agent runs
+    await requireSuperUser();
+
     const brandId = brandIdOverride || 'demo-brand-123';
     const agentImpl = AGENT_MAP[agentName as keyof typeof AGENT_MAP];
     if (!agentImpl) {
@@ -298,7 +306,14 @@ const PLAYBOOK_REGISTRY: Record<string, () => Promise<PlaybookResult>> = {
     }
 };
 
+/**
+ * Execute a registered playbook by ID.
+ * SECURITY: Requires Super User privileges to prevent arbitrary playbook execution.
+ */
 export async function executePlaybook(playbookId: string): Promise<PlaybookResult> {
+    // Security gate: Only super users can execute playbooks
+    await requireSuperUser();
+
     const runner = PLAYBOOK_REGISTRY[playbookId];
     if (!runner) {
         return {

@@ -2,11 +2,12 @@
 
 /**
  * Bash Tool for Executive Boardroom Agents
- * 
+ *
  * Provides secure shell command execution capabilities.
  * Only available to Executive/Super User roles.
- * 
+ *
  * Security:
+ * - REQUIRES Super User authentication
  * - Commands are sandboxed (no network by default)
  * - No sudo/admin commands allowed
  * - Timeout limits enforced
@@ -18,14 +19,29 @@ import { tool } from 'genkit';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
+import { requireSuperUser } from '@/server/auth/auth';
 
 const execAsync = promisify(exec);
 
 // Blocked commands for security
 const BLOCKED_COMMANDS = [
-    'sudo', 'su', 'rm -rf /', 'rm -rf /*', 'mkfs', 'dd', 
-    'chmod 777', 'curl', 'wget', 'nc', 'netcat', 'ssh', 
-    ':(){:|:&};:', 'format', 'del /f', 'shutdown', 'reboot'
+    // System destructive commands
+    'sudo', 'su', 'rm -rf /', 'rm -rf /*', 'mkfs', 'dd',
+    'chmod 777', 'format', 'del /f', 'shutdown', 'reboot',
+    ':(){:|:&};:', // fork bomb
+    // Network commands
+    'curl', 'wget', 'nc', 'netcat', 'ssh', 'scp', 'rsync',
+    // Code execution via interpreters
+    'node -e', 'python -c', 'python3 -c', 'ruby -e', 'perl -e',
+    // Package management (dangerous operations)
+    'npm publish', 'npm unpublish', 'npm install -g',
+    'yarn publish', 'pnpm publish',
+    // Git dangerous operations
+    'git push --force', 'git push -f', 'git reset --hard origin',
+    // AWS/Cloud
+    'aws ', 'gcloud ', 'az ', 'kubectl delete',
+    // Database
+    'drop database', 'drop table', 'truncate table'
 ];
 
 // Max output length to prevent memory issues
@@ -75,7 +91,7 @@ function truncateOutput(output: string): string {
 // ============================================================================
 export const bashExecute = tool({
     name: 'bash_execute',
-    description: 'Execute a shell command. Use for running scripts, checking file contents, managing local development tasks. Security restrictions apply.',
+    description: 'Execute a shell command. Use for running scripts, checking file contents, managing local development tasks. Security restrictions apply. REQUIRES Super User privileges.',
     inputSchema: z.object({
         command: z.string().describe('The shell command to execute'),
         cwd: z.string().optional().describe('Working directory (defaults to project root)'),
@@ -84,11 +100,14 @@ export const bashExecute = tool({
     outputSchema: z.any(),
 }, async ({ command, cwd, timeout }) => {
     try {
+        // Security gate: Only super users can execute bash commands
+        await requireSuperUser();
+
         // Security check
         const safetyCheck = isCommandSafe(command);
         if (!safetyCheck.safe) {
-            return { 
-                success: false, 
+            return {
+                success: false,
                 error: `Security: ${safetyCheck.reason}`,
                 exitCode: -1
             };
@@ -152,7 +171,7 @@ export const bashExecute = tool({
 // ============================================================================
 export const bashListDir = tool({
     name: 'bash_list_dir',
-    description: 'List the contents of a directory with file details.',
+    description: 'List the contents of a directory with file details. REQUIRES Super User privileges.',
     inputSchema: z.object({
         path: z.string().optional().default('.').describe('Directory path to list'),
         showHidden: z.boolean().optional().default(false).describe('Show hidden files')
@@ -160,6 +179,9 @@ export const bashListDir = tool({
     outputSchema: z.any(),
 }, async ({ path: dirPath, showHidden }) => {
     try {
+        // Security gate: Only super users can list directories
+        await requireSuperUser();
+
         const isWindows = process.platform === 'win32';
         const command = isWindows 
             ? `Get-ChildItem -Path "${dirPath}" ${showHidden ? '-Force' : ''} | Select-Object Mode, Length, LastWriteTime, Name | Format-Table -AutoSize`
@@ -189,7 +211,7 @@ export const bashListDir = tool({
 // ============================================================================
 export const bashReadFile = tool({
     name: 'bash_read_file',
-    description: 'Read the contents of a file.',
+    description: 'Read the contents of a file. REQUIRES Super User privileges.',
     inputSchema: z.object({
         filePath: z.string().describe('Path to the file to read'),
         maxLines: z.number().optional().default(100).describe('Maximum number of lines to read')
@@ -197,6 +219,9 @@ export const bashReadFile = tool({
     outputSchema: z.any(),
 }, async ({ filePath, maxLines }) => {
     try {
+        // Security gate: Only super users can read files via bash
+        await requireSuperUser();
+
         const isWindows = process.platform === 'win32';
         const command = isWindows 
             ? `Get-Content -Path "${filePath}" -TotalCount ${maxLines}`

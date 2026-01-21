@@ -2,10 +2,15 @@
 
 /**
  * Headless Browser Tool using Puppeteer Core (Serverless Compatible)
- * 
+ *
  * Allows agents to execute a sequence of browser actions in a single session.
  * Useful for discovery, form submission, and navigating complex flows.
- * 
+ *
+ * Security:
+ * - REQUIRES Super User authentication
+ * - URL whitelist enforced (no internal/localhost URLs in production)
+ * - Evaluate action disabled for security (arbitrary code execution risk)
+ *
  * Note: Uses puppeteer-core and @sparticuz/chromium for production (Firebase/Cloud Functions).
  * Locally requires a Chrome installation.
  */
@@ -13,6 +18,7 @@
 import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import { logger } from '@/lib/logger';
+import { requireSuperUser } from '@/server/auth/auth';
 
 export type BrowserStep =
     | { action: 'goto', url: string }
@@ -37,8 +43,34 @@ export interface BrowserActionResult {
     durationMs: number;
 }
 
+// Blocked URL patterns for security (no internal/sensitive URLs)
+const BLOCKED_URL_PATTERNS = [
+    /^https?:\/\/localhost/i,
+    /^https?:\/\/127\./,
+    /^https?:\/\/0\./,
+    /^https?:\/\/10\./,
+    /^https?:\/\/172\.(1[6-9]|2[0-9]|3[0-1])\./,
+    /^https?:\/\/192\.168\./,
+    /^https?:\/\/.*\.internal/i,
+    /^https?:\/\/metadata\.google/i,
+    /^https?:\/\/169\.254\./,
+    /^file:/i,
+];
+
+/**
+ * Check if a URL is safe to navigate to
+ */
+function isUrlSafe(url: string): boolean {
+    // In development, allow localhost for testing
+    if (process.env.NODE_ENV !== 'production') {
+        return true;
+    }
+    return !BLOCKED_URL_PATTERNS.some(pattern => pattern.test(url));
+}
+
 /**
  * Execute a sequence of browser actions
+ * SECURITY: Requires Super User privileges
  */
 export async function browserAction(params: BrowserActionParams): Promise<BrowserActionResult> {
     const { steps, headless = true } = params;
@@ -47,6 +79,9 @@ export async function browserAction(params: BrowserActionParams): Promise<Browse
     let browser = null;
 
     try {
+        // Security gate: Only super users can use browser automation
+        await requireSuperUser();
+
         console.log('[browserAction] Launching browser...');
         logs.push('Launching browser...');
 
@@ -83,6 +118,10 @@ export async function browserAction(params: BrowserActionParams): Promise<Browse
             try {
                 switch (step.action) {
                     case 'goto':
+                        // Security: Validate URL before navigation
+                        if (!isUrlSafe(step.url)) {
+                            throw new Error(`Security: URL "${step.url}" is blocked (internal/private network)`);
+                        }
                         await page.goto(step.url, { timeout: 30000, waitUntil: 'domcontentloaded' });
                         logs.push(`Navigate to ${step.url}`);
                         break;
@@ -111,13 +150,10 @@ export async function browserAction(params: BrowserActionParams): Promise<Browse
                         break;
 
                     case 'evaluate':
-                        // Be careful with eval
-                        const result = await page.evaluate((s) => {
-                            // eslint-disable-next-line no-eval
-                            return eval(s);
-                        }, step.script);
-                        lastResult = result;
-                        logs.push('Evaluated script');
+                        // SECURITY: Arbitrary script execution is disabled
+                        // This action previously used eval() which poses a severe security risk
+                        // If you need custom page interactions, use the built-in actions (click, type, discover)
+                        throw new Error('Security: The "evaluate" action is disabled. Use built-in actions instead.');
                         break;
 
                     case 'screenshot':
