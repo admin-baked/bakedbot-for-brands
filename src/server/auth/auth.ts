@@ -71,8 +71,8 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
     // This allows testing different personas without full Firebase Auth flow.
     const simulatedRole = cookieStore.get('x-simulated-role')?.value as Role | undefined;
 
-    // Check if we are in a non-production environment (simplified check)
-    const isDev = process.env.NODE_ENV !== 'production';
+    // Check if we are strictly in development mode
+    const isDev = process.env.NODE_ENV === 'development';
 
     if (isDev && simulatedRole) {
       // Return a mock token for development

@@ -42,7 +42,7 @@ export function middleware(request: NextRequest) {
     const isCeoDashboard = pathname.startsWith('/dashboard/ceo');
 
     // Allow public routes
-    if (!isProtectedRoute || pathname === '/api/admin/fix-essex') {
+    if (!isProtectedRoute) {
         return NextResponse.next();
     }
 
