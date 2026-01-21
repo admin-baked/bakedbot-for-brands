@@ -30,8 +30,10 @@ function getServiceAccount() {
         const searchPaths = [
             path.resolve(cwd, 'service-account.json'),
             path.resolve(cwd, '..', 'service-account.json'),
-            path.resolve(cwd, '..', '..', 'service-account.json'), // Just in case
-            'C:\\Users\\marte\\Baked for Brands\\bakedbot-for-brands\\service-account.json' // Hard fallback based on known user path
+            path.resolve(cwd, '..', '..', 'service-account.json'),
+            // User-specific fallback paths
+            'C:\\Users\\admin\\BakedBot for Brands\\bakedbot-for-brands\\service-account.json',
+            'C:\\Users\\marte\\Baked for Brands\\bakedbot-for-brands\\service-account.json'
         ];
 
         for (const tryPath of searchPaths) {

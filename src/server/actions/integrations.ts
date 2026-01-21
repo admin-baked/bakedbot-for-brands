@@ -12,13 +12,43 @@ export interface SystemIntegrations {
     sheets: IntegrationStatus;
 }
 
+/**
+ * Check the status of Google Workspace integrations for the current user.
+ * Returns 'disconnected' for all services if user is not authenticated or Firebase is unavailable.
+ */
 export async function checkIntegrationsStatus(): Promise<SystemIntegrations> {
+    // Default status when Firebase isn't available or user isn't authenticated
+    const defaultStatus: SystemIntegrations = {
+        gmail: 'disconnected',
+        calendar: 'disconnected',
+        drive: 'disconnected',
+        sheets: 'disconnected'
+    };
+
     try {
-        const user = await requireUser();
-        const { firestore } = await createServerClient();
-        
+        // First check if user is authenticated
+        let user;
+        try {
+            user = await requireUser();
+        } catch (authError) {
+            // User not authenticated - return disconnected (not error)
+            console.log('[integrations] User not authenticated, returning disconnected status');
+            return defaultStatus;
+        }
+
+        // Try to get Firestore client
+        let firestore;
+        try {
+            const client = await createServerClient();
+            firestore = client.firestore;
+        } catch (firebaseError) {
+            // Firebase not initialized - return disconnected with warning
+            console.warn('[integrations] Firebase not available:', firebaseError);
+            return defaultStatus;
+        }
+
         const integrationsRef = firestore.collection('users').doc(user.uid).collection('integrations');
-        
+
         // Parallel fetch for all services
         const [gmailDoc, calendarDoc, driveDoc, sheetsDoc] = await Promise.all([
             integrationsRef.doc('gmail').get(),
@@ -43,12 +73,8 @@ export async function checkIntegrationsStatus(): Promise<SystemIntegrations> {
         };
 
     } catch (error) {
-        console.error('Failed to check integration status:', error);
-        return {
-            gmail: 'error',
-            calendar: 'error',
-            drive: 'error',
-            sheets: 'error'
-        };
+        console.error('[integrations] Failed to check integration status:', error);
+        // Return disconnected instead of error for better UX
+        return defaultStatus;
     }
 }
