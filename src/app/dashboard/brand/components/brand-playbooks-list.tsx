@@ -29,15 +29,22 @@ export function BrandPlaybooksList({ brandId }: { brandId: string }) {
         async function load() {
             try {
                 const data = await listBrandPlaybooks(brandId);
-                setPlaybooks(data);
-            } catch (error) {
+                setPlaybooks(data || []);
+            } catch (error: any) {
                 console.error("Failed to load playbooks", error);
-                toast({ variant: "destructive", title: "Error", description: "Failed to load playbooks" });
+                // Don't show toast for auth errors - user is likely just being redirected
+                if (!error?.message?.includes('Unauthorized') && !error?.message?.includes('session cookie')) {
+                    toast({ variant: "destructive", title: "Error", description: "Failed to load playbooks" });
+                }
             } finally {
                 setLoading(false);
             }
         }
-        load();
+        if (brandId) {
+            load();
+        } else {
+            setLoading(false);
+        }
     }, [brandId, toast]);
 
     const togglePlaybook = async (id: string, currentStatus: boolean) => {

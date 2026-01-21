@@ -58,15 +58,19 @@ export function EzalSnapshotCard({
         setLoading(true);
         try {
             const comps = await getEzalCompetitors(10);
-            setCompetitors(comps);
+            setCompetitors(comps || []);
 
             // Auto-select first competitor if exists
-            if (comps.length > 0) {
+            if (comps && comps.length > 0) {
                 setSelectedCompetitor(comps[0]);
                 await loadSnapshot(comps[0]);
             }
-        } catch (e) {
-            console.error('Failed to load competitors', e);
+        } catch (e: any) {
+            // Silently handle auth errors - user may be redirected
+            if (!e?.message?.includes('Unauthorized') && !e?.message?.includes('session cookie')) {
+                console.error('Failed to load competitors', e);
+            }
+            setCompetitors([]);
         } finally {
             setLoading(false);
         }
