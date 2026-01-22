@@ -179,17 +179,29 @@ export class TaskScheduler {
    * List tasks for user
    */
   async listTasks(userId: string, options?: { limit?: number }): Promise<BrowserTask[]> {
-    let query = getAdminFirestore()
-      .collection(TASKS_COLLECTION)
-      .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc');
+    try {
+      const snapshot = await getAdminFirestore()
+        .collection(TASKS_COLLECTION)
+        .where('userId', '==', userId)
+        .get();
 
-    if (options?.limit) {
-      query = query.limit(options.limit);
+      // Sort in memory to avoid composite index requirement
+      let tasks = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({ id: doc.id, ...doc.data() } as BrowserTask));
+      tasks.sort((a, b) => {
+        const aTime = a.createdAt?.toMillis?.() || 0;
+        const bTime = b.createdAt?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
+
+      if (options?.limit) {
+        tasks = tasks.slice(0, options.limit);
+      }
+
+      return tasks;
+    } catch (error) {
+      logger.error('[TaskScheduler] listTasks failed', { error, userId });
+      return [];
     }
-
-    const snapshot = await query.get();
-    return snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({ id: doc.id, ...doc.data() } as BrowserTask));
   }
 
   /**

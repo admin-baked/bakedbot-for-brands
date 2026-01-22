@@ -104,27 +104,43 @@ export class BrowserSessionManager {
    * Get active session for user
    */
   async getActiveSession(userId: string): Promise<BrowserSession | null> {
-    const snapshot = await getAdminFirestore()
-      .collection(SESSIONS_COLLECTION)
-      .where('userId', '==', userId)
-      .where('status', '==', 'active')
-      .orderBy('startedAt', 'desc')
-      .limit(1)
-      .get();
+    try {
+      // Query without orderBy to avoid composite index requirement
+      const snapshot = await getAdminFirestore()
+        .collection(SESSIONS_COLLECTION)
+        .where('userId', '==', userId)
+        .where('status', '==', 'active')
+        .get();
 
-    if (snapshot.empty) return null;
+      if (snapshot.empty) return null;
 
-    const doc = snapshot.docs[0];
-    const data = doc.data();
+      // Sort in memory and get the most recent
+      const sessions = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as BrowserSession[];
 
-    // Check for timeout
-    const lastActivity = data.lastActivityAt?.toMillis() || 0;
-    if (Date.now() - lastActivity > SESSION_TIMEOUT_MS) {
-      await this.endSession(doc.id);
+      sessions.sort((a, b) => {
+        const aTime = a.startedAt?.toMillis?.() || 0;
+        const bTime = b.startedAt?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
+
+      const doc = sessions[0];
+      if (!doc) return null;
+
+      // Check for timeout
+      const lastActivity = (doc.lastActivityAt as any)?.toMillis?.() || 0;
+      if (Date.now() - lastActivity > SESSION_TIMEOUT_MS) {
+        await this.endSession(doc.id);
+        return null;
+      }
+
+      return doc;
+    } catch (error) {
+      logger.error('[SessionManager] getActiveSession failed', { error, userId });
       return null;
     }
-
-    return { id: doc.id, ...data } as BrowserSession;
   }
 
   /**
@@ -462,14 +478,25 @@ export class BrowserSessionManager {
     userId: string,
     limit = 10
   ): Promise<BrowserSession[]> {
-    const snapshot = await getAdminFirestore()
-      .collection(SESSIONS_COLLECTION)
-      .where('userId', '==', userId)
-      .orderBy('startedAt', 'desc')
-      .limit(limit)
-      .get();
+    try {
+      const snapshot = await getAdminFirestore()
+        .collection(SESSIONS_COLLECTION)
+        .where('userId', '==', userId)
+        .get();
 
-    return snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({ id: doc.id, ...doc.data() } as BrowserSession));
+      // Sort in memory to avoid composite index requirement
+      let sessions = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({ id: doc.id, ...doc.data() } as BrowserSession));
+      sessions.sort((a, b) => {
+        const aTime = a.startedAt?.toMillis?.() || 0;
+        const bTime = b.startedAt?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
+
+      return sessions.slice(0, limit);
+    } catch (error) {
+      logger.error('[SessionManager] getSessionHistory failed', { error, userId });
+      return [];
+    }
   }
 
   /**

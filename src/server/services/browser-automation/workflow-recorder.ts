@@ -261,22 +261,34 @@ export class WorkflowRecorder {
     userId: string,
     options?: { status?: string; limit?: number }
   ): Promise<RecordedWorkflow[]> {
-    let query = getAdminFirestore()
-      .collection(WORKFLOWS_COLLECTION)
-      .where('userId', '==', userId);
+    try {
+      let query = getAdminFirestore()
+        .collection(WORKFLOWS_COLLECTION)
+        .where('userId', '==', userId);
 
-    if (options?.status) {
-      query = query.where('status', '==', options.status);
+      if (options?.status) {
+        query = query.where('status', '==', options.status);
+      }
+
+      const snapshot = await query.get();
+
+      // Sort in memory to avoid composite index requirement
+      let workflows = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({ id: doc.id, ...doc.data() } as RecordedWorkflow));
+      workflows.sort((a, b) => {
+        const aTime = a.updatedAt?.toMillis?.() || 0;
+        const bTime = b.updatedAt?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
+
+      if (options?.limit) {
+        workflows = workflows.slice(0, options.limit);
+      }
+
+      return workflows;
+    } catch (error) {
+      logger.error('[WorkflowRecorder] listWorkflows failed', { error, userId });
+      return [];
     }
-
-    query = query.orderBy('updatedAt', 'desc');
-
-    if (options?.limit) {
-      query = query.limit(options.limit);
-    }
-
-    const snapshot = await query.get();
-    return snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({ id: doc.id, ...doc.data() } as RecordedWorkflow));
   }
 
   /**
