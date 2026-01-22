@@ -103,8 +103,10 @@ service cloud.firestore {
     
     // --- Orders Collection ---
     match /orders/{orderId} {
-      // Allow creation through the secure server action.
-      allow create: if true;
+      // Require authentication for order creation (user must be logged in)
+      // The userId in the order must match the authenticated user
+      allow create: if request.auth != null &&
+                     request.resource.data.userId == request.auth.uid;
 
       // Read/Update access is granted based on role.
       allow read, update: if
@@ -419,8 +421,13 @@ service cloud.firestore {
 
     // Tenant Events (analytics)
     match /tenants/{tenantId}/events/{eventId} {
-      // Anyone can write events (for anonymous tracking)
-      allow create: if true;
+      // Allow event creation with basic validation:
+      // - Must have required fields (eventType, timestamp)
+      // - Document size limited by Firestore (1MB max)
+      // Note: For anonymous tracking, we allow unauthenticated writes but validate structure
+      allow create: if request.resource.data.keys().hasAll(['eventType', 'timestamp']) &&
+                     request.resource.data.eventType is string &&
+                     request.resource.data.eventType.size() <= 100;
       // Only tenant members can read events
       allow read: if isTenantMember(tenantId) || isRole('owner');
       // Events are append-only

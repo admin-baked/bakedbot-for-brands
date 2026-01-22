@@ -4,21 +4,27 @@
  * Whitelist of emails that have super admin access to CEO dashboard
  */
 
-export const SUPER_ADMIN_EMAILS = [
+// All known super admin emails (type safety)
+const ALL_SUPER_ADMIN_EMAILS = [
     'martez@bakedbot.ai',
     'jack@bakedbot.ai',
     'vib@cannmenus.com',
-    'owner@bakedbot.ai', // Dev persona for local development
+    'owner@bakedbot.ai', // Dev persona - gated by environment check below
 ] as const;
 
-export type SuperAdminEmail = typeof SUPER_ADMIN_EMAILS[number];
+export type SuperAdminEmail = typeof ALL_SUPER_ADMIN_EMAILS[number];
+
+// Runtime filter: dev persona only available in non-production environments
+export const SUPER_ADMIN_EMAILS: readonly SuperAdminEmail[] = ALL_SUPER_ADMIN_EMAILS.filter(
+    email => email !== 'owner@bakedbot.ai' || process.env.NODE_ENV !== 'production'
+);
 
 /**
  * Check if an email is in the super admin whitelist
  */
 export function isSuperAdminEmail(email: string | null | undefined): boolean {
     if (!email) return false;
-    return SUPER_ADMIN_EMAILS.includes(email.toLowerCase() as SuperAdminEmail);
+    return (SUPER_ADMIN_EMAILS as readonly string[]).includes(email.toLowerCase());
 }
 
 /**
