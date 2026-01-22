@@ -1,15 +1,33 @@
-
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
+import { requireSuperUser } from '@/server/auth/auth';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * POST /api/dev/seed-test-pages
- * 
+ * DEV ONLY: POST /api/dev/seed-test-pages
+ *
  * Creates seed pages for testing in ZIPs 48201 (Detroit) and 60605 (Chicago)
+ *
+ * SECURITY: Blocked in production and requires Super User authentication.
  */
 export async function POST() {
+    // SECURITY: Block in production
+    if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json(
+            { error: 'Dev route disabled in production' },
+            { status: 403 }
+        );
+    }
+
+    // SECURITY: Require Super User authentication
+    try {
+        await requireSuperUser();
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
         const { firestore } = await createServerClient();
         const configRef = firestore.collection('foot_traffic').doc('config');
@@ -300,8 +318,9 @@ export async function POST() {
                 statePages: statePages.length
             }
         });
-    } catch (e: any) {
-        console.error('Error seeding pages:', e);
-        return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        logger.error('Error seeding pages', { error: message });
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }

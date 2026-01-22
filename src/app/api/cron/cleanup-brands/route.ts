@@ -1,23 +1,29 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-    const { searchParams } = new URL(request.url);
-    const key = searchParams.get('key');
+    // SECURITY: Verify cron secret - REQUIRED
+    const authHeader = request.headers.get('authorization');
+    const cronSecret = process.env.CRON_SECRET;
 
-    if (key !== 'cleanup_run' && key !== process.env.CRON_SECRET) {
+    if (!cronSecret) {
+        logger.error('CRON_SECRET environment variable is not configured');
+        return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+    }
+
+    if (authHeader !== `Bearer ${cronSecret}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     try {
         const db = getAdminFirestore();
-        console.log('[Cleanup] Deleting all brand SEO pages...');
-        
+        logger.info('[Cleanup] Deleting all brand SEO pages...');
+
         const snapshot = await db.collection('seo_pages_brand').get();
-        
+
         if (snapshot.empty) {
             return NextResponse.json({ message: 'No pages to delete' });
         }
@@ -31,18 +37,19 @@ export async function GET(request: NextRequest) {
         });
 
         await batch.commit();
-        console.log(`[Cleanup] Deleted ${count} pages`);
+        logger.info(`[Cleanup] Deleted ${count} pages`);
 
-        return NextResponse.json({ 
-            success: true, 
+        return NextResponse.json({
+            success: true,
             deleted: count,
-            message: 'Successfully deleted all brand SEO pages' 
+            message: 'Successfully deleted all brand SEO pages'
         });
 
-    } catch (error: any) {
-        console.error('[Cleanup] Error:', error);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Internal Server Error';
+        logger.error('[Cleanup] Error', { error });
         return NextResponse.json(
-            { error: error.message || 'Internal Server Error' },
+            { error: message },
             { status: 500 }
         );
     }

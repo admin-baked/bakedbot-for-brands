@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes for large deletions
 
 /**
- * DELETE /api/dev/delete-all-pages
+ * DEV ONLY: DELETE /api/dev/delete-all-pages
  *
  * Deletes ALL generated pages from Firestore.
  * WARNING: This is destructive and cannot be undone.
@@ -35,17 +35,18 @@ export async function DELETE() {
         const result = await deleteAllPages();
 
         if (result.success) {
-            console.log('All pages deleted successfully');
+            logger.info('All pages deleted successfully');
             return NextResponse.json({
                 success: true,
                 message: 'All pages deleted from seo_pages, generated_pages_metadata, and foot_traffic collections'
             });
         } else {
-            console.error('Delete failed:', result.error);
+            logger.error('Delete failed', { error: result.error });
             return NextResponse.json({ success: false, error: result.error }, { status: 500 });
         }
-    } catch (e: any) {
-        console.error('Error in delete API:', e);
-        return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        logger.error('Error in delete API', { error: message });
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }

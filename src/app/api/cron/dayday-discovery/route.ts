@@ -1,22 +1,31 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { runDayDayDailyDiscovery } from '@/server/jobs/dayday-daily-discovery';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes max
 
 export async function GET(req: NextRequest) {
+    // SECURITY: Verify cron secret - REQUIRED
     const authHeader = req.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    const cronSecret = process.env.CRON_SECRET;
+
+    if (!cronSecret) {
+        logger.error('CRON_SECRET environment variable is not configured');
+        return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+    }
+
+    if (authHeader !== `Bearer ${cronSecret}`) {
         return new NextResponse('Unauthorized', { status: 401 });
     }
 
     try {
-        console.log('[Cron] Starting Day Day Daily Discovery...');
+        logger.info('[Cron] Starting Day Day Daily Discovery...');
         const result = await runDayDayDailyDiscovery(5); // Process 5 markets per run
         return NextResponse.json({ success: true, result });
-    } catch (error: any) {
-        console.error('[Cron] Day Day Discovery failed:', error);
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Internal Server Error';
+        logger.error('[Cron] Day Day Discovery failed', { error });
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }
