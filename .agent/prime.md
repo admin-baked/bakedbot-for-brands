@@ -181,6 +181,34 @@ Full index in `refs/README.md`.
 
 ## 🆕 Recent Changes (2026-01-22)
 
+### Agent Hive Mind + Grounding System
+All agents now connected to shared memory (Hive Mind) and have explicit grounding rules to prevent hallucination.
+
+**What Changed:**
+- Added `buildSquadRoster()` and `buildIntegrationStatusSummary()` to `agent-definitions.ts`
+- All agent system prompts now include dynamic squad roster (no hardcoded agent lists)
+- Added `GROUNDING RULES (CRITICAL)` section to all agents with anti-hallucination rules
+- Connected all agents to Hive Mind via `lettaBlockManager.attachBlocksForRole()`
+
+**Hive Mind Roles:**
+| Role | Agents |
+|------|--------|
+| `'executive'` | Leo, Jack, Glenda, Executive, Linus |
+| `'brand'` | Pops, Ezal, Craig, Money Mike, Mrs. Parker, Day Day, Deebo, Smokey |
+
+**Grounding Rules Pattern:**
+```typescript
+=== GROUNDING RULES (CRITICAL) ===
+1. ONLY report data you can actually query. Use tools for real data.
+2. ONLY reference agents that exist in the AGENT SQUAD list.
+3. For integrations NOT YET ACTIVE, offer to help set them up.
+4. When uncertain, ASK rather than assume.
+```
+
+**Key Files:**
+- `src/server/agents/agent-definitions.ts` — Central registry for agents and integrations
+- `src/app/dashboard/ceo/agents/default-tools.ts` — Real `getSystemHealth` and `getAgentStatus` tools
+
 ### BakedBot AI in Chrome - Agent Chat Interface
 Browser automation now includes a natural language chat interface similar to Claude's Computer Use extension. Super Users can guide the browser agent through tasks using conversational commands.
 
