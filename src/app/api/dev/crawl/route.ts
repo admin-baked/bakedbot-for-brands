@@ -1,12 +1,31 @@
 // src/app/api/dev/crawl/route.ts
+/**
+ * DEV ONLY: Crawler stub endpoint
+ *
+ * SECURITY: Blocked in production and requires Super User authentication.
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/firebase/server-client";
+import { requireSuperUser } from "@/server/auth/auth";
 
 import { logger } from '@/lib/logger';
-// This is a placeholder for a real, robust crawler service.
-// In production, this would likely be a Cloud Run service triggered by Pub/Sub.
 
 export async function POST(req: NextRequest) {
+  // SECURITY: Block in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'Dev route disabled in production' },
+      { status: 403 }
+    );
+  }
+
+  // SECURITY: Require Super User authentication
+  try {
+    await requireSuperUser();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const { firestore } = await createServerClient();
   const { menu_source_id } = await req.json();
 

@@ -1,8 +1,10 @@
-
 // src/app/api/dev/build-cannmenus-embeddings/route.ts
-
+/**
+ * DEV ONLY: Build CannMenus embeddings endpoint
+ *
+ * SECURITY: Blocked in production and requires Super User authentication.
+ */
 import { NextRequest, NextResponse } from "next/server";
-import { getFirestore } from "firebase-admin/firestore";
 
 import {
   ProductDoc,
@@ -71,8 +73,16 @@ function buildProductText(
 
 // Route implementation
 export async function POST(_req: NextRequest) {
+  // SECURITY: Block in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'Dev route disabled in production' },
+      { status: 403 }
+    );
+  }
+
   try {
-    // Secure the endpoint by requiring an 'owner' role.
+    // SECURITY: Require Super User authentication
     await requireUser(['super_user']);
 
     const { firestore: db } = await createServerClient();

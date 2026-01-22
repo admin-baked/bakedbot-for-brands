@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import { FieldValue, FieldPath } from 'firebase-admin/firestore';
+import { requireSuperUser } from '@/server/auth/auth';
 
 /**
  * Job Processor API Route
  * Processes pending background jobs from the data_jobs collection
- * 
+ *
+ * SECURITY: Requires Super User authentication to prevent unauthorized job execution.
+ *
  * Can be triggered:
  * 1. Immediately after job creation (fire-and-forget from pre-start-import)
  * 2. As a scheduled task (e.g., every minute)
@@ -15,6 +18,9 @@ import { FieldValue, FieldPath } from 'firebase-admin/firestore';
 
 export async function POST(request: NextRequest) {
     try {
+        // SECURITY: Require Super User authentication
+        await requireSuperUser();
+
         const { firestore } = await createServerClient();
 
         // Get job IDs from request body (optional - for targeted processing)
