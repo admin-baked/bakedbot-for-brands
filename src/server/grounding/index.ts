@@ -20,6 +20,14 @@ export {
     type GroundingSection,
 } from './builder';
 
+// Re-export dynamic loader (Firestore-first with code fallback)
+export {
+    loadGroundTruth,
+    hasGroundTruthDynamic,
+    hasGroundTruthSync,
+    getGroundTruthSource,
+} from './dynamic-loader';
+
 // Re-export types
 export type { GroundTruthQASet, GroundTruthQAPair, GroundTruthCategory } from '@/types/ground-truth';
 
