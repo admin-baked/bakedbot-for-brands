@@ -181,6 +181,41 @@ Full index in `refs/README.md`.
 
 ## 🆕 Recent Changes (2026-01-22)
 
+### BakedBot AI in Chrome - Agent Chat Interface
+Browser automation now includes a natural language chat interface similar to Claude's Computer Use extension. Super Users can guide the browser agent through tasks using conversational commands.
+
+**New Features:**
+- Chat with Agent tab for natural language browser control
+- Manual Controls tab for direct CSS selector-based actions
+- Automatic parsing of agent responses into browser actions
+- Visual action badges showing execution status
+
+**Key Files:**
+- `src/app/dashboard/ceo/components/browser-automation/browser-agent-chat.tsx` — Chat interface component
+- `src/app/dashboard/ceo/components/browser-automation/browser-session-panel.tsx` — Tabbed session panel
+
+**Firestore Query Fixes:**
+Fixed composite index requirements by using in-memory sorting instead of `orderBy()`:
+- `permission-guard.ts` — `listPermissions()`
+- `session-manager.ts` — `getActiveSession()`, `getSessionHistory()`
+- `task-scheduler.ts` — `listTasks()`
+- `workflow-recorder.ts` — `listWorkflows()`
+
+**Unit Tests:**
+36 new tests in `tests/server/browser-automation.test.ts` covering:
+- Data structure validation
+- Domain normalization and blocking
+- Action validation
+- In-memory sorting
+- Chat action parsing
+
+### Chrome Extension Authentication
+Extension token generation now correctly uses email whitelist (`SUPER_ADMIN_EMAILS`) instead of Firestore field check.
+
+**Key Files:**
+- `src/app/api/browser/extension/connect/route.ts` — Token endpoint
+- `src/lib/super-admin-config.ts` — Email whitelist
+
 ### Custom Domain Management
 Brands and dispensaries can now connect custom domains to their BakedBot menu.
 
@@ -191,7 +226,8 @@ Brands and dispensaries can now connect custom domains to their BakedBot menu.
 
 **Key Files:**
 - `src/server/actions/domain-management.ts` — Server actions
-- `src/lib/dns-verify.ts` — DNS verification
+- `src/lib/dns-utils.ts` — Client-safe DNS utilities
+- `src/lib/dns-verify.ts` — Server-only DNS verification
 - `src/app/dashboard/settings/components/domain-tab.tsx` — Dashboard UI
 
 > Details: `refs/backend.md` → Custom Domain Management section
@@ -206,13 +242,6 @@ iframe-based embeddable menu widget for external sites.
 **Note:** Embeds do NOT provide SEO benefits. Use custom domains for SEO.
 
 > Details: `refs/frontend.md` → Menu Embed section
-
-### Unit Tests Added
-74 new tests for domain and embed features:
-- `tests/lib/dns-verify.test.ts`
-- `tests/lib/domain-cache.test.ts`
-- `tests/actions/domain-management.test.ts`
-- `tests/embed/menu-embed.test.ts`
 
 ---
 
