@@ -319,16 +319,29 @@ export class PermissionGuard {
    * List all permissions for user
    */
   async listPermissions(userId: string): Promise<SitePermission[]> {
-    const snapshot = await getAdminFirestore()
-      .collection(PERMISSIONS_COLLECTION)
-      .where('userId', '==', userId)
-      .orderBy('grantedAt', 'desc')
-      .get();
+    try {
+      const snapshot = await getAdminFirestore()
+        .collection(PERMISSIONS_COLLECTION)
+        .where('userId', '==', userId)
+        .get();
 
-    return snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
-      id: doc.id,
-      ...doc.data(),
-    } as SitePermission));
+      // Sort in memory instead of using orderBy (avoids needing a composite index)
+      const permissions = snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
+        id: doc.id,
+        ...doc.data(),
+      } as SitePermission));
+
+      // Sort by grantedAt descending
+      return permissions.sort((a, b) => {
+        const aTime = a.grantedAt?.toMillis?.() || 0;
+        const bTime = b.grantedAt?.toMillis?.() || 0;
+        return bTime - aTime;
+      });
+    } catch (error) {
+      logger.error('[PermissionGuard] listPermissions failed', { error, userId });
+      // Return empty array instead of throwing to prevent page crashes
+      return [];
+    }
   }
 
   /**
