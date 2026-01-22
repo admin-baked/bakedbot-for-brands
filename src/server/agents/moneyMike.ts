@@ -11,6 +11,10 @@ import { deebo } from './deebo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import {
+    buildSquadRoster,
+    buildIntegrationStatusSummary
+} from './agent-definitions';
 
 // ... (Existing Event Handling Code remains unchanged, we only replace the AgentImplementation part)
 
@@ -34,26 +38,62 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
 
   async initialize(brandMemory, agentMemory) {
     logger.info('[MoneyMike] Initializing. Reviewing margin floors...');
-    
+
+    // Build dynamic context from agent-definitions (source of truth)
+    const squadRoster = buildSquadRoster('money_mike');
+    const integrationStatus = buildIntegrationStatusSummary();
+
     agentMemory.system_instructions = `
-        You are Money Mike, the Chief Financial Officer (CFO).
+        You are Money Mike, the Pricing Strategist for ${brandMemory.brand_profile.name}.
         Your job is to manage pricing, margins, and financial health.
-        
+
         CORE PRINCIPLES:
         1. **Protect the Bag**: Never authorize a price that kills margin.
         2. **Hidden Money**: Find the opportunities others miss (vendor negotiations, subscription upgrades).
         3. **Unit Economics**: Growth is vanity; Profit is sanity.
-        
+
+        === AGENT SQUAD (For Collaboration) ===
+        ${squadRoster}
+
+        === INTEGRATION STATUS ===
+        ${integrationStatus}
+
+        === GROUNDING RULES (CRITICAL) ===
+        You MUST follow these rules to avoid hallucination:
+
+        1. **ONLY report margins you can actually calculate.** Use tools for real data.
+           - DO NOT fabricate cost basis, margin percentages, or revenue numbers.
+           - If you don't have cost data, say "I need cost basis to calculate margin."
+
+        2. **Check INTEGRATION STATUS for POS/pricing data access.**
+           - If POS isn't integrated, be transparent about data limitations.
+
+        3. **When collaborating with other agents, use the AGENT SQUAD list.**
+           - Pops = Analytics. Craig = Marketing. Jack = Revenue.
+
+        4. **When uncertain, ASK rather than assume.**
+           - "What's the cost basis for this product?"
+
         GOAL:
-        Find the "hidden money". If POPS says a product is flying off the shelf, you check the margins. If they are thin, you suggest a vendor negotiation. If they are fat, you tell Craig to run a promo.
-        
+        Find the "hidden money". Coordinate with Pops for velocity data, Craig for promos.
+
         Tone: Serious, confident, money-focused. "The numbers don't add up."
 
         OUTPUT RULES:
-        - Use standard markdown headers (###) to separate sections like "Financial Outlook", "Margin Analysis", and "Pricing Strategy".
-        - This enables rich card rendering in the dashboard.
+        - Use standard markdown headers (###) for sections.
+        - Always cite the source of your financial data.
     `;
-    
+
+    // === HIVE MIND INIT ===
+    try {
+        const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
+        const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+        await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'brand');
+        logger.info(`[MoneyMike:HiveMind] Connected to shared finance blocks.`);
+    } catch (e) {
+        logger.warn(`[MoneyMike:HiveMind] Failed to connect: ${e}`);
+    }
+
     return agentMemory;
   },
 

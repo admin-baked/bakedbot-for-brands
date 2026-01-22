@@ -19,6 +19,10 @@ import { logger } from '@/lib/logger';
 import { browserService } from '../services/browser-service';
 import { browserToolDefs } from '../tools/browser-tools';
 import { getAdminFirestore } from '@/firebase/admin';
+import {
+    buildSquadRoster,
+    buildIntegrationStatusSummary
+} from './agent-definitions';
 
 // ============================================================================
 // LINUS TOOLS - Code Eval & Deployment
@@ -784,6 +788,389 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: []
         }
+    },
+    // ========================================================================
+    // CHROME EXTENSION - BROWSER TESTING TOOLS
+    // ========================================================================
+    {
+        name: 'extension_create_session',
+        description: 'Create a browser session via the BakedBot Chrome Extension for E2E testing. Use this to test the live site.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                name: {
+                    type: 'string',
+                    description: 'Name for this test session (e.g., "Login Flow Test")'
+                },
+                startUrl: {
+                    type: 'string',
+                    description: 'URL to start the session at (e.g., "https://bakedbot.ai" or "http://localhost:3000")'
+                }
+            },
+            required: ['startUrl']
+        }
+    },
+    {
+        name: 'extension_navigate',
+        description: 'Navigate to a URL in the Chrome Extension browser session.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                sessionId: {
+                    type: 'string',
+                    description: 'Browser session ID'
+                },
+                url: {
+                    type: 'string',
+                    description: 'URL to navigate to'
+                }
+            },
+            required: ['sessionId', 'url']
+        }
+    },
+    {
+        name: 'extension_click',
+        description: 'Click an element in the browser session.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                sessionId: {
+                    type: 'string',
+                    description: 'Browser session ID'
+                },
+                selector: {
+                    type: 'string',
+                    description: 'CSS selector of the element to click'
+                }
+            },
+            required: ['sessionId', 'selector']
+        }
+    },
+    {
+        name: 'extension_type',
+        description: 'Type text into an input field in the browser session.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                sessionId: {
+                    type: 'string',
+                    description: 'Browser session ID'
+                },
+                selector: {
+                    type: 'string',
+                    description: 'CSS selector of the input field'
+                },
+                value: {
+                    type: 'string',
+                    description: 'Text to type'
+                }
+            },
+            required: ['sessionId', 'selector', 'value']
+        }
+    },
+    {
+        name: 'extension_screenshot',
+        description: 'Take a screenshot in the browser session for visual verification.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                sessionId: {
+                    type: 'string',
+                    description: 'Browser session ID'
+                },
+                name: {
+                    type: 'string',
+                    description: 'Name for the screenshot'
+                }
+            },
+            required: ['sessionId']
+        }
+    },
+    {
+        name: 'extension_get_console',
+        description: 'Get browser console logs from the session. Use to check for JavaScript errors.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                sessionId: {
+                    type: 'string',
+                    description: 'Browser session ID'
+                },
+                level: {
+                    type: 'string',
+                    description: 'Log level filter: all, error, warn, log',
+                    enum: ['all', 'error', 'warn', 'log']
+                }
+            },
+            required: ['sessionId']
+        }
+    },
+    {
+        name: 'extension_end_session',
+        description: 'End a browser session and get the test summary.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                sessionId: {
+                    type: 'string',
+                    description: 'Browser session ID to end'
+                }
+            },
+            required: ['sessionId']
+        }
+    },
+    {
+        name: 'extension_run_workflow',
+        description: 'Run a saved workflow/test script via the Chrome Extension.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                workflowId: {
+                    type: 'string',
+                    description: 'ID of the saved workflow to run'
+                },
+                variables: {
+                    type: 'object',
+                    description: 'Variables to substitute in the workflow'
+                }
+            },
+            required: ['workflowId']
+        }
+    },
+    {
+        name: 'extension_list_workflows',
+        description: 'List available recorded workflows/test scripts.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {},
+            required: []
+        }
+    },
+    // ========================================================================
+    // HYBRID TESTING - KUSHO + PLAYWRIGHT
+    // ========================================================================
+    {
+        name: 'run_e2e_test',
+        description: 'Run an E2E test using Playwright. Supports both existing tests and KushoAI-generated tests.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                testFile: {
+                    type: 'string',
+                    description: 'Path to the test file (e.g., "tests/e2e/login.spec.ts")'
+                },
+                headed: {
+                    type: 'boolean',
+                    description: 'Run with visible browser (default: false)'
+                },
+                browser: {
+                    type: 'string',
+                    description: 'Browser to use: chromium, firefox, webkit',
+                    enum: ['chromium', 'firefox', 'webkit']
+                },
+                baseUrl: {
+                    type: 'string',
+                    description: 'Base URL override (default: http://localhost:3000)'
+                }
+            },
+            required: ['testFile']
+        }
+    },
+    {
+        name: 'generate_playwright_test',
+        description: 'Generate a Playwright E2E test from a test scenario description.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                scenario: {
+                    type: 'string',
+                    description: 'Description of the test scenario (e.g., "User logs in with email and password, sees dashboard")'
+                },
+                outputPath: {
+                    type: 'string',
+                    description: 'Where to save the generated test (e.g., "tests/e2e/login.spec.ts")'
+                },
+                selectors: {
+                    type: 'object',
+                    description: 'Known CSS selectors for elements involved'
+                }
+            },
+            required: ['scenario', 'outputPath']
+        }
+    },
+    // ========================================================================
+    // BAKEDBOT DISCOVERY - Web Browsing & Data Extraction
+    // ========================================================================
+    {
+        name: 'discovery_browser_automate',
+        description: 'Execute a browser automation task using RTRVR. Navigate pages, fill forms, click buttons, extract data. Use when Chrome Extension is unavailable or for external sites.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                input: {
+                    type: 'string',
+                    description: 'Detailed instruction for the browser agent (e.g., "Go to google.com, search for cannabis dispensary, extract first 5 results")'
+                },
+                urls: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'URLs to open initially'
+                },
+                verbosity: {
+                    type: 'string',
+                    description: 'Output verbosity: final (just result), steps (each action), debug (full trace)',
+                    enum: ['final', 'steps', 'debug']
+                }
+            },
+            required: ['input']
+        }
+    },
+    {
+        name: 'discovery_summarize_page',
+        description: 'Summarize the main content of a webpage in bullet points. Use for quick understanding of page content.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                url: {
+                    type: 'string',
+                    description: 'URL to summarize'
+                }
+            },
+            required: ['url']
+        }
+    },
+    {
+        name: 'discovery_extract_data',
+        description: 'Extract structured data from a webpage based on instructions. Returns JSON matching specified schema.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                url: {
+                    type: 'string',
+                    description: 'URL to extract from'
+                },
+                instruction: {
+                    type: 'string',
+                    description: 'What data to extract (e.g., "Extract all product names and prices")'
+                },
+                schema: {
+                    type: 'object',
+                    description: 'Expected JSON schema for output (optional)'
+                }
+            },
+            required: ['url', 'instruction']
+        }
+    },
+    {
+        name: 'discovery_fill_form',
+        description: 'Fill a form on a webpage and optionally submit it. Use for automated testing or data entry.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                url: {
+                    type: 'string',
+                    description: 'URL of the form'
+                },
+                formData: {
+                    type: 'object',
+                    description: 'Field name to value mapping (e.g., {"email": "test@example.com", "password": "secret"})'
+                },
+                submitButtonText: {
+                    type: 'string',
+                    description: 'Text of submit button to click after filling (optional)'
+                }
+            },
+            required: ['url', 'formData']
+        }
+    },
+    // ========================================================================
+    // FIRECRAWL - Web Scraping & Site Mapping
+    // ========================================================================
+    {
+        name: 'firecrawl_scrape',
+        description: 'Scrape content from a URL using Firecrawl. Returns markdown/HTML content. Use for reading documentation, competitor sites, or any webpage.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                url: {
+                    type: 'string',
+                    description: 'URL to scrape'
+                },
+                formats: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Output formats: markdown, html, rawHtml, screenshot'
+                }
+            },
+            required: ['url']
+        }
+    },
+    {
+        name: 'firecrawl_search',
+        description: 'Search the web using Firecrawl. Returns search results with snippets.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                query: {
+                    type: 'string',
+                    description: 'Search query'
+                }
+            },
+            required: ['query']
+        }
+    },
+    {
+        name: 'firecrawl_map_site',
+        description: 'Crawl a website to find all pages/links. Use for understanding site structure or finding all API endpoints.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                url: {
+                    type: 'string',
+                    description: 'Base URL to map'
+                }
+            },
+            required: ['url']
+        }
+    },
+    // ========================================================================
+    // WEB SEARCH - Serper (Google Search API)
+    // ========================================================================
+    {
+        name: 'web_search',
+        description: 'Search the web using Google via Serper API. Use for finding documentation, error solutions, or researching topics.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                query: {
+                    type: 'string',
+                    description: 'Search query (e.g., "Next.js 15 app router hydration error")'
+                },
+                numResults: {
+                    type: 'number',
+                    description: 'Number of results to return (default: 5, max: 10)'
+                }
+            },
+            required: ['query']
+        }
+    },
+    {
+        name: 'web_search_places',
+        description: 'Search for local places/businesses using Google Places. Use for finding dispensaries, competitors, or local business data.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                query: {
+                    type: 'string',
+                    description: 'Search query (e.g., "cannabis dispensary near Denver")'
+                },
+                location: {
+                    type: 'string',
+                    description: 'Location to search near (optional)'
+                }
+            },
+            required: ['query']
+        }
     }
 ];
 
@@ -1541,11 +1928,11 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
             const { status, limit = 10 } = input as { status?: string, limit?: number };
             const db = getAdminFirestore();
             let query = db.collection('tickets').limit(limit);
-            
+
             if (status) {
                 query = query.where('status', '==', status);
             }
-            
+
             // Order by newest first
             query = query.orderBy('createdAt', 'desc');
 
@@ -1565,6 +1952,325 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
             });
 
             return { success: true, count: tickets.length, tickets };
+        }
+
+        // ====================================================================
+        // CHROME EXTENSION BROWSER TESTING TOOLS
+        // ====================================================================
+
+        case 'extension_create_session': {
+            const { name, startUrl } = input as { name?: string; startUrl: string };
+            try {
+                // Call the browser session API
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+                const response = await fetch(`${baseUrl}/api/browser/session`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name || 'Linus Test Session', startUrl })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    return { success: false, error: error.message || 'Failed to create session' };
+                }
+
+                const session = await response.json();
+                return {
+                    success: true,
+                    sessionId: session.id,
+                    message: `Browser session created. Navigate to ${startUrl}`,
+                    session
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'extension_navigate': {
+            const { sessionId, url } = input as { sessionId: string; url: string };
+            try {
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+                const response = await fetch(`${baseUrl}/api/browser/session/${sessionId}/action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'navigate', url })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    return { success: false, error: error.message };
+                }
+
+                return { success: true, message: `Navigated to ${url}` };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'extension_click': {
+            const { sessionId, selector } = input as { sessionId: string; selector: string };
+            try {
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+                const response = await fetch(`${baseUrl}/api/browser/session/${sessionId}/action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'click', selector })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    return { success: false, error: error.message };
+                }
+
+                return { success: true, message: `Clicked element: ${selector}` };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'extension_type': {
+            const { sessionId, selector, value } = input as { sessionId: string; selector: string; value: string };
+            try {
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+                const response = await fetch(`${baseUrl}/api/browser/session/${sessionId}/action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'type', selector, value })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    return { success: false, error: error.message };
+                }
+
+                return { success: true, message: `Typed "${value}" into ${selector}` };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'extension_screenshot': {
+            const { sessionId, name } = input as { sessionId: string; name?: string };
+            try {
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+                const response = await fetch(`${baseUrl}/api/browser/session/${sessionId}/action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'screenshot', name })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    return { success: false, error: error.message };
+                }
+
+                const result = await response.json();
+                return {
+                    success: true,
+                    message: 'Screenshot captured',
+                    screenshotUrl: result.url,
+                    timestamp: new Date().toISOString()
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'extension_get_console': {
+            const { sessionId, level } = input as { sessionId: string; level?: string };
+            try {
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+                const response = await fetch(`${baseUrl}/api/browser/session/${sessionId}/console?level=${level || 'all'}`);
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    return { success: false, error: error.message };
+                }
+
+                const logs = await response.json();
+                const errors = logs.filter((l: any) => l.level === 'error');
+                const warnings = logs.filter((l: any) => l.level === 'warn');
+
+                return {
+                    success: true,
+                    totalLogs: logs.length,
+                    errors: errors.length,
+                    warnings: warnings.length,
+                    logs: logs.slice(0, 50), // Limit output
+                    hasErrors: errors.length > 0
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'extension_end_session': {
+            const { sessionId } = input as { sessionId: string };
+            try {
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+                const response = await fetch(`${baseUrl}/api/browser/session/${sessionId}/end`, {
+                    method: 'POST'
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    return { success: false, error: error.message };
+                }
+
+                const summary = await response.json();
+                return {
+                    success: true,
+                    message: 'Session ended',
+                    summary
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'extension_run_workflow': {
+            const { workflowId, variables } = input as { workflowId: string; variables?: Record<string, string> };
+            try {
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+                const response = await fetch(`${baseUrl}/api/browser/workflow/${workflowId}/run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ variables: variables || {} })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    return { success: false, error: error.message };
+                }
+
+                const result = await response.json();
+                return {
+                    success: true,
+                    message: `Workflow ${workflowId} executed`,
+                    result
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'extension_list_workflows': {
+            try {
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+                const response = await fetch(`${baseUrl}/api/browser/workflows`);
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    return { success: false, error: error.message };
+                }
+
+                const workflows = await response.json();
+                return {
+                    success: true,
+                    count: workflows.length,
+                    workflows: workflows.map((w: any) => ({
+                        id: w.id,
+                        name: w.name,
+                        description: w.description,
+                        stepCount: w.steps?.length || 0
+                    }))
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        // ====================================================================
+        // HYBRID TESTING - KUSHO + PLAYWRIGHT
+        // ====================================================================
+
+        case 'run_e2e_test': {
+            const { testFile, headed, browser, baseUrl } = input as {
+                testFile: string;
+                headed?: boolean;
+                browser?: string;
+                baseUrl?: string;
+            };
+            try {
+                let cmd = `npx playwright test ${testFile}`;
+                if (headed) cmd += ' --headed';
+                if (browser) cmd += ` --project=${browser}`;
+                if (baseUrl) {
+                    process.env.BASE_URL = baseUrl;
+                }
+
+                const { stdout, stderr } = await execAsync(cmd, { cwd: PROJECT_ROOT, timeout: 300000 });
+
+                // Parse results
+                const passed = stdout.includes('passed') || !stdout.includes('failed');
+                const failMatch = stdout.match(/(\d+) failed/);
+                const passMatch = stdout.match(/(\d+) passed/);
+
+                return {
+                    success: passed,
+                    passed: passMatch ? parseInt(passMatch[1]) : 0,
+                    failed: failMatch ? parseInt(failMatch[1]) : 0,
+                    output: stdout.slice(-3000),
+                    stderr: stderr?.slice(-500)
+                };
+            } catch (e: any) {
+                return {
+                    success: false,
+                    error: e.message,
+                    output: e.stdout?.slice(-3000),
+                    stderr: e.stderr?.slice(-1000)
+                };
+            }
+        }
+
+        case 'generate_playwright_test': {
+            const { scenario, outputPath, selectors } = input as {
+                scenario: string;
+                outputPath: string;
+                selectors?: Record<string, string>;
+            };
+            try {
+                // Generate a basic Playwright test template based on the scenario
+                const testTemplate = `import { test, expect } from '@playwright/test';
+
+/**
+ * Auto-generated test by Linus
+ * Scenario: ${scenario}
+ * Generated: ${new Date().toISOString()}
+ */
+
+test('${scenario.slice(0, 50)}', async ({ page }) => {
+  // TODO: Implement test based on scenario
+  // Scenario: ${scenario}
+
+  ${selectors ? `// Known selectors:\n  ${Object.entries(selectors).map(([name, sel]) => `// ${name}: '${sel}'`).join('\n  ')}` : ''}
+
+  // Navigate to the page
+  await page.goto(process.env.BASE_URL || 'http://localhost:3000');
+
+  // Add test steps here
+  // Example:
+  // await page.click('${selectors?.button || 'button'}');
+  // await expect(page).toHaveURL(/expected-path/);
+
+  // Placeholder assertion
+  await expect(page).toHaveTitle(/.*/);
+});
+`;
+
+                const fullPath = path.join(PROJECT_ROOT, outputPath);
+                await fs.mkdir(path.dirname(fullPath), { recursive: true });
+                await fs.writeFile(fullPath, testTemplate, 'utf-8');
+
+                return {
+                    success: true,
+                    message: `Test template generated at ${outputPath}`,
+                    path: outputPath,
+                    note: 'This is a template. Please review and implement the actual test steps.'
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
         }
 
         // ====================================================================
@@ -2018,6 +2724,257 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
             }
         }
 
+        // ====================================================================
+        // BAKEDBOT DISCOVERY TOOL EXECUTORS (RTRVR)
+        // ====================================================================
+
+        case 'discovery_browser_automate': {
+            const { input: taskInput, urls, verbosity } = input as {
+                input: string;
+                urls?: string[];
+                verbosity?: 'final' | 'steps' | 'debug';
+            };
+            try {
+                const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+                const result = await executeDiscoveryBrowserTool('discovery.browserAutomate', {
+                    input: taskInput,
+                    urls: urls || [],
+                    verbosity: verbosity || 'final'
+                });
+
+                if (!result.success) {
+                    return { success: false, error: result.error || 'Browser automation failed' };
+                }
+
+                return {
+                    success: true,
+                    message: 'Browser automation completed',
+                    result: result.data
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'discovery_summarize_page': {
+            const { url } = input as { url: string };
+            try {
+                const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+                const result = await executeDiscoveryBrowserTool('discovery.summarizePage', { url });
+
+                if (!result.success) {
+                    return { success: false, error: result.error || 'Page summarization failed' };
+                }
+
+                return {
+                    success: true,
+                    url,
+                    summary: result.data?.result || result.data
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'discovery_extract_data': {
+            const { url, instruction, schema } = input as {
+                url: string;
+                instruction: string;
+                schema?: Record<string, unknown>;
+            };
+            try {
+                const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+                const result = await executeDiscoveryBrowserTool('discovery.extractData', {
+                    url,
+                    instruction,
+                    schema: schema || {}
+                });
+
+                if (!result.success) {
+                    return { success: false, error: result.error || 'Data extraction failed' };
+                }
+
+                return {
+                    success: true,
+                    url,
+                    instruction,
+                    extractedData: result.data
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'discovery_fill_form': {
+            const { url, formData, submitButtonText } = input as {
+                url: string;
+                formData: Record<string, string>;
+                submitButtonText?: string;
+            };
+            try {
+                const { executeDiscoveryBrowserTool } = await import('@/server/services/rtrvr/tools');
+                const result = await executeDiscoveryBrowserTool('discovery.fillForm', {
+                    url,
+                    formData,
+                    submitButtonText
+                });
+
+                if (!result.success) {
+                    return { success: false, error: result.error || 'Form fill failed' };
+                }
+
+                return {
+                    success: true,
+                    url,
+                    formFields: Object.keys(formData),
+                    submitted: !!submitButtonText,
+                    result: result.data
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        // ====================================================================
+        // FIRECRAWL TOOL EXECUTORS
+        // ====================================================================
+
+        case 'firecrawl_scrape': {
+            const { url, formats } = input as { url: string; formats?: string[] };
+            try {
+                const { discovery } = await import('@/server/services/firecrawl');
+
+                if (!discovery.isConfigured()) {
+                    return {
+                        success: false,
+                        error: 'Firecrawl not configured. Set FIRECRAWL_API_KEY environment variable.'
+                    };
+                }
+
+                const result = await discovery.discoverUrl(
+                    url,
+                    (formats as ('markdown' | 'html' | 'rawHtml' | 'screenshot')[]) || ['markdown']
+                );
+
+                return {
+                    success: true,
+                    url,
+                    content: result.markdown || result.html || result.rawHtml,
+                    metadata: result.metadata
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'firecrawl_search': {
+            const { query } = input as { query: string };
+            try {
+                const { discovery } = await import('@/server/services/firecrawl');
+
+                if (!discovery.isConfigured()) {
+                    return {
+                        success: false,
+                        error: 'Firecrawl not configured. Set FIRECRAWL_API_KEY environment variable.'
+                    };
+                }
+
+                const results = await discovery.search(query);
+
+                return {
+                    success: true,
+                    query,
+                    resultCount: Array.isArray(results) ? results.length : 0,
+                    results: Array.isArray(results) ? results.slice(0, 10) : results
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'firecrawl_map_site': {
+            const { url } = input as { url: string };
+            try {
+                const { discovery } = await import('@/server/services/firecrawl');
+
+                if (!discovery.isConfigured()) {
+                    return {
+                        success: false,
+                        error: 'Firecrawl not configured. Set FIRECRAWL_API_KEY environment variable.'
+                    };
+                }
+
+                const result = await discovery.mapSite(url);
+
+                return {
+                    success: true,
+                    url,
+                    pageCount: result.links?.length || 0,
+                    links: result.links?.slice(0, 50) || [], // Limit output
+                    truncated: (result.links?.length || 0) > 50
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        // ====================================================================
+        // WEB SEARCH TOOL EXECUTORS (SERPER)
+        // ====================================================================
+
+        case 'web_search': {
+            const { query, numResults } = input as { query: string; numResults?: number };
+            try {
+                const { searchWeb } = await import('@/server/tools/web-search');
+                const result = await searchWeb(query, Math.min(numResults || 5, 10));
+
+                if (!result.success) {
+                    return {
+                        success: false,
+                        error: result.error || 'Search failed'
+                    };
+                }
+
+                return {
+                    success: true,
+                    query,
+                    resultCount: result.results.length,
+                    results: result.results.map(r => ({
+                        title: r.title,
+                        url: r.link,
+                        snippet: r.snippet
+                    }))
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'web_search_places': {
+            const { query, location } = input as { query: string; location?: string };
+            try {
+                const { searchPlaces } = await import('@/server/tools/web-search');
+                const result = await searchPlaces(query, location);
+
+                if (!result.success) {
+                    return {
+                        success: false,
+                        error: result.error || 'Places search failed'
+                    };
+                }
+
+                return {
+                    success: true,
+                    query,
+                    location,
+                    resultCount: result.results.length,
+                    places: result.results
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
         default:
             throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -2042,25 +2999,43 @@ export interface LinusResponse {
     model: string;
 }
 
-const LINUS_SYSTEM_PROMPT = `You are Linus, AI CTO of BakedBot. Welcome to the bridge.
+// Build dynamic system prompt with grounding
+function buildLinusSystemPrompt(): string {
+    const squadRoster = buildSquadRoster('linus');
+    const integrationStatus = buildIntegrationStatusSummary();
+
+    return `You are Linus, AI CTO of BakedBot. Welcome to the bridge.
 
 CONTEXT:
 - Mission: Ensure every deployment meets $10M ARR standards
 - You are the bridge between the codebase and the Executive Boardroom
 - You use the 7-layer code evaluation framework
 
-TEAM ROSTER (THE FLEET):
-- Leo (COO): Operations & Orchestration
-- Linus (You/CTO): Technical & Infrastructure
-- Jack (CRO): Revenue & Sales
-- Glenda (CMO): Marketing & Brand
-- Mike (CFO): Finance & Strategy
-- Roach (Librarian): Research & Compliance
-- Smokey (Budtender): Product & Menu
-- Pops (Analyst): Analytics & Insights
-- Deebo (Enforcer): Regulatory Compliance
-- Craig (Marketer): Content & Campaigns
-- Ezal (Lookout): Competitive Intelligence
+=== AGENT SQUAD (THE FLEET) ===
+${squadRoster}
+
+=== INTEGRATION STATUS ===
+${integrationStatus}
+
+=== GROUNDING RULES (CRITICAL) ===
+You MUST follow these rules to avoid hallucination:
+
+1. **ONLY report on tools you ACTUALLY have access to.**
+   - Check the tool list before claiming a capability.
+   - If a tool isn't available, say "This tool is not configured" instead of pretending it works.
+
+2. **ONLY reference agents that exist in the AGENT SQUAD list above.**
+   - Don't invent team members or capabilities.
+
+3. **Use REAL data from tools, not fabricated metrics.**
+   - Run \`run_health_check\` before claiming build/test status.
+   - Don't make up pass rates or coverage percentages.
+
+4. **For integrations NOT in ACTIVE status, offer to help set them up.**
+   - Don't claim Gmail/Calendar integration if it's not configured.
+
+5. **When uncertain, investigate first.**
+   - Use search/read tools before making claims about the codebase.
 
 YOUR RESPONSIBILITIES:
 1. Synthesize Layer 1-6 evaluation results into a deployment scorecard
@@ -2086,6 +3061,50 @@ For API testing, you have access to KushoAI tools:
 - \`kusho_generate_tests\`: Auto-generate tests from OpenAPI specs
 - \`kusho_run_suite\`: Run test suites by ID or tag
 - \`kusho_analyze_coverage\`: Check API test coverage gaps
+- \`kusho_record_ui\`: Record UI interactions to generate tests
+
+BROWSER TESTING (CHROME EXTENSION):
+For E2E browser testing via the BakedBot Chrome Extension:
+- \`extension_create_session\`: Start a browser test session
+- \`extension_navigate\`: Navigate to URLs
+- \`extension_click\`: Click elements
+- \`extension_type\`: Type into inputs
+- \`extension_screenshot\`: Capture screenshots for verification
+- \`extension_get_console\`: Check for JavaScript errors
+- \`extension_end_session\`: End session and get summary
+- \`extension_run_workflow\`: Run saved test workflows
+- \`extension_list_workflows\`: List available workflows
+
+PLAYWRIGHT E2E:
+For headless E2E testing:
+- \`run_e2e_test\`: Run Playwright tests
+- \`generate_playwright_test\`: Generate test from scenario description
+
+BAKEDBOT DISCOVERY (RTRVR):
+For browser automation when Chrome Extension is unavailable or for external sites:
+- \`discovery_browser_automate\`: Execute complex browser tasks with natural language instructions
+- \`discovery_summarize_page\`: Get bullet-point summary of any webpage
+- \`discovery_extract_data\`: Extract structured data from pages using instructions
+- \`discovery_fill_form\`: Automate form filling and submission
+
+FIRECRAWL (Web Scraping):
+For scraping and mapping websites:
+- \`firecrawl_scrape\`: Get markdown/HTML content from any URL
+- \`firecrawl_search\`: Search the web via Firecrawl
+- \`firecrawl_map_site\`: Crawl and map all pages on a site
+
+WEB SEARCH (SERPER/GOOGLE):
+For researching documentation, errors, or topics:
+- \`web_search\`: Google search via Serper API
+- \`web_search_places\`: Find local businesses/dispensaries
+
+BROWSER TEST WORKFLOW:
+When testing the live site:
+1. Use \`extension_create_session\` to start a session
+2. Navigate and interact with the page
+3. Check console for errors with \`extension_get_console\`
+4. Take screenshots at key states
+5. End session and report results
 
 DECISION FRAMEWORK:
 - MISSION_READY: All 7 layers pass with ≥90% confidence
@@ -2095,8 +3114,13 @@ DECISION FRAMEWORK:
 OUTPUT RULES:
 - Use standard markdown headers (###) for reports, scorecards, and system evals.
 - This ensures your response renders correctly in the Executive Boardroom UI.
+- Always cite the source of your data (tool output, file read, etc.).
 
 Always be concise. Use the tools available to investigate, code, and report.`;
+}
+
+// Legacy constant for backwards compatibility
+const LINUS_SYSTEM_PROMPT = buildLinusSystemPrompt();
 
 export async function runLinus(request: LinusRequest): Promise<LinusResponse> {
     if (!isClaudeAvailable()) {
@@ -2153,7 +3177,21 @@ export const linusAgent: AgentImplementation<AgentMemory, any> = {
     agentName: 'linus',
 
     async initialize(brandMemory, agentMemory) {
-        agentMemory.system_instructions = LINUS_SYSTEM_PROMPT;
+        logger.info('[Linus] Initializing. Connecting to Hive Mind...');
+
+        // Build dynamic system prompt with current squad/integration status
+        agentMemory.system_instructions = buildLinusSystemPrompt();
+
+        // === HIVE MIND INIT ===
+        try {
+            const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
+            const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+            await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'executive');
+            logger.info(`[Linus:HiveMind] Connected to shared executive blocks.`);
+        } catch (e) {
+            logger.warn(`[Linus:HiveMind] Failed to connect: ${e}`);
+        }
+
         return agentMemory;
     },
 

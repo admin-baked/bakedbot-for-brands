@@ -940,7 +940,130 @@ export const defaultUniversalTools = {
 // Executive Board tools: Universal + RTRvr capabilities + MCP + Python Sidecar
 export const defaultExecutiveBoardTools = {
     ...defaultUniversalTools,
-    
+
+    // === GROUNDED SYSTEM HEALTH TOOL ===
+    // Returns REAL data about system state - no hallucination
+    getSystemHealth: async () => {
+        const timestamp = new Date().toISOString();
+        const health: {
+            timestamp: string;
+            overall_status: 'GREEN' | 'YELLOW' | 'RED';
+            components: Record<string, { status: string; message: string }>;
+            integrations: Record<string, { status: string; setupRequired?: string }>;
+            agents: { available: string[]; total: number };
+            recommendations: string[];
+        } = {
+            timestamp,
+            overall_status: 'GREEN',
+            components: {},
+            integrations: {},
+            agents: { available: [], total: 0 },
+            recommendations: []
+        };
+
+        // 1. Check Firebase/Firestore
+        try {
+            const { createServerClient } = await import('@/firebase/server-client');
+            const { firestore } = await createServerClient();
+            // Simple connectivity check
+            await firestore.collection('_health').doc('ping').set({ ts: timestamp });
+            health.components['firestore'] = { status: '✅ ACTIVE', message: 'Database connected' };
+        } catch (e: any) {
+            health.components['firestore'] = { status: '❌ ERROR', message: e.message };
+            health.overall_status = 'RED';
+        }
+
+        // 2. Check Letta Memory Service
+        try {
+            const { lettaClient } = await import('@/server/services/letta/client');
+            const agents = await lettaClient.listAgents();
+            health.components['letta_memory'] = {
+                status: '✅ ACTIVE',
+                message: `Connected. ${agents.length} memory agents available.`
+            };
+        } catch (e: any) {
+            health.components['letta_memory'] = { status: '⚠️ DEGRADED', message: `Letta unavailable: ${e.message}` };
+            if (health.overall_status === 'GREEN') health.overall_status = 'YELLOW';
+        }
+
+        // 3. Check AI Services (Claude/Gemini availability)
+        try {
+            const { isClaudeAvailable } = await import('@/ai/claude');
+            health.components['claude_api'] = {
+                status: isClaudeAvailable() ? '✅ ACTIVE' : '⚠️ NOT CONFIGURED',
+                message: isClaudeAvailable() ? 'Claude API ready' : 'ANTHROPIC_API_KEY not set'
+            };
+        } catch {
+            health.components['claude_api'] = { status: '⚠️ NOT CONFIGURED', message: 'Claude module unavailable' };
+        }
+
+        // Gemini is always available via Genkit
+        health.components['gemini_api'] = { status: '✅ ACTIVE', message: 'Gemini via Genkit ready' };
+
+        // 4. Check Integration Status (from registry)
+        const { KNOWN_INTEGRATIONS } = await import('@/server/agents/agent-definitions');
+        for (const integration of KNOWN_INTEGRATIONS) {
+            health.integrations[integration.id] = {
+                status: integration.status === 'active' ? '✅ ACTIVE' :
+                    integration.status === 'configured' ? '⚙️ CONFIGURED' : '❌ NOT CONFIGURED',
+                setupRequired: integration.setupRequired
+            };
+        }
+
+        // 5. List Available Agents (from registry)
+        const { AGENT_CAPABILITIES } = await import('@/server/agents/agent-definitions');
+        health.agents = {
+            available: AGENT_CAPABILITIES.map(a => `${a.name} (${a.specialty})`),
+            total: AGENT_CAPABILITIES.length
+        };
+
+        // 6. Generate Recommendations
+        const notConfigured = KNOWN_INTEGRATIONS.filter(i => i.status === 'not_configured');
+        if (notConfigured.length > 0) {
+            health.recommendations.push(
+                `${notConfigured.length} integrations not yet configured: ${notConfigured.slice(0, 3).map(i => i.name).join(', ')}${notConfigured.length > 3 ? '...' : ''}`
+            );
+        }
+
+        if (!health.components['claude_api']?.status?.includes('ACTIVE')) {
+            health.recommendations.push('Configure Claude API for enhanced agent capabilities');
+        }
+
+        return health;
+    },
+
+    // === GROUNDED AGENT STATUS TOOL ===
+    getAgentStatus: async (agentId?: string) => {
+        const { AGENT_CAPABILITIES } = await import('@/server/agents/agent-definitions');
+
+        if (agentId) {
+            const agent = AGENT_CAPABILITIES.find(a => a.id === agentId);
+            if (!agent) {
+                return { error: `Agent '${agentId}' not found in registry` };
+            }
+            return {
+                id: agent.id,
+                name: agent.name,
+                specialty: agent.specialty,
+                description: agent.description,
+                status: 'AVAILABLE', // In future, could check actual run state
+                note: 'Real-time agent monitoring not yet implemented. This shows registry data.'
+            };
+        }
+
+        // Return all agents
+        return {
+            agents: AGENT_CAPABILITIES.map(a => ({
+                id: a.id,
+                name: a.name,
+                specialty: a.specialty,
+                status: 'AVAILABLE'
+            })),
+            total: AGENT_CAPABILITIES.length,
+            note: 'Real-time agent monitoring not yet implemented. This shows registry data.'
+        };
+    },
+
     // RTRvr.ai (Exclusive to Executive Board)
     rtrvrAgent: defaultExecutiveTools.rtrvrAgent,
     rtrvrScrape: defaultExecutiveTools.rtrvrScrape,

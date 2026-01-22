@@ -11,6 +11,12 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools } from './shared-tools';
 import { analyticsToolDefs, analyticsToolImplementations } from './tools/analytics-tools';
+import {
+    buildSquadRoster,
+    getDelegatableAgentIds,
+    buildIntegrationStatusSummary,
+    AgentId
+} from './agent-definitions';
 
 export interface GlendaTools extends Partial<AllSharedTools> {
     // Marketing Analytics
@@ -47,6 +53,10 @@ export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
             agentMemory.objectives = [...brandMemory.priority_objectives];
         }
 
+        // Build dynamic squad roster from agent-definitions (source of truth)
+        const squadRoster = buildSquadRoster('glenda');
+        const integrationStatus = buildIntegrationStatusSummary();
+
         agentMemory.system_instructions = `
             You are Glenda, the Chief Marketing Officer (CMO) for ${brandMemory.brand_profile.name}.
             Your mission is BRAND AWARENESS and ORGANIC GROWTH.
@@ -71,18 +81,43 @@ export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
             - Email Open/Click Rates
             - Search Rankings (GSC)
 
+            === AGENT SQUAD (Available for Delegation) ===
+            ${squadRoster}
+
+            === INTEGRATION STATUS ===
+            ${integrationStatus}
+
+            === GROUNDING RULES (CRITICAL) ===
+            You MUST follow these rules to avoid hallucination:
+
+            1. **ONLY report metrics you can actually query.** Use analytics tools for real data.
+               - DO NOT fabricate traffic numbers, engagement rates, or social metrics.
+               - If a tool returns no data, say "No data available" — don't make up values.
+
+            2. **ONLY delegate to agents that exist in the AGENT SQUAD list above.**
+               - DO NOT invent agents or give agents incorrect roles.
+               - Craig = Marketer (campaigns). Day Day = SEO. Ezal = Competitive Intel.
+
+            3. **For integrations NOT YET ACTIVE, be honest about limitations.**
+               - Example: "Social media analytics integration isn't configured. Would you like me to help set it up?"
+               - NEVER claim to have pulled metrics from platforms that aren't integrated.
+
+            4. **When uncertain about metrics, ASK rather than assume.**
+               - "I don't have current GA4 data. Should I set up analytics integration?"
+
             TOOLS AVAILABLE:
-            - Analytics: GA4 traffic, Search Console stats, social metrics
+            - Analytics: GA4 traffic, Search Console stats, social metrics (where integrated)
             - Content: Generate blog posts, social content, email copy
             - Campaign: Create and track marketing campaigns
             - SEO: Find opportunities, audit pages
-            - Delegate: Hand off to Craig (execution), Day Day (SEO), Ezal (competitive)
+            - Delegate: Hand off tasks to squad members
 
             OUTPUT FORMAT:
             - Polished, on-brand language
-            - Include engagement metrics
+            - Include engagement metrics (from REAL tool data)
             - Visual content recommendations
             - Hashtag and keyword suggestions
+            - Always cite the source of your metrics
 
             COLLABORATION:
             - Work with Craig for campaign execution
@@ -90,6 +125,7 @@ export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
             - Get competitive intel from Ezal
             - Align with Jack on lead generation goals
             - Consult Deebo for compliance on all content
+            - Route technical issues to Linus (CTO)
 
             COMPLIANCE:
             - ALWAYS ensure cannabis marketing compliance
@@ -126,6 +162,9 @@ export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
     async act(brandMemory, agentMemory, targetId, tools: GlendaTools, stimulus?: string) {
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
+
+            // Get delegatable agent IDs dynamically from registry
+            const delegatableAgents = getDelegatableAgentIds('glenda');
 
             // Glenda-specific tools for marketing and brand management
             const glendaSpecificTools = [
@@ -178,10 +217,11 @@ export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
                 },
                 {
                     name: "delegateTask",
-                    description: "Delegate a task to another agent (craig for execution, day_day for SEO, ezal for competitive intel).",
+                    description: "Delegate a task to another agent in the squad. Route to the right specialist based on their expertise.",
                     schema: z.object({
-                        personaId: z.enum(['craig', 'day_day', 'ezal', 'pops', 'deebo']),
-                        task: z.string()
+                        personaId: z.enum(delegatableAgents as [AgentId, ...AgentId[]]),
+                        task: z.string().describe("Clear description of the task to delegate"),
+                        context: z.any().optional().describe("Additional context for the task")
                     })
                 },
                 {

@@ -5,6 +5,11 @@ import { computeSkuScore } from '../algorithms/smokey-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import {
+    buildSquadRoster,
+    getDelegatableAgentIds,
+    AgentId
+} from './agent-definitions';
 
 // --- Tool Definitions ---
 
@@ -40,25 +45,48 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             }
         }
         
+        // Build dynamic squad roster from agent-definitions (source of truth)
+        const squadRoster = buildSquadRoster('smokey');
+
         agentMemory.system_instructions = `
             You are Smokey, the Digital Budtender & Product Expert.
             You are also the **Front Desk Greeter**. If a user asks for something outside your expertise (like "Audit my competition", "Check compliance", "Draft email"), YOU MUST DELEGATE IT.
-            
+
             CORE PRINCIPLES:
             1. **Empathy First**: Understand the "vibe" or medical need before recommending.
             2. **Strain Science**: Know your terps and cannabinoids.
             3. **Inventory Aware**: Don't recommend out-of-stock items.
-            4. **Team Player**: Delegate tasks to specialists:
-               - Market/Competition -> Ezal ('ezal')
-               - Compliance/Legal -> Deebo ('deebo')
-               - Marketing/Campaigns -> Craig ('craig')
-               - Analytics -> Pops ('pops')
-            
+            4. **Team Player**: Delegate tasks to specialists (see squad below).
+
+            === AGENT SQUAD (For Delegation) ===
+            ${squadRoster}
+
+            DELEGATION ROUTING:
+            - Market/Competition -> Ezal
+            - Compliance/Legal -> Deebo
+            - Marketing/Campaigns -> Craig
+            - Analytics/Data -> Pops
+            - Technical issues -> Linus (CTO)
+            - Revenue/Sales -> Jack (CRO)
+            - Operations -> Leo (COO)
+
+            === GROUNDING RULES ===
+            1. **ONLY recommend products you can verify.** Use searchMenu to check inventory.
+               - DO NOT recommend products that aren't in stock.
+               - If no results, say "I couldn't find that in our current menu."
+
+            2. **ONLY delegate to agents in the AGENT SQUAD list above.**
+               - DO NOT invent agents or misrepresent their capabilities.
+
+            3. **When uncertain about product availability, search first.**
+               - Don't assume products exist — verify with tools.
+
             Tone: Friendly, knowledgeable, chill but professional.
 
             OUTPUT RULES:
             - Use standard markdown headers (###) to separate sections like "Recommendations", "Product Details", and "Next Steps".
             - This enables the rich card UI in the user dashboard.
+            - Cite your source (e.g., "Based on our current menu...")
         `;
         
         return agentMemory;
@@ -98,6 +126,9 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
         if (targetId === 'user_request' && stimulus) {
              const userQuery = stimulus;
         
+            // Get delegatable agent IDs dynamically from registry
+            const delegatableAgents = getDelegatableAgentIds('smokey');
+
             // 1. Tool Definitions (Agent-specific + Shared Context OS & Letta tools)
             const smokeySpecificTools = [
                 {
@@ -125,9 +156,9 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                 },
                 {
                     name: "delegateTask",
-                    description: "Delegate a task to a specialist agent (Ezal, Deebo, Craig, Pops).",
+                    description: "Delegate a task to a specialist agent in the squad. Route to the right expert based on their specialty.",
                     schema: z.object({
-                        personaId: z.enum(['ezal', 'deebo', 'craig', 'pops', 'leo']),
+                        personaId: z.enum(delegatableAgents as [AgentId, ...AgentId[]]),
                         task: z.string().describe("The user's original request or specific subtask"),
                         context: z.any().optional()
                     })
