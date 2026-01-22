@@ -1,6 +1,9 @@
-
 // src/app/api/dev/seed-cannmenus-stub/route.ts
-
+/**
+ * DEV ONLY: Seed CannMenus stub data endpoint
+ *
+ * SECURITY: Blocked in production and requires Super User authentication.
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { BrandDoc, ProductDoc, RetailerDoc } from "@/types/cannmenus";
 import { createServerClient } from "@/firebase/server-client";
@@ -159,8 +162,16 @@ const stubProducts: ProductDoc[] = [
 // ---- Route ----
 
 export async function POST(_req: NextRequest) {
+  // SECURITY: Block in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'Dev route disabled in production' },
+      { status: 403 }
+    );
+  }
+
   try {
-    // Secure the endpoint by requiring an 'owner' role.
+    // SECURITY: Require Super User authentication
     await requireUser(['super_user']);
 
     const { firestore } = await createServerClient();

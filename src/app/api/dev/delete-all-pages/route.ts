@@ -1,19 +1,37 @@
-
 import { NextResponse } from 'next/server';
 import { deleteAllPages } from '@/server/actions/delete-pages';
+import { requireSuperUser } from '@/server/auth/auth';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes for large deletions
 
 /**
  * DELETE /api/dev/delete-all-pages
- * 
+ *
  * Deletes ALL generated pages from Firestore.
  * WARNING: This is destructive and cannot be undone.
+ *
+ * SECURITY: Blocked in production and requires Super User authentication.
  */
 export async function DELETE() {
+    // SECURITY: Block in production
+    if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json(
+            { error: 'Dev route disabled in production' },
+            { status: 403 }
+        );
+    }
+
+    // SECURITY: Require Super User authentication
     try {
-        console.log('Starting mass page deletion...');
+        await requireSuperUser();
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    try {
+        logger.info('Starting mass page deletion...');
         const result = await deleteAllPages();
 
         if (result.success) {

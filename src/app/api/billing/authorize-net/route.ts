@@ -1,11 +1,46 @@
-
 import { NextRequest, NextResponse } from "next/server";
-import { computeMonthlyAmount, PLANS, PlanId, CoveragePackId, COVERAGE_PACKS } from "@/lib/plans";
+import { computeMonthlyAmount, PLANS, PlanId, CoveragePackId } from "@/lib/plans";
 import { createServerClient } from "@/firebase/server-client";
 import { FieldValue } from "firebase-admin/firestore";
 import { emitEvent } from "@/server/events/emitter";
+import { requireUser } from "@/server/auth/auth";
 
 import { logger } from '@/lib/logger';
+
+/**
+ * Verify that a user has access to an organization (owner or admin)
+ */
+async function verifyOrgAccess(uid: string, orgId: string, firestore: FirebaseFirestore.Firestore): Promise<boolean> {
+  // Check organization ownership
+  const orgDoc = await firestore.collection('organizations').doc(orgId).get();
+  if (!orgDoc.exists) {
+    return false;
+  }
+
+  const orgData = orgDoc.data();
+  if (orgData?.ownerId === uid || orgData?.ownerUid === uid) {
+    return true;
+  }
+
+  // Check membership with admin role
+  const memberDoc = await firestore
+    .collection('organizations')
+    .doc(orgId)
+    .collection('members')
+    .doc(uid)
+    .get();
+
+  if (memberDoc.exists) {
+    const memberData = memberDoc.data();
+    // Only allow owners/admins to modify billing
+    if (memberData?.role === 'owner' || memberData?.role === 'admin' || memberData?.role === 'brand_admin') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 type OpaqueData = {
   dataDescriptor: string;
   dataValue: string;
@@ -32,11 +67,20 @@ function getAuthNetBaseUrl() {
     : "https://apitest.authorize.net/xml/v1/request.api";
 }
 
+/**
+ * POST /api/billing/authorize-net
+ * Create or update subscription
+ *
+ * SECURITY: Requires authentication and org admin access.
+ */
 export async function POST(req: NextRequest) {
   const { firestore: db } = await createServerClient();
   let body: SubscribeBody | null = null;
 
   try {
+    // SECURITY: Require authenticated session
+    const session = await requireUser();
+
     body = (await req.json()) as SubscribeBody;
 
     if (!body.organizationId || !body.planId || typeof body.locationCount !== "number") {
@@ -48,6 +92,20 @@ export async function POST(req: NextRequest) {
 
     const orgId = body.organizationId;
     const planId = body.planId;
+
+    // SECURITY: Verify user has admin access to the organization
+    const hasAccess = await verifyOrgAccess(session.uid, orgId, db);
+    if (!hasAccess) {
+      logger.warn('[Billing] Unauthorized billing access attempt', {
+        uid: session.uid,
+        orgId,
+        planId,
+      });
+      return NextResponse.json(
+        { error: "Forbidden: You do not have billing access to this organization." },
+        { status: 403 }
+      );
+    }
 
     await emitEvent({
       orgId,
