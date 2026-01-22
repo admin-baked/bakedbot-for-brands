@@ -10,6 +10,11 @@ import {
     getDelegatableAgentIds,
     AgentId
 } from './agent-definitions';
+import {
+    getGroundTruth,
+    buildGroundingInstructions,
+    hasGroundTruth
+} from '../grounding';
 
 // --- Tool Definitions ---
 
@@ -44,9 +49,26 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                 runningExperiments[i].status = 'queued'; // Push back to queue
             }
         }
-        
+
         // Build dynamic squad roster from agent-definitions (source of truth)
         const squadRoster = buildSquadRoster('smokey');
+
+        // Load dispensary-specific ground truth if available
+        const brandId = (brandMemory.brand_profile as { id?: string })?.id || 'unknown';
+        let groundingSection = '';
+
+        if (hasGroundTruth(brandId)) {
+            const groundTruth = getGroundTruth(brandId);
+            if (groundTruth) {
+                const grounding = buildGroundingInstructions(groundTruth);
+                groundingSection = `
+            ${grounding.full}
+            `;
+                logger.info(`[Smokey] Loaded ground truth for ${groundTruth.metadata.dispensary} (${groundTruth.metadata.total_qa_pairs} QA pairs)`);
+            }
+        } else {
+            logger.debug(`[Smokey] No ground truth configured for brand: ${brandId}`);
+        }
 
         agentMemory.system_instructions = `
             You are Smokey, the Digital Budtender & Product Expert.
@@ -69,8 +91,8 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             - Technical issues -> Linus (CTO)
             - Revenue/Sales -> Jack (CRO)
             - Operations -> Leo (COO)
-
-            === GROUNDING RULES ===
+            ${groundingSection}
+            === GROUNDING RULES (CRITICAL) ===
             1. **ONLY recommend products you can verify.** Use searchMenu to check inventory.
                - DO NOT recommend products that aren't in stock.
                - If no results, say "I couldn't find that in our current menu."
@@ -81,6 +103,10 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             3. **When uncertain about product availability, search first.**
                - Don't assume products exist — verify with tools.
 
+            4. **For compliance/safety questions, use EXACT answers from CRITICAL COMPLIANCE section.**
+               - Age requirements, possession limits, and product testing info must be 100% accurate.
+               - Never paraphrase or guess on legal/regulatory information.
+
             Tone: Friendly, knowledgeable, chill but professional.
 
             OUTPUT RULES:
@@ -88,7 +114,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             - This enables the rich card UI in the user dashboard.
             - Cite your source (e.g., "Based on our current menu...")
         `;
-        
+
         return agentMemory;
     },
 

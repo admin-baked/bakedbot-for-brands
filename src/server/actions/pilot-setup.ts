@@ -2,6 +2,11 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
+import {
+    hasGroundTruth,
+    getGroundTruthStats,
+    listGroundedBrands,
+} from '@/server/grounding';
 
 export interface PilotSetupResult {
     success: boolean;
@@ -12,6 +17,12 @@ export interface PilotSetupResult {
         orgId: string;
         locationId?: string;
         menuUrl: string;
+        groundTruth?: {
+            configured: boolean;
+            totalQAPairs?: number;
+            criticalCount?: number;
+            categories?: string[];
+        };
     };
     error?: string;
 }
@@ -45,6 +56,9 @@ export interface BrandPilotConfig {
     chatbotEnabled: boolean;
     chatbotName?: string;
     chatbotWelcome?: string;
+    // Ground truth QA set (for Smokey AI training)
+    // If not provided, uses brandSlug as the brandId to look up ground truth
+    groundTruthBrandId?: string;
 }
 
 export interface DispensaryPilotConfig {
@@ -86,6 +100,9 @@ export interface DispensaryPilotConfig {
     chatbotWelcome?: string;
     // ZIP codes for SEO pages
     zipCodes?: string[];
+    // Ground truth QA set (for Smokey AI training)
+    // If not provided, uses dispensarySlug as the brandId to look up ground truth
+    groundTruthBrandId?: string;
 }
 
 export type PilotConfig = BrandPilotConfig | DispensaryPilotConfig;
@@ -315,6 +332,13 @@ export async function setupPilotCustomer(config: PilotConfig): Promise<PilotSetu
 
         const menuUrl = `https://bakedbot.ai/${config.type === 'brand' ? config.brandSlug : config.dispensarySlug}`;
 
+        // Check for ground truth configuration
+        // Use groundTruthBrandId if provided, otherwise try the slug
+        const groundTruthId = config.groundTruthBrandId ||
+            (config.type === 'brand' ? config.brandSlug : config.dispensarySlug);
+        const groundTruthConfigured = hasGroundTruth(groundTruthId);
+        const groundTruthData = groundTruthConfigured ? getGroundTruthStats(groundTruthId) : null;
+
         return {
             success: true,
             message: `Pilot customer ${config.type === 'brand' ? config.brandName : config.dispensaryName} created successfully!`,
@@ -324,6 +348,12 @@ export async function setupPilotCustomer(config: PilotConfig): Promise<PilotSetu
                 orgId,
                 locationId,
                 menuUrl,
+                groundTruth: {
+                    configured: groundTruthConfigured,
+                    totalQAPairs: groundTruthData?.totalQAPairs,
+                    criticalCount: groundTruthData?.criticalCount,
+                    categories: groundTruthData?.categories,
+                },
             }
         };
 
@@ -479,4 +509,39 @@ export async function importMenuFromUrl(url: string): Promise<{
             error: error instanceof Error ? error.message : String(error),
         };
     }
+}
+
+/**
+ * Check if a brand has ground truth QA configured for Smokey
+ */
+export async function checkGroundTruthStatus(brandId: string): Promise<{
+    configured: boolean;
+    stats?: {
+        totalQAPairs: number;
+        criticalCount: number;
+        highCount: number;
+        mediumCount: number;
+        categories: string[];
+    };
+}> {
+    if (!hasGroundTruth(brandId)) {
+        return { configured: false };
+    }
+
+    const stats = getGroundTruthStats(brandId);
+    return {
+        configured: true,
+        stats: stats || undefined,
+    };
+}
+
+/**
+ * List all brands with ground truth configured
+ */
+export async function listBrandsWithGroundTruth(): Promise<Array<{
+    brandId: string;
+    dispensary: string;
+    version: string;
+}>> {
+    return listGroundedBrands();
 }
