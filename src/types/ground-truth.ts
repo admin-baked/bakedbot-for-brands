@@ -302,6 +302,126 @@ export const EvaluationConfigSchema = z.object({
     priority_levels: z.record(z.string()),
 });
 
+// --- Recommendation Strategy Schemas (v1.0) ---
+
+const ThcCbdRangeSchema = z.object({
+    min: z.number(),
+    max: z.number(),
+}).optional();
+
+export const EffectBasedStrategySchema = z.object({
+    type: z.literal('effect_based'),
+    effects: z.array(z.object({
+        name: z.string(),
+        weight: z.number().min(0).max(1),
+        product_types: z.array(z.string()).optional(),
+        thc_range: ThcCbdRangeSchema,
+        cbd_range: ThcCbdRangeSchema,
+    })),
+    fallback_to_popular: z.boolean().optional(),
+});
+
+export const PriceTierStrategySchema = z.object({
+    type: z.literal('price_tier'),
+    tiers: z.array(z.object({
+        name: z.string(),
+        min_price: z.number().optional(),
+        max_price: z.number().optional(),
+        default: z.boolean().optional(),
+    })),
+    show_deals_first: z.boolean().optional(),
+    value_scoring: z.boolean().optional(),
+});
+
+export const ExperienceLevelStrategySchema = z.object({
+    type: z.literal('experience_level'),
+    levels: z.array(z.object({
+        name: z.string(),
+        thc_max: z.number().optional(),
+        dosage_guidance: z.string().optional(),
+        avoid_product_types: z.array(z.string()).optional(),
+        prefer_product_types: z.array(z.string()).optional(),
+        warnings: z.array(z.string()).optional(),
+    })),
+    default_level: z.string(),
+    ask_if_unknown: z.boolean().optional(),
+});
+
+export const ProductTypeStrategySchema = z.object({
+    type: z.literal('product_type'),
+    preferences: z.array(z.object({
+        category: z.string(),
+        weight: z.number().min(0).max(1),
+        subcategories: z.array(z.string()).optional(),
+    })),
+    exclude_categories: z.array(z.string()).optional(),
+});
+
+export const BrandAffinityStrategySchema = z.object({
+    type: z.literal('brand_affinity'),
+    featured_brands: z.array(z.object({
+        name: z.string(),
+        boost_weight: z.number().min(1).max(2),
+        message: z.string().optional(),
+    })),
+    house_brand: z.string().optional(),
+    exclude_brands: z.array(z.string()).optional(),
+});
+
+export const OccasionStrategySchema = z.object({
+    type: z.literal('occasion'),
+    occasions: z.array(z.object({
+        name: z.string(),
+        effects: z.array(z.string()),
+        product_types: z.array(z.string()).optional(),
+        thc_range: ThcCbdRangeSchema,
+        cbd_range: ThcCbdRangeSchema,
+        time_of_day: z.enum(['morning', 'afternoon', 'evening', 'night', 'any']).optional(),
+    })),
+});
+
+export const HybridStrategySchema = z.object({
+    type: z.literal('hybrid'),
+    strategies: z.array(z.object({
+        strategy: z.enum(['effect_based', 'price_tier', 'experience_level', 'product_type', 'brand_affinity', 'occasion', 'hybrid']),
+        weight: z.number().min(0).max(1),
+        config: z.record(z.unknown()),
+    })),
+    combination_mode: z.enum(['weighted_average', 'cascade', 'filter_then_rank']),
+});
+
+export const RecommendationStrategyConfigSchema = z.discriminatedUnion('type', [
+    EffectBasedStrategySchema,
+    PriceTierStrategySchema,
+    ExperienceLevelStrategySchema,
+    ProductTypeStrategySchema,
+    BrandAffinityStrategySchema,
+    OccasionStrategySchema,
+    HybridStrategySchema,
+]);
+
+export const RecommendationConfigSchema = z.object({
+    version: z.string(),
+    default_strategy: z.enum(['effect_based', 'price_tier', 'experience_level', 'product_type', 'brand_affinity', 'occasion', 'hybrid']),
+    strategies: z.array(RecommendationStrategyConfigSchema),
+    constraints: z.object({
+        max_recommendations: z.number().int().positive(),
+        require_in_stock: z.boolean(),
+        min_confidence: z.number().min(0).max(1),
+    }),
+    beginner_safety: z.object({
+        enabled: z.boolean(),
+        max_thc_first_time: z.number(),
+        max_edible_mg_first_time: z.number(),
+        warning_message: z.string(),
+    }),
+    compliance: z.object({
+        require_age_confirmation: z.boolean(),
+        medical_disclaimer: z.string(),
+        no_health_claims: z.boolean(),
+    }),
+});
+
 export const GroundTruthQASetSchema = z.object({
     metadata: z.object({
         dispensary: z.string(),
@@ -320,6 +440,7 @@ export const GroundTruthQASetSchema = z.object({
         monthly: z.array(z.string()),
         quarterly: z.array(z.string()),
     }),
+    recommendation_config: RecommendationConfigSchema.optional(),  // v1.0
 });
 
 // --- Helper Functions ---
@@ -357,4 +478,134 @@ export function countByCategory(groundTruth: GroundTruthQASet): Record<string, n
         counts[key] = category.qa_pairs.length;
     }
     return counts;
+}
+
+// ============================================================================
+// RECOMMENDATION STRATEGY HELPERS (v1.0)
+// ============================================================================
+
+/**
+ * Get the default recommendation strategy for a ground truth set
+ */
+export function getDefaultStrategy(groundTruth: GroundTruthQASet): RecommendationStrategyConfig | null {
+    if (!groundTruth.recommendation_config) return null;
+
+    const defaultType = groundTruth.recommendation_config.default_strategy;
+    return groundTruth.recommendation_config.strategies.find(s => s.type === defaultType) || null;
+}
+
+/**
+ * Get a specific strategy by type
+ */
+export function getStrategyByType(
+    groundTruth: GroundTruthQASet,
+    type: RecommendationStrategyType
+): RecommendationStrategyConfig | null {
+    if (!groundTruth.recommendation_config) return null;
+    return groundTruth.recommendation_config.strategies.find(s => s.type === type) || null;
+}
+
+/**
+ * Check if a ground truth set has recommendation strategies configured
+ */
+export function hasRecommendationStrategies(groundTruth: GroundTruthQASet): boolean {
+    return !!(
+        groundTruth.recommendation_config &&
+        groundTruth.recommendation_config.strategies.length > 0
+    );
+}
+
+/**
+ * Get beginner safety settings
+ */
+export function getBeginnerSafety(groundTruth: GroundTruthQASet): RecommendationConfig['beginner_safety'] | null {
+    return groundTruth.recommendation_config?.beginner_safety || null;
+}
+
+/**
+ * Check if beginner safety is enabled
+ */
+export function isBeginnerSafetyEnabled(groundTruth: GroundTruthQASet): boolean {
+    return groundTruth.recommendation_config?.beginner_safety?.enabled ?? false;
+}
+
+/**
+ * Get compliance settings
+ */
+export function getComplianceSettings(groundTruth: GroundTruthQASet): RecommendationConfig['compliance'] | null {
+    return groundTruth.recommendation_config?.compliance || null;
+}
+
+/**
+ * Create a default recommendation config (starter template)
+ */
+export function createDefaultRecommendationConfig(): RecommendationConfig {
+    return {
+        version: GROUND_TRUTH_VERSION,
+        default_strategy: 'effect_based',
+        strategies: [
+            {
+                type: 'effect_based',
+                effects: [
+                    { name: 'relaxation', weight: 0.8 },
+                    { name: 'energy', weight: 0.7 },
+                    { name: 'focus', weight: 0.6 },
+                    { name: 'sleep', weight: 0.8 },
+                    { name: 'pain_relief', weight: 0.7 },
+                ],
+                fallback_to_popular: true,
+            },
+            {
+                type: 'experience_level',
+                levels: [
+                    {
+                        name: 'beginner',
+                        thc_max: 15,
+                        dosage_guidance: 'Start with 2.5-5mg THC for edibles, or 1-2 puffs for flower',
+                        prefer_product_types: ['edibles', 'tinctures', 'flower'],
+                        avoid_product_types: ['concentrates', 'dabs'],
+                        warnings: ['Start low and go slow', 'Wait 2 hours before redosing edibles'],
+                    },
+                    {
+                        name: 'intermediate',
+                        thc_max: 25,
+                        dosage_guidance: '5-15mg THC for edibles',
+                        prefer_product_types: ['flower', 'edibles', 'vapes'],
+                    },
+                    {
+                        name: 'experienced',
+                        dosage_guidance: 'Adjust based on personal tolerance',
+                    },
+                ],
+                default_level: 'beginner',
+                ask_if_unknown: true,
+            },
+            {
+                type: 'price_tier',
+                tiers: [
+                    { name: 'budget', max_price: 30, default: false },
+                    { name: 'mid-range', min_price: 30, max_price: 60, default: true },
+                    { name: 'premium', min_price: 60 },
+                ],
+                show_deals_first: true,
+                value_scoring: true,
+            },
+        ],
+        constraints: {
+            max_recommendations: 5,
+            require_in_stock: true,
+            min_confidence: 0.6,
+        },
+        beginner_safety: {
+            enabled: true,
+            max_thc_first_time: 10,
+            max_edible_mg_first_time: 5,
+            warning_message: 'Since you\'re new to cannabis, I\'ll recommend lower-potency options. Start low and go slow!',
+        },
+        compliance: {
+            require_age_confirmation: true,
+            medical_disclaimer: 'These products are not intended to diagnose, treat, cure, or prevent any disease. Please consult a healthcare professional.',
+            no_health_claims: true,
+        },
+    };
 }

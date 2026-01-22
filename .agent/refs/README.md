@@ -11,6 +11,7 @@ Detailed documentation for AI agents working in this codebase.
 | If You're Working On... | Read This First |
 |-------------------------|-----------------|
 | Agent logic (any agent) | `agents.md` |
+| Ground truth, Smokey grounding | `ground-truth.md` |
 | Memory/Letta integration | `bakedbot-intelligence.md` |
 | Browser automation/RTRVR | `autonomous-browsing.md` |
 | Auth, login, sessions | `authentication.md` |
@@ -38,6 +39,7 @@ Detailed documentation for AI agents working in this codebase.
 ### Intelligence & Memory
 | File | What's Inside |
 |------|---------------|
+| `ground-truth.md` | **v1.0** - QA grounding, recommendation strategies, Smokey |
 | `bakedbot-intelligence.md` | Letta memory service, Hive Mind, shared blocks |
 | `bakedbot-discovery.md` | Web search, Firecrawl scraping |
 | `autonomous-browsing.md` | RTRVR browser automation, session management |

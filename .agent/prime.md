@@ -415,64 +415,68 @@ All agents now connected to shared memory (Hive Mind) and have explicit groundin
 - `src/server/agents/agent-definitions.ts` — Central registry for agents and integrations
 - `src/app/dashboard/ceo/agents/default-tools.ts` — Real `getSystemHealth` and `getAgentStatus` tools
 
-### Ground Truth QA System for Pilot Customers
-Dispensary-specific grounding for Smokey AI budtender. Each pilot customer gets a curated QA set that Smokey uses for accurate, compliant responses.
+### Ground Truth System v1.0
 
-**First Pilot: Thrive Syracuse**
-- 29 QA pairs across 8 categories
-- 6 critical compliance questions (100% accuracy required)
-- Covers: store info, age/ID, products, effects, brands, pricing, compliance, ordering
+Versioned grounding system for customer-facing agents (Smokey). Includes QA pairs and **recommendation strategies**.
 
-**How It Works:**
-1. Ground truth loaded at Smokey init based on `brandMemory.brand_profile.id`
-2. Injected into system prompt as `=== DISPENSARY INFORMATION ===` and `=== CRITICAL COMPLIANCE ===`
-3. Grounding rule #4 enforces exact answers for compliance questions
+> Full documentation: `.agent/refs/ground-truth.md`
 
-**Adding New Pilot Customers:**
+**What's in v1.0:**
+- QA pairs with priority levels (critical, high, medium)
+- Recommendation strategies (effect-based, price-tier, experience-level, etc.)
+- Beginner safety constraints (THC limits, dosage guidance)
+- Compliance settings (medical disclaimers, age confirmation)
+- CEO Dashboard for managing ground truth
+- Firestore-first loading with code registry fallback
+
+**Recommendation Strategy Types:**
+| Strategy | Use Case |
+|----------|----------|
+| `effect_based` | "I want to relax" |
+| `price_tier` | "Something under $30" |
+| `experience_level` | First-time users |
+| `product_type` | "Only flower please" |
+| `brand_affinity` | Featured brands |
+| `occasion` | "For sleep" |
+| `hybrid` | Combine strategies |
+
+**Beginner Safety:**
 ```typescript
-// 1. Create: src/server/grounding/customers/new-customer.ts
-export const newCustomerGroundTruth: GroundTruthQASet = { ... }
-
-// 2. Register in src/server/grounding/index.ts
-GROUND_TRUTH_REGISTRY['new-customer-slug'] = newCustomerGroundTruth;
+beginner_safety: {
+    enabled: true,
+    max_thc_first_time: 10,      // Max 10% THC
+    max_edible_mg_first_time: 5, // Max 5mg per dose
+    warning_message: 'Start low and go slow!',
+}
 ```
 
-**Critical Compliance (100% Accuracy):**
-- Age verification (21+)
-- Possession limits (3oz flower / 24g concentrate)
-- First-time user guidance (2.5-5mg, start low go slow)
-- Product testing (lab-tested, CoA)
-- Licensing verification (OCM)
-
 **Key Files:**
-- `src/types/ground-truth.ts` — Type definitions and Zod schemas
-- `src/server/grounding/index.ts` — Registry and exports
-- `src/server/grounding/builder.ts` — Builds system prompt sections
-- `src/server/grounding/dynamic-loader.ts` — Firestore-first loader with code fallback
-- `src/server/grounding/customers/thrive-syracuse.ts` — Thrive Syracuse QA set
-- `src/server/actions/ground-truth.ts` — CRUD server actions for Ground Truth
-- `src/server/actions/pilot-setup.ts` — Pilot setup with ground truth status
-- `tests/qa-audit/thrive-syracuse.test.ts` — 33 evaluation tests
+| File | Purpose |
+|------|---------|
+| `src/types/ground-truth.ts` | Types, schemas, strategies |
+| `src/server/grounding/dynamic-loader.ts` | Firestore-first loader |
+| `src/server/grounding/builder.ts` | System prompt construction |
+| `src/server/actions/ground-truth.ts` | CRUD server actions |
+| `src/app/dashboard/ceo/components/ground-truth-tab.tsx` | Dashboard UI |
+
+**Quick Usage:**
+```typescript
+import { loadGroundTruth } from '@/server/grounding';
+import { hasRecommendationStrategies, getStrategyByType } from '@/types/ground-truth';
+
+const gt = await loadGroundTruth('thrivesyracuse');
+if (hasRecommendationStrategies(gt)) {
+    const effectStrategy = getStrategyByType(gt, 'effect_based');
+}
+```
+
+**Dashboard Access:** `/dashboard/ceo?tab=ground-truth`
 
 **Test Commands:**
 ```bash
-npm test -- tests/qa-audit/thrive-syracuse.test.ts  # Thrive Syracuse QA
-npm test -- tests/types/ground-truth.test.ts        # Type unit tests
+npm test -- tests/qa-audit/thrive-syracuse.test.ts  # QA audit
+npm test -- tests/server/grounding/                  # Grounding tests
 ```
-
-### Ground Truth Management UI (NEW)
-CEO Dashboard now includes a Ground Truth Tab for managing pilot customer QA data.
-
-**Features:**
-- View all brands with ground truth (code registry + Firestore)
-- Add/edit/delete categories and QA pairs
-- Mark questions as critical compliance
-- Export/import JSON for bulk operations
-- Live test questions against Smokey
-
-**Key Files:**
-- `src/app/dashboard/ceo/components/ground-truth-tab.tsx` — Full management UI
-- `src/server/actions/ground-truth.ts` — Server actions (CRUD + migration)
 
 ### Linus Fix Endpoint (NEW)
 API endpoint for Linus agent to apply automated code fixes.
