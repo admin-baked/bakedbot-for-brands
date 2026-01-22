@@ -11,9 +11,8 @@ import {
     AgentId
 } from './agent-definitions';
 import {
-    getGroundTruth,
+    loadGroundTruth,
     buildGroundingInstructions,
-    hasGroundTruth
 } from '../grounding';
 
 // --- Tool Definitions ---
@@ -53,19 +52,17 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
         // Build dynamic squad roster from agent-definitions (source of truth)
         const squadRoster = buildSquadRoster('smokey');
 
-        // Load dispensary-specific ground truth if available
+        // Load dispensary-specific ground truth if available (Firestore-first, fallback to code)
         const brandId = (brandMemory.brand_profile as { id?: string })?.id || 'unknown';
         let groundingSection = '';
 
-        if (hasGroundTruth(brandId)) {
-            const groundTruth = getGroundTruth(brandId);
-            if (groundTruth) {
-                const grounding = buildGroundingInstructions(groundTruth);
-                groundingSection = `
+        const groundTruth = await loadGroundTruth(brandId);
+        if (groundTruth) {
+            const grounding = buildGroundingInstructions(groundTruth);
+            groundingSection = `
             ${grounding.full}
             `;
-                logger.info(`[Smokey] Loaded ground truth for ${groundTruth.metadata.dispensary} (${groundTruth.metadata.total_qa_pairs} QA pairs)`);
-            }
+            logger.info(`[Smokey] Loaded ground truth for ${groundTruth.metadata.dispensary} (${groundTruth.metadata.total_qa_pairs} QA pairs)`);
         } else {
             logger.debug(`[Smokey] No ground truth configured for brand: ${brandId}`);
         }
