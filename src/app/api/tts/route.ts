@@ -2,10 +2,13 @@
  * TTS API Route
  *
  * POST /api/tts - Generate speech from text
+ *
+ * SECURITY: Requires authenticated user to prevent API abuse
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
+import { withAuth } from '@/server/middleware/with-protection';
 import {
   generateSpeech,
   isOpenAITTSAvailable,
@@ -80,7 +83,13 @@ function validateRequest(body: unknown): TTSAPIRequest {
 // ROUTE HANDLERS
 // ============================================================================
 
-export async function POST(request: NextRequest) {
+/**
+ * POST /api/tts - Generate speech from text
+ *
+ * SECURITY: Protected by withAuth - requires valid session cookie
+ * This prevents unauthorized API abuse and cost attacks
+ */
+export const POST = withAuth(async (request: NextRequest) => {
   try {
     // Check if TTS is available
     if (!isOpenAITTSAvailable()) {
@@ -130,7 +139,7 @@ export async function POST(request: NextRequest) {
       { status: statusCode }
     );
   }
-}
+});
 
 // Health check
 export async function GET() {

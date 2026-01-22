@@ -17,6 +17,7 @@ import { logger } from '@/lib/monitoring';
 import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@/firebase/server-client';
+import { SUPER_ADMIN_EMAILS } from '@/lib/super-admin-config';
 
 export interface ProtectionOptions<T extends ZodSchema = any> {
   /**
@@ -63,8 +64,8 @@ export interface ProtectionOptions<T extends ZodSchema = any> {
  *   // data is typed as { email: string }
  * }, { schema });
  */
-// Super admin email whitelist (imported dynamically to avoid circular deps)
-const SUPER_ADMIN_EMAILS = ['martin.f.stewart@gmail.com', 'marte@bakedbot.ai'];
+// SECURITY: Super admin whitelist is now imported from canonical source
+// See src/lib/super-admin-config.ts for the single source of truth
 
 export function withProtection<T extends ZodSchema = any>(
   handler: (request: NextRequest, data?: z.infer<T>) => Promise<NextResponse>,

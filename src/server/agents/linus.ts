@@ -25,6 +25,127 @@ import {
 } from './agent-definitions';
 
 // ============================================================================
+// SECURITY: HIGH-RISK COMMAND SAFETY CHECKS
+// ============================================================================
+
+/**
+ * Commands that are BLOCKED entirely - too dangerous even for Super Users
+ * These could cause data loss, credential exposure, or system damage
+ */
+const BLOCKED_COMMANDS = [
+    /rm\s+-rf\s+[\/~]/i,                    // rm -rf / or rm -rf ~
+    /rm\s+-rf\s+\.\s*$/i,                   // rm -rf .
+    /rm\s+-rf\s+\*\s*$/i,                   // rm -rf *
+    /:\(\)\s*\{\s*:\|:&\s*\}\s*;/,          // Fork bomb
+    /dd\s+if=.*of=\/dev\//i,                // dd to device
+    /mkfs\./i,                              // Format filesystem
+    />\s*\/dev\/sd[a-z]/i,                  // Write to disk device
+    /curl.*\|\s*(?:bash|sh|zsh)/i,          // Pipe curl to shell (unless from trusted source)
+    /wget.*\|\s*(?:bash|sh|zsh)/i,          // Pipe wget to shell
+    /eval\s*\$\(/i,                         // Eval command substitution
+    /npm\s+(?:login|publish|unpublish)/i,   // npm auth/publish operations
+    /git\s+push.*--force.*(?:main|master)/i, // Force push to main/master
+    /git\s+reset\s+--hard\s+HEAD~[2-9]/i,   // Reset more than 1 commit
+    /firebase\s+(?:delete|destroy)/i,       // Firebase destructive ops
+    /gcloud\s+(?:delete|destroy)/i,         // GCloud destructive ops
+    /DROP\s+(?:DATABASE|TABLE|SCHEMA)/i,    // SQL destructive
+    /TRUNCATE\s+TABLE/i,                    // SQL truncate
+    /env\s*$|printenv|set\s*$/,             // Dump all env vars (credential leak)
+    /cat\s+.*\.env/i,                       // Read .env files
+    /echo\s+\$[A-Z_]+.*(?:>|>>)/i,          // Echo secrets to files
+];
+
+/**
+ * Commands that require EXTRA LOGGING and are flagged as high-risk
+ * These are allowed but closely monitored
+ */
+const HIGH_RISK_PATTERNS = [
+    /git\s+push/i,                          // Any git push
+    /git\s+reset/i,                         // Any git reset
+    /git\s+checkout\s+\./i,                 // Discard changes
+    /rm\s+-r/i,                             // Any recursive delete
+    /npm\s+install.*--save/i,               // Adding dependencies
+    /npm\s+uninstall/i,                     // Removing dependencies
+    /chmod/i,                               // Changing permissions
+    /chown/i,                               // Changing ownership
+];
+
+/**
+ * Validate a command for safety
+ * @returns { allowed: boolean, reason?: string, isHighRisk?: boolean }
+ */
+function validateCommandSafety(command: string): { allowed: boolean; reason?: string; isHighRisk?: boolean } {
+    // Check blocked commands
+    for (const pattern of BLOCKED_COMMANDS) {
+        if (pattern.test(command)) {
+            logger.error('[Linus Security] BLOCKED dangerous command', {
+                command: command.slice(0, 200),
+                pattern: pattern.toString(),
+            });
+            return {
+                allowed: false,
+                reason: `Command blocked for security: matches dangerous pattern. This command could cause system damage, data loss, or credential exposure.`,
+            };
+        }
+    }
+
+    // Check high-risk commands (allowed but flagged)
+    for (const pattern of HIGH_RISK_PATTERNS) {
+        if (pattern.test(command)) {
+            logger.warn('[Linus Security] High-risk command detected', {
+                command: command.slice(0, 200),
+                pattern: pattern.toString(),
+            });
+            return {
+                allowed: true,
+                isHighRisk: true,
+            };
+        }
+    }
+
+    return { allowed: true, isHighRisk: false };
+}
+
+/**
+ * Validate file path for safety
+ * @returns { allowed: boolean, reason?: string }
+ */
+function validateFilePathSafety(filePath: string): { allowed: boolean; reason?: string } {
+    const normalizedPath = filePath.replace(/\\/g, '/').toLowerCase();
+
+    // Block writing to sensitive locations
+    const blockedPaths = [
+        /^\/etc\//,                          // System config
+        /^\/usr\//,                          // System binaries
+        /^\/var\//,                          // System data
+        /^c:\/windows/i,                     // Windows system
+        /^c:\/program files/i,               // Windows programs
+        /\.env$/i,                           // .env files (use apphosting.yaml)
+        /\.pem$/i,                           // Private keys
+        /\.key$/i,                           // Private keys
+        /credentials/i,                      // Credential files
+        /secrets?\./i,                       // Secret files
+        /\/\.git\//,                         // Git internals
+        /\/node_modules\//,                  // Dependencies (use npm)
+    ];
+
+    for (const pattern of blockedPaths) {
+        if (pattern.test(normalizedPath)) {
+            logger.error('[Linus Security] BLOCKED file write to sensitive path', {
+                path: filePath,
+                pattern: pattern.toString(),
+            });
+            return {
+                allowed: false,
+                reason: `Write blocked: ${filePath} is a sensitive path. For secrets, use apphosting.yaml or environment variables.`,
+            };
+        }
+    }
+
+    return { allowed: true };
+}
+
+// ============================================================================
 // LINUS TOOLS - Code Eval & Deployment
 // ============================================================================
 
@@ -1297,11 +1418,20 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
         
         case 'write_file': {
             const filePath = path.join(PROJECT_ROOT, input.path as string);
+
+            // SECURITY: Validate file path
+            const pathCheck = validateFilePathSafety(filePath);
+            if (!pathCheck.allowed) {
+                return { success: false, error: pathCheck.reason, blocked: true };
+            }
+
             await fs.mkdir(path.dirname(filePath), { recursive: true });
             await fs.writeFile(filePath, input.content as string, 'utf-8');
+
+            logger.info('[Linus] File written', { path: input.path });
             return { success: true, path: input.path, message: 'File written successfully' };
         }
-        
+
         case 'run_command': {
             const { command, cwd, timeout: userTimeout, background } = input as {
                 command: string;
@@ -1309,6 +1439,16 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
                 timeout?: number;
                 background?: boolean;
             };
+
+            // SECURITY: Validate command safety
+            const cmdCheck = validateCommandSafety(command);
+            if (!cmdCheck.allowed) {
+                return { success: false, error: cmdCheck.reason, blocked: true };
+            }
+            if (cmdCheck.isHighRisk) {
+                logger.warn('[Linus] Executing HIGH-RISK command', { command: command.slice(0, 200) });
+            }
+
             const workDir = cwd ? path.join(PROJECT_ROOT, cwd) : PROJECT_ROOT;
             // Default 2 min, max 10 min
             const timeoutMs = Math.min(userTimeout || 120000, 600000);
@@ -1372,6 +1512,16 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
                 env?: Record<string, string>;
                 runInBackground?: boolean;
             };
+
+            // SECURITY: Validate command safety
+            const cmdCheck = validateCommandSafety(command);
+            if (!cmdCheck.allowed) {
+                logger.error('[Linus Bash] BLOCKED', { command: command.slice(0, 200), reason: cmdCheck.reason });
+                return { success: false, error: cmdCheck.reason, blocked: true };
+            }
+            if (cmdCheck.isHighRisk) {
+                logger.warn('[Linus Bash] HIGH-RISK command', { command: command.slice(0, 200), description: cmdDescription });
+            }
 
             // Resolve working directory
             let workDir = PROJECT_ROOT;
