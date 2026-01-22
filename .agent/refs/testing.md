@@ -285,9 +285,39 @@ POST /api/linus/fix
 
 ---
 
+## Security Tests
+
+Security tests from Q1 2026 audit remediations. Run these before any security-related changes.
+
+```powershell
+# All security tests (71 tests)
+npm test -- tests/server/security/security-audit-fixes.test.ts src/server/actions/__tests__/admin-claims.test.ts src/lib/__tests__/super-admin-config.test.ts
+
+# Individual test files
+npm test -- tests/server/security/security-audit-fixes.test.ts  # 47 tests
+npm test -- src/server/actions/__tests__/admin-claims.test.ts   # 12 tests
+npm test -- src/lib/__tests__/super-admin-config.test.ts        # 12 tests
+```
+
+### Security Test Coverage
+
+| Area | File | Tests |
+|------|------|-------|
+| Super Admin Whitelist | `security-audit-fixes.test.ts` | Email validation, case sensitivity |
+| Linus Command Safety | `security-audit-fixes.test.ts` | Blocked commands, high-risk commands, blocked paths |
+| TTS API Protection | `security-audit-fixes.test.ts` | withAuth middleware, request validation |
+| withProtection Middleware | `security-audit-fixes.test.ts` | CSRF, AppCheck, requireAuth, requireSuperUser |
+| Admin Claims Auth | `admin-claims.test.ts` | Super User checks, privilege escalation prevention |
+| Super Admin Config | `super-admin-config.test.ts` | Email whitelist, environment gating, session management |
+
+---
+
 ## Related Files
 - `jest.config.js` — Jest configuration
 - `playwright.config.ts` — Playwright configuration
 - `dev/test_matrix.json` — Test categories by area
 - `src/server/agents/linus.ts` — Linus test tools
 - `chrome-extension/` — BakedBot Chrome Extension
+- `tests/server/security/` — Security audit tests
+- `src/server/actions/__tests__/admin-claims.test.ts` — Admin claims auth tests
+- `src/lib/__tests__/super-admin-config.test.ts` — Super admin config tests
