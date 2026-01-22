@@ -36,7 +36,6 @@ export default function DashboardPageComponent({
     startSaving(async () => {
       try {
         const draft = await savePlaybookDraft({
-          brandId,
           name: "Sample automation for " + brandId,
           description: "A test playbook draft created from the dashboard.",
         });

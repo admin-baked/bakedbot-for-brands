@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { runAgentCore } from '@/server/agents/agent-runner';
 import { createServerClient } from '@/firebase/server-client';
 import { DecodedIdToken } from 'firebase-admin/auth';
+import { formatAgentResponse } from '@/lib/agent-response-formatter';
 
 /**
  * Cloud Task Worker for Agent Jobs.
@@ -93,12 +94,18 @@ export async function POST(req: NextRequest) {
         // For Phase 2, we just log it. The UI (polling) would check `jobs/{jobId}`.
 
         // Sanitize result to ensure it's Firestore-serializable (remove functions, circular refs)
+        // Also replace any unprocessed timestamp templates with actual values
         const sanitizedResult = JSON.parse(JSON.stringify(result, (key, value) => {
             // Remove functions and undefined values
             if (typeof value === 'function') return undefined;
-            // Truncate very long strings to prevent Firestore size limits
-            if (typeof value === 'string' && value.length > 50000) {
-                return value.substring(0, 50000) + '... [truncated]';
+            // Format strings to replace template placeholders (e.g., [Current Date/Time])
+            if (typeof value === 'string') {
+                let formatted = formatAgentResponse(value);
+                // Truncate very long strings to prevent Firestore size limits
+                if (formatted.length > 50000) {
+                    formatted = formatted.substring(0, 50000) + '... [truncated]';
+                }
+                return formatted;
             }
             return value;
         }));

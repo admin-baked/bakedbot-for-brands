@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AgentEntity } from '@/server/actions/agents';
-import { agents as STATIC_AGENT_CONFIG, AgentId } from '@/config/agents';
+import { agents as STATIC_AGENT_CONFIG, AgentId, AgentDefinition } from '@/config/agents';
 
 // Helper to get icon for agent ID
 const getIconForAgent = (id: string) => {
@@ -19,8 +19,11 @@ const getTagsForAgent = (id: string) => {
   return config?.tag ? [config.tag] : ['Agent'];
 };
 
+// Unified agent type for display (accepts both DB entities and static config)
+type DisplayAgent = AgentEntity | AgentDefinition;
+
 interface AgentsGridProps {
-  agents?: AgentEntity[];
+  agents?: DisplayAgent[];
 }
 
 export function AgentsGrid({ agents }: AgentsGridProps) {
