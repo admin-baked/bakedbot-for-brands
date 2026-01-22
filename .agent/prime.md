@@ -296,6 +296,23 @@ Big Worm and Roach now use the Research-Elaboration pattern:
 
 Security vulnerabilities identified by Antigravity Security Agent audit and remediated:
 
+#### CRITICAL: Admin Claims Authentication (NEW)
+`verifyClaimAction()` and `rejectClaimAction()` had NO authentication checks.
+
+**Fix:** Added Super User auth checks to both functions.
+```typescript
+// src/server/actions/admin-claims.ts
+const currentUser = await getServerSessionUser();
+if (!currentUser || !(await isSuperUser(currentUser.uid, currentUser.email))) {
+    throw new Error('Unauthorized: Super User access required');
+}
+```
+
+**Key Changes:**
+- Both functions now require Super User access
+- Uses actual admin UID (not hardcoded "admin")
+- 12 new unit tests in `src/server/actions/__tests__/admin-claims.test.ts`
+
 #### CRITICAL: TTS API Authentication
 The `/api/tts` endpoint was unprotected, allowing unauthorized API abuse.
 
@@ -307,47 +324,66 @@ export const POST = withAuth(async (request: NextRequest) => {
 });
 ```
 
+#### HIGH: Firestore Orders Collection (NEW)
+Orders collection allowed ANY request to create orders (`allow create: if true`).
+
+**Fix:** Require authentication and userId match.
+```javascript
+// firestore.rules
+allow create: if request.auth != null &&
+               request.resource.data.userId == request.auth.uid;
+```
+
+#### HIGH: Console Logging in Cron Jobs (NEW)
+`tick/route.ts` used `console.log/warn/error` instead of structured logger.
+
+**Fix:** Replaced all 6 console calls with `logger` from `@/lib/logger`.
+```typescript
+// Before: console.log(`[Pulse] Executing schedule ${doc.id}: ${task}`);
+// After:  logger.info('[Pulse] Executing schedule', { scheduleId: doc.id, task });
+```
+
 #### HIGH: Super Admin Whitelist Consolidation
 Two separate hardcoded whitelists existed with different/mistyped emails.
 
 **Fix:** Single source of truth in `src/lib/super-admin-config.ts`
-```typescript
-// src/server/middleware/with-protection.ts
-import { SUPER_ADMIN_EMAILS } from '@/lib/super-admin-config';
-// Removed hardcoded duplicate list
-```
 
 #### HIGH: Linus Agent Command Safety
 Full shell access without command validation posed RCE risk.
 
-**Fix:** Added command safety validation in `src/server/agents/linus.ts`:
+**Fix:** Added command safety validation in `src/server/agents/linus.ts`
 
-**Blocked Commands (will not execute):**
-- `rm -rf /`, `rm -rf ~`, `rm -rf *`
-- Fork bombs, `dd` to devices, `mkfs`
-- `curl | bash`, `wget | sh`
-- `npm login/publish/unpublish`
-- `git push --force main/master`
-- SQL `DROP DATABASE/TABLE`, `TRUNCATE`
-- Commands that dump env vars or read `.env` files
+**Blocked Commands:** `rm -rf /`, fork bombs, `curl | bash`, `npm publish`, `git push --force main`, SQL destructive ops, env dumps
 
-**High-Risk Commands (allowed but logged):**
-- `git push`, `git reset`, `git checkout .`
-- `rm -r` (recursive delete)
-- `npm install --save`, `npm uninstall`
-- `chmod`, `chown`
+**Blocked Paths:** System dirs, `.env`, `.pem`, `.key`, credentials, `.git/` internals
 
-**Blocked File Paths:**
-- System dirs (`/etc`, `/usr`, `C:\Windows`)
-- `.env`, `.pem`, `.key` files
-- `credentials`, `secrets` files
-- `.git/` internals, `node_modules/`
+#### MEDIUM: Tenant Events Validation (NEW)
+Tenant events collection allowed anonymous writes without validation.
 
-**Key Files:**
-- `src/app/api/tts/route.ts` — TTS with auth
-- `src/server/middleware/with-protection.ts` — Consolidated whitelist
-- `src/server/agents/linus.ts` — Command safety validation
-- `tests/server/security/security-audit-fixes.test.ts` — 47 security tests
+**Fix:** Added required field validation in Firestore rules.
+```javascript
+// firestore.rules
+allow create: if request.resource.data.keys().hasAll(['eventType', 'timestamp']) &&
+               request.resource.data.eventType is string &&
+               request.resource.data.eventType.size() <= 100;
+```
+
+#### MEDIUM: Dev Persona Environment Gate (NEW)
+`owner@bakedbot.ai` was included in production super admin whitelist.
+
+**Fix:** Gate by environment in `src/lib/super-admin-config.ts`.
+```typescript
+export const SUPER_ADMIN_EMAILS = ALL_SUPER_ADMIN_EMAILS.filter(
+    email => email !== 'owner@bakedbot.ai' || process.env.NODE_ENV !== 'production'
+);
+```
+- 12 new unit tests in `src/lib/__tests__/super-admin-config.test.ts`
+
+**Security Test Summary:**
+- `tests/server/security/security-audit-fixes.test.ts` — 47 tests
+- `src/server/actions/__tests__/admin-claims.test.ts` — 12 tests
+- `src/lib/__tests__/super-admin-config.test.ts` — 12 tests
+- **Total: 71 security tests passing**
 
 ---
 
@@ -412,7 +448,9 @@ GROUND_TRUTH_REGISTRY['new-customer-slug'] = newCustomerGroundTruth;
 - `src/types/ground-truth.ts` — Type definitions and Zod schemas
 - `src/server/grounding/index.ts` — Registry and exports
 - `src/server/grounding/builder.ts` — Builds system prompt sections
+- `src/server/grounding/dynamic-loader.ts` — Firestore-first loader with code fallback
 - `src/server/grounding/customers/thrive-syracuse.ts` — Thrive Syracuse QA set
+- `src/server/actions/ground-truth.ts` — CRUD server actions for Ground Truth
 - `src/server/actions/pilot-setup.ts` — Pilot setup with ground truth status
 - `tests/qa-audit/thrive-syracuse.test.ts` — 33 evaluation tests
 
@@ -421,6 +459,34 @@ GROUND_TRUTH_REGISTRY['new-customer-slug'] = newCustomerGroundTruth;
 npm test -- tests/qa-audit/thrive-syracuse.test.ts  # Thrive Syracuse QA
 npm test -- tests/types/ground-truth.test.ts        # Type unit tests
 ```
+
+### Ground Truth Management UI (NEW)
+CEO Dashboard now includes a Ground Truth Tab for managing pilot customer QA data.
+
+**Features:**
+- View all brands with ground truth (code registry + Firestore)
+- Add/edit/delete categories and QA pairs
+- Mark questions as critical compliance
+- Export/import JSON for bulk operations
+- Live test questions against Smokey
+
+**Key Files:**
+- `src/app/dashboard/ceo/components/ground-truth-tab.tsx` — Full management UI
+- `src/server/actions/ground-truth.ts` — Server actions (CRUD + migration)
+
+### Linus Fix Endpoint (NEW)
+API endpoint for Linus agent to apply automated code fixes.
+
+**Endpoint:** `POST /api/linus/fix`
+
+**Features:**
+- Receives fix instructions from Linus agent
+- Validates file paths against security blocklist
+- Applies code changes with proper error handling
+- Returns success/failure status
+
+**Key Files:**
+- `src/app/api/linus/fix/route.ts` — Fix endpoint
 
 ### BakedBot AI in Chrome - Agent Chat Interface
 Browser automation now includes a natural language chat interface similar to Claude's Computer Use extension. Super Users can guide the browser agent through tasks using conversational commands.
