@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       message: 'Device registered successfully',
     });
   } catch (error) {
-    logger.error('[Extension Device] Registration error:', error);
+    logger.error('[Extension Device] Registration error:', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { success: false, error: 'Failed to register device' },
       { status: 500 }
@@ -171,7 +171,7 @@ export async function GET(request: NextRequest) {
       deviceCount: devices.length,
     });
   } catch (error) {
-    logger.error('[Extension Device] Get devices error:', error);
+    logger.error('[Extension Device] Get devices error:', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { success: false, error: 'Failed to get devices' },
       { status: 500 }
@@ -217,7 +217,7 @@ export async function PUT(request: NextRequest) {
       message: 'Heartbeat received',
     });
   } catch (error) {
-    logger.error('[Extension Device] Heartbeat error:', error);
+    logger.error('[Extension Device] Heartbeat error:', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { success: false, error: 'Failed to update heartbeat' },
       { status: 500 }
@@ -252,7 +252,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Device unregistered',
     });
   } catch (error) {
-    logger.error('[Extension Device] Unregister error:', error);
+    logger.error('[Extension Device] Unregister error:', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
       { success: false, error: 'Failed to unregister device' },
       { status: 500 }

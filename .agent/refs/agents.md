@@ -76,24 +76,82 @@ BakedBot operates with a multi-agent architecture where specialized agents handl
 | Attribute | Value |
 |-----------|-------|
 | **Role** | Chief Technology Officer |
-| **Domain** | Code evaluation, bug hunting |
+| **Domain** | Code evaluation, bug hunting, automated fixes |
 | **Access** | Super Users Only |
 | **Protocol** | Zero Bug Tolerance (Hourly) |
 | **AI Provider** | Claude (Anthropic SDK) |
+| **API Endpoint** | `POST /api/linus/fix` |
 
-**Tools:**
+**Core Tools:**
 | Tool | Description |
 |------|-------------|
 | `search_codebase` | Ripgrep pattern search across files |
 | `find_files` | Glob-based file discovery |
 | `git_log` / `git_diff` / `git_blame` | Git history and changes |
 | `analyze_stack_trace` | Parse errors, extract file locations |
-| `run_specific_test` | Run targeted Jest tests |
-| `kusho_generate_tests` | KushoAI API test generation |
-| `kusho_record_ui` | KushoAI UI recording sessions |
 | `read_file` / `write_file` | File operations |
-| `run_build` / `run_tests` | Build and test execution |
+| `run_command` | Execute shell commands (simple) |
+| `bash` | Full bash with pipes, env vars, background tasks (Claude Code style) |
 | `archive_work` | Document decisions to work archive |
+| `query_work_history` | Query past work before changes |
+
+**Testing Tools (KushoAI):**
+| Tool | Description |
+|------|-------------|
+| `kusho_generate_tests` | Auto-generate API tests from OpenAPI |
+| `kusho_run_suite` | Run KushoAI test suites |
+| `kusho_record_ui` | Record UI for test generation |
+| `kusho_analyze_coverage` | Check API test coverage |
+| `run_specific_test` | Run targeted Jest tests |
+
+**Browser Testing (Chrome Extension):**
+| Tool | Description |
+|------|-------------|
+| `extension_create_session` | Start browser test session |
+| `extension_navigate` | Navigate to URL |
+| `extension_click` | Click elements |
+| `extension_type` | Type into inputs |
+| `extension_screenshot` | Capture screenshots |
+| `extension_get_console` | Check for JS errors |
+| `extension_run_workflow` | Run saved workflows |
+| `run_e2e_test` | Run Playwright tests |
+| `generate_playwright_test` | Generate test from scenario |
+
+**BakedBot Discovery (RTRVR):**
+| Tool | Description |
+|------|-------------|
+| `discovery_browser_automate` | Execute browser tasks with natural language |
+| `discovery_summarize_page` | Get bullet-point summary of any webpage |
+| `discovery_extract_data` | Extract structured data from pages |
+| `discovery_fill_form` | Automate form filling and submission |
+
+**Firecrawl (Web Scraping):**
+| Tool | Description |
+|------|-------------|
+| `firecrawl_scrape` | Get markdown/HTML content from any URL |
+| `firecrawl_search` | Search the web via Firecrawl |
+| `firecrawl_map_site` | Crawl and map all pages on a site |
+
+**Web Search (Serper/Google):**
+| Tool | Description |
+|------|-------------|
+| `web_search` | Google search via Serper API |
+| `web_search_places` | Find local businesses/dispensaries |
+
+**Linus Fix API (`/api/linus/fix`):**
+Trigger Linus to investigate and optionally fix issues:
+```typescript
+POST /api/linus/fix
+{
+  type: 'ticket' | 'test_failure' | 'health_check' | 'browser_test' | 'code_review',
+  ticketId?: string,
+  errorStack?: string,
+  testFile?: string,
+  testUrl?: string,
+  autoFix?: boolean,      // Enable auto-fix mode
+  useExtension?: boolean  // Use Chrome Extension for testing
+}
+```
 
 ---
 
