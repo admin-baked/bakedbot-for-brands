@@ -13,9 +13,12 @@ import { useToast } from '@/hooks/use-toast';
 import { ActivityFeed } from './components/activity-feed';
 import { UsageMeter } from './components/usage-meter';
 import { AgentChat } from './components/agent-chat';
+import { CreatePlaybookDialog } from './components/create-playbook-dialog';
 import DispensaryDashboardClient from '../dispensary/dashboard-client';
 import { BrandPlaybooksView } from '../brand/components/brand-playbooks-view';
 import { PLAYBOOKS } from './data';
+import { savePlaybookDraft } from './actions';
+import { PlaybookCategory } from '@/types/playbook';
 
 export default function PlaybooksPage() {
   const { role, user } = useUserRole();
@@ -28,6 +31,46 @@ export default function PlaybooksPage() {
     setSelectedPrompt(prompt);
     // Smooth scroll to top to see chat
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCreateFromScratch = async (data: { name: string; description: string; agent: string; category: PlaybookCategory }) => {
+    try {
+      await savePlaybookDraft({
+        name: data.name,
+        description: data.description,
+        agent: data.agent,
+        category: data.category,
+        steps: [],
+        triggers: [],
+      });
+      toast({
+        title: 'Playbook Created',
+        description: `"${data.name}" has been created successfully.`,
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to create playbook',
+        description: error instanceof Error ? error.message : 'Please try again.',
+      });
+    }
+  };
+
+  const handleCloneTemplate = (templateId: string) => {
+    // Set the prompt to create via AI chat
+    const templatePrompts: Record<string, string> = {
+      'daily_intel': 'Create a playbook for Ezal to generate a daily intelligence snapshot with market activity and competitor moves',
+      'lead_followup': 'Create a playbook for Craig to automatically follow up with new leads via email',
+      'weekly_kpi': 'Create a playbook for Pops to generate a weekly KPI report for executives',
+      'low_stock_alert': 'Create a playbook for Smokey to monitor inventory and alert when items are running low',
+    };
+    const prompt = templatePrompts[templateId] || `Create a playbook based on template: ${templateId}`;
+    setSelectedPrompt(prompt);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast({
+      title: 'Template Selected',
+      description: 'Use the chat above to customize and create your playbook.',
+    });
   };
 
   // Redirect Dispensary users to their specific console (which includes playbooks)
@@ -98,12 +141,10 @@ export default function PlaybooksPage() {
               {status}
             </Button>
           ))}
-          <Button variant="outline" size="sm" className="ml-2" onClick={() => toast({
-            title: 'Coming Soon',
-            description: 'Manual playbook creation will be available in a future update. Use the Agent Chat above to create playbooks with AI assistance.',
-          })}>
-            Create Manually
-          </Button>
+          <CreatePlaybookDialog
+            onCreateFromScratch={handleCreateFromScratch}
+            onCloneTemplate={handleCloneTemplate}
+          />
         </div>
       </div>
 
