@@ -3,7 +3,7 @@
 /**
  * Domain Settings Tab
  *
- * Allows brands to connect custom domains to their BakedBot menu.
+ * Allows brands and dispensaries to connect custom domains to their BakedBot menu.
  * Supports two connection methods:
  * - CNAME: For subdomains (e.g., shop.mybrand.com)
  * - Nameserver: For full domains (e.g., mybrandmenu.com)
