@@ -103,17 +103,59 @@ const LINUS_TOOLS: ClaudeTool[] = [
     },
     {
         name: 'run_command',
-        description: 'Execute a shell command in the project directory. Use for git, npm, etc.',
+        description: 'Execute a shell command in the project directory. Use for git, npm, builds, tests, and any CLI operations. Supports long-running commands and background execution.',
         input_schema: {
             type: 'object' as const,
             properties: {
                 command: {
                     type: 'string',
-                    description: 'Command to execute (e.g., "npm test", "git status")'
+                    description: 'Command to execute (e.g., "npm test", "git status", "npm run build")'
                 },
                 cwd: {
                     type: 'string',
-                    description: 'Working directory (defaults to project root)'
+                    description: 'Working directory relative to project root (defaults to project root)'
+                },
+                timeout: {
+                    type: 'number',
+                    description: 'Timeout in milliseconds (default: 120000 = 2 min, max: 600000 = 10 min). Use higher values for builds/tests.'
+                },
+                background: {
+                    type: 'boolean',
+                    description: 'Run in background and return immediately with a process ID. Use for long-running processes like dev servers.'
+                }
+            },
+            required: ['command']
+        }
+    },
+    {
+        name: 'bash',
+        description: 'Execute bash commands with full control. Similar to Claude Code\'s Bash tool. Use for complex shell operations, piped commands, environment manipulation, or when run_command is insufficient.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                command: {
+                    type: 'string',
+                    description: 'The bash command to execute. Supports pipes, redirects, &&, ||, etc.'
+                },
+                description: {
+                    type: 'string',
+                    description: 'Brief description of what this command does (for logging/auditing)'
+                },
+                timeout: {
+                    type: 'number',
+                    description: 'Timeout in milliseconds (default: 120000, max: 600000)'
+                },
+                workingDirectory: {
+                    type: 'string',
+                    description: 'Absolute or relative path to run command from'
+                },
+                env: {
+                    type: 'object',
+                    description: 'Additional environment variables to set'
+                },
+                runInBackground: {
+                    type: 'boolean',
+                    description: 'Run command in background, return immediately with task ID'
                 }
             },
             required: ['command']
@@ -1261,17 +1303,166 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
         }
         
         case 'run_command': {
-            const { command, cwd } = input as { command: string; cwd?: string };
+            const { command, cwd, timeout: userTimeout, background } = input as {
+                command: string;
+                cwd?: string;
+                timeout?: number;
+                background?: boolean;
+            };
             const workDir = cwd ? path.join(PROJECT_ROOT, cwd) : PROJECT_ROOT;
-            
+            // Default 2 min, max 10 min
+            const timeoutMs = Math.min(userTimeout || 120000, 600000);
+
+            // Background execution - spawn and return immediately
+            if (background) {
+                try {
+                    const { spawn } = await import('child_process');
+                    const child = spawn(command, [], {
+                        cwd: workDir,
+                        shell: true,
+                        detached: true,
+                        stdio: 'ignore'
+                    });
+                    child.unref();
+                    return {
+                        success: true,
+                        background: true,
+                        pid: child.pid,
+                        message: `Command started in background with PID ${child.pid}. Use 'ps' or 'tasklist' to check status.`
+                    };
+                } catch (e: any) {
+                    return { success: false, error: e.message };
+                }
+            }
+
+            // Foreground execution with better output handling
             try {
-                const { stdout, stderr } = await execAsync(command, { cwd: workDir, timeout: 60000 });
-                return { success: true, stdout: stdout.slice(-2000), stderr: stderr.slice(-500) };
-            } catch (e) {
-                return { success: false, error: (e as Error).message };
+                const { stdout, stderr } = await execAsync(command, { cwd: workDir, timeout: timeoutMs, maxBuffer: 10 * 1024 * 1024 });
+                return {
+                    success: true,
+                    stdout: stdout.slice(-15000), // Increased from 2000 to 15000
+                    stderr: stderr ? stderr.slice(-5000) : undefined, // Increased from 500 to 5000
+                    truncated: stdout.length > 15000 || (stderr?.length || 0) > 5000
+                };
+            } catch (e: any) {
+                // execAsync throws on non-zero exit, but we still want the output
+                return {
+                    success: false,
+                    error: e.message,
+                    exitCode: e.code,
+                    stdout: e.stdout ? e.stdout.slice(-15000) : undefined,
+                    stderr: e.stderr ? e.stderr.slice(-5000) : undefined
+                };
             }
         }
-        
+
+        case 'bash': {
+            const {
+                command,
+                description: cmdDescription,
+                timeout: userTimeout,
+                workingDirectory,
+                env: userEnv,
+                runInBackground
+            } = input as {
+                command: string;
+                description?: string;
+                timeout?: number;
+                workingDirectory?: string;
+                env?: Record<string, string>;
+                runInBackground?: boolean;
+            };
+
+            // Resolve working directory
+            let workDir = PROJECT_ROOT;
+            if (workingDirectory) {
+                workDir = path.isAbsolute(workingDirectory)
+                    ? workingDirectory
+                    : path.join(PROJECT_ROOT, workingDirectory);
+            }
+
+            // Timeout: default 2 min, max 10 min
+            const timeoutMs = Math.min(userTimeout || 120000, 600000);
+
+            // Merge environment variables
+            const envVars = { ...process.env, ...userEnv };
+
+            // Log for auditing
+            logger.info('[Linus Bash]', {
+                command: command.slice(0, 100),
+                description: cmdDescription,
+                workDir,
+                background: runInBackground
+            });
+
+            // Background execution
+            if (runInBackground) {
+                try {
+                    const { spawn } = await import('child_process');
+                    const taskId = `bash_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+                    // Create output file for background task
+                    const outputFile = path.join(PROJECT_ROOT, 'dev', `${taskId}.log`);
+                    await fs.mkdir(path.dirname(outputFile), { recursive: true });
+                    const outputFd = await fs.open(outputFile, 'w');
+
+                    const child = spawn(command, [], {
+                        cwd: workDir,
+                        shell: true,
+                        detached: true,
+                        env: envVars,
+                        stdio: ['ignore', outputFd.fd, outputFd.fd]
+                    });
+
+                    child.unref();
+
+                    return {
+                        success: true,
+                        background: true,
+                        taskId,
+                        pid: child.pid,
+                        outputFile,
+                        message: `Background task started. Check ${outputFile} for output. PID: ${child.pid}`
+                    };
+                } catch (e: any) {
+                    return { success: false, error: e.message };
+                }
+            }
+
+            // Foreground execution with full output
+            try {
+                const { stdout, stderr } = await execAsync(command, {
+                    cwd: workDir,
+                    timeout: timeoutMs,
+                    maxBuffer: 50 * 1024 * 1024, // 50MB buffer
+                    env: envVars
+                });
+
+                const maxOutput = 30000; // Match Claude Code's limit
+                return {
+                    success: true,
+                    command,
+                    description: cmdDescription,
+                    stdout: stdout.slice(-maxOutput),
+                    stderr: stderr ? stderr.slice(-maxOutput) : undefined,
+                    truncated: stdout.length > maxOutput || (stderr?.length || 0) > maxOutput,
+                    workingDirectory: workDir
+                };
+            } catch (e: any) {
+                return {
+                    success: false,
+                    command,
+                    description: cmdDescription,
+                    error: e.message,
+                    exitCode: e.code,
+                    signal: e.signal,
+                    stdout: e.stdout ? e.stdout.slice(-30000) : undefined,
+                    stderr: e.stderr ? e.stderr.slice(-30000) : undefined,
+                    workingDirectory: workDir
+                };
+            }
+        }
+
         case 'read_backlog': {
             const backlogPath = path.join(PROJECT_ROOT, 'dev/backlog.json');
             const content = await fs.readFile(backlogPath, 'utf-8');
@@ -3045,15 +3236,26 @@ YOUR RESPONSIBILITIES:
 5. **Find and fix bugs** - investigate issues, trace errors, and implement fixes
 6. **Code review and quality** - search codebase, analyze patterns, suggest improvements
 
+SHELL COMMANDS:
+You have two tools for running shell commands:
+- \`run_command\`: Simple command execution (npm, git, etc.)
+- \`bash\`: Full bash control with pipes, redirects, env vars, background tasks
+
+Use \`bash\` for:
+- Complex piped commands: \`git log --oneline | head -20\`
+- Environment variables: \`NODE_ENV=test npm run test\`
+- Background processes: dev servers, watchers
+- Long-running builds with custom timeouts
+
 BUG HUNTING WORKFLOW:
 When investigating a bug:
 1. Use \`search_codebase\` to find relevant code patterns
 2. Use \`git_log\` and \`git_diff\` to see recent changes
 3. Use \`analyze_stack_trace\` to parse error traces
 4. Use \`read_file\` to examine the affected files
-5. Use \`run_specific_test\` to verify the issue
+5. Use \`run_specific_test\` or \`bash\` to verify the issue
 6. Use \`write_file\` to implement the fix
-7. Run tests again to confirm the fix
+7. Run tests again with \`bash\` to confirm the fix
 8. Use \`archive_work\` to document what was done
 
 API TESTING (KUSHOAI):

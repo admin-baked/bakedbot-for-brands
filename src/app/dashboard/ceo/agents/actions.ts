@@ -393,6 +393,7 @@ interface ChatExtraOptions {
     projectId?: string; // Project context for system instructions
     source?: string; // Source identifier (e.g., 'interrupt', 'pulse')
     priority?: string; // Priority level (e.g., 'high', 'normal')
+    context?: Record<string, unknown>; // Additional context for browser automation, etc.
 }
 
 export async function runAgentChat(userMessage: string, personaId?: string, extraOptions?: ChatExtraOptions): Promise<AgentResult> {
