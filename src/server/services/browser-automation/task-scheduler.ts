@@ -222,7 +222,7 @@ export class TaskScheduler {
   }
 
   /**
-   * Execute a task
+   * Execute a task with retry logic for session creation
    */
   async executeTask(taskId: string): Promise<WorkflowRunResult> {
     const task = await this.getTask(taskId);
@@ -239,13 +239,36 @@ export class TaskScheduler {
     try {
       logger.info('[TaskScheduler] Executing task', { taskId, name: task.name });
 
-      // Create a session for the task
-      const sessionResult = await browserSessionManager.createSession(task.userId, {
-        taskDescription: `Scheduled task: ${task.name}`,
-      });
+      // Create a session for the task with retry logic
+      const MAX_RETRIES = 3;
+      let sessionResult = null;
+      let lastError = '';
 
-      if (!sessionResult.success || !sessionResult.data) {
-        throw new Error(sessionResult.error || 'Failed to create session');
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        sessionResult = await browserSessionManager.createSession(task.userId, {
+          taskDescription: `Scheduled task: ${task.name}`,
+        });
+
+        if (sessionResult.success && sessionResult.data) {
+          break;
+        }
+
+        lastError = sessionResult.error || 'Failed to create session';
+        logger.warn('[TaskScheduler] Session creation attempt failed', {
+          taskId,
+          attempt,
+          maxRetries: MAX_RETRIES,
+          error: lastError,
+        });
+
+        // Wait before retry (exponential backoff: 2s, 4s, 8s)
+        if (attempt < MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, attempt - 1)));
+        }
+      }
+
+      if (!sessionResult?.success || !sessionResult?.data) {
+        throw new Error(lastError || 'Failed to create session after retries');
       }
 
       const sessionId = sessionResult.data.id;
