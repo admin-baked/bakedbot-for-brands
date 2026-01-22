@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { lettaBlockManager } from '@/server/services/letta/block-manager';
 import { lettaClient } from '@/server/services/letta/client';
+import { runResearchElaboration } from './patterns';
 
 export interface RoachMemory extends AgentMemory {
     research_queue?: string[];
@@ -78,8 +79,8 @@ export const roachAgent: AgentImplementation<RoachMemory, RoachTools> = {
         if (targetId === 'user_request' && stimulus) {
             const userQuery = typeof stimulus === 'string' ? stimulus : JSON.stringify(stimulus);
 
-            // Tools Definition
-            const toolsDef = [
+            // Tools Definition for Research Phase
+            const researchTools = [
                 {
                     name: 'archival.search',
                     description: 'Search the semantic knowledge base for existing compliance or academic data.',
@@ -117,23 +118,70 @@ export const roachAgent: AgentImplementation<RoachMemory, RoachTools> = {
             ];
 
             try {
-                const { runMultiStepTask } = await import('./harness');
-                
-                const result = await runMultiStepTask({
-                    userQuery,
-                    systemInstructions: agentMemory.system_instructions as string,
-                    toolsDef,
-                    tools, // Passed from router/registry mapping
-                    model: 'claude', 
-                    maxIterations: 8
+                // === RESEARCH-ELABORATION PATTERN ===
+                // Phase 1: Research with tools (search archives, gather data)
+                // Phase 2: Elaborate without tools (synthesize into report)
+                const result = await runResearchElaboration(userQuery, {
+                    researchPrompt: `
+                        You are ROACH, the Research Librarian. Conduct thorough research.
+
+                        RESEARCH PHASE OBJECTIVES:
+                        1. FIRST: Search archival memory (archival.search) to see what we already know
+                        2. If gaps exist, use research.deep to find academic/authoritative sources
+                        3. Save ALL verified findings to the knowledge graph with semantic tags
+                        4. Cross-reference multiple sources for accuracy
+
+                        TAGGING REQUIREMENTS:
+                        - Compliance data: #compliance, #[state-code], #[topic]
+                        - Academic: #research, #[field], #[year]
+                        - Market data: #market, #[category], #[region]
+
+                        Be thorough. Check existing knowledge before searching externally.
+                    `,
+                    researchTools,
+                    researchToolsImpl: tools as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>,
+                    maxResearchIterations: 6,
+                    elaboration: {
+                        instructions: `
+                            You are ROACH, synthesizing your research into a formal brief.
+
+                            ELABORATION PHASE - Create a Research Brief:
+
+                            ### Executive Summary
+                            2-3 sentence overview of key findings
+
+                            ### Key Findings
+                            - Finding 1 with supporting evidence
+                            - Finding 2 with supporting evidence
+                            - Finding 3 with supporting evidence
+
+                            ### Analysis
+                            Deep analysis connecting the findings
+
+                            ### Recommendations
+                            Actionable next steps based on research
+
+                            ### Citations
+                            List all sources in APA format
+
+                            FORMAT: Use markdown headers (###) for proper rendering.
+                            TONE: Academic rigor with practical business application.
+                        `,
+                        model: 'claude',
+                        maxIterations: 2,
+                    },
                 });
 
                 return {
                     updatedMemory: agentMemory,
                     logEntry: {
                         action: 'research_complete',
-                        result: result.finalResult,
-                        metadata: { steps: result.steps }
+                        result: result.elaboratedOutput,
+                        metadata: {
+                            researchSteps: result.researchOutput.steps.length,
+                            totalDurationMs: result.metadata.totalDurationMs,
+                            pattern: 'research-elaboration'
+                        }
                     }
                 };
             } catch (e: any) {
