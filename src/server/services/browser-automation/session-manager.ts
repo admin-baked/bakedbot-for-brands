@@ -24,7 +24,73 @@ import type {
 } from '@/types/browser-automation';
 
 const SESSIONS_COLLECTION = 'browser_sessions';
+const EXTENSION_DEVICES_COLLECTION = 'extension_devices';
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+
+/**
+ * Get available devices for a user from our local registry.
+ * Falls back to RTRVR's listDevices if no local devices found.
+ */
+async function getAvailableDevices(userId: string): Promise<{
+  success: boolean;
+  devices: Array<{ id: string; name: string; online: boolean }>;
+  error?: string;
+}> {
+  try {
+    const db = getAdminFirestore();
+
+    // First check our local device registry
+    const snapshot = await db
+      .collection(EXTENSION_DEVICES_COLLECTION)
+      .where('userId', '==', userId)
+      .get();
+
+    if (!snapshot.empty) {
+      const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+      const devices = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const lastSeen = data.lastSeenAt?.toMillis?.() || 0;
+        const isOnline = lastSeen > fiveMinutesAgo;
+        return {
+          id: doc.id,
+          name: data.deviceName || 'Chrome Browser',
+          online: isOnline,
+        };
+      });
+
+      // Prefer online devices
+      const onlineDevices = devices.filter(d => d.online);
+      if (onlineDevices.length > 0) {
+        return { success: true, devices: onlineDevices };
+      }
+
+      // Return all devices even if offline (might come back online)
+      if (devices.length > 0) {
+        return { success: true, devices };
+      }
+    }
+
+    // Fall back to RTRVR's listDevices
+    const rtrvResult = await listDevices();
+    if (rtrvResult.success && rtrvResult.data?.result) {
+      const rtrvDevices = rtrvResult.data.result as Array<{ id: string; name: string; online: boolean }>;
+      return { success: true, devices: rtrvDevices };
+    }
+
+    return {
+      success: false,
+      devices: [],
+      error: 'No available devices found. Please sign in to the Chrome extension at least once.',
+    };
+  } catch (error) {
+    logger.error('[SessionManager] Failed to get available devices', { error, userId });
+    return {
+      success: false,
+      devices: [],
+      error: 'Failed to check device availability',
+    };
+  }
+}
 
 export class BrowserSessionManager {
   /**
@@ -44,15 +110,27 @@ export class BrowserSessionManager {
         };
       }
 
-      // Verify device is available
-      const deviceId = options?.deviceId;
-      const devicesResult = await listDevices();
-      if (!devicesResult.success) {
+      // Get available devices - first from our registry, then RTRVR
+      const devicesResult = await getAvailableDevices(userId);
+      if (!devicesResult.success || devicesResult.devices.length === 0) {
         return {
           success: false,
-          error: 'Failed to connect to browser. Ensure RTRVR extension is installed and active.',
+          error: devicesResult.error || 'No available devices found. Please sign in to the Chrome extension at least once.',
         };
       }
+
+      // Select device - prefer provided deviceId, then first online device
+      let deviceId = options?.deviceId;
+      if (!deviceId) {
+        const onlineDevice = devicesResult.devices.find(d => d.online);
+        deviceId = onlineDevice?.id || devicesResult.devices[0]?.id;
+      }
+
+      logger.info('[BrowserSession] Selected device', {
+        deviceId,
+        userId,
+        availableDevices: devicesResult.devices.length,
+      });
 
       // Get initial tabs
       const tabsResult = await getBrowserTabs({ deviceId });
@@ -76,6 +154,7 @@ export class BrowserSessionManager {
       logger.info('[BrowserSession] Created new session', {
         sessionId: docRef.id,
         userId,
+        deviceId,
         tabCount: tabs.length,
       });
 
