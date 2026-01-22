@@ -39,7 +39,7 @@ import {
     getDomainStatus,
 } from '@/server/actions/domain-management';
 import type { CustomDomainConfig, DomainConnectionType } from '@/types/tenant';
-import { BAKEDBOT_CNAME_TARGET, BAKEDBOT_NAMESERVERS, getDNSInstructions } from '@/lib/dns-verify';
+import { BAKEDBOT_CNAME_TARGET, BAKEDBOT_NAMESERVERS, getDNSInstructions } from '@/lib/dns-utils';
 
 export default function DomainSettingsTab() {
     const { toast } = useToast();

@@ -1,44 +1,29 @@
 /**
- * DNS Verification Utilities
+ * DNS Verification Utilities (Server-only)
  *
  * Provides DNS record verification for custom domain setup.
  * Supports TXT record verification for domain ownership proof,
  * CNAME verification for subdomain routing, and NS verification
  * for full domain delegation.
+ *
+ * NOTE: This file uses Node.js 'dns/promises' and should only be
+ * imported by server-side code. For client-safe utilities, use dns-utils.ts
  */
 
 import dns from 'dns/promises';
 import { logger } from '@/lib/logger';
 
-/** BakedBot nameservers (for nameserver method) */
-export const BAKEDBOT_NAMESERVERS = [
-    'ns1.bakedbot.ai',
-    'ns2.bakedbot.ai',
-];
-
-/** CNAME target for subdomain routing */
-export const BAKEDBOT_CNAME_TARGET = 'cname.bakedbot.ai';
-
-/** Prefix for TXT verification records */
-export const VERIFICATION_TXT_PREFIX = '_bakedbot';
-
-/**
- * Generate a verification token for domain ownership proof
- */
-export function generateVerificationToken(): string {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 10);
-    return `bb_verify_${timestamp}_${random}`;
-}
-
-/**
- * Get the TXT record host for verification
- * @param domain - The domain being verified (e.g., "shop.mybrand.com")
- * @returns The TXT record host (e.g., "_bakedbot.shop.mybrand.com")
- */
-export function getVerificationTxtHost(domain: string): string {
-    return `${VERIFICATION_TXT_PREFIX}.${domain}`;
-}
+// Re-export client-safe utilities for convenience
+export {
+    BAKEDBOT_NAMESERVERS,
+    BAKEDBOT_CNAME_TARGET,
+    VERIFICATION_TXT_PREFIX,
+    generateVerificationToken,
+    getVerificationTxtHost,
+    isValidDomain,
+    isSubdomain,
+    getRootDomain,
+} from './dns-utils';
 
 /**
  * Verify domain ownership via DNS TXT record
@@ -50,6 +35,7 @@ export async function verifyDomainTXT(
     domain: string,
     expectedToken: string
 ): Promise<{ success: boolean; error?: string }> {
+    const { getVerificationTxtHost } = await import('./dns-utils');
     const txtHost = getVerificationTxtHost(domain);
 
     try {
@@ -103,6 +89,8 @@ export async function verifyDomainTXT(
 export async function verifyCNAME(
     domain: string
 ): Promise<{ success: boolean; target?: string; error?: string }> {
+    const { BAKEDBOT_CNAME_TARGET } = await import('./dns-utils');
+
     try {
         logger.info('[DNS] Verifying CNAME record', { domain });
 
@@ -157,6 +145,8 @@ export async function verifyCNAME(
 export async function verifyNameservers(
     domain: string
 ): Promise<{ success: boolean; nameservers?: string[]; error?: string }> {
+    const { BAKEDBOT_NAMESERVERS } = await import('./dns-utils');
+
     try {
         logger.info('[DNS] Verifying nameservers', { domain });
 
@@ -222,83 +212,5 @@ export async function domainExists(domain: string): Promise<boolean> {
         } catch {
             return false;
         }
-    }
-}
-
-/**
- * Validate domain format
- * @param domain - The domain to validate
- * @returns True if domain format is valid
- */
-export function isValidDomain(domain: string): boolean {
-    // Basic domain validation regex
-    const domainRegex = /^(?!-)([a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,}$/;
-    return domainRegex.test(domain) && domain.length <= 253;
-}
-
-/**
- * Check if domain is a subdomain (e.g., "shop.mybrand.com" vs "mybrand.com")
- * @param domain - The domain to check
- * @returns True if domain has more than one dot (subdomain)
- */
-export function isSubdomain(domain: string): boolean {
-    const parts = domain.split('.');
-    return parts.length > 2;
-}
-
-/**
- * Extract the root domain from a subdomain
- * @param domain - The domain (e.g., "shop.mybrand.com")
- * @returns The root domain (e.g., "mybrand.com")
- */
-export function getRootDomain(domain: string): string {
-    const parts = domain.split('.');
-    if (parts.length <= 2) {
-        return domain;
-    }
-    return parts.slice(-2).join('.');
-}
-
-/**
- * Get DNS setup instructions for a domain
- * This is a pure utility function (no async operations) that generates
- * the DNS record configuration instructions for domain verification.
- */
-export function getDNSInstructions(
-    domain: string,
-    verificationToken: string,
-    connectionType: 'cname' | 'nameserver'
-): {
-    txtRecord: { host: string; value: string };
-    connectionRecord: { type: string; host: string; value: string | string[] };
-} {
-    if (connectionType === 'cname') {
-        // Extract subdomain part
-        const parts = domain.split('.');
-        const subdomain = parts.length > 2 ? parts[0] : 'shop';
-
-        return {
-            txtRecord: {
-                host: `_bakedbot.${domain}`,
-                value: verificationToken,
-            },
-            connectionRecord: {
-                type: 'CNAME',
-                host: subdomain,
-                value: BAKEDBOT_CNAME_TARGET,
-            },
-        };
-    } else {
-        return {
-            txtRecord: {
-                host: `_bakedbot.${domain}`,
-                value: verificationToken,
-            },
-            connectionRecord: {
-                type: 'NS (Nameservers)',
-                host: '@',
-                value: BAKEDBOT_NAMESERVERS,
-            },
-        };
     }
 }
