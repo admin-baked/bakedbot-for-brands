@@ -8,6 +8,7 @@
  * 4. Imports products from scraped Weedmaps data
  * 5. Configures Smokey AI chatbot
  * 6. Creates 3 ZIP code dispensary pages
+ * 7. Verifies ground truth QA set is configured
  *
  * Run with: npx ts-node --transpile-only dev/setup-thrive-syracuse.ts
  */
@@ -15,6 +16,21 @@ const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { getAuth } = require('firebase-admin/auth');
 const path = require('path');
+
+// Ground truth verification (imported at runtime to avoid module resolution issues)
+const verifyGroundTruth = async (brandId: string) => {
+    try {
+        const { hasGroundTruth, getGroundTruthStats } = await import('../src/server/grounding');
+        if (hasGroundTruth(brandId)) {
+            const stats = getGroundTruthStats(brandId);
+            return { configured: true, stats };
+        }
+        return { configured: false };
+    } catch (error) {
+        console.warn('   ⚠️  Could not verify ground truth (module not available in ts-node)');
+        return { configured: false, error };
+    }
+};
 
 const app = getApps().length > 0 ? getApps()[0] : initializeApp({
     credential: cert(path.resolve(__dirname, '../service-account.json'))
@@ -372,6 +388,18 @@ async function main() {
         console.log(`   ✅ Created ZIP page for ${zip}`);
     }
 
+    // 10. Verify Ground Truth
+    console.log('\n📚 Verifying ground truth QA set...');
+    const groundTruthResult = await verifyGroundTruth('thrivesyracuse');
+    if (groundTruthResult.configured && groundTruthResult.stats) {
+        console.log(`   ✅ Ground truth configured: ${groundTruthResult.stats.totalQAPairs} QA pairs`);
+        console.log(`      Critical: ${groundTruthResult.stats.criticalCount} | High: ${groundTruthResult.stats.highCount} | Medium: ${groundTruthResult.stats.mediumCount}`);
+        console.log(`      Categories: ${groundTruthResult.stats.categories.join(', ')}`);
+    } else {
+        console.log('   ⚠️  Ground truth not configured - Smokey will use generic responses');
+        console.log('      To add: Create src/server/grounding/customers/thrive-syracuse.ts');
+    }
+
     // Summary
     console.log('\n' + '='.repeat(70));
     console.log('🎉 THRIVE SYRACUSE PILOT SETUP COMPLETE!');
@@ -396,6 +424,7 @@ async function main() {
     console.log('   Secondary:', THEME.secondaryColor, '(Green)');
     console.log('');
     console.log('🤖 Smokey AI Chatbot: Enabled');
+    console.log('📚 Ground Truth QA:', groundTruthResult.configured ? `${groundTruthResult.stats?.totalQAPairs} pairs` : 'Not configured');
     console.log('💰 Plan: Empire (Pilot - Free)');
     console.log('');
     console.log('⚠️  IMPORTANT: Clear browser data and sign in fresh!');
