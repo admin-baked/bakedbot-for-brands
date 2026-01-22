@@ -60,8 +60,8 @@ export async function GET() {
     // Wait for completion
     const zipBuffer = await archivePromise;
 
-    // Return the zip file
-    return new NextResponse(zipBuffer, {
+    // Return the zip file (convert Buffer to Uint8Array for NextResponse)
+    return new NextResponse(new Uint8Array(zipBuffer), {
       headers: {
         'Content-Type': 'application/zip',
         'Content-Disposition': 'attachment; filename="bakedbot-chrome-extension.zip"',
