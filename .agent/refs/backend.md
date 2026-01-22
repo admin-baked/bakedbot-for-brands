@@ -140,7 +140,7 @@ export async function myAction(input: Input): Promise<Result> {
 | `createHireSubscription` | Brand subscription setup |
 | `menu-sync` | Trigger menu hydration |
 | `saveIntegrationConfig` | Store POS credentials |
-| `addCustomDomain` | Register custom domain for brand |
+| `addCustomDomain` | Register custom domain for brand or dispensary |
 | `verifyCustomDomain` | Verify DNS records for domain |
 | `removeCustomDomain` | Remove custom domain configuration |
 | `getDomainStatus` | Get current domain verification status |
@@ -151,7 +151,7 @@ export async function myAction(input: Input): Promise<Result> {
 
 **Location**: `src/server/actions/domain-management.ts`
 
-Allows brands to connect custom domains (e.g., `shop.mybrand.com`) to their BakedBot menu.
+Allows brands and dispensaries to connect custom domains (e.g., `shop.mybrand.com` or `menu.dispensary.com`) to their BakedBot menu.
 
 ### Connection Types
 | Type | Use Case | DNS Record |
@@ -160,10 +160,10 @@ Allows brands to connect custom domains (e.g., `shop.mybrand.com`) to their Bake
 | Nameserver | Full domains (mybrandmenu.com) | NS → ns1/ns2.bakedbot.ai |
 
 ### Verification Flow
-1. Brand adds domain in dashboard settings
+1. Brand/dispensary adds domain in dashboard settings
 2. System generates TXT verification token
-3. Brand adds TXT record to DNS
-4. Brand adds CNAME or updates nameservers
+3. User adds TXT record to DNS
+4. User adds CNAME or updates nameservers
 5. System verifies DNS records
 6. Domain mapping created for routing
 
