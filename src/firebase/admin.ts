@@ -113,5 +113,6 @@ export function getAdminAuth() {
             });
         }
     }
-    return getAuth();
+    // Explicitly grab the default app to ensure no ambiguity
+    return getAuth(getApps()[0]);
 }
