@@ -10,6 +10,7 @@ import { getServerSession } from '@/lib/session';
 import { getAdminFirestore } from '@/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import crypto from 'crypto';
+import { isSuperAdminEmail } from '@/lib/super-admin-config';
 
 const EXTENSION_TOKENS_COLLECTION = 'extension_tokens';
 const TOKEN_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
@@ -31,14 +32,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check if user is a Super User
-    const userDoc = await getAdminFirestore()
-      .collection('users')
-      .doc(session.uid)
-      .get();
-
-    const userData = userDoc.data();
-    if (!userData?.isSuperAdmin) {
+    // Check if user is a Super User via email whitelist
+    if (!isSuperAdminEmail(session.email)) {
       return NextResponse.json(
         { success: false, error: 'Super User access required' },
         { status: 403 }
@@ -141,7 +136,7 @@ export async function POST(request: NextRequest) {
       userId: tokenData.userId,
       email: userData?.email,
       displayName: userData?.displayName || userData?.name,
-      isSuperUser: userData?.isSuperAdmin || false,
+      isSuperUser: isSuperAdminEmail(userData?.email),
     });
   } catch (error) {
     console.error('[Extension Connect] Validation error:', error);
