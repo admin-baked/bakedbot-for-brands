@@ -98,11 +98,16 @@ export default function BakedBotBrowserTab() {
     try {
       const response = await fetch('/api/browser/extension/connect');
       const data = await response.json();
+      console.log('[Extension] Token response:', data);
       if (data.success && data.token) {
         setExtensionToken(data.token);
+      } else {
+        console.error('[Extension] Failed to generate token:', data.error);
+        setError(data.error || 'Failed to generate extension token');
       }
     } catch (err) {
-      console.error('Failed to generate extension token:', err);
+      console.error('[Extension] Failed to generate extension token:', err);
+      setError('Failed to connect to server');
     }
   };
 
