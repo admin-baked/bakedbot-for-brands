@@ -140,6 +140,40 @@ export async function myAction(input: Input): Promise<Result> {
 | `createHireSubscription` | Brand subscription setup |
 | `menu-sync` | Trigger menu hydration |
 | `saveIntegrationConfig` | Store POS credentials |
+| `addCustomDomain` | Register custom domain for brand |
+| `verifyCustomDomain` | Verify DNS records for domain |
+| `removeCustomDomain` | Remove custom domain configuration |
+| `getDomainStatus` | Get current domain verification status |
+
+---
+
+## Custom Domain Management
+
+**Location**: `src/server/actions/domain-management.ts`
+
+Allows brands to connect custom domains (e.g., `shop.mybrand.com`) to their BakedBot menu.
+
+### Connection Types
+| Type | Use Case | DNS Record |
+|------|----------|------------|
+| CNAME | Subdomains (shop.mybrand.com) | CNAME → cname.bakedbot.ai |
+| Nameserver | Full domains (mybrandmenu.com) | NS → ns1/ns2.bakedbot.ai |
+
+### Verification Flow
+1. Brand adds domain in dashboard settings
+2. System generates TXT verification token
+3. Brand adds TXT record to DNS
+4. Brand adds CNAME or updates nameservers
+5. System verifies DNS records
+6. Domain mapping created for routing
+
+### Key Files
+| File | Purpose |
+|------|---------|
+| `src/server/actions/domain-management.ts` | Server actions |
+| `src/lib/dns-verify.ts` | DNS verification utilities |
+| `src/lib/domain-cache.ts` | In-memory domain→tenant cache |
+| `src/app/api/domain/resolve/route.ts` | Domain resolution API |
 
 ---
 
@@ -197,6 +231,8 @@ const snapshot = await docRef.get();
 | `customers` | CRM profiles |
 | `playbooks` | Automation recipes |
 | `memory_blocks` | Letta agent memory |
+| `tenants` | Tenant configurations (includes customDomain) |
+| `domain_mappings` | Custom domain → tenant ID lookup |
 
 ---
 

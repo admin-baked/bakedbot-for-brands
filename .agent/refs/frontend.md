@@ -12,6 +12,8 @@ src/
 ├── app/                      # Next.js App Router
 │   ├── (marketing)/          # Public marketing pages
 │   ├── dashboard/            # Protected dashboards (50 subdirs)
+│   ├── embed/                # Embeddable components (iframe)
+│   │   └── menu/[brandId]/   # Menu embed for external sites
 │   ├── claim/                # Claim flow
 │   ├── login/                # Auth pages
 │   └── api/                  # API routes
@@ -21,6 +23,10 @@ src/
 │   ├── dashboard/            # Dashboard widgets
 │   ├── landing/              # Homepage sections
 │   └── auth/                 # Login/signup
+├── embed/                    # External embed scripts
+│   ├── index.tsx             # Chatbot embed entry
+│   ├── locator.tsx           # Store locator embed
+│   └── menu.tsx              # Menu embed entry
 └── hooks/                    # Custom React hooks
     ├── use-mobile.tsx        # Viewport detection
     └── use-user.tsx          # Auth context
@@ -213,6 +219,61 @@ import { motion } from 'framer-motion';
   Content
 </motion.div>
 ```
+
+---
+
+## Menu Embed (Headless Menu)
+
+**Location**: `src/app/embed/menu/[brandId]/`
+
+iframe-based embeddable menu widget for external sites.
+
+### Features
+- Complete CSS/JS isolation via iframe
+- Product grid with categories and search
+- In-iframe cart and checkout
+- PostMessage API for parent communication
+- Responsive layout options
+
+### Usage
+```html
+<iframe
+  src="https://bakedbot.ai/embed/menu/YOUR_BRAND_ID?layout=grid&showCart=true"
+  width="100%"
+  height="600"
+  frameborder="0"
+  allow="payment"
+></iframe>
+```
+
+### PostMessage Events
+| Event | Direction | Purpose |
+|-------|-----------|---------|
+| `bakedbot:cart:updated` | To parent | Cart state changed |
+| `bakedbot:checkout:start` | To parent | User clicked checkout |
+| `bakedbot:checkout:complete` | To parent | Order completed |
+| `bakedbot:resize` | To parent | Content height changed |
+| `bakedbot:config` | From parent | Configuration update |
+
+### URL Parameters
+| Param | Values | Default |
+|-------|--------|---------|
+| `layout` | grid, list, compact | grid |
+| `showCart` | true, false | true |
+| `showCategories` | true, false | true |
+| `width` | CSS value | 100% |
+| `height` | CSS value | 600px |
+
+### Key Files
+| File | Purpose |
+|------|---------|
+| `src/app/embed/menu/[brandId]/page.tsx` | Server component |
+| `src/app/embed/menu/[brandId]/embed-menu-client.tsx` | Client component |
+| `src/app/embed/menu/[brandId]/layout.tsx` | Minimal layout |
+| `src/embed/menu.tsx` | External script entry |
+
+### Note on SEO
+Menu embeds render in iframes and do NOT provide SEO benefits to host sites. For SEO, brands should use custom domains.
 
 ---
 

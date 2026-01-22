@@ -58,10 +58,86 @@ export interface Tenant {
         deeboCompliance?: boolean;
     };
 
+    // Custom Domain Configuration
+    customDomain?: CustomDomainConfig;
+
     // Timestamps
     createdAt: Timestamp;
     onboardedAt?: Timestamp;
     lastActiveAt?: Timestamp;
+}
+
+// ============================================================================
+// Custom Domain Types
+// ============================================================================
+
+/** Connection method for custom domains */
+export type DomainConnectionType = 'cname' | 'nameserver';
+
+/** Verification status for custom domains */
+export type DomainVerificationStatus = 'pending' | 'verified' | 'failed';
+
+/** SSL certificate status */
+export type DomainSSLStatus = 'pending' | 'provisioning' | 'active' | 'error';
+
+/**
+ * Custom Domain Configuration
+ * Stored at tenants/{tenantId}.customDomain
+ */
+export interface CustomDomainConfig {
+    /** The custom domain (e.g., "shop.mybrand.com" or "mybrandmenu.com") */
+    domain: string;
+
+    /** How the domain is connected: CNAME (subdomain) or Nameserver (full domain) */
+    connectionType: DomainConnectionType;
+
+    /** Verification status */
+    verificationStatus: DomainVerificationStatus;
+
+    /** DNS TXT record token for verification */
+    verificationToken: string;
+
+    /** Verification error message (if failed) */
+    verificationError?: string;
+
+    /** Timestamp when domain was verified */
+    verifiedAt?: Timestamp;
+
+    /** Timestamp of last verification check */
+    lastCheckAt?: Timestamp;
+
+    /** SSL certificate status */
+    sslStatus?: DomainSSLStatus;
+
+    /** For nameserver method: assigned nameservers */
+    nameserversAssigned?: string[];
+
+    /** Timestamp when domain config was created */
+    createdAt: Timestamp;
+
+    /** Timestamp when domain config was last updated */
+    updatedAt: Timestamp;
+}
+
+/**
+ * Domain Mapping (for fast hostname -> tenant lookup)
+ * Path: domain_mappings/{domain}
+ */
+export interface DomainMapping {
+    /** The custom domain */
+    domain: string;
+
+    /** The tenant ID this domain belongs to */
+    tenantId: string;
+
+    /** Connection type */
+    connectionType: DomainConnectionType;
+
+    /** When the domain was verified */
+    verifiedAt: Timestamp;
+
+    /** TTL for cache invalidation */
+    ttl?: Timestamp;
 }
 
 // ============================================================================
