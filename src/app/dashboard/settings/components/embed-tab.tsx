@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Check, MessageSquare, MapPin, ShoppingBag, Globe, Code, ExternalLink, Download } from 'lucide-react';
+import { Copy, Check, MessageSquare, MapPin, ShoppingBag, Globe, Code, ExternalLink, Download, LayoutGrid, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUserRole } from '@/hooks/use-user-role';
 
@@ -27,13 +27,45 @@ export default function EmbedGeneratorTab() {
     const [primaryColor, setPrimaryColor] = useState('#10b981');
     const [copied, setCopied] = useState(false);
 
+    // Menu embed specific options
+    const [menuLayout, setMenuLayout] = useState<'grid' | 'list' | 'compact'>('grid');
+    const [menuWidth, setMenuWidth] = useState('100%');
+    const [menuHeight, setMenuHeight] = useState('600px');
+    const [showCart, setShowCart] = useState(true);
+    const [showCategories, setShowCategories] = useState(true);
+
     const getScriptSrc = (type: string) => {
         const baseUrl = 'https://bakedbot.ai/embed';
         if (type === 'locator') return `${baseUrl}/locator.js`;
+        if (type === 'menu') return `${baseUrl}/menu.js`;
         return `${baseUrl}/chatbot.js`;
     };
 
     const generateCode = () => {
+        // Menu embed uses iframe directly (simpler and better isolation)
+        if (embedType === 'menu') {
+            const params = new URLSearchParams();
+            params.set('layout', menuLayout);
+            if (!showCart) params.set('showCart', 'false');
+            if (!showCategories) params.set('showCategories', 'false');
+            if (primaryColor !== '#10b981') params.set('primaryColor', primaryColor.replace('#', ''));
+
+            const queryString = params.toString();
+            const iframeSrc = `https://bakedbot.ai/embed/menu/${brandId}${queryString ? `?${queryString}` : ''}`;
+
+            return `<!-- BakedBot Menu Embed -->
+<iframe
+  src="${iframeSrc}"
+  width="${menuWidth}"
+  height="${menuHeight}"
+  frameborder="0"
+  allow="payment"
+  style="border: none; max-width: 100%;"
+  title="Shop ${brandId}"
+></iframe>
+<!-- End BakedBot Menu Embed -->`;
+        }
+
         const config = {
             brandId,
             primaryColor,
@@ -316,7 +348,7 @@ ${embedType === 'locator' ? '<div id="bakedbot-locator-container"></div>' : ''}
                                 <div className="space-y-2">
                                     <Label>Embed Type</Label>
                                     <Tabs value={embedType} onValueChange={setEmbedType} className="w-full">
-                                        <TabsList className="grid w-full grid-cols-2">
+                                        <TabsList className="grid w-full grid-cols-3">
                                             <TabsTrigger value="chatbot">
                                                 <MessageSquare className="mr-2 h-4 w-4" />
                                                 AI Agent
@@ -325,12 +357,18 @@ ${embedType === 'locator' ? '<div id="bakedbot-locator-container"></div>' : ''}
                                                 <MapPin className="mr-2 h-4 w-4" />
                                                 Locator
                                             </TabsTrigger>
+                                            <TabsTrigger value="menu">
+                                                <LayoutGrid className="mr-2 h-4 w-4" />
+                                                Menu
+                                            </TabsTrigger>
                                         </TabsList>
                                     </Tabs>
                                     <p className="text-xs text-muted-foreground mt-1">
                                         {embedType === 'chatbot'
                                             ? 'Adds the floating AI Budtender to your site.'
-                                            : 'Adds a full Dispensary Locator map widget.'}
+                                            : embedType === 'locator'
+                                                ? 'Adds a full Dispensary Locator map widget.'
+                                                : 'Embeds your full product menu with cart and checkout.'}
                                     </p>
                                 </div>
 
@@ -377,6 +415,80 @@ ${embedType === 'locator' ? '<div id="bakedbot-locator-container"></div>' : ''}
                                         </Select>
                                     </div>
                                 )}
+
+                                {embedType === 'menu' && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <Label>Layout</Label>
+                                            <Select value={menuLayout} onValueChange={(v) => setMenuLayout(v as 'grid' | 'list' | 'compact')}>
+                                                <SelectTrigger>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="grid">Grid (Standard)</SelectItem>
+                                                    <SelectItem value="list">List</SelectItem>
+                                                    <SelectItem value="compact">Compact</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="menu-width">Width</Label>
+                                                <Input
+                                                    id="menu-width"
+                                                    value={menuWidth}
+                                                    onChange={(e) => setMenuWidth(e.target.value)}
+                                                    placeholder="100%"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="menu-height">Height</Label>
+                                                <Input
+                                                    id="menu-height"
+                                                    value={menuHeight}
+                                                    onChange={(e) => setMenuHeight(e.target.value)}
+                                                    placeholder="600px"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-3 pt-2">
+                                            <div className="flex items-center justify-between">
+                                                <Label htmlFor="show-cart" className="cursor-pointer">Show Cart</Label>
+                                                <input
+                                                    type="checkbox"
+                                                    id="show-cart"
+                                                    checked={showCart}
+                                                    onChange={(e) => setShowCart(e.target.checked)}
+                                                    className="h-4 w-4 rounded border-gray-300"
+                                                />
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <Label htmlFor="show-categories" className="cursor-pointer">Show Categories</Label>
+                                                <input
+                                                    type="checkbox"
+                                                    id="show-categories"
+                                                    checked={showCategories}
+                                                    onChange={(e) => setShowCategories(e.target.checked)}
+                                                    className="h-4 w-4 rounded border-gray-300"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md p-3 text-sm">
+                                            <div className="flex gap-2">
+                                                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                                                <div>
+                                                    <p className="font-medium text-amber-800 dark:text-amber-200">No SEO Benefit</p>
+                                                    <p className="text-amber-700 dark:text-amber-300 text-xs mt-1">
+                                                        Embedded menus cannot be indexed by search engines. For SEO, use a custom domain instead.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             {/* Preview/Code Side */}
@@ -408,11 +520,21 @@ ${embedType === 'locator' ? '<div id="bakedbot-locator-container"></div>' : ''}
                                             Paste this code just before the closing <code>&lt;/body&gt;</code> tag on your website.
                                             The chatbot will float on top of your content.
                                         </p>
-                                    ) : (
+                                    ) : embedType === 'locator' ? (
                                         <p className="text-muted-foreground">
                                             Paste this code where you want the Locator to appear on your page.
                                             Make sure the container has enough width.
                                         </p>
+                                    ) : (
+                                        <div className="space-y-2 text-muted-foreground">
+                                            <p>
+                                                Paste this iframe code where you want the menu to appear on your page.
+                                            </p>
+                                            <p className="text-xs">
+                                                <strong>Checkout options:</strong> Dispensary menus support Smokey Pay (CannPay), POS checkout, or pay in-store.
+                                                Hemp brands can use Authorize.net or SquareCBD. THC brands route orders to retail partners.
+                                            </p>
+                                        </div>
                                     )}
                                 </div>
                             </div>

@@ -6,6 +6,7 @@ export default defineConfig({
     entry: {
         chatbot: 'src/embed/index.tsx',
         locator: 'src/embed/locator.tsx',
+        menu: 'src/embed/menu.tsx',
     },
     outExtension({ format }) {
         return {

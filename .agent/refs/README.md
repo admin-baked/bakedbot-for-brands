@@ -41,6 +41,8 @@ Each file provides comprehensive context for a specific domain.
 | `pages-brand.md` | Brand dashboard |
 | `pages-dispensary.md` | Dispensary console |
 | `pages-location.md` | Location/Discovery pages |
+| `frontend.md` | Menu embeds (see Menu Embed section) |
+| `backend.md` | Custom domains (see Custom Domain section) |
 
 ### Intelligence Systems
 | File | Topic |

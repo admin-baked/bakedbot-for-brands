@@ -3,8 +3,13 @@ import type { NextRequest } from 'next/server';
 import { getCorsHeaders, CORS_PREFLIGHT_HEADERS, isOriginAllowed } from './lib/cors';
 
 /**
- * Middleware for route protection, authentication, CORS, and CSRF.
+ * Middleware for route protection, authentication, CORS, CSRF, and custom domain routing.
  * This runs on the Edge runtime before the request reaches the page.
+ *
+ * Custom Domain Routing:
+ * - Checks if hostname is a custom domain (not bakedbot.ai or localhost)
+ * - Looks up tenant via API call to avoid Firestore in Edge runtime
+ * - Rewrites request to /{tenantId} or /dispensaries/{tenantId}
  *
  * Note: CSRF validation is handled in API routes using the csrf middleware
  * because Edge runtime doesn't support the 'crypto' module needed for validation.
@@ -12,6 +17,38 @@ import { getCorsHeaders, CORS_PREFLIGHT_HEADERS, isOriginAllowed } from './lib/c
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const origin = request.headers.get('origin');
+    const hostname = request.headers.get('host') || '';
+
+    // ============================
+    // CUSTOM DOMAIN ROUTING
+    // ============================
+    // Check if this is a custom domain request (not bakedbot.ai or localhost)
+    const isCustomDomain =
+        !hostname.includes('bakedbot.ai') &&
+        !hostname.includes('localhost') &&
+        !hostname.includes('127.0.0.1') &&
+        !hostname.includes('firebaseapp.com') &&
+        hostname.includes('.'); // Has a dot = is a domain
+
+    if (isCustomDomain && pathname === '/') {
+        // For custom domains hitting root path, we need to look up the tenant
+        // We can't use Firestore in Edge, so we call an internal API
+        // The API route will handle the lookup and set headers
+        const url = request.nextUrl.clone();
+        url.pathname = '/api/domain/resolve';
+        url.searchParams.set('hostname', hostname);
+        url.searchParams.set('originalPath', pathname);
+
+        // Rewrite to internal resolver - it will handle the redirect
+        return NextResponse.rewrite(url);
+    }
+
+    // For custom domains on other paths, pass through with hostname header
+    if (isCustomDomain) {
+        const response = NextResponse.next();
+        response.headers.set('x-custom-domain', hostname);
+        return response;
+    }
 
     // Handle CORS preflight requests for API routes
     if (request.method === 'OPTIONS' && pathname.startsWith('/api/')) {
