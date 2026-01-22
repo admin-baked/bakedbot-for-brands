@@ -5,6 +5,7 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { CronExpressionParser } from 'cron-parser';
 import { executePlaybook } from '@/server/tools/playbook-manager';
 import { taskScheduler } from '@/server/services/browser-automation';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic'; // Prevent caching
 export const maxDuration = 60; // Allow 1 minute for processing
@@ -41,7 +42,7 @@ export async function GET(req: NextRequest) {
                 // We add a small buffer (e.g. 1 minute ahead) to handle execution delays? 
                 // No, standard is: if nextRun <= now, it's due.
                 if (nextRun <= now) {
-                    console.log(`[Pulse] Executing schedule ${doc.id}: ${task}`);
+                    logger.info('[Pulse] Executing schedule', { scheduleId: doc.id, task });
                     
                     let result = null;
 
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
                     results.push({ id: doc.id, task, status: 'skipped', nextRun });
                 }
             } catch (err: any) {
-                console.error(`[Pulse] Failed to process schedule ${doc.id}:`, err);
+                logger.error('[Pulse] Failed to process schedule', { scheduleId: doc.id, error: err });
                 results.push({ id: doc.id, status: 'error', error: err.message });
             }
         }
@@ -77,7 +78,7 @@ export async function GET(req: NextRequest) {
 
             for (const task of dueTasks) {
                 try {
-                    console.log(`[Pulse] Executing browser task ${task.id}: ${task.name}`);
+                    logger.info('[Pulse] Executing browser task', { taskId: task.id, taskName: task.name });
                     const taskResult = await taskScheduler.executeTask(task.id);
                     browserTaskResults.push({
                         id: task.id,
@@ -87,7 +88,7 @@ export async function GET(req: NextRequest) {
                     });
                 } catch (err: unknown) {
                     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-                    console.error(`[Pulse] Browser task ${task.id} failed:`, err);
+                    logger.error('[Pulse] Browser task failed', { taskId: task.id, error: err });
                     browserTaskResults.push({
                         id: task.id,
                         name: task.name,
@@ -97,7 +98,7 @@ export async function GET(req: NextRequest) {
                 }
             }
         } catch (err) {
-            console.warn('[Pulse] Failed to process browser tasks:', err);
+            logger.warn('[Pulse] Failed to process browser tasks', { error: err });
         }
 
         return NextResponse.json({
@@ -108,7 +109,7 @@ export async function GET(req: NextRequest) {
         });
 
     } catch (error: any) {
-        console.error('[Pulse] Error:', error);
+        logger.error('[Pulse] Error', { error });
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
