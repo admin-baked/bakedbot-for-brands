@@ -66,6 +66,7 @@ npm run check:types
 
 ```
 src/server/agents/     # Agent implementations (linus.ts, smokey.ts, etc.)
+src/server/grounding/  # Ground truth QA for pilot customers ⭐
 src/server/services/   # Business logic (letta/, rtrvr/, ezal/)
 src/server/tools/      # Agent tools (Genkit tool definitions)
 src/server/actions/    # Server Actions ('use server')
@@ -94,6 +95,7 @@ Only load these when needed to conserve context:
 | External APIs | `refs/integrations.md` |
 | Playbooks | `refs/workflows.md` |
 | Past decisions | `refs/work-archive.md` |
+| Pilot customer grounding | `src/server/grounding/` (inline docs) |
 
 Full index in `refs/README.md`.
 
@@ -376,6 +378,49 @@ All agents now connected to shared memory (Hive Mind) and have explicit groundin
 **Key Files:**
 - `src/server/agents/agent-definitions.ts` — Central registry for agents and integrations
 - `src/app/dashboard/ceo/agents/default-tools.ts` — Real `getSystemHealth` and `getAgentStatus` tools
+
+### Ground Truth QA System for Pilot Customers
+Dispensary-specific grounding for Smokey AI budtender. Each pilot customer gets a curated QA set that Smokey uses for accurate, compliant responses.
+
+**First Pilot: Thrive Syracuse**
+- 29 QA pairs across 8 categories
+- 6 critical compliance questions (100% accuracy required)
+- Covers: store info, age/ID, products, effects, brands, pricing, compliance, ordering
+
+**How It Works:**
+1. Ground truth loaded at Smokey init based on `brandMemory.brand_profile.id`
+2. Injected into system prompt as `=== DISPENSARY INFORMATION ===` and `=== CRITICAL COMPLIANCE ===`
+3. Grounding rule #4 enforces exact answers for compliance questions
+
+**Adding New Pilot Customers:**
+```typescript
+// 1. Create: src/server/grounding/customers/new-customer.ts
+export const newCustomerGroundTruth: GroundTruthQASet = { ... }
+
+// 2. Register in src/server/grounding/index.ts
+GROUND_TRUTH_REGISTRY['new-customer-slug'] = newCustomerGroundTruth;
+```
+
+**Critical Compliance (100% Accuracy):**
+- Age verification (21+)
+- Possession limits (3oz flower / 24g concentrate)
+- First-time user guidance (2.5-5mg, start low go slow)
+- Product testing (lab-tested, CoA)
+- Licensing verification (OCM)
+
+**Key Files:**
+- `src/types/ground-truth.ts` — Type definitions and Zod schemas
+- `src/server/grounding/index.ts` — Registry and exports
+- `src/server/grounding/builder.ts` — Builds system prompt sections
+- `src/server/grounding/customers/thrive-syracuse.ts` — Thrive Syracuse QA set
+- `src/server/actions/pilot-setup.ts` — Pilot setup with ground truth status
+- `tests/qa-audit/thrive-syracuse.test.ts` — 33 evaluation tests
+
+**Test Commands:**
+```bash
+npm test -- tests/qa-audit/thrive-syracuse.test.ts  # Thrive Syracuse QA
+npm test -- tests/types/ground-truth.test.ts        # Type unit tests
+```
 
 ### BakedBot AI in Chrome - Agent Chat Interface
 Browser automation now includes a natural language chat interface similar to Claude's Computer Use extension. Super Users can guide the browser agent through tasks using conversational commands.
