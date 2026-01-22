@@ -33,26 +33,50 @@ import {
  * These could cause data loss, credential exposure, or system damage
  */
 const BLOCKED_COMMANDS = [
+    // Destructive file operations (including bypass variants)
     /rm\s+-rf\s+[\/~]/i,                    // rm -rf / or rm -rf ~
     /rm\s+-rf\s+\.\s*$/i,                   // rm -rf .
     /rm\s+-rf\s+\*\s*$/i,                   // rm -rf *
+    /rm\s+-r\s+-f\s+[\/~]/i,                // rm -r -f (flag reordering bypass)
+    /rm\s+-fr\s+[\/~]/i,                    // rm -fr (combined flag variant)
+    /rm\s+--recursive\s+--force/i,          // Long flag variant
+
+    // System attacks
     /:\(\)\s*\{\s*:\|:&\s*\}\s*;/,          // Fork bomb
     /dd\s+if=.*of=\/dev\//i,                // dd to device
     /mkfs\./i,                              // Format filesystem
     />\s*\/dev\/sd[a-z]/i,                  // Write to disk device
-    /curl.*\|\s*(?:bash|sh|zsh)/i,          // Pipe curl to shell (unless from trusted source)
+
+    // Remote code execution / shell injection
+    /curl.*\|\s*(?:bash|sh|zsh)/i,          // Pipe curl to shell
     /wget.*\|\s*(?:bash|sh|zsh)/i,          // Pipe wget to shell
     /eval\s*\$\(/i,                         // Eval command substitution
+    /\$\(.*\)/,                             // Command substitution $()
+    /`[^`]+`/,                              // Backtick command substitution
+    /\$'\\x[0-9a-fA-F]/,                    // ANSI-C quoting (hex escape bypass)
+    /base64\s+-d.*\|\s*(?:bash|sh)/i,       // Base64 decode to shell
+    /\bpython[23]?\s+-c/i,                  // Python one-liner execution
+    /\bperl\s+-e/i,                         // Perl one-liner execution
+    /\bruby\s+-e/i,                         // Ruby one-liner execution
+    /\bnode\s+-e/i,                         // Node one-liner execution
+
+    // Package/deploy operations
     /npm\s+(?:login|publish|unpublish)/i,   // npm auth/publish operations
     /git\s+push.*--force.*(?:main|master)/i, // Force push to main/master
     /git\s+reset\s+--hard\s+HEAD~[2-9]/i,   // Reset more than 1 commit
     /firebase\s+(?:delete|destroy)/i,       // Firebase destructive ops
     /gcloud\s+(?:delete|destroy)/i,         // GCloud destructive ops
+
+    // SQL injection
     /DROP\s+(?:DATABASE|TABLE|SCHEMA)/i,    // SQL destructive
     /TRUNCATE\s+TABLE/i,                    // SQL truncate
-    /env\s*$|printenv|set\s*$/,             // Dump all env vars (credential leak)
+
+    // Credential exposure
+    /env\s*$|printenv|set\s*$/,             // Dump all env vars
     /cat\s+.*\.env/i,                       // Read .env files
     /echo\s+\$[A-Z_]+.*(?:>|>>)/i,          // Echo secrets to files
+    /type\s+.*\.env/i,                      // Windows: type .env files
+    /export\s+-p/,                          // Export all env vars
 ];
 
 /**
@@ -1412,6 +1436,13 @@ async function linusToolExecutor(toolName: string, input: Record<string, unknown
         
         case 'read_file': {
             const filePath = path.join(PROJECT_ROOT, input.path as string);
+
+            // SECURITY: Validate file path (same rules as write_file)
+            const pathCheck = validateFilePathSafety(filePath);
+            if (!pathCheck.allowed) {
+                return { success: false, error: pathCheck.reason, blocked: true };
+            }
+
             const content = await fs.readFile(filePath, 'utf-8');
             return { path: input.path, content: content.slice(0, 5000) }; // Limit output
         }

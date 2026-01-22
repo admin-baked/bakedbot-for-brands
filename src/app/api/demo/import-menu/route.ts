@@ -4,12 +4,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { discovery } from '@/server/services/firecrawl';
 import { logger } from '@/lib/logger';
+import { requireUser } from '@/server/auth/auth';
 
 /**
  * Menu Import API for Demo Experience
  *
  * Extracts dispensary menu data from a URL using Firecrawl
  * to let potential customers preview their menu in BakedBot's interface
+ *
+ * SECURITY: Requires authentication to prevent abuse of per-page billed Firecrawl API.
  */
 
 // Zod schema for extracted product data
@@ -68,6 +71,13 @@ const RequestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // SECURITY: Require authentication to prevent abuse of per-page billed API
+  try {
+    await requireUser();
+  } catch {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { url } = RequestSchema.parse(body);

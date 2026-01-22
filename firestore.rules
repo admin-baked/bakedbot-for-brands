@@ -239,12 +239,30 @@ service cloud.firestore {
 
     // --- Organizations Collection ---
     match /organizations/{orgId} {
-      // Members of the organization or global owners can read
-      allow read: if request.auth != null; 
-      allow read: if isRole('owner') || request.auth != null; // Allow any auth user to read basics for plan usage
+      // SECURITY: Only organization members, the org owner, or global owners can read
+      // This prevents cross-organization data leakage (subscription plans, billing, etc.)
+      allow read: if request.auth != null && (
+          // Global owner/admin
+          isRole('owner') ||
+          // The organization owner (by ownerId or ownerUid field)
+          resource.data.ownerId == request.auth.uid ||
+          resource.data.ownerUid == request.auth.uid ||
+          // Organization member (check members subcollection)
+          exists(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid))
+      );
 
       // Only server actions or owner can write
       allow write: if isRole('owner');
+
+      // Members subcollection - members can read, owner can write
+      match /members/{memberId} {
+        allow read: if request.auth != null && (
+            isRole('owner') ||
+            resource.data.uid == request.auth.uid ||
+            exists(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid))
+        );
+        allow write: if isRole('owner');
+      }
     }
 
     // --- AI Generations Collection ---
@@ -421,11 +439,13 @@ service cloud.firestore {
 
     // Tenant Events (analytics)
     match /tenants/{tenantId}/events/{eventId} {
-      // Allow event creation with basic validation:
+      // SECURITY: Require authentication to prevent spam/cost attacks
+      // Allow event creation with validation:
+      // - Must be authenticated
       // - Must have required fields (eventType, timestamp)
       // - Document size limited by Firestore (1MB max)
-      // Note: For anonymous tracking, we allow unauthenticated writes but validate structure
-      allow create: if request.resource.data.keys().hasAll(['eventType', 'timestamp']) &&
+      allow create: if request.auth != null &&
+                     request.resource.data.keys().hasAll(['eventType', 'timestamp']) &&
                      request.resource.data.eventType is string &&
                      request.resource.data.eventType.size() <= 100;
       // Only tenant members can read events
