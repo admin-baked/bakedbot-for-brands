@@ -1,68 +1,133 @@
-# CLAUDE.md — BakedBot Codebase Context for AI Agents
+# CLAUDE.md — BakedBot Codebase Context
 
-> This file follows the official Claude Code convention. It provides context for Claude-based agents (like Linus) operating within this repository.
+> Official Claude Code context file. Loaded automatically on every interaction.
 
 ---
 
-## Quick Reference
+## 🚨 FIRST: Check Build Health
+
+```powershell
+npm run check:types
+```
+
+**If failing, fix build errors before any other work. No exceptions.**
+
+---
+
+## Quick Commands
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Start local dev server |
-| `npm run check:types` | TypeScript check (production-safe) |
-| `npm test` | Run Jest tests (dev only) |
+| `npm run check:types` | TypeScript check (run before/after changes) |
+| `npm test` | Run Jest tests |
+| `npm test -- path/to/file.test.ts` | Test specific file |
 | `npm run lint` | ESLint check |
+| `npm run dev` | Local dev server |
 | `git push origin main` | Deploy via Firebase App Hosting |
+
+**Note:** Windows PowerShell — use `;` not `&&` for command chaining.
 
 ---
 
 ## Project Overview
 
-**BakedBot AI** is an "Agentic Commerce OS" for the cannabis industry:
+**BakedBot AI** — Agentic Commerce OS for cannabis industry
 - Multi-agent platform keeping customers in brand's funnel
 - Routes orders to retail partners for fulfillment
-- Automates marketing, analytics, compliance, and competitive intelligence
+- Automates marketing, analytics, compliance, competitive intelligence
 
 **Tech Stack:**
-- **Framework**: Next.js 15+ (App Router)
-- **Backend**: Firebase (App Hosting, Firestore, Auth)
-- **AI Core**: Genkit (Gemini), Claude (Anthropic SDK)
-- **UI**: Tailwind CSS, ShadCN UI, Framer Motion
+- Next.js 15+ (App Router) | Firebase (Firestore, Auth, App Hosting)
+- AI: Genkit (Gemini), Claude (Anthropic SDK)
+- UI: Tailwind CSS, ShadCN UI, Framer Motion
 
 ---
 
-## Core Directory Map
+## Directory Structure
 
 ```
 src/
-├── app/                     # Next.js pages
+├── app/                     # Next.js pages & API routes
 │   ├── api/                 # API routes
-│   ├── dashboard/           # Role-based dashboards
-│   └── (marketing)/         # Public pages
+│   └── dashboard/           # Role-based dashboards
 ├── components/              # React components
 ├── server/
-│   ├── agents/              # Agent definitions ⭐
+│   ├── agents/              # Agent implementations ⭐
 │   ├── services/            # Business logic
-│   │   ├── letta/           # BakedBot Intelligence (memory)
-│   │   ├── rtrvr/           # BakedBot Discovery (browser)
+│   │   ├── letta/           # Memory service
+│   │   ├── rtrvr/           # Browser automation
 │   │   └── ezal/            # Competitive intel
-│   ├── actions/             # Server Actions
-│   └── tools/               # Agent tools
+│   ├── actions/             # Server Actions ('use server')
+│   └── tools/               # Agent tools (Genkit)
 ├── ai/                      # AI wrappers (claude.ts)
 └── lib/                     # Utilities
 
-dev/                         # Development context
-├── backlog.json             # Task backlog
-├── progress_log.md          # Session logs
-└── test_matrix.json         # Test commands
-
-.agent/                      # Agent context
-├── prime.md                 # Agent philosophy
-├── refs/                    # Detailed references ⭐
+.agent/
+├── prime.md                 # Agent startup context (READ FIRST)
+├── refs/                    # Detailed reference docs ⭐
 └── workflows/               # Automation recipes
+
+dev/
+├── work_archive/            # Historical decisions
+├── backlog.json             # Task tracking
+└── progress_log.md          # Session logs
 ```
 
-> ⭐ = Key integration points for agents
+---
+
+## Coding Standards
+
+| Standard | Rule |
+|----------|------|
+| **TypeScript** | All code must be typed. Prefer `unknown` over `any`. |
+| **Server Actions** | Use `'use server'` directive for mutations |
+| **Firestore** | Use `@google-cloud/firestore` (not client SDK) |
+| **Error Handling** | Always wrap async in try/catch |
+| **Logging** | Use `@/lib/logger` (never `console.log`) |
+| **Changes** | Small, incremental. Test after each change. |
+
+---
+
+## Workflow
+
+### Simple Task (1-2 files)
+1. Read the file(s) you're changing
+2. Make the change
+3. Run `npm run check:types`
+4. Run tests if applicable
+5. Commit
+
+### Complex Task (3+ files, new feature)
+1. Run `npm run check:types` — ensure build is healthy
+2. Query work history: `query_work_history({ query: "area/file" })`
+3. Read relevant refs from `.agent/refs/`
+4. Create plan, get user approval
+5. Implement incrementally (test after each change)
+6. Archive decisions: `archive_work({ ... })`
+7. Commit and push
+
+---
+
+## Reference Documentation
+
+Load from `.agent/refs/` on-demand (conserve context):
+
+| Topic | File |
+|-------|------|
+| **Start here** | `.agent/prime.md` |
+| Agents & Architecture | `refs/agents.md` |
+| Memory/Letta | `refs/bakedbot-intelligence.md` |
+| Browser Automation | `refs/autonomous-browsing.md` |
+| Auth & Sessions | `refs/authentication.md` |
+| Roles & Permissions | `refs/roles.md` |
+| Backend Services | `refs/backend.md` |
+| API Routes | `refs/api.md` |
+| Frontend/UI | `refs/frontend.md` |
+| Testing | `refs/testing.md` |
+| Integrations | `refs/integrations.md` |
+| Work Archive | `refs/work-archive.md` |
+
+**Full index:** `.agent/refs/README.md`
 
 ---
 
@@ -70,38 +135,14 @@ dev/                         # Development context
 
 | Agent | Role | Domain |
 |-------|------|--------|
-| **Linus** | CTO | Code eval, deployment decisions |
-| **Leo** | COO | Executive orchestration |
-| **Mike** | CFO | Revenue, billing |
-| **Craig** | CMO | Marketing automation |
-| **Smokey** | Budtender | Product search |
+| **Linus** | CTO | Code eval, deployment, bug fixing |
+| **Leo** | COO | Operations orchestration |
+| **Smokey** | Budtender | Product search, recommendations |
+| **Craig** | Marketer | Campaigns (SMS: Blackleaf, Email: Mailjet) |
+| **Ezal** | Lookout | Competitive intelligence |
 | **Deebo** | Enforcer | Compliance |
-| **Ezal** | Lookout | Competitive intel |
 
-### Default Messaging Providers
-| Channel | Provider | Service File |
-|---------|----------|--------------|
-| **SMS** | BlackLeaf | `blackleaf-service.ts` |
-| **Email** | Mailjet | `mailjet-service.ts` |
-
-### Smokey Recommends (MVP Playbooks)
-1. 🚨 Competitor Price Match Alert
-2. ⭐ Review Response Autopilot
-3. 🔄 Win-Back Campaign
-4. 🏆 Weekly Top Sellers Report
-5. 📦 Low Stock Alert
-
----
-
-## Coding Standards
-
-1. **TypeScript Only** — All code must be typed
-2. **Server Actions** — Use `'use server'` for mutations
-3. **Firestore Native** — Use `@google-cloud/firestore` (not client SDK)
-4. **Error Handling** — Always wrap async in try/catch
-5. **Logging** — Use `@/lib/logger` for structured logs
-6. **Incremental Changes** — Small commits, frequent tests
-7. **Plan First** — Create implementation plan before coding
+> Full details: `.agent/refs/agents.md`
 
 ---
 
@@ -109,84 +150,40 @@ dev/                         # Development context
 
 | Purpose | Path |
 |---------|------|
-| Task Backlog | `dev/backlog.json` |
-| **Work Archive** | `dev/work_archive/` |
-| Linus Agent | `src/server/agents/linus.ts` |
-| Claude Wrapper | `src/ai/claude.ts` |
-| Agent Harness | `src/server/agents/harness.ts` |
-| App Secrets | `apphosting.yaml` |
-| Agent Refs | `.agent/refs/` |
+| Agent startup context | `.agent/prime.md` |
+| Claude wrapper | `src/ai/claude.ts` |
+| Agent harness | `src/server/agents/harness.ts` |
+| Linus agent | `src/server/agents/linus.ts` |
+| Work archive | `dev/work_archive/` |
+| App secrets | `apphosting.yaml` |
 
 ---
 
-## Agentic Workflow
+## Memory & History
 
-1. **Check Build Status** — Run `npm run check:types` to verify build is healthy
-2. **Query History** — Use `query_work_history` before changing files
-3. **Orient** — Read this file and relevant refs
-4. **Plan** — Generate detailed plan, await approval
-5. **Execute** — Implement in small increments
-6. **Test** — Run tests after each change
-7. **Archive** — Use `archive_work` to record decisions and context
-8. **Commit & Push** — Push to main, verify build passes
+### Work Archive (Local)
+- `query_work_history` — Check before modifying files
+- `archive_work` — Record decisions after changes
+- Location: `dev/work_archive/`
 
-> **CRITICAL**: If build is failing, fix it FIRST before new work.
-> After pushing, verify build succeeds. If it fails, fix immediately.
-
-### For Complex Tasks
-- Read detailed documentation: `.agent/refs/`
-- Check work history: `dev/work_archive/`
-- Check backlog status: `dev/backlog.json`
-- Run health check: `npm run check:types`
-
----
-
-## Memory Systems
-
-### BakedBot Intelligence (Letta)
-- `letta_save_fact` — Persist important insights
+### Letta Memory (Persistent)
+- `letta_save_fact` — Store important insights
 - `letta_search_memory` — Query past decisions
-- Shared Blocks — Hive Mind with Executive agents
-
-### BakedBot Discovery
-- Web search, Firecrawl scraping
-- RTRVR browser automation
-- Ezal competitive monitoring
-
-### Work Archive
-- `archive_work` — Save decisions and context after changes
-- `query_work_history` — Query past work before making changes
-- `dev/work_archive/` — Historical artifacts
+- Shared across Executive agents (Hive Mind)
 
 ---
 
-## Task Statuses
+## Common Pitfalls
 
-| Status | Meaning |
-|--------|---------|
-| `pending` | Not started |
-| `in_progress` | Being worked on |
-| `passing` | Complete and verified |
-| `failing` | Needs fix |
-
----
-
-## Progressive Disclosure
-
-For detailed documentation, see `.agent/refs/`:
-
-| Topic | File |
-|-------|------|
-| BakedBot Intelligence | `refs/bakedbot-intelligence.md` |
-| BakedBot Discovery | `refs/bakedbot-discovery.md` |
-| Agentic Coding | `refs/agentic-coding.md` |
-| **Work Archive** | `refs/work-archive.md` |
-| API | `refs/api.md` |
-| Backend | `refs/backend.md` |
-| Testing | `refs/testing.md` |
-
-Read these on-demand to avoid context window bloat.
+| Mistake | Fix |
+|---------|-----|
+| Editing without reading | Always Read file first |
+| Skipping build check | Run `npm run check:types` before/after |
+| Large unplanned changes | Break into increments, get approval |
+| Using `&&` in PowerShell | Use `;` instead |
+| Using `console.log` | Use `logger` from `@/lib/logger` |
+| Forgetting to archive | Call `archive_work` after significant changes |
 
 ---
 
-*This file is read by Linus and other Claude-based agents to understand the codebase.*
+*For detailed context, load `.agent/prime.md` first, then relevant refs as needed.*

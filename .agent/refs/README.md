@@ -1,82 +1,104 @@
 # Agent Reference Files
 
-This directory contains detailed reference documentation for AI agents.
-Each file provides comprehensive context for a specific domain.
+Detailed documentation for AI agents working in this codebase.
 
-**Usage:** Read `prime.md` first for orientation, then consult specific reference files as needed.
+**Rule:** Load refs on-demand. Don't load everything at once — conserve context.
 
 ---
 
-## Quick Index
+## Quick Lookup: What to Read
 
-### Core Architecture
-| File | Topic |
-|------|-------|
-| `agents.md` | Agent squad, tools, architecture |
-| `integrations.md` | External service integrations |
-| `tools.md` | Agent tools, Genkit |
-| `workflows.md` | Playbooks, automation |
+| If You're Working On... | Read This First |
+|-------------------------|-----------------|
+| Agent logic (any agent) | `agents.md` |
+| Memory/Letta integration | `bakedbot-intelligence.md` |
+| Browser automation/RTRVR | `autonomous-browsing.md` |
+| Auth, login, sessions | `authentication.md` |
+| Roles, permissions, RBAC | `roles.md` |
+| API routes | `api.md` |
+| Server actions, services | `backend.md` |
+| React components, UI | `frontend.md` |
+| Tests, Jest, coverage | `testing.md` |
+| External APIs (Blackleaf, etc.) | `integrations.md` |
+| Playbooks, automation | `workflows.md` |
+| Past decisions | `work-archive.md` |
 
-### Technical Stack
-| File | Topic |
-|------|-------|
-| `api.md` | API routes and patterns |
-| `backend.md` | Server actions, services, Firebase |
-| `frontend.md` | Components, layouts, ShadCN |
-| `testing.md` | Jest, Playwright patterns |
-| `agentic-coding.md` | Agent coding best practices |
+---
 
-### Authentication & Authorization
-| File | Topic |
-|------|-------|
-| `authentication.md` | Auth flow, session |
-| `roles.md` | Role hierarchy, RBAC |
-| `super-users.md` | Super User protocol |
+## Full Index
+
+### Core Systems
+| File | What's Inside |
+|------|---------------|
+| `agents.md` | All agents, their tools, architecture, Pulse/Interrupt model |
+| `backend.md` | Services, server actions, Firestore, custom domains |
+| `api.md` | API routes, patterns, authentication |
+| `frontend.md` | Components, layouts, ShadCN, menu embeds |
+
+### Intelligence & Memory
+| File | What's Inside |
+|------|---------------|
+| `bakedbot-intelligence.md` | Letta memory service, Hive Mind, shared blocks |
+| `bakedbot-discovery.md` | Web search, Firecrawl scraping |
+| `autonomous-browsing.md` | RTRVR browser automation, session management |
+| `context-os.md` | Decision lineage tracking |
+| `intuition-os.md` | System 1/2 routing, confidence scoring |
+| `intention-os.md` | Intent parsing, task decomposition |
+
+### Auth & Permissions
+| File | What's Inside |
+|------|---------------|
+| `authentication.md` | Firebase Auth, session management, login flow |
+| `roles.md` | Role hierarchy, permissions, RBAC |
+| `super-users.md` | Super User protocol, owner access |
 
 ### Features & Pages
-| File | Topic |
-|------|-------|
-| `demo-page.md` | Homepage demo chat |
-| `onboarding.md` | Claim flow, setup |
-| `pages-brand.md` | Brand dashboard |
-| `pages-dispensary.md` | Dispensary console |
-| `pages-location.md` | Location/Discovery pages |
-| `frontend.md` | Menu embeds (see Menu Embed section) |
-| `backend.md` | Custom domains (see Custom Domain section) |
+| File | What's Inside |
+|------|---------------|
+| `demo-page.md` | Homepage demo chat implementation |
+| `onboarding.md` | Claim flow, brand/dispensary setup |
+| `pages-brand.md` | Brand dashboard structure |
+| `pages-dispensary.md` | Dispensary console structure |
+| `pages-location.md` | Location/discovery pages |
+| `pilot-setup.md` | Quick provisioning for pilots |
 
-### Intelligence Systems
-| File | Topic |
-|------|-------|
-| `bakedbot-intelligence.md` | Letta memory, Hive Mind |
-| `bakedbot-discovery.md` | Web search, Firecrawl |
-| `autonomous-browsing.md` | RTRVR browser automation |
-| `context-os.md` | Decision lineage |
-| `intuition-os.md` | Proactive intelligence |
-| `intention-os.md` | Intent parsing |
+### Development
+| File | What's Inside |
+|------|---------------|
+| `agentic-coding.md` | Best practices for agents coding in this repo |
+| `testing.md` | Jest patterns, test strategies, coverage |
+| `tools.md` | Genkit tool definitions, executors |
+| `workflows.md` | Playbooks, automation recipes |
 
 ### Operations
-| File | Topic |
-|------|-------|
-| `work-archive.md` | Historical context, artifacts |
-| `session-handoff.md` | Mid-session work continuation |
-| `pilot-setup.md` | Pilot customer provisioning |
+| File | What's Inside |
+|------|---------------|
+| `work-archive.md` | Historical decisions, artifact storage |
+| `session-handoff.md` | Continuing work mid-session |
+| `integrations.md` | External APIs (Blackleaf, Mailjet, CannMenus, etc.) |
 
 ---
 
-## How to Use These References
+## Loading Strategy
 
-1. **New to codebase?** Start with `agents.md` and `backend.md`
-2. **Adding integrations?** Check `integrations.md`
-3. **Building UI?** Read `frontend.md` and `demo-page.md`
-4. **Working on auth?** See `authentication.md` and `roles.md`
-5. **Agent development?** Review `agents.md`, `tools.md`, `workflows.md`
+### Always Start With
+1. `CLAUDE.md` (auto-loaded)
+2. `.agent/prime.md` (read at session start)
+
+### Load On Demand
+Only load specific refs when you're about to work in that area.
+
+### Don't Load
+- Multiple refs at once (wastes context)
+- Refs for areas you won't touch this session
+- Everything "just in case"
 
 ---
 
-## Keeping References Updated
+## Keeping Refs Updated
 
-After significant changes to any domain:
-1. Update the relevant reference file
-2. Include: current state, key files, patterns, examples
-3. Add timestamp or version notes for major changes
-4. Cross-reference related documentation
+After significant changes to a subsystem:
+1. Update the relevant ref file
+2. Include: current state, key files, patterns
+3. Note any breaking changes or migrations
+4. Cross-reference related docs

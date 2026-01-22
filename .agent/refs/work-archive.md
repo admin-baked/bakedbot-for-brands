@@ -1,101 +1,132 @@
 # Work Archive Reference
 
-## Overview
-The **Work Archive** system stores historical work artifacts so agents understand context before making changes.
+## Purpose
+The Work Archive stores decisions and context from past work. Query it BEFORE modifying files to understand history.
 
 ---
 
-## Storage
+## Key Rule
+
+**Before changing any significant code:**
+```typescript
+await query_work_history({ query: "filename-or-topic" });
+```
+
+This prevents you from undoing past decisions or repeating solved problems.
+
+---
+
+## Storage Location
 
 ```
 dev/work_archive/
 ├── 2026-01-09_agent-context-reorg.json
 ├── 2026-01-09_linus-eval-enhancement.json
-└── index.json              # Quick lookup index
+└── index.json              # Quick lookup
 ```
 
 ---
 
-## Work Artifact Schema
+## Tools
+
+### `query_work_history` — Use BEFORE changes
+```typescript
+// Query by file
+await query_work_history({
+  query: 'linus.ts',
+  lookbackDays: 30    // Default: 30
+});
+
+// Query by topic
+await query_work_history({
+  query: 'authentication',
+  lookbackDays: 60
+});
+```
+
+**Returns:** Past artifacts, decisions, warnings for that area.
+
+### `archive_work` — Use AFTER changes
+```typescript
+await archive_work({
+  type: 'feature',  // feature | bugfix | refactor | docs | test | chore
+  summary: 'Added work archive query tool',
+  filesChanged: [
+    'src/server/services/work-archive.ts',
+    'src/server/agents/linus.ts'
+  ],
+  reasoning: 'To give agents historical context before making changes',
+  decisions: [
+    'Store artifacts as JSON in dev/work_archive/',
+    'Index key facts to Letta memory for semantic search'
+  ],
+  warnings: [
+    'Check Letta connectivity before querying memory'
+  ]
+});
+```
+
+### `archive_recent_commits` — Backfill from git
+```typescript
+// Catch up on recent work
+await archive_recent_commits({ days: 7 });
+```
+
+---
+
+## Artifact Schema
 
 ```typescript
 interface WorkArtifact {
-  id: string;              // Generated: date_slug
+  id: string;                    // date_slug format
   timestamp: string;
-  agentId: string;         // Which agent did the work
+  agentId: string;               // Who did the work
   type: 'feature' | 'bugfix' | 'refactor' | 'docs' | 'test' | 'chore';
-  
-  // What changed
-  filesChanged: string[];
+
+  // What
   summary: string;
+  filesChanged: string[];
   commitHash?: string;
-  
-  // Why it changed
+
+  // Why (most important!)
   reasoning: string;
-  
-  // Dependencies
-  dependenciesAffected?: string[];
-  
-  // Context
   decisions: string[];
   warnings?: string[];
+
+  // Dependencies
+  dependenciesAffected?: string[];
 }
 ```
 
 ---
 
-## Linus Tools
+## Workflow
 
-### `archive_work`
-Archive a work artifact after completing a task.
+### Before Changing Code
+1. `query_work_history({ query: "file-or-area" })`
+2. Review past decisions and warnings
+3. Plan with that context in mind
 
-```typescript
-await archive_work({
-  type: 'feature',
-  summary: 'Implemented work archive system',
-  filesChanged: ['src/server/services/work-archive.ts', ...],
-  reasoning: 'To provide agents with historical context',
-  decisions: ['Store in dev/work_archive/', 'Index to Letta memory'],
-  warnings: ['Check Letta connectivity before querying']
-});
-```
-
-### `query_work_history`
-Query past work BEFORE making changes. Essential for context.
-
-```typescript
-await query_work_history({
-  query: 'linus.ts',        // File path or topic
-  lookbackDays: 30          // Default: 30
-});
-```
-
-### `archive_recent_commits`
-Backfill from git commits (for catching up).
-
-```typescript
-await archive_recent_commits({
-  days: 7    // Archive last 7 days of commits
-});
-```
+### After Changing Code
+1. `archive_work({ ... })` with reasoning and decisions
+2. Include any warnings for future work
+3. Commit
 
 ---
 
-## Workflow Integration
+## What to Archive
 
-### Before Making Changes
-```
-1. Query work history for the file/area
-2. Review past decisions and warnings
-3. Plan changes with context in mind
-```
+**Do Archive:**
+- Feature implementations (why this approach)
+- Bug fixes (what caused it, how fixed)
+- Refactors (why restructured this way)
+- Architectural decisions
+- Gotchas and warnings discovered
 
-### After Making Changes
-```
-1. Archive the work artifact
-2. Update progress_log.md with reference to artifact
-3. Commit with conventional commit message
-```
+**Don't Archive:**
+- Trivial one-line fixes
+- Formatting/style changes
+- Work already well-documented elsewhere
 
 ---
 
@@ -104,12 +135,12 @@ await archive_recent_commits({
 | File | Purpose |
 |------|---------|
 | `src/server/services/work-archive.ts` | Core service |
-| `src/server/agents/linus.ts` | Tool definitions + executors |
-| `dev/work_archive/` | Artifact storage |
+| `src/server/agents/linus.ts` | Tool executors |
+| `dev/work_archive/` | Storage directory |
 
 ---
 
-## Related Documentation
-- `refs/agentic-coding.md` — Best practices
-- `refs/bakedbot-intelligence.md` — Letta memory
-- `dev/progress_log.md` — Session logs
+## Related
+- `refs/agentic-coding.md` — Coding workflow
+- `refs/bakedbot-intelligence.md` — Letta memory (semantic search)
+- `dev/progress_log.md` — Session notes

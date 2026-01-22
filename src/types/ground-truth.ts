@@ -1,11 +1,187 @@
 /**
- * Ground Truth QA System
+ * Ground Truth QA System - v1.0
  *
  * Structured QA pairs for training and evaluating Smokey (AI Budtender).
  * Each dispensary/brand gets their own ground truth set for accurate, compliant responses.
+ *
+ * @version 1.0 - Initial release with recommendation strategies
+ *
+ * Changelog:
+ * - 1.0 (2026-01-22): Added recommendation strategies, versioning system
  */
 
 import { z } from 'zod';
+
+// --- Version ---
+export const GROUND_TRUTH_VERSION = '1.0';
+
+// ============================================================================
+// RECOMMENDATION STRATEGIES (v1.0)
+// ============================================================================
+
+/**
+ * Strategy types for product recommendations
+ *
+ * Each strategy defines HOW Smokey prioritizes and filters products
+ * when making recommendations.
+ */
+export type RecommendationStrategyType =
+    | 'effect_based'      // Match by desired effects (relaxation, energy, focus)
+    | 'price_tier'        // Budget-conscious, mid-range, premium
+    | 'experience_level'  // Beginner-friendly vs experienced user
+    | 'product_type'      // Prefer flower, edibles, concentrates, etc.
+    | 'brand_affinity'    // Recommend based on preferred/featured brands
+    | 'occasion'          // Social, sleep, pain relief, creativity
+    | 'hybrid';           // Combine multiple strategies with weights
+
+export const STRATEGY_DESCRIPTIONS: Record<RecommendationStrategyType, string> = {
+    effect_based: 'Prioritize products by their therapeutic or recreational effects',
+    price_tier: 'Filter and rank products by price point and value',
+    experience_level: 'Adjust THC/dosage recommendations based on user experience',
+    product_type: 'Prefer specific product categories (flower, edibles, etc.)',
+    brand_affinity: 'Highlight featured or preferred brand partnerships',
+    occasion: 'Match products to specific use cases and occasions',
+    hybrid: 'Combine multiple strategies with configurable weights',
+};
+
+/**
+ * Effect-based strategy configuration
+ */
+export interface EffectBasedStrategy {
+    type: 'effect_based';
+    effects: {
+        name: string;           // e.g., "relaxation", "energy", "focus"
+        weight: number;         // 0-1, how important this effect is
+        product_types?: string[]; // Preferred product types for this effect
+        thc_range?: { min: number; max: number };
+        cbd_range?: { min: number; max: number };
+    }[];
+    fallback_to_popular?: boolean;
+}
+
+/**
+ * Price tier strategy configuration
+ */
+export interface PriceTierStrategy {
+    type: 'price_tier';
+    tiers: {
+        name: string;           // e.g., "budget", "mid-range", "premium"
+        min_price?: number;
+        max_price?: number;
+        default?: boolean;      // Use this tier if user doesn't specify
+    }[];
+    show_deals_first?: boolean;
+    value_scoring?: boolean;    // Factor in quantity/potency per dollar
+}
+
+/**
+ * Experience level strategy configuration
+ */
+export interface ExperienceLevelStrategy {
+    type: 'experience_level';
+    levels: {
+        name: string;           // e.g., "beginner", "intermediate", "experienced"
+        thc_max?: number;       // Max THC % to recommend
+        dosage_guidance?: string;
+        avoid_product_types?: string[];
+        prefer_product_types?: string[];
+        warnings?: string[];
+    }[];
+    default_level: string;
+    ask_if_unknown?: boolean;   // Prompt user about experience if not known
+}
+
+/**
+ * Product type preference strategy
+ */
+export interface ProductTypeStrategy {
+    type: 'product_type';
+    preferences: {
+        category: string;       // e.g., "flower", "edibles", "concentrates"
+        weight: number;         // 0-1, how much to prefer this category
+        subcategories?: string[];
+    }[];
+    exclude_categories?: string[];
+}
+
+/**
+ * Brand affinity strategy (featured brands, partnerships)
+ */
+export interface BrandAffinityStrategy {
+    type: 'brand_affinity';
+    featured_brands: {
+        name: string;
+        boost_weight: number;   // How much to boost these products (1.0-2.0)
+        message?: string;       // Special mention for this brand
+    }[];
+    house_brand?: string;       // Store's own brand to prioritize
+    exclude_brands?: string[];
+}
+
+/**
+ * Occasion-based strategy
+ */
+export interface OccasionStrategy {
+    type: 'occasion';
+    occasions: {
+        name: string;           // e.g., "sleep", "social", "pain_relief", "creativity"
+        effects: string[];      // Effects to look for
+        product_types?: string[];
+        thc_range?: { min: number; max: number };
+        cbd_range?: { min: number; max: number };
+        time_of_day?: 'morning' | 'afternoon' | 'evening' | 'night' | 'any';
+    }[];
+}
+
+/**
+ * Hybrid strategy - combine multiple strategies with weights
+ */
+export interface HybridStrategy {
+    type: 'hybrid';
+    strategies: {
+        strategy: RecommendationStrategyType;
+        weight: number;         // 0-1, relative importance
+        config: Partial<RecommendationStrategyConfig>;
+    }[];
+    combination_mode: 'weighted_average' | 'cascade' | 'filter_then_rank';
+}
+
+/**
+ * Union type for all strategy configurations
+ */
+export type RecommendationStrategyConfig =
+    | EffectBasedStrategy
+    | PriceTierStrategy
+    | ExperienceLevelStrategy
+    | ProductTypeStrategy
+    | BrandAffinityStrategy
+    | OccasionStrategy
+    | HybridStrategy;
+
+/**
+ * Complete recommendation configuration for a brand
+ */
+export interface RecommendationConfig {
+    version: string;                        // Strategy version (for A/B testing)
+    default_strategy: RecommendationStrategyType;
+    strategies: RecommendationStrategyConfig[];
+    constraints: {
+        max_recommendations: number;        // Max products to recommend at once
+        require_in_stock: boolean;          // Only recommend in-stock items
+        min_confidence: number;             // 0-1, minimum match confidence to recommend
+    };
+    beginner_safety: {
+        enabled: boolean;
+        max_thc_first_time: number;         // e.g., 10 for 10%
+        max_edible_mg_first_time: number;   // e.g., 5 for 5mg
+        warning_message: string;
+    };
+    compliance: {
+        require_age_confirmation: boolean;
+        medical_disclaimer: string;
+        no_health_claims: boolean;
+    };
+}
 
 // --- Priority Levels ---
 export type QAPriority = 'critical' | 'high' | 'medium';
@@ -79,6 +255,7 @@ export interface GroundTruthQASet {
     categories: Record<string, GroundTruthCategory>;
     evaluation_config: EvaluationConfig;
     maintenance_schedule: MaintenanceSchedule;
+    recommendation_config?: RecommendationConfig;  // v1.0: Optional recommendation strategies
 }
 
 // --- Category Keys (Standard) ---

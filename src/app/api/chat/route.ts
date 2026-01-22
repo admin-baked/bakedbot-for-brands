@@ -7,6 +7,10 @@ import { UsageService } from '@/server/services/usage';
 import { logger } from '@/lib/logger';
 import { withProtection } from '@/server/middleware/with-protection';
 import { chatRequestSchema, type ChatRequest } from '../schemas';
+import { getAdminFirestore } from '@/firebase/admin';
+import { makeProductRepo } from '@/server/repos/productRepo';
+import type { Product } from '@/types/products';
+import { hasGroundTruth } from '@/server/grounding';
 
 /**
  * POST /api/chat
@@ -275,8 +279,13 @@ export const POST = withProtection(
 
 
 
-            // 3️⃣ Use CannMenusService OR Injected Products
-            let rawProducts: CannMenusProduct[] = [];           
+            // 3️⃣ Use Firestore Products (Pilot Customers), Injected Products, or CannMenus
+            let rawProducts: CannMenusProduct[] = [];
+
+            // Check if this is a pilot customer with Firestore products
+            // Pilot brandIds are in format: 'brand_thrivesyracuse' or just 'thrivesyracuse'
+            const normalizedBrandId = brandId.startsWith('brand_') ? brandId : `brand_${brandId}`;
+            const isPilotCustomer = hasGroundTruth(brandId) || hasGroundTruth(normalizedBrandId.replace('brand_', ''));
 
             if (data!.products && data!.products.length > 0) {
                  // Context Injection (Demo Mode)
@@ -292,13 +301,74 @@ export const POST = withProtection(
                      url: p.url || '',
                      display_weight: '',
                      producer_name: '',
-                     brand_name: '', 
+                     brand_name: '',
                      description: p.description,
                      brand_id: 0,
                      original_price: p.price,
                      medical: true,
                      recreational: true
                  }));
+            } else if (isPilotCustomer) {
+                // Pilot Customer: Fetch from Firestore products collection
+                logger.info(`[Chat] Fetching Firestore products for pilot customer: ${normalizedBrandId}`);
+                const firestore = getAdminFirestore();
+                const productRepo = makeProductRepo(firestore);
+
+                // Try both brandId formats
+                let firestoreProducts: Product[] = await productRepo.getAllByBrand(normalizedBrandId);
+                if (firestoreProducts.length === 0 && brandId !== normalizedBrandId) {
+                    firestoreProducts = await productRepo.getAllByBrand(brandId);
+                }
+
+                logger.info(`[Chat] Found ${firestoreProducts.length} products for ${normalizedBrandId}`);
+
+                // Transform Firestore products to CannMenusProduct shape
+                rawProducts = firestoreProducts.map((p: Product) => ({
+                    cann_sku_id: p.id,
+                    product_name: p.name,
+                    category: p.category,
+                    latest_price: p.price,
+                    image_url: p.imageUrl || '',
+                    percentage_thc: p.thcPercent ?? 0,
+                    percentage_cbd: p.cbdPercent ?? 0,
+                    url: '',
+                    display_weight: p.weight ? `${p.weight}${p.weightUnit || 'g'}` : '',
+                    producer_name: '',
+                    brand_name: (p as any).brandName || (p as any).vendorBrand || '',
+                    description: p.description,
+                    brand_id: 0,
+                    original_price: p.price,
+                    medical: true,
+                    recreational: true,
+                    // Pass through effects for chemotype ranking
+                    effects: p.effects,
+                } as CannMenusProduct));
+
+                // Apply search filtering on Firestore products
+                if (analysis.searchQuery && analysis.searchQuery.trim()) {
+                    const searchLower = analysis.searchQuery.toLowerCase();
+                    rawProducts = rawProducts.filter(p =>
+                        p.product_name.toLowerCase().includes(searchLower) ||
+                        p.category.toLowerCase().includes(searchLower) ||
+                        (p.description && p.description.toLowerCase().includes(searchLower)) ||
+                        (p.brand_name && p.brand_name.toLowerCase().includes(searchLower))
+                    );
+                }
+
+                // Apply category filter
+                if (analysis.filters.category) {
+                    rawProducts = rawProducts.filter(p =>
+                        p.category.toLowerCase() === analysis.filters.category!.toLowerCase()
+                    );
+                }
+
+                // Apply price filters
+                if (analysis.filters.priceMin) {
+                    rawProducts = rawProducts.filter(p => p.latest_price >= analysis.filters.priceMin!);
+                }
+                if (analysis.filters.priceMax) {
+                    rawProducts = rawProducts.filter(p => p.latest_price <= analysis.filters.priceMax!);
+                }
             } else {
                 // Standard: Fetch from CannMenus
                 const cannMenusService = new CannMenusService();
@@ -314,8 +384,8 @@ export const POST = withProtection(
 
                 const searchParams: SearchParams = {
                     search: enhancedSearch.trim(),
-                    retailers: process.env.NEXT_PUBLIC_BAYSIDE_RETAILER_ID, // TODO: Use dynamic retailer from context/session
-                    brands: process.env.CANNMENUS_40TONS_BRAND_ID, // TODO: Use dynamic brand from headers/context
+                    retailers: process.env.NEXT_PUBLIC_BAYSIDE_RETAILER_ID,
+                    brands: process.env.CANNMENUS_40TONS_BRAND_ID,
                 };
 
                 if (analysis.filters.category) searchParams.category = analysis.filters.category;

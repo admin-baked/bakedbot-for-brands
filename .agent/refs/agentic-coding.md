@@ -1,220 +1,198 @@
 # Agentic Coding Reference
 
 ## Overview
-Best practices for AI-powered coding agents, including rules, workflows, and evaluation frameworks.
+Best practices for AI agents working in this codebase. This is for agents like Claude Code and Linus.
 
 ---
 
-## Core Philosophy
+## Core Rules
 
-> "Plan first, code second. Review always."
-
-AI coding agents are powerful **pair programmers**, not autonomous replacements for human developers.
-
-### The Golden Rules
-
-1. **Human-in-the-Loop** — Always review generated code
-2. **Plan Before Execute** — Create detailed plan, then implement
-3. **Incremental Development** — Small changes, frequent tests, regular commits
-4. **Context is King** — Well-structured context = quality output
-5. **Fail Fast** — Test early, catch errors early
-
----
-
-## CLAUDE.md Best Practices
-
-The `CLAUDE.md` file is the "permanent brain" for your project.
-
-### What to Include
-
-| Category | Examples |
-|----------|----------|
-| **Code Style** | "Use ES modules, not CommonJS", "Functional components with hooks" |
-| **Common Commands** | `npm run test`, `npm run build`, `npm run check:types` |
-| **Testing Instructions** | "Run tests before committing", coverage requirements |
-| **Project Structure** | Key directories, utilities, patterns |
-| **Repository Etiquette** | Branch naming, merge vs rebase |
-| **Developer Environment** | Node version, required tools |
-
-### Best Practices
-
-1. **Keep it Concise** — Less is more. Universal content only.
-2. **Progressive Disclosure** — Point to task-specific files (e.g., `refs/testing.md`)
-3. **Avoid Single-Task Instructions** — Don't clutter with one-off tasks
-4. **Check into Git** — Share across team and sessions
-5. **Use `.local.md` for Personal** — `CLAUDE.local.md` for personal settings (gitignored)
-
----
-
-## Agentic Workflow
-
-### The Plan-Execute Loop
-
+### 1. Build Health is Priority Zero
+```powershell
+npm run check:types
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   PLAN      │────▶│   REVIEW    │────▶│   EXECUTE   │
-│             │     │   (Human)   │     │             │
-└─────────────┘     └─────────────┘     └─────────────┘
-       │                                       │
-       └───────────────────────────────────────┘
-                    (Iterate)
+If failing, stop everything and fix it. No exceptions.
+
+### 2. Read Before Write
+Never modify code you haven't read. Use the Read tool first.
+
+### 3. Small Changes, Frequent Tests
+One logical change → test → repeat. Don't batch large changes.
+
+### 4. Plan Complex Work
+Multi-file changes need a written plan and user approval before executing.
+
+### 5. Archive Decisions
+Record *why* you made choices, not just what you changed. Use `archive_work`.
+
+---
+
+## Decision Framework
+
+### When to Just Do It
+- Single file fix
+- Clear bug with obvious solution
+- User gave explicit instructions
+- Build is passing, change is small
+
+### When to Plan First
+- 3+ files affected
+- New feature or subsystem
+- Unclear requirements
+- Architectural changes
+- Anything involving auth/payments/compliance
+
+### When to Ask User
+- Multiple valid approaches
+- Missing requirements
+- Could affect production data
+- Unsure about existing patterns
+
+---
+
+## Workflow Templates
+
+### Bug Fix
+```
+1. Reproduce: Understand the bug
+2. Read: Load the relevant file(s)
+3. Fix: Make minimal change
+4. Test: npm test -- path/to/file.test.ts
+5. Verify: npm run check:types
+6. Commit
 ```
 
-### Steps
+### New Feature
+```
+1. Health Check: npm run check:types
+2. Research: query_work_history for related code
+3. Read Refs: Load relevant .agent/refs/ files
+4. Plan: Write implementation steps
+5. Approve: Get user sign-off
+6. Execute: One step at a time, test after each
+7. Archive: archive_work with decisions
+8. Commit
+```
 
-1. **Orient** — Understand the request fully
-2. **Plan** — Generate detailed implementation plan
-3. **Review** — Human reviews and approves plan
-4. **Execute** — Implement in small increments
-5. **Test** — Run tests after each change
-6. **Commit** — Commit frequently for easy rollback
-7. **Iterate** — Repeat until complete
-
-### Anti-Patterns
-
-| ❌ Don't | ✅ Do |
-|----------|-------|
-| Jump straight to coding | Plan first, get approval |
-| Make massive changes | Small, incremental changes |
-| Skip testing | Test after every change |
-| Ignore context | Read CLAUDE.md and refs |
-| Guess at requirements | Ask clarifying questions |
+### Refactor
+```
+1. Tests First: Ensure tests exist and pass
+2. Read: Understand current implementation
+3. Plan: Describe target state
+4. Incremental: Small changes, test after each
+5. Verify: All tests still pass
+6. Archive: Document reasoning
+```
 
 ---
 
 ## Context Management
 
+### Hierarchy (Most → Least Important)
+1. **CLAUDE.md** — Always loaded, project-wide rules
+2. **.agent/prime.md** — Agent startup context
+3. **Refs on demand** — Load only when working in that area
+4. **File contents** — Read what you're about to change
+5. **Work history** — Check before modifying
+
+### When to Load Refs
+| Working On | Load First |
+|------------|------------|
+| Agent code | `refs/agents.md` |
+| Auth/session | `refs/authentication.md` |
+| API routes | `refs/api.md` |
+| UI components | `refs/frontend.md` |
+| Testing | `refs/testing.md` |
+| External APIs | `refs/integrations.md` |
+| Memory/Letta | `refs/bakedbot-intelligence.md` |
+
 ### Context Window Hygiene
-
-- **Clear between tasks**: Use `/clear` to reset context
-- **Progressive disclosure**: Load detailed refs only when needed
-- **Sub-agents**: Use for complex, isolated subtasks
-- **Keep prompts focused**: One clear goal per interaction
-
-### Context Sources (Priority Order)
-
-1. **CLAUDE.md** — Always loaded, project-wide context
-2. **Refs Directory** — Detailed documentation on demand
-3. **Current Files** — Active working context
-4. **Conversation History** — Recent exchanges
+- Don't load all refs at once
+- Use `/clear` between unrelated tasks
+- Summarize long outputs
+- Sub-agents for isolated research
 
 ---
 
-## Code Evaluation Framework
+## Anti-Patterns
 
-### Industry Benchmarks
-
-| Benchmark | Focus | Use Case |
-|-----------|-------|----------|
-| **HumanEval** | Basic coding (Pass@k) | Algorithm implementation |
-| **SWE-bench** | Real GitHub issues | Bug fixing ability |
-| **SWE-bench Verified** | Human-validated | Reliable evaluation |
-| **AgentBench** | Multi-dimensional | OS, databases, web |
-| **LiveCodeBench** | Updated problems | Prevents contamination |
-
-### Key Metrics
-
-| Metric | Description |
-|--------|-------------|
-| **Pass@k** | ≥1 of k samples passes all tests |
-| **Compilation Success** | Code compiles without errors |
-| **Functional Correctness** | Correct output for test cases |
-| **Code Quality** | Linter scores, complexity |
-| **Security** | No vulnerabilities detected |
-
-### BakedBot's 7-Layer Framework (Linus)
-
-| Layer | Agent | Focus | Industry Equivalent |
-|-------|-------|-------|---------------------|
-| 1 | Architect | Structure | Code architecture reviews |
-| 2 | Orchestrator | Dependencies | Dependency analysis |
-| 3 | Sentry | Security | SAST/DAST tools |
-| 4 | Money Mike | Efficiency | Performance profiling |
-| 5 | Deebo | Compliance | Regulatory checks |
-| 6 | Chaos Monkey | Resilience | Chaos engineering |
-| 7 | Linus | Deployment | Final GO/NO-GO |
+| ❌ Don't | ✅ Do |
+|----------|-------|
+| Edit without reading | Read file first |
+| Make 10+ file changes at once | Small increments |
+| Skip build check | `npm run check:types` before/after |
+| Guess at patterns | Read refs or existing code |
+| Use `console.log` | Use `logger` from `@/lib/logger` |
+| Use `any` type | Use `unknown` or specific type |
+| Forget to test | Test after every change |
+| Skip archiving | `archive_work` after significant changes |
 
 ---
 
-## Prompting Best Practices
+## Code Quality Checklist
 
-### Effective Prompts
+Before committing, verify:
 
-```
-Good: "Create a function that validates email addresses using regex. 
-       Return true if valid, false otherwise. Include JSDoc comments."
-
-Bad: "Write email validation code."
-```
-
-### Techniques
-
-1. **Be Specific** — Exact requirements, formats, constraints
-2. **Provide Examples** — Show expected input/output
-3. **Use Structure** — XML tags, numbered lists
-4. **Reference Files** — Point to specific files/functions
-5. **State Assumptions** — Make constraints explicit
-
-### XML Tags (Claude Preference)
-
-```xml
-<context>
-  Project uses TypeScript, Next.js 15, Firebase.
-</context>
-
-<task>
-  Create a server action to fetch user profile.
-</task>
-
-<requirements>
-  - Use Firestore
-  - Include error handling
-  - Return typed response
-</requirements>
-```
+- [ ] `npm run check:types` passes
+- [ ] Relevant tests pass
+- [ ] No `console.log` statements (use logger)
+- [ ] No `any` types (use `unknown` or specific)
+- [ ] Error handling with try/catch
+- [ ] Server mutations use `'use server'`
+- [ ] No hardcoded secrets
+- [ ] Input validation on user input
 
 ---
 
-## Testing Standards
+## Testing Strategy
 
-### Test-Driven Agentic Development
+### Run Tests
+```powershell
+# All tests
+npm test
 
-1. **Write test first** — Define expected behavior
-2. **Generate implementation** — AI writes code to pass test
-3. **Run tests** — Verify correctness
-4. **Iterate** — Fix failures, add edge cases
+# Specific file
+npm test -- path/to/file.test.ts
 
-### Test Coverage Requirements
+# Pattern match
+npm test -- --testPathPattern="agents"
+```
 
+### Test Coverage Goals
 | Type | Target |
 |------|--------|
-| Unit Tests | 80%+ coverage |
-| Integration Tests | Critical paths |
-| E2E Tests | User flows |
+| Unit | 80%+ for business logic |
+| Integration | Critical paths |
+| E2E | Happy paths |
+
+### Test-Driven Approach
+1. Write failing test
+2. Implement to pass
+3. Refactor
+4. Repeat
 
 ---
 
 ## Security Guidelines
 
-### Code Review Checklist
+### Always Check
+- [ ] No hardcoded secrets/API keys
+- [ ] Input validation on user input
+- [ ] Auth checks on protected routes
+- [ ] Sanitize output (prevent XSS)
+- [ ] No SQL/NoSQL injection vectors
+- [ ] Error messages don't leak internals
 
-- [ ] No hardcoded secrets
-- [ ] Input validation on all user input
-- [ ] SQL injection prevention
-- [ ] XSS prevention
-- [ ] Proper error handling (no stack traces to users)
-- [ ] Authentication/authorization checks
-
-### Tools
-
-- ESLint security plugins
-- npm audit / yarn audit
-- Snyk / Dependabot
+### Sensitive Areas
+- `src/server/actions/` — Server mutations
+- `src/app/api/` — API routes
+- Auth/session code — Extra scrutiny
+- Payment code — Maximum caution
 
 ---
 
 ## Related Files
-- `CLAUDE.md` — Project context file
-- `.agent/refs/testing.md` — Testing patterns
-- `.agent/refs/tools.md` — Agent tools
-- `src/server/agents/linus.ts` — Evaluation agent
+- `CLAUDE.md` — Project context
+- `.agent/prime.md` — Agent startup
+- `refs/testing.md` — Testing patterns
+- `refs/agents.md` — Agent architecture
