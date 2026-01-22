@@ -12,11 +12,17 @@ import { logger } from '@/lib/monitoring';
 export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
-    // Verify cron secret (for security)
+    // SECURITY: Verify cron secret - REQUIRED, not optional
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    // SECURITY: CRON_SECRET must be configured, otherwise reject all requests
+    if (!cronSecret) {
+        logger.error('CRON_SECRET environment variable is not configured');
+        return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+    }
+
+    if (authHeader !== `Bearer ${cronSecret}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

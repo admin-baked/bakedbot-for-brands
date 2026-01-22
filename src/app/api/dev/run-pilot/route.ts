@@ -1,6 +1,7 @@
-
 import { NextResponse } from 'next/server';
 import { PageGeneratorService } from '@/server/services/page-generator';
+import { requireSuperUser } from '@/server/auth/auth';
+import { logger } from '@/lib/logger';
 
 export const maxDuration = 300; // 5 minutes
 
@@ -15,12 +16,34 @@ const CHICAGO_ZIPS = [
     '60607', '60661', '60612'
 ];
 
+/**
+ * DEV ONLY: GET /api/dev/run-pilot
+ *
+ * Runs pilot page generation for test ZIPs.
+ *
+ * SECURITY: Blocked in production and requires Super User authentication.
+ */
 export async function GET() {
+    // SECURITY: Block in production
+    if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json(
+            { error: 'Dev route disabled in production' },
+            { status: 403 }
+        );
+    }
+
+    // SECURITY: Require Super User authentication
+    try {
+        await requireSuperUser();
+    } catch {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     try {
         const generator = new PageGeneratorService();
         const allZips = [...DETROIT_ZIPS, ...CHICAGO_ZIPS];
 
-        console.log(`Starting Pilot Generation for ${allZips.length} ZIPs...`);
+        logger.info(`Starting Pilot Generation for ${allZips.length} ZIPs...`);
 
         // 1. Dispensaries
         const dispRes = await generator.scanAndGenerateDispensaries({
@@ -41,7 +64,9 @@ export async function GET() {
             cities: cityRes,
             states: stateRes
         });
-    } catch (e: any) {
-        return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        logger.error('Pilot generation failed', { error: message });
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }

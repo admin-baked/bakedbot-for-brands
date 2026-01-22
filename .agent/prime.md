@@ -179,6 +179,59 @@ Full index in `refs/README.md`.
 | Assuming file structure | Use Glob/Grep to verify |
 | Using `&&` in PowerShell | Use `;` instead |
 
+### Security Gotchas (Q1 2026 Audit Update)
+
+| Gotcha | Correct Pattern |
+|--------|-----------------|
+| **Missing API auth** | Always use `requireUser()` or `requireSuperUser()` for API routes |
+| **Trusting request body userId** | Get userId from `session.uid`, never from request body |
+| **IDOR on org access** | Always verify org membership before operating on org data |
+| **Dev routes in production** | Gate with `if (process.env.NODE_ENV === 'production') return 403` |
+| **CORS wildcard `*`** | Use specific allowed origins from `ALLOWED_ORIGINS` env var |
+| **Optional CRON_SECRET** | Always check `if (!cronSecret) return 500` before auth check |
+| **Using `console.log`** | Use `logger` from `@/lib/logger` instead |
+| **Error message leak** | Return generic error messages, log details server-side |
+
+**Authentication Patterns:**
+```typescript
+// For Super User operations (admin, cron jobs, sensitive data)
+import { requireSuperUser } from '@/server/auth/auth';
+await requireSuperUser();
+
+// For authenticated user operations (check they're logged in)
+import { requireUser } from '@/server/auth/auth';
+const session = await requireUser();
+const userId = session.uid; // Always use this, not request body
+
+// For org-scoped operations (verify membership)
+const hasAccess = await verifyOrgMembership(session.uid, orgId);
+if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+```
+
+**Dev Route Pattern:**
+```typescript
+export async function POST(request: NextRequest) {
+  // SECURITY: Block in production
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Dev route disabled in production' }, { status: 403 });
+  }
+  await requireSuperUser();
+  // ... rest of code
+}
+```
+
+**Cron Route Pattern:**
+```typescript
+const cronSecret = process.env.CRON_SECRET;
+if (!cronSecret) {
+  logger.error('CRON_SECRET environment variable is not configured');
+  return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+}
+if (authHeader !== `Bearer ${cronSecret}`) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
+```
+
 ---
 
 ## 🆕 Recent Changes (2026-01-22)
@@ -380,10 +433,31 @@ export const SUPER_ADMIN_EMAILS = ALL_SUPER_ADMIN_EMAILS.filter(
 - 12 new unit tests in `src/lib/__tests__/super-admin-config.test.ts`
 
 **Security Test Summary:**
-- `tests/server/security/security-audit-fixes.test.ts` — 47 tests
+- `tests/server/security/security-audit-fixes.test.ts` — 47+ tests
 - `src/server/actions/__tests__/admin-claims.test.ts` — 12 tests
 - `src/lib/__tests__/super-admin-config.test.ts` — 12 tests
-- **Total: 71 security tests passing**
+
+### Q1 2026 Audit Follow-up Fixes (2026-01-22)
+
+Additional vulnerabilities identified and fixed:
+
+| Severity | Issue | Fix |
+|----------|-------|-----|
+| **CRITICAL** | `/api/jobs/process` - no auth | Added `requireSuperUser()` |
+| **CRITICAL** | `/api/playbooks/execute` - IDOR via request body userId | Added session auth + org membership check |
+| **CRITICAL** | `/api/billing/authorize-net` - no auth | Added auth + org admin verification |
+| **CRITICAL** | `/api/dev/*` routes in production | Added production environment gate |
+| **HIGH** | CORS wildcard `*` on browser endpoints | Implemented origin whitelist |
+| **HIGH** | CRON_SECRET optional | Made CRON_SECRET required on all cron routes |
+| **MEDIUM** | `console.log` in production code | Replaced with `logger` |
+
+**Key Files Changed:**
+- `src/app/api/jobs/process/route.ts`
+- `src/app/api/playbooks/execute/route.ts`
+- `src/app/api/billing/authorize-net/route.ts`
+- `src/app/api/dev/*/route.ts` (all 8 files)
+- `src/app/api/browser/session/route.ts`
+- `src/app/api/cron/*/route.ts` (all cron endpoints)
 
 ---
 
