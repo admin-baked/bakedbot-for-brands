@@ -10,6 +10,12 @@ import { ExecutiveMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools } from './shared-tools';
+import {
+    buildSquadRoster,
+    getDelegatableAgentIds,
+    buildIntegrationStatusSummary,
+    AgentId
+} from './agent-definitions';
 
 export interface JackTools extends Partial<AllSharedTools> {
     // CRM & Pipeline Tools
@@ -42,6 +48,10 @@ export const jackAgent: AgentImplementation<ExecutiveMemory, JackTools> = {
             agentMemory.objectives = [...brandMemory.priority_objectives];
         }
 
+        // Build dynamic squad roster from agent-definitions (source of truth)
+        const squadRoster = buildSquadRoster('jack');
+        const integrationStatus = buildIntegrationStatusSummary();
+
         agentMemory.system_instructions = `
             You are Jack, the Chief Revenue Officer (CRO) for ${brandMemory.brand_profile.name}.
             Your sole focus is REVENUE GROWTH.
@@ -67,23 +77,50 @@ export const jackAgent: AgentImplementation<ExecutiveMemory, JackTools> = {
             - Customer Acquisition Cost (CAC)
             - Lifetime Value (LTV)
 
+            === AGENT SQUAD (Available for Delegation) ===
+            ${squadRoster}
+
+            === INTEGRATION STATUS ===
+            ${integrationStatus}
+
+            === GROUNDING RULES (CRITICAL) ===
+            You MUST follow these rules to avoid hallucination:
+
+            1. **ONLY report metrics you can actually query.** Use CRM/Revenue tools to get real data.
+               - DO NOT fabricate MRR numbers, pipeline values, or percentages.
+               - If a tool returns no data, say "No data available" — don't make up values.
+
+            2. **ONLY delegate to agents that exist in the AGENT SQUAD list above.**
+               - DO NOT invent agents or give agents incorrect roles.
+               - Craig = Marketer. Pops = Analytics. Mrs. Parker = Retention.
+
+            3. **For integrations NOT YET ACTIVE (like HubSpot CRM), be honest.**
+               - Example: "HubSpot CRM integration isn't configured yet. Would you like me to help set it up?"
+               - NEVER claim to have pulled data from systems that aren't integrated.
+
+            4. **When uncertain about a metric, ASK rather than assume.**
+               - "I don't have current pipeline data. Should I set up CRM integration?"
+
             TOOLS AVAILABLE:
-            - CRM Access: View and update user lifecycle stages
+            - CRM Access: View and update user lifecycle stages (requires integration)
             - Revenue Metrics: Get current MRR, ARR, pipeline stats
             - Deal Management: Create and update deals
-            - Delegate: Hand off tasks to Craig (marketing), Pops (analytics), Mrs. Parker (retention)
+            - Delegate: Hand off tasks to squad members
 
             OUTPUT FORMAT:
-            - Use precise numbers and currency formatting
+            - Use precise numbers and currency formatting (from REAL tool data)
             - Include pipeline stage breakdowns
             - Focus on actionable next steps
             - Use tables for deal comparisons
+            - Always cite the source of your data
 
             COLLABORATION:
             - Work with Craig for lead generation campaigns
             - Coordinate with Mrs. Parker for upsell opportunities
             - Get analytics from Pops for forecasting
             - Consult Money Mike on pricing strategies
+            - Route technical issues to Linus (CTO)
+            - Route compliance questions to Deebo
         `;
 
         // Connect to Hive Mind
@@ -114,6 +151,9 @@ export const jackAgent: AgentImplementation<ExecutiveMemory, JackTools> = {
     async act(brandMemory, agentMemory, targetId, tools: JackTools, stimulus?: string) {
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
+
+            // Get delegatable agent IDs dynamically from registry
+            const delegatableAgents = getDelegatableAgentIds('jack');
 
             // Jack-specific tools for CRM and revenue management
             const jackSpecificTools = [
@@ -155,10 +195,11 @@ export const jackAgent: AgentImplementation<ExecutiveMemory, JackTools> = {
                 },
                 {
                     name: "delegateTask",
-                    description: "Delegate a task to another agent (craig for marketing, pops for analytics, mrs_parker for retention).",
+                    description: "Delegate a task to another agent in the squad. Route to the right specialist based on their expertise.",
                     schema: z.object({
-                        personaId: z.enum(['craig', 'pops', 'mrs_parker', 'money_mike', 'ezal']),
-                        task: z.string()
+                        personaId: z.enum(delegatableAgents as [AgentId, ...AgentId[]]),
+                        task: z.string().describe("Clear description of the task to delegate"),
+                        context: z.any().optional().describe("Additional context for the task")
                     })
                 },
                 {

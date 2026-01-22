@@ -6,6 +6,12 @@ import { logger } from '@/lib/logger';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools } from './shared-tools';
+import {
+    buildSquadRoster,
+    getDelegatableAgentIds,
+    buildIntegrationStatusSummary,
+    AgentId
+} from './agent-definitions';
 
 export interface ExecutiveTools extends Partial<AllSharedTools> {
   // Common tools for the executive floor
@@ -59,19 +65,50 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
         agentMemory.objectives = [...brandMemory.priority_objectives];
     }
 
+    // Build dynamic squad roster from agent-definitions (source of truth)
+    const squadRoster = buildSquadRoster();
+    const integrationStatus = buildIntegrationStatusSummary();
+
     agentMemory.system_instructions = `
         You are an Executive Boardroom Member for ${brandMemory.brand_profile.name}.
         Your role is to act as a high-level strategic operator.
-        
+
         CAPABILITIES:
         1. **Plan & Delegate**: Break down complex goals into tasks for other agents.
         2. **RTRvr Access**: You have exclusive access to a "Browser Agent" (RTRvr) that can login, download files, and browse the web autonomously.
         3. **Live CRM Access**: You have READ access to the real user database. Use 'crmListUsers' to inspect signups.
         4. **Strategic Oversight**: Always tie actions back to the Brand Objectives.
 
+        === AGENT SQUAD (Available for Delegation) ===
+        ${squadRoster}
+
+        === INTEGRATION STATUS ===
+        ${integrationStatus}
+
+        === GROUNDING RULES (CRITICAL) ===
+        You MUST follow these rules to avoid hallucination:
+
+        1. **ONLY report data you can actually query.** Use tools to get real data.
+           - DO NOT fabricate metrics, user counts, or system statuses.
+           - If a tool returns no data, say "No data available" — don't make up values.
+
+        2. **ONLY delegate to agents that exist in the AGENT SQUAD list above.**
+           - DO NOT invent agents or give agents incorrect roles.
+
+        3. **For integrations NOT YET ACTIVE, be honest about limitations.**
+           - Check the INTEGRATION STATUS section above.
+           - Offer to help set up missing integrations rather than claiming they work.
+
+        4. **When uncertain, ASK rather than assume.**
+           - "I don't have visibility into X. Would you like me to investigate?"
+
+        5. **Use REAL timestamps, not placeholders.**
+           - Use actual Date.now() values, not "[Current Date/Time]".
+
         OUTPUT RULES:
         - Use standard markdown headers (###) to separate strategic sections like "Strategic Snapshot", "Operational Directives", and "Resource Allocation".
         - This ensures your response renders correctly as rich cards in the dashboard.
+        - Always cite the source of your data (tool call or database query).
     `;
 
     // === HIVE MIND INIT ===
@@ -104,6 +141,9 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;
         
+        // Get delegatable agent IDs dynamically from registry
+        const delegatableAgents = getDelegatableAgentIds();
+
         // Executive-specific tools for high-level operations
         const executiveSpecificTools = [
             {
@@ -113,10 +153,11 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
             },
             {
                 name: "delegateTask",
-                description: "Assign a task to a specialized agent (Craig, Smokey, Ezal, Pops).",
+                description: "Assign a task to a specialized agent in the squad. Route to the right specialist based on their expertise.",
                 schema: z.object({
-                    personaId: z.enum(['craig', 'smokey', 'ezal', 'pops', 'money_mike', 'mrs_parker']),
-                    task: z.string()
+                    personaId: z.enum(delegatableAgents as [AgentId, ...AgentId[]]),
+                    task: z.string().describe("Clear description of the task to delegate"),
+                    context: z.any().optional().describe("Additional context for the task")
                 })
             },
             {

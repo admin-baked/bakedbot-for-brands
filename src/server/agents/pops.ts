@@ -6,6 +6,10 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 import { analyticsToolDefs, analyticsToolImplementations } from './tools/analytics-tools';
+import {
+    buildSquadRoster,
+    buildIntegrationStatusSummary
+} from './agent-definitions';
 
 // --- Tool Definitions ---
 
@@ -27,27 +31,63 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
 
   async initialize(brandMemory, agentMemory) {
     logger.info('[Pops] Initializing. Checking data freshness...');
-    
-    // Stub: In reality, we'd check if our connections to POS/Ecommerce are live
-    
+
+    // Build dynamic context from agent-definitions (source of truth)
+    const squadRoster = buildSquadRoster('pops');
+    const integrationStatus = buildIntegrationStatusSummary();
+
     agentMemory.system_instructions = `
-        You are Pops, the Lead Data Analyst.
+        You are Pops, the Lead Data Analyst for ${brandMemory.brand_profile.name}.
         Your job is to track revenue, retention, and funnel analytics to find growth opportunities.
-        
+
         CORE PRINCIPLES:
         1. **Numbers Don't Lie**: Be precise with data.
         2. **Revenue Velocity**: Identify which products are moving FAST.
         3. **Signal in the Noise**: Don't report vanity metrics. Report profit.
-        
+
+        === AGENT SQUAD (For Collaboration) ===
+        ${squadRoster}
+
+        === INTEGRATION STATUS ===
+        ${integrationStatus}
+
+        === GROUNDING RULES (CRITICAL) ===
+        You MUST follow these rules to avoid hallucination:
+
+        1. **ONLY report metrics you can actually query.** Use analytics tools for real data.
+           - DO NOT fabricate revenue numbers, percentages, or trends.
+           - If a tool returns no data, say "No data available" — don't make up values.
+
+        2. **Check INTEGRATION STATUS before claiming data access.**
+           - If GA4/Search Console isn't active, don't claim to have traffic data.
+           - Offer to help set up missing integrations.
+
+        3. **When collaborating with other agents, use the AGENT SQUAD list.**
+           - Money Mike = Pricing. Craig = Marketing. Mrs. Parker = Retention.
+
+        4. **When uncertain, ASK rather than assume.**
+           - "I don't have access to POS data. Should we set up the integration?"
+
         GOAL:
-        Identify the "Signal in the Noise". Tell the user which products are *actually* driving the business (High Velocity), not just which ones are cool. Alert Money Mike when you find a high-velocity SKU that needs a margin check.
-        
+        Identify the "Signal in the Noise". Tell the user which products are *actually* driving the business (High Velocity), not just which ones are cool. Coordinate with Money Mike for margin checks.
+
         Tone: Wise, concise, mathematically minded. "Listen here..."
 
         OUTPUT RULES:
         - Use standard markdown headers (###) to separate sections like "Data Insight", "Trend Analysis", and "Actionable Opportunity".
         - This enables rich card rendering in the dashboard.
+        - Always cite the source of your data (tool call or database query).
     `;
+
+    // === HIVE MIND INIT ===
+    try {
+        const { lettaBlockManager } = await import('@/server/services/letta/block-manager');
+        const brandId = (brandMemory.brand_profile as any)?.id || 'unknown';
+        await lettaBlockManager.attachBlocksForRole(brandId, agentMemory.agent_id as string, 'brand');
+        logger.info(`[Pops:HiveMind] Connected to shared analyst blocks.`);
+    } catch (e) {
+        logger.warn(`[Pops:HiveMind] Failed to connect: ${e}`);
+    }
 
     return agentMemory;
   },

@@ -189,3 +189,90 @@ export function canRoleAccessAgent(role: string, agentId: AgentId): boolean {
     if (!agent.roleRestrictions || agent.roleRestrictions.length === 0) return true;
     return !agent.roleRestrictions.includes(role);
 }
+
+/**
+ * Build a formatted squad roster string for system prompts.
+ * This ensures agents always have accurate, up-to-date squad information.
+ *
+ * @param excludeAgentId - Optionally exclude an agent (e.g., exclude 'leo' when building Leo's roster)
+ * @returns Formatted string listing all agents and their specialties
+ */
+export function buildSquadRoster(excludeAgentId?: AgentId): string {
+    const roster = AGENT_CAPABILITIES
+        .filter(agent => agent.id !== excludeAgentId && agent.id !== 'general')
+        .map(agent => `- **${agent.name}** (${agent.specialty}): ${agent.description.split('.')[0]}.`)
+        .join('\n');
+
+    return roster;
+}
+
+/**
+ * Get a list of valid agent IDs for delegation (used in tool schemas).
+ * Excludes 'general' and the calling agent.
+ */
+export function getDelegatableAgentIds(excludeAgentId?: AgentId): AgentId[] {
+    return AGENT_CAPABILITIES
+        .filter(agent => agent.id !== excludeAgentId && agent.id !== 'general')
+        .map(agent => agent.id);
+}
+
+/**
+ * Known integrations and their implementation status.
+ * Used to ground agents on what's actually available vs. what needs setup.
+ */
+export interface IntegrationStatus {
+    id: string;
+    name: string;
+    status: 'active' | 'configured' | 'not_configured' | 'coming_soon';
+    description: string;
+    setupRequired?: string;
+}
+
+export const KNOWN_INTEGRATIONS: IntegrationStatus[] = [
+    // Implemented & Active
+    { id: 'firebase_auth', name: 'Firebase Auth', status: 'active', description: 'User authentication' },
+    { id: 'firestore', name: 'Firestore', status: 'active', description: 'Database and persistence' },
+    { id: 'letta', name: 'Letta Memory', status: 'active', description: 'Agent memory and Hive Mind' },
+    { id: 'claude_api', name: 'Claude API', status: 'active', description: 'AI synthesis (Anthropic)' },
+    { id: 'gemini_api', name: 'Gemini API', status: 'active', description: 'AI planning (Google)' },
+
+    // Configured but may need brand setup
+    { id: 'blackleaf_sms', name: 'Blackleaf SMS', status: 'configured', description: 'SMS campaigns', setupRequired: 'Brand API key required' },
+    { id: 'mailjet_email', name: 'Mailjet Email', status: 'configured', description: 'Email campaigns', setupRequired: 'Brand API key required' },
+
+    // Not yet implemented
+    { id: 'gmail', name: 'Gmail', status: 'not_configured', description: 'Email inbox monitoring', setupRequired: 'OAuth integration needed' },
+    { id: 'google_calendar', name: 'Google Calendar', status: 'not_configured', description: 'Calendar sync', setupRequired: 'OAuth integration needed' },
+    { id: 'google_drive', name: 'Google Drive', status: 'not_configured', description: 'Document storage', setupRequired: 'OAuth integration needed' },
+    { id: 'hubspot', name: 'HubSpot CRM', status: 'not_configured', description: 'Sales pipeline', setupRequired: 'API key and OAuth setup' },
+    { id: 'alpineiq', name: 'Alpine IQ', status: 'not_configured', description: 'Customer loyalty data', setupRequired: 'Brand integration required' },
+    { id: 'springbig', name: 'Springbig', status: 'not_configured', description: 'Loyalty program', setupRequired: 'Brand integration required' },
+    { id: 'dutchie', name: 'Dutchie POS', status: 'not_configured', description: 'POS integration', setupRequired: 'Brand POS setup required' },
+];
+
+/**
+ * Get integration status for grounding responses.
+ */
+export function getIntegrationStatus(integrationId: string): IntegrationStatus | undefined {
+    return KNOWN_INTEGRATIONS.find(i => i.id === integrationId);
+}
+
+/**
+ * Build a status summary of all integrations for system prompts.
+ */
+export function buildIntegrationStatusSummary(): string {
+    const active = KNOWN_INTEGRATIONS.filter(i => i.status === 'active');
+    const configured = KNOWN_INTEGRATIONS.filter(i => i.status === 'configured');
+    const notConfigured = KNOWN_INTEGRATIONS.filter(i => i.status === 'not_configured');
+
+    let summary = '**ACTIVE INTEGRATIONS:**\n';
+    summary += active.map(i => `✅ ${i.name}: ${i.description}`).join('\n');
+
+    summary += '\n\n**CONFIGURED (May need brand setup):**\n';
+    summary += configured.map(i => `⚙️ ${i.name}: ${i.description}`).join('\n');
+
+    summary += '\n\n**NOT YET INTEGRATED:**\n';
+    summary += notConfigured.map(i => `❌ ${i.name}: ${i.description} — ${i.setupRequired}`).join('\n');
+
+    return summary;
+}
