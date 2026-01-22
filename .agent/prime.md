@@ -181,6 +181,110 @@ Full index in `refs/README.md`.
 
 ## 🆕 Recent Changes (2026-01-22)
 
+### Multi-Agent Patterns (from awesome-llm-apps)
+
+Three new agent patterns implemented based on research from the awesome-llm-apps repository:
+
+#### 1. Research-Elaboration Pattern
+Reusable 2-phase pattern for any agent that needs to research then synthesize.
+
+```typescript
+import { runResearchElaboration } from '@/server/agents/patterns';
+
+const result = await runResearchElaboration(query, {
+  researchPrompt: 'Research competitive pricing...',
+  researchTools: [searchTool, fetchTool],
+  researchToolsImpl: tools,
+  elaborationInstructions: 'Synthesize findings into actionable insights...',
+  maxResearchIterations: 5,
+  maxElaborationIterations: 2,
+});
+```
+
+**Key Files:**
+- `src/server/agents/patterns/research-elaboration.ts` — Core implementation
+- `src/server/agents/patterns/types.ts` — Type definitions
+- `tests/server/agents/patterns.test.ts` — Unit tests
+
+#### 2. Ezal 3-Agent Team Pipeline
+Sequential pipeline: **Finder → Scraper → Analyzer** for competitive intelligence.
+
+```
+User Query → Finder → Scraper → Analyzer → Insights
+               ↓          ↓          ↓
+          Exa/Perplexity  Firecrawl   Claude
+          Web Search      + RTRVR     Analysis
+```
+
+**Key Features:**
+- Auto-selects between Firecrawl and RTRVR based on menu type
+- RTRVR preferred for JS-heavy menus (Dutchie, iHeartJane)
+- Firecrawl for static content
+- Fallback chain if one backend fails
+
+```typescript
+import { runEzalPipeline, quickScan } from '@/server/agents/ezal-team';
+
+// Full pipeline with web search
+const result = await runEzalPipeline({
+  tenantId: 'brand-123',
+  query: 'Detroit dispensary pricing',
+  maxUrls: 10,
+});
+
+// Quick scan with manual URLs
+const scan = await quickScan('brand-123', ['https://competitor1.com', 'https://competitor2.com']);
+```
+
+**Key Files:**
+- `src/server/agents/ezal-team/orchestrator.ts` — Pipeline coordinator
+- `src/server/agents/ezal-team/finder-agent.ts` — URL discovery
+- `src/server/agents/ezal-team/scraper-agent.ts` — Data extraction (Firecrawl + RTRVR)
+- `src/server/agents/ezal-team/analyzer-agent.ts` — Strategic insights
+- `tests/server/agents/ezal-team.test.ts` — Unit tests
+
+#### 3. Server-Side TTS (Voice RAG)
+OpenAI TTS integration with brand-specific voices and caching.
+
+```typescript
+// Server-side
+import { generateSpeech } from '@/server/services/tts';
+
+const result = await generateSpeech({
+  text: 'Welcome to our dispensary!',
+  brandId: 'brand-123',
+  voice: 'nova',
+  speed: 1.0,
+});
+
+// Client-side hook
+import { useServerTTS } from '@/hooks/use-server-tts';
+
+const { speak, isPlaying, stop } = useServerTTS();
+await speak('Hello!', { voice: 'nova', autoPlay: true });
+```
+
+**Text Processing Features:**
+- Removes markdown formatting
+- Converts prices ($25 → "twenty-five dollars")
+- Converts percentages (24.5% → "twenty-four point five percent")
+- Expands abbreviations (THC → "T H C")
+- Handles cannabis fractions (1/8 → "an eighth")
+- Brand-specific vocabulary pronunciation
+
+**Available Voices:** alloy, echo, fable, onyx, nova, shimmer
+
+**Key Files:**
+- `src/server/services/tts/index.ts` — Service entry point
+- `src/server/services/tts/openai-tts.ts` — OpenAI TTS client with caching
+- `src/server/services/tts/text-processor.ts` — Text optimization for speech
+- `src/server/services/tts/brand-voices.ts` — Brand voice configurations
+- `src/app/api/tts/route.ts` — TTS API endpoint
+- `src/hooks/use-server-tts.ts` — Client hook
+- `tests/server/services/tts.test.ts` — Unit tests
+
+---
+
 ### Agent Hive Mind + Grounding System
 All agents now connected to shared memory (Hive Mind) and have explicit grounding rules to prevent hallucination.
 
