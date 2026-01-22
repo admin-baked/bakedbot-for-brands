@@ -283,6 +283,70 @@ await speak('Hello!', { voice: 'nova', autoPlay: true });
 - `src/hooks/use-server-tts.ts` — Client hook
 - `tests/server/services/tts.test.ts` — Unit tests
 
+#### Research Agents Updated
+Big Worm and Roach now use the Research-Elaboration pattern:
+- **Big Worm**: Deep research with pythonAnalyze, Context OS, Letta tools
+- **Roach**: Research librarian with archival search/insert, deep research
+
+---
+
+### Q1 2026 Security Audit Fixes
+
+Security vulnerabilities identified by Antigravity Security Agent audit and remediated:
+
+#### CRITICAL: TTS API Authentication
+The `/api/tts` endpoint was unprotected, allowing unauthorized API abuse.
+
+**Fix:** Wrapped POST handler with `withAuth` middleware.
+```typescript
+// src/app/api/tts/route.ts
+export const POST = withAuth(async (request: NextRequest) => {
+  // Now requires valid session cookie
+});
+```
+
+#### HIGH: Super Admin Whitelist Consolidation
+Two separate hardcoded whitelists existed with different/mistyped emails.
+
+**Fix:** Single source of truth in `src/lib/super-admin-config.ts`
+```typescript
+// src/server/middleware/with-protection.ts
+import { SUPER_ADMIN_EMAILS } from '@/lib/super-admin-config';
+// Removed hardcoded duplicate list
+```
+
+#### HIGH: Linus Agent Command Safety
+Full shell access without command validation posed RCE risk.
+
+**Fix:** Added command safety validation in `src/server/agents/linus.ts`:
+
+**Blocked Commands (will not execute):**
+- `rm -rf /`, `rm -rf ~`, `rm -rf *`
+- Fork bombs, `dd` to devices, `mkfs`
+- `curl | bash`, `wget | sh`
+- `npm login/publish/unpublish`
+- `git push --force main/master`
+- SQL `DROP DATABASE/TABLE`, `TRUNCATE`
+- Commands that dump env vars or read `.env` files
+
+**High-Risk Commands (allowed but logged):**
+- `git push`, `git reset`, `git checkout .`
+- `rm -r` (recursive delete)
+- `npm install --save`, `npm uninstall`
+- `chmod`, `chown`
+
+**Blocked File Paths:**
+- System dirs (`/etc`, `/usr`, `C:\Windows`)
+- `.env`, `.pem`, `.key` files
+- `credentials`, `secrets` files
+- `.git/` internals, `node_modules/`
+
+**Key Files:**
+- `src/app/api/tts/route.ts` — TTS with auth
+- `src/server/middleware/with-protection.ts` — Consolidated whitelist
+- `src/server/agents/linus.ts` — Command safety validation
+- `tests/server/security/security-audit-fixes.test.ts` — 47 security tests
+
 ---
 
 ### Agent Hive Mind + Grounding System
