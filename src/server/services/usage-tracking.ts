@@ -10,7 +10,8 @@
  * - Image generations (5/week free)
  */
 
-import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { FREE_TIER_LIMITS } from '@/ai/model-selector';
 
 const COLLECTION = 'user_usage';
@@ -54,7 +55,7 @@ function getWeekEnd(): Date {
  * Get or create the usage record for a user for the current week
  */
 async function getOrCreateUsageRecord(userId: string): Promise<UsageRecord> {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const weekStart = getWeekStart();
     const docId = `${userId}_${weekStart.toISOString().split('T')[0]}`;
     const docRef = db.collection(COLLECTION).doc(docId);
@@ -132,7 +133,7 @@ export async function incrementUsage(
     userId: string, 
     feature: 'playbooks' | 'research' | 'images'
 ): Promise<void> {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const weekStart = getWeekStart();
     const docId = `${userId}_${weekStart.toISOString().split('T')[0]}`;
     const docRef = db.collection(COLLECTION).doc(docId);

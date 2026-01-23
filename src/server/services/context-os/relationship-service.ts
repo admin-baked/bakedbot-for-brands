@@ -5,7 +5,8 @@
  * Relationships connect entities and capture how they influence each other.
  */
 
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { ContextRelationship } from './types';
 
 const COLLECTION_NAME = 'context_os_relationships';
@@ -14,7 +15,7 @@ const COLLECTION_NAME = 'context_os_relationships';
  * Get Firestore instance with lazy initialization
  */
 function getDb() {
-  return getFirestore();
+  return getAdminFirestore();
 }
 
 /**

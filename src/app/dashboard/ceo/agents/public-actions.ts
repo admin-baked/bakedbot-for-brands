@@ -2,7 +2,8 @@
 
 import { dispatchAgentJob } from '@/server/jobs/dispatch';
 import { AgentPersona } from './personas';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { createServerClient } from '@/firebase/server-client';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -34,7 +35,7 @@ export async function runPublicDiscoveryAgent(url: string, userMessage: string =
     console.log(`[PublicDiscovery] Starting Guest Job ${jobId} for ${url}`);
 
     // 3. Create Job Document via Admin SDK (Bypass Rules)
-    const db = getFirestore();
+    const db = getAdminFirestore();
     await db.collection('jobs').doc(jobId).set({
         status: 'pending',
         userId: guestId,
