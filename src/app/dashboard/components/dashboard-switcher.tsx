@@ -57,13 +57,13 @@ export default function DashboardSwitcher() {
     }
 
     // 1. Super Admin View - PRIORITY override
-    // If we have a super admin session, always go to CEO dashboard, regardless of role
+    // If we have a super admin session, always go to Inbox as primary workspace
     if (isSuperAdmin) {
-        router.replace('/dashboard/ceo');
+        router.replace('/dashboard/inbox');
         return (
             <div className="flex h-[50vh] w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Redirecting to HQ...</span>
+                <span className="ml-2 text-sm text-muted-foreground">Redirecting to Inbox...</span>
             </div>
         );
     }
@@ -73,27 +73,37 @@ export default function DashboardSwitcher() {
         return <SpecialistDashboardClient />;
     }
 
-    // 3. Owner View - Redirect to CEO Dashboard
+    // 3. Owner View - Redirect to Inbox as primary workspace
     if (role === 'super_user') {
-        router.replace('/dashboard/ceo');
+        router.replace('/dashboard/inbox');
         return (
             <div className="flex h-[50vh] w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">Redirecting to HQ...</span>
+                <span className="ml-2 text-sm text-muted-foreground">Redirecting to Inbox...</span>
             </div>
         );
     }
 
-    // 4. Brand View
+    // 4. Brand View - Redirect to Inbox as primary workspace
     if (role === 'brand') {
-        const brandId = (user as any)?.brandId || user?.uid || 'unknown-brand';
-        return <BrandDashboardClient brandId={brandId} />;
+        router.replace('/dashboard/inbox');
+        return (
+            <div className="flex h-[50vh] w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Redirecting to Inbox...</span>
+            </div>
+        );
     }
 
-    // 4. Dispensary View
+    // 5. Dispensary View - Redirect to Inbox as primary workspace
     if (role === 'dispensary') {
-        const brandId = (user as any)?.brandId || user?.uid || 'unknown-dispensary';
-        return <DispensaryDashboardClient brandId={brandId} />;
+        router.replace('/dashboard/inbox');
+        return (
+            <div className="flex h-[50vh] w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Redirecting to Inbox...</span>
+            </div>
+        );
     }
 
     // 5. Customer View
