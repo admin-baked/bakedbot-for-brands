@@ -53,6 +53,8 @@ const AGENT_NAMES: Record<InboxAgentPersona, { name: string; avatar: string }> =
     ezal: { name: 'Ezal', avatar: '🔍' },
     deebo: { name: 'Deebo', avatar: '🛡️' },
     pops: { name: 'Pops', avatar: '📊' },
+    linus: { name: 'Linus', avatar: '🖥️' },
+    day_day: { name: 'Day Day', avatar: '📦' },
     auto: { name: 'Assistant', avatar: '🤖' },
 };
 

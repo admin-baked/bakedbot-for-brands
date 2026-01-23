@@ -21,7 +21,13 @@ export type InboxThreadType =
     | 'carousel'          // Product carousel creation
     | 'bundle'            // Bundle deal creation
     | 'creative'          // Social media content
-    | 'campaign'          // Multi-channel campaign (super users)
+    | 'campaign'          // Multi-channel campaign
+    | 'retail_partner'    // Retail partner outreach (brands only)
+    | 'launch'            // Product launch coordination
+    | 'performance'       // Performance review & analytics
+    | 'outreach'          // Customer outreach (SMS/Email)
+    | 'inventory_promo'   // Inventory-driven promotions
+    | 'event'             // Event marketing
     | 'product_discovery' // Customer product search
     | 'support';          // Customer support
 
@@ -41,10 +47,12 @@ export type InboxAgentPersona =
     | 'smokey'      // Budtender - products, carousels
     | 'money_mike'  // Banker - bundles, pricing
     | 'craig'       // Marketer - creative content
-    | 'glenda'      // CMO - campaigns (super users)
+    | 'glenda'      // CMO - campaigns, strategy
     | 'ezal'        // Lookout - competitive intel
     | 'deebo'       // Enforcer - compliance
     | 'pops'        // Analyst - data insights
+    | 'linus'       // CTO - analytics, performance
+    | 'day_day'     // Ops - inventory, logistics
     | 'auto';       // Auto-route based on message
 
 // ============ Inbox Thread ============
@@ -89,7 +97,14 @@ export interface InboxThread {
 /**
  * Artifact types specific to inbox
  */
-export type InboxArtifactType = 'carousel' | 'bundle' | 'creative_content';
+export type InboxArtifactType =
+    | 'carousel'          // Product carousel
+    | 'bundle'            // Bundle deal
+    | 'creative_content'  // Social media post
+    | 'sell_sheet'        // Retail partner pitch materials
+    | 'report'            // Performance/analytics report
+    | 'outreach_draft'    // SMS/Email draft
+    | 'event_promo';      // Event promotional materials
 
 /**
  * Artifact approval status
@@ -146,11 +161,16 @@ export interface InboxQuickAction {
     roles: string[]; // Allowed roles
 }
 
+/** Role constants for cleaner action definitions */
+const BRAND_ROLES = ['super_user', 'brand', 'brand_admin', 'brand_member'];
+const DISPENSARY_ROLES = ['super_user', 'dispensary', 'dispensary_admin', 'dispensary_staff'];
+const ALL_BUSINESS_ROLES = [...BRAND_ROLES, ...DISPENSARY_ROLES.filter(r => r !== 'super_user')];
+
 /**
  * Default quick actions by role
  */
 export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
-    // Brand/Dispensary/Super User Actions
+    // ============ Core Marketing Actions (Brand + Dispensary) ============
     {
         id: 'new-carousel',
         label: 'New Carousel',
@@ -159,7 +179,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         threadType: 'carousel',
         defaultAgent: 'smokey',
         promptTemplate: 'Help me create a new product carousel',
-        roles: ['super_user', 'brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff'],
+        roles: ALL_BUSINESS_ROLES,
     },
     {
         id: 'new-bundle',
@@ -169,29 +189,102 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         threadType: 'bundle',
         defaultAgent: 'money_mike',
         promptTemplate: 'Help me create a new bundle deal',
-        roles: ['super_user', 'brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff'],
+        roles: ALL_BUSINESS_ROLES,
     },
     {
         id: 'new-creative',
-        label: 'New Post',
+        label: 'Create Post',
         description: 'Generate social media content',
         icon: 'Palette',
         threadType: 'creative',
         defaultAgent: 'craig',
         promptTemplate: 'Help me create social media content',
-        roles: ['super_user', 'brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff'],
+        roles: ALL_BUSINESS_ROLES,
     },
     {
         id: 'new-campaign',
-        label: 'Campaign',
+        label: 'Plan Campaign',
         description: 'Plan a multi-channel marketing campaign',
         icon: 'Megaphone',
         threadType: 'campaign',
         defaultAgent: 'glenda',
         promptTemplate: 'Help me plan a marketing campaign',
-        roles: ['super_user'],
+        roles: ALL_BUSINESS_ROLES,
     },
-    // Customer Actions
+
+    // ============ Product Launch (Brand + Dispensary) ============
+    {
+        id: 'product-launch',
+        label: 'Product Launch',
+        description: 'Create a full launch package with carousel, bundle, and social',
+        icon: 'Rocket',
+        threadType: 'launch',
+        defaultAgent: 'glenda',
+        promptTemplate: 'Help me plan a product launch',
+        roles: ALL_BUSINESS_ROLES,
+    },
+
+    // ============ Performance & Analytics (Brand + Dispensary) ============
+    {
+        id: 'review-performance',
+        label: 'Review Performance',
+        description: 'Analyze what\'s working and get optimization suggestions',
+        icon: 'TrendingUp',
+        threadType: 'performance',
+        defaultAgent: 'linus',
+        promptTemplate: 'Help me review my recent performance and suggest improvements',
+        roles: ALL_BUSINESS_ROLES,
+    },
+
+    // ============ Customer Outreach (Brand + Dispensary) ============
+    {
+        id: 'customer-blast',
+        label: 'Customer Blast',
+        description: 'Draft SMS or email campaign for customers',
+        icon: 'Send',
+        threadType: 'outreach',
+        defaultAgent: 'craig',
+        promptTemplate: 'Help me create a customer outreach message',
+        roles: ALL_BUSINESS_ROLES,
+    },
+
+    // ============ Inventory Promotions (Brand + Dispensary) ============
+    {
+        id: 'move-inventory',
+        label: 'Move Inventory',
+        description: 'Create promotions to clear slow-moving stock',
+        icon: 'Package',
+        threadType: 'inventory_promo',
+        defaultAgent: 'money_mike',
+        promptTemplate: 'Help me create promotions to move excess inventory',
+        roles: ALL_BUSINESS_ROLES,
+    },
+
+    // ============ Events (Brand + Dispensary) ============
+    {
+        id: 'plan-event',
+        label: 'Plan Event',
+        description: 'Create marketing materials for an event',
+        icon: 'CalendarDays',
+        threadType: 'event',
+        defaultAgent: 'craig',
+        promptTemplate: 'Help me plan marketing for an upcoming event',
+        roles: ALL_BUSINESS_ROLES,
+    },
+
+    // ============ Brand-Only Actions ============
+    {
+        id: 'retail-pitch',
+        label: 'Retail Pitch',
+        description: 'Create materials to pitch dispensaries on your products',
+        icon: 'Presentation',
+        threadType: 'retail_partner',
+        defaultAgent: 'glenda',
+        promptTemplate: 'Help me create a pitch for retail partners',
+        roles: BRAND_ROLES,
+    },
+
+    // ============ Customer Actions ============
     {
         id: 'find-products',
         label: 'Find Products',
@@ -245,6 +338,7 @@ export const THREAD_AGENT_MAPPING: Record<InboxThreadType, {
     primary: InboxAgentPersona;
     supporting: InboxAgentPersona[];
 }> = {
+    // Core marketing
     carousel: {
         primary: 'smokey',
         supporting: ['ezal', 'pops'],
@@ -259,8 +353,36 @@ export const THREAD_AGENT_MAPPING: Record<InboxThreadType, {
     },
     campaign: {
         primary: 'glenda',
-        supporting: ['craig', 'pops', 'ezal'],
+        supporting: ['craig', 'money_mike', 'pops'],
     },
+
+    // New business thread types
+    retail_partner: {
+        primary: 'glenda',
+        supporting: ['craig', 'money_mike'],
+    },
+    launch: {
+        primary: 'glenda',
+        supporting: ['smokey', 'money_mike', 'craig'],
+    },
+    performance: {
+        primary: 'linus',
+        supporting: ['pops', 'ezal'],
+    },
+    outreach: {
+        primary: 'craig',
+        supporting: ['deebo'], // Compliance check on messaging
+    },
+    inventory_promo: {
+        primary: 'money_mike',
+        supporting: ['day_day', 'smokey'],
+    },
+    event: {
+        primary: 'craig',
+        supporting: ['glenda', 'deebo'],
+    },
+
+    // Customer thread types
     product_discovery: {
         primary: 'smokey',
         supporting: ['ezal'],
@@ -278,7 +400,19 @@ export const THREAD_AGENT_MAPPING: Record<InboxThreadType, {
 // ============ Zod Schemas ============
 
 export const InboxThreadTypeSchema = z.enum([
-    'general', 'carousel', 'bundle', 'creative', 'campaign', 'product_discovery', 'support'
+    'general',
+    'carousel',
+    'bundle',
+    'creative',
+    'campaign',
+    'retail_partner',
+    'launch',
+    'performance',
+    'outreach',
+    'inventory_promo',
+    'event',
+    'product_discovery',
+    'support'
 ]);
 
 export const InboxThreadStatusSchema = z.enum([
@@ -286,11 +420,11 @@ export const InboxThreadStatusSchema = z.enum([
 ]);
 
 export const InboxAgentPersonaSchema = z.enum([
-    'smokey', 'money_mike', 'craig', 'glenda', 'ezal', 'deebo', 'pops', 'auto'
+    'smokey', 'money_mike', 'craig', 'glenda', 'ezal', 'deebo', 'pops', 'linus', 'day_day', 'auto'
 ]);
 
 export const InboxArtifactTypeSchema = z.enum([
-    'carousel', 'bundle', 'creative_content'
+    'carousel', 'bundle', 'creative_content', 'sell_sheet', 'report', 'outreach_draft', 'event_promo'
 ]);
 
 export const InboxArtifactStatusSchema = z.enum([
@@ -367,6 +501,12 @@ export function getThreadTypeIcon(type: InboxThreadType): string {
         bundle: 'PackagePlus',
         creative: 'Palette',
         campaign: 'Megaphone',
+        retail_partner: 'Presentation',
+        launch: 'Rocket',
+        performance: 'TrendingUp',
+        outreach: 'Send',
+        inventory_promo: 'Package',
+        event: 'CalendarDays',
         product_discovery: 'Search',
         support: 'HelpCircle',
     };
@@ -383,6 +523,12 @@ export function getThreadTypeLabel(type: InboxThreadType): string {
         bundle: 'Bundle',
         creative: 'Creative',
         campaign: 'Campaign',
+        retail_partner: 'Retail Partner',
+        launch: 'Product Launch',
+        performance: 'Performance',
+        outreach: 'Outreach',
+        inventory_promo: 'Inventory Promo',
+        event: 'Event',
         product_discovery: 'Products',
         support: 'Support',
     };
@@ -390,13 +536,32 @@ export function getThreadTypeLabel(type: InboxThreadType): string {
 }
 
 /**
- * Get artifact type from thread type
+ * Get primary artifact type(s) for a thread type
+ * Some threads can produce multiple artifact types
+ */
+export function getArtifactTypesForThreadType(type: InboxThreadType): InboxArtifactType[] {
+    const mapping: Record<InboxThreadType, InboxArtifactType[]> = {
+        carousel: ['carousel'],
+        bundle: ['bundle'],
+        creative: ['creative_content'],
+        campaign: ['carousel', 'bundle', 'creative_content'],
+        retail_partner: ['sell_sheet'],
+        launch: ['carousel', 'bundle', 'creative_content'],
+        performance: ['report'],
+        outreach: ['outreach_draft'],
+        inventory_promo: ['bundle'],
+        event: ['event_promo', 'creative_content'],
+        product_discovery: [],
+        support: [],
+        general: [],
+    };
+    return mapping[type] || [];
+}
+
+/**
+ * Get artifact type from thread type (legacy - returns first type or null)
  */
 export function getArtifactTypeForThreadType(type: InboxThreadType): InboxArtifactType | null {
-    const mapping: Partial<Record<InboxThreadType, InboxArtifactType>> = {
-        carousel: 'carousel',
-        bundle: 'bundle',
-        creative: 'creative_content',
-    };
-    return mapping[type] || null;
+    const types = getArtifactTypesForThreadType(type);
+    return types.length > 0 ? types[0] : null;
 }

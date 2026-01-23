@@ -57,16 +57,34 @@ jest.mock('@/types/inbox', () => ({
             carousel: 'smokey',
             bundle: 'money_mike',
             creative: 'craig',
-            general: 'glenda',
+            campaign: 'glenda',
+            retail_partner: 'glenda',
+            launch: 'glenda',
+            performance: 'linus',
+            outreach: 'craig',
+            inventory_promo: 'money_mike',
+            event: 'craig',
+            general: 'auto',
+            product_discovery: 'smokey',
+            support: 'smokey',
         };
-        return map[type] || 'glenda';
+        return map[type] || 'auto';
     }),
     getSupportingAgentsForThreadType: jest.fn((type: string) => {
         const map: Record<string, string[]> = {
-            carousel: ['ezal'],
-            bundle: ['smokey'],
-            creative: ['deebo'],
+            carousel: ['ezal', 'pops'],
+            bundle: ['smokey', 'pops'],
+            creative: ['deebo', 'ezal'],
+            campaign: ['craig', 'money_mike', 'pops'],
+            retail_partner: ['craig', 'money_mike'],
+            launch: ['smokey', 'money_mike', 'craig'],
+            performance: ['pops', 'ezal'],
+            outreach: ['deebo'],
+            inventory_promo: ['day_day', 'smokey'],
+            event: ['glenda', 'deebo'],
             general: [],
+            product_discovery: ['ezal'],
+            support: ['deebo'],
         };
         return map[type] || [];
     }),

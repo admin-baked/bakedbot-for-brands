@@ -790,6 +790,8 @@ export async function runInboxAgentChat(
             ezal: 'ezal',
             deebo: 'deebo',
             pops: 'pops',
+            linus: 'linus',
+            day_day: 'day_day',
             auto: 'puff', // Auto routes through Puff for intelligent routing
         };
 
@@ -900,6 +902,32 @@ Always consider cannabis advertising compliance rules.`,
         campaign: `You are helping plan and execute a marketing campaign.
 Coordinate with other agents (Craig for content, Smokey for products, Money Mike for pricing).
 Break down the campaign into actionable artifacts.`,
+
+        retail_partner: `You are helping create materials to pitch retail partners (dispensaries).
+Generate sell sheets, pitch decks, and partnership proposals.
+Focus on margin opportunities, sell-through data, and brand story.`,
+
+        launch: `You are helping coordinate a product launch.
+This involves creating carousels, bundles, and social content together.
+Generate a comprehensive launch package with multiple coordinated artifacts.`,
+
+        performance: `You are helping analyze marketing performance.
+Review recent campaigns, carousels, bundles, and content performance.
+Provide data-driven insights and optimization recommendations.
+Generate report artifacts with actionable insights.`,
+
+        outreach: `You are helping draft customer outreach messages.
+This can be SMS or email campaigns.
+Ensure compliance with cannabis advertising regulations.
+Generate outreach draft artifacts ready for review and sending.`,
+
+        inventory_promo: `You are helping create promotions to move inventory.
+Focus on slow-moving or excess stock items.
+Generate bundle deals and promotional content that protect margins while driving volume.`,
+
+        event: `You are helping plan marketing for an event.
+Create promotional materials, social content, and event-specific bundles.
+Generate coordinated artifacts for the event marketing package.`,
 
         general: `You are a helpful assistant for a cannabis dispensary or brand.
 Answer questions and help with various tasks related to marketing and operations.`,

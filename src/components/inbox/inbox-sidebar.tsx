@@ -208,6 +208,12 @@ function FilterButton({ collapsed }: { collapsed?: boolean }) {
         bundle: 'Bundles',
         creative: 'Creative',
         campaign: 'Campaigns',
+        retail_partner: 'Retail Partners',
+        launch: 'Product Launches',
+        performance: 'Performance',
+        outreach: 'Outreach',
+        inventory_promo: 'Inventory Promos',
+        event: 'Events',
         product_discovery: 'Products',
         support: 'Support',
     };
