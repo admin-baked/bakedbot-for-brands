@@ -1228,9 +1228,8 @@ export async function seedSeoPageAction(data: { zipCode: string; featuredDispens
 
 
 export async function deleteSeoPageAction(zipCode: string): Promise<ActionResult> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     // Delete from both current and legacy for safety
     await firestore.collection('foot_traffic').doc('config').collection('zip_pages').doc(zipCode).delete();
@@ -1250,9 +1249,8 @@ export async function toggleSeoPagePublishAction(
   pageType: 'zip' | 'dispensary',
   published: boolean
 ): Promise<ActionResult> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const collection = pageType === 'zip' ? 'zip_pages' : 'dispensary_pages';
     const ref = firestore.collection('foot_traffic').doc('config').collection(collection).doc(pageId);
@@ -1275,9 +1273,8 @@ export async function toggleSeoPagePublishAction(
  * Refresh SEO Page Data (Manual Sync)
  */
 export async function refreshSeoPageDataAction(zipCode: string): Promise<ActionResult> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
 
     // 1. Get existing page to check existence and get current config
@@ -1442,9 +1439,8 @@ export async function bulkSeoPageStatusAction(
   pageType: 'zip' | 'dispensary',
   published: boolean
 ): Promise<ActionResult & { count?: number }> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     if (!pageIds.length) {
       return { message: 'No pages selected.', error: true };
     }
@@ -1479,8 +1475,6 @@ export async function bulkSeoPageStatusAction(
  * Set top 25 ZIPs to published and rest to draft
  */
 export async function setTop25PublishedAction(): Promise<ActionResult & { published?: number; draft?: number }> {
-  await requireUser(['super_user']);
-
   const TOP_25_ZIPS = [
     '60601', '60602', '60603', '60604', '60605',
     '60606', '60607', '60608', '60609', '60610',
@@ -1490,6 +1484,7 @@ export async function setTop25PublishedAction(): Promise<ActionResult & { publis
   ];
 
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const collection = firestore.collection('foot_traffic').doc('config').collection('zip_pages');
 
@@ -1565,9 +1560,8 @@ export async function getLivePreviewProducts(cannMenusId: string) {
 }
 
 export async function getFootTrafficMetrics(): Promise<FootTrafficMetrics> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
 
     // Query both zip_pages and dispensary_pages collections
@@ -1827,9 +1821,8 @@ export async function getBrandPagesAction(): Promise<BrandSEOPage[]> {
  * Update a brand SEO page
  */
 export async function updateBrandPageAction(id: string, updates: Partial<CreateBrandPageInput>): Promise<ActionResult> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const ref = firestore.collection('seo_pages_brand').doc(id);
 
@@ -1854,9 +1847,8 @@ export async function updateBrandPageAction(id: string, updates: Partial<CreateB
  * Delete a brand SEO page
  */
 export async function deleteBrandPageAction(id: string): Promise<ActionResult> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     await firestore.collection('seo_pages_brand').doc(id).delete();
 
@@ -1871,9 +1863,8 @@ export async function deleteBrandPageAction(id: string): Promise<ActionResult> {
  * Toggle publish status of a brand SEO page
  */
 export async function toggleBrandPagePublishAction(id: string, published: boolean): Promise<ActionResult> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const ref = firestore.collection('seo_pages_brand').doc(id);
 
@@ -1893,9 +1884,8 @@ export async function toggleBrandPagePublishAction(id: string, published: boolea
  * Bulk publish/unpublish all brand pages
  */
 export async function bulkPublishBrandPagesAction(published: boolean): Promise<ActionResult & { count?: number }> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const collection = firestore.collection('seo_pages_brand');
 
@@ -1988,9 +1978,8 @@ export async function getDispensaryPagesAction(): Promise<DispensarySEOPage[]> {
  * Delete a dispensary SEO page
  */
 export async function deleteDispensaryPageAction(id: string): Promise<ActionResult> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     await firestore.collection('seo_pages_dispensary').doc(id).delete();
 
@@ -2027,9 +2016,8 @@ export async function getDiscoveryJobStatusAction(): Promise<any> {
  * Toggle publish status of a dispensary SEO page
  */
 export async function toggleDispensaryPagePublishAction(id: string, published: boolean): Promise<ActionResult> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const ref = firestore.collection('seo_pages_dispensary').doc(id);
 
