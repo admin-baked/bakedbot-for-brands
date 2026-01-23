@@ -290,13 +290,14 @@ POST /api/linus/fix
 Security tests from Q1 2026 audit remediations. Run these before any security-related changes.
 
 ```powershell
-# All security tests (71 tests)
-npm test -- tests/server/security/security-audit-fixes.test.ts src/server/actions/__tests__/admin-claims.test.ts src/lib/__tests__/super-admin-config.test.ts
+# All security tests (293+ tests)
+npm test -- tests/server/security --silent
 
 # Individual test files
-npm test -- tests/server/security/security-audit-fixes.test.ts  # 47 tests
-npm test -- src/server/actions/__tests__/admin-claims.test.ts   # 12 tests
-npm test -- src/lib/__tests__/super-admin-config.test.ts        # 12 tests
+npm test -- tests/server/security/security-audit-fixes.test.ts     # Core audit fixes
+npm test -- tests/server/security/q1-2026-audit-part2.test.ts      # Part 2 fixes
+npm test -- tests/server/security/q1-2026-followup.test.ts         # Followup fixes
+npm test -- tests/server/security/prompt-guard.test.ts             # Prompt injection (141 tests)
 ```
 
 ### Security Test Coverage
@@ -307,8 +308,33 @@ npm test -- src/lib/__tests__/super-admin-config.test.ts        # 12 tests
 | Linus Command Safety | `security-audit-fixes.test.ts` | Blocked commands, high-risk commands, blocked paths |
 | TTS API Protection | `security-audit-fixes.test.ts` | withAuth middleware, request validation |
 | withProtection Middleware | `security-audit-fixes.test.ts` | CSRF, AppCheck, requireAuth, requireSuperUser |
-| Admin Claims Auth | `admin-claims.test.ts` | Super User checks, privilege escalation prevention |
-| Super Admin Config | `super-admin-config.test.ts` | Email whitelist, environment gating, session management |
+| Debug/Env Route | `q1-2026-audit-part2.test.ts` | Production gate, auth, no key exposure |
+| Linus read_file | `q1-2026-audit-part2.test.ts` | Path validation, blocked paths |
+| Shell Injection | `q1-2026-audit-part2.test.ts` | Command substitution, base64 bypass |
+| Prompt Injection | `q1-2026-audit-part2.test.ts` | sanitizeForPrompt, user data wrapping |
+| Firestore Rules | `q1-2026-audit-part2.test.ts` | Organization access, tenant events |
+| **PromptGuard Module** | `prompt-guard.test.ts` | 141 tests for defense-in-depth |
+
+### Prompt Injection Protection Tests
+
+The `prompt-guard.test.ts` file covers:
+
+| Category | What's Tested |
+|----------|---------------|
+| Critical Patterns | Direct override, role hijacking, system prompt extraction, jailbreak modes |
+| High-Risk Patterns | Instruction markers, code blocks, template injection, prompt manipulation |
+| Medium-Risk Patterns | Indirect manipulation, boundary testing, context manipulation |
+| Sensitive Keywords | Password/credential mentions, exploit terms |
+| Typoglycemia Attacks | Scrambled injection words (fuzzy matching) |
+| Encoding Detection | Base64, hex, unicode, HTML entities |
+| Output Validation | System prompt leakage, credential exposure, instruction echo |
+| Structured Prompts | SYSTEM_INSTRUCTIONS/USER_DATA separation |
+| Risk Scoring | Score thresholds, blocking behavior |
+
+```powershell
+# Run prompt injection tests
+npm test -- tests/server/security/prompt-guard.test.ts --silent
+```
 
 ---
 

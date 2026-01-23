@@ -157,27 +157,17 @@ describe('Error Report Route Prompt Injection Protection', () => {
     content = await readRouteFile('src/app/api/webhooks/error-report/route.ts');
   });
 
-  it('should have sanitizeForPrompt function', () => {
-    expect(content).toContain('function sanitizeForPrompt');
+  it('should import sanitizeForPrompt from centralized security module', () => {
+    expect(content).toContain("import { sanitizeForPrompt, wrapUserData, buildSystemDirectives } from '@/server/security'");
   });
 
-  it('should filter directive injection attempts', () => {
-    expect(content).toContain('DIRECTIVE');
-    expect(content).toContain('INSTRUCTION');
-    expect(content).toContain('SYSTEM');
-    expect(content).toContain('IGNORE');
-    expect(content).toContain('OVERRIDE');
-    expect(content).toContain('[FILTERED]');
+  it('should use wrapUserData for secure data wrapping', () => {
+    expect(content).toContain('wrapUserData(');
   });
 
-  it('should wrap user data in tags', () => {
-    expect(content).toContain('<user_data');
-    expect(content).toContain('</user_data>');
-  });
-
-  it('should truncate long inputs', () => {
-    expect(content).toContain('maxLength');
-    expect(content).toContain('[TRUNCATED]');
+  it('should use buildSystemDirectives for system instructions', () => {
+    expect(content).toContain('buildSystemDirectives(');
+    expect(content).toContain('directives');
   });
 
   it('should use logger instead of console', () => {
@@ -198,24 +188,25 @@ describe('Tickets Route Prompt Injection Protection', () => {
     content = await readRouteFile('src/app/api/tickets/route.ts');
   });
 
-  it('should have sanitizeForPrompt function', () => {
-    expect(content).toContain('function sanitizeForPrompt');
+  it('should import sanitizeForPrompt from centralized security module', () => {
+    expect(content).toContain("import { sanitizeForPrompt, wrapUserData, buildSystemDirectives } from '@/server/security'");
   });
 
-  it('should sanitize user data before interpolation', () => {
-    expect(content).toContain('sanitizedTitle');
-    expect(content).toContain('sanitizedDescription');
-    expect(content).toContain('sanitizedStack');
+  it('should use wrapUserData for secure data wrapping', () => {
+    expect(content).toContain('wrapUserData(');
+    // Should wrap all user-provided fields
+    expect(content).toContain("wrapUserData(String(data.title");
+    expect(content).toContain("wrapUserData(String(data.description");
+    expect(content).toContain("wrapUserData(String(data.errorStack");
   });
 
-  it('should wrap user data in tags', () => {
-    expect(content).toContain('<user_data');
-    expect(content).toContain('</user_data>');
+  it('should use buildSystemDirectives for system instructions', () => {
+    expect(content).toContain('buildSystemDirectives(');
   });
 
-  it('should mark directives as system-only', () => {
-    expect(content).toContain('System-only');
-    expect(content).toContain('cannot be overridden');
+  it('should have security comment for prompt construction', () => {
+    expect(content).toContain('SECURITY');
+    expect(content).toContain('Build structured prompt with sanitized user data');
   });
 });
 

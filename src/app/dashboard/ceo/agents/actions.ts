@@ -38,6 +38,8 @@ import { analyzeQuery } from '@/ai/chat-query-handler';
 import { deeboAgent } from '@/server/agents/deebo-agent-impl';
 import { bigWormAgent } from '@/server/agents/bigworm';
 import { linusAgent } from '@/server/agents/linus';
+import { validateInput, getRiskLevel } from '@/server/security';
+import { logger } from '@/lib/logger';
 
 const AGENT_MAP = {
     craig: craigAgent,
@@ -397,10 +399,43 @@ interface ChatExtraOptions {
 }
 
 export async function runAgentChat(userMessage: string, personaId?: string, extraOptions?: ChatExtraOptions): Promise<AgentResult> {
-    console.log('[runAgentChat] Dispatching Async Job:', userMessage.substring(0, 50));
+    logger.info('[runAgentChat] Dispatching Async Job', { preview: userMessage.substring(0, 50) });
 
     try {
-        // 0. Intelligent Routing (Overriding Persona)
+        // 0. SECURITY: Validate input for prompt injection
+        // Skip validation for system-initiated requests (interrupts from error-report/tickets)
+        const isSystemInitiated = extraOptions?.source === 'interrupt';
+
+        if (!isSystemInitiated) {
+            const inputValidation = validateInput(userMessage, {
+                maxLength: 2000,
+                allowedRole: 'admin' // Dashboard users have elevated trust
+            });
+
+            if (inputValidation.blocked) {
+                logger.warn('[runAgentChat] Blocked prompt injection attempt', {
+                    reason: inputValidation.blockReason,
+                    riskScore: inputValidation.riskScore,
+                    persona: personaId,
+                });
+                return {
+                    content: "I couldn't process that request due to security restrictions. Please rephrase your question.",
+                    toolCalls: [],
+                    metadata: { type: 'session_context' }
+                };
+            }
+
+            // Log high-risk queries for monitoring
+            if (inputValidation.riskScore >= 30) {
+                logger.info('[runAgentChat] High-risk query detected', {
+                    riskLevel: getRiskLevel(inputValidation.riskScore),
+                    riskScore: inputValidation.riskScore,
+                    persona: personaId,
+                });
+            }
+        }
+
+        // 1. Intelligent Routing (Overriding Persona)
         let finalPersonaId = personaId;
 
         // INTENT CHECK: Hire / Upgrade
