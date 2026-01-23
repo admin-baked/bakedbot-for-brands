@@ -208,9 +208,45 @@ After deployment, monitor for:
 2. Proper error messages in browser console instead of generic RSC errors
 3. Dashboard functionality with expired/invalid sessions
 
+### 9. Additional CEO Dashboard Actions (Various Tabs)
+- **File:** `src/app/dashboard/ceo/actions.ts`
+- **Functions fixed (15+):**
+  - `initializeAllEmbeddings()` - Moved `requireUser` inside try-catch
+  - `createCoupon()` - Moved `requireUser` inside try-catch
+  - `importDemoData()` - Moved `requireUser` inside try-catch
+  - `clearAllData()` - Added try-catch wrapper (was missing entirely)
+  - `createDispensaryAction()` - Moved `requireUser` inside try-catch
+  - `seedSeoPageAction()` - Moved `requireUser` inside try-catch
+  - `createBrandPageAction()` - Moved `requireUser` inside try-catch
+  - `bulkPublishDispensaryPagesAction()` - Moved `requireUser` inside try-catch
+  - `validateBrandPagesCSV()` - Added try-catch wrapper (was missing entirely)
+  - `importBrandPagesAction()` - Added outer try-catch for auth
+  - `validateDispensaryPagesCSV()` - Added try-catch wrapper (was missing entirely)
+  - `importDispensaryPagesAction()` - Added outer try-catch for auth
+  - `getCoverageStatusAction()` - Fixed try-catch structure
+- **Pattern:** All `requireUser(['super_user'])` calls moved inside try-catch blocks with proper error returns
+
+### Test 10: Analytics Tab
+1. Navigate to CEO dashboard
+2. Click on "Analytics" tab
+3. Monitor network tab for 500 errors
+4. **Expected:** Analytics data loads or shows empty state (no 500)
+
+### Test 11: Data Manager Tab
+1. Navigate to CEO dashboard
+2. Click on "Data Manager" tab
+3. Try operations like "Import Demo Data" or "Clear All Data"
+4. **Expected:** Operations complete or show error toast (no 500)
+
+### Test 12: CSV Import Functions
+1. Navigate to CEO dashboard with Foot Traffic tab
+2. Try bulk import operations for brand or dispensary pages
+3. **Expected:** CSV validation and import work or show proper errors (no 500)
+
 ## Related Commits
 
 1. `fix(server): Add error handling to prevent Server Component render failures`
 2. `fix(server): Add error handling to browser-automation server actions`
 3. `fix(server): Add error handling to playbooks server actions`
 4. `fix(server): Add error handling to CEO dashboard foot-traffic actions`
+5. `fix(server): Add comprehensive error handling to CEO dashboard actions`
