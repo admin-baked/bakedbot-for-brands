@@ -44,9 +44,20 @@ export async function getPendingContent(tenantId: string): Promise<CreativeConte
             id: doc.id,
             ...doc.data()
         } as CreativeContent));
-    } catch (error) {
-        logger.error('[creative-content] Failed to get pending content', { tenantId, error });
-        throw error;
+    } catch (error: any) {
+        logger.error('[creative-content] Failed to get pending content', {
+            tenantId,
+            error: error.message,
+            code: error.code,
+            stack: error.stack
+        });
+
+        // Check for common Firestore-on-server errors (like missing index)
+        if (error.message?.includes('index')) {
+            throw new Error(`Creative feed requires a Firestore index. Please check server logs for the generation link.`);
+        }
+
+        throw new Error(`Failed to load creative content: ${error.message}`);
     }
 }
 
@@ -111,7 +122,7 @@ export async function generateContent(
         // Map Deebo result to our compliance status
         const complianceStatus: ComplianceStatus =
             complianceResult.status === 'pass' ? 'active' :
-            complianceResult.status === 'warning' ? 'warning' : 'review_needed';
+                complianceResult.status === 'warning' ? 'warning' : 'review_needed';
 
         // Build compliance checks array
         const complianceChecks = complianceResult.violations.map(violation => ({

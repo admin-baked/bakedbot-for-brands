@@ -377,7 +377,11 @@ service cloud.firestore {
 
     // Helper: Check if user belongs to this tenant
     function isTenantMember(tenantId) {
-      return request.auth != null && request.auth.token.tenantId == tenantId;
+      return request.auth != null && (
+        request.auth.token.tenantId == tenantId ||
+        request.auth.token.brandId == tenantId ||
+        request.auth.token.locationId == tenantId
+      );
     }
 
     // Helper: Check if user is tenant admin
@@ -458,6 +462,15 @@ service cloud.firestore {
     match /tenants/{tenantId}/audit/{collection}/{docId} {
       allow read: if isTenantMember(tenantId) || isRole('owner');
       allow write: if false; // Server-side only
+    }
+
+    // --- Domain Mappings Collection ---
+    match /domain_mappings/{domain} {
+      // Allow authenticated users to read domain mappings (needed for some client lookups)
+      allow read: if request.auth != null;
+      // Allow tenant owners to manage their own mappings (if we allow client-side sync)
+      // For now, management is server-side only as per domain-management.ts
+      allow write: if false;
     }
   }
 }

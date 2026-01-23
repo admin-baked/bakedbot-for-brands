@@ -192,7 +192,7 @@ export function useDashboardConfig() {
         href: '/dashboard/customers',
         icon: 'Users',
         description: 'Manage your customer base.',
-        roles: ['dispensary', 'super_user'],
+        roles: ['brand', 'dispensary', 'super_user'],
       },
       {
         label: 'Menu Bundles',
@@ -214,7 +214,7 @@ export function useDashboardConfig() {
         href: '/dashboard/segments',
         icon: 'PieChart',
         description: 'Segment customers for targeted campaigns.',
-        roles: ['dispensary', 'super_user'],
+        roles: ['brand', 'dispensary', 'super_user'],
       },
       {
         label: 'Vision',
@@ -314,28 +314,28 @@ export function useDashboardConfig() {
 
       // Direct match
       if (link.roles.includes(normalizedRole)) return true;
-      
+
       // Role hierarchy matching:
       // If link requires 'brand', allow brand_admin and brand_member
-      if (link.roles.includes('brand' as Role) && 
-          ['brand_admin', 'brand_member'].includes(normalizedRole)) {
+      if (link.roles.includes('brand' as Role) &&
+        ['brand_admin', 'brand_member'].includes(normalizedRole)) {
         return true;
       }
-      
+
       // If link requires 'dispensary', allow dispensary_admin and dispensary_staff
-      if (link.roles.includes('dispensary' as Role) && 
-          ['dispensary_admin', 'dispensary_staff'].includes(normalizedRole)) {
+      if (link.roles.includes('dispensary' as Role) &&
+        ['dispensary_admin', 'dispensary_staff'].includes(normalizedRole)) {
         return true;
       }
-      
+
       return false;
     });
 
     // Mark active link
     return filteredLinks.map((link) => ({
       ...link,
-      active: link.href === '/dashboard' 
-        ? pathname === link.href 
+      active: link.href === '/dashboard'
+        ? pathname === link.href
         : (pathname === link.href || pathname.startsWith(`${link.href}/`)),
     }));
   }, [pathname, role]);
