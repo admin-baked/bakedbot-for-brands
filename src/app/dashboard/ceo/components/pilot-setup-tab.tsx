@@ -11,8 +11,26 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { setupPilotCustomer, addPilotProducts, importMenuFromUrl, type BrandPilotConfig, type DispensaryPilotConfig, type ImportedMenuData } from '@/server/actions/pilot-setup';
-import { Loader2, Rocket, Store, Building2, CheckCircle, Copy, ExternalLink, Plus, Trash2, Globe, Download, AlertCircle } from 'lucide-react';
+import {
+    setupPilotCustomer,
+    addPilotProducts,
+    importMenuFromUrl,
+    createPilotTestCustomers,
+    createPilotSampleOrders,
+    createWelcomeEmailPlaybook,
+    createWinbackEmailPlaybook,
+    createVIPPlaybook,
+    configurePilotPOS,
+    flushPilotData,
+    PILOT_CUSTOMER_SEGMENTS,
+    THRIVE_SAMPLE_PRODUCTS,
+    type BrandPilotConfig,
+    type DispensaryPilotConfig,
+    type ImportedMenuData,
+    type PilotPOSConfig,
+    type PilotEmailConfig,
+} from '@/server/actions/pilot-setup';
+import { Loader2, Rocket, Store, Building2, CheckCircle, Copy, ExternalLink, Plus, Trash2, Globe, Download, AlertCircle, Users, ShoppingCart, Mail, Database, RefreshCw, Crown } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 
@@ -40,10 +58,38 @@ export default function PilotSetupTab() {
         success: boolean;
         userId?: string;
         brandId?: string;
+        orgId?: string;
         menuUrl?: string;
         email?: string;
         password?: string;
     } | null>(null);
+
+    // Advanced Setup State
+    const [isGeneratingData, setIsGeneratingData] = useState(false);
+    const [testDataStatus, setTestDataStatus] = useState<{
+        customers?: { created: number; error?: string };
+        orders?: { created: number; error?: string };
+        playbooks?: { welcome?: string; winback?: string; vip?: string };
+        pos?: { configured: boolean; error?: string };
+    }>({});
+
+    // POS Configuration
+    const [posConfig, setPosConfig] = useState<PilotPOSConfig>({
+        provider: 'alleaves',
+        storeId: '',
+        locationId: '',
+        environment: 'production',
+    });
+
+    // Email Marketing Configuration
+    const [emailConfig, setEmailConfig] = useState<PilotEmailConfig>({
+        provider: 'mailjet',
+        senderEmail: 'hello@bakedbot.ai',
+        senderName: 'Mrs. Parker',
+        enableWelcomePlaybook: true,
+        enableWinbackPlaybook: true,
+        enableVIPPlaybook: true,
+    });
 
     // Brand form state
     const [brandForm, setBrandForm] = useState<BrandPilotConfig>({
@@ -156,13 +202,15 @@ export default function PilotSetupTab() {
                     success: true,
                     userId: result.data.userId,
                     brandId: result.data.brandId,
+                    orgId: result.data.orgId,
                     menuUrl: result.data.menuUrl,
                     email: brandForm.email || generateEmail(brandForm.brandSlug),
                     password: brandForm.password,
                 });
 
-                // Clear import state
+                // Clear import state and test data status
                 clearImportedData();
+                setTestDataStatus({});
 
                 toast({ title: 'Success!', description: result.message });
             } else {
@@ -214,13 +262,15 @@ export default function PilotSetupTab() {
                     success: true,
                     userId: result.data.userId,
                     brandId: result.data.brandId,
+                    orgId: result.data.orgId,
                     menuUrl: result.data.menuUrl,
                     email: dispensaryForm.email || generateEmail(dispensaryForm.dispensarySlug),
                     password: dispensaryForm.password,
                 });
 
-                // Clear import state
+                // Clear import state and test data status
                 clearImportedData();
+                setTestDataStatus({});
 
                 toast({ title: 'Success!', description: result.message });
             } else {
@@ -378,10 +428,139 @@ export default function PilotSetupTab() {
         setImportError(null);
     };
 
-    // Success view
+    // Generate test customers and orders
+    const handleGenerateTestData = async () => {
+        if (!setupResult?.orgId || !setupResult?.brandId) return;
+
+        setIsGeneratingData(true);
+        const status: typeof testDataStatus = {};
+
+        try {
+            // Create test customers
+            toast({ title: 'Creating test customers...' });
+            const customersResult = await createPilotTestCustomers(setupResult.orgId, setupResult.brandId);
+            status.customers = { created: customersResult.created, error: customersResult.error };
+
+            if (customersResult.success) {
+                // Create sample orders
+                toast({ title: 'Creating sample orders...' });
+                const ordersResult = await createPilotSampleOrders(setupResult.orgId, setupResult.brandId);
+                status.orders = { created: ordersResult.created, error: ordersResult.error };
+            }
+
+            setTestDataStatus(prev => ({ ...prev, ...status }));
+            toast({
+                title: 'Test Data Generated!',
+                description: `Created ${status.customers?.created || 0} customers and ${status.orders?.created || 0} orders`,
+            });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: String(error) });
+        } finally {
+            setIsGeneratingData(false);
+        }
+    };
+
+    // Setup email marketing playbooks
+    const handleSetupEmailPlaybooks = async () => {
+        if (!setupResult?.orgId || !setupResult?.brandId) return;
+
+        setIsGeneratingData(true);
+        const playbooks: typeof testDataStatus['playbooks'] = {};
+
+        try {
+            if (emailConfig.enableWelcomePlaybook) {
+                toast({ title: 'Creating welcome playbook...' });
+                const result = await createWelcomeEmailPlaybook(setupResult.orgId, setupResult.brandId, emailConfig);
+                if (result.success) playbooks.welcome = result.playbookId;
+            }
+
+            if (emailConfig.enableWinbackPlaybook) {
+                toast({ title: 'Creating win-back playbook...' });
+                const result = await createWinbackEmailPlaybook(setupResult.orgId, setupResult.brandId, emailConfig);
+                if (result.success) playbooks.winback = result.playbookId;
+            }
+
+            if (emailConfig.enableVIPPlaybook) {
+                toast({ title: 'Creating VIP playbook...' });
+                const result = await createVIPPlaybook(setupResult.orgId, setupResult.brandId, emailConfig);
+                if (result.success) playbooks.vip = result.playbookId;
+            }
+
+            setTestDataStatus(prev => ({ ...prev, playbooks }));
+            toast({
+                title: 'Email Playbooks Created!',
+                description: `Created ${Object.keys(playbooks).length} playbooks with Mrs. Parker`,
+            });
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: String(error) });
+        } finally {
+            setIsGeneratingData(false);
+        }
+    };
+
+    // Configure POS
+    const handleConfigurePOS = async () => {
+        if (!setupResult?.orgId || !setupResult?.brandId) return;
+        if (!posConfig.storeId) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Store ID is required' });
+            return;
+        }
+
+        setIsGeneratingData(true);
+        try {
+            toast({ title: 'Configuring POS...' });
+            const result = await configurePilotPOS(setupResult.orgId, setupResult.brandId, posConfig);
+            setTestDataStatus(prev => ({ ...prev, pos: { configured: result.success, error: result.error } }));
+
+            if (result.success) {
+                toast({ title: 'POS Configured!', description: `${posConfig.provider} connected successfully` });
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: result.error || 'Failed to configure POS' });
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: String(error) });
+        } finally {
+            setIsGeneratingData(false);
+        }
+    };
+
+    // Flush pilot data
+    const handleFlushPilotData = async () => {
+        if (!setupResult?.orgId || !setupResult?.brandId) return;
+
+        if (!confirm('Are you sure you want to delete all pilot test data? This will remove test customers, orders, and playbooks.')) {
+            return;
+        }
+
+        setIsGeneratingData(true);
+        try {
+            toast({ title: 'Flushing pilot data...' });
+            const result = await flushPilotData(setupResult.orgId, setupResult.brandId, {
+                deletePlaybooks: true,
+                confirmPhrase: 'FLUSH PILOT DATA',
+            });
+
+            if (result.success) {
+                setTestDataStatus({});
+                toast({
+                    title: 'Pilot Data Flushed!',
+                    description: `Deleted ${result.deleted.customers} customers, ${result.deleted.orders} orders, ${result.deleted.playbooks} playbooks`,
+                });
+            } else {
+                toast({ variant: 'destructive', title: 'Error', description: result.error || 'Failed to flush data' });
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Error', description: String(error) });
+        } finally {
+            setIsGeneratingData(false);
+        }
+    };
+
+    // Success view with advanced setup options
     if (setupResult?.success) {
         return (
             <div className="space-y-6">
+                {/* Success Banner */}
                 <Card className="border-green-200 bg-green-50">
                     <CardHeader>
                         <div className="flex items-center gap-3">
@@ -438,16 +617,261 @@ export default function PilotSetupTab() {
                             <div className="flex flex-wrap gap-2">
                                 <Badge variant="secondary">User: {setupResult.userId}</Badge>
                                 <Badge variant="secondary">Brand: {setupResult.brandId}</Badge>
+                                <Badge variant="secondary">Org: {setupResult.orgId}</Badge>
                             </div>
                         </div>
                     </CardContent>
+                </Card>
+
+                {/* Test Data Generation */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Users className="h-5 w-5" />
+                            Test Customer Data
+                        </CardTitle>
+                        <CardDescription>
+                            Generate test customers for each segment with sample orders
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            {PILOT_CUSTOMER_SEGMENTS.map((seg) => (
+                                <div key={seg.segment} className="p-2 border rounded text-sm">
+                                    <div className="font-medium">{seg.firstName} {seg.lastName}</div>
+                                    <div className="text-xs text-muted-foreground">{seg.email}</div>
+                                    <Badge variant="outline" className="mt-1 text-xs">{seg.segment}</Badge>
+                                </div>
+                            ))}
+                        </div>
+
+                        {testDataStatus.customers && (
+                            <Alert className={testDataStatus.customers.error ? 'border-red-200' : 'border-green-200'}>
+                                <CheckCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                    {testDataStatus.customers.error
+                                        ? `Error: ${testDataStatus.customers.error}`
+                                        : `Created ${testDataStatus.customers.created} test customers`}
+                                    {testDataStatus.orders && ` and ${testDataStatus.orders.created} orders`}
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </CardContent>
                     <CardFooter>
-                        <Button onClick={() => setSetupResult(null)} variant="outline" className="w-full">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Create Another Pilot
+                        <Button
+                            onClick={handleGenerateTestData}
+                            disabled={isGeneratingData || !!testDataStatus.customers}
+                            className="w-full"
+                        >
+                            {isGeneratingData ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <ShoppingCart className="h-4 w-4 mr-2" />
+                            )}
+                            {testDataStatus.customers ? 'Test Data Created' : 'Generate Test Customers & Orders'}
                         </Button>
                     </CardFooter>
                 </Card>
+
+                {/* Email Marketing Playbooks */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Mail className="h-5 w-5" />
+                            Email Marketing (Mrs. Parker)
+                        </CardTitle>
+                        <CardDescription>
+                            Create email playbooks for automated marketing via Mailjet
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label>Sender Email</Label>
+                                <Input
+                                    value={emailConfig.senderEmail}
+                                    onChange={(e) => setEmailConfig({ ...emailConfig, senderEmail: e.target.value })}
+                                    placeholder="hello@bakedbot.ai"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Sender Name</Label>
+                                <Input
+                                    value={emailConfig.senderName}
+                                    onChange={(e) => setEmailConfig({ ...emailConfig, senderName: e.target.value })}
+                                    placeholder="Mrs. Parker"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between p-3 border rounded-lg">
+                                <div>
+                                    <div className="font-medium">Welcome Email Playbook</div>
+                                    <div className="text-xs text-muted-foreground">Triggered when new customer is created</div>
+                                </div>
+                                <Switch
+                                    checked={emailConfig.enableWelcomePlaybook}
+                                    onCheckedChange={(checked) => setEmailConfig({ ...emailConfig, enableWelcomePlaybook: checked })}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-lg">
+                                <div>
+                                    <div className="font-medium">Win-Back Campaign</div>
+                                    <div className="text-xs text-muted-foreground">Weekly re-engagement for at-risk customers</div>
+                                </div>
+                                <Switch
+                                    checked={emailConfig.enableWinbackPlaybook}
+                                    onCheckedChange={(checked) => setEmailConfig({ ...emailConfig, enableWinbackPlaybook: checked })}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border rounded-lg">
+                                <div className="flex items-center gap-2">
+                                    <Crown className="h-4 w-4 text-yellow-500" />
+                                    <div>
+                                        <div className="font-medium">VIP Appreciation</div>
+                                        <div className="text-xs text-muted-foreground">Monthly exclusive offers for VIP customers</div>
+                                    </div>
+                                </div>
+                                <Switch
+                                    checked={emailConfig.enableVIPPlaybook}
+                                    onCheckedChange={(checked) => setEmailConfig({ ...emailConfig, enableVIPPlaybook: checked })}
+                                />
+                            </div>
+                        </div>
+
+                        {testDataStatus.playbooks && Object.keys(testDataStatus.playbooks).length > 0 && (
+                            <Alert className="border-green-200">
+                                <CheckCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                    Created playbooks: {Object.keys(testDataStatus.playbooks).join(', ')}
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </CardContent>
+                    <CardFooter>
+                        <Button
+                            onClick={handleSetupEmailPlaybooks}
+                            disabled={isGeneratingData || (testDataStatus.playbooks && Object.keys(testDataStatus.playbooks).length > 0)}
+                            className="w-full"
+                        >
+                            {isGeneratingData ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <Mail className="h-4 w-4 mr-2" />
+                            )}
+                            {testDataStatus.playbooks ? 'Playbooks Created' : 'Create Email Playbooks'}
+                        </Button>
+                    </CardFooter>
+                </Card>
+
+                {/* POS Configuration */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Database className="h-5 w-5" />
+                            POS Integration
+                        </CardTitle>
+                        <CardDescription>
+                            Connect ALLeaves, Dutchie, or Jane POS for live menu sync
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label>POS Provider</Label>
+                                <Select
+                                    value={posConfig.provider}
+                                    onValueChange={(v: 'alleaves' | 'dutchie' | 'jane') => setPosConfig({ ...posConfig, provider: v })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="alleaves">ALLeaves</SelectItem>
+                                        <SelectItem value="dutchie">Dutchie</SelectItem>
+                                        <SelectItem value="jane">Jane</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Environment</Label>
+                                <Select
+                                    value={posConfig.environment}
+                                    onValueChange={(v: 'sandbox' | 'production') => setPosConfig({ ...posConfig, environment: v })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="sandbox">Sandbox</SelectItem>
+                                        <SelectItem value="production">Production</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Store ID *</Label>
+                                <Input
+                                    value={posConfig.storeId}
+                                    onChange={(e) => setPosConfig({ ...posConfig, storeId: e.target.value })}
+                                    placeholder="Enter store/menu ID"
+                                />
+                            </div>
+                            {posConfig.provider === 'alleaves' && (
+                                <div className="space-y-2">
+                                    <Label>Location ID</Label>
+                                    <Input
+                                        value={posConfig.locationId || ''}
+                                        onChange={(e) => setPosConfig({ ...posConfig, locationId: e.target.value })}
+                                        placeholder="ALLeaves location ID"
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {testDataStatus.pos && (
+                            <Alert className={testDataStatus.pos.error ? 'border-red-200' : 'border-green-200'}>
+                                {testDataStatus.pos.configured ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                                <AlertDescription>
+                                    {testDataStatus.pos.error
+                                        ? `Error: ${testDataStatus.pos.error}`
+                                        : `${posConfig.provider} POS configured successfully`}
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </CardContent>
+                    <CardFooter>
+                        <Button
+                            onClick={handleConfigurePOS}
+                            disabled={isGeneratingData || !posConfig.storeId || testDataStatus.pos?.configured}
+                            className="w-full"
+                        >
+                            {isGeneratingData ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <Database className="h-4 w-4 mr-2" />
+                            )}
+                            {testDataStatus.pos?.configured ? 'POS Configured' : 'Configure POS'}
+                        </Button>
+                    </CardFooter>
+                </Card>
+
+                {/* Actions Footer */}
+                <div className="flex gap-4">
+                    <Button onClick={() => setSetupResult(null)} variant="outline" className="flex-1">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Another Pilot
+                    </Button>
+                    <Button
+                        onClick={handleFlushPilotData}
+                        variant="destructive"
+                        className="flex-1"
+                        disabled={isGeneratingData || (!testDataStatus.customers && !testDataStatus.playbooks)}
+                    >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Flush Pilot Data
+                    </Button>
+                </div>
             </div>
         );
     }

@@ -3,7 +3,7 @@
         {
             "id": "task_fix_support_service_tests",
             "title": "Fix Unit Tests: Support Service",
-            "status": "pending",
+            "status": "completed",
             "priority": "high",
             "description": "Fix the Jest configuration execution issues preventing `tests/server/services/support/tickets.test.ts` from running. The test file exists but fails to run with 0 tests executed.",
             "acceptance_tests": [
@@ -16,7 +16,7 @@
         {
             "id": "task_test_unified_claim_flow",
             "title": "Unit Test: Unified Claim Flow",
-            "status": "pending",
+            "status": "completed",
             "priority": "high",
             "description": "Implement unit tests for the Unified Claim/Onboarding Flow. Specifically for `cannmenus.ts` (mock logic vs API) and `createClaimSubscription.ts` (free plan logic). Previous attempts failed due to complex module mocking (config/pricing vs plans) and fetch mock timing.",
             "acceptance_tests": [
@@ -957,7 +957,9 @@
             ],
             "completed_at": "2025-12-27T14:30:00Z",
             "owner": "antigravity",
-            "dependencies": ["feat_agent_playground"],
+            "dependencies": [
+                "feat_agent_playground"
+            ],
             "area": "frontend"
         },
         {
