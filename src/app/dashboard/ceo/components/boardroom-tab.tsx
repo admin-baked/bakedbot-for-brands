@@ -5,20 +5,27 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-    Users, 
-    Rocket, 
-    Briefcase, 
-    Wrench, 
-    Sparkles, 
-    DollarSign, 
-    BarChart3, 
-    ShieldAlert, 
+import {
+    Users,
+    Rocket,
+    Briefcase,
+    Wrench,
+    Sparkles,
+    DollarSign,
+    BarChart3,
+    ShieldAlert,
     Zap,
     TrendingUp,
     CheckCircle2,
     MessageSquare,
-    Send
+    Send,
+    BookOpen,
+    Scale,
+    Heart,
+    Megaphone,
+    Eye,
+    Shield,
+    UserCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
@@ -59,6 +66,12 @@ const SUPPORT_STAFF = [
     { id: 'smokey', name: 'Smokey', role: 'Head of Product', icon: Zap, color: 'bg-green-100 text-green-700' },
     { id: 'pops', name: 'Pops', role: 'Data Analyst', icon: BarChart3, color: 'bg-slate-100 text-slate-700' },
     { id: 'day_day', name: 'Day Day', role: 'SEO & Growth', icon: TrendingUp, color: 'bg-indigo-100 text-indigo-700' },
+    { id: 'mrs_parker', name: 'Mrs. Parker', role: 'Customer Success', icon: Heart, color: 'bg-pink-100 text-pink-700' },
+    { id: 'big_worm', name: 'Big Worm', role: 'Deep Research', icon: BookOpen, color: 'bg-amber-100 text-amber-700' },
+    { id: 'roach', name: 'Roach', role: 'Research Librarian', icon: Scale, color: 'bg-cyan-100 text-cyan-700' },
+    { id: 'craig', name: 'Craig', role: 'Marketing', icon: Megaphone, color: 'bg-rose-100 text-rose-700' },
+    { id: 'ezal', name: 'Ezal', role: 'Competitive Intel', icon: Eye, color: 'bg-yellow-100 text-yellow-700' },
+    { id: 'deebo', name: 'Deebo', role: 'Compliance', icon: Shield, color: 'bg-red-100 text-red-700' },
 ];
 
 export default function BoardroomTab() {
@@ -95,9 +108,13 @@ export default function BoardroomTab() {
     }, []);
 
     const mrr = analytics?.revenue.mrr || 0;
-    const leads = analytics?.signups.total || 0;
+    const arr = analytics?.revenue.arr || 0;
+    const arpu = analytics?.revenue.arpu || 0;
+    const totalUsers = analytics?.signups.total || 0;
     const activeUsers = analytics?.activeUsers.monthly || 0;
+    const dailyActiveUsers = analytics?.activeUsers.daily || 0;
     const goalPct = (mrr / 100000) * 100;
+    const activePct = totalUsers > 0 ? ((activeUsers / totalUsers) * 100).toFixed(0) : 0;
 
     return (
         <div className="flex flex-col gap-6 animate-in fade-in duration-500">
@@ -174,33 +191,35 @@ export default function BoardroomTab() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 {/* Left Sidebar: KPIs */}
                 <div className="lg:col-span-4 lg:order-1 grid grid-cols-1 gap-4 hidden lg:grid">
-                    <BoardroomWidget 
-                        title="Revenue Growth (MRR)" 
-                        value={`$${mrr.toLocaleString()}`} 
-                        subtext={`${goalPct.toFixed(1)}% of $100k Goal`} 
-                        icon={TrendingUp} 
-                        trend={true}
+                    <BoardroomWidget
+                        title="Monthly Recurring Revenue"
+                        value={`$${mrr.toLocaleString()}`}
+                        subtext={`${goalPct.toFixed(1)}% of $100k Goal`}
+                        icon={TrendingUp}
+                        trend={mrr > 0}
                         color="bg-green-100 text-green-700"
                     />
-                    <BoardroomWidget 
-                        title="Operational Health" 
-                        value="98.4%" 
-                        subtext="3/4 Critical OKRs on track" 
-                        icon={BarChart3} 
+                    <BoardroomWidget
+                        title="Annual Run Rate"
+                        value={`$${arr.toLocaleString()}`}
+                        subtext={`ARPU: $${arpu}`}
+                        icon={DollarSign}
+                        trend={arr > 0}
+                        color="bg-amber-100 text-amber-700"
+                    />
+                    <BoardroomWidget
+                        title="Active Users"
+                        value={`${activeUsers.toLocaleString()}`}
+                        subtext={`${activePct}% of ${totalUsers} total (${dailyActiveUsers} DAU)`}
+                        icon={UserCheck}
+                        trend={activeUsers > 0}
                         color="bg-blue-100 text-blue-700"
                     />
-                    <BoardroomWidget 
-                        title="Compliance Score" 
-                        value="100%" 
-                        subtext="All regional licenses verified" 
-                        icon={ShieldAlert} 
-                        color="bg-emerald-100 text-emerald-700"
-                    />
-                    <BoardroomWidget 
-                        title="Total Users" 
-                        value={`${leads.toLocaleString()}`} 
-                        subtext="Registered Accounts" 
-                        icon={Users} 
+                    <BoardroomWidget
+                        title="Total Signups"
+                        value={`${totalUsers.toLocaleString()}`}
+                        subtext="Registered Accounts"
+                        icon={Users}
                         color="bg-purple-100 text-purple-700"
                     />
                 </div>

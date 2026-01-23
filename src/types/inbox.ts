@@ -40,7 +40,33 @@ export type InboxThreadType =
     | 'customer_health'   // Customer segment health monitoring
     | 'market_intel'      // Competitive positioning & market share
     | 'bizdev'            // Partnership outreach & expansion
-    | 'experiment';       // Growth experiment planning & analysis
+    | 'experiment'        // Growth experiment planning & analysis
+    // ---- Super User: Company Operations ----
+    | 'daily_standup'     // Daily standup / status check
+    | 'sprint_planning'   // Sprint planning & backlog prioritization
+    | 'incident_response' // Production issues & debugging
+    | 'feature_spec'      // Feature specification & scoping
+    | 'code_review'       // Code review & architecture decisions
+    | 'release'           // Release preparation & coordination
+    | 'customer_onboarding' // New customer setup & training
+    | 'customer_feedback' // Feature requests & complaints
+    | 'support_escalation' // Escalated support tickets
+    | 'content_calendar'  // Blog, social, email planning
+    | 'launch_campaign'   // Product/feature launch marketing
+    | 'seo_sprint'        // Technical & content SEO
+    | 'partnership_outreach' // Integration partners & resellers
+    | 'billing_review'    // Invoicing, payments, collections
+    | 'budget_planning'   // Quarterly/annual budgets
+    | 'vendor_management' // API costs, subscriptions
+    | 'compliance_audit'  // SOC2, privacy, cannabis compliance
+    | 'weekly_sync'       // Executive team weekly check-in
+    | 'quarterly_planning' // OKRs, strategic priorities
+    | 'board_prep'        // Investor updates, board decks
+    | 'hiring'            // Role definition, candidate review
+    // ---- Super User: Research ----
+    | 'deep_research'     // Big Worm deep data analysis
+    | 'compliance_research' // Roach compliance knowledge base
+    | 'market_research';  // Strategic market analysis
 
 /**
  * Thread lifecycle status
@@ -63,11 +89,15 @@ export type InboxAgentPersona =
     | 'deebo'       // Enforcer - compliance
     | 'pops'        // Analyst - data insights
     | 'day_day'     // Ops - inventory, logistics
+    | 'mrs_parker'  // Customer success - welcome emails, retention
+    | 'big_worm'    // Deep research - data analysis, market research
+    | 'roach'       // Research librarian - compliance KB, research briefs
     // ---- Executive Agents ----
     | 'leo'         // COO - operations orchestration
     | 'jack'        // CRO - revenue, sales, pipeline
     | 'linus'       // CTO - analytics, performance, tech
     | 'glenda'      // CMO - marketing, campaigns, strategy
+    | 'mike'        // CFO - finance, billing, budgets
     // ---- Auto-routing ----
     | 'auto';       // Auto-route based on message
 
@@ -130,7 +160,24 @@ export type InboxArtifactType =
     | 'health_scorecard'  // Customer segment health
     | 'market_analysis'   // Competitive/market report
     | 'partnership_deck'  // BizDev pitch materials
-    | 'experiment_plan';  // A/B test or growth experiment
+    | 'experiment_plan'   // A/B test or growth experiment
+    // ---- Company Operations Artifacts (Super User) ----
+    | 'standup_notes'     // Daily standup summary
+    | 'sprint_plan'       // Sprint goals, stories, capacity
+    | 'incident_report'   // Root cause, timeline, impact
+    | 'postmortem'        // What went wrong, lessons learned
+    | 'feature_spec'      // User stories, acceptance criteria
+    | 'technical_design'  // Architecture, data model, API design
+    | 'release_notes'     // Changelog, migration notes
+    | 'onboarding_checklist' // Customer setup tasks
+    | 'content_calendar'  // Planned content by channel/date
+    | 'okr_document'      // Objectives and key results
+    | 'meeting_notes'     // Decisions, action items, owners
+    | 'board_deck'        // Investor presentation
+    | 'budget_model'      // Budget spreadsheet / forecast
+    | 'job_spec'          // Role description, requirements
+    | 'research_brief'    // Deep research findings
+    | 'compliance_brief'; // Compliance research document
 
 /**
  * Artifact approval status
@@ -423,6 +470,160 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         promptTemplate: 'Help me plan a growth experiment or analyze test results',
         roles: ['super_user'],
     },
+
+    // ============ Super User: Company Operations ============
+    {
+        id: 'daily-standup',
+        label: 'Daily Standup',
+        description: 'Quick status check across all operational areas',
+        icon: 'Coffee',
+        threadType: 'daily_standup',
+        defaultAgent: 'leo',
+        promptTemplate: 'Run our daily standup: What shipped? What\'s blocked? What\'s next?',
+        roles: ['super_user'],
+    },
+    {
+        id: 'sprint-planning',
+        label: 'Sprint Planning',
+        description: 'Plan the next sprint from backlog',
+        icon: 'ListTodo',
+        threadType: 'sprint_planning',
+        defaultAgent: 'linus',
+        promptTemplate: 'Let\'s plan the next sprint. Review the backlog and prioritize.',
+        roles: ['super_user'],
+    },
+    {
+        id: 'incident-response',
+        label: 'Incident Response',
+        description: 'Investigate and resolve production issues',
+        icon: 'AlertTriangle',
+        threadType: 'incident_response',
+        defaultAgent: 'linus',
+        promptTemplate: 'We have a production issue. Help me investigate and resolve it.',
+        roles: ['super_user'],
+    },
+    {
+        id: 'release-prep',
+        label: 'Release Prep',
+        description: 'Prepare and coordinate a release',
+        icon: 'Rocket',
+        threadType: 'release',
+        defaultAgent: 'linus',
+        promptTemplate: 'Let\'s prepare for a release. What\'s ready? What needs testing?',
+        roles: ['super_user'],
+    },
+    {
+        id: 'customer-onboarding',
+        label: 'Customer Onboarding',
+        description: 'Review and optimize customer onboarding flows',
+        icon: 'UserPlus',
+        threadType: 'customer_onboarding',
+        defaultAgent: 'mrs_parker',
+        promptTemplate: 'Review our customer onboarding: welcome emails, drip sequences, activation rates.',
+        roles: ['super_user'],
+    },
+    {
+        id: 'customer-pulse',
+        label: 'Customer Pulse',
+        description: 'Review customer health, feedback, and escalations',
+        icon: 'HeartHandshake',
+        threadType: 'customer_feedback',
+        defaultAgent: 'jack',
+        promptTemplate: 'Give me a pulse check on our customers: health scores, recent feedback, escalations.',
+        roles: ['super_user'],
+    },
+    {
+        id: 'content-brief',
+        label: 'Content Brief',
+        description: 'Generate content brief for blog, social, or email',
+        icon: 'FileEdit',
+        threadType: 'content_calendar',
+        defaultAgent: 'glenda',
+        promptTemplate: 'Help me create a content brief for our next piece of content.',
+        roles: ['super_user'],
+    },
+    {
+        id: 'weekly-sync',
+        label: 'Weekly Sync',
+        description: 'Run the executive team weekly check-in',
+        icon: 'Users',
+        threadType: 'weekly_sync',
+        defaultAgent: 'leo',
+        promptTemplate: 'Run our weekly executive sync. Gather updates from all departments.',
+        roles: ['super_user'],
+    },
+    {
+        id: 'cash-flow',
+        label: 'Cash Flow',
+        description: 'Review cash position, runway, and burn rate',
+        icon: 'Banknote',
+        threadType: 'budget_planning',
+        defaultAgent: 'mike',
+        promptTemplate: 'Review our cash flow: current position, burn rate, and runway.',
+        roles: ['super_user'],
+    },
+    {
+        id: 'board-update',
+        label: 'Board Update',
+        description: 'Draft investor/board update',
+        icon: 'Presentation',
+        threadType: 'board_prep',
+        defaultAgent: 'mike',
+        promptTemplate: 'Help me draft our monthly investor/board update.',
+        roles: ['super_user'],
+    },
+    {
+        id: 'compliance-audit',
+        label: 'Compliance Audit',
+        description: 'Review compliance status (SOC2, privacy, cannabis regs)',
+        icon: 'ShieldCheck',
+        threadType: 'compliance_audit',
+        defaultAgent: 'deebo',
+        promptTemplate: 'Run a compliance audit: SOC2 status, privacy requirements, cannabis regulations.',
+        roles: ['super_user'],
+    },
+    {
+        id: 'hiring-review',
+        label: 'Hiring',
+        description: 'Plan roles and review candidates',
+        icon: 'UserSearch',
+        threadType: 'hiring',
+        defaultAgent: 'leo',
+        promptTemplate: 'Help me with hiring: open roles, candidate pipeline, interview feedback.',
+        roles: ['super_user'],
+    },
+
+    // ============ Super User: Research ============
+    {
+        id: 'deep-research',
+        label: 'Deep Research',
+        description: 'Conduct comprehensive research with Big Worm',
+        icon: 'BookOpen',
+        threadType: 'deep_research',
+        defaultAgent: 'big_worm',
+        promptTemplate: 'I need deep research on...',
+        roles: ['super_user'],
+    },
+    {
+        id: 'compliance-brief',
+        label: 'Compliance Brief',
+        description: 'Generate compliance research brief with Roach',
+        icon: 'Scale',
+        threadType: 'compliance_research',
+        defaultAgent: 'roach',
+        promptTemplate: 'Research compliance requirements for...',
+        roles: ['super_user'],
+    },
+    {
+        id: 'market-analysis',
+        label: 'Market Analysis',
+        description: 'Deep market analysis and strategic research',
+        icon: 'BarChart3',
+        threadType: 'market_research',
+        defaultAgent: 'big_worm',
+        promptTemplate: 'Analyze the market for...',
+        roles: ['super_user'],
+    },
 ];
 
 // ============ Thread Filters ============
@@ -537,6 +738,106 @@ export const THREAD_AGENT_MAPPING: Record<InboxThreadType, {
         primary: 'linus',
         supporting: ['jack', 'pops'],
     },
+
+    // Super User: Company Operations thread types
+    daily_standup: {
+        primary: 'leo',
+        supporting: ['linus', 'jack', 'glenda'],
+    },
+    sprint_planning: {
+        primary: 'linus',
+        supporting: ['leo', 'pops'],
+    },
+    incident_response: {
+        primary: 'linus',
+        supporting: ['leo', 'deebo'],
+    },
+    feature_spec: {
+        primary: 'linus',
+        supporting: ['glenda', 'smokey'],
+    },
+    code_review: {
+        primary: 'linus',
+        supporting: ['roach'],
+    },
+    release: {
+        primary: 'linus',
+        supporting: ['leo', 'craig'],
+    },
+    customer_onboarding: {
+        primary: 'mrs_parker',
+        supporting: ['jack', 'smokey'],
+    },
+    customer_feedback: {
+        primary: 'jack',
+        supporting: ['mrs_parker', 'linus'],
+    },
+    support_escalation: {
+        primary: 'leo',
+        supporting: ['jack', 'linus'],
+    },
+    content_calendar: {
+        primary: 'glenda',
+        supporting: ['craig', 'day_day'],
+    },
+    launch_campaign: {
+        primary: 'glenda',
+        supporting: ['craig', 'linus'],
+    },
+    seo_sprint: {
+        primary: 'day_day',
+        supporting: ['glenda', 'roach'],
+    },
+    partnership_outreach: {
+        primary: 'glenda',
+        supporting: ['jack', 'craig'],
+    },
+    billing_review: {
+        primary: 'mike',
+        supporting: ['jack', 'leo'],
+    },
+    budget_planning: {
+        primary: 'mike',
+        supporting: ['leo', 'jack'],
+    },
+    vendor_management: {
+        primary: 'mike',
+        supporting: ['linus', 'leo'],
+    },
+    compliance_audit: {
+        primary: 'deebo',
+        supporting: ['roach', 'leo'],
+    },
+    weekly_sync: {
+        primary: 'leo',
+        supporting: ['jack', 'linus', 'glenda', 'mike'],
+    },
+    quarterly_planning: {
+        primary: 'leo',
+        supporting: ['jack', 'linus', 'glenda', 'mike'],
+    },
+    board_prep: {
+        primary: 'mike',
+        supporting: ['jack', 'leo'],
+    },
+    hiring: {
+        primary: 'leo',
+        supporting: ['linus', 'glenda'],
+    },
+
+    // Super User: Research thread types
+    deep_research: {
+        primary: 'big_worm',
+        supporting: ['roach', 'ezal'],
+    },
+    compliance_research: {
+        primary: 'roach',
+        supporting: ['deebo', 'big_worm'],
+    },
+    market_research: {
+        primary: 'big_worm',
+        supporting: ['ezal', 'jack'],
+    },
 };
 
 // ============ Zod Schemas ============
@@ -565,7 +866,33 @@ export const InboxThreadTypeSchema = z.enum([
     'customer_health',
     'market_intel',
     'bizdev',
-    'experiment'
+    'experiment',
+    // Super User: Company Operations
+    'daily_standup',
+    'sprint_planning',
+    'incident_response',
+    'feature_spec',
+    'code_review',
+    'release',
+    'customer_onboarding',
+    'customer_feedback',
+    'support_escalation',
+    'content_calendar',
+    'launch_campaign',
+    'seo_sprint',
+    'partnership_outreach',
+    'billing_review',
+    'budget_planning',
+    'vendor_management',
+    'compliance_audit',
+    'weekly_sync',
+    'quarterly_planning',
+    'board_prep',
+    'hiring',
+    // Super User: Research
+    'deep_research',
+    'compliance_research',
+    'market_research'
 ]);
 
 export const InboxThreadStatusSchema = z.enum([
@@ -575,8 +902,9 @@ export const InboxThreadStatusSchema = z.enum([
 export const InboxAgentPersonaSchema = z.enum([
     // Field Agents
     'smokey', 'money_mike', 'craig', 'ezal', 'deebo', 'pops', 'day_day',
+    'mrs_parker', 'big_worm', 'roach',
     // Executive Agents
-    'leo', 'jack', 'linus', 'glenda',
+    'leo', 'jack', 'linus', 'glenda', 'mike',
     // Auto-routing
     'auto'
 ]);
@@ -585,7 +913,11 @@ export const InboxArtifactTypeSchema = z.enum([
     // Business Artifacts
     'carousel', 'bundle', 'creative_content', 'sell_sheet', 'report', 'outreach_draft', 'event_promo',
     // Growth Management Artifacts
-    'growth_report', 'churn_scorecard', 'revenue_model', 'pipeline_report', 'health_scorecard', 'market_analysis', 'partnership_deck', 'experiment_plan'
+    'growth_report', 'churn_scorecard', 'revenue_model', 'pipeline_report', 'health_scorecard', 'market_analysis', 'partnership_deck', 'experiment_plan',
+    // Company Operations Artifacts
+    'standup_notes', 'sprint_plan', 'incident_report', 'postmortem', 'feature_spec', 'technical_design',
+    'release_notes', 'onboarding_checklist', 'content_calendar', 'okr_document', 'meeting_notes',
+    'board_deck', 'budget_model', 'job_spec', 'research_brief', 'compliance_brief'
 ]);
 
 export const InboxArtifactStatusSchema = z.enum([
@@ -681,6 +1013,32 @@ export function getThreadTypeIcon(type: InboxThreadType): string {
         market_intel: 'Target',
         bizdev: 'Handshake',
         experiment: 'FlaskConical',
+        // Super User: Company Operations
+        daily_standup: 'Coffee',
+        sprint_planning: 'ListTodo',
+        incident_response: 'AlertTriangle',
+        feature_spec: 'FileCode',
+        code_review: 'GitPullRequest',
+        release: 'Rocket',
+        customer_onboarding: 'UserPlus',
+        customer_feedback: 'MessageCircle',
+        support_escalation: 'AlertOctagon',
+        content_calendar: 'CalendarRange',
+        launch_campaign: 'Megaphone',
+        seo_sprint: 'Search',
+        partnership_outreach: 'Handshake',
+        billing_review: 'Receipt',
+        budget_planning: 'PiggyBank',
+        vendor_management: 'Building2',
+        compliance_audit: 'ShieldCheck',
+        weekly_sync: 'Users',
+        quarterly_planning: 'Target',
+        board_prep: 'Presentation',
+        hiring: 'UserSearch',
+        // Super User: Research
+        deep_research: 'BookOpen',
+        compliance_research: 'Scale',
+        market_research: 'BarChart3',
     };
     return iconMap[type] || 'MessageSquare';
 }
@@ -714,6 +1072,32 @@ export function getThreadTypeLabel(type: InboxThreadType): string {
         market_intel: 'Market Intel',
         bizdev: 'BizDev',
         experiment: 'Experiment',
+        // Super User: Company Operations
+        daily_standup: 'Daily Standup',
+        sprint_planning: 'Sprint Planning',
+        incident_response: 'Incident Response',
+        feature_spec: 'Feature Spec',
+        code_review: 'Code Review',
+        release: 'Release',
+        customer_onboarding: 'Customer Onboarding',
+        customer_feedback: 'Customer Feedback',
+        support_escalation: 'Escalation',
+        content_calendar: 'Content Calendar',
+        launch_campaign: 'Launch Campaign',
+        seo_sprint: 'SEO Sprint',
+        partnership_outreach: 'Partnership',
+        billing_review: 'Billing Review',
+        budget_planning: 'Budget Planning',
+        vendor_management: 'Vendors',
+        compliance_audit: 'Compliance Audit',
+        weekly_sync: 'Weekly Sync',
+        quarterly_planning: 'Quarterly Planning',
+        board_prep: 'Board Prep',
+        hiring: 'Hiring',
+        // Super User: Research
+        deep_research: 'Deep Research',
+        compliance_research: 'Compliance Research',
+        market_research: 'Market Research',
     };
     return labelMap[type] || 'Unknown';
 }
@@ -748,6 +1132,32 @@ export function getArtifactTypesForThreadType(type: InboxThreadType): InboxArtif
         market_intel: ['market_analysis'],
         bizdev: ['partnership_deck'],
         experiment: ['experiment_plan'],
+        // Super User: Company Operations
+        daily_standup: ['standup_notes'],
+        sprint_planning: ['sprint_plan'],
+        incident_response: ['incident_report', 'postmortem'],
+        feature_spec: ['feature_spec', 'technical_design'],
+        code_review: ['meeting_notes'],
+        release: ['release_notes'],
+        customer_onboarding: ['onboarding_checklist'],
+        customer_feedback: ['report'],
+        support_escalation: ['meeting_notes'],
+        content_calendar: ['content_calendar'],
+        launch_campaign: ['creative_content', 'outreach_draft'],
+        seo_sprint: ['report'],
+        partnership_outreach: ['partnership_deck'],
+        billing_review: ['report'],
+        budget_planning: ['budget_model'],
+        vendor_management: ['report'],
+        compliance_audit: ['compliance_brief'],
+        weekly_sync: ['meeting_notes'],
+        quarterly_planning: ['okr_document'],
+        board_prep: ['board_deck'],
+        hiring: ['job_spec'],
+        // Super User: Research
+        deep_research: ['research_brief'],
+        compliance_research: ['compliance_brief'],
+        market_research: ['market_analysis', 'research_brief'],
     };
     return mapping[type] || [];
 }
