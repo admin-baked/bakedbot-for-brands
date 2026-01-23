@@ -19,22 +19,17 @@ const AISearchIndexTab = dynamic(() => import("./components/ai-search-index-tab"
 const CouponManagerTab = dynamic(() => import("./components/coupon-manager-tab"), { loading: TabLoader });
 const AIAgentEmbedTab = dynamic(() => import("./components/ai-agent-embed-tab"), { loading: TabLoader });
 const CannMenusTestTab = dynamic(() => import("./components/cannmenus-test-tab"), { loading: TabLoader });
-const PlatformAnalyticsTab = dynamic(() => import("./components/platform-analytics-tab"), { loading: TabLoader });
 const TicketsTab = dynamic(() => import("./components/tickets-tab"), { loading: TabLoader });
 const FootTrafficTab = dynamic(() => import("./components/foot-traffic-tab"), { loading: TabLoader });
 const SuperAdminAgentChat = dynamic(() => import("./components/super-admin-agent-chat"), { loading: TabLoader, ssr: false });
 const SuperAdminPlaybooksTab = dynamic(() => import("./components/super-admin-playbooks-tab"), { loading: TabLoader, ssr: false });
-const UsageTab = dynamic(() => import("./components/usage-tab"), { loading: TabLoader });
-const EzalTab = dynamic(() => import("./components/ezal-tab"), { loading: TabLoader });
-const SuperAdminInsightsTab = dynamic(() => import("./components/super-admin-insights-tab").then(mod => mod.SuperAdminInsightsTab), { loading: TabLoader });
 const OperationsTab = dynamic(() => import("./components/operations-tab"), { loading: TabLoader });
-const CompetitorIntelTab = dynamic(() => import("./components/competitor-intel-tab"), { loading: TabLoader });
+const UnifiedAnalyticsPage = dynamic(() => import("./components/unified-analytics-page"), { loading: TabLoader });
 const CRMTab = dynamic(() => import("./components/crm-tab"), { loading: TabLoader });
 const AccountManagementTab = dynamic(() => import("@/components/admin/account-management-tab").then(mod => mod.AccountManagementTab), { loading: TabLoader });
 const SystemKnowledgeBase = dynamic(() => import("./components/system-knowledge-base").then(mod => mod.SystemKnowledgeBase), { loading: TabLoader, ssr: false });
 const CeoSettingsTab = dynamic(() => import("./components/ceo-settings-tab"), { loading: TabLoader });
 const AgentSandbox = dynamic(() => import("./components/agent-sandbox").then(mod => mod.AgentSandbox), { loading: TabLoader, ssr: false });
-const ResearchTab = dynamic(() => import("./components/research-tab"), { loading: TabLoader });
 const EmailTesterTab = dynamic(() => import("./components/email-tester-tab"), { loading: TabLoader });
 const BoardroomTab = dynamic(() => import("./components/boardroom-tab"), { loading: TabLoader, ssr: false });
 const CodeEvalsTab = dynamic(() => import("./components/code-evals-tab"), { loading: TabLoader, ssr: false });
@@ -120,15 +115,33 @@ function CeoDashboardContent() {
         return null; // Don't render anything while redirecting
     }
 
+    // Redirect legacy analytics tabs to unified analytics page
+    useEffect(() => {
+        const legacyAnalyticsTabs: Record<string, string> = {
+            'usage': 'sub=usage',
+            'insights': 'sub=intelligence&intel=insights',
+            'ezal': 'sub=intelligence&intel=ezal',
+            'competitor-intel': 'sub=intelligence&intel=competitor',
+            'research': 'sub=intelligence&intel=research',
+        };
+        if (currentTab && legacyAnalyticsTabs[currentTab]) {
+            router.replace(`/dashboard/ceo?tab=analytics&${legacyAnalyticsTabs[currentTab]}`);
+        }
+    }, [currentTab, router]);
+
     // Authorized - show CEO dashboard
     const renderContent = () => {
         switch (currentTab) {
             case 'agents': return <SuperAdminAgentChat />;
-            case 'usage': return <UsageTab />;
-            case 'ezal': return <EzalTab />;
-            case 'insights': return <SuperAdminInsightsTab />;
+            // Unified Analytics (consolidated from analytics, usage, insights, ezal, competitor-intel, research)
+            case 'analytics':
+            case 'usage':
+            case 'insights':
+            case 'ezal':
+            case 'competitor-intel':
+            case 'research':
+                return <UnifiedAnalyticsPage />;
             case 'playbooks': return <SuperAdminPlaybooksTab />;
-            case 'analytics': return <PlatformAnalyticsTab />;
             case 'foot-traffic': return <FootTrafficTab />;
             case 'tickets': return <TicketsTab />;
             case 'ai-agent-embed': return <AIAgentEmbedTab />;
@@ -137,12 +150,10 @@ function CeoDashboardContent() {
             case 'coupons': return <CouponManagerTab />;
             case 'cannmenus': return <CannMenusTestTab />;
             case 'operations': return <OperationsTab />;
-            case 'competitor-intel': return <CompetitorIntelTab />;
             case 'crm': return <CRMTab />;
             case 'account-management': return <AccountManagementTab />;
             case 'knowledge-base': return <SystemKnowledgeBase />;
             case 'settings': return <CeoSettingsTab />;
-            case 'research': return <ResearchTab />;
             case 'sandbox': return <AgentSandbox />;
             case 'email': return <EmailTesterTab />;
             case 'boardroom': return <BoardroomTab />;
