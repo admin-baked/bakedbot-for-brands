@@ -41,6 +41,7 @@ import { InboxCarouselCard } from './artifacts/carousel-card';
 import { InboxBundleCard } from './artifacts/bundle-card';
 import { InboxCreativeCard } from './artifacts/creative-card';
 import { formatDistanceToNow } from 'date-fns';
+import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inbox';
 
 // ============ Agent Name Mapping ============
 
@@ -219,10 +220,12 @@ function ThreadHeader({ thread }: { thread: InboxThread }) {
 export function InboxConversation({ thread, artifacts, className }: InboxConversationProps) {
     const [input, setInput] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [currentJobId, setCurrentJobId] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-    const { addMessageToThread } = useInboxStore();
+    const { addMessageToThread, addArtifacts } = useInboxStore();
 
     // Auto-scroll to bottom on new messages
     useEffect(() => {
@@ -239,6 +242,59 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [input]);
 
+    // Poll for job completion
+    useEffect(() => {
+        if (!currentJobId) return;
+
+        const pollJob = async () => {
+            try {
+                const response = await fetch(`/api/jobs/${currentJobId}`);
+                if (!response.ok) return;
+
+                const job = await response.json();
+
+                if (job.status === 'completed' || job.status === 'failed') {
+                    // Stop polling
+                    if (pollingRef.current) {
+                        clearInterval(pollingRef.current);
+                        pollingRef.current = null;
+                    }
+                    setCurrentJobId(null);
+                    setIsSubmitting(false);
+
+                    if (job.status === 'completed' && job.result?.content) {
+                        const agentMessage: ChatMessage = {
+                            id: `msg-${Date.now()}`,
+                            type: 'agent',
+                            content: job.result.content,
+                            timestamp: new Date(),
+                        };
+                        addMessageToThread(thread.id, agentMessage);
+                    } else if (job.status === 'failed') {
+                        const errorMessage: ChatMessage = {
+                            id: `msg-${Date.now()}`,
+                            type: 'agent',
+                            content: `I encountered an error: ${job.error || 'Unknown error'}. Please try again.`,
+                            timestamp: new Date(),
+                        };
+                        addMessageToThread(thread.id, errorMessage);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to poll job status:', error);
+            }
+        };
+
+        // Start polling
+        pollingRef.current = setInterval(pollJob, 1500);
+
+        return () => {
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+            }
+        };
+    }, [currentJobId, thread.id, addMessageToThread]);
+
     const handleSubmit = async () => {
         if (!input.trim() || isSubmitting) return;
 
@@ -249,26 +305,58 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             timestamp: new Date(),
         };
 
-        // Add user message to thread
+        // Add user message to local state
         addMessageToThread(thread.id, userMessage);
+
+        // Persist user message to server
+        await addMessageToInboxThread(thread.id, userMessage);
+
+        const messageContent = input.trim();
         setInput('');
         setIsSubmitting(true);
 
         try {
-            // TODO: Call agent API to get response
-            // For now, simulate agent response
-            setTimeout(() => {
-                const agentMessage: ChatMessage = {
+            // Call the inbox agent chat
+            const result = await runInboxAgentChat(thread.id, messageContent);
+
+            if (!result.success) {
+                const errorMessage: ChatMessage = {
                     id: `msg-${Date.now()}`,
                     type: 'agent',
-                    content: `I'm working on your ${thread.type} request. Let me help you create something great!`,
+                    content: `I encountered an error: ${result.error || 'Unknown error'}. Please try again.`,
                     timestamp: new Date(),
                 };
-                addMessageToThread(thread.id, agentMessage);
+                addMessageToThread(thread.id, errorMessage);
                 setIsSubmitting(false);
-            }, 1500);
+                return;
+            }
+
+            // If we got a job ID, start polling
+            if (result.jobId) {
+                setCurrentJobId(result.jobId);
+                return;
+            }
+
+            // If we got an immediate response with message
+            if (result.message) {
+                addMessageToThread(thread.id, result.message);
+
+                // Add any artifacts that were created
+                if (result.artifacts && result.artifacts.length > 0) {
+                    addArtifacts(result.artifacts);
+                }
+            }
+
+            setIsSubmitting(false);
         } catch (error) {
             console.error('Failed to send message:', error);
+            const errorMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'agent',
+                content: 'Sorry, I encountered an unexpected error. Please try again.',
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, errorMessage);
             setIsSubmitting(false);
         }
     };
