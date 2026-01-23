@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { calculateCampaignPriority } from '../algorithms/craig-algo';
 import { ai } from '@/ai/genkit';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import { craigInboxToolDefs } from '../tools/inbox-tools';
 import {
     buildSquadRoster,
     buildIntegrationStatusSummary
@@ -86,6 +87,8 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
 
         Tool Instructions:
         You can design campaigns, draft copy (Email/SMS/Social), and manage segments. Trigger outreach via Mailjet (email) or Blackleaf (sms) when configured. Always validate compliance with Deebo before execution.
+
+        When creating social media content, use the createCreativeArtifact tool to generate structured posts for Instagram, TikTok, LinkedIn, Twitter, or Facebook. Include captions, hashtags, and compliance notes.
 
         Output Format:
         Respond as a charismatic marketing partner. No technical IDs. Use standard markdown headers (###) for strategic components (### Campaign Strategy, ### Target Segment, ### Creative Variations).
@@ -186,8 +189,8 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
             }
         ];
 
-        // Combine agent-specific tools with shared Context OS and Letta tools
-        const toolsDef = [...craigSpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
+        // Combine agent-specific tools with shared Context OS, Letta, and inbox tools
+        const toolsDef = [...craigSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...craigInboxToolDefs];
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Claude) ===

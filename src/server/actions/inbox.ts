@@ -8,7 +8,7 @@
  */
 
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
-import { getServerSessionUser } from '@/server/auth/server-auth';
+import { getServerSessionUser } from '@/server/auth/session';
 import { logger } from '@/lib/logger';
 import type { ChatMessage } from '@/lib/store/agent-chat-store';
 import type {
@@ -736,5 +736,276 @@ export async function deleteInboxArtifact(
     } catch (error) {
         logger.error('Failed to delete inbox artifact', { error, artifactId });
         return { success: false, error: 'Failed to delete artifact' };
+    }
+}
+
+// ============ Agent Chat Action ============
+
+/**
+ * Result of an inbox agent chat
+ */
+export interface InboxChatResult {
+    success: boolean;
+    message?: ChatMessage;
+    artifacts?: InboxArtifact[];
+    jobId?: string;
+    error?: string;
+}
+
+/**
+ * Run agent chat for an inbox thread
+ *
+ * This routes the user message to the appropriate agent based on thread type,
+ * parses any artifacts from the response, and creates them in the database.
+ */
+export async function runInboxAgentChat(
+    threadId: string,
+    userMessage: string
+): Promise<InboxChatResult> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+
+        // Get thread to determine agent and context
+        const threadDoc = await db.collection(INBOX_THREADS_COLLECTION).doc(threadId).get();
+        if (!threadDoc.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const thread = threadDoc.data() as InboxThread;
+        if (thread.userId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        // Map inbox agent persona to the agent chat persona ID
+        const personaMap: Record<InboxAgentPersona, string> = {
+            smokey: 'smokey',
+            money_mike: 'money_mike',
+            craig: 'craig',
+            glenda: 'glenda',
+            ezal: 'ezal',
+            deebo: 'deebo',
+            pops: 'pops',
+            auto: 'puff', // Auto routes through Puff for intelligent routing
+        };
+
+        const personaId = personaMap[thread.primaryAgent] || 'puff';
+
+        // Build context for the agent based on thread type
+        const threadContext = buildThreadContext(thread);
+
+        // Call the agent chat
+        const { runAgentChat } = await import('@/app/dashboard/ceo/agents/actions');
+        const agentResult = await runAgentChat(
+            `${threadContext}\n\nUser: ${userMessage}`,
+            personaId,
+            {
+                modelLevel: 'standard',
+                source: 'inbox',
+                context: {
+                    threadId,
+                    threadType: thread.type,
+                    orgId: thread.orgId,
+                },
+            }
+        );
+
+        // If we got a job ID, return it for polling
+        if (agentResult.metadata?.jobId) {
+            return {
+                success: true,
+                jobId: agentResult.metadata.jobId,
+            };
+        }
+
+        // Parse artifacts from the agent response
+        const { artifacts: parsedArtifacts, cleanedContent } = parseArtifactsFromContent(
+            agentResult.content
+        );
+
+        // Create inbox artifacts for any parsed artifacts
+        const createdArtifacts: InboxArtifact[] = [];
+        for (const parsed of parsedArtifacts) {
+            if (parsed.type && ['carousel', 'bundle', 'creative_post'].includes(parsed.type)) {
+                const artifactType = parsed.type === 'creative_post' ? 'creative_content' : parsed.type;
+
+                // Build artifact data based on type
+                const artifactData = buildArtifactData(
+                    artifactType as InboxArtifactType,
+                    parsed.content || '',
+                    parsed.title || '',
+                    thread.orgId
+                );
+
+                if (artifactData) {
+                    const result = await createInboxArtifact({
+                        threadId,
+                        type: artifactType as InboxArtifactType,
+                        data: artifactData,
+                        rationale: parsed.metadata?.inboxData?.rationale,
+                    });
+
+                    if (result.success && result.artifact) {
+                        createdArtifacts.push(result.artifact);
+                    }
+                }
+            }
+        }
+
+        // Build the agent message (artifacts are tracked separately in the store)
+        const agentMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: cleanedContent || agentResult.content,
+            timestamp: new Date(),
+        };
+
+        // Add message to thread
+        await addMessageToInboxThread(threadId, agentMessage);
+
+        return {
+            success: true,
+            message: agentMessage,
+            artifacts: createdArtifacts,
+        };
+    } catch (error) {
+        logger.error('Failed to run inbox agent chat', { error, threadId });
+        return { success: false, error: 'Failed to run agent chat' };
+    }
+}
+
+/**
+ * Build context string for the agent based on thread type
+ */
+function buildThreadContext(thread: InboxThread): string {
+    const typeContexts: Record<InboxThreadType, string> = {
+        carousel: `You are helping create a product carousel for a dispensary.
+Use the createCarouselArtifact tool to generate carousel suggestions with product selections.
+Return structured artifacts using the :::artifact:carousel:Title format.`,
+
+        bundle: `You are helping create bundle deals for a dispensary.
+Use the createBundleArtifact tool to generate bundle suggestions with pricing and margin analysis.
+Return structured artifacts using the :::artifact:bundle:Title format.
+Always protect margins and flag deals with savings over 25%.`,
+
+        creative: `You are helping create social media content for a cannabis brand.
+Use the createCreativeArtifact tool to generate platform-specific content.
+Return structured artifacts using the :::artifact:creative_post:Title format.
+Always consider cannabis advertising compliance rules.`,
+
+        campaign: `You are helping plan and execute a marketing campaign.
+Coordinate with other agents (Craig for content, Smokey for products, Money Mike for pricing).
+Break down the campaign into actionable artifacts.`,
+
+        general: `You are a helpful assistant for a cannabis dispensary or brand.
+Answer questions and help with various tasks related to marketing and operations.`,
+
+        product_discovery: `You are helping a customer find products.
+Use your product knowledge to make personalized recommendations.`,
+
+        support: `You are providing customer support.
+Be helpful, empathetic, and provide clear guidance.`,
+    };
+
+    return `Thread Context: ${thread.title}
+Thread Type: ${thread.type}
+
+${typeContexts[thread.type]}
+
+Previous messages in this conversation: ${thread.messages.length}`;
+}
+
+/**
+ * Build artifact data from parsed content
+ */
+function buildArtifactData(
+    type: InboxArtifactType,
+    content: string,
+    title: string,
+    orgId: string
+): Carousel | BundleDeal | CreativeContent | null {
+    try {
+        const parsed = JSON.parse(content);
+
+        switch (type) {
+            case 'carousel':
+                return {
+                    id: '',
+                    orgId,
+                    title: title || parsed.title || 'New Carousel',
+                    description: parsed.description,
+                    productIds: parsed.productIds || [],
+                    active: false,
+                    displayOrder: parsed.displayOrder || 0,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                } as Carousel;
+
+            case 'bundle':
+                return {
+                    id: '',
+                    orgId,
+                    name: title || parsed.name || 'New Bundle',
+                    description: parsed.description || '',
+                    type: parsed.type || 'fixed_price',
+                    status: 'draft',
+                    createdBy: 'dispensary',
+                    products: parsed.products || [],
+                    originalTotal: parsed.originalTotal || 0,
+                    bundlePrice: parsed.bundlePrice || 0,
+                    savingsAmount: parsed.savingsAmount || 0,
+                    savingsPercent: parsed.savingsPercent || 0,
+                    currentRedemptions: 0,
+                    featured: false,
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                } as BundleDeal;
+
+            case 'creative_content':
+                return {
+                    id: '',
+                    tenantId: orgId,
+                    brandId: orgId,
+                    platform: parsed.platform || 'instagram',
+                    status: 'draft',
+                    complianceStatus: 'review_needed',
+                    caption: parsed.caption || '',
+                    hashtags: parsed.hashtags,
+                    mediaUrls: parsed.mediaUrls || [],
+                    mediaType: parsed.mediaType || 'image',
+                    generatedBy: 'nano-banana',
+                    createdBy: 'agent',
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                } as CreativeContent;
+
+            default:
+                return null;
+        }
+    } catch {
+        // Content is not valid JSON
+        return null;
+    }
+}
+
+/**
+ * Get display title for an artifact
+ */
+function getArtifactTitle(artifact: InboxArtifact): string {
+    switch (artifact.type) {
+        case 'carousel':
+            return (artifact.data as Carousel).title;
+        case 'bundle':
+            return (artifact.data as BundleDeal).name;
+        case 'creative_content': {
+            const content = artifact.data as CreativeContent;
+            return `${content.platform} Post`;
+        }
+        default:
+            return 'Artifact';
     }
 }

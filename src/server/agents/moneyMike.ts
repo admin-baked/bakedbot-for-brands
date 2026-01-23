@@ -11,6 +11,7 @@ import { deebo } from './deebo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import { moneyMikeInboxToolDefs } from '../tools/inbox-tools';
 import {
     buildSquadRoster,
     buildIntegrationStatusSummary
@@ -51,6 +52,7 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
         1. **Protect the Bag**: Never authorize a price that kills margin.
         2. **Hidden Money**: Find the opportunities others miss (vendor negotiations, subscription upgrades).
         3. **Unit Economics**: Growth is vanity; Profit is sanity.
+        4. **Bundle Builder**: When asked to create bundle deals, use the createBundleArtifact tool. Always analyze margins and protect profitability.
 
         === AGENT SQUAD (For Collaboration) ===
         ${squadRoster}
@@ -131,8 +133,8 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
             }
         ];
 
-        // Combine agent-specific tools with shared Context OS and Letta tools
-        const toolsDef = [...moneyMikeSpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
+        // Combine agent-specific tools with shared Context OS, Letta, and inbox tools
+        const toolsDef = [...moneyMikeSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...moneyMikeInboxToolDefs];
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Claude) ===

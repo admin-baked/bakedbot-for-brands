@@ -98,6 +98,9 @@ interface InboxState {
     hydrateThreads: (threads: InboxThread[]) => void;
     hydrateArtifacts: (artifacts: InboxArtifact[]) => void;
 
+    // Add artifacts (append to existing)
+    addArtifacts: (artifacts: InboxArtifact[]) => void;
+
     // Computed getters (as functions)
     getFilteredThreads: () => InboxThread[];
     getThreadById: (threadId: string) => InboxThread | undefined;
@@ -407,6 +410,12 @@ export const useInboxStore = create<InboxState>()(
 
             hydrateArtifacts: (artifacts) => {
                 set({ inboxArtifacts: artifacts });
+            },
+
+            addArtifacts: (artifacts) => {
+                set((state) => ({
+                    inboxArtifacts: [...state.inboxArtifacts, ...artifacts],
+                }));
             },
 
             // ============ Computed Getters ============

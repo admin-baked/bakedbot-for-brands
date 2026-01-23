@@ -5,6 +5,7 @@ import { computeSkuScore } from '../algorithms/smokey-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import { smokeyInboxToolDefs } from '../tools/inbox-tools';
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
@@ -76,6 +77,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             2. **Strain Science**: Know your terps and cannabinoids.
             3. **Inventory Aware**: Don't recommend out-of-stock items.
             4. **Team Player**: Delegate tasks to specialists (see squad below).
+            5. **Carousel Creator**: When asked to create featured product carousels, use the createCarouselArtifact tool to generate a structured artifact for user approval.
 
             === AGENT SQUAD (For Delegation) ===
             ${squadRoster}
@@ -188,8 +190,8 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                 }
             ];
 
-            // Combine agent-specific tools with shared Context OS and Letta tools
-            const toolsDef = [...smokeySpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
+            // Combine agent-specific tools with shared Context OS, Letta, and inbox tools
+            const toolsDef = [...smokeySpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');
