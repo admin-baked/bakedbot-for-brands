@@ -43,8 +43,13 @@ import { isHighRiskAction } from '@/server/services/browser-automation/action-va
 export async function createBrowserSession(
   options?: SessionOptions
 ): Promise<ActionResult<BrowserSession>> {
-  const session = await requireSuperUser();
-  return browserSessionManager.createSession(session.uid, options);
+  try {
+    const session = await requireSuperUser();
+    return browserSessionManager.createSession(session.uid, options);
+  } catch (error) {
+    logger.error('[BrowserAutomation] createBrowserSession failed', { error });
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to create session' };
+  }
 }
 
 /**
@@ -67,16 +72,26 @@ export async function getActiveBrowserSession(): Promise<ActionResult<BrowserSes
 export async function getBrowserSession(
   sessionId: string
 ): Promise<ActionResult<SessionState>> {
-  await requireSuperUser();
-  return browserSessionManager.getSessionState(sessionId);
+  try {
+    await requireSuperUser();
+    return browserSessionManager.getSessionState(sessionId);
+  } catch (error) {
+    logger.error('[BrowserAutomation] getBrowserSession failed', { error });
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to get session' };
+  }
 }
 
 /**
  * Pause browser session
  */
 export async function pauseBrowserSession(sessionId: string): Promise<ActionResult> {
-  await requireSuperUser();
-  return browserSessionManager.pauseSession(sessionId);
+  try {
+    await requireSuperUser();
+    return browserSessionManager.pauseSession(sessionId);
+  } catch (error) {
+    logger.error('[BrowserAutomation] pauseBrowserSession failed', { error });
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to pause session' };
+  }
 }
 
 /**
@@ -85,16 +100,26 @@ export async function pauseBrowserSession(sessionId: string): Promise<ActionResu
 export async function resumeBrowserSession(
   sessionId: string
 ): Promise<ActionResult<BrowserSession>> {
-  await requireSuperUser();
-  return browserSessionManager.resumeSession(sessionId);
+  try {
+    await requireSuperUser();
+    return browserSessionManager.resumeSession(sessionId);
+  } catch (error) {
+    logger.error('[BrowserAutomation] resumeBrowserSession failed', { error });
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to resume session' };
+  }
 }
 
 /**
  * End browser session
  */
 export async function endBrowserSession(sessionId: string): Promise<ActionResult> {
-  await requireSuperUser();
-  return browserSessionManager.endSession(sessionId);
+  try {
+    await requireSuperUser();
+    return browserSessionManager.endSession(sessionId);
+  } catch (error) {
+    logger.error('[BrowserAutomation] endBrowserSession failed', { error });
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to end session' };
+  }
 }
 
 /**
@@ -103,9 +128,14 @@ export async function endBrowserSession(sessionId: string): Promise<ActionResult
 export async function getBrowserSessionHistory(
   limit?: number
 ): Promise<ActionResult<BrowserSession[]>> {
-  const session = await requireSuperUser();
-  const sessions = await browserSessionManager.getSessionHistory(session.uid, limit);
-  return { success: true, data: sessions };
+  try {
+    const session = await requireSuperUser();
+    const sessions = await browserSessionManager.getSessionHistory(session.uid, limit);
+    return { success: true, data: sessions };
+  } catch (error) {
+    logger.error('[BrowserAutomation] getBrowserSessionHistory failed', { error });
+    return { success: true, data: [] }; // Return empty array instead of failing
+  }
 }
 
 // ============================================================================
@@ -119,7 +149,13 @@ export async function executeBrowserAction(
   sessionId: string,
   action: BrowserAction
 ): Promise<ActionResult> {
-  const session = await requireSuperUser();
+  let session;
+  try {
+    session = await requireSuperUser();
+  } catch (error) {
+    logger.error('[BrowserAutomation] executeBrowserAction auth failed', { error });
+    return { success: false, error: 'Authentication required' };
+  }
 
   // Get current session state for URL context
   const stateResult = await browserSessionManager.getSessionState(sessionId);
@@ -241,8 +277,13 @@ export async function browserExecuteScript(
 export async function getBrowserTabs(
   sessionId: string
 ): Promise<ActionResult<{ id: number; url: string; title: string }[]>> {
-  await requireSuperUser();
-  return browserSessionManager.getTabs(sessionId);
+  try {
+    await requireSuperUser();
+    return browserSessionManager.getTabs(sessionId);
+  } catch (error) {
+    logger.error('[BrowserAutomation] getBrowserTabs failed', { error });
+    return { success: true, data: [] }; // Return empty array instead of failing
+  }
 }
 
 // ============================================================================
@@ -256,12 +297,12 @@ export async function grantSitePermission(
   domain: string,
   permissions: PermissionGrant
 ): Promise<ActionResult<SitePermission>> {
-  const session = await requireSuperUser();
-
   try {
+    const session = await requireSuperUser();
     const permission = await permissionGuard.grantAccess(session.uid, domain, permissions);
     return { success: true, data: permission };
   } catch (error) {
+    logger.error('[BrowserAutomation] grantSitePermission failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to grant permission',
@@ -273,12 +314,12 @@ export async function grantSitePermission(
  * Revoke site permission
  */
 export async function revokeSitePermission(domain: string): Promise<ActionResult> {
-  const session = await requireSuperUser();
-
   try {
+    const session = await requireSuperUser();
     await permissionGuard.revokeAccess(session.uid, domain);
     return { success: true };
   } catch (error) {
+    logger.error('[BrowserAutomation] revokeSitePermission failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to revoke permission',
@@ -290,12 +331,12 @@ export async function revokeSitePermission(domain: string): Promise<ActionResult
  * Block a domain
  */
 export async function blockSiteDomain(domain: string): Promise<ActionResult> {
-  const session = await requireSuperUser();
-
   try {
+    const session = await requireSuperUser();
     await permissionGuard.blockDomain(session.uid, domain);
     return { success: true };
   } catch (error) {
+    logger.error('[BrowserAutomation] blockSiteDomain failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to block domain',
@@ -323,9 +364,14 @@ export async function listSitePermissions(): Promise<ActionResult<SitePermission
 export async function getSitePermission(
   domain: string
 ): Promise<ActionResult<SitePermission | null>> {
-  const session = await requireSuperUser();
-  const permission = await permissionGuard.getPermissionForDomain(session.uid, domain);
-  return { success: true, data: permission };
+  try {
+    const session = await requireSuperUser();
+    const permission = await permissionGuard.getPermissionForDomain(session.uid, domain);
+    return { success: true, data: permission };
+  } catch (error) {
+    logger.error('[BrowserAutomation] getSitePermission failed', { error });
+    return { success: true, data: null }; // Return null instead of failing
+  }
 }
 
 // ============================================================================
@@ -338,32 +384,47 @@ export async function getSitePermission(
 export async function getPendingConfirmation(
   token: string
 ): Promise<ActionResult<PendingConfirmation | null>> {
-  await requireSuperUser();
-  const confirmation = await permissionGuard.getPendingConfirmation(token);
-  return { success: true, data: confirmation };
+  try {
+    await requireSuperUser();
+    const confirmation = await permissionGuard.getPendingConfirmation(token);
+    return { success: true, data: confirmation };
+  } catch (error) {
+    logger.error('[BrowserAutomation] getPendingConfirmation failed', { error });
+    return { success: true, data: null }; // Return null instead of failing
+  }
 }
 
 /**
  * Confirm a high-risk action
  */
 export async function confirmBrowserAction(token: string): Promise<ActionResult> {
-  await requireSuperUser();
-  const result = await permissionGuard.confirmAction(token);
+  try {
+    await requireSuperUser();
+    const result = await permissionGuard.confirmAction(token);
 
-  if (!result.allowed) {
-    return { success: false, error: result.reason };
+    if (!result.allowed) {
+      return { success: false, error: result.reason };
+    }
+
+    return { success: true };
+  } catch (error) {
+    logger.error('[BrowserAutomation] confirmBrowserAction failed', { error });
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to confirm action' };
   }
-
-  return { success: true };
 }
 
 /**
  * Deny a high-risk action
  */
 export async function denyBrowserAction(token: string): Promise<ActionResult> {
-  await requireSuperUser();
-  await permissionGuard.denyAction(token);
-  return { success: true };
+  try {
+    await requireSuperUser();
+    await permissionGuard.denyAction(token);
+    return { success: true };
+  } catch (error) {
+    logger.error('[BrowserAutomation] denyBrowserAction failed', { error });
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to deny action' };
+  }
 }
 
 // ============================================================================
@@ -377,9 +438,8 @@ export async function startWorkflowRecording(
   name: string,
   description?: string
 ): Promise<ActionResult<RecordingSession>> {
-  const session = await requireSuperUser();
-
   try {
+    const session = await requireSuperUser();
     // Get active browser session
     const browserSession = await browserSessionManager.getActiveSession(session.uid);
 
@@ -392,6 +452,7 @@ export async function startWorkflowRecording(
 
     return { success: true, data: recording };
   } catch (error) {
+    logger.error('[BrowserAutomation] startWorkflowRecording failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to start recording',
@@ -403,12 +464,12 @@ export async function startWorkflowRecording(
  * Pause workflow recording
  */
 export async function pauseWorkflowRecording(recordingId: string): Promise<ActionResult> {
-  await requireSuperUser();
-
   try {
+    await requireSuperUser();
     await workflowRecorder.pauseRecording(recordingId);
     return { success: true };
   } catch (error) {
+    logger.error('[BrowserAutomation] pauseWorkflowRecording failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to pause recording',
@@ -420,12 +481,12 @@ export async function pauseWorkflowRecording(recordingId: string): Promise<Actio
  * Resume workflow recording
  */
 export async function resumeWorkflowRecording(recordingId: string): Promise<ActionResult> {
-  await requireSuperUser();
-
   try {
+    await requireSuperUser();
     await workflowRecorder.resumeRecording(recordingId);
     return { success: true };
   } catch (error) {
+    logger.error('[BrowserAutomation] resumeWorkflowRecording failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to resume recording',
@@ -439,12 +500,12 @@ export async function resumeWorkflowRecording(recordingId: string): Promise<Acti
 export async function stopWorkflowRecording(
   recordingId: string
 ): Promise<ActionResult<RecordedWorkflow>> {
-  await requireSuperUser();
-
   try {
+    await requireSuperUser();
     const workflow = await workflowRecorder.stopRecording(recordingId);
     return { success: true, data: workflow };
   } catch (error) {
+    logger.error('[BrowserAutomation] stopWorkflowRecording failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to stop recording',
@@ -456,12 +517,12 @@ export async function stopWorkflowRecording(
  * Cancel workflow recording
  */
 export async function cancelWorkflowRecording(recordingId: string): Promise<ActionResult> {
-  await requireSuperUser();
-
   try {
+    await requireSuperUser();
     await workflowRecorder.cancelRecording(recordingId);
     return { success: true };
   } catch (error) {
+    logger.error('[BrowserAutomation] cancelWorkflowRecording failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to cancel recording',
@@ -493,15 +554,15 @@ export async function getActiveRecording(): Promise<ActionResult<RecordingSessio
 export async function saveWorkflow(
   workflow: Omit<RecordedWorkflow, 'id' | 'createdAt' | 'updatedAt' | 'runCount' | 'userId'>
 ): Promise<ActionResult<RecordedWorkflow>> {
-  const session = await requireSuperUser();
-
   try {
+    const session = await requireSuperUser();
     const saved = await workflowRecorder.saveWorkflow({
       ...workflow,
       userId: session.uid,
     });
     return { success: true, data: saved };
   } catch (error) {
+    logger.error('[BrowserAutomation] saveWorkflow failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to save workflow',
@@ -516,12 +577,12 @@ export async function updateWorkflow(
   workflowId: string,
   updates: Partial<Pick<RecordedWorkflow, 'name' | 'description' | 'steps' | 'variables' | 'status' | 'tags'>>
 ): Promise<ActionResult> {
-  await requireSuperUser();
-
   try {
+    await requireSuperUser();
     await workflowRecorder.updateWorkflow(workflowId, updates);
     return { success: true };
   } catch (error) {
+    logger.error('[BrowserAutomation] updateWorkflow failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update workflow',
@@ -533,12 +594,12 @@ export async function updateWorkflow(
  * Delete a workflow
  */
 export async function deleteWorkflow(workflowId: string): Promise<ActionResult> {
-  await requireSuperUser();
-
   try {
+    await requireSuperUser();
     await workflowRecorder.deleteWorkflow(workflowId);
     return { success: true };
   } catch (error) {
+    logger.error('[BrowserAutomation] deleteWorkflow failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete workflow',
@@ -552,9 +613,14 @@ export async function deleteWorkflow(workflowId: string): Promise<ActionResult> 
 export async function getWorkflow(
   workflowId: string
 ): Promise<ActionResult<RecordedWorkflow | null>> {
-  await requireSuperUser();
-  const workflow = await workflowRecorder.getWorkflow(workflowId);
-  return { success: true, data: workflow };
+  try {
+    await requireSuperUser();
+    const workflow = await workflowRecorder.getWorkflow(workflowId);
+    return { success: true, data: workflow };
+  } catch (error) {
+    logger.error('[BrowserAutomation] getWorkflow failed', { error });
+    return { success: true, data: null }; // Return null instead of failing
+  }
 }
 
 /**
@@ -581,28 +647,33 @@ export async function runWorkflow(
   workflowId: string,
   variables?: Record<string, string>
 ): Promise<ActionResult<WorkflowRunResult>> {
-  const session = await requireSuperUser();
+  try {
+    const session = await requireSuperUser();
 
-  // Get or create browser session
-  let browserSession = await browserSessionManager.getActiveSession(session.uid);
+    // Get or create browser session
+    let browserSession = await browserSessionManager.getActiveSession(session.uid);
 
-  if (!browserSession) {
-    const result = await browserSessionManager.createSession(session.uid, {
-      taskDescription: `Running workflow: ${workflowId}`,
-    });
-    if (!result.success || !result.data) {
-      return { success: false, error: result.error || 'Failed to create session' };
+    if (!browserSession) {
+      const result = await browserSessionManager.createSession(session.uid, {
+        taskDescription: `Running workflow: ${workflowId}`,
+      });
+      if (!result.success || !result.data) {
+        return { success: false, error: result.error || 'Failed to create session' };
+      }
+      browserSession = result.data;
     }
-    browserSession = result.data;
+
+    const result = await workflowRecorder.runWorkflow(
+      workflowId,
+      browserSession.id,
+      variables
+    );
+
+    return { success: result.success, data: result, error: result.error };
+  } catch (error) {
+    logger.error('[BrowserAutomation] runWorkflow failed', { error });
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to run workflow' };
   }
-
-  const result = await workflowRecorder.runWorkflow(
-    workflowId,
-    browserSession.id,
-    variables
-  );
-
-  return { success: result.success, data: result, error: result.error };
 }
 
 // ============================================================================
@@ -615,12 +686,12 @@ export async function runWorkflow(
 export async function scheduleBrowserTask(
   task: BrowserTaskCreate
 ): Promise<ActionResult<BrowserTask>> {
-  const session = await requireSuperUser();
-
   try {
+    const session = await requireSuperUser();
     const scheduled = await taskScheduler.scheduleTask(session.uid, task);
     return { success: true, data: scheduled };
   } catch (error) {
+    logger.error('[BrowserAutomation] scheduleBrowserTask failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to schedule task',
@@ -635,12 +706,12 @@ export async function updateBrowserTask(
   taskId: string,
   updates: Partial<Pick<BrowserTask, 'name' | 'description' | 'schedule' | 'enabled' | 'workflowId'>>
 ): Promise<ActionResult> {
-  await requireSuperUser();
-
   try {
+    await requireSuperUser();
     await taskScheduler.updateTask(taskId, updates);
     return { success: true };
   } catch (error) {
+    logger.error('[BrowserAutomation] updateBrowserTask failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update task',
@@ -652,12 +723,12 @@ export async function updateBrowserTask(
  * Cancel a browser task
  */
 export async function cancelBrowserTask(taskId: string): Promise<ActionResult> {
-  await requireSuperUser();
-
   try {
+    await requireSuperUser();
     await taskScheduler.cancelTask(taskId);
     return { success: true };
   } catch (error) {
+    logger.error('[BrowserAutomation] cancelBrowserTask failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to cancel task',
@@ -669,12 +740,12 @@ export async function cancelBrowserTask(taskId: string): Promise<ActionResult> {
  * Delete a browser task
  */
 export async function deleteBrowserTask(taskId: string): Promise<ActionResult> {
-  await requireSuperUser();
-
   try {
+    await requireSuperUser();
     await taskScheduler.deleteTask(taskId);
     return { success: true };
   } catch (error) {
+    logger.error('[BrowserAutomation] deleteBrowserTask failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete task',
@@ -688,9 +759,14 @@ export async function deleteBrowserTask(taskId: string): Promise<ActionResult> {
 export async function getBrowserTask(
   taskId: string
 ): Promise<ActionResult<BrowserTask | null>> {
-  await requireSuperUser();
-  const task = await taskScheduler.getTask(taskId);
-  return { success: true, data: task };
+  try {
+    await requireSuperUser();
+    const task = await taskScheduler.getTask(taskId);
+    return { success: true, data: task };
+  } catch (error) {
+    logger.error('[BrowserAutomation] getBrowserTask failed', { error });
+    return { success: true, data: null }; // Return null instead of failing
+  }
 }
 
 /**
@@ -715,12 +791,12 @@ export async function listBrowserTasks(options?: {
 export async function runBrowserTaskNow(
   taskId: string
 ): Promise<ActionResult<WorkflowRunResult>> {
-  await requireSuperUser();
-
   try {
+    await requireSuperUser();
     const result = await taskScheduler.runNow(taskId);
     return { success: result.success, data: result, error: result.error };
   } catch (error) {
+    logger.error('[BrowserAutomation] runBrowserTaskNow failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to run task',
@@ -732,12 +808,12 @@ export async function runBrowserTaskNow(
  * Enable a browser task
  */
 export async function enableBrowserTask(taskId: string): Promise<ActionResult> {
-  await requireSuperUser();
-
   try {
+    await requireSuperUser();
     await taskScheduler.enableTask(taskId);
     return { success: true };
   } catch (error) {
+    logger.error('[BrowserAutomation] enableBrowserTask failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to enable task',
@@ -749,12 +825,12 @@ export async function enableBrowserTask(taskId: string): Promise<ActionResult> {
  * Disable a browser task
  */
 export async function disableBrowserTask(taskId: string): Promise<ActionResult> {
-  await requireSuperUser();
-
   try {
+    await requireSuperUser();
     await taskScheduler.disableTask(taskId);
     return { success: true };
   } catch (error) {
+    logger.error('[BrowserAutomation] disableBrowserTask failed', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to disable task',
