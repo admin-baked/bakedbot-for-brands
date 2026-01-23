@@ -119,8 +119,11 @@ export async function setupPilotCustomer(config: PilotConfig): Promise<PilotSetu
             ? config.brandSlug.toLowerCase().replace(/[^a-z0-9]/g, '_')
             : config.dispensarySlug.toLowerCase().replace(/[^a-z0-9]/g, '_');
 
-        const brandId = `brand_${slugSafe}`;
-        const orgId = `org_${slugSafe}`;
+        // Use dispensary_ prefix for dispensaries, brand_ for brands
+        const orgId = config.type === 'dispensary'
+            ? `dispensary_${slugSafe}`
+            : `brand_${slugSafe}`;
+        const brandId = orgId; // orgId and brandId are now the same
         const locationId = config.type === 'dispensary' ? `loc_${slugSafe}` : undefined;
 
         // 1. Create or find user

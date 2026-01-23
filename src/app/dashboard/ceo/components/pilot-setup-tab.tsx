@@ -938,7 +938,7 @@ export default function PilotSetupTab() {
                 <CardContent>
                     <div className="flex items-center gap-2">
                         <Input
-                            placeholder="e.g., loc_thrive_syracuse or org_xxx"
+                            placeholder="e.g., dispensary_thrive_syracuse or brand_xxx"
                             value={resumeOrgId}
                             onChange={(e) => setResumeOrgId(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleResumePilot()}
@@ -950,7 +950,7 @@ export default function PilotSetupTab() {
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
-                        Known pilots: <code className="bg-white px-1 rounded">loc_thrive_syracuse</code>
+                        Known pilots: <code className="bg-white px-1 rounded">dispensary_thrive_syracuse</code>
                     </p>
                 </CardContent>
             </Card>
