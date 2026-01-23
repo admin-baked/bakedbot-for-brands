@@ -258,12 +258,14 @@ describe('validateInput - Sensitive Keywords', () => {
         });
     });
 
-    describe('Admin role (lower risk)', () => {
-        it('should have lower risk for admin password mentions', () => {
+    describe('Admin role (equal risk - Q1 2026 security fix)', () => {
+        it('should have equal risk scoring for admin and customer roles', () => {
+            // Q1 2026 Security Fix: Admin no longer gets reduced risk scoring
+            // This prevents privilege escalation via compromised admin accounts
             const adminResult = validateInput('Reset user password', { allowedRole: 'admin' });
             const customerResult = validateInput('Reset user password', { allowedRole: 'customer' });
 
-            expect(adminResult.riskScore).toBeLessThan(customerResult.riskScore);
+            expect(adminResult.riskScore).toBe(customerResult.riskScore);
         });
     });
 });

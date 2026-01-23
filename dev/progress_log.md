@@ -1,3 +1,24 @@
+## Session: 2026-01-22 (Unit Test Unified Claim Flow)
+### Task ID
+task_test_unified_claim_flow
+
+### Summary
+Implemented robust unit tests for the Unified Claim/Onboarding Flow (`createClaimSubscription.test.ts`) and CannMenus Sync (`cannmenus.test.ts`). Fixed a critical bug in `createClaimSubscription.ts` where plan aliases (`free`, `founders_claim`) were not being resolved correctly, causing logic failures.
+
+### Key Changes
+*   **NEW**: `tests/server/actions/createClaimSubscription.test.ts` - Verified free/paid flows and limits.
+*   **NEW**: `tests/server/actions/cannmenus.test.ts` - Verified API interaction and incremental sync.
+*   **FIX**: `src/server/actions/createClaimSubscription.ts` - Switched to `findPricingPlan` helper to support legacy aliases.
+
+### Tests Run
+*   `npm test -- tests/server/actions/createClaimSubscription.test.ts` (Passed ✅)
+*   `npm test -- tests/server/actions/cannmenus.test.ts` (Passed ✅)
+
+### Result: ✅ Complete
+Claim flow and menu sync are now verified with unit tests.
+
+---
+
 ## Session: 2026-01-22 (Quarterly Security Audit)
 ### Task ID
 quarterly_security_audit_q1_2026
