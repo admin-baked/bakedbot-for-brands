@@ -39,9 +39,13 @@ export async function POST(
         taskDescription: `Running workflow: ${workflowId}`,
       });
       if (!result.success || !result.data) {
+        const error = result.error || 'Failed to create session';
+        // Return 503 if no devices are available
+        const status = error.includes('No available devices') ? 503 : 500;
+
         return NextResponse.json(
-          { success: false, error: result.error || 'Failed to create session' },
-          { status: 500, headers: corsHeaders }
+          { success: false, error },
+          { status, headers: corsHeaders }
         );
       }
       browserSession = result.data;
@@ -52,6 +56,20 @@ export async function POST(
       browserSession.id,
       variables
     );
+
+    if (!result.success) {
+      const error = result.error || 'Workflow failed';
+      let status = 400; // Default to Bad Request for execution failures
+
+      if (error === 'Workflow not found') {
+        status = 404;
+      }
+
+      return NextResponse.json(
+        { success: false, error },
+        { status, headers: corsHeaders }
+      );
+    }
 
     return NextResponse.json(
       { success: result.success, data: result, error: result.error },
