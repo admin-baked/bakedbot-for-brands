@@ -28,6 +28,7 @@ import { InviteUserDialog } from '@/components/invitations/invite-user-dialog';
 
 
 import { SuperAdminSidebar } from '@/components/dashboard/super-admin-sidebar';
+import { BrandSidebar } from '@/components/dashboard/brand-sidebar';
 import { SharedSidebarHistory } from '@/components/dashboard/shared-sidebar-history';
 import { logger } from '@/lib/logger';
 import { useSuperAdmin } from '@/hooks/use-super-admin';
@@ -45,8 +46,12 @@ export function DashboardSidebar() {
   // Show Super Admin Sidebar if explicitly on CEO path OR if authenticated as Super Admin (and not impersonating/shopping)
   // We exclude 'brand'/'dispensary' roles to allow impersonation (where role would be 'brand')
   // We exclude /dashboard/shop to allow testing the customer flow
-  const isCeoDashboard = pathname?.startsWith('/dashboard/ceo') || 
+  const isCeoDashboard = pathname?.startsWith('/dashboard/ceo') ||
                          (isSuperAdmin && role !== 'brand' && role !== 'dispensary' && !pathname?.startsWith('/dashboard/shop'));
+
+  // Show Brand Sidebar for brand users (including brand_admin, brand_member)
+  const isBrandDashboard = !isCeoDashboard &&
+                           (role === 'brand' || role === 'brand_admin' || role === 'brand_member');
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -118,7 +123,14 @@ export function DashboardSidebar() {
         {isCeoDashboard ? (
           /* CEO Dashboard: Show Super Admin Navigation */
           <SuperAdminSidebar />
+        ) : isBrandDashboard ? (
+          /* Brand Dashboard: Show Brand Navigation */
+          <>
+            <SharedSidebarHistory />
+            <BrandSidebar />
+          </>
         ) : (
+          /* Default: Show role-filtered navigation */
           <>
             <SharedSidebarHistory />
             <SidebarMenu>
@@ -172,8 +184,8 @@ export function DashboardSidebar() {
         )}
 
         
-        {/* Invite Team Member Action */}
-        {!isCeoDashboard && user && orgId && (
+        {/* Invite Team Member Action - only show for default nav (not CEO or Brand sidebars which have their own) */}
+        {!isCeoDashboard && !isBrandDashboard && user && orgId && (
             <div className="mt-auto p-4">
                <InviteUserDialog 
                     orgId={orgId || undefined}
