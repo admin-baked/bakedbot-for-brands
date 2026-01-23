@@ -203,6 +203,7 @@ function FilterButton({ collapsed }: { collapsed?: boolean }) {
 
     const filterLabels: Record<InboxThreadType | 'all', string> = {
         all: 'All Threads',
+        // Business Operations
         general: 'General',
         carousel: 'Carousels',
         bundle: 'Bundles',
@@ -214,8 +215,18 @@ function FilterButton({ collapsed }: { collapsed?: boolean }) {
         outreach: 'Outreach',
         inventory_promo: 'Inventory Promos',
         event: 'Events',
+        // Customer
         product_discovery: 'Products',
         support: 'Support',
+        // Super User: Growth Management
+        growth_review: 'Growth Reviews',
+        churn_risk: 'Churn Analysis',
+        revenue_forecast: 'Revenue Forecasts',
+        pipeline: 'Pipeline',
+        customer_health: 'Customer Health',
+        market_intel: 'Market Intel',
+        bizdev: 'BizDev',
+        experiment: 'Experiments',
     };
 
     if (collapsed) {

@@ -46,15 +46,20 @@ import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inb
 // ============ Agent Name Mapping ============
 
 const AGENT_NAMES: Record<InboxAgentPersona, { name: string; avatar: string }> = {
+    // Field Agents
     smokey: { name: 'Smokey', avatar: '🌿' },
     money_mike: { name: 'Money Mike', avatar: '💰' },
     craig: { name: 'Craig', avatar: '📣' },
-    glenda: { name: 'Glenda', avatar: '✨' },
     ezal: { name: 'Ezal', avatar: '🔍' },
     deebo: { name: 'Deebo', avatar: '🛡️' },
     pops: { name: 'Pops', avatar: '📊' },
-    linus: { name: 'Linus', avatar: '🖥️' },
     day_day: { name: 'Day Day', avatar: '📦' },
+    // Executive Agents
+    leo: { name: 'Leo', avatar: '⚙️' },
+    jack: { name: 'Jack', avatar: '📈' },
+    linus: { name: 'Linus', avatar: '🖥️' },
+    glenda: { name: 'Glenda', avatar: '✨' },
+    // Auto-routing
     auto: { name: 'Assistant', avatar: '🤖' },
 };
 

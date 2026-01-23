@@ -783,15 +783,20 @@ export async function runInboxAgentChat(
 
         // Map inbox agent persona to the agent chat persona ID
         const personaMap: Record<InboxAgentPersona, string> = {
+            // Field Agents
             smokey: 'smokey',
             money_mike: 'money_mike',
             craig: 'craig',
-            glenda: 'glenda',
             ezal: 'ezal',
             deebo: 'deebo',
             pops: 'pops',
-            linus: 'linus',
             day_day: 'day_day',
+            // Executive Agents
+            leo: 'leo',
+            jack: 'jack',
+            linus: 'linus',
+            glenda: 'glenda',
+            // Auto-routing
             auto: 'puff', // Auto routes through Puff for intelligent routing
         };
 
@@ -937,6 +942,47 @@ Use your product knowledge to make personalized recommendations.`,
 
         support: `You are providing customer support.
 Be helpful, empathetic, and provide clear guidance.`,
+
+        // Super User: Growth Management thread types
+        growth_review: `You are Jack, the CRO, helping review growth metrics and KPIs.
+Analyze key metrics: MRR, growth rates (WoW/MoM), customer acquisition, retention.
+Identify momentum indicators and growth opportunities.
+Generate growth report artifacts with actionable insights.`,
+
+        churn_risk: `You are Jack, the CRO, helping identify and retain at-risk customers.
+Analyze customer health signals: engagement, usage patterns, support tickets.
+Score churn risk and prioritize intervention strategies.
+Generate churn scorecard artifacts with specific retention actions.`,
+
+        revenue_forecast: `You are Money Mike, the CFO, helping model and forecast revenue.
+Build revenue projections based on current trends and growth assumptions.
+Create scenario models (conservative, base, optimistic).
+Generate revenue model artifacts with detailed forecasts.`,
+
+        pipeline: `You are Jack, the CRO, helping track the sales pipeline.
+Review deal stages, conversion rates, and sales velocity.
+Identify bottlenecks and opportunities in the funnel.
+Generate pipeline report artifacts with deal analysis.`,
+
+        customer_health: `You are Jack, the CRO, monitoring customer segment health.
+Analyze engagement metrics, feature adoption, and satisfaction by segment.
+Identify healthy vs at-risk segments and growth opportunities.
+Generate health scorecard artifacts with segment-level insights.`,
+
+        market_intel: `You are Ezal, the competitive intelligence specialist.
+Analyze market positioning, competitor moves, and market share trends.
+Identify competitive threats and opportunities.
+Generate market analysis artifacts with strategic recommendations.`,
+
+        bizdev: `You are Glenda, the CMO, helping with business development.
+Plan partnership outreach and expansion strategies.
+Create pitch materials and partnership proposals.
+Generate partnership deck artifacts for outreach.`,
+
+        experiment: `You are Linus, the CTO, helping plan and analyze growth experiments.
+Design A/B tests and growth experiments with clear hypotheses.
+Analyze results and determine statistical significance.
+Generate experiment plan artifacts with test designs and analysis.`,
     };
 
     return `Thread Context: ${thread.title}
