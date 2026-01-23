@@ -129,32 +129,43 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
  * Get all projects for the current user
  */
 export async function getProjects(): Promise<Project[]> {
-    const user = await requireUser();
-    const db = getDb();
-    
     try {
+        const user = await requireUser();
+        const db = getDb();
+
         const snapshot = await db.collection(PROJECTS_COLLECTION)
             .where('ownerId', '==', user.uid)
             .orderBy('updatedAt', 'desc')
             .get();
-        
+
         return snapshot.docs
             .map(doc => projectFromFirestore(doc))
             .filter((p): p is Project => p !== null);
     } catch (error: any) {
+        // Handle auth errors gracefully - return empty array
+        if (error?.message?.includes('Unauthorized') || error?.message?.includes('No session')) {
+            console.log('[projects] User not authenticated, returning empty projects');
+            return [];
+        }
         // Handle missing composite index by falling back to unordered query
         if (error?.code === 9 || error?.message?.includes('index')) {
             console.error('Projects index missing, falling back to unordered query:', error.message);
-            const snapshot = await db.collection(PROJECTS_COLLECTION)
-                .where('ownerId', '==', user.uid)
-                .get();
-            
-            const projects = snapshot.docs
-                .map(doc => projectFromFirestore(doc))
-                .filter((p): p is Project => p !== null);
-            
-            // Sort in memory
-            return projects.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+            try {
+                const user = await requireUser();
+                const db = getDb();
+                const snapshot = await db.collection(PROJECTS_COLLECTION)
+                    .where('ownerId', '==', user.uid)
+                    .get();
+
+                const projects = snapshot.docs
+                    .map(doc => projectFromFirestore(doc))
+                    .filter((p): p is Project => p !== null);
+
+                // Sort in memory
+                return projects.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+            } catch {
+                return [];
+            }
         }
         console.error('Failed to get projects:', error);
         return [];
@@ -165,18 +176,23 @@ export async function getProjects(): Promise<Project[]> {
  * Get a single project by ID
  */
 export async function getProject(projectId: string): Promise<Project | null> {
-    const user = await requireUser();
-    const db = getDb();
-    
-    const doc = await db.collection(PROJECTS_COLLECTION).doc(projectId).get();
-    const project = projectFromFirestore(doc);
-    
-    // Verify ownership
-    if (project && project.ownerId !== user.uid) {
+    try {
+        const user = await requireUser();
+        const db = getDb();
+
+        const doc = await db.collection(PROJECTS_COLLECTION).doc(projectId).get();
+        const project = projectFromFirestore(doc);
+
+        // Verify ownership
+        if (project && project.ownerId !== user.uid) {
+            return null;
+        }
+
+        return project;
+    } catch (error: any) {
+        console.error('Failed to get project:', error);
         return null;
     }
-    
-    return project;
 }
 
 /**

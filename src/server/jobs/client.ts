@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import { getSecret } from '@/server/utils/secrets';
+import { logger } from '@/lib/logger';
 
 /**
  * Cloud Tasks Client
@@ -9,16 +10,21 @@ import { getSecret } from '@/server/utils/secrets';
 const CLOUD_TASKS_VERSION = 'v2';
 
 export async function getCloudTasksClient() {
-    const auth = new google.auth.GoogleAuth({
-        scopes: ['https://www.googleapis.com/auth/cloud-platform']
-    });
+    try {
+        const auth = new google.auth.GoogleAuth({
+            scopes: ['https://www.googleapis.com/auth/cloud-platform']
+        });
 
-    const client = await auth.getClient();
-    
-    return (google.cloudtasks as any)({
-        version: CLOUD_TASKS_VERSION,
-        auth: client
-    });
+        const client = await auth.getClient();
+
+        return (google.cloudtasks as any)({
+            version: CLOUD_TASKS_VERSION,
+            auth: client
+        });
+    } catch (error: any) {
+        logger.error('Failed to initialize Cloud Tasks client', { error: error.message });
+        throw new Error(`Cloud Tasks client initialization failed: ${error.message}`);
+    }
 }
 
 export async function getQueuePath(queueName: string = 'default') {

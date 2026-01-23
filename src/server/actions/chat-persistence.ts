@@ -45,6 +45,10 @@ export async function getChatSessions(userId?: string) {
 
         const sessions = snapshot.docs.map(doc => {
             const data = doc.data();
+            // Ensure messages and artifacts are arrays (guard against corrupt data)
+            const messagesArray = Array.isArray(data.messages) ? data.messages : [];
+            const artifactsArray = Array.isArray(data.artifacts) ? data.artifacts : [];
+
             // Serialize to plain objects to ensure safe transfer over RSC boundary
             return {
                 id: doc.id,
@@ -52,13 +56,13 @@ export async function getChatSessions(userId?: string) {
                 preview: data.preview || '',
                 // Return as ISO string for safety, client will hydrate
                 timestamp: data.timestamp?.toDate ? data.timestamp.toDate().toISOString() : new Date(data.timestamp || Date.now()).toISOString(),
-                messages: (data.messages || []).map((m: any) => ({
+                messages: messagesArray.map((m: any) => ({
                     ...m,
                     timestamp: m.timestamp?.toDate ? m.timestamp.toDate().toISOString() : new Date(m.timestamp || Date.now()).toISOString()
                 })),
                 role: data.role,
                 projectId: data.projectId,
-                artifacts: data.artifacts || []
+                artifacts: artifactsArray
             };
         });
 

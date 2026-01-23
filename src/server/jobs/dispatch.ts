@@ -22,30 +22,30 @@ export interface AgentJobPayload {
 }
 
 export async function dispatchAgentJob(payload: AgentJobPayload) {
-    const tasksClient = await getCloudTasksClient();
-    const parent = await getQueuePath('agent-queue'); // Dedicated queue
-
-    // Construct the wrapper URL (API Worker)
-    // In production, this must be the absolute URL of the deployed service
-    const url = `${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/api/jobs/agent`;
-
-    const task = {
-        httpRequest: {
-            httpMethod: 'POST',
-            url,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: Buffer.from(JSON.stringify(payload)).toString('base64'),
-            // Add OIDC token for security (requires Service Account with permissions)
-            oidcToken: {
-                // Use env var or default to the standard App Hosting SA
-                serviceAccountEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || 'firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com'
-            }
-        }
-    };
-
     try {
+        const tasksClient = await getCloudTasksClient();
+        const parent = await getQueuePath('agent-queue'); // Dedicated queue
+
+        // Construct the wrapper URL (API Worker)
+        // In production, this must be the absolute URL of the deployed service
+        const url = `${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/api/jobs/agent`;
+
+        const task = {
+            httpRequest: {
+                httpMethod: 'POST',
+                url,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: Buffer.from(JSON.stringify(payload)).toString('base64'),
+                // Add OIDC token for security (requires Service Account with permissions)
+                oidcToken: {
+                    // Use env var or default to the standard App Hosting SA
+                    serviceAccountEmail: process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL || 'firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com'
+                }
+            }
+        };
+
         const response = await tasksClient.projects.locations.queues.tasks.create({
             parent,
             requestBody: { task }
@@ -53,6 +53,6 @@ export async function dispatchAgentJob(payload: AgentJobPayload) {
         return { success: true, taskId: response.data.name };
     } catch (error: any) {
         console.error('Failed to dispatch agent job:', error);
-        return { success: false, error: `${error.message} (Path: ${parent})` };
+        return { success: false, error: `Cloud Tasks dispatch failed: ${error.message}` };
     }
 }
