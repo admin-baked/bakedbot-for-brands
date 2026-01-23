@@ -91,13 +91,14 @@ export async function addCustomDomain(
             ...(detectedType === 'nameserver' ? { nameserversAssigned: BAKEDBOT_NAMESERVERS } : {}),
         };
 
-        // Save to tenant document
+        // Save to tenant document (use set with merge to create if not exists)
         await firestore
             .collection('tenants')
             .doc(tenantId)
-            .update({
+            .set({
                 customDomain: domainConfigForDb,
-            });
+                updatedAt: FieldValue.serverTimestamp(),
+            }, { merge: true });
 
         logger.info('[Domain] Added custom domain', {
             tenantId,
