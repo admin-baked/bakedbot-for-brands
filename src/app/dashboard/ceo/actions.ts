@@ -14,10 +14,11 @@ import { updateProductEmbeddings } from '@/ai/flows/update-product-embeddings';
 import { formatDistanceToNow } from 'date-fns';
 import { FieldValue } from 'firebase-admin/firestore';
 import { LocalSEOPage } from '@/types/foot-traffic';
-import { 
-    getZipCodeCoordinates, 
-    getRetailersByZipCode, 
-    discoverNearbyProducts 
+import { PLANS, PlanId, COVERAGE_PACKS, CoveragePackId } from '@/lib/plans';
+import {
+    getZipCodeCoordinates,
+    getRetailersByZipCode,
+    discoverNearbyProducts
 } from '@/server/services/geo-discovery';
 
 
@@ -107,28 +108,27 @@ export async function searchCannMenusRetailers(query: string): Promise<CannMenus
 // Restoring Missing Actions (Stubs to pass build)
 
 export async function initializeAllEmbeddings(): Promise<EmbeddingActionResult> {
-  await requireUser(['super_user']);
-
-  const cookieStore = await cookies();
-  const isMock = cookieStore.get('x-use-mock-data')?.value === 'true';
-
-  if (isMock) {
-    // Simulate processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    return {
-      message: 'Successfully generated mock embeddings for demo products.',
-      processed: 5,
-      results: [
-        { productId: 'mock_1', status: 'Embedding updated for model text-embedding-004.' },
-        { productId: 'mock_2', status: 'Embedding updated for model text-embedding-004.' },
-        { productId: 'mock_3', status: 'Embedding updated for model text-embedding-004.' },
-        { productId: 'mock_4', status: 'Embedding updated for model text-embedding-004.' },
-        { productId: 'mock_5', status: 'Embedding updated for model text-embedding-004.' },
-      ]
-    };
-  }
-
   try {
+    await requireUser(['super_user']);
+
+    const cookieStore = await cookies();
+    const isMock = cookieStore.get('x-use-mock-data')?.value === 'true';
+
+    if (isMock) {
+      // Simulate processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return {
+        message: 'Successfully generated mock embeddings for demo products.',
+        processed: 5,
+        results: [
+          { productId: 'mock_1', status: 'Embedding updated for model text-embedding-004.' },
+          { productId: 'mock_2', status: 'Embedding updated for model text-embedding-004.' },
+          { productId: 'mock_3', status: 'Embedding updated for model text-embedding-004.' },
+          { productId: 'mock_4', status: 'Embedding updated for model text-embedding-004.' },
+          { productId: 'mock_5', status: 'Embedding updated for model text-embedding-004.' },
+        ]
+      };
+    }
     // Live processing
     const { firestore } = await createServerClient();
     const productsSnap = await firestore.collection('products').limit(50).get(); // Safety limit
@@ -264,9 +264,8 @@ export async function rejectUser(uid: string) {
 
 
 export async function createCoupon(prevState: ActionResult, formData: FormData): Promise<ActionResult> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
 
     const code = formData.get('code')?.toString().toUpperCase().trim();
@@ -313,9 +312,8 @@ export async function createCoupon(prevState: ActionResult, formData: FormData):
 // Updated signatures to match useFormState
 // Updated signatures to match useFormState
 export async function importDemoData(prevState: ActionResult, formData?: FormData): Promise<ActionResult> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const batch = firestore.batch();
 
@@ -401,8 +399,13 @@ export async function importDemoData(prevState: ActionResult, formData?: FormDat
 }
 
 export async function clearAllData(prevState: ActionResult, formData?: FormData): Promise<ActionResult> {
-  await requireUser(['super_user']);
-  return { message: 'Data cleared (Mock)' };
+  try {
+    await requireUser(['super_user']);
+    return { message: 'Data cleared (Mock)' };
+  } catch (error: any) {
+    console.error('[clearAllData] Error:', error);
+    return { message: `Failed: ${error.message}`, error: true };
+  }
 }
 
 // getAdminFirestore imported at top
@@ -443,17 +446,16 @@ export async function getBrands(): Promise<Brand[]> {
   }
 }
 
-export async function createDispensaryAction(data: { 
-  name: string; 
-  address: string; 
-  city: string; 
-  state: string; 
+export async function createDispensaryAction(data: {
+  name: string;
+  address: string;
+  city: string;
+  state: string;
   zip: string;
   ownerEmail?: string;
 }): Promise<ActionResult> {
-  await requireUser(['super_user']);
-  
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const orgId = `disp_${data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}_${Math.random().toString(36).substring(2, 5)}`;
     
@@ -1003,9 +1005,8 @@ export async function getSeoPagesAction(): Promise<LocalSEOPage[]> {
 }
 
 export async function seedSeoPageAction(data: { zipCode: string; featuredDispensaryName?: string }): Promise<ActionResult> {
-  await requireUser(['super_user']); // Ensure only admins can seed
-
   try {
+    await requireUser(['super_user']); // Ensure only admins can seed
     const { zipCode, featuredDispensaryName } = data;
     const firestore = getAdminFirestore(); // Initialize here
 
@@ -1723,9 +1724,8 @@ export async function getBrandProductsAction(brandId: string, state?: string): P
  * Create a new brand SEO page
  */
 export async function createBrandPageAction(input: CreateBrandPageInput): Promise<ActionResult> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
 
     // Generate slug from brand name
@@ -1917,9 +1917,8 @@ export async function bulkPublishBrandPagesAction(published: boolean): Promise<A
  * Bulk publish/unpublish all dispensary pages
  */
 export async function bulkPublishDispensaryPagesAction(published: boolean): Promise<ActionResult & { count?: number }> {
-  await requireUser(['super_user']);
-
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const collection = firestore.collection('foot_traffic').doc('config').collection('dispensary_pages');
 
@@ -2202,103 +2201,116 @@ function parseZipCodesFromString(input: string): string[] {
  * Validate brand pages CSV and return preview
  */
 export async function validateBrandPagesCSV(csvText: string): Promise<CSVPreview> {
-  await requireUser(['super_user']);
+  try {
+    await requireUser(['super_user']);
 
-  const { headers, rows } = parseCSV(csvText);
-  const errors: CSVRowError[] = [];
+    const { headers, rows } = parseCSV(csvText);
+    const errors: CSVRowError[] = [];
 
-  // Check required columns
-  const requiredColumns = ['brand_name', 'state', 'city', 'zip_codes', 'cta_type', 'cta_url', 'status'];
-  const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+    // Check required columns
+    const requiredColumns = ['brand_name', 'state', 'city', 'zip_codes', 'cta_type', 'cta_url', 'status'];
+    const missingColumns = requiredColumns.filter(col => !headers.includes(col));
 
-  if (missingColumns.length > 0) {
+    if (missingColumns.length > 0) {
+      return {
+        headers: [],
+        rows: [],
+        totalRows: 0,
+        validRows: 0,
+        invalidRows: 0,
+        errors: [{ row: -1, field: 'headers', message: `Missing required columns: ${missingColumns.join(', ')}` }]
+      };
+    }
+
+    // Validate each row
+    rows.forEach((row, index) => {
+      // Brand name
+      if (!row.brand_name?.trim()) {
+        errors.push({ row: index, field: 'brand_name', message: 'Brand name is required' });
+      }
+
+      // State
+      if (!row.state?.trim()) {
+        errors.push({ row: index, field: 'state', message: 'State is required' });
+      } else if (!VALID_STATES.includes(row.state.toUpperCase())) {
+        errors.push({ row: index, field: 'state', message: `Invalid state. Valid: ${VALID_STATES.join(', ')}` });
+      }
+
+      // City
+      if (!row.city?.trim()) {
+        errors.push({ row: index, field: 'city', message: 'City is required' });
+      }
+
+      // ZIP codes
+      if (!row.zip_codes?.trim()) {
+        errors.push({ row: index, field: 'zip_codes', message: 'ZIP codes are required' });
+      } else {
+        const zips = parseZipCodesFromString(row.zip_codes);
+        if (zips.length === 0) {
+          errors.push({ row: index, field: 'zip_codes', message: 'No valid ZIP codes found' });
+        }
+      }
+
+      // CTA type
+      if (!row.cta_type?.trim()) {
+        errors.push({ row: index, field: 'cta_type', message: 'CTA type is required' });
+      } else if (!VALID_CTA_TYPES.map(t => t.toLowerCase()).includes(row.cta_type.toLowerCase().trim())) {
+        errors.push({ row: index, field: 'cta_type', message: `Invalid CTA type. Valid: ${VALID_CTA_TYPES.join(', ')}` });
+      }
+
+      // CTA URL
+      if (!row.cta_url?.trim()) {
+        errors.push({ row: index, field: 'cta_url', message: 'CTA URL is required' });
+      } else {
+        try {
+          new URL(row.cta_url);
+        } catch {
+          errors.push({ row: index, field: 'cta_url', message: 'Invalid URL format' });
+        }
+      }
+
+      // Status
+      if (!row.status?.trim()) {
+        errors.push({ row: index, field: 'status', message: 'Status is required' });
+      } else if (!['draft', 'published'].includes(row.status.toLowerCase().trim())) {
+        errors.push({ row: index, field: 'status', message: 'Status must be "draft" or "published"' });
+      }
+    });
+
+    // Count valid/invalid rows
+    const rowsWithErrors = new Set(errors.map(e => e.row));
+    const invalidRows = rowsWithErrors.size;
+    const validRows = rows.length - invalidRows;
+
+    return {
+      headers,
+      rows,
+      totalRows: rows.length,
+      validRows,
+      invalidRows,
+      errors
+    };
+  } catch (error: any) {
+    console.error('[validateBrandPagesCSV] Error:', error);
     return {
       headers: [],
       rows: [],
       totalRows: 0,
       validRows: 0,
       invalidRows: 0,
-      errors: [{ row: -1, field: 'headers', message: `Missing required columns: ${missingColumns.join(', ')}` }]
+      errors: [{ row: -1, field: 'auth', message: error.message || 'Validation failed' }]
     };
   }
-
-  // Validate each row
-  rows.forEach((row, index) => {
-    // Brand name
-    if (!row.brand_name?.trim()) {
-      errors.push({ row: index, field: 'brand_name', message: 'Brand name is required' });
-    }
-
-    // State
-    if (!row.state?.trim()) {
-      errors.push({ row: index, field: 'state', message: 'State is required' });
-    } else if (!VALID_STATES.includes(row.state.toUpperCase())) {
-      errors.push({ row: index, field: 'state', message: `Invalid state. Valid: ${VALID_STATES.join(', ')}` });
-    }
-
-    // City
-    if (!row.city?.trim()) {
-      errors.push({ row: index, field: 'city', message: 'City is required' });
-    }
-
-    // ZIP codes
-    if (!row.zip_codes?.trim()) {
-      errors.push({ row: index, field: 'zip_codes', message: 'ZIP codes are required' });
-    } else {
-      const zips = parseZipCodesFromString(row.zip_codes);
-      if (zips.length === 0) {
-        errors.push({ row: index, field: 'zip_codes', message: 'No valid ZIP codes found' });
-      }
-    }
-
-    // CTA type
-    if (!row.cta_type?.trim()) {
-      errors.push({ row: index, field: 'cta_type', message: 'CTA type is required' });
-    } else if (!VALID_CTA_TYPES.map(t => t.toLowerCase()).includes(row.cta_type.toLowerCase().trim())) {
-      errors.push({ row: index, field: 'cta_type', message: `Invalid CTA type. Valid: ${VALID_CTA_TYPES.join(', ')}` });
-    }
-
-    // CTA URL
-    if (!row.cta_url?.trim()) {
-      errors.push({ row: index, field: 'cta_url', message: 'CTA URL is required' });
-    } else {
-      try {
-        new URL(row.cta_url);
-      } catch {
-        errors.push({ row: index, field: 'cta_url', message: 'Invalid URL format' });
-      }
-    }
-
-    // Status
-    if (!row.status?.trim()) {
-      errors.push({ row: index, field: 'status', message: 'Status is required' });
-    } else if (!['draft', 'published'].includes(row.status.toLowerCase().trim())) {
-      errors.push({ row: index, field: 'status', message: 'Status must be "draft" or "published"' });
-    }
-  });
-
-  // Count valid/invalid rows
-  const rowsWithErrors = new Set(errors.map(e => e.row));
-  const invalidRows = rowsWithErrors.size;
-  const validRows = rows.length - invalidRows;
-
-  return {
-    headers,
-    rows,
-    totalRows: rows.length,
-    validRows,
-    invalidRows,
-    errors
-  };
 }
 
 /**
  * Import validated brand page rows
  */
 export async function importBrandPagesAction(rows: Record<string, string>[]): Promise<BulkImportResult> {
-  await requireUser(['super_user']);
+  try {
+    await requireUser(['super_user']);
 
-  const firestore = getAdminFirestore();
+    const firestore = getAdminFirestore();
   const createdPages: string[] = [];
   const errors: CSVRowError[] = [];
   const skippedRows: number[] = [];
@@ -2382,96 +2394,120 @@ export async function importBrandPagesAction(rows: Record<string, string>[]): Pr
     };
   }
 
-  return {
-    totalRows: rows.length,
-    validRows: rows.length - skippedRows.length,
-    invalidRows: skippedRows.length,
-    errors,
-    createdPages,
-    skippedRows
-  };
+    return {
+      totalRows: rows.length,
+      validRows: rows.length - skippedRows.length,
+      invalidRows: skippedRows.length,
+      errors,
+      createdPages,
+      skippedRows
+    };
+  } catch (error: any) {
+    console.error('[importBrandPagesAction] Auth error:', error);
+    return {
+      totalRows: rows.length,
+      validRows: 0,
+      invalidRows: rows.length,
+      errors: [{ row: -1, field: 'auth', message: error.message || 'Import failed' }],
+      createdPages: [],
+      skippedRows: Array.from({ length: rows.length }, (_, i) => i)
+    };
+  }
 }
 
 /**
  * Validate dispensary pages CSV and return preview
  */
 export async function validateDispensaryPagesCSV(csvText: string): Promise<CSVPreview> {
-  await requireUser(['super_user']);
+  try {
+    await requireUser(['super_user']);
 
-  const { headers, rows } = parseCSV(csvText);
-  const errors: CSVRowError[] = [];
+    const { headers, rows } = parseCSV(csvText);
+    const errors: CSVRowError[] = [];
 
-  // Check required columns
-  const requiredColumns = ['dispensary_name', 'state', 'city', 'zip_code', 'status'];
-  const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+    // Check required columns
+    const requiredColumns = ['dispensary_name', 'state', 'city', 'zip_code', 'status'];
+    const missingColumns = requiredColumns.filter(col => !headers.includes(col));
 
-  if (missingColumns.length > 0) {
+    if (missingColumns.length > 0) {
+      return {
+        headers: [],
+        rows: [],
+        totalRows: 0,
+        validRows: 0,
+        invalidRows: 0,
+        errors: [{ row: -1, field: 'headers', message: `Missing required columns: ${missingColumns.join(', ')}` }]
+      };
+    }
+
+    // Validate each row
+    rows.forEach((row, index) => {
+      // Dispensary name
+      if (!row.dispensary_name?.trim()) {
+        errors.push({ row: index, field: 'dispensary_name', message: 'Dispensary name is required' });
+      }
+
+      // State
+      if (!row.state?.trim()) {
+        errors.push({ row: index, field: 'state', message: 'State is required' });
+      } else if (!VALID_STATES.includes(row.state.toUpperCase())) {
+        errors.push({ row: index, field: 'state', message: `Invalid state. Valid: ${VALID_STATES.join(', ')}` });
+      }
+
+      // City
+      if (!row.city?.trim()) {
+        errors.push({ row: index, field: 'city', message: 'City is required' });
+      }
+
+      // ZIP code
+      if (!row.zip_code?.trim()) {
+        errors.push({ row: index, field: 'zip_code', message: 'ZIP code is required' });
+      } else if (!/^\d{5}$/.test(row.zip_code.trim())) {
+        errors.push({ row: index, field: 'zip_code', message: 'ZIP code must be 5 digits' });
+      }
+
+      // Status
+      if (!row.status?.trim()) {
+        errors.push({ row: index, field: 'status', message: 'Status is required' });
+      } else if (!['draft', 'published'].includes(row.status.toLowerCase().trim())) {
+        errors.push({ row: index, field: 'status', message: 'Status must be "draft" or "published"' });
+      }
+    });
+
+    // Count valid/invalid rows
+    const rowsWithErrors = new Set(errors.map(e => e.row));
+    const invalidRows = rowsWithErrors.size;
+    const validRows = rows.length - invalidRows;
+
+    return {
+      headers,
+      rows,
+      totalRows: rows.length,
+      validRows,
+      invalidRows,
+      errors
+    };
+  } catch (error: any) {
+    console.error('[validateDispensaryPagesCSV] Error:', error);
     return {
       headers: [],
       rows: [],
       totalRows: 0,
       validRows: 0,
       invalidRows: 0,
-      errors: [{ row: -1, field: 'headers', message: `Missing required columns: ${missingColumns.join(', ')}` }]
+      errors: [{ row: -1, field: 'auth', message: error.message || 'Validation failed' }]
     };
   }
-
-  // Validate each row
-  rows.forEach((row, index) => {
-    // Dispensary name
-    if (!row.dispensary_name?.trim()) {
-      errors.push({ row: index, field: 'dispensary_name', message: 'Dispensary name is required' });
-    }
-
-    // State
-    if (!row.state?.trim()) {
-      errors.push({ row: index, field: 'state', message: 'State is required' });
-    } else if (!VALID_STATES.includes(row.state.toUpperCase())) {
-      errors.push({ row: index, field: 'state', message: `Invalid state. Valid: ${VALID_STATES.join(', ')}` });
-    }
-
-    // City
-    if (!row.city?.trim()) {
-      errors.push({ row: index, field: 'city', message: 'City is required' });
-    }
-
-    // ZIP code
-    if (!row.zip_code?.trim()) {
-      errors.push({ row: index, field: 'zip_code', message: 'ZIP code is required' });
-    } else if (!/^\d{5}$/.test(row.zip_code.trim())) {
-      errors.push({ row: index, field: 'zip_code', message: 'ZIP code must be 5 digits' });
-    }
-
-    // Status
-    if (!row.status?.trim()) {
-      errors.push({ row: index, field: 'status', message: 'Status is required' });
-    } else if (!['draft', 'published'].includes(row.status.toLowerCase().trim())) {
-      errors.push({ row: index, field: 'status', message: 'Status must be "draft" or "published"' });
-    }
-  });
-
-  // Count valid/invalid rows
-  const rowsWithErrors = new Set(errors.map(e => e.row));
-  const invalidRows = rowsWithErrors.size;
-  const validRows = rows.length - invalidRows;
-
-  return {
-    headers,
-    rows,
-    totalRows: rows.length,
-    validRows,
-    invalidRows,
-    errors
-  };
 }
 
 /**
  * Import validated dispensary page rows
  */
 export async function importDispensaryPagesAction(rows: Record<string, string>[]): Promise<BulkImportResult> {
-  await requireUser(['super_user']);
+  try {
+    await requireUser(['super_user']);
 
-  const firestore = getAdminFirestore();
+    const firestore = getAdminFirestore();
   const createdPages: string[] = [];
   const errors: CSVRowError[] = [];
   const skippedRows: number[] = [];
@@ -2538,21 +2574,30 @@ export async function importDispensaryPagesAction(rows: Record<string, string>[]
     };
   }
 
-  return {
-    totalRows: rows.length,
-    validRows: rows.length - skippedRows.length,
-    invalidRows: skippedRows.length,
-    errors,
-    createdPages,
-    skippedRows
-  };
+    return {
+      totalRows: rows.length,
+      validRows: rows.length - skippedRows.length,
+      invalidRows: skippedRows.length,
+      errors,
+      createdPages,
+      skippedRows
+    };
+  } catch (error: any) {
+    console.error('[importDispensaryPagesAction] Auth error:', error);
+    return {
+      totalRows: rows.length,
+      validRows: 0,
+      invalidRows: rows.length,
+      errors: [{ row: -1, field: 'auth', message: error.message || 'Import failed' }],
+      createdPages: [],
+      skippedRows: Array.from({ length: rows.length }, (_, i) => i)
+    };
+  }
 }
 
 // =============================================================================
 // COVERAGE & SUBSCRIPTION ACTIONS
 // =============================================================================
-
-import { PLANS, PlanId, COVERAGE_PACKS, CoveragePackId } from '@/lib/plans';
 
 export type CoverageStatus = {
   planName: string;
@@ -2563,32 +2608,31 @@ export type CoverageStatus = {
 };
 
 export async function getCoverageStatusAction(): Promise<CoverageStatus> {
-  const user = await requireUser(['super_user']);
-  // Use organization ID from user session or metadata
-  // Assuming user.orgId exists, or we use user.uid as proxy for now if single-tenant per user
-  // In `requireUser`, it returns the user object.
-  // We need to resolve the orgId.
-  // For now, let's assume we can get it from the user context or pass it.
-  // `requireUser` currently returns just the decoded token/user record.
-  // Let's assume `user.uid` is the orgId for this implementation or we look it up.
-  // Actually, `createClaimSubscription` uses `organizationId`.
-
-  // FIXME: Need reliable OrgID resolution.
-  // For now, using user.uid as orgId to match 'owner' pattern
-  const orgId = user.uid;
-
-  // Bypass for Super Admin
-  if (user.role === 'super_user') {
-    return {
-      planName: 'Super Admin (Unlimited)',
-      limit: 999999,
-      currentUsage: 0,
-      packCount: 0,
-      canGenerateMore: true
-    };
-  }
-
   try {
+    const user = await requireUser(['super_user']);
+    // Use organization ID from user session or metadata
+    // Assuming user.orgId exists, or we use user.uid as proxy for now if single-tenant per user
+    // In `requireUser`, it returns the user object.
+    // We need to resolve the orgId.
+    // For now, let's assume we can get it from the user context or pass it.
+    // `requireUser` currently returns just the decoded token/user record.
+    // Let's assume `user.uid` is the orgId for this implementation or we look it up.
+    // Actually, `createClaimSubscription` uses `organizationId`.
+
+    // FIXME: Need reliable OrgID resolution.
+    // For now, using user.uid as orgId to match 'owner' pattern
+    const orgId = user.uid;
+
+    // Bypass for Super Admin
+    if (user.role === 'super_user') {
+      return {
+        planName: 'Super Admin (Unlimited)',
+        limit: 999999,
+        currentUsage: 0,
+        packCount: 0,
+        canGenerateMore: true
+      };
+    }
     const firestore = getAdminFirestore();
 
     // 1. Get Subscription/Limits
