@@ -2499,6 +2499,232 @@ steps:
     updatedAt: new Date(),
     createdBy: 'system',
     orgId: 'system'
+  },
+
+  // 30. Mrs. Parker Welcome Email Campaign
+  {
+    name: 'Protocol: Welcome Email Campaign',
+    description: 'Weekly personalized welcome emails to new customers via Mrs. Parker. Uses Letta memory for personalization.',
+    status: 'active',
+    yaml: `name: Protocol: Welcome Email Campaign
+description: Personalized welcome emails powered by Mrs. Parker and Letta memory
+
+triggers:
+  - type: schedule
+    cron: "0 10 * * 1"  # Every Monday at 10 AM
+  - type: event
+    pattern: "user.signup"  # Also triggers on new signups
+
+config:
+  email_provider: mailjet
+  personalization: letta  # Use Letta memory for personalization
+
+steps:
+  # Step 1: Query new signups from the past week
+  - action: query
+    agent: pops
+    task: Get all new signups from the past 7 days with their account type and signup source
+    output: new_signups
+
+  # Step 2: Mrs. Parker updates her memory with new signups
+  - action: delegate
+    agent: mrs_parker
+    input: "{{pops.new_signups}}"
+    task: |
+      For each new signup:
+      1. Update your Letta memory block with the new customer
+      2. Note their account type (brand, dispensary, customer)
+      3. Record their signup source for personalization
+    tools:
+      - lettaUpdateCoreMemory
+      - lettaMessageAgent
+
+  # Step 3: Generate personalized welcome content via Letta
+  - action: generate
+    agent: mrs_parker
+    input: "{{pops.new_signups}}"
+    task: |
+      Generate personalized welcome emails for each new signup:
+      - Brand accounts: Highlight distribution network, brand dashboard, Craig for marketing
+      - Dispensary accounts: Highlight Smokey budtender, menu integration, customer engagement
+      - Customer accounts: Highlight product discovery, nearby dispensaries, Smokey chat
+      Use your Letta memory to add personal touches based on their signup context.
+    output: welcome_emails
+
+  # Step 4: Compliance check with Deebo
+  - action: delegate
+    agent: deebo
+    input: "{{mrs_parker.welcome_emails}}"
+    task: Review all email content for cannabis marketing compliance
+
+  # Step 5: Send emails via Mailjet
+  - action: send_email
+    agent: mrs_parker
+    input: "{{mrs_parker.welcome_emails}}"
+    provider: mailjet
+    template: welcome_personalized
+
+  # Step 6: Log to customer insights
+  - action: delegate
+    agent: mrs_parker
+    task: |
+      Log welcome emails sent to the CUSTOMER_INSIGHTS Letta block:
+      - Count: {{mrs_parker.emails_sent}}
+      - Account types breakdown
+      - Any delivery failures
+    tools:
+      - lettaUpdateCoreMemory
+
+  # Step 7: Notify operations
+  - action: notify
+    channels:
+      - dashboard
+    to: "{{boardroom}}"
+    subject: "📧 Weekly Welcome Emails Sent"
+    body: |
+      Mrs. Parker's Weekly Welcome Report:
+
+      📬 EMAILS SENT: {{mrs_parker.emails_sent}}
+
+      By Account Type:
+      - Brands: {{mrs_parker.brand_count}}
+      - Dispensaries: {{mrs_parker.dispensary_count}}
+      - Customers: {{mrs_parker.customer_count}}
+
+      ✅ Compliance: {{deebo.review_status}}
+      📊 Personalization: Letta memory active
+`,
+    triggers: [
+      { id: 'weekly-welcome', type: 'schedule', name: 'Weekly Monday', config: { cron: '0 10 * * 1' }, enabled: true },
+      { id: 'signup-trigger', type: 'event', name: 'New Signup', config: { eventPattern: 'user.signup' }, enabled: true }
+    ],
+    steps: [
+      { action: 'query', params: { agent: 'pops', query: 'new_signups_7d' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'mrs_parker', task: 'update_letta_memory' }, retryOnFailure: true },
+      { action: 'generate', params: { agent: 'mrs_parker', type: 'email_batch' }, retryOnFailure: true, validationThreshold: 85 },
+      { action: 'delegate', params: { agent: 'deebo', task: 'compliance_review' }, retryOnFailure: true, validationThreshold: 100 },
+      { action: 'send_email', params: { provider: 'mailjet', template: 'welcome_personalized' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'mrs_parker', task: 'log_to_letta' }, retryOnFailure: true },
+      { action: 'notify', params: { channels: ['dashboard'] } }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1,
+    agent: 'mrs_parker',
+    category: 'customer_success',
+    ownerId: 'system',
+    isCustom: false,
+    requiresApproval: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: 'system',
+    orgId: 'system'
+  },
+
+  // 31. Mrs. Parker Onboarding Drip Campaign
+  {
+    name: 'Protocol: Onboarding Drip Sequence',
+    description: 'Automated onboarding email sequence (Day 1, 3, 7) for new customers via Mrs. Parker.',
+    status: 'active',
+    yaml: `name: Protocol: Onboarding Drip Sequence
+description: Multi-day onboarding email sequence
+
+triggers:
+  - type: schedule
+    cron: "0 9 * * *"  # Daily at 9 AM - checks who needs emails
+  - type: event
+    pattern: "user.signup"
+
+drip_schedule:
+  day_1:
+    delay_hours: 24
+    subject: "Getting Started with BakedBot"
+    focus: platform_orientation
+  day_3:
+    delay_hours: 72
+    subject: "Pro Tips: Get More from Your AI Squad"
+    focus: feature_discovery
+  day_7:
+    delay_hours: 168
+    subject: "You're Ready to Level Up"
+    focus: advanced_features
+
+steps:
+  # Step 1: Query customers in onboarding window
+  - action: query
+    agent: pops
+    task: |
+      Find customers who need onboarding emails:
+      - Day 1: Signed up 24 hours ago, haven't received Day 1 email
+      - Day 3: Signed up 72 hours ago, haven't received Day 3 email
+      - Day 7: Signed up 168 hours ago, haven't received Day 7 email
+
+  # Step 2: Mrs. Parker retrieves customer context from Letta
+  - action: delegate
+    agent: mrs_parker
+    input: "{{pops.onboarding_queue}}"
+    task: |
+      For each customer in the onboarding queue:
+      1. Search Letta memory for their signup context
+      2. Check their account type and activity
+      3. Personalize the onboarding content accordingly
+
+  # Step 3: Generate personalized onboarding content
+  - action: generate
+    agent: mrs_parker
+    task: |
+      Generate day-specific onboarding emails:
+
+      Day 1 (Orientation):
+      - Welcome and quick wins
+      - Key features for their account type
+      - How to get help
+
+      Day 3 (Feature Discovery):
+      - Tips based on their usage (or lack thereof)
+      - Highlight underused features
+      - Success stories from similar accounts
+
+      Day 7 (Level Up):
+      - Advanced features introduction
+      - Playbook recommendations
+      - Invitation to schedule success call
+
+  # Step 4: Send emails
+  - action: send_email
+    agent: mrs_parker
+    provider: mailjet
+
+  # Step 5: Update Letta memory with send status
+  - action: delegate
+    agent: mrs_parker
+    task: Update CUSTOMER_INSIGHTS with onboarding progress
+`,
+    triggers: [
+      { id: 'daily-drip', type: 'schedule', name: 'Daily Check', config: { cron: '0 9 * * *' }, enabled: true },
+      { id: 'signup-drip', type: 'event', name: 'New Signup', config: { eventPattern: 'user.signup' }, enabled: true }
+    ],
+    steps: [
+      { action: 'query', params: { agent: 'pops', query: 'onboarding_queue' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'mrs_parker', task: 'retrieve_letta_context' }, retryOnFailure: true },
+      { action: 'generate', params: { agent: 'mrs_parker', type: 'onboarding_email' }, retryOnFailure: true, validationThreshold: 85 },
+      { action: 'send_email', params: { provider: 'mailjet' }, retryOnFailure: true },
+      { action: 'delegate', params: { agent: 'mrs_parker', task: 'update_letta' }, retryOnFailure: true }
+    ],
+    runCount: 0,
+    successCount: 0,
+    failureCount: 0,
+    version: 1,
+    agent: 'mrs_parker',
+    category: 'customer_success',
+    ownerId: 'system',
+    isCustom: false,
+    requiresApproval: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: 'system',
+    orgId: 'system'
   }
 ];
 
