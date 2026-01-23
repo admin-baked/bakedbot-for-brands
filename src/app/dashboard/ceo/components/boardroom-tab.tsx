@@ -32,6 +32,8 @@ import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
 import { useUser } from '@/firebase/auth/use-user';
 import { getPlatformAnalytics, type PlatformAnalyticsData } from '../actions';
 import { useEffect } from 'react';
+import { AgentDebugPanel, useAgentDebug } from './agent-debug-panel';
+import { InboxThreadType } from '@/types/inbox';
 
 // Mock KPI Widgets
 function BoardroomWidget({ title, value, subtext, icon: Icon, trend, color }: any) {
@@ -79,12 +81,33 @@ export default function BoardroomTab() {
     const [selectedAgent, setSelectedAgent] = useState('leo');
     const [analytics, setAnalytics] = useState<PlatformAnalyticsData | null>(null);
 
+    // Debug mode for testing agents
+    const { isDebugVisible, toggleDebug, setDebugContext } = useAgentDebug();
+
     useEffect(() => {
         getPlatformAnalytics().then(setAnalytics).catch(console.error);
     }, []);
 
     const [initialPermissions, setInitialPermissions] = useState<any[]>([]);
-    
+
+    // Update debug context when agent changes
+    useEffect(() => {
+        // Map selected agent to a default thread type for debugging
+        const threadTypeMap: Record<string, InboxThreadType> = {
+            leo: 'daily_standup',
+            jack: 'pipeline',
+            linus: 'sprint_planning',
+            glenda: 'content_calendar',
+            mike_exec: 'budget_planning',
+            mrs_parker: 'customer_onboarding',
+            big_worm: 'deep_research',
+            roach: 'compliance_research',
+            deebo: 'compliance_audit',
+            day_day: 'seo_sprint',
+        };
+        setDebugContext(selectedAgent as any, threadTypeMap[selectedAgent]);
+    }, [selectedAgent, setDebugContext]);
+
     // Check for existing Gmail capability
     useEffect(() => {
         // Dynamic import to avoid bundling server code if possible, though 'use server' handles it.
@@ -264,6 +287,28 @@ export default function BoardroomTab() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Agent Debug Panel - Test Mode */}
+            <AgentDebugPanel
+                isVisible={isDebugVisible}
+                onToggle={toggleDebug}
+                currentAgent={selectedAgent as any}
+                threadType={(() => {
+                    const threadTypeMap: Record<string, InboxThreadType> = {
+                        leo: 'daily_standup',
+                        jack: 'pipeline',
+                        linus: 'sprint_planning',
+                        glenda: 'content_calendar',
+                        mike_exec: 'budget_planning',
+                        mrs_parker: 'customer_onboarding',
+                        big_worm: 'deep_research',
+                        roach: 'compliance_research',
+                        deebo: 'compliance_audit',
+                        day_day: 'seo_sprint',
+                    };
+                    return threadTypeMap[selectedAgent];
+                })()}
+            />
         </div>
     );
 }
