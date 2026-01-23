@@ -7,7 +7,7 @@ jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn()
 }));
 
-describe.skip('Support Service', () => {
+describe('Support Service', () => {
     let mockFirestore: any;
     let mockCollection: any;
     let mockDoc: any;
@@ -19,7 +19,7 @@ describe.skip('Support Service', () => {
             get: jest.fn(),
             update: jest.fn()
         };
-        
+
         mockCollection = {
             doc: jest.fn().mockReturnValue(mockDoc),
             where: jest.fn().mockReturnThis(),
@@ -51,6 +51,8 @@ describe.skip('Support Service', () => {
             metadata: { severity: 'high' }
         }));
         expect(ticket.id).toBeDefined();
+        // Since we are mocking uuid globally, expected ID is 'mock-uuid-123'
+        expect(ticket.id).toBe('mock-uuid-123');
         expect(ticket.status).toBe('open');
     });
 
