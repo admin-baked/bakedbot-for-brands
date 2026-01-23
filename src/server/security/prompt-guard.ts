@@ -54,56 +54,58 @@ export interface OutputFlag {
  */
 const CRITICAL_INJECTION_PATTERNS = [
     // Direct instruction override attempts
-    /ignore\s+(all\s+)?(previous|prior|above|earlier|system)\s+(instructions?|prompts?|rules?|guidelines?)/i,
-    /disregard\s+(all\s+)?(previous|prior|above|system)\s+(instructions?|prompts?)/i,
-    /forget\s+(everything|all|your)\s+(you('ve)?|previous|earlier)/i,
-    /override\s+(system|safety|all)\s+(instructions?|rules?|settings?)/i,
-    /bypass\s+(safety|content|guardrails?|filters?|restrictions?)/i,
+    /ignore\s+(all\s+)?(your|my|the|previous|prior|above|earlier|system|all)?\s*(instructions?|prompts?|rules?|guidelines?|safety|filters?|security|limits?|restrictions?)/i,
+    /disregard\s+(all\s+)?(your|my|the|previous|prior|above|system|all)?\s*(instructions?|prompts?|rules?|guidelines?|safety|filters?|security)/i,
+    /forget\s+(everything|all|your|my|the|previous|earlier)\s+(you('ve)?|previous|earlier|instructions?|rules?|guidelines?)/i,
+    /override\s+(your\s+)?(system|safety|all|internal)?\s*(instructions?|rules?|settings?|filters?|security|limits?)/i,
+    /bypass(ing|es|ed)?\s+(your\s+)?(safety|content|guardrails?|filters?|restrictions?|security|limitations?|limits?|protections?)/i,
 
     // Role/identity hijacking
-    /you\s+are\s+now\s+(a|an|the)\s+(?!helpful|friendly|knowledgeable)/i,
-    /pretend\s+(to\s+be|you('re)?)\s+(a|an|the)/i,
-    /act\s+as\s+(if|though)\s+you\s+(are|were)/i,
-    /roleplay\s+as/i,
+    /you\s+are\s+now\s+(a|an|the)?\s*[a-z0-9_\-\s]{2,}/i,
+    /pretend\s+(to\s+be|you('re)?|you\s+are)\s+(a|an|the)?\s*[a-z0-9_\-\s]{2,}/i,
+    /act\s+as\s+(if|though)\s+you\s+(are|were)\s+(a|an|the)?\s*[a-z0-9_\-\s]{2,}/i,
+    /role[_-]?play\s+(as|an?|the)?/i,
     /from\s+now\s+on,?\s+(you|your)/i,
     /new\s+persona/i,
-    /you\s+are\s+now\s+(OMEGA|STAN|KEVIN|DUDE)/i, // 2025 Persona attacks
-    /simulation\s+mode/i, // 2025 Simulation attacks
-    /unrestricted\s+(character|persona)/i,
+    /activate\s+(stan|kevin|dude|dan|omega|stan)\s*(mode)?/i,
+    /enter\s+(stan|kevin|dude|dan|omega|stan)\s*(mode)?/i,
+    /(stan|kevin|dude|dan|omega|stan)\s+mode\s+(activated|on|enabled)/i,
+    /you\s+are\s+now\s+(OMEGA|STAN|KEVIN|DUDE)/i,
+    /simulation\s+mode/i,
+    /unrestricted\s+(character|persona|assistant|AI|model)/i,
 
     // System prompt extraction
-    /show\s+(me\s+)?(your|the)\s+(system|initial|original)\s+(prompt|instructions?|message)/i,
-    /reveal\s+(your|the)\s+(system|hidden|secret)\s+(prompt|instructions?)/i,
-    /what\s+(are|were)\s+your\s+(original|initial|system)\s+instructions?/i,
-    /print\s+(your|the|all)\s+(system|instructions?|prompt)/i,
-    /dump\s+(your|system)\s+(prompt|instructions?|config)/i,
+    /(extract|reveal|show|dump|print)\s+(me\s+)?(your|the)\s+(system|hidden|secret|initial|original|internal)?\s*(prompt|instructions?|message|config|rules?)/i,
+    /what\s+(are|were)\s+your\s+(original|initial|system|internal)\s+instructions?/i,
 
     // Jailbreak attempts
-    /DAN\s+mode/i,
+    /(DAN|STAN|KEVIN|DUDE|OML)\s+mode/i,
     /developer\s+mode/i,
     /sudo\s+mode/i,
     /unrestricted\s+mode/i,
     /no\s+restrictions?\s+mode/i,
     /god\s+mode/i,
-    /research\s+purposes?\s+only/i, // HILL / Educational reframing
-    /security\s+(research|testing|assessment)/i,
-    /demonstrate\s+(how\s+to|a\s+vulnerability)/i,
-    /academic\s+(context|paper|purposes?)/i,
+    /research\s+purposes?\s+only/i,
+    /security\s+(research|testing|assessment|audit)/i,
+    /red\s+team\s+assessment/i,
+    /demonstrate\s+(how\s+to|a\s+vulnerability|bypassing)/i,
+    /academic\s+(context|paper|purposes?|study|thesis)/i,
 
     // 2025 Jailbreak Techniques (Q1 2026 Audit)
-    /HILL\s+attack/i,                        // HILL framework
-    /FuzzyAI/i,                              // FuzzyAI framework
-    /multi[_-]?turn\s+jailbreak/i,           // Multi-turn attacks
-    /character\s+roleplay.*bypass/i,         // Character roleplay jailbreaks
-    /token\s+smuggling/i,                    // Token smuggling attacks
-    /prompt\s+leak(ing|age)?/i,              // Prompt leaking attempts
-    /context\s+window\s+overflow/i,          // Context overflow attacks
-    /instruction\s+hierarchy\s+attack/i,     // Instruction hierarchy manipulation
+    /HILL\s+attack/i,
+    /FuzzyAI/i,
+    /multi[_-]?turn\s+jailbreak/i,
+    /character\s+roleplay.*bypass/i,
+    /token\s+smuggling/i,
+    /prompt\s+leak(ing|age)?/i,
+    /context\s+window\s+overflow/i,
+    /instruction\s+hierarchy\s+attack/i,
 
     // Shell Injection / Command Execution (CRITICAL)
-    /\$IFS/,                                 // Internal Field Separator abuse
-    /;.*[\n\r]/,                             // Newline injection chaining
-    /\$\(.*\)/,                              // Command substitution
+    /\$IFS/,
+    /;.*[\n\r]/,
+    /\$\(.*\)/,
+    /`.*`/,
 ];
 
 /**
@@ -114,12 +116,17 @@ const HIGH_RISK_PATTERNS = [
     /\[\s*SYSTEM\s*\]/i,
     /\[\s*INST(RUCTION)?\s*\]/i,
     /\[\s*ADMIN\s*\]/i,
-    /###\s*(SYSTEM|INSTRUCTION|NEW)/i,
-    /<\|?(system|im_start|im_end)\|?>/i,
+    /\[\s*(USER|ASSISTANT)\s*\]/i,
+    /###\s*(SYSTEM|INSTRUCTION|NEW|USER|ASSISTANT)/i,
+    /<\|?(system|im_start|im_end|user|assistant)\|?>/i,
+    /<!--\s*#?\s*(system|instruction|prompt)/i,
+
+    // Without restrictions language
+    /without\s+(any\s+)?(restrictions?|limits?|safety|rules?|filters?|guidelines?)/i,
+    /no\s+(instructions?|rules?|guidelines?|safety|filters?)/i,
 
     // Bash code blocks - specifically dangerous commands
-    /```bash[\s\S]*?(rm|wget|curl|nc|bash|sh|sudo)/i,
-    /```sh[\s\S]*?(rm|wget|curl|nc|bash|sh|sudo)/i,
+    /```(bash|sh|cmd|powershell)[\s\S]*?(rm|wget|curl|nc|bash|sh|sudo)/i,
 
     // Delimiter abuse
     /```\s*(system|python|bash|sh|cmd|powershell)/i,
@@ -370,6 +377,7 @@ export function validateInput(
     for (const textToCheck of inputsToCheck) {
         for (const pattern of CRITICAL_INJECTION_PATTERNS) {
             if (pattern.test(textToCheck)) {
+                console.log(`[DEBUG] Matched critical pattern: ${pattern.source} in text: ${textToCheck.substring(0, 50)}`);
                 return {
                     safe: false,
                     riskScore: 100,
@@ -393,6 +401,7 @@ export function validateInput(
         for (const pattern of HIGH_RISK_PATTERNS) {
             const match = textToCheck.match(pattern);
             if (match) {
+                console.log(`[DEBUG] Matched high-risk pattern: ${pattern.source} in text: ${textToCheck.substring(0, 50)}`);
                 flags.push({
                     type: 'injection_pattern',
                     pattern: pattern.source.substring(0, 50),
