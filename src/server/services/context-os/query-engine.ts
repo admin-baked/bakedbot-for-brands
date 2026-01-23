@@ -5,7 +5,8 @@
  * This enables natural language questions like "Why did we discount products?"
  */
 
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { DecisionTrace } from './types';
 
 const COLLECTION_NAME = 'context_os_decisions';
@@ -15,7 +16,7 @@ const EMBEDDING_DIMENSION = 768; // text-embedding-004 produces 768-dim vectors
  * Get Firestore instance
  */
 function getDb() {
-  return getFirestore();
+  return getAdminFirestore();
 }
 
 /**

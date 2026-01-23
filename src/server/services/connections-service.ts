@@ -5,7 +5,8 @@
  * Inspired by Tasklet.ai's Connections tab pattern.
  */
 
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 
 export type ConnectionStatus = 'connected' | 'disconnected' | 'expired' | 'error' | 'pending';
 
@@ -233,7 +234,7 @@ export async function getUserConnections(
     userId: string,
     tenantId: string
 ): Promise<UserConnection[]> {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const snapshot = await db
         .collection('connections')
         .where('userId', '==', userId)
@@ -257,7 +258,7 @@ export async function getConnection(
     tenantId: string,
     serviceId: string
 ): Promise<UserConnection | null> {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const snapshot = await db
         .collection('connections')
         .where('userId', '==', userId)
@@ -298,7 +299,7 @@ export async function updateConnectionStatus(
     status: ConnectionStatus,
     metadata?: Record<string, unknown>
 ): Promise<void> {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     await db.collection('connections').doc(connectionId).update({
         status,
         lastSynced: FieldValue.serverTimestamp(),
@@ -313,7 +314,7 @@ export async function addAgentUsage(
     connectionId: string,
     agentId: string
 ): Promise<void> {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     await db.collection('connections').doc(connectionId).update({
         usedByAgents: FieldValue.arrayUnion(agentId),
     });

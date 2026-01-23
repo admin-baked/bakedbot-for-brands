@@ -403,36 +403,35 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
 
     try {
         // 0. SECURITY: Validate input for prompt injection
-        // Skip validation for system-initiated requests (interrupts from error-report/tickets)
+        // ALWAYS validate - system-initiated requests get higher length limit but same pattern checks
         const isSystemInitiated = extraOptions?.source === 'interrupt';
+        const inputValidation = validateInput(userMessage, {
+            maxLength: isSystemInitiated ? 5000 : 2000, // Higher limit for system sources
+            allowedRole: 'admin' // Dashboard users have elevated trust
+        });
 
-        if (!isSystemInitiated) {
-            const inputValidation = validateInput(userMessage, {
-                maxLength: 2000,
-                allowedRole: 'admin' // Dashboard users have elevated trust
+        if (inputValidation.blocked) {
+            logger.warn('[runAgentChat] Blocked prompt injection attempt', {
+                source: isSystemInitiated ? 'system' : 'user',
+                reason: inputValidation.blockReason,
+                riskScore: inputValidation.riskScore,
+                persona: personaId,
             });
+            return {
+                content: "Request blocked due to security restrictions.",
+                toolCalls: [],
+                metadata: { type: 'session_context' }
+            };
+        }
 
-            if (inputValidation.blocked) {
-                logger.warn('[runAgentChat] Blocked prompt injection attempt', {
-                    reason: inputValidation.blockReason,
-                    riskScore: inputValidation.riskScore,
-                    persona: personaId,
-                });
-                return {
-                    content: "I couldn't process that request due to security restrictions. Please rephrase your question.",
-                    toolCalls: [],
-                    metadata: { type: 'session_context' }
-                };
-            }
-
-            // Log high-risk queries for monitoring
-            if (inputValidation.riskScore >= 30) {
-                logger.info('[runAgentChat] High-risk query detected', {
-                    riskLevel: getRiskLevel(inputValidation.riskScore),
-                    riskScore: inputValidation.riskScore,
-                    persona: personaId,
-                });
-            }
+        // Log high-risk queries for monitoring
+        if (inputValidation.riskScore >= 30) {
+            logger.info('[runAgentChat] High-risk query detected', {
+                source: isSystemInitiated ? 'system' : 'user',
+                riskLevel: getRiskLevel(inputValidation.riskScore),
+                riskScore: inputValidation.riskScore,
+                persona: personaId,
+            });
         }
 
         // 1. Intelligent Routing (Overriding Persona)
@@ -487,8 +486,9 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
         const jobId = crypto.randomUUID();
 
         // 3. Create Job Document (Synchronous to avoid race condition with polling)
-        const { getFirestore, FieldValue } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('@/firebase/admin');
+        const { FieldValue } = await import('firebase-admin/firestore');
+        const db = getAdminFirestore();
         await db.collection('jobs').doc(jobId).set({
             status: 'pending',
             userId: user.uid,
@@ -558,13 +558,13 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
 export async function cancelAgentJob(jobId: string) {
     // 1. Get User for security
     const { requireUser } = await import('@/server/auth/auth');
-    const { getFirestore } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('@/firebase/admin');
     const user = await requireUser();
-    
+
     // 2. Update Job Status
     // We only mark it as cancelled. The worker might still be running but the UI handles it.
     // Ideally user permission check on the job doc itself, but simplistic check for now.
-    const db = getFirestore();
+    const db = getAdminFirestore();
     await db.collection('jobs').doc(jobId).set({
         status: 'cancelled',
         updatedAt: new Date(),

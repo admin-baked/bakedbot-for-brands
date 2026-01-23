@@ -5,7 +5,8 @@
  * The foundation of the "Why" layer.
  */
 
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { DecisionTrace, DecisionFilter, EvaluatorResult } from './types';
 
 const COLLECTION_NAME = 'context_os_decisions';
@@ -14,7 +15,7 @@ const COLLECTION_NAME = 'context_os_decisions';
  * Get Firestore instance with lazy initialization
  */
 function getDb() {
-  return getFirestore();
+  return getAdminFirestore();
 }
 
 /**

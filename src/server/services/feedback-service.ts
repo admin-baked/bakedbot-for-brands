@@ -5,7 +5,8 @@
  * Inspired by Tasklet.ai's 👍/👎 feedback pattern.
  */
 
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 
 export type FeedbackRating = 'positive' | 'negative';
 
@@ -45,7 +46,7 @@ export interface FeedbackStats {
 export async function submitFeedback(
     feedback: Omit<ResponseFeedback, 'id' | 'timestamp'>
 ): Promise<string> {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     
     const docRef = await db.collection('response_feedback').add({
         ...feedback,
@@ -66,7 +67,7 @@ export async function addFeedbackComment(
     comment: string,
     tags?: string[]
 ): Promise<void> {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     
     const updateData: Record<string, unknown> = { comment };
     if (tags && tags.length > 0) {
@@ -87,7 +88,7 @@ export async function getAgentFeedbackStats(
     agentId: string,
     days: number = 30
 ): Promise<FeedbackStats> {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     
     const snapshot = await db
@@ -155,7 +156,7 @@ export async function getRecentNegativeFeedback(
     agentId?: string,
     limit: number = 20
 ): Promise<ResponseFeedback[]> {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     
     let query = db
         .collection('response_feedback')
@@ -187,7 +188,7 @@ async function updateAgentFeedbackStats(
     agentId: string,
     rating: FeedbackRating
 ): Promise<void> {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const docRef = db.collection('agent_feedback_stats').doc(agentId);
     
     await db.runTransaction(async (transaction) => {

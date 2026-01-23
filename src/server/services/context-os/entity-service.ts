@@ -6,7 +6,8 @@
  * that can be connected via relationships.
  */
 
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { ContextEntity } from './types';
 
 const COLLECTION_NAME = 'context_os_entities';
@@ -15,7 +16,7 @@ const COLLECTION_NAME = 'context_os_entities';
  * Get Firestore instance with lazy initialization
  */
 function getDb() {
-  return getFirestore();
+  return getAdminFirestore();
 }
 
 /**
