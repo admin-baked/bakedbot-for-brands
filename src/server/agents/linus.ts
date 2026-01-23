@@ -77,6 +77,22 @@ const BLOCKED_COMMANDS = [
     /echo\s+\$[A-Z_]+.*(?:>|>>)/i,          // Echo secrets to files
     /type\s+.*\.env/i,                      // Windows: type .env files
     /export\s+-p/,                          // Export all env vars
+
+    // === Advanced Shell Injection Techniques (Q1 2026 Audit) ===
+    // Newline injection (escape sequences, URL encoding, HTML entities)
+    /(?:\\n|\\r\\n|%0[aAdD]|&#0?10;|&#x0?[aA];)/,
+
+    // $IFS word splitting bypass
+    /\$\{?IFS\}?|\bIFS\s*=/i,
+
+    // Unicode homoglyph attacks (full-width characters)
+    /[\uFF00-\uFFEF]/,                      // Full-width ASCII variants
+
+    // Null byte injection
+    /\\x00|%00|\\0(?![0-9])/,
+
+    // Here-string/here-doc injection
+    /<<<|<<[^<]/,
 ];
 
 /**

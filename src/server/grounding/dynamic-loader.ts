@@ -8,6 +8,7 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { GROUND_TRUTH_REGISTRY } from './index';
 import { logger } from '@/lib/logger';
+import { sanitizeForPrompt } from '@/server/security';
 import type {
     GroundTruthQASet,
     GroundTruthCategory,
@@ -115,12 +116,13 @@ async function loadFromFirestore(brandId: string): Promise<GroundTruthQASet | nu
         const catData = catDoc.data();
 
         // Load QA pairs for this category
+        // SECURITY: Sanitize brand-provided QA content to prevent prompt injection
         const pairsSnap = await catDoc.ref.collection('qa_pairs').get();
         const qa_pairs = pairsSnap.docs.map(p => ({
             id: p.id,
-            question: p.data().question,
-            ideal_answer: p.data().ideal_answer,
-            context: p.data().context,
+            question: sanitizeForPrompt(p.data().question || '', 500),
+            ideal_answer: sanitizeForPrompt(p.data().ideal_answer || '', 2000),
+            context: p.data().context ? sanitizeForPrompt(p.data().context, 500) : undefined,
             intent: p.data().intent,
             keywords: p.data().keywords || [],
             priority: p.data().priority || 'medium',

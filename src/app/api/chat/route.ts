@@ -11,7 +11,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import type { Product } from '@/types/products';
 import { hasGroundTruth } from '@/server/grounding';
-import { validateInput, getRiskLevel } from '@/server/security';
+import { validateInput, validateOutput, getRiskLevel } from '@/server/security';
 
 /**
  * POST /api/chat
@@ -447,6 +447,16 @@ export const POST = withProtection(
             // 5️⃣ Generate a friendly chat response using Gemini
             const chatResponse = await generateChatResponse(sanitizedQuery, analysis.intent, chatProducts.length);
 
+            // 5.5️⃣ SECURITY: Validate output before returning to user
+            const outputValidation = validateOutput(chatResponse.message);
+            if (!outputValidation.safe) {
+                logger.warn('[Chat] Unsafe output detected', {
+                    flags: outputValidation.flags.map(f => f.type),
+                    userId,
+                });
+            }
+            const safeMessage = outputValidation.sanitized;
+
             // 6️⃣ Store messages in session if userId provided
             if (userId && currentSessionId) {
                 await addMessageToSession(userId, currentSessionId, {
@@ -457,13 +467,13 @@ export const POST = withProtection(
 
                 await addMessageToSession(userId, currentSessionId, {
                     role: 'assistant',
-                    content: chatResponse.message,
+                    content: safeMessage,
                 });
             }
 
             return NextResponse.json({
                 ok: true,
-                message: chatResponse.message,
+                message: safeMessage,
                 products: chatResponse.shouldShowProducts ? chatProducts : [],
                 sessionId: currentSessionId, // Return session ID for client
             });

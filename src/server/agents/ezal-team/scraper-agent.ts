@@ -15,6 +15,7 @@ import {
 } from './types';
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
+import { sanitizeForPrompt } from '@/server/security';
 
 // ============================================================================
 // SCRAPER AGENT SYSTEM INSTRUCTIONS
@@ -154,11 +155,13 @@ export async function runScraperAgent(
 
       const competitor: ScrapedCompetitor = {
         id: `comp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        name: urlEntry.title || extractDomainName(urlEntry.url),
+        // SECURITY: Sanitize competitor name from external source
+        name: sanitizeForPrompt(urlEntry.title || extractDomainName(urlEntry.url), 200),
         url: urlEntry.url,
         products,
         scrapedAt: new Date().toISOString(),
-        rawMarkdown: markdown.slice(0, 5000), // Keep truncated for debugging
+        // SECURITY: Sanitize raw markdown before storage
+        rawMarkdown: sanitizeForPrompt(markdown, 5000),
       };
 
       competitors.push(competitor);
@@ -218,8 +221,8 @@ export function createDefaultProductExtractor(): ScraperTools['extractProductsFr
     }
 
     try {
-      // Truncate very long content
-      const truncatedMarkdown = markdown.slice(0, 15000);
+      // SECURITY: Truncate AND sanitize scraped content before LLM prompt
+      const truncatedMarkdown = sanitizeForPrompt(markdown, 15000);
 
       const result = await ai.generate({
         model: 'googleai/gemini-2.0-flash',

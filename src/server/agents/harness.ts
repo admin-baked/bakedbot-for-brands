@@ -147,7 +147,7 @@ import { executeWithTools } from '@/ai/claude';
 import { zodToClaudeSchema } from '@/server/utils/zod-to-json';
 import { persistWorkflowFromHarness } from '@/server/services/letta/procedural-memory';
 import { sleepTimeService } from '@/server/services/letta/sleeptime-agent';
-import { sanitizeForPrompt, wrapUserData } from '@/server/security';
+import { sanitizeForPrompt, wrapUserData, embedCanaryToken, validateOutputWithCanary } from '@/server/security';
 
 // ============================================================================
 // VALIDATION HOOK TYPES
@@ -313,6 +313,12 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
     // SECURITY: Sanitize user query before interpolation into planning prompts
     const sanitizedQuery = sanitizeForPrompt(userQuery, 2000);
 
+    // SECURITY: Embed canary token in system instructions to detect extraction attempts
+    const { prompt: protectedInstructions, token: canaryToken } = embedCanaryToken(
+        systemInstructions,
+        { prefix: 'HARNESS', position: 'both' }
+    );
+
     // === HYBRID EXECUTION PATH (Gemini Planning + Claude Synthesis) ===
     if (model === 'hybrid') {
         const steps: Array<{ tool: string; args: any; result: any }> = [];
@@ -328,8 +334,9 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
             
             // PLAN with Gemini 3 Pro
             // SECURITY: User query is sanitized and wrapped in structured tags
+            // SECURITY: System instructions contain canary token
             const planPrompt = `
-                ${systemInstructions}
+                ${protectedInstructions}
 
                 ${wrapUserData(sanitizedQuery, 'user_request', false)}
                 ${historyPrompt}
@@ -400,7 +407,15 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                     ).catch(e => logger.warn('[Harness] Sleep-time consolidation failed:', e));
                 }
 
-                return { finalResult: synthesisResult.content, steps };
+                // SECURITY: Validate output for canary token leakage
+                const outputValidation = validateOutputWithCanary(synthesisResult.content, canaryToken);
+                if (outputValidation.flags.some(f => f.type === 'system_prompt_leak')) {
+                    logger.error('[Harness] SECURITY: System prompt extraction detected!', {
+                        agentId: context.agentId,
+                    });
+                }
+
+                return { finalResult: outputValidation.sanitized, steps };
             }
             
             if (!decision.toolName) {

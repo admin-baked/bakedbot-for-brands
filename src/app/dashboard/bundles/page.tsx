@@ -1,11 +1,11 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2, Package, Sparkles, Check } from 'lucide-react';
+import { Plus, Loader2, Package, Sparkles, Check, Wand2, List } from 'lucide-react';
 import { useDispensaryId } from '@/hooks/use-dispensary-id';
 import { useEffect, useState, useCallback } from 'react';
 import { getBundles } from '@/app/actions/bundles';
-import { generateAIBundleSuggestions, createBundleFromSuggestion } from '@/app/actions/bundle-suggestions';
+import { generateAIBundleSuggestions, createBundleFromSuggestion, type SuggestedBundle } from '@/app/actions/bundle-suggestions';
 import { BundleDeal } from '@/types/bundles';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -23,16 +23,10 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { BundleForm } from '@/components/dashboard/bundles/bundle-form';
+import { BundleRuleBuilder } from '@/components/dashboard/bundles/bundle-rule-builder';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-
-interface SuggestedBundle {
-    name: string;
-    description: string;
-    products: { id: string; name: string; category: string; price: number }[];
-    savingsPercent: number;
-    badgeText?: string;
-}
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function BundlesPage() {
     const { dispensaryId, loading: idLoading } = useDispensaryId();
@@ -138,66 +132,91 @@ export default function BundlesPage() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-xl font-semibold">Your Bundles</h2>
-                    <p className="text-sm text-muted-foreground">Manage your menu deals and packages.</p>
+                    <h2 className="text-xl font-semibold">Bundle Deals</h2>
+                    <p className="text-sm text-muted-foreground">Create margin-protected bundles with AI-powered rules.</p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleAISuggest}>
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        AI Suggest
-                    </Button>
-                    <Button onClick={handleCreateOpen}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Bundle
-                    </Button>
-                </div>
+                <Button onClick={handleCreateOpen}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Manual Bundle
+                </Button>
             </div>
 
-            <div className="grid gap-4">
-                {bundles.length === 0 ? (
-                    <div className="p-12 border border-dashed rounded-lg bg-card/50 text-center text-muted-foreground flex flex-col items-center">
-                        <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                            <Package className="h-6 w-6 text-muted-foreground" />
-                        </div>
-                        <h3 className="font-semibold text-lg mb-2">No bundles yet</h3>
-                        <p className="mb-4 max-w-sm">Create your first product bundle to allow customers to buy multiple items at a discount.</p>
-                        <div className="flex gap-2">
-                            <Button onClick={handleAISuggest} variant="outline">
-                                <Sparkles className="h-4 w-4 mr-2" />AI Suggest
-                            </Button>
-                            <Button onClick={handleCreateOpen}>Create Bundle</Button>
-                        </div>
+            <Tabs defaultValue="ai-builder" className="space-y-4">
+                <TabsList>
+                    <TabsTrigger value="ai-builder" className="flex items-center gap-2">
+                        <Wand2 className="h-4 w-4" />
+                        AI Rule Builder
+                    </TabsTrigger>
+                    <TabsTrigger value="bundles" className="flex items-center gap-2">
+                        <List className="h-4 w-4" />
+                        Your Bundles ({bundles.length})
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="ai-builder" className="space-y-4">
+                    {dispensaryId && (
+                        <BundleRuleBuilder
+                            orgId={dispensaryId}
+                            onBundleCreated={fetchBundles}
+                        />
+                    )}
+                </TabsContent>
+
+                <TabsContent value="bundles" className="space-y-4">
+                    <div className="flex justify-end">
+                        <Button variant="outline" onClick={handleAISuggest}>
+                            <Sparkles className="h-4 w-4 mr-2" />
+                            Quick AI Suggestions
+                        </Button>
                     </div>
-                ) : (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {bundles.map(bundle => (
-                            <div
-                                key={bundle.id}
-                                className="p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow cursor-pointer hover:border-primary/50 relative group"
-                                onClick={() => handleEditOpen(bundle)}
-                            >
-                                <div className="flex justify-between items-start mb-2">
-                                    <h3 className="font-semibold truncate pr-2">{bundle.name}</h3>
-                                    <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${bundle.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                            'bg-muted text-muted-foreground'
-                                        }`}>
-                                        {bundle.status}
-                                    </span>
+
+                    <div className="grid gap-4">
+                        {bundles.length === 0 ? (
+                            <div className="p-12 border border-dashed rounded-lg bg-card/50 text-center text-muted-foreground flex flex-col items-center">
+                                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                                    <Package className="h-6 w-6 text-muted-foreground" />
                                 </div>
-                                <p className="text-sm text-muted-foreground line-clamp-2 mb-4 h-10">
-                                    {bundle.description || "No description provided."}
-                                </p>
-                                <div className="text-sm border-t pt-3 flex justify-between items-center text-muted-foreground">
-                                    <span className="font-medium">{bundle.products.length} Products</span>
-                                    <span className="text-xs uppercase tracking-wider">
-                                        {bundle.type.replace('_', ' ')}
-                                    </span>
+                                <h3 className="font-semibold text-lg mb-2">No bundles yet</h3>
+                                <p className="mb-4 max-w-sm">Use the AI Rule Builder to create your first margin-protected bundle deals.</p>
+                                <div className="flex gap-2">
+                                    <Button onClick={handleAISuggest} variant="outline">
+                                        <Sparkles className="h-4 w-4 mr-2" />Quick Suggestions
+                                    </Button>
+                                    <Button onClick={handleCreateOpen}>Manual Create</Button>
                                 </div>
                             </div>
-                        ))}
+                        ) : (
+                            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                {bundles.map(bundle => (
+                                    <div
+                                        key={bundle.id}
+                                        className="p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow cursor-pointer hover:border-primary/50 relative group"
+                                        onClick={() => handleEditOpen(bundle)}
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h3 className="font-semibold truncate pr-2">{bundle.name}</h3>
+                                            <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${bundle.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                    'bg-muted text-muted-foreground'
+                                                }`}>
+                                                {bundle.status}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground line-clamp-2 mb-4 h-10">
+                                            {bundle.description || "No description provided."}
+                                        </p>
+                                        <div className="text-sm border-t pt-3 flex justify-between items-center text-muted-foreground">
+                                            <span className="font-medium">{bundle.products.length} Products</span>
+                                            <span className="text-xs uppercase tracking-wider">
+                                                {bundle.type.replace('_', ' ')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
-                )}
-            </div>
+                </TabsContent>
+            </Tabs>
 
             {/* Bundle Form Sheet */}
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
