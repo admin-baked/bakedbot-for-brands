@@ -40,7 +40,8 @@ import {
     FolderKanban,
     Compass,
     Chrome,
-    Rocket
+    Rocket,
+    Inbox
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
@@ -147,6 +148,14 @@ export function SuperAdminSidebar() {
                                 <Link href="/dashboard/ceo">
                                     <LayoutDashboard />
                                     <span>Overview</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/inbox')}>
+                                <Link href="/dashboard/inbox">
+                                    <Inbox />
+                                    <span>Inbox</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
