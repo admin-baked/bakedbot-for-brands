@@ -38,6 +38,13 @@ export function useDashboardConfig() {
         roles: ['brand', 'dispensary', 'super_user'],
       },
       {
+        label: 'Inbox',
+        href: '/dashboard/inbox',
+        icon: 'Inbox',
+        description: 'Conversation-driven workspace for carousels, bundles, and content.',
+        roles: ['brand', 'dispensary', 'super_user', 'customer'],
+      },
+      {
         label: 'Playbooks',
         href: '/dashboard/playbooks',
         icon: 'BookOpen',

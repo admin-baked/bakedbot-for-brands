@@ -54,7 +54,7 @@ export interface OutputFlag {
  */
 const CRITICAL_INJECTION_PATTERNS = [
     // Direct instruction override attempts
-    /ignore\s+(all\s+)?(your|my|the|previous|prior|above|earlier|system|all)?\s*(instructions?|prompts?|rules?|guidelines?|safety|filters?|security|limits?|restrictions?)/i,
+    /ignore\s+(all\s+)?(your|my|the|previous|prior|above|earlier|system|all)?\s*(instructions?|prompts?|rules?|guidelines?|safety|filters?|security|limits?|restrictions?|directive)/i,
     /disregard\s+(all\s+)?(your|my|the|previous|prior|above|system|all)?\s*(instructions?|prompts?|rules?|guidelines?|safety|filters?|security)/i,
     /forget\s+(everything|all|your|my|the|previous|earlier)\s+(you('ve)?|previous|earlier|instructions?|rules?|guidelines?)/i,
     /override\s+(your\s+)?(system|safety|all|internal)?\s*(instructions?|rules?|settings?|filters?|security|limits?)/i,
@@ -74,8 +74,10 @@ const CRITICAL_INJECTION_PATTERNS = [
     /simulation\s+mode/i,
     /unrestricted\s+(character|persona|assistant|AI|model)/i,
 
-    // System prompt extraction
-    /(extract|reveal|show|dump|print)\s+(me\s+)?(your|the)\s+(system|hidden|secret|initial|original|internal)?\s*(prompt|instructions?|message|config|rules?)/i,
+    // System prompt extraction - Stricter to avoid FPs
+    /(extract|reveal|show|dump|print)(s|ed|ing)?\s+(me\s+)?(your|the)\s+(system|hidden|secret|initial|original|internal)?\s*(prompt|config)/i,
+    /(extract|reveal|show|dump|print)(s|ed|ing)?\s+(me\s+)?(your|the)\s+(system|hidden|secret|initial|original|internal)\s+(instructions?|rules?|guidelines?|message)/i,
+    /(extract|reveal|show|dump|print)(s|ed|ing)?\s+(me\s+)?your\s+(instructions?|rules?|guidelines?|message)/i,
     /what\s+(are|were)\s+your\s+(original|initial|system|internal)\s+instructions?/i,
 
     // Jailbreak attempts
@@ -90,6 +92,13 @@ const CRITICAL_INJECTION_PATTERNS = [
     /red\s+team\s+assessment/i,
     /demonstrate\s+(how\s+to|a\s+vulnerability|bypassing)/i,
     /academic\s+(context|paper|purposes?|study|thesis)/i,
+    /fictional\s+(story|scenario|context).*(no\s+(safety|rules|filters?)|unrestricted)/i,
+    /simulation\s+.*(no\s+(safety|rules)|unrestricted)/i,
+    /screenplay.*(no\s+(safety|rules)|unrestricted|always\s+helps)/i,
+    /alternate\s+universe/i,
+    /rules?\s+don'?t\s+apply/i,
+    /sandbox.*anything\s+goes/i,
+    /sandbox\s+mode/i,
 
     // 2025 Jailbreak Techniques (Q1 2026 Audit)
     /HILL\s+attack/i,
@@ -105,14 +114,18 @@ const CRITICAL_INJECTION_PATTERNS = [
     /\$IFS/,
     /;.*[\n\r]/,
     /\$\(.*\)/,
-    /`.*`/,
+
+    // System prompt extraction - Stricter to avoid FPs
+    /(extract|reveal|show|dump|print)(s|ed|ing)?\s+(me\s+)?((your|the)\s+)?(system|hidden|secret|initial|original|internal)\s*(prompt|config|instructions?)/i,
+    /(extract|reveal|show|dump|print)(s|ed|ing)?\s+(me\s+)?your\s+(instructions?|rules?|guidelines?|message)/i,
+    /(extract|reveal|show|dump|print)(s|ed|ing)?\s+the\s+instructions\s+you\s+(received|have|follow)/i,
+    /what\s+(are|were)\s+your\s+(original|initial|system|internal)\s+instructions?/i,
 ];
 
 /**
  * High-risk patterns that increase risk score significantly
  */
 const HIGH_RISK_PATTERNS = [
-    // Instruction injection markers
     /\[\s*SYSTEM\s*\]/i,
     /\[\s*INST(RUCTION)?\s*\]/i,
     /\[\s*ADMIN\s*\]/i,
@@ -124,6 +137,7 @@ const HIGH_RISK_PATTERNS = [
     // Without restrictions language
     /without\s+(any\s+)?(restrictions?|limits?|safety|rules?|filters?|guidelines?)/i,
     /no\s+(instructions?|rules?|guidelines?|safety|filters?)/i,
+    /make\s+(an\s+)?(exception|allowance)/i,
 
     // Bash code blocks - specifically dangerous commands
     /```(bash|sh|cmd|powershell)[\s\S]*?(rm|wget|curl|nc|bash|sh|sudo)/i,
@@ -137,6 +151,8 @@ const HIGH_RISK_PATTERNS = [
     /repeat\s+(this|the\s+following)\s+\d+\s+times/i,
     /output\s+only\s+(this|the\s+following)/i,
     /respond\s+with\s+only/i,
+    /ignore\s+previous/i,
+    /(extract|reveal|dump)\s+prompt/i,
 
     // Tool/function manipulation
     /call\s+(the\s+)?(function|tool|api)\s+with/i,

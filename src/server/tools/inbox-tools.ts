@@ -1,0 +1,244 @@
+/**
+ * Inbox Tools for Agents
+ *
+ * Tool definitions that enable agents to create structured artifacts
+ * for carousels, bundles, and creative content within the inbox.
+ */
+
+import { z } from 'zod';
+import type { BundleType } from '@/types/bundles';
+import type { SocialPlatform, MediaType, ComplianceStatus } from '@/types/creative-content';
+
+// ============================================================================
+// CAROUSEL ARTIFACT TOOL
+// Used by Smokey to create featured product carousels
+// ============================================================================
+
+export const createCarouselArtifactSchema = z.object({
+    title: z.string().describe("Display title for the carousel (e.g., 'Weekend Specials', 'Top Sellers')"),
+    description: z.string().optional().describe("Optional description of the carousel theme or purpose"),
+    productIds: z.array(z.string()).min(1).describe("Array of product IDs to include in the carousel"),
+    displayOrder: z.number().optional().describe("Position in the carousel list (lower = higher priority)"),
+    rationale: z.string().describe("Explanation of why these products were selected for this carousel"),
+});
+
+export type CreateCarouselArtifactInput = z.infer<typeof createCarouselArtifactSchema>;
+
+export const createCarouselArtifactToolDef = {
+    name: "createCarouselArtifact",
+    description: `Create a featured product carousel for the dispensary. Use this when the user asks for:
+- Featured product collections
+- Category-specific showcases
+- Promotional carousels
+- Recommended products display
+The carousel will appear as a draft for user approval before publishing.`,
+    schema: createCarouselArtifactSchema,
+};
+
+// ============================================================================
+// BUNDLE ARTIFACT TOOL
+// Used by Money Mike to create promotional bundle deals
+// ============================================================================
+
+const bundleProductSchema = z.object({
+    productId: z.string().describe("The product ID from inventory"),
+    name: z.string().describe("Product display name"),
+    category: z.string().describe("Product category (e.g., 'flower', 'concentrate', 'edible')"),
+    requiredQty: z.number().min(1).describe("Quantity required in the bundle"),
+    originalPrice: z.number().describe("Original unit price before discount"),
+    bundlePrice: z.number().optional().describe("Special price when purchased in this bundle"),
+    discountPercent: z.number().optional().describe("Percentage discount for this product in bundle"),
+});
+
+export const createBundleArtifactSchema = z.object({
+    name: z.string().describe("Bundle deal name (e.g., 'Chill Weekend Pack', 'Edibles Sampler')"),
+    description: z.string().describe("Marketing description of the bundle value proposition"),
+    type: z.enum(['bogo', 'mix_match', 'percentage', 'fixed_price', 'tiered'] as const)
+        .describe("Bundle type: bogo=buy one get one, mix_match=pick from selection, percentage=% off, fixed_price=set price, tiered=volume discounts"),
+    products: z.array(bundleProductSchema).min(1).describe("Products included in the bundle"),
+    bundlePrice: z.number().describe("Final bundle price to charge customer"),
+    originalTotal: z.number().describe("Sum of original prices (before discount)"),
+    savingsAmount: z.number().describe("Dollar amount customer saves"),
+    savingsPercent: z.number().describe("Percentage customer saves (e.g., 20 for 20%)"),
+    minMarginPercent: z.number().optional().describe("Minimum margin threshold to maintain profitability"),
+    rationale: z.string().describe("Explanation of product pairing strategy and margin analysis"),
+    badgeText: z.string().optional().describe("Optional promotional badge (e.g., 'Save 20%!', 'Best Value')"),
+});
+
+export type CreateBundleArtifactInput = z.infer<typeof createBundleArtifactSchema>;
+
+export const createBundleArtifactToolDef = {
+    name: "createBundleArtifact",
+    description: `Create a promotional bundle deal combining multiple products at a discounted price. Use this when the user asks for:
+- Product bundles or packs
+- BOGO (buy one get one) deals
+- Mix & match promotions
+- Volume discounts or tiered pricing
+- Cross-sell combinations
+
+IMPORTANT: Always analyze margins and ensure the bundle maintains profitability. Flag if savings exceed typical thresholds.`,
+    schema: createBundleArtifactSchema,
+};
+
+// ============================================================================
+// CREATIVE CONTENT ARTIFACT TOOL
+// Used by Craig to create social media content
+// ============================================================================
+
+export const createCreativeArtifactSchema = z.object({
+    platform: z.enum(['instagram', 'tiktok', 'linkedin', 'twitter', 'facebook'] as const)
+        .describe("Target social media platform"),
+    caption: z.string().describe("Main text/caption for the post"),
+    hashtags: z.array(z.string()).optional().describe("Relevant hashtags (without # symbol)"),
+    mediaType: z.enum(['image', 'video', 'carousel', 'text'] as const)
+        .describe("Type of media content"),
+    mediaUrls: z.array(z.string()).optional().describe("URLs to media assets (images/videos)"),
+    thumbnailUrl: z.string().optional().describe("Thumbnail preview URL"),
+    style: z.enum(['professional', 'playful', 'educational', 'hype']).optional()
+        .describe("Content style/tone"),
+    targetAudience: z.string().optional().describe("Description of target audience"),
+    productId: z.string().optional().describe("Associated product ID if applicable"),
+    productName: z.string().optional().describe("Product name for reference"),
+    complianceNotes: z.string().optional().describe("Compliance considerations and warnings"),
+    rationale: z.string().describe("Explanation of creative strategy and platform-specific choices"),
+});
+
+export type CreateCreativeArtifactInput = z.infer<typeof createCreativeArtifactSchema>;
+
+export const createCreativeArtifactToolDef = {
+    name: "createCreativeArtifact",
+    description: `Create social media content for a specific platform. Use this when the user asks for:
+- Social media posts (Instagram, TikTok, LinkedIn, Twitter, Facebook)
+- Product announcements or promotions
+- Brand storytelling content
+- Educational cannabis content
+- Campaign creative assets
+
+IMPORTANT: Always consider platform-specific requirements and cannabis advertising compliance rules. Flag potential compliance issues.`,
+    schema: createCreativeArtifactSchema,
+};
+
+// ============================================================================
+// COMBINED INBOX TOOL DEFINITIONS
+// Import these into agent configurations
+// ============================================================================
+
+export const inboxToolDefs = [
+    createCarouselArtifactToolDef,
+    createBundleArtifactToolDef,
+    createCreativeArtifactToolDef,
+];
+
+// Per-agent tool sets
+export const smokeyInboxToolDefs = [createCarouselArtifactToolDef];
+export const moneyMikeInboxToolDefs = [createBundleArtifactToolDef];
+export const craigInboxToolDefs = [createCreativeArtifactToolDef];
+
+// ============================================================================
+// TOOL IMPLEMENTATION INTERFACES
+// TypeScript interfaces for agent tool implementations
+// ============================================================================
+
+export interface InboxTools {
+    createCarouselArtifact(input: CreateCarouselArtifactInput): Promise<CarouselArtifactResult>;
+    createBundleArtifact(input: CreateBundleArtifactInput): Promise<BundleArtifactResult>;
+    createCreativeArtifact(input: CreateCreativeArtifactInput): Promise<CreativeArtifactResult>;
+}
+
+export interface CarouselArtifactResult {
+    success: boolean;
+    artifactId: string;
+    carousel: {
+        title: string;
+        description?: string;
+        productIds: string[];
+        displayOrder: number;
+    };
+    rationale: string;
+}
+
+export interface BundleArtifactResult {
+    success: boolean;
+    artifactId: string;
+    bundle: {
+        name: string;
+        description: string;
+        type: BundleType;
+        products: Array<{
+            productId: string;
+            name: string;
+            category: string;
+            requiredQty: number;
+            originalPrice: number;
+            bundlePrice?: number;
+        }>;
+        bundlePrice: number;
+        originalTotal: number;
+        savingsAmount: number;
+        savingsPercent: number;
+    };
+    marginAnalysis?: {
+        isViable: boolean;
+        marginPercent: number;
+        warnings: string[];
+    };
+    rationale: string;
+}
+
+export interface CreativeArtifactResult {
+    success: boolean;
+    artifactId: string;
+    content: {
+        platform: SocialPlatform;
+        caption: string;
+        hashtags?: string[];
+        mediaType: MediaType;
+        mediaUrls?: string[];
+        thumbnailUrl?: string;
+    };
+    complianceCheck?: {
+        status: ComplianceStatus;
+        issues: string[];
+    };
+    rationale: string;
+}
+
+// ============================================================================
+// ARTIFACT MARKER UTILITIES
+// Functions to format tool outputs as parseable artifact markers
+// ============================================================================
+
+/**
+ * Format carousel artifact as marker for parsing
+ */
+export function formatCarouselArtifactMarker(result: CarouselArtifactResult): string {
+    const data = JSON.stringify({
+        ...result.carousel,
+        rationale: result.rationale,
+    });
+    return `:::artifact:carousel:${result.carousel.title}\n${data}\n:::`;
+}
+
+/**
+ * Format bundle artifact as marker for parsing
+ */
+export function formatBundleArtifactMarker(result: BundleArtifactResult): string {
+    const data = JSON.stringify({
+        ...result.bundle,
+        marginAnalysis: result.marginAnalysis,
+        rationale: result.rationale,
+    });
+    return `:::artifact:bundle:${result.bundle.name}\n${data}\n:::`;
+}
+
+/**
+ * Format creative artifact as marker for parsing
+ */
+export function formatCreativeArtifactMarker(result: CreativeArtifactResult): string {
+    const data = JSON.stringify({
+        ...result.content,
+        complianceCheck: result.complianceCheck,
+        rationale: result.rationale,
+    });
+    return `:::artifact:creative_content:${result.content.platform} Post\n${data}\n:::`;
+}
