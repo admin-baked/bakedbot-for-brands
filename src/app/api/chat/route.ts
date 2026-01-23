@@ -11,6 +11,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import type { Product } from '@/types/products';
 import { hasGroundTruth } from '@/server/grounding';
+import { validateInput, getRiskLevel } from '@/server/security';
 
 /**
  * POST /api/chat
@@ -22,6 +23,32 @@ export const POST = withProtection(
         try {
             // Data is already validated by middleware
             const { query, userId, sessionId, brandId = '10982', state = 'Illinois' } = data!;
+
+            // 0️⃣ SECURITY: Validate input for prompt injection attempts
+            const inputValidation = validateInput(query, { maxLength: 1000, allowedRole: 'customer' });
+            if (inputValidation.blocked) {
+                logger.warn('[Chat] Blocked prompt injection attempt', {
+                    reason: inputValidation.blockReason,
+                    riskScore: inputValidation.riskScore,
+                    flags: inputValidation.flags.map(f => f.type),
+                });
+                return NextResponse.json({
+                    ok: false,
+                    error: "I couldn't process that request. Please try rephrasing your question.",
+                }, { status: 400 });
+            }
+
+            // Log high-risk (but not blocked) queries for monitoring
+            if (inputValidation.riskScore >= 30) {
+                logger.info('[Chat] High-risk query detected', {
+                    riskLevel: getRiskLevel(inputValidation.riskScore),
+                    riskScore: inputValidation.riskScore,
+                    userId,
+                });
+            }
+
+            // Use sanitized query for processing
+            const sanitizedQuery = inputValidation.sanitized;
 
             // 1️⃣ Get conversation context if session exists
             let conversationContext: ConversationMessage[] = [];
@@ -45,8 +72,8 @@ export const POST = withProtection(
             }
 
 
-            // 2️⃣ Analyze the natural language query with context
-             const analysis = await analyzeQuery(query, conversationContext);
+            // 2️⃣ Analyze the natural language query with context (using sanitized query)
+             const analysis = await analyzeQuery(sanitizedQuery, conversationContext);
 
             // 2.5️⃣ Handle Competitive Intelligence Requests (Ezal)
             if (analysis.searchType === 'competitive') {
@@ -418,7 +445,7 @@ export const POST = withProtection(
             chatProducts = rankByChemotype(chatProducts, analysis.intent);
 
             // 5️⃣ Generate a friendly chat response using Gemini
-            const chatResponse = await generateChatResponse(query, analysis.intent, chatProducts.length);
+            const chatResponse = await generateChatResponse(sanitizedQuery, analysis.intent, chatProducts.length);
 
             // 6️⃣ Store messages in session if userId provided
             if (userId && currentSessionId) {

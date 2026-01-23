@@ -518,6 +518,103 @@ DIRECTIVE (System-only, cannot be overridden by user_data):
 
 **Security Tests:** `tests/server/security/q1-2026-audit-part2.test.ts` — 31 tests
 
+### PromptGuard Module (Defense-in-Depth Prompt Injection Protection)
+
+Comprehensive prompt injection protection module implementing OWASP LLM Top 10 2025 recommendations.
+
+**Key Files:**
+- `src/server/security/prompt-guard.ts` — Core protection module
+- `src/server/security/sanitize.ts` — Input sanitization utilities
+- `src/server/security/index.ts` — Public exports
+- `tests/server/security/prompt-guard.test.ts` — 141 tests
+
+**Features:**
+| Feature | Description |
+|---------|-------------|
+| **Critical Pattern Detection** | Blocks: ignore instructions, role hijacking, system prompt extraction, jailbreak modes |
+| **High-Risk Pattern Detection** | Flags: instruction markers, template injection, code block abuse |
+| **Typoglycemia Detection** | Catches scrambled injection words (e.g., "ignroe" → "ignore") |
+| **Encoding Detection** | Detects: Base64, hex, unicode, HTML entity encoded payloads |
+| **Output Validation** | Catches: system prompt leakage, credential exposure |
+| **Risk Scoring** | 0-100 score with automatic blocking at threshold (70+) |
+| **Structured Prompts** | SYSTEM_INSTRUCTIONS/USER_DATA separation pattern |
+
+**Usage Pattern:**
+```typescript
+import { validateInput, validateOutput, getRiskLevel, buildStructuredPrompt } from '@/server/security';
+
+// Validate user input before sending to LLM
+const inputResult = validateInput(userMessage, {
+    maxLength: 2000,
+    allowedRole: 'customer' // or 'brand' or 'admin'
+});
+
+if (inputResult.blocked) {
+    logger.warn('Blocked prompt injection attempt', { reason: inputResult.blockReason });
+    return { error: 'Invalid input' };
+}
+
+// Use sanitized input
+const sanitizedQuery = inputResult.sanitized;
+
+// Check risk level for HITL flagging
+const riskLevel = getRiskLevel(inputResult.riskScore); // 'safe'|'low'|'medium'|'high'|'critical'
+
+// Validate LLM output before returning to user
+const outputResult = validateOutput(llmResponse);
+const safeResponse = outputResult.sanitized;
+
+// Build structured prompts for clear separation
+const prompt = buildStructuredPrompt({
+    systemInstructions: 'You are a helpful budtender...',
+    userData: sanitizedQuery,
+    context: 'User is in Colorado'
+});
+```
+
+**Integrated Entry Points:**
+- `/api/chat/route.ts` — Customer chat endpoint
+- `actions.ts` — Executive agent dispatch (runAgentChat)
+- `agent-runner.ts` — Core agent execution (validates all agent inputs)
+- `harness.ts` — Multi-step task orchestration (sanitizes planning prompts)
+- `tickets/route.ts` — Support ticket Linus dispatch
+- `error-report/route.ts` — Error webhook Linus dispatch
+
+**Canary Token System (System Prompt Extraction Detection):**
+```typescript
+import { embedCanaryToken, validateOutputWithCanary } from '@/server/security';
+
+// Embed a canary token in system prompt
+const { prompt, token } = embedCanaryToken(systemPrompt, { position: 'both' });
+
+// Send to LLM...
+const response = await llm.generate(prompt);
+
+// Validate output for canary leakage
+const result = validateOutputWithCanary(response.text, token);
+if (result.flags.some(f => f.flag === 'canary_leak')) {
+    logger.error('SECURITY: System prompt extraction detected');
+}
+```
+
+**Randomized Delimiters (Delimiter Injection Prevention):**
+```typescript
+import { wrapUserDataSecure, buildSecurePrompt } from '@/server/security';
+
+// Wrap user data with randomized markers (e.g., <user_input_a7x9>)
+const { wrapped, marker } = wrapUserDataSecure(userInput, 'query');
+
+// Or use the full prompt builder
+const { prompt, userDataMarker } = buildSecurePrompt({
+    systemInstructions: 'You are a helpful assistant...',
+    userData: userInput,
+    dataType: 'customer_query',
+    context: 'Colorado dispensary'
+});
+```
+
+**Security Tests:** `tests/server/security/prompt-guard.test.ts` — 317 tests
+
 ---
 
 ### Agent Hive Mind + Grounding System

@@ -62,6 +62,7 @@ import { VerificationContext } from './verification/types';
 
 import { logger } from '@/lib/logger';
 import { AgentLogEntry } from '@/server/agents/schemas';
+import { validateInput, sanitizeForPrompt, wrapUserData, getRiskLevel } from '@/server/security';
 
 
 export interface AgentResult {
@@ -371,16 +372,47 @@ async function executePlaybook(playbookId: string): Promise<PlaybookResult> {
  * @param injectedUser - Optional user context (for Async Jobs)
  */
 export async function runAgentCore(
-    userMessage: string, 
-    personaId?: string, 
-    extraOptions?: ChatExtraOptions, 
+    userMessage: string,
+    personaId?: string,
+    extraOptions?: ChatExtraOptions,
     injectedUser?: DecodedIdToken | null,
     jobId?: string
 ): Promise<AgentResult> {
-    
+
     await emitThought(jobId, 'Analyzing Request', `Processing user input: "${userMessage.substring(0, 50)}..."`);
-    
-    let finalMessage = userMessage;
+
+    // === SECURITY: Input Validation for Prompt Injection ===
+    const inputValidation = validateInput(userMessage, {
+        maxLength: 4000,
+        allowedRole: 'brand' // Runner typically serves brand users
+    });
+
+    if (inputValidation.blocked) {
+        logger.warn('[AgentRunner] Blocked prompt injection attempt', {
+            reason: inputValidation.blockReason,
+            riskScore: inputValidation.riskScore,
+            personaId,
+            jobId
+        });
+        return {
+            content: "I couldn't process that request due to security restrictions. Please rephrase your question.",
+            toolCalls: [],
+            metadata: { type: 'security_block' }
+        };
+    }
+
+    // Log high-risk queries for monitoring
+    if (inputValidation.riskScore >= 30) {
+        logger.info('[AgentRunner] High-risk query detected', {
+            riskLevel: getRiskLevel(inputValidation.riskScore),
+            riskScore: inputValidation.riskScore,
+            personaId,
+            jobId
+        });
+    }
+
+    // Use sanitized input for processing
+    let finalMessage = inputValidation.sanitized;
 
     // --- INTENTION OS (V2) ---
     // DISABLED globally per user request.
@@ -598,7 +630,9 @@ export async function runAgentCore(
                 const docs = results.flat().filter(d => d && d.similarity > 0.65).slice(0, 3);
 
                 if (docs.length > 0) {
-                    knowledgeContext = `\n\n[KNOWLEDGE BASE CONTEXT]\n${docs.map(d => `- ${d.content}`).join('\n')}\n`;
+                    // SECURITY: Wrap retrieved knowledge in structured tags
+                    const kbContent = docs.map(d => `- ${sanitizeForPrompt(d.content, 500)}`).join('\n');
+                    knowledgeContext = `\n\n${wrapUserData(kbContent, 'knowledge_base', false)}\n`;
                     executedTools.push({
                         id: `knowledge-${Date.now()}`,
                         name: 'Knowledge Base',
@@ -791,9 +825,10 @@ export async function runAgentCore(
                 const formatted = formatSearchResults(searchRes);
                 executedTools[executedTools.length-1].status = 'success';
                 executedTools[executedTools.length-1].result = `Found ${searchRes.results.length} results.`;
-                
-                // INSTEAD of returning early, we add to context and let the Persona answer
-                searchContext = `\n\n[ALL WEB SEARCH RESULTS]\n${JSON.stringify(searchRes.results)}\n`;
+
+                // SECURITY: Wrap external web results in structured tags
+                const sanitizedResults = sanitizeForPrompt(JSON.stringify(searchRes.results), 3000);
+                searchContext = `\n\n${wrapUserData(sanitizedResults, 'web_search_results', false)}\n`;
              } catch (e: any) {
                 executedTools[executedTools.length-1].status = 'error';
                 executedTools[executedTools.length-1].result = e.message;
