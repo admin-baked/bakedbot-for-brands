@@ -58,11 +58,11 @@ export function SuperAdminSidebar() {
     const { toast } = useToast();
     const { sessions, activeSessionId, clearCurrentSession, setActiveSession } = useAgentChatStore();
 
-    const isActive = (tab: string) => {
+    const isActive = (tab: string): boolean => {
         if (tab === 'agents') {
             return pathname?.startsWith('/dashboard/ceo/agents') || currentTabParam === 'agents';
         }
-        
+
         if (tab === 'projects') {
             return pathname?.startsWith('/dashboard/ceo/projects') || currentTabParam === 'projects';
         }
@@ -71,7 +71,18 @@ export function SuperAdminSidebar() {
             return pathname?.startsWith('/dashboard/ceo/treasury') || currentTabParam === 'treasury';
         }
 
+        // Handle admin tab - also match legacy admin tab params
+        if (tab === 'admin') {
+            const legacyAdminTabs = ['account-management', 'invites', 'tickets', 'data-manager', 'ai-search',
+                'knowledge-base', 'cannmenus', 'coupons', 'ai-agent-embed', 'sandbox', 'browser', 'settings', 'pilot-setup'];
+            return currentTabParam === 'admin' || Boolean(currentTabParam && legacyAdminTabs.includes(currentTabParam));
+        }
+
         return currentTabParam === tab;
+    };
+
+    const isAdminSectionActive = (section: string): boolean => {
+        return isActive('admin') && searchParams?.get('section') === section;
     };
 
     return (
@@ -245,7 +256,7 @@ export function SuperAdminSidebar() {
                 </SidebarGroupContent>
             </SidebarGroup>
 
-            {/* Admin - Collapsible for less frequent tools */}
+            {/* Admin Console - Unified admin tools */}
             <SidebarGroup>
                 <Collapsible defaultOpen={false} className="group/admin">
                     <SidebarGroupLabel asChild>
@@ -257,10 +268,10 @@ export function SuperAdminSidebar() {
                     <CollapsibleContent>
                         <SidebarGroupContent>
                             <SidebarMenu>
-                                {/* Users & Access */}
+                                {/* Users Section */}
                                 <SidebarMenuItem>
-                                    <SidebarMenuButton asChild isActive={isActive("account-management")}>
-                                        <Link href="/dashboard/ceo?tab=account-management">
+                                    <SidebarMenuButton asChild isActive={isAdminSectionActive("users")}>
+                                        <Link href="/dashboard/ceo?tab=admin&section=users">
                                             <Users />
                                             <span>Users & Access</span>
                                         </Link>
@@ -277,55 +288,41 @@ export function SuperAdminSidebar() {
                                         }
                                     />
                                 </SidebarMenuItem>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton asChild isActive={isActive("tickets")}>
-                                        <Link href="/dashboard/ceo?tab=tickets">
-                                            <Ticket />
-                                            <span>Support Tickets</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
 
-                                {/* Data & Integrations */}
+                                {/* Data Section */}
                                 <SidebarMenuItem>
-                                    <SidebarMenuButton asChild isActive={isActive("data-manager") || isActive("ai-search") || isActive("knowledge-base")}>
-                                        <Link href="/dashboard/ceo?tab=data-manager">
+                                    <SidebarMenuButton asChild isActive={isAdminSectionActive("data")}>
+                                        <Link href="/dashboard/ceo?tab=admin&section=data">
                                             <Database />
                                             <span>Data Management</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
+
+                                {/* Integrations Section */}
                                 <SidebarMenuItem>
-                                    <SidebarMenuButton asChild isActive={isActive("cannmenus") || isActive("coupons") || isActive("ai-agent-embed")}>
-                                        <Link href="/dashboard/ceo?tab=cannmenus">
+                                    <SidebarMenuButton asChild isActive={isAdminSectionActive("integrations")}>
+                                        <Link href="/dashboard/ceo?tab=admin&section=integrations">
                                             <Factory />
                                             <span>Integrations</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
 
-                                {/* Dev Tools */}
+                                {/* Dev Tools Section */}
                                 <SidebarMenuItem>
-                                    <SidebarMenuButton asChild isActive={isActive("sandbox") || isActive("browser")}>
-                                        <Link href="/dashboard/ceo?tab=sandbox">
+                                    <SidebarMenuButton asChild isActive={isAdminSectionActive("devtools")}>
+                                        <Link href="/dashboard/ceo?tab=admin&section=devtools">
                                             <Code />
                                             <span>Dev Tools</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton asChild isActive={isActive("pilot-setup")}>
-                                        <Link href="/dashboard/ceo?tab=pilot-setup">
-                                            <Rocket />
-                                            <span>Pilot Setup</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
 
-                                {/* Settings */}
+                                {/* Settings Section */}
                                 <SidebarMenuItem>
-                                    <SidebarMenuButton asChild isActive={isActive("settings")}>
-                                        <Link href="/dashboard/ceo?tab=settings">
+                                    <SidebarMenuButton asChild isActive={isAdminSectionActive("settings")}>
+                                        <Link href="/dashboard/ceo?tab=admin&section=settings">
                                             <Settings />
                                             <span>Settings</span>
                                         </Link>
