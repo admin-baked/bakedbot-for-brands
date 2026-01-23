@@ -112,9 +112,10 @@ export async function listBrandPlaybooks(brandId: string): Promise<Playbook[]> {
 
         console.log(`[Playbooks] Found ${snap.size} playbooks for brand: ${brandId}`);
         return snap.docs.map(doc => formatPlaybook(doc.id, doc.data()));
-    } catch (error) {
+    } catch (error: any) {
         console.error('[Playbooks] Failed to list playbooks:', error);
-        throw error;
+        // Return empty array instead of throwing to prevent RSC errors
+        return [];
     }
 }
 
@@ -361,47 +362,57 @@ export async function clonePlaybook(
  * Toggle a playbook's active status
  */
 export async function togglePlaybookStatus(brandId: string, playbookId: string, isActive: boolean) {
-    const { firestore } = await createServerClient();
-    const user = await requireUser();
+    try {
+        const { firestore } = await createServerClient();
+        const user = await requireUser();
 
-    const docRef = firestore.collection('brands').doc(brandId).collection('playbooks').doc(playbookId);
-    const snap = await docRef.get();
+        const docRef = firestore.collection('brands').doc(brandId).collection('playbooks').doc(playbookId);
+        const snap = await docRef.get();
 
-    if (!snap.exists) {
-        return { success: false, error: 'Playbook not found' };
+        if (!snap.exists) {
+            return { success: false, error: 'Playbook not found' };
+        }
+
+        const playbook = formatPlaybook(snap.id, snap.data());
+        const canEdit = await canEditPlaybook(user.uid, user.role as string, playbook);
+
+        if (!canEdit) {
+            return { success: false, error: 'Permission denied' };
+        }
+
+        await docRef.update({
+            status: isActive ? 'active' : 'paused',
+            updatedAt: new Date()
+        });
+
+        return { success: true };
+    } catch (error: any) {
+        console.error('[Playbooks] togglePlaybookStatus failed:', error);
+        return { success: false, error: error.message || 'Failed to toggle playbook status' };
     }
-
-    const playbook = formatPlaybook(snap.id, snap.data());
-    const canEdit = await canEditPlaybook(user.uid, user.role as string, playbook);
-
-    if (!canEdit) {
-        return { success: false, error: 'Permission denied' };
-    }
-
-    await docRef.update({
-        status: isActive ? 'active' : 'paused',
-        updatedAt: new Date()
-    });
-
-    return { success: true };
 }
 
 /**
  * Simulate a playbook run for testing purposes
  */
 export async function runPlaybookTest(brandId: string, playbookId: string) {
-    const { firestore } = await createServerClient();
-    await requireUser();
+    try {
+        const { firestore } = await createServerClient();
+        await requireUser();
 
-    const docRef = firestore.collection('brands').doc(brandId).collection('playbooks').doc(playbookId);
+        const docRef = firestore.collection('brands').doc(brandId).collection('playbooks').doc(playbookId);
 
-    await docRef.update({
-        runCount: FieldValue.increment(1),
-        lastRunAt: new Date(),
-        updatedAt: new Date()
-    });
+        await docRef.update({
+            runCount: FieldValue.increment(1),
+            lastRunAt: new Date(),
+            updatedAt: new Date()
+        });
 
-    return { success: true, message: 'Test run initiated successfully.' };
+        return { success: true, message: 'Test run initiated successfully.' };
+    } catch (error: any) {
+        console.error('[Playbooks] runPlaybookTest failed:', error);
+        return { success: false, error: error.message || 'Failed to run playbook test' };
+    }
 }
 
 /**
