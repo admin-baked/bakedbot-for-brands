@@ -1,6 +1,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Suspense } from 'react';
 import { useDashboardConfig } from '@/hooks/use-dashboard-config';
 import { usePlanInfo } from '@/hooks/use-plan-info';
 import {
@@ -20,7 +21,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
 import { signOut } from 'firebase/auth';
-import { LogOut, Crown, Zap, Sparkles, UserPlus } from 'lucide-react';
+import { LogOut, Crown, Zap, Sparkles, UserPlus, Loader2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import type { ElementType } from 'react';
 import { useUserRole } from '@/hooks/use-user-role';
@@ -29,9 +30,19 @@ import { InviteUserDialog } from '@/components/invitations/invite-user-dialog';
 
 import { SuperAdminSidebar } from '@/components/dashboard/super-admin-sidebar';
 import { BrandSidebar } from '@/components/dashboard/brand-sidebar';
+import { DispensarySidebar } from '@/components/dashboard/dispensary-sidebar';
 import { SharedSidebarHistory } from '@/components/dashboard/shared-sidebar-history';
 import { logger } from '@/lib/logger';
 import { useSuperAdmin } from '@/hooks/use-super-admin';
+
+// Loading fallback for sidebar components that use useSearchParams (required in Next.js 15+)
+function SidebarLoading() {
+  return (
+    <div className="flex items-center justify-center p-4">
+      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
 
 export function DashboardSidebar() {
   const pathname = usePathname();
@@ -52,6 +63,10 @@ export function DashboardSidebar() {
   // Show Brand Sidebar for brand users (including brand_admin, brand_member)
   const isBrandDashboard = !isCeoDashboard &&
                            (role === 'brand' || role === 'brand_admin' || role === 'brand_member');
+
+  // Show Dispensary Sidebar for dispensary users (including dispensary_admin, dispensary_staff)
+  const isDispensaryDashboard = !isCeoDashboard && !isBrandDashboard &&
+                                 (role === 'dispensary' || role === 'dispensary_admin' || role === 'dispensary_staff');
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -122,12 +137,21 @@ export function DashboardSidebar() {
       <SidebarContent>
         {isCeoDashboard ? (
           /* CEO Dashboard: Show Super Admin Navigation */
-          <SuperAdminSidebar />
+          /* Wrapped in Suspense because SuperAdminSidebar uses useSearchParams */
+          <Suspense fallback={<SidebarLoading />}>
+            <SuperAdminSidebar />
+          </Suspense>
         ) : isBrandDashboard ? (
           /* Brand Dashboard: Show Brand Navigation */
           <>
             <SharedSidebarHistory />
             <BrandSidebar />
+          </>
+        ) : isDispensaryDashboard ? (
+          /* Dispensary Dashboard: Show Dispensary Navigation */
+          <>
+            <SharedSidebarHistory />
+            <DispensarySidebar />
           </>
         ) : (
           /* Default: Show role-filtered navigation */
@@ -184,8 +208,8 @@ export function DashboardSidebar() {
         )}
 
         
-        {/* Invite Team Member Action - only show for default nav (not CEO or Brand sidebars which have their own) */}
-        {!isCeoDashboard && !isBrandDashboard && user && orgId && (
+        {/* Invite Team Member Action - only show for default nav (not CEO, Brand, or Dispensary sidebars which have their own) */}
+        {!isCeoDashboard && !isBrandDashboard && !isDispensaryDashboard && user && orgId && (
             <div className="mt-auto p-4">
                <InviteUserDialog 
                     orgId={orgId || undefined}
