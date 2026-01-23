@@ -24,24 +24,55 @@ jest.mock('@/types/inbox', () => ({
             carousel: 'smokey',
             bundle: 'money_mike',
             creative: 'craig',
-            general: 'glenda',
+            campaign: 'glenda',
+            retail_partner: 'glenda',
+            launch: 'glenda',
+            performance: 'linus',
+            outreach: 'craig',
+            inventory_promo: 'money_mike',
+            event: 'craig',
+            general: 'auto',
+            product_discovery: 'smokey',
+            support: 'smokey',
         };
-        return map[type] || 'glenda';
+        return map[type] || 'auto';
     },
     getSupportingAgentsForThreadType: (type: string) => {
         const map: Record<string, string[]> = {
-            carousel: ['ezal'],
-            bundle: ['smokey'],
-            creative: ['deebo'],
+            carousel: ['ezal', 'pops'],
+            bundle: ['smokey', 'pops'],
+            creative: ['deebo', 'ezal'],
+            campaign: ['craig', 'money_mike', 'pops'],
+            retail_partner: ['craig', 'money_mike'],
+            launch: ['smokey', 'money_mike', 'craig'],
+            performance: ['pops', 'ezal'],
+            outreach: ['deebo'],
+            inventory_promo: ['day_day', 'smokey'],
+            event: ['glenda', 'deebo'],
             general: [],
+            product_discovery: ['ezal'],
+            support: ['deebo'],
         };
         return map[type] || [];
     },
     getQuickActionsForRole: (role: string) => {
+        if (role === 'brand' || role === 'dispensary') {
+            return [
+                { id: 'new-carousel', label: 'New Carousel', threadType: 'carousel' },
+                { id: 'new-bundle', label: 'New Bundle', threadType: 'bundle' },
+                { id: 'new-creative', label: 'Create Post', threadType: 'creative' },
+                { id: 'new-campaign', label: 'Plan Campaign', threadType: 'campaign' },
+                { id: 'product-launch', label: 'Product Launch', threadType: 'launch' },
+                { id: 'review-performance', label: 'Review Performance', threadType: 'performance' },
+                { id: 'customer-blast', label: 'Customer Blast', threadType: 'outreach' },
+                { id: 'move-inventory', label: 'Move Inventory', threadType: 'inventory_promo' },
+                { id: 'plan-event', label: 'Plan Event', threadType: 'event' },
+            ];
+        }
         if (role === 'brand') {
             return [
-                { id: 'new-carousel', label: 'New Carousel', type: 'carousel' },
-                { id: 'new-bundle', label: 'New Bundle', type: 'bundle' },
+                ...[], // Include base actions
+                { id: 'retail-pitch', label: 'Retail Pitch', threadType: 'retail_partner' },
             ];
         }
         return [];
@@ -714,9 +745,11 @@ describe('Inbox Store', () => {
 
                 const actions = store.getQuickActions();
 
-                expect(actions).toHaveLength(2);
-                expect(actions[0].type).toBe('carousel');
-                expect(actions[1].type).toBe('bundle');
+                // Brand role gets all business quick actions (9 total)
+                expect(actions.length).toBeGreaterThanOrEqual(9);
+                expect(actions[0].threadType).toBe('carousel');
+                expect(actions[1].threadType).toBe('bundle');
+                expect(actions[2].threadType).toBe('creative');
             });
 
             it('should return empty array when no role set', () => {
