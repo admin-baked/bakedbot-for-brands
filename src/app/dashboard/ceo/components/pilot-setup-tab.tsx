@@ -91,6 +91,9 @@ export default function PilotSetupTab() {
         enableVIPPlaybook: true,
     });
 
+    // Resume Existing Pilot State
+    const [resumeOrgId, setResumeOrgId] = useState('');
+
     // Brand form state
     const [brandForm, setBrandForm] = useState<BrandPilotConfig>({
         type: 'brand',
@@ -426,6 +429,36 @@ export default function PilotSetupTab() {
         setImportSource(null);
         setImportUrl('');
         setImportError(null);
+    };
+
+    // Resume an existing pilot to access advanced setup
+    const handleResumePilot = () => {
+        if (!resumeOrgId.trim()) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please enter an Org ID or Brand ID' });
+            return;
+        }
+
+        const orgId = resumeOrgId.trim();
+
+        // Set the setupResult to enable advanced options
+        // We use the same ID for both orgId and brandId as they're typically the same for pilots
+        setSetupResult({
+            success: true,
+            orgId: orgId,
+            brandId: orgId,
+            userId: 'resumed-pilot',
+            menuUrl: `https://bakedbot.ai/shop/${orgId}`,
+            email: '(existing pilot)',
+            password: '(existing pilot)',
+        });
+
+        toast({
+            title: 'Pilot Resumed',
+            description: `Now managing pilot: ${orgId}. You can generate test data, configure POS, and set up email playbooks.`,
+        });
+
+        // Reset test data status for the new pilot
+        setTestDataStatus({});
     };
 
     // Generate test customers and orders
@@ -890,6 +923,37 @@ export default function PilotSetupTab() {
                     Empire Plan (Free Pilot)
                 </Badge>
             </div>
+
+            {/* Resume Existing Pilot */}
+            <Card className="border-blue-200 bg-blue-50/50">
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <RefreshCw className="h-4 w-4" />
+                        Resume Existing Pilot
+                    </CardTitle>
+                    <CardDescription>
+                        Already have a pilot set up? Enter the Org ID to access test data generation, email playbooks, and POS configuration.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center gap-2">
+                        <Input
+                            placeholder="e.g., loc_thrive_syracuse or org_xxx"
+                            value={resumeOrgId}
+                            onChange={(e) => setResumeOrgId(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleResumePilot()}
+                            className="flex-1"
+                        />
+                        <Button onClick={handleResumePilot} variant="secondary">
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Resume
+                        </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                        Known pilots: <code className="bg-white px-1 rounded">loc_thrive_syracuse</code>
+                    </p>
+                </CardContent>
+            </Card>
 
             <Tabs defaultValue="dispensary" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-2">
