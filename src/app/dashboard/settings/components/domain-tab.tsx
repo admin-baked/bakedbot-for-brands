@@ -79,7 +79,19 @@ export default function DomainSettingsTab() {
 
     // Add domain handler
     const handleAddDomain = async () => {
-        if (!tenantId || !domain.trim()) return;
+        if (!domain.trim()) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Please enter a domain name.' });
+            return;
+        }
+
+        if (!tenantId) {
+            toast({
+                variant: 'destructive',
+                title: 'Account Not Found',
+                description: 'Unable to find your organization. Please refresh the page and try again, or contact support.'
+            });
+            return;
+        }
 
         setIsSaving(true);
         try {
@@ -90,10 +102,19 @@ export default function DomainSettingsTab() {
                 setDomainConfig(result.config as CustomDomainConfig);
                 toast({ title: 'Domain added', description: 'Follow the DNS instructions below to verify.' });
             } else {
-                toast({ variant: 'destructive', title: 'Error', description: result.error || 'Failed to add domain.' });
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: result.error || 'Failed to add domain. Please check the domain format and try again.'
+                });
             }
         } catch (error) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to add domain.' });
+            console.error('Domain add error:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: error instanceof Error ? error.message : 'Failed to add domain. Please try again.'
+            });
         } finally {
             setIsSaving(false);
         }

@@ -15,6 +15,7 @@ import {
   EzalPipelineState,
 } from './types';
 import { z } from 'zod';
+import { sanitizeForPrompt } from '@/server/security';
 
 // ============================================================================
 // ANALYZER AGENT SYSTEM INSTRUCTIONS
@@ -138,18 +139,20 @@ export async function runAnalyzerAgent(
   };
 
   // Build analysis context
+  // SECURITY: Sanitize competitor names from external sources
   const competitorSummary = competitors
     .map(
       (c) =>
-        `- ${c.name} (${c.url}): ${c.products.length} products`
+        `- ${sanitizeForPrompt(c.name, 200)} (${c.url}): ${c.products.length} products`
     )
     .join('\n');
 
+  // SECURITY: Sanitize product names from external sources
   const pricingInsights = priceComparisons
     .slice(0, 20)
     .map(
       (p) =>
-        `- ${p.productName}: Competitor $${p.competitorPrice}${p.ourPrice ? `, Our price $${p.ourPrice} (${p.recommendation})` : ''}`
+        `- ${sanitizeForPrompt(p.productName, 200)}: Competitor $${p.competitorPrice}${p.ourPrice ? `, Our price $${p.ourPrice} (${p.recommendation})` : ''}`
     )
     .join('\n');
 
@@ -220,7 +223,8 @@ function getCategoryBreakdown(
   return Object.entries(categories)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
-    .map(([cat, count]) => `- ${cat}: ${count} products`)
+    // SECURITY: Sanitize category names from external sources
+    .map(([cat, count]) => `- ${sanitizeForPrompt(cat, 100)}: ${count} products`)
     .join('\n');
 }
 

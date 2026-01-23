@@ -62,7 +62,7 @@ import { VerificationContext } from './verification/types';
 
 import { logger } from '@/lib/logger';
 import { AgentLogEntry } from '@/server/agents/schemas';
-import { validateInput, sanitizeForPrompt, wrapUserData, getRiskLevel } from '@/server/security';
+import { validateInput, validateOutput, sanitizeForPrompt, wrapUserData, getRiskLevel } from '@/server/security';
 
 
 export interface AgentResult {
@@ -1080,11 +1080,20 @@ export async function runAgentCore(
             }
         }
 
+        // SECURITY: Validate agent response before returning
+        const outputValidation = validateOutput(response.text);
+        if (!outputValidation.safe) {
+            logger.warn('[AgentRunner] Unsafe output detected', {
+                jobId,
+                flags: outputValidation.flags.map(f => f.type),
+            });
+        }
+
         return {
-            content: response.text,
+            content: outputValidation.sanitized,
             toolCalls: executedTools,
-            metadata: { 
-                ...metadata, 
+            metadata: {
+                ...metadata,
                 jobId,
                 evalResults: evalResults.length > 0 ? evalResults : undefined
             }

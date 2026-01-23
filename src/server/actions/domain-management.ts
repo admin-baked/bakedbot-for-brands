@@ -46,12 +46,29 @@ export async function addCustomDomain(
     connectionType?: DomainConnectionType
 ): Promise<DomainOperationResult & { config?: Omit<CustomDomainConfig, 'createdAt' | 'updatedAt'> }> {
     try {
+        // Validate tenant ID
+        if (!tenantId || typeof tenantId !== 'string' || tenantId.trim() === '') {
+            logger.error('[Domain] Invalid tenant ID provided', { tenantId });
+            return {
+                success: false,
+                error: 'Invalid account. Please log out and log back in.',
+            };
+        }
+
+        // Validate domain input
+        if (!domain || typeof domain !== 'string' || domain.trim() === '') {
+            return {
+                success: false,
+                error: 'Please enter a domain name.',
+            };
+        }
+
         // Validate domain format
         const normalizedDomain = domain.toLowerCase().trim();
         if (!isValidDomain(normalizedDomain)) {
             return {
                 success: false,
-                error: 'Invalid domain format. Please enter a valid domain name.',
+                error: 'Invalid domain format. Please enter a valid domain name (e.g., shop.yourbrand.com or yourbrand.com).',
             };
         }
 
