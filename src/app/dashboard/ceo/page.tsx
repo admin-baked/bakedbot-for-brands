@@ -75,15 +75,15 @@ function CeoDashboardContent() {
             // Hydrate sessions globally on dashboard load
             if (user?.uid) {
                 getChatSessions(user.uid).then(result => {
-                    if (result.success && result.sessions) {
+                    if (result.success && Array.isArray(result.sessions)) {
                         // Revive dates from ISO strings
                         const hydratedSessions = result.sessions.map((s: any) => ({
                             ...s,
                             timestamp: new Date(s.timestamp),
-                            messages: s.messages.map((m: any) => ({
+                            messages: Array.isArray(s.messages) ? s.messages.map((m: any) => ({
                                 ...m,
                                 timestamp: new Date(m.timestamp)
-                            }))
+                            })) : []
                         }));
                         // Update store with loaded sessions
                         useAgentChatStore.getState().hydrateSessions(hydratedSessions);
