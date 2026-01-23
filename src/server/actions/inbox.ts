@@ -1,0 +1,740 @@
+'use server';
+
+/**
+ * Inbox Server Actions
+ *
+ * Server-side operations for the Unified Inbox including
+ * thread CRUD, artifact management, and persistence to Firestore.
+ */
+
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getServerSessionUser } from '@/server/auth/server-auth';
+import { logger } from '@/lib/logger';
+import type { ChatMessage } from '@/lib/store/agent-chat-store';
+import type {
+    InboxThread,
+    InboxThreadType,
+    InboxThreadStatus,
+    InboxAgentPersona,
+    InboxArtifact,
+    InboxArtifactType,
+    InboxArtifactStatus,
+} from '@/types/inbox';
+import { parseArtifactsFromContent } from '@/types/artifact';
+import {
+    createInboxThreadId,
+    createInboxArtifactId,
+    getDefaultAgentForThreadType,
+    getSupportingAgentsForThreadType,
+    CreateInboxThreadSchema,
+    UpdateInboxThreadSchema,
+} from '@/types/inbox';
+import type { Carousel } from '@/types/carousels';
+import type { BundleDeal } from '@/types/bundles';
+import type { CreativeContent } from '@/types/creative-content';
+
+// ============ Firestore Collections ============
+
+const INBOX_THREADS_COLLECTION = 'inbox_threads';
+const INBOX_ARTIFACTS_COLLECTION = 'inbox_artifacts';
+
+// ============ Helper Functions ============
+
+function getDb() {
+    return getFirestore();
+}
+
+/**
+ * Convert Firestore timestamp to Date
+ */
+function toDate(timestamp: unknown): Date {
+    if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
+        return (timestamp as { toDate: () => Date }).toDate();
+    }
+    if (timestamp instanceof Date) {
+        return timestamp;
+    }
+    if (typeof timestamp === 'string') {
+        return new Date(timestamp);
+    }
+    return new Date();
+}
+
+/**
+ * Serialize thread for client (convert Dates to ISO strings)
+ */
+function serializeThread(thread: InboxThread): InboxThread {
+    return {
+        ...thread,
+        createdAt: toDate(thread.createdAt),
+        updatedAt: toDate(thread.updatedAt),
+        lastActivityAt: toDate(thread.lastActivityAt),
+        messages: thread.messages.map((msg) => ({
+            ...msg,
+            timestamp: toDate(msg.timestamp),
+        })),
+    };
+}
+
+/**
+ * Serialize artifact for client
+ */
+function serializeArtifact(artifact: InboxArtifact): InboxArtifact {
+    return {
+        ...artifact,
+        createdAt: toDate(artifact.createdAt),
+        updatedAt: toDate(artifact.updatedAt),
+        approvedAt: artifact.approvedAt ? toDate(artifact.approvedAt) : undefined,
+        publishedAt: artifact.publishedAt ? toDate(artifact.publishedAt) : undefined,
+    };
+}
+
+// ============ Thread Actions ============
+
+/**
+ * Create a new inbox thread
+ */
+export async function createInboxThread(input: {
+    type: InboxThreadType;
+    title?: string;
+    primaryAgent?: InboxAgentPersona;
+    projectId?: string;
+    brandId?: string;
+    dispensaryId?: string;
+    initialMessage?: ChatMessage;
+}): Promise<{ success: boolean; thread?: InboxThread; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        // Validate input
+        const validation = CreateInboxThreadSchema.safeParse(input);
+        if (!validation.success) {
+            return { success: false, error: validation.error.message };
+        }
+
+        const db = getDb();
+        const threadId = createInboxThreadId();
+
+        const thread: InboxThread = {
+            id: threadId,
+            orgId: input.brandId || input.dispensaryId || user.uid,
+            userId: user.uid,
+            type: input.type,
+            status: 'active',
+            title: input.title || `New ${input.type} conversation`,
+            preview: input.initialMessage?.content.slice(0, 50) || '',
+            primaryAgent: input.primaryAgent || getDefaultAgentForThreadType(input.type),
+            assignedAgents: [
+                input.primaryAgent || getDefaultAgentForThreadType(input.type),
+                ...getSupportingAgentsForThreadType(input.type),
+            ],
+            artifactIds: [],
+            messages: input.initialMessage ? [input.initialMessage] : [],
+            projectId: input.projectId,
+            brandId: input.brandId,
+            dispensaryId: input.dispensaryId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastActivityAt: new Date(),
+        };
+
+        await db.collection(INBOX_THREADS_COLLECTION).doc(threadId).set({
+            ...thread,
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+            lastActivityAt: FieldValue.serverTimestamp(),
+        });
+
+        logger.info('Created inbox thread', { threadId, type: input.type, userId: user.uid });
+
+        return { success: true, thread: serializeThread(thread) };
+    } catch (error) {
+        logger.error('Failed to create inbox thread', { error });
+        return { success: false, error: 'Failed to create thread' };
+    }
+}
+
+/**
+ * Get inbox threads for the current user
+ */
+export async function getInboxThreads(options?: {
+    type?: InboxThreadType;
+    status?: InboxThreadStatus;
+    limit?: number;
+    orgId?: string;
+}): Promise<{ success: boolean; threads?: InboxThread[]; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+        let query = db.collection(INBOX_THREADS_COLLECTION).where('userId', '==', user.uid);
+
+        // Apply filters
+        if (options?.type) {
+            query = query.where('type', '==', options.type);
+        }
+        if (options?.status) {
+            query = query.where('status', '==', options.status);
+        }
+        if (options?.orgId) {
+            query = query.where('orgId', '==', options.orgId);
+        }
+
+        const snapshot = await query.limit(options?.limit || 50).get();
+
+        const threads: InboxThread[] = [];
+        snapshot.forEach((doc) => {
+            const data = doc.data() as InboxThread;
+            threads.push(serializeThread(data));
+        });
+
+        // Sort by lastActivityAt descending (in-memory to avoid composite index)
+        threads.sort((a, b) => {
+            const aTime = new Date(a.lastActivityAt).getTime();
+            const bTime = new Date(b.lastActivityAt).getTime();
+            return bTime - aTime;
+        });
+
+        return { success: true, threads };
+    } catch (error) {
+        logger.error('Failed to get inbox threads', { error });
+        return { success: false, error: 'Failed to get threads' };
+    }
+}
+
+/**
+ * Get a single inbox thread by ID
+ */
+export async function getInboxThread(
+    threadId: string
+): Promise<{ success: boolean; thread?: InboxThread; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+        const doc = await db.collection(INBOX_THREADS_COLLECTION).doc(threadId).get();
+
+        if (!doc.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const thread = doc.data() as InboxThread;
+
+        // Verify ownership
+        if (thread.userId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        return { success: true, thread: serializeThread(thread) };
+    } catch (error) {
+        logger.error('Failed to get inbox thread', { error, threadId });
+        return { success: false, error: 'Failed to get thread' };
+    }
+}
+
+/**
+ * Update an inbox thread
+ */
+export async function updateInboxThread(
+    threadId: string,
+    updates: {
+        title?: string;
+        status?: InboxThreadStatus;
+        primaryAgent?: InboxAgentPersona;
+    }
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        // Validate input
+        const validation = UpdateInboxThreadSchema.safeParse(updates);
+        if (!validation.success) {
+            return { success: false, error: validation.error.message };
+        }
+
+        const db = getDb();
+        const threadRef = db.collection(INBOX_THREADS_COLLECTION).doc(threadId);
+        const doc = await threadRef.get();
+
+        if (!doc.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const thread = doc.data() as InboxThread;
+
+        // Verify ownership
+        if (thread.userId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        await threadRef.update({
+            ...updates,
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        logger.info('Updated inbox thread', { threadId, updates });
+
+        return { success: true };
+    } catch (error) {
+        logger.error('Failed to update inbox thread', { error, threadId });
+        return { success: false, error: 'Failed to update thread' };
+    }
+}
+
+/**
+ * Add a message to an inbox thread
+ */
+export async function addMessageToInboxThread(
+    threadId: string,
+    message: ChatMessage
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+        const threadRef = db.collection(INBOX_THREADS_COLLECTION).doc(threadId);
+        const doc = await threadRef.get();
+
+        if (!doc.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const thread = doc.data() as InboxThread;
+
+        // Verify ownership
+        if (thread.userId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        // Add message with serialized timestamp
+        const messageToAdd = {
+            ...message,
+            timestamp: message.timestamp instanceof Date ? message.timestamp.toISOString() : message.timestamp,
+        };
+
+        await threadRef.update({
+            messages: FieldValue.arrayUnion(messageToAdd),
+            preview: message.content.slice(0, 50),
+            updatedAt: FieldValue.serverTimestamp(),
+            lastActivityAt: FieldValue.serverTimestamp(),
+        });
+
+        return { success: true };
+    } catch (error) {
+        logger.error('Failed to add message to thread', { error, threadId });
+        return { success: false, error: 'Failed to add message' };
+    }
+}
+
+/**
+ * Archive an inbox thread
+ */
+export async function archiveInboxThread(
+    threadId: string
+): Promise<{ success: boolean; error?: string }> {
+    return updateInboxThread(threadId, { status: 'archived' });
+}
+
+/**
+ * Delete an inbox thread
+ */
+export async function deleteInboxThread(
+    threadId: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+        const threadRef = db.collection(INBOX_THREADS_COLLECTION).doc(threadId);
+        const doc = await threadRef.get();
+
+        if (!doc.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const thread = doc.data() as InboxThread;
+
+        // Verify ownership
+        if (thread.userId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        // Delete associated artifacts
+        const artifactDeletions = thread.artifactIds.map((artifactId) =>
+            db.collection(INBOX_ARTIFACTS_COLLECTION).doc(artifactId).delete()
+        );
+
+        await Promise.all([threadRef.delete(), ...artifactDeletions]);
+
+        logger.info('Deleted inbox thread', { threadId, userId: user.uid });
+
+        return { success: true };
+    } catch (error) {
+        logger.error('Failed to delete inbox thread', { error, threadId });
+        return { success: false, error: 'Failed to delete thread' };
+    }
+}
+
+// ============ Artifact Actions ============
+
+/**
+ * Create an inbox artifact
+ */
+export async function createInboxArtifact(input: {
+    threadId: string;
+    type: InboxArtifactType;
+    data: Carousel | BundleDeal | CreativeContent;
+    rationale?: string;
+}): Promise<{ success: boolean; artifact?: InboxArtifact; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+
+        // Verify thread ownership
+        const threadDoc = await db.collection(INBOX_THREADS_COLLECTION).doc(input.threadId).get();
+        if (!threadDoc.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const thread = threadDoc.data() as InboxThread;
+        if (thread.userId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const artifactId = createInboxArtifactId();
+
+        const artifact: InboxArtifact = {
+            id: artifactId,
+            threadId: input.threadId,
+            orgId: thread.orgId,
+            type: input.type,
+            status: 'draft',
+            data: input.data,
+            rationale: input.rationale,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            createdBy: user.uid,
+        };
+
+        // Create artifact document
+        await db.collection(INBOX_ARTIFACTS_COLLECTION).doc(artifactId).set({
+            ...artifact,
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        // Update thread with artifact reference
+        await db.collection(INBOX_THREADS_COLLECTION).doc(input.threadId).update({
+            artifactIds: FieldValue.arrayUnion(artifactId),
+            status: 'draft',
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        logger.info('Created inbox artifact', { artifactId, type: input.type, threadId: input.threadId });
+
+        return { success: true, artifact: serializeArtifact(artifact) };
+    } catch (error) {
+        logger.error('Failed to create inbox artifact', { error });
+        return { success: false, error: 'Failed to create artifact' };
+    }
+}
+
+/**
+ * Get artifacts for a thread
+ */
+export async function getInboxArtifacts(
+    threadId: string
+): Promise<{ success: boolean; artifacts?: InboxArtifact[]; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+
+        // Verify thread ownership
+        const threadDoc = await db.collection(INBOX_THREADS_COLLECTION).doc(threadId).get();
+        if (!threadDoc.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const thread = threadDoc.data() as InboxThread;
+        if (thread.userId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        // Get artifacts
+        const snapshot = await db
+            .collection(INBOX_ARTIFACTS_COLLECTION)
+            .where('threadId', '==', threadId)
+            .get();
+
+        const artifacts: InboxArtifact[] = [];
+        snapshot.forEach((doc) => {
+            const data = doc.data() as InboxArtifact;
+            artifacts.push(serializeArtifact(data));
+        });
+
+        return { success: true, artifacts };
+    } catch (error) {
+        logger.error('Failed to get inbox artifacts', { error, threadId });
+        return { success: false, error: 'Failed to get artifacts' };
+    }
+}
+
+/**
+ * Update artifact status
+ */
+export async function updateInboxArtifactStatus(
+    artifactId: string,
+    status: InboxArtifactStatus
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+        const artifactRef = db.collection(INBOX_ARTIFACTS_COLLECTION).doc(artifactId);
+        const doc = await artifactRef.get();
+
+        if (!doc.exists) {
+            return { success: false, error: 'Artifact not found' };
+        }
+
+        const artifact = doc.data() as InboxArtifact;
+
+        // Verify ownership via thread
+        const threadDoc = await db.collection(INBOX_THREADS_COLLECTION).doc(artifact.threadId).get();
+        if (!threadDoc.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const thread = threadDoc.data() as InboxThread;
+        if (thread.userId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const updateData: Record<string, unknown> = {
+            status,
+            updatedAt: FieldValue.serverTimestamp(),
+        };
+
+        if (status === 'approved') {
+            updateData.approvedBy = user.uid;
+            updateData.approvedAt = FieldValue.serverTimestamp();
+        }
+
+        if (status === 'published') {
+            updateData.publishedAt = FieldValue.serverTimestamp();
+        }
+
+        await artifactRef.update(updateData);
+
+        logger.info('Updated inbox artifact status', { artifactId, status });
+
+        return { success: true };
+    } catch (error) {
+        logger.error('Failed to update inbox artifact status', { error, artifactId });
+        return { success: false, error: 'Failed to update artifact' };
+    }
+}
+
+/**
+ * Approve and publish an artifact to its destination collection
+ */
+export async function approveAndPublishArtifact(
+    artifactId: string
+): Promise<{ success: boolean; publishedId?: string; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+        const artifactRef = db.collection(INBOX_ARTIFACTS_COLLECTION).doc(artifactId);
+        const doc = await artifactRef.get();
+
+        if (!doc.exists) {
+            return { success: false, error: 'Artifact not found' };
+        }
+
+        const artifact = doc.data() as InboxArtifact;
+
+        // Verify ownership via thread
+        const threadDoc = await db.collection(INBOX_THREADS_COLLECTION).doc(artifact.threadId).get();
+        if (!threadDoc.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const thread = threadDoc.data() as InboxThread;
+        if (thread.userId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        let publishedId: string | undefined;
+
+        // Publish to destination collection based on type
+        switch (artifact.type) {
+            case 'carousel': {
+                const carouselData = artifact.data as Carousel;
+                const carouselRef = db.collection('carousels').doc();
+                publishedId = carouselRef.id;
+                await carouselRef.set({
+                    ...carouselData,
+                    id: publishedId,
+                    orgId: artifact.orgId,
+                    createdAt: FieldValue.serverTimestamp(),
+                    updatedAt: FieldValue.serverTimestamp(),
+                });
+                break;
+            }
+
+            case 'bundle': {
+                const bundleData = artifact.data as BundleDeal;
+                const bundleRef = db.collection('bundles').doc();
+                publishedId = bundleRef.id;
+                await bundleRef.set({
+                    ...bundleData,
+                    id: publishedId,
+                    orgId: artifact.orgId,
+                    status: 'active',
+                    createdAt: FieldValue.serverTimestamp(),
+                    updatedAt: FieldValue.serverTimestamp(),
+                });
+                break;
+            }
+
+            case 'creative_content': {
+                const contentData = artifact.data as CreativeContent;
+                const contentRef = db
+                    .collection('tenants')
+                    .doc(artifact.orgId)
+                    .collection('creative_content')
+                    .doc();
+                publishedId = contentRef.id;
+                await contentRef.set({
+                    ...contentData,
+                    id: publishedId,
+                    status: 'approved',
+                    createdAt: FieldValue.serverTimestamp(),
+                    updatedAt: FieldValue.serverTimestamp(),
+                });
+                break;
+            }
+        }
+
+        // Update artifact status
+        await artifactRef.update({
+            status: 'published',
+            approvedBy: user.uid,
+            approvedAt: FieldValue.serverTimestamp(),
+            publishedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        // Update thread status if all artifacts are published
+        const allArtifacts = await db
+            .collection(INBOX_ARTIFACTS_COLLECTION)
+            .where('threadId', '==', artifact.threadId)
+            .get();
+
+        const allPublished = allArtifacts.docs.every(
+            (d) => d.id === artifactId || d.data().status === 'published'
+        );
+
+        if (allPublished) {
+            await db.collection(INBOX_THREADS_COLLECTION).doc(artifact.threadId).update({
+                status: 'completed',
+                updatedAt: FieldValue.serverTimestamp(),
+            });
+        }
+
+        logger.info('Approved and published inbox artifact', {
+            artifactId,
+            type: artifact.type,
+            publishedId,
+        });
+
+        return { success: true, publishedId };
+    } catch (error) {
+        logger.error('Failed to approve and publish artifact', { error, artifactId });
+        return { success: false, error: 'Failed to publish artifact' };
+    }
+}
+
+/**
+ * Delete an inbox artifact
+ */
+export async function deleteInboxArtifact(
+    artifactId: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+        const artifactRef = db.collection(INBOX_ARTIFACTS_COLLECTION).doc(artifactId);
+        const doc = await artifactRef.get();
+
+        if (!doc.exists) {
+            return { success: false, error: 'Artifact not found' };
+        }
+
+        const artifact = doc.data() as InboxArtifact;
+
+        // Verify ownership via thread
+        const threadDoc = await db.collection(INBOX_THREADS_COLLECTION).doc(artifact.threadId).get();
+        if (!threadDoc.exists) {
+            return { success: false, error: 'Thread not found' };
+        }
+
+        const thread = threadDoc.data() as InboxThread;
+        if (thread.userId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        // Remove from thread's artifact list
+        await db.collection(INBOX_THREADS_COLLECTION).doc(artifact.threadId).update({
+            artifactIds: FieldValue.arrayRemove(artifactId),
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        // Delete artifact
+        await artifactRef.delete();
+
+        logger.info('Deleted inbox artifact', { artifactId });
+
+        return { success: true };
+    } catch (error) {
+        logger.error('Failed to delete inbox artifact', { error, artifactId });
+        return { success: false, error: 'Failed to delete artifact' };
+    }
+}
