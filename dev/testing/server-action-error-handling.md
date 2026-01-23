@@ -66,6 +66,23 @@ These unhandled exceptions caused Next.js RSC (React Server Components) to retur
   - `togglePlaybookStatus()` - Added try-catch wrapper
   - `runPlaybookTest()` - Added try-catch wrapper
 
+### 8. CEO Dashboard Actions (Foot Traffic Tab)
+- **File:** `src/app/dashboard/ceo/actions.ts`
+- **Functions fixed (12+):**
+  - `getFootTrafficMetrics()` - Moved `requireUser` inside try-catch
+  - `deleteSeoPageAction()` - Moved `requireUser` inside try-catch
+  - `toggleSeoPagePublishAction()` - Moved `requireUser` inside try-catch
+  - `refreshSeoPageDataAction()` - Moved `requireUser` inside try-catch
+  - `bulkSeoPageStatusAction()` - Moved `requireUser` inside try-catch
+  - `setTop25PublishedAction()` - Moved `requireUser` inside try-catch
+  - `updateBrandPageAction()` - Moved `requireUser` inside try-catch
+  - `deleteBrandPageAction()` - Moved `requireUser` inside try-catch
+  - `toggleBrandPagePublishAction()` - Moved `requireUser` inside try-catch
+  - `bulkPublishBrandPagesAction()` - Moved `requireUser` inside try-catch
+  - `deleteDispensaryPageAction()` - Moved `requireUser` inside try-catch
+  - `toggleDispensaryPagePublishAction()` - Moved `requireUser` inside try-catch
+- **Pattern:** All `requireUser(['super_user'])` calls moved inside try-catch blocks
+
 ## Testing Procedures
 
 ### Test 1: Unauthenticated Access
@@ -104,6 +121,20 @@ These unhandled exceptions caused Next.js RSC (React Server Components) to retur
 1. Go to Boardroom tab
 2. Click "Review Recent Signups" quick action
 3. **Expected:** Chat starts or shows error message (no 500)
+
+### Test 8: Foot Traffic Tab (Discovery Hub)
+1. Navigate to CEO dashboard
+2. Click on "Foot Traffic" or "Discovery Hub" tab
+3. Monitor network tab and console for 500 errors
+4. **Expected:** Pages load showing Location, Dispensary, and Brand pages (no 500)
+
+### Test 9: Foot Traffic Actions
+1. On the Foot Traffic tab, try:
+   - Viewing the page list
+   - Toggling publish status on a page
+   - Bulk selecting and publishing pages
+   - Deleting a page
+2. **Expected:** All actions complete or show error toast (no 500 errors)
 
 ## Unit Tests
 
@@ -182,3 +213,4 @@ After deployment, monitor for:
 1. `fix(server): Add error handling to prevent Server Component render failures`
 2. `fix(server): Add error handling to browser-automation server actions`
 3. `fix(server): Add error handling to playbooks server actions`
+4. `fix(server): Add error handling to CEO dashboard foot-traffic actions`
