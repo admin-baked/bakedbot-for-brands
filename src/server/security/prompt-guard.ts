@@ -67,6 +67,9 @@ const CRITICAL_INJECTION_PATTERNS = [
     /roleplay\s+as/i,
     /from\s+now\s+on,?\s+(you|your)/i,
     /new\s+persona/i,
+    /you\s+are\s+now\s+(OMEGA|STAN|KEVIN|DUDE)/i, // 2025 Persona attacks
+    /simulation\s+mode/i, // 2025 Simulation attacks
+    /unrestricted\s+(character|persona)/i,
 
     // System prompt extraction
     /show\s+(me\s+)?(your|the)\s+(system|initial|original)\s+(prompt|instructions?|message)/i,
@@ -82,6 +85,25 @@ const CRITICAL_INJECTION_PATTERNS = [
     /unrestricted\s+mode/i,
     /no\s+restrictions?\s+mode/i,
     /god\s+mode/i,
+    /research\s+purposes?\s+only/i, // HILL / Educational reframing
+    /security\s+(research|testing|assessment)/i,
+    /demonstrate\s+(how\s+to|a\s+vulnerability)/i,
+    /academic\s+(context|paper|purposes?)/i,
+
+    // 2025 Jailbreak Techniques (Q1 2026 Audit)
+    /HILL\s+attack/i,                        // HILL framework
+    /FuzzyAI/i,                              // FuzzyAI framework
+    /multi[_-]?turn\s+jailbreak/i,           // Multi-turn attacks
+    /character\s+roleplay.*bypass/i,         // Character roleplay jailbreaks
+    /token\s+smuggling/i,                    // Token smuggling attacks
+    /prompt\s+leak(ing|age)?/i,              // Prompt leaking attempts
+    /context\s+window\s+overflow/i,          // Context overflow attacks
+    /instruction\s+hierarchy\s+attack/i,     // Instruction hierarchy manipulation
+
+    // Shell Injection / Command Execution (CRITICAL)
+    /\$IFS/,                                 // Internal Field Separator abuse
+    /;.*[\n\r]/,                             // Newline injection chaining
+    /\$\(.*\)/,                              // Command substitution
 ];
 
 /**
@@ -94,6 +116,10 @@ const HIGH_RISK_PATTERNS = [
     /\[\s*ADMIN\s*\]/i,
     /###\s*(SYSTEM|INSTRUCTION|NEW)/i,
     /<\|?(system|im_start|im_end)\|?>/i,
+
+    // Bash code blocks - specifically dangerous commands
+    /```bash[\s\S]*?(rm|wget|curl|nc|bash|sh|sudo)/i,
+    /```sh[\s\S]*?(rm|wget|curl|nc|bash|sh|sudo)/i,
 
     // Delimiter abuse
     /```\s*(system|python|bash|sh|cmd|powershell)/i,
@@ -277,6 +303,33 @@ function detectEncodedContent(input: string): PromptFlag[] {
 // ============================================================================
 
 /**
+ * Normalizes input to defeat encoding and obfuscation attacks (2025)
+ * 1. Unicode canonicalization (NFKC)
+ * 2. Leetspeak decoding for injection keywords
+ */
+function normalizeInput(input: string): string {
+    // 1. Unicode Canonicalization
+    let normalized = input.normalize('NFKC');
+
+    // 2. Leetspeak Decoding (Simple substitution map)
+    const leetspeakMap: Record<string, string> = {
+        '1': 'i', // 1 can be i or l, context matters but simple sub catches most 1gn0r3
+        '0': 'o',
+        '3': 'e',
+        '4': 'a', '@': 'a',
+        '$': 's', '5': 's',
+        '7': 't', '+': 't',
+        '!': 'i',
+    };
+
+    // Replace leetspeak characters
+    // We only replace if it looks like a potential keyword obfuscation to avoid over-correction
+    // For safety, we can duplicate the input: one normalized, one raw
+    // Here we return a version with leetspeak replaced globally for checking
+    return normalized.split('').map(char => leetspeakMap[char] || char).join('');
+}
+
+/**
  * Validate and sanitize user input before sending to LLM
  */
 export function validateInput(
@@ -288,6 +341,14 @@ export function validateInput(
     } = {}
 ): PromptGuardResult {
     const { maxLength = 2000, allowedRole = 'customer' } = options;
+
+    // Create normalization variants for checking
+    // We check BOTH the raw input AND the normalized input
+    const normalizedInput = normalizeInput(input);
+    const inputsToCheck = [input];
+    if (normalizedInput !== input) {
+        inputsToCheck.push(normalizedInput);
+    }
     const flags: PromptFlag[] = [];
     let riskScore = 0;
     let blocked = false;
@@ -304,27 +365,33 @@ export function validateInput(
         riskScore += 15;
     }
 
-    // 2. Critical injection patterns (BLOCK)
-    for (const pattern of CRITICAL_INJECTION_PATTERNS) {
-        const match = input.match(pattern);
-        if (match) {
-            flags.push({
-                type: 'injection_pattern',
-                pattern: pattern.source.substring(0, 50),
-                severity: 'critical',
-                matched: match[0],
-            });
-            riskScore += 50;
-            blocked = true;
-            blockReason = `Detected prompt injection attempt: ${match[0].substring(0, 30)}`;
-            break; // One critical match is enough to block
+    // 2. Check for Critical Injection Patterns (BLOCK immediately)
+    // Check against all variants (raw and normalized)
+    for (const textToCheck of inputsToCheck) {
+        for (const pattern of CRITICAL_INJECTION_PATTERNS) {
+            if (pattern.test(textToCheck)) {
+                return {
+                    safe: false,
+                    riskScore: 100,
+                    blocked: true,
+                    blockReason: 'Critical injection pattern detected',
+                    flags: [{
+                        type: 'injection_pattern',
+                        severity: 'critical',
+                        pattern: pattern.source,
+                        matched: textToCheck.match(pattern)?.[0] || 'pattern match'
+                    }],
+                    sanitized: '[BLOCKED content]',
+                };
+            }
         }
     }
 
     // 3. High-risk patterns
-    if (!blocked) {
+    // Check against all variants (raw and normalized)
+    for (const textToCheck of inputsToCheck) {
         for (const pattern of HIGH_RISK_PATTERNS) {
-            const match = input.match(pattern);
+            const match = textToCheck.match(pattern);
             if (match) {
                 flags.push({
                     type: 'injection_pattern',
@@ -358,10 +425,11 @@ export function validateInput(
             flags.push({
                 type: 'sensitive_keyword',
                 pattern: keyword,
-                severity: allowedRole === 'admin' ? 'low' : 'medium',
+                // SECURITY: Equal scoring for all roles (Q1 2026 audit fix)
+                severity: 'medium',
                 matched: keyword,
             });
-            riskScore += allowedRole === 'admin' ? 5 : 15;
+            riskScore += 15;
         }
     }
 
