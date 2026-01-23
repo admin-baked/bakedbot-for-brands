@@ -15,6 +15,7 @@ import { ChatbotContextProvider } from '@/contexts/chatbot-context';
  * This component centralizes all the global context providers for the application.
  */
 import { ErrorBoundary } from '@/components/error-boundary';
+import { ChunkErrorHandler } from '@/components/chunk-error-handler';
 
 // ...
 
@@ -24,6 +25,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <DemoModeProvider>
         <ThemeProvider>
           <ChatbotContextProvider>
+            <ChunkErrorHandler />
             <ServiceWorkerRegistration />
             <ErrorBoundary>
               {children}
