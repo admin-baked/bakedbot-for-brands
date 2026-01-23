@@ -37,6 +37,7 @@ const TalkTracksTab = dynamic(() => import("./components/talk-tracks-tab"), { lo
 const BakedBotBrowserTab = dynamic(() => import("./components/bakedbot-browser-tab"), { loading: TabLoader, ssr: false });
 const PilotSetupTab = dynamic(() => import("./components/pilot-setup-tab"), { loading: TabLoader, ssr: false });
 const GroundTruthTab = dynamic(() => import("./components/ground-truth-tab"), { loading: TabLoader, ssr: false });
+const UnifiedAdminConsole = dynamic(() => import("./components/unified-admin-console"), { loading: TabLoader, ssr: false });
 
 
 import { useSuperAdmin } from '@/hooks/use-super-admin';
@@ -115,7 +116,7 @@ function CeoDashboardContent() {
         return null; // Don't render anything while redirecting
     }
 
-    // Redirect legacy analytics tabs to unified analytics page
+    // Redirect legacy tabs to unified pages
     useEffect(() => {
         const legacyAnalyticsTabs: Record<string, string> = {
             'usage': 'sub=usage',
@@ -124,8 +125,25 @@ function CeoDashboardContent() {
             'competitor-intel': 'sub=intelligence&intel=competitor',
             'research': 'sub=intelligence&intel=research',
         };
+        const legacyAdminTabs: Record<string, string> = {
+            'account-management': 'section=users&subtab=accounts',
+            'invites': 'section=users&subtab=invites',
+            'tickets': 'section=users&subtab=tickets',
+            'data-manager': 'section=data&subtab=manager',
+            'ai-search': 'section=data&subtab=search',
+            'knowledge-base': 'section=data&subtab=knowledge',
+            'cannmenus': 'section=integrations&subtab=cannmenus',
+            'coupons': 'section=integrations&subtab=coupons',
+            'ai-agent-embed': 'section=integrations&subtab=embed',
+            'sandbox': 'section=devtools&subtab=sandbox',
+            'browser': 'section=devtools&subtab=browser',
+            'settings': 'section=settings&subtab=system',
+            'pilot-setup': 'section=settings&subtab=pilot',
+        };
         if (currentTab && legacyAnalyticsTabs[currentTab]) {
             router.replace(`/dashboard/ceo?tab=analytics&${legacyAnalyticsTabs[currentTab]}`);
+        } else if (currentTab && legacyAdminTabs[currentTab]) {
+            router.replace(`/dashboard/ceo?tab=admin&${legacyAdminTabs[currentTab]}`);
         }
     }, [currentTab, router]);
 
@@ -141,43 +159,31 @@ function CeoDashboardContent() {
             case 'competitor-intel':
             case 'research':
                 return <UnifiedAnalyticsPage />;
+            // Unified Admin Console (consolidated admin tools)
+            case 'admin':
+            case 'account-management':
+            case 'invites':
+            case 'tickets':
+            case 'data-manager':
+            case 'ai-search':
+            case 'knowledge-base':
+            case 'cannmenus':
+            case 'coupons':
+            case 'ai-agent-embed':
+            case 'sandbox':
+            case 'browser':
+            case 'settings':
+            case 'pilot-setup':
+                return <UnifiedAdminConsole />;
             case 'playbooks': return <SuperAdminPlaybooksTab />;
             case 'foot-traffic': return <FootTrafficTab />;
-            case 'tickets': return <TicketsTab />;
-            case 'ai-agent-embed': return <AIAgentEmbedTab />;
-            case 'data-manager': return <DataManagerTab />;
-            case 'ai-search': return <AISearchIndexTab />;
-            case 'coupons': return <CouponManagerTab />;
-            case 'cannmenus': return <CannMenusTestTab />;
             case 'operations': return <OperationsTab />;
             case 'crm': return <CRMTab />;
-            case 'account-management': return <AccountManagementTab />;
-            case 'knowledge-base': return <SystemKnowledgeBase />;
-            case 'settings': return <CeoSettingsTab />;
-            case 'sandbox': return <AgentSandbox />;
             case 'email': return <EmailTesterTab />;
             case 'boardroom': return <BoardroomTab />;
             case 'code-evals': return <CodeEvalsTab />;
             case 'talk-tracks': return <TalkTracksTab />;
-            case 'browser': return <BakedBotBrowserTab />;
-            case 'pilot-setup': return <PilotSetupTab />;
             case 'ground-truth': return <GroundTruthTab />;
-            case 'invites': return (
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-bold tracking-tight">Team Invitations</h2>
-                    </div>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Super Admin Invitations</CardTitle>
-                            <CardDescription>Invite other users to join as Super Admins.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                             <InvitationsList allowedRoles={['super_admin']} />
-                        </CardContent>
-                    </Card>
-                </div>
-            );
             default: return <SuperAdminPlaybooksTab />;
         }
     };
