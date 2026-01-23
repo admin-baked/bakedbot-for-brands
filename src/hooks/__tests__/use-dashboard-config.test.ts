@@ -22,9 +22,9 @@ describe('useDashboardConfig', () => {
         const hasProducts = result.current.navLinks.some(link => link.label === 'Products');
         expect(hasProducts).toBe(true);
 
-        // Brand should NOT see 'Customers' (dispensary specific)
+        // Brand should now see 'Customers'
         const hasCustomers = result.current.navLinks.some(link => link.label === 'Customers');
-        expect(hasCustomers).toBe(false);
+        expect(hasCustomers).toBe(true);
     });
 
     it('should filter links based on dispensary role', () => {
@@ -53,6 +53,16 @@ describe('useDashboardConfig', () => {
 
         const overviewLink = result.current.navLinks.find(link => link.label === 'Overview');
         expect(overviewLink?.active).toBe(false);
+    });
+
+    it('should show Segments to brand role', () => {
+        (useUserRole as jest.Mock).mockReturnValue({ role: 'brand' });
+        (usePathname as jest.Mock).mockReturnValue('/dashboard');
+
+        const { result } = renderHook(() => useDashboardConfig());
+
+        const hasSegments = result.current.navLinks.some(link => link.label === 'Segments');
+        expect(hasSegments).toBe(true);
     });
 
     it('should allow super_user to access restricted areas', () => {

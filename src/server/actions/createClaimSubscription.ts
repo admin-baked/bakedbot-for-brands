@@ -3,7 +3,7 @@
 import { createServerClient, setUserRole } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
-import { PRICING_PLANS } from '@/lib/config/pricing';
+import { PRICING_PLANS, findPricingPlan } from '@/lib/config/pricing';
 import { createCustomerProfile, createSubscriptionFromProfile } from '@/lib/payments/authorize-net';
 import { PlanId, computeMonthlyAmount, CoveragePackId, COVERAGE_PACKS } from '@/lib/plans';
 import { cookies } from 'next/headers';
@@ -90,7 +90,7 @@ export async function createClaimWithSubscription(
         }
 
         // 1. Validate plan
-        const plan = PRICING_PLANS.find(p => p.id === input.planId);
+        const plan = findPricingPlan(input.planId);
         if (!plan) {
             return { success: false, error: 'Invalid plan selected.' };
         }
@@ -159,7 +159,7 @@ export async function createClaimWithSubscription(
             try {
                 const userRef = firestore.collection('users').doc(userId);
                 const userDoc = await userRef.get();
-                
+
                 // Prepare user data
                 const userData: any = {
                     email: input.contactEmail,
@@ -167,7 +167,7 @@ export async function createClaimWithSubscription(
                     phoneNumber: input.contactPhone,
                     updatedAt: FieldValue.serverTimestamp(),
                     // Flattened role/claims for easy access
-                    role: input.role, 
+                    role: input.role,
                 };
 
                 // Link org if applicable (provisional, until claimed)
@@ -181,9 +181,15 @@ export async function createClaimWithSubscription(
                 // Set Custom Claims for Auth
                 // Cast input.role to valid type or fallback to 'owner' if generic
                 const roleType = (input.role === 'brand' || input.role === 'dispensary') ? input.role : 'owner';
-                const additionalData: { brandId?: string; locationId?: string } = {};
-                if (input.role === 'brand' && input.orgId) additionalData.brandId = input.orgId;
-                if (input.role === 'dispensary' && input.orgId) additionalData.locationId = input.orgId;
+                const additionalData: { brandId?: string; locationId?: string; tenantId?: string } = {};
+                if (input.role === 'brand' && input.orgId) {
+                    additionalData.brandId = input.orgId;
+                    additionalData.tenantId = input.orgId;
+                }
+                if (input.role === 'dispensary' && input.orgId) {
+                    additionalData.locationId = input.orgId;
+                    additionalData.tenantId = input.orgId;
+                }
                 await setUserRole(userId, roleType as any, additionalData);
 
                 logger.info('User document updated and role set', { userId, role: roleType, claimId });
@@ -205,26 +211,26 @@ export async function createClaimWithSubscription(
                     const docRef = firestore.collection(coll).doc(input.orgId);
                     const doc = await docRef.get();
                     if (doc.exists) {
-                        await docRef.update({ 
-                            claimStatus: 'claimed', 
-                            updatedAt: FieldValue.serverTimestamp() 
+                        await docRef.update({
+                            claimStatus: 'claimed',
+                            updatedAt: FieldValue.serverTimestamp()
                         });
                         break;
                     }
-                    
+
                     // Try seoPageId query
                     const snap = await firestore.collection(coll).where('seoPageId', '==', input.orgId).limit(1).get();
                     if (!snap.empty) {
-                        await snap.docs[0].ref.update({ 
-                            claimStatus: 'claimed', 
-                            updatedAt: FieldValue.serverTimestamp() 
+                        await snap.docs[0].ref.update({
+                            claimStatus: 'claimed',
+                            updatedAt: FieldValue.serverTimestamp()
                         });
                         break;
                     }
                 }
             } catch (error) {
-                 logger.warn('Failed to update CRM record during claim', { orgId: input.orgId, error });
-                 // Don't block the claim creation if CRM update fails
+                logger.warn('Failed to update CRM record during claim', { orgId: input.orgId, error });
+                // Don't block the claim creation if CRM update fails
             }
         }
 
@@ -240,7 +246,7 @@ export async function createClaimWithSubscription(
                 const orgRef = firestore.collection('organizations').doc(input.orgId);
                 const orgSnap = await orgRef.get();
                 if (orgSnap.exists) {
-                     await orgRef.update({
+                    await orgRef.update({
                         claimStatus: 'pending_verification',
                         claimId: claimId,
                         updatedAt: FieldValue.serverTimestamp()
@@ -252,7 +258,7 @@ export async function createClaimWithSubscription(
             // This discovers nearby competitors and sets up weekly playbook
             try {
                 const { initializeFreeUserCompetitors } = await import('./free-user-setup');
-                
+
                 // Use claim data to construct location (best effort)
                 // For now, we'll use the business address or default location
                 // TODO: Parse address to get lat/lng or use geocoding
@@ -267,15 +273,15 @@ export async function createClaimWithSubscription(
                 // Run asynchronously - don't block claim completion
                 initializeFreeUserCompetitors(claimId, location)
                     .then(result => {
-                        logger.info('Free user competitor setup completed', { 
-                            claimId, 
-                            competitorsCreated: result.competitorsCreated 
+                        logger.info('Free user competitor setup completed', {
+                            claimId,
+                            competitorsCreated: result.competitorsCreated
                         });
                     })
                     .catch(err => {
-                        logger.warn('Free user competitor setup failed (non-blocking)', { 
-                            claimId, 
-                            error: err.message 
+                        logger.warn('Free user competitor setup failed (non-blocking)', {
+                            claimId,
+                            error: err.message
                         });
                     });
             } catch (err) {
@@ -302,7 +308,7 @@ export async function createClaimWithSubscription(
                 cardCode: input.cvv,
                 opaqueData: input.opaqueData
             };
-            
+
             const profile = await createCustomerProfile(
                 claimId,
                 input.contactEmail,
@@ -367,10 +373,10 @@ export async function createClaimWithSubscription(
                 claimId,
                 subscriptionId: sub.subscriptionId
             };
-            
+
         } catch (error: any) {
-             logger.error('Payment processing failed:', error);
-             await claimRef.update({
+            logger.error('Payment processing failed:', error);
+            await claimRef.update({
                 status: 'payment_failed',
                 paymentError: error.message || 'Payment processing failed',
                 updatedAt: FieldValue.serverTimestamp()
@@ -389,11 +395,11 @@ export async function createClaimWithSubscription(
 /**
  * Fetch organization details to pre-fill claim form
  */
-export async function getOrganizationForClaim(orgId: string): Promise<{ 
-    id: string; 
-    name: string; 
-    address?: string; 
-    claimStatus?: string 
+export async function getOrganizationForClaim(orgId: string): Promise<{
+    id: string;
+    name: string;
+    address?: string;
+    claimStatus?: string
 } | null> {
     try {
         const { firestore } = await createServerClient();

@@ -20,35 +20,35 @@ function getServiceAccount() {
 
   if (!serviceAccountKey) {
     try {
-        // Fallback for local development
-        const fs = require('fs');
-        const path = require('path');
-        const cwd = process.cwd();
-        console.log(`[server-client] Current working directory: ${cwd}`);
+      // Fallback for local development
+      const fs = require('fs');
+      const path = require('path');
+      const cwd = process.cwd();
+      console.log(`[server-client] Current working directory: ${cwd}`);
 
-        // Search paths for service-account.json
-        const searchPaths = [
-            path.resolve(cwd, 'service-account.json'),
-            path.resolve(cwd, '..', 'service-account.json'),
-            path.resolve(cwd, '..', '..', 'service-account.json'),
-            // User-specific fallback paths
-            'C:\\Users\\admin\\BakedBot for Brands\\bakedbot-for-brands\\service-account.json',
-            'C:\\Users\\marte\\Baked for Brands\\bakedbot-for-brands\\service-account.json'
-        ];
+      // Search paths for service-account.json
+      const searchPaths = [
+        path.resolve(cwd, 'service-account.json'),
+        path.resolve(cwd, '..', 'service-account.json'),
+        path.resolve(cwd, '..', '..', 'service-account.json'),
+        // User-specific fallback paths
+        'C:\\Users\\admin\\BakedBot for Brands\\bakedbot-for-brands\\service-account.json',
+        'C:\\Users\\marte\\Baked for Brands\\bakedbot-for-brands\\service-account.json'
+      ];
 
-        for (const tryPath of searchPaths) {
-            console.log(`[server-client] Checking for SA at: ${tryPath}`);
-            if (fs.existsSync(tryPath)) {
-                serviceAccountKey = fs.readFileSync(tryPath, 'utf-8');
-                console.log(`[server-client] LOADED credentials from: ${tryPath}`);
-                break;
-            }
+      for (const tryPath of searchPaths) {
+        console.log(`[server-client] Checking for SA at: ${tryPath}`);
+        if (fs.existsSync(tryPath)) {
+          serviceAccountKey = fs.readFileSync(tryPath, 'utf-8');
+          console.log(`[server-client] LOADED credentials from: ${tryPath}`);
+          break;
         }
+      }
     } catch (e) {
-        console.warn('[server-client] Failed to check for local service-account.json:', e);
+      console.warn('[server-client] Failed to check for local service-account.json:', e);
     }
   } else {
-      console.log('[server-client] Using credentials from FIREBASE_SERVICE_ACCOUNT_KEY env var');
+    console.log('[server-client] Using credentials from FIREBASE_SERVICE_ACCOUNT_KEY env var');
   }
 
   if (!serviceAccountKey) {
@@ -200,10 +200,11 @@ export async function setUserClaims(
 export async function setUserRole(
   uid: string,
   role: 'brand' | 'dispensary' | 'customer' | 'super_user' | 'super_admin',
-  additionalData?: { brandId?: string; locationId?: string }
+  additionalData?: { brandId?: string; locationId?: string; tenantId?: string }
 ): Promise<void> {
   const claims = {
     role,
+    tenantId: additionalData?.tenantId || additionalData?.brandId || additionalData?.locationId,
     ...additionalData,
   };
   await setUserClaims(uid, claims);
