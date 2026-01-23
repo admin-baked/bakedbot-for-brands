@@ -54,6 +54,7 @@ jest.mock('@/types/inbox', () => ({
     createInboxArtifactId: jest.fn(() => `artifact-${++artifactIdCounter}`),
     getDefaultAgentForThreadType: jest.fn((type: string) => {
         const map: Record<string, string> = {
+            // Business Operations
             carousel: 'smokey',
             bundle: 'money_mike',
             creative: 'craig',
@@ -67,11 +68,21 @@ jest.mock('@/types/inbox', () => ({
             general: 'auto',
             product_discovery: 'smokey',
             support: 'smokey',
+            // Super User: Growth Management
+            growth_review: 'jack',
+            churn_risk: 'jack',
+            revenue_forecast: 'money_mike',
+            pipeline: 'jack',
+            customer_health: 'jack',
+            market_intel: 'ezal',
+            bizdev: 'glenda',
+            experiment: 'linus',
         };
         return map[type] || 'auto';
     }),
     getSupportingAgentsForThreadType: jest.fn((type: string) => {
         const map: Record<string, string[]> = {
+            // Business Operations
             carousel: ['ezal', 'pops'],
             bundle: ['smokey', 'pops'],
             creative: ['deebo', 'ezal'],
@@ -85,6 +96,15 @@ jest.mock('@/types/inbox', () => ({
             general: [],
             product_discovery: ['ezal'],
             support: ['deebo'],
+            // Super User: Growth Management
+            growth_review: ['linus', 'pops'],
+            churn_risk: ['pops', 'leo'],
+            revenue_forecast: ['jack', 'linus'],
+            pipeline: ['glenda', 'leo'],
+            customer_health: ['pops', 'leo'],
+            market_intel: ['jack', 'glenda'],
+            bizdev: ['jack', 'craig'],
+            experiment: ['jack', 'pops'],
         };
         return map[type] || [];
     }),

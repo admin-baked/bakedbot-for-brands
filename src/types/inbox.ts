@@ -17,6 +17,7 @@ import type { ChatMessage } from '@/lib/store/agent-chat-store';
  * Types of inbox threads - determines which agents and quick actions are available
  */
 export type InboxThreadType =
+    // ---- Business Operations (Brand + Dispensary) ----
     | 'general'           // General conversation
     | 'carousel'          // Product carousel creation
     | 'bundle'            // Bundle deal creation
@@ -28,8 +29,18 @@ export type InboxThreadType =
     | 'outreach'          // Customer outreach (SMS/Email)
     | 'inventory_promo'   // Inventory-driven promotions
     | 'event'             // Event marketing
+    // ---- Customer Threads ----
     | 'product_discovery' // Customer product search
-    | 'support';          // Customer support
+    | 'support'           // Customer support
+    // ---- Super User: Growth Management ----
+    | 'growth_review'     // Weekly/monthly growth metrics review
+    | 'churn_risk'        // At-risk customer analysis & intervention
+    | 'revenue_forecast'  // Revenue modeling & projections
+    | 'pipeline'          // Sales pipeline & deal tracking
+    | 'customer_health'   // Customer segment health monitoring
+    | 'market_intel'      // Competitive positioning & market share
+    | 'bizdev'            // Partnership outreach & expansion
+    | 'experiment';       // Growth experiment planning & analysis
 
 /**
  * Thread lifecycle status
@@ -44,15 +55,20 @@ export type InboxThreadStatus =
  * Agent personas available for inbox threads
  */
 export type InboxAgentPersona =
+    // ---- Field Agents ----
     | 'smokey'      // Budtender - products, carousels
-    | 'money_mike'  // Banker - bundles, pricing
+    | 'money_mike'  // CFO - bundles, pricing, margins
     | 'craig'       // Marketer - creative content
-    | 'glenda'      // CMO - campaigns, strategy
     | 'ezal'        // Lookout - competitive intel
     | 'deebo'       // Enforcer - compliance
     | 'pops'        // Analyst - data insights
-    | 'linus'       // CTO - analytics, performance
     | 'day_day'     // Ops - inventory, logistics
+    // ---- Executive Agents ----
+    | 'leo'         // COO - operations orchestration
+    | 'jack'        // CRO - revenue, sales, pipeline
+    | 'linus'       // CTO - analytics, performance, tech
+    | 'glenda'      // CMO - marketing, campaigns, strategy
+    // ---- Auto-routing ----
     | 'auto';       // Auto-route based on message
 
 // ============ Inbox Thread ============
@@ -98,13 +114,23 @@ export interface InboxThread {
  * Artifact types specific to inbox
  */
 export type InboxArtifactType =
+    // ---- Business Artifacts ----
     | 'carousel'          // Product carousel
     | 'bundle'            // Bundle deal
     | 'creative_content'  // Social media post
     | 'sell_sheet'        // Retail partner pitch materials
     | 'report'            // Performance/analytics report
     | 'outreach_draft'    // SMS/Email draft
-    | 'event_promo';      // Event promotional materials
+    | 'event_promo'       // Event promotional materials
+    // ---- Growth Management Artifacts (Super User) ----
+    | 'growth_report'     // Growth metrics summary
+    | 'churn_scorecard'   // At-risk customer analysis
+    | 'revenue_model'     // Revenue forecast/projection
+    | 'pipeline_report'   // Sales pipeline status
+    | 'health_scorecard'  // Customer segment health
+    | 'market_analysis'   // Competitive/market report
+    | 'partnership_deck'  // BizDev pitch materials
+    | 'experiment_plan';  // A/B test or growth experiment
 
 /**
  * Artifact approval status
@@ -315,6 +341,88 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         promptTemplate: 'I need help with something',
         roles: ['customer'],
     },
+
+    // ============ Super User: Growth Management ============
+    {
+        id: 'growth-review',
+        label: 'Growth Review',
+        description: 'Review growth metrics, KPIs, and momentum indicators',
+        icon: 'TrendingUp',
+        threadType: 'growth_review',
+        defaultAgent: 'jack',
+        promptTemplate: 'Help me review our growth metrics and identify opportunities',
+        roles: ['super_user'],
+    },
+    {
+        id: 'churn-analysis',
+        label: 'Churn Analysis',
+        description: 'Analyze at-risk customers and plan retention interventions',
+        icon: 'UserMinus',
+        threadType: 'churn_risk',
+        defaultAgent: 'jack',
+        promptTemplate: 'Help me identify at-risk customers and plan retention strategies',
+        roles: ['super_user'],
+    },
+    {
+        id: 'revenue-forecast',
+        label: 'Revenue Forecast',
+        description: 'Model and project revenue scenarios',
+        icon: 'Calculator',
+        threadType: 'revenue_forecast',
+        defaultAgent: 'money_mike',
+        promptTemplate: 'Help me forecast revenue and model different scenarios',
+        roles: ['super_user'],
+    },
+    {
+        id: 'pipeline-review',
+        label: 'Pipeline Review',
+        description: 'Track deals, sales velocity, and conversion funnel',
+        icon: 'Funnel',
+        threadType: 'pipeline',
+        defaultAgent: 'jack',
+        promptTemplate: 'Help me review our sales pipeline and deal progress',
+        roles: ['super_user'],
+    },
+    {
+        id: 'customer-health',
+        label: 'Customer Health',
+        description: 'Monitor customer segment health and engagement',
+        icon: 'HeartPulse',
+        threadType: 'customer_health',
+        defaultAgent: 'jack',
+        promptTemplate: 'Help me assess customer health across segments',
+        roles: ['super_user'],
+    },
+    {
+        id: 'market-intel',
+        label: 'Market Intel',
+        description: 'Competitive positioning and market share analysis',
+        icon: 'Target',
+        threadType: 'market_intel',
+        defaultAgent: 'ezal',
+        promptTemplate: 'Help me analyze our competitive position and market dynamics',
+        roles: ['super_user'],
+    },
+    {
+        id: 'bizdev-outreach',
+        label: 'BizDev',
+        description: 'Partnership outreach and expansion opportunities',
+        icon: 'Handshake',
+        threadType: 'bizdev',
+        defaultAgent: 'glenda',
+        promptTemplate: 'Help me plan partnership outreach and expansion strategies',
+        roles: ['super_user'],
+    },
+    {
+        id: 'growth-experiment',
+        label: 'Experiment',
+        description: 'Plan and analyze growth experiments and A/B tests',
+        icon: 'FlaskConical',
+        threadType: 'experiment',
+        defaultAgent: 'linus',
+        promptTemplate: 'Help me plan a growth experiment or analyze test results',
+        roles: ['super_user'],
+    },
 ];
 
 // ============ Thread Filters ============
@@ -395,11 +503,46 @@ export const THREAD_AGENT_MAPPING: Record<InboxThreadType, {
         primary: 'auto',
         supporting: [],
     },
+
+    // Super User: Growth Management thread types
+    growth_review: {
+        primary: 'jack',
+        supporting: ['linus', 'pops'],
+    },
+    churn_risk: {
+        primary: 'jack',
+        supporting: ['pops', 'leo'],
+    },
+    revenue_forecast: {
+        primary: 'money_mike',
+        supporting: ['jack', 'linus'],
+    },
+    pipeline: {
+        primary: 'jack',
+        supporting: ['glenda', 'leo'],
+    },
+    customer_health: {
+        primary: 'jack',
+        supporting: ['pops', 'leo'],
+    },
+    market_intel: {
+        primary: 'ezal',
+        supporting: ['jack', 'glenda'],
+    },
+    bizdev: {
+        primary: 'glenda',
+        supporting: ['jack', 'craig'],
+    },
+    experiment: {
+        primary: 'linus',
+        supporting: ['jack', 'pops'],
+    },
 };
 
 // ============ Zod Schemas ============
 
 export const InboxThreadTypeSchema = z.enum([
+    // Business Operations
     'general',
     'carousel',
     'bundle',
@@ -411,8 +554,18 @@ export const InboxThreadTypeSchema = z.enum([
     'outreach',
     'inventory_promo',
     'event',
+    // Customer
     'product_discovery',
-    'support'
+    'support',
+    // Super User: Growth Management
+    'growth_review',
+    'churn_risk',
+    'revenue_forecast',
+    'pipeline',
+    'customer_health',
+    'market_intel',
+    'bizdev',
+    'experiment'
 ]);
 
 export const InboxThreadStatusSchema = z.enum([
@@ -420,11 +573,19 @@ export const InboxThreadStatusSchema = z.enum([
 ]);
 
 export const InboxAgentPersonaSchema = z.enum([
-    'smokey', 'money_mike', 'craig', 'glenda', 'ezal', 'deebo', 'pops', 'linus', 'day_day', 'auto'
+    // Field Agents
+    'smokey', 'money_mike', 'craig', 'ezal', 'deebo', 'pops', 'day_day',
+    // Executive Agents
+    'leo', 'jack', 'linus', 'glenda',
+    // Auto-routing
+    'auto'
 ]);
 
 export const InboxArtifactTypeSchema = z.enum([
-    'carousel', 'bundle', 'creative_content', 'sell_sheet', 'report', 'outreach_draft', 'event_promo'
+    // Business Artifacts
+    'carousel', 'bundle', 'creative_content', 'sell_sheet', 'report', 'outreach_draft', 'event_promo',
+    // Growth Management Artifacts
+    'growth_report', 'churn_scorecard', 'revenue_model', 'pipeline_report', 'health_scorecard', 'market_analysis', 'partnership_deck', 'experiment_plan'
 ]);
 
 export const InboxArtifactStatusSchema = z.enum([
@@ -496,6 +657,7 @@ export function canCreateThreadType(role: string, type: InboxThreadType): boolea
  */
 export function getThreadTypeIcon(type: InboxThreadType): string {
     const iconMap: Record<InboxThreadType, string> = {
+        // Business Operations
         general: 'MessageSquare',
         carousel: 'Images',
         bundle: 'PackagePlus',
@@ -507,8 +669,18 @@ export function getThreadTypeIcon(type: InboxThreadType): string {
         outreach: 'Send',
         inventory_promo: 'Package',
         event: 'CalendarDays',
+        // Customer
         product_discovery: 'Search',
         support: 'HelpCircle',
+        // Super User: Growth Management
+        growth_review: 'TrendingUp',
+        churn_risk: 'UserMinus',
+        revenue_forecast: 'Calculator',
+        pipeline: 'Funnel',
+        customer_health: 'HeartPulse',
+        market_intel: 'Target',
+        bizdev: 'Handshake',
+        experiment: 'FlaskConical',
     };
     return iconMap[type] || 'MessageSquare';
 }
@@ -518,6 +690,7 @@ export function getThreadTypeIcon(type: InboxThreadType): string {
  */
 export function getThreadTypeLabel(type: InboxThreadType): string {
     const labelMap: Record<InboxThreadType, string> = {
+        // Business Operations
         general: 'General',
         carousel: 'Carousel',
         bundle: 'Bundle',
@@ -529,8 +702,18 @@ export function getThreadTypeLabel(type: InboxThreadType): string {
         outreach: 'Outreach',
         inventory_promo: 'Inventory Promo',
         event: 'Event',
+        // Customer
         product_discovery: 'Products',
         support: 'Support',
+        // Super User: Growth Management
+        growth_review: 'Growth Review',
+        churn_risk: 'Churn Analysis',
+        revenue_forecast: 'Revenue Forecast',
+        pipeline: 'Pipeline',
+        customer_health: 'Customer Health',
+        market_intel: 'Market Intel',
+        bizdev: 'BizDev',
+        experiment: 'Experiment',
     };
     return labelMap[type] || 'Unknown';
 }
@@ -541,6 +724,7 @@ export function getThreadTypeLabel(type: InboxThreadType): string {
  */
 export function getArtifactTypesForThreadType(type: InboxThreadType): InboxArtifactType[] {
     const mapping: Record<InboxThreadType, InboxArtifactType[]> = {
+        // Business Operations
         carousel: ['carousel'],
         bundle: ['bundle'],
         creative: ['creative_content'],
@@ -551,9 +735,19 @@ export function getArtifactTypesForThreadType(type: InboxThreadType): InboxArtif
         outreach: ['outreach_draft'],
         inventory_promo: ['bundle'],
         event: ['event_promo', 'creative_content'],
+        // Customer
         product_discovery: [],
         support: [],
         general: [],
+        // Super User: Growth Management
+        growth_review: ['growth_report'],
+        churn_risk: ['churn_scorecard'],
+        revenue_forecast: ['revenue_model'],
+        pipeline: ['pipeline_report'],
+        customer_health: ['health_scorecard'],
+        market_intel: ['market_analysis'],
+        bizdev: ['partnership_deck'],
+        experiment: ['experiment_plan'],
     };
     return mapping[type] || [];
 }
