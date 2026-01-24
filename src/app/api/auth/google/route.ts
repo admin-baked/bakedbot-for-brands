@@ -13,17 +13,13 @@ export async function GET(req: NextRequest) {
 
         // Validate service
         const validServices: GoogleService[] = ['gmail', 'calendar', 'sheets', 'drive'];
-        if (!validServices.includes(service)) {
-            return NextResponse.redirect(
-                new URL(`${redirect}?error=invalid_service`, req.url)
-            );
-        }
-
-        // Create state object for CSRF protection and to track service through OAuth flow
+        // Encode state to preserve service context through the OAuth redirect loop
         const state = JSON.stringify({ service, redirect });
 
-        // Generate the OAuth URL with service-specific scopes
+        // Generate the OAuth URL (now async since it fetches secrets)
+        // We pass the service to request the correct scopes
         const url = await getAuthUrl(state, service);
+
         return NextResponse.redirect(url);
     } catch (error: any) {
         console.error('[Google OAuth] Error generating auth URL:', error);
