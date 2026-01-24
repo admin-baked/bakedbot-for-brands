@@ -90,8 +90,9 @@ export async function GET(request: NextRequest) {
         });
 
         // Rewrite to the brand/dispensary page (not redirect, to keep URL in browser)
-        // Use the public base URL to avoid internal server addresses
-        const url = new URL(redirectPath, publicBaseUrl);
+        // Use request.nextUrl for internal rewrites - this is the correct Next.js pattern
+        const url = request.nextUrl.clone();
+        url.pathname = redirectPath;
         return NextResponse.rewrite(url);
     } catch (error) {
         logger.error('[Domain] Resolution error', { hostname: normalizedHostname, error });
