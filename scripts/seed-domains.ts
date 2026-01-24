@@ -1,31 +1,32 @@
+/**
+ * Seed Domain Mappings for Custom Domains
+ *
+ * Run: npx ts-node scripts/seed-domains.ts
+ */
+const { initializeApp, cert, getApps } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
+const path = require('path');
 
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-import * as dotenv from 'dotenv';
-import path from 'path';
+// Initialize Firebase Admin using service account file
+const app = getApps().length > 0 ? getApps()[0] : initializeApp({
+    credential: cert(path.resolve(__dirname, '../service-account.json'))
+});
 
-// Load environment variables from .env.local
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
-
-// Initialize Firebase Admin
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}');
-
-if (!getApps().length) {
-    initializeApp({
-        credential: cert(serviceAccount),
-    });
-}
-
-const db = getFirestore();
+const db = getFirestore(app);
 
 async function seedDomainData() {
     console.log('Seeding domain data...');
     const timestamp = new Date().toISOString();
 
+    // Brand and tenant IDs must match what was created in configure-ecstatic-edibles.ts
+    const BRAND_ID = 'brand_ecstatic_edibles';
+    const BRAND_SLUG = 'ecstaticedibles';
+
     // 1. Create domain_mappings document
+    // Maps ecstaticedibles.com -> brand slug for URL routing
     const domainMappingData = {
         domain: 'ecstaticedibles.com',
-        tenantId: 'ecstaticedibles',
+        tenantId: BRAND_SLUG, // Route to /ecstaticedibles which loads brand by slug
         connectionType: 'a_record',
         verifiedAt: timestamp,
         createdAt: timestamp,
@@ -35,18 +36,13 @@ async function seedDomainData() {
     await db.collection('domain_mappings').doc('ecstaticedibles.com').set(domainMappingData);
     console.log('✅ Created domain_mappings/ecstaticedibles.com');
 
-    // 2. Create/Update tenants document
-    // Note: The user request implies creating or updating the tenant with customDomain info.
-    // We will use set with merge: true to be safe, or just update if we know it exists.
-    // Given previous steps seeded 'brands/ecstaticedibles', and 'tenants' might be a separate collection or the same concept?
-    // The user explicitly asked for "Collection: tenants", "Document ID: ecstaticedibles".
-    // In our schema, brands are usually in 'brands' collection, but 'tenants' might be a new or separate architectural requirement
-    // or simply an alias in the user's mind. I will follow the instruction literally and write to 'tenants'.
-
+    // 2. Create tenants document for custom domain resolution
+    // This is looked up by the domain resolver API
     const tenantData = {
-        id: 'ecstaticedibles',
+        id: BRAND_SLUG,
         type: 'brand',
         name: 'Ecstatic Edibles',
+        brandId: BRAND_ID, // Link to actual brand document
         customDomain: {
             domain: 'ecstaticedibles.com',
             verificationStatus: 'verified',
@@ -55,7 +51,7 @@ async function seedDomainData() {
         updatedAt: timestamp
     };
 
-    await db.collection('tenants').doc('ecstaticedibles').set(tenantData, { merge: true });
+    await db.collection('tenants').doc(BRAND_SLUG).set(tenantData, { merge: true });
     console.log('✅ Created/Updated tenants/ecstaticedibles');
 
     // Also verify if we need to sync this to 'brands' collection just in case, 
