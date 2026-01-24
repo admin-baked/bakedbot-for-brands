@@ -70,9 +70,9 @@ async function main() {
         claimStatus: 'claimed',
         ownerId: UID,
 
-        // Red/White/Black theme
+        // Red/White/Black theme (Ecstatic Edibles brand colors)
         theme: {
-            primaryColor: '#DC2626',    // Red
+            primaryColor: '#bb0a1e',    // Ecstatic Red
             secondaryColor: '#000000',  // Black
             accentColor: '#FFFFFF',     // White
             heroImageUrl: '',
@@ -223,7 +223,7 @@ async function main() {
     console.log('🏷️  Brand ID:', BRAND_ID);
     console.log('🏢 Org ID:', ORG_ID);
     console.log('🔗 Brand URL: https://bakedbot.ai/ecstaticedibles');
-    console.log('🎨 Theme: Red (#DC2626), Black (#000000), White (#FFFFFF)');
+    console.log('🎨 Theme: Ecstatic Red (#bb0a1e), Black (#000000), White (#FFFFFF)');
     console.log('📦 Purchase Model: Online Only (Shipping)');
     console.log('💰 Plan: Pilot Partner (Free)');
     console.log('');

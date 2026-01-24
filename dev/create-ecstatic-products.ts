@@ -1,9 +1,10 @@
 /**
- * Create Test Products for Ecstatic Edibles Pilot
+ * Create Products for Ecstatic Edibles Pilot
  *
  * Products:
- * 1. Snickerdoodle Bites - $24.99
- * 2. Cheesecake Bliss Gummies - $29.99
+ * 1. Snicker Doodle Bites - $10
+ * 2. Berry Cheesecake Gummies - $10
+ * 3. "If You Hit This We Go Together" Hoodie - $40
  */
 const { initializeApp, cert, getApps } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
@@ -19,44 +20,67 @@ const BRAND_ID = 'brand_ecstatic_edibles';
 const products = [
     {
         id: 'prod_snickerdoodle_bites',
-        name: 'Snickerdoodle Bites',
-        description: "Indulge in the warm, nostalgic flavors of cinnamon and sugar with our Snickerdoodle Bites. Each delicious morsel delivers a precise 25mg of premium hemp-derived Delta-8 THC for a smooth, euphoric experience. Perfect for unwinding after a long day.",
+        name: 'Snicker Doodle Bites',
+        description: "Warm cinnamon and brown sugar meet premium hemp in these irresistible Snicker Doodle Bites. Each piece is infused with lab-tested Delta-8 THC for a smooth, mellow experience that's perfect for unwinding. Baked with love using real butter and organic cinnamon - just like grandma's recipe, but with a little extra ecstasy.",
         category: 'Edibles',
-        price: 24.99,
-        imageUrl: '', // ENGINEER: Add image URL
-        imageHint: 'snickerdoodle cookie hemp edible gummy',
+        price: 10.00,
+        imageUrl: '', // Images to be added from dashboard
+        imageHint: 'snickerdoodle cookie hemp edible treat cinnamon',
         brandId: BRAND_ID,
         featured: true,
         sortOrder: 1,
         // Hemp/Edibles specific fields
-        weight: 50,
+        weight: 30,
         weightUnit: 'g',
-        servings: 10,
-        mgPerServing: 25,
+        servings: 6,
+        mgPerServing: 10,
         shippable: true,
-        shippingRestrictions: [], // No restrictions
+        shippingRestrictions: [],
         // Metadata
         source: 'manual',
         likes: 0,
+        effects: ['Relaxed', 'Happy', 'Uplifted'],
+        strainType: 'hybrid',
     },
     {
-        id: 'prod_cheesecake_bliss',
-        name: 'Cheesecake Bliss Gummies',
-        description: "Experience dessert-inspired bliss with our Cheesecake Gummies. Crafted with premium hemp-derived CBD and Delta-8, each gummy delivers 15mg of cannabinoids in a creamy, tangy cheesecake flavor. A guilt-free treat for any time of day.",
+        id: 'prod_berry_cheesecake_gummies',
+        name: 'Berry Cheesecake Gummies',
+        description: "Indulge in dessert without the guilt. Our Berry Cheesecake Gummies blend tangy berry swirls with rich, creamy cheesecake flavor - all infused with premium hemp-derived cannabinoids. Each gummy delivers consistent dosing for a reliably blissful experience. Vegan-friendly and absolutely delicious.",
         category: 'Edibles',
-        price: 29.99,
-        imageUrl: '', // ENGINEER: Add image URL
-        imageHint: 'cheesecake gummy hemp edible candy',
+        price: 10.00,
+        imageUrl: '', // Images to be added from dashboard
+        imageHint: 'berry cheesecake gummy hemp edible candy purple',
         brandId: BRAND_ID,
         featured: true,
         sortOrder: 2,
         // Hemp/Edibles specific fields
-        weight: 75,
+        weight: 30,
         weightUnit: 'g',
-        servings: 15,
-        mgPerServing: 15,
+        servings: 6,
+        mgPerServing: 10,
         shippable: true,
         shippingRestrictions: [],
+        // Metadata
+        source: 'manual',
+        likes: 0,
+        effects: ['Relaxed', 'Creative', 'Euphoric'],
+        strainType: 'indica',
+    },
+    {
+        id: 'prod_we_go_together_hoodie',
+        name: '"If You Hit This We Go Together" Hoodie',
+        description: "Rep the vibe with our signature hoodie. Bold statement, soft cotton blend, and that perfect oversized fit for maximum comfort. Whether you're passing left or just chilling, this hoodie lets everyone know you're down for the session. Premium heavyweight fleece keeps you cozy - because good things are meant to be shared.",
+        category: 'Apparel',
+        price: 40.00,
+        imageUrl: '', // Images to be added from dashboard
+        imageHint: 'black hoodie streetwear cannabis lifestyle apparel',
+        brandId: BRAND_ID,
+        featured: true,
+        sortOrder: 3,
+        // Apparel specific fields
+        shippable: true,
+        shippingRestrictions: [],
+        // Size options would be managed separately or via variants
         // Metadata
         source: 'manual',
         likes: 0,
@@ -64,7 +88,7 @@ const products = [
 ];
 
 async function createProducts() {
-    console.log('🍪 Creating Ecstatic Edibles test products...\n');
+    console.log('🍪 Creating Ecstatic Edibles products...\n');
 
     for (const product of products) {
         console.log(`📦 Creating: ${product.name}`);
@@ -76,9 +100,10 @@ async function createProducts() {
         }, { merge: true });
 
         console.log(`   ✅ ${product.name} created`);
-        console.log(`      Price: $${product.price}`);
-        console.log(`      Servings: ${product.servings} @ ${product.mgPerServing}mg each`);
-        console.log(`      Total: ${product.servings * product.mgPerServing}mg`);
+        console.log(`      Price: $${product.price.toFixed(2)}`);
+        if (product.servings) {
+            console.log(`      Servings: ${product.servings} @ ${product.mgPerServing}mg each`);
+        }
     }
 
     console.log('\n' + '='.repeat(60));
@@ -86,13 +111,13 @@ async function createProducts() {
     console.log('='.repeat(60));
     console.log('');
     console.log('📋 Product Summary:');
-    console.log('   1. Snickerdoodle Bites - $24.99 (10 servings, 25mg each)');
-    console.log('   2. Cheesecake Bliss Gummies - $29.99 (15 servings, 15mg each)');
+    console.log('   1. Snicker Doodle Bites - $10.00');
+    console.log('   2. Berry Cheesecake Gummies - $10.00');
+    console.log('   3. "If You Hit This We Go Together" Hoodie - $40.00');
     console.log('');
-    console.log('⚠️  IMPORTANT: Add product images to complete setup!');
-    console.log('   Update imageUrl field in Firestore or via Dashboard');
+    console.log('⚠️  IMPORTANT: Add product images from the dashboard!');
     console.log('');
-    console.log('🔗 View products at: https://bakedbot.ai/ecstaticedibles');
+    console.log('🔗 View products at: https://ecstaticedibles.bakedbot.ai');
     console.log('='.repeat(60));
 }
 
