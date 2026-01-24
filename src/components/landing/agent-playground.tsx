@@ -45,15 +45,15 @@ export function AgentPlayground() {
     } : null;
 
     const prompts = demoMode === 'dispensary' ? [
-        "Hire a Market Scout (Spy on Competitors)",
-        "Send Deebo (Check my compliance)", 
-        "See my Digital Budtender in action",
-        "What are the pricing plans?"
+        "Spy on competitor pricing near me",
+        "Scan my site for compliance risks",
+        "Show me how Smokey sells products",
+        "See pricing & ROI breakdown"
     ] : [
-        "Hire a Market Scout (Find retail partners)",
-        "Draft a New Drop Campaign",
-        "Audit my Brand Footprint",
-        "What are the pricing plans?"
+        "Find dispensaries to carry my products",
+        "Draft a campaign in 30 seconds",
+        "See where my brand appears online",
+        "See pricing & ROI breakdown"
     ];
 
     return (

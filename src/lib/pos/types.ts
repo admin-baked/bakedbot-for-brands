@@ -1,4 +1,4 @@
-export type POSProvider = 'dutchie' | 'jane' | 'alleaves' | 'manual';
+export type POSProvider = 'dutchie' | 'jane' | 'alleaves' | 'metrc' | 'manual';
 
 export interface POSConfig {
     apiKey?: string;
