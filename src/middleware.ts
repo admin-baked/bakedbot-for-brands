@@ -88,12 +88,13 @@ export function middleware(request: NextRequest) {
     if (isCustomDomain && pathname === '/') {
         // For custom domains hitting root path, we need to look up the tenant
         // We can't use Firestore in Edge, so we call an internal API
-        // The API route will handle the lookup and set headers
-        // Note: Construct URL with search params directly in the string to ensure they're preserved
-        const resolveUrl = new URL(`/api/domain/resolve?hostname=${encodeURIComponent(hostname)}&originalPath=${encodeURIComponent(pathname)}`, request.url);
-
-        // Rewrite to internal resolver - it will handle the redirect
-        return NextResponse.rewrite(resolveUrl);
+        // The API route will handle the lookup and rewrite to the correct path
+        // Use headers to pass data since query params may not survive rewrite
+        const resolveUrl = new URL('/api/domain/resolve', request.url);
+        const response = NextResponse.rewrite(resolveUrl);
+        response.headers.set('x-custom-domain-hostname', hostname);
+        response.headers.set('x-custom-domain-path', pathname);
+        return response;
     }
 
     // For custom domains on other paths, pass through with hostname header
