@@ -227,6 +227,32 @@ function FilterButton({ collapsed }: { collapsed?: boolean }) {
         market_intel: 'Market Intel',
         bizdev: 'BizDev',
         experiment: 'Experiments',
+        // Super User: Company Operations
+        daily_standup: 'Daily Standups',
+        sprint_planning: 'Sprint Planning',
+        incident_response: 'Incidents',
+        feature_spec: 'Feature Specs',
+        code_review: 'Code Reviews',
+        release: 'Releases',
+        customer_onboarding: 'Onboarding',
+        customer_feedback: 'Feedback',
+        support_escalation: 'Escalations',
+        content_calendar: 'Content Calendar',
+        launch_campaign: 'Launch Campaigns',
+        seo_sprint: 'SEO Sprints',
+        partnership_outreach: 'Partnerships',
+        billing_review: 'Billing',
+        budget_planning: 'Budget Planning',
+        vendor_management: 'Vendors',
+        compliance_audit: 'Compliance',
+        weekly_sync: 'Weekly Syncs',
+        quarterly_planning: 'Quarterly Planning',
+        board_prep: 'Board Prep',
+        hiring: 'Hiring',
+        // Super User: Research
+        deep_research: 'Deep Research',
+        compliance_research: 'Compliance Research',
+        market_research: 'Market Research',
     };
 
     if (collapsed) {

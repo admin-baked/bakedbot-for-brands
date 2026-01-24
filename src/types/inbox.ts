@@ -277,11 +277,11 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
     {
         id: 'new-campaign',
         label: 'Plan Campaign',
-        description: 'Plan a multi-channel marketing campaign',
+        description: 'Draft a multi-channel campaign in 30 seconds',
         icon: 'Megaphone',
         threadType: 'campaign',
         defaultAgent: 'glenda',
-        promptTemplate: 'Help me plan a marketing campaign',
+        promptTemplate: 'Draft a campaign for me - I need SMS, email, and social content ready to send',
         roles: ALL_BUSINESS_ROLES,
     },
 
@@ -313,11 +313,11 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
     {
         id: 'customer-blast',
         label: 'Customer Blast',
-        description: 'Draft SMS or email campaign for customers',
+        description: 'Draft a compliant SMS or email in 30 seconds',
         icon: 'Send',
         threadType: 'outreach',
         defaultAgent: 'craig',
-        promptTemplate: 'Help me create a customer outreach message',
+        promptTemplate: 'Draft a customer outreach message for me - make it compliant and ready to send',
         roles: ALL_BUSINESS_ROLES,
     },
 
@@ -349,11 +349,11 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
     {
         id: 'retail-pitch',
         label: 'Retail Pitch',
-        description: 'Create materials to pitch dispensaries on your products',
+        description: 'Find dispensaries to carry your products and draft outreach',
         icon: 'Presentation',
         threadType: 'retail_partner',
         defaultAgent: 'glenda',
-        promptTemplate: 'Help me create a pitch for retail partners',
+        promptTemplate: 'Find dispensaries that would be a good fit for my brand and help me draft an intro email',
         roles: BRAND_ROLES,
     },
 
@@ -443,11 +443,11 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
     {
         id: 'market-intel',
         label: 'Market Intel',
-        description: 'Competitive positioning and market share analysis',
+        description: 'Spy on competitor pricing and market positioning',
         icon: 'Target',
         threadType: 'market_intel',
         defaultAgent: 'ezal',
-        promptTemplate: 'Help me analyze our competitive position and market dynamics',
+        promptTemplate: 'Spy on competitor pricing near me and show me market opportunities',
         roles: ['super_user'],
     },
     {
@@ -575,11 +575,11 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
     {
         id: 'compliance-audit',
         label: 'Compliance Audit',
-        description: 'Review compliance status (SOC2, privacy, cannabis regs)',
+        description: 'Scan for compliance risks before they become fines',
         icon: 'ShieldCheck',
         threadType: 'compliance_audit',
         defaultAgent: 'deebo',
-        promptTemplate: 'Run a compliance audit: SOC2 status, privacy requirements, cannabis regulations.',
+        promptTemplate: 'Scan my site and content for compliance risks - cannabis regulations, health claims, age-gating',
         roles: ['super_user'],
     },
     {

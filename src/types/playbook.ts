@@ -7,7 +7,7 @@ import { AgentTrigger } from './agent-config';
 
 export type PlaybookStatus = 'draft' | 'active' | 'paused' | 'archived';
 
-export type PlaybookCategory = 'intel' | 'marketing' | 'ops' | 'seo' | 'reporting' | 'compliance' | 'custom' | 'operations' | 'growth';
+export type PlaybookCategory = 'intel' | 'intelligence' | 'marketing' | 'ops' | 'seo' | 'reporting' | 'compliance' | 'custom' | 'operations' | 'growth' | 'customer_success';
 export type TriggerType = 'manual' | 'schedule' | 'event' | 'calendar';
 
 export interface PlaybookTrigger {
@@ -77,6 +77,9 @@ export interface Playbook {
 
     // Version control
     version: number;
+
+    // Arbitrary metadata for context (brand info, search params, etc.)
+    metadata?: Record<string, unknown>;
 }
 
 export interface PlaybookVersion {
