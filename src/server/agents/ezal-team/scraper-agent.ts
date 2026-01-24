@@ -225,7 +225,7 @@ export function createDefaultProductExtractor(): ScraperTools['extractProductsFr
       const truncatedMarkdown = sanitizeForPrompt(markdown, 15000);
 
       const result = await ai.generate({
-        model: 'googleai/gemini-2.0-flash',
+        model: 'googleai/gemini-2.5-flash',
         prompt: `Extract all cannabis products from this menu content. Return a JSON array of products.
 
 For each product, extract:

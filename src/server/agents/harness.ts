@@ -53,12 +53,12 @@ export async function runAgent<TMemory extends AgentMemory, TTools = any>(
         // C. Orient
         // Check for urgent messages on the bus
         try {
-            // Import dynamically to avoid circular deps
             const { getPendingMessages } = await import('../intuition/agent-bus');
             const messages = await getPendingMessages(brandId, agentName as any);
             if (messages.length > 0) {
-                logger.info(`[Harness] ${agentName}: Has ${messages.length} pending messages. (Topic: ${messages[0].topic})`);
-                // TODO: In future, inject these messages into 'stimulus' or 'agentMemory' context
+                logger.info(`[Harness] ${agentName}: Has ${messages.length} pending messages. Injecting into memory.`);
+                // Inject messages into agentMemory for the agent to process during orient/act
+                (agentMemory as any).pending_messages = messages;
             }
         } catch (e) {
             // Ignore bus errors, don't crash agent
@@ -323,15 +323,15 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
     if (model === 'hybrid') {
         const steps: Array<{ tool: string; args: any; result: any }> = [];
         let iteration = 0;
-        
+
         while (iteration < maxIterations) {
             iteration++;
-            
+
             // Build history from prior steps
-            const historyPrompt = steps.length > 0 
+            const historyPrompt = steps.length > 0
                 ? `\n\nPRIOR STEPS:\n${steps.map((s, i) => `${i + 1}. ${s.tool}(${JSON.stringify(s.args)}) -> ${JSON.stringify(s.result).slice(0, 300)}`).join('\n')}`
                 : '';
-            
+
             // PLAN with Gemini 3 Pro
             // SECURITY: User query is sanitized and wrapped in structured tags
             // SECURITY: System instructions contain canary token
@@ -352,7 +352,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
 
                 Return JSON: { "thought": string, "status": "CONTINUE" | "COMPLETE" | "BLOCKED", "toolName": string | null, "args": object }
             `;
-            
+
             const plan = await ai.generate({
                 model: 'googleai/gemini-2.5-flash', // Gemini for fast planning
                 prompt: planPrompt,
@@ -365,9 +365,9 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                     })
                 }
             });
-            
+
             const decision = plan.output as MultiStepPlan;
-            
+
             if (decision.status === 'COMPLETE' || decision.status === 'BLOCKED') {
                 // Synthesize final response with Claude 4.5 Opus
                 const { executeWithTools: claudeSynthesize } = await import('@/ai/claude');
@@ -417,7 +417,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
 
                 return { finalResult: outputValidation.sanitized, steps };
             }
-            
+
             if (!decision.toolName) {
                 break;
             }
@@ -430,17 +430,17 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                     args: decision.args,
                     reason: decision.thought
                 });
-                
+
                 if (!approval.approved) {
-                    steps.push({ 
-                        tool: decision.toolName, 
-                        args: decision.args, 
-                        result: { blocked: true, reason: approval.reason || 'User denied action' } 
+                    steps.push({
+                        tool: decision.toolName,
+                        args: decision.args,
+                        result: { blocked: true, reason: approval.reason || 'User denied action' }
                     });
                     continue;
                 }
             }
-            
+
             // EXECUTE with VALIDATION
             const toolFn = tools[decision.toolName];
             let result: any = { error: 'Tool not found' };
@@ -482,7 +482,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
             steps.push({ tool: decision.toolName, args: decision.args, result });
             if (onStepComplete) await onStepComplete(steps.length, decision.toolName, result);
         }
-        
+
         // Fallback synthesis if loop exits without COMPLETE
         // === PROCEDURAL MEMORY: Persist successful workflows ===
         if (steps.length >= 2 && context.agentId) {
@@ -504,7 +504,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
             steps
         };
     }
-    
+
     // === CLAUDE EXECUTION PATH (LOGIC MASTER) ===
     // Routing: Trigger if model is explicitly 'claude' OR if it's a specific Anthropic model string
     if (model === 'claude' || (model && model.startsWith('claude-'))) {
@@ -520,7 +520,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
 
         // Executor Wrapper to bridge Harness -> Claude
         const steps: Array<{ tool: string; args: any; result: any }> = [];
-        
+
         const executor = async (toolName: string, args: Record<string, unknown>) => {
             // HITL Check
             const HITL_TOOLS = ['sendSms', 'rtrvrAgent', 'createPlaybook', 'sendEmail'];
@@ -530,13 +530,13 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                     args,
                     reason: "Automated tool call by Claude"
                 });
-                
+
                 if (!approval.approved) {
                     const result = { blocked: true, reason: approval.reason || 'User denied action' };
                     // Log step via callback
                     if (onStepComplete) {
                         // Step counting is fuzzy here, simple mapping to indicate a step occurred
-                        await onStepComplete(context.maxIterations ? context.maxIterations - 1 : 1, toolName, result); 
+                        await onStepComplete(context.maxIterations ? context.maxIterations - 1 : 1, toolName, result);
                     }
                     return result; // Return blockage to Claude
                 }
@@ -588,21 +588,21 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
     }
 
     // === GEMINI EXECUTION PATH (DEFAULT) ===
-    
+
     const steps: Array<{ tool: string; args: any; result: any }> = [];
     let iteration = 0;
-    
+
     // Build tool names enum dynamically
     const toolNames = [...toolsDef.map(t => t.name), 'null'] as const;
-    
+
     while (iteration < maxIterations) {
         iteration++;
-        
+
         // Build history from prior steps
-        const historyPrompt = steps.length > 0 
+        const historyPrompt = steps.length > 0
             ? `\n\nPRIOR STEPS:\n${steps.map((s, i) => `${i + 1}. ${s.tool}(${JSON.stringify(s.args)}) -> ${JSON.stringify(s.result).slice(0, 300)}`).join('\n')}`
             : '';
-        
+
         // PLAN
         // SECURITY: User query is sanitized and wrapped in structured tags
         const planPrompt = `
@@ -622,7 +622,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
 
             Return JSON: { "thought": string, "status": "CONTINUE" | "COMPLETE" | "BLOCKED", "toolName": string | null, "args": object }
         `;
-        
+
         const plan = await ai.generate({
             model: model !== 'claude' && model !== 'gemini' ? model : undefined,
             prompt: planPrompt,
@@ -635,9 +635,9 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                 })
             }
         });
-        
+
         const decision = plan.output as MultiStepPlan;
-        
+
         if (decision.status === 'COMPLETE' || decision.status === 'BLOCKED') {
             // Synthesize final response
             const final = await ai.generate({
@@ -654,7 +654,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
 
             return { finalResult: final.text, steps };
         }
-        
+
         if (!decision.toolName) {
             break; // No tool selected, exit loop
         }
@@ -664,28 +664,28 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
         // High-risk actions require approval before execution
         // =========================================================
         const HITL_TOOLS = ['sendSms', 'rtrvrAgent', 'createPlaybook', 'sendEmail'];
-        
+
         if (HITL_TOOLS.includes(decision.toolName) && context.onHITLRequired) {
             const approval = await context.onHITLRequired({
                 tool: decision.toolName,
                 args: decision.args,
                 reason: decision.thought
             });
-            
+
             if (!approval.approved) {
-                steps.push({ 
-                    tool: decision.toolName, 
-                    args: decision.args, 
-                    result: { blocked: true, reason: approval.reason || 'User denied action' } 
+                steps.push({
+                    tool: decision.toolName,
+                    args: decision.args,
+                    result: { blocked: true, reason: approval.reason || 'User denied action' }
                 });
                 continue; // Re-plan without executing
             }
         }
-        
+
         // EXECUTE
         const toolFn = tools[decision.toolName];
         let result: any = { error: 'Tool not found' };
-        
+
         if (typeof toolFn === 'function') {
             try {
                 // Call the tool with appropriate args
@@ -693,7 +693,7 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                 result = await toolFn(...argValues);
             } catch (e: any) {
                 result = { error: e.message };
-                
+
                 // =========================================================
                 // RE-PLANNING ON ERROR
                 // If tool fails, trigger re-planning
@@ -703,9 +703,9 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
                 }
             }
         }
-        
+
         steps.push({ tool: decision.toolName, args: decision.args, result });
-        
+
         // =========================================================
         // PEI (Planning Efficiency Index) CHECK
         // Detect behavioral drift and trigger self-correction
@@ -714,13 +714,13 @@ export async function runMultiStepTask(context: MultiStepContext): Promise<{
         if (pei.driftDetected && context.onDriftDetected) {
             await context.onDriftDetected(pei);
         }
-        
+
         // Callback for persistence
         if (onStepComplete) {
             await onStepComplete(iteration, decision.toolName, result);
         }
     }
-    
+
     // Hit max iterations
     const final = await ai.generate({
         model: model !== 'claude' && model !== 'gemini' ? model : undefined,
@@ -750,7 +750,7 @@ export interface PEI {
 function calculatePEI(steps: Array<{ tool: string; args: any; result: any }>): PEI {
     const errorCount = steps.filter(s => s.result?.error || s.result?.blocked).length;
     const successRate = steps.length > 0 ? (steps.length - errorCount) / steps.length : 1;
-    
+
     // Drift detected if:
     // 1. More than 2 errors in sequence
     // 2. Success rate drops below 50%
@@ -759,10 +759,10 @@ function calculatePEI(steps: Array<{ tool: string; args: any; result: any }>): P
         acc[s.tool] = (acc[s.tool] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
-    
+
     const hasLoop = Object.values(toolCounts).some(count => count >= 3);
     const driftDetected = errorCount > 2 || successRate < 0.5 || hasLoop;
-    
+
     return {
         stepsCompleted: steps.length,
         errorCount,

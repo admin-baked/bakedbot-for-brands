@@ -19,7 +19,7 @@ export interface IntelligenceLevelConfig {
 export const INTELLIGENCE_LEVELS: Record<IntelligenceLevel, IntelligenceLevelConfig> = {
     standard: {
         level: 'standard',
-        model: 'googleai/gemini-2.0-flash',
+        model: 'googleai/gemini-2.5-flash',
         quotaCost: 1,
         description: 'Fast & efficient for routine tasks',
         maxTokens: 2048,

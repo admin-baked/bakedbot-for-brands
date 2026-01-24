@@ -19,13 +19,16 @@ const customJestConfig = {
     '^@/ai/genkit$': '<rootDir>/tests/__mocks__/genkit.ts',
     '^@/ai/model-selector$': '<rootDir>/tests/__mocks__/model-selector.ts',
     '^@genkit-ai/vertexai$': '<rootDir>/tests/__mocks__/genkit-vertexai.js',
-    
+    '^uuid$': '<rootDir>/tests/__mocks__/uuid.js',
+
     // Handle module aliases (this will be automatically configured for you soon)
     '^@/(.*)$': '<rootDir>/src/$1',
     '^react-markdown$': '<rootDir>/tests/__mocks__/react-markdown.js',
     '^remark-gfm$': '<rootDir>/tests/__mocks__/remark-gfm.js',
     '^server-only$': '<rootDir>/tests/__mocks__/server-only.js',
     '^lucide-react$': '<rootDir>/tests/__mocks__/lucide-react.js',
+    '^yaml$': '<rootDir>/tests/__mocks__/yaml.js',
+    '^jsonpath-plus$': '<rootDir>/tests/__mocks__/jsonpath-plus.js',
   },
   testEnvironment: 'jsdom',
   testMatch: [
@@ -45,7 +48,7 @@ const customJestConfig = {
     '!src/**/__tests__/**',
   ],
   transformIgnorePatterns: [
-    'node_modules/(?!(uuid|firebase|@firebase|firebase-admin|jwks-rsa|react-markdown|remark-gfm|micromark|unist|hast|mdast|rehype|remark|vfile|bail|trough|unified|is-plain-obj|property-information|space-separated-tokens|comma-separated-tokens|decode-named-character-reference|character-entities|ccount|escape-string-regexp|markdown-table|longest-streak|lucide-react|@genkit-ai|genkit|dotprompt|zod|yaml|google-auth-library|google-gax|googleapis|gaxios)/)',
+    'node_modules/(?!(uuid|firebase|@firebase|firebase-admin|jwks-rsa|react-markdown|remark-gfm|micromark|unist|hast|mdast|rehype|remark|vfile|bail|trough|unified|is-plain-obj|property-information|space-separated-tokens|comma-separated-tokens|decode-named-character-reference|character-entities|ccount|escape-string-regexp|markdown-table|longest-streak|lucide-react|@genkit-ai|genkit|dotprompt|zod|yaml|jsonpath-plus|google-auth-library|google-gax|googleapis|gaxios)/)',
   ],
   coverageThreshold: {
     global: {

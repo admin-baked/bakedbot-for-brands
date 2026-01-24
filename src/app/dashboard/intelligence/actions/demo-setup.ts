@@ -2,11 +2,12 @@
 
 import { geocodeLocation } from '@/server/services/geo-discovery';
 import { discovery } from '@/server/services/firecrawl';
+import { filterUrl, isDispensaryPlatform } from '@/server/agents/ezal-team/url-filter';
 
 export async function searchDemoRetailers(zip: string) {
     // No requireUser() check - this is for public demo
     // In production, we should add rate limiting here
-    
+
     try {
         // First geocode the location (Zip OR City)
         const coords = await geocodeLocation(zip);
@@ -16,68 +17,86 @@ export async function searchDemoRetailers(zip: string) {
              // Fallback if geocoding fails, but still try search
              console.warn("Could not geocode ZIP:", zip);
         }
-        
+
         console.log(`[Demo] Hunting for dispensaries in ${locationStr} using Firecrawl...`);
-        
+
         // 1. Live Search via Firecrawl
-        // "dispensaries in [ZIP] [CITY] [STATE]"
-        const searchResults = await discovery.search(`dispensaries in ${locationStr}`);
-        
+        // Use optimized search query for dispensary menus
+        const searchResults = await discovery.search(`dispensary menu ${locationStr}`);
+
         if (!searchResults || searchResults.length === 0) {
             return { success: false, error: "No dispensaries found nearby." };
         }
-        
+
         // 2. Map Results to our standardized format
         // Firecrawl search returns { title, url, description, ... }
-        
-        // FILTER: Remove directories and "Best of" lists
-        const directories = [
-            'yelp', 'weedmaps', 'leafly', 'potguide', 'yellowpages', 'tripadvisor', 'thc', 
-            'dispensaries.com', 'wikipedia', 'mapquest', 'allbud', 'dutchie', 'jane', 
-            'leafbuyer', 'wikileaf', 'iheartjane'
-        ];
-        
+
         // DEDUPLICATION TRACKERS
         const seenDomains = new Set<string>();
         const seenNames = new Set<string>();
 
         let mapped = searchResults
             .filter((r: any) => {
+                const url = r.url || '';
                 const lowerTitle = (r.title || '').toLowerCase();
-                const lowerDesc = (r.description || '').toLowerCase();
-                const lowerUrl = (r.url || '').toLowerCase();
-                const combined = lowerTitle + lowerUrl + lowerDesc;
-                
-                // 1. Directory Filter
-                const isDirectory = directories.some(d => combined.includes(d));
-                
-                // 2. "Best of" / "Listicle" Filter
-                const isBestOfList = 
-                    lowerTitle.includes('best dispensaries') || 
-                    lowerTitle.includes('top 10') || 
+
+                // =====================================================
+                // URL FILTER: Use centralized dispensary URL filter
+                // This blocks: Reddit, blogs, news, generic chain pages
+                // Also blocks aggregator platforms - we want DIRECT dispensary sites only
+                // =====================================================
+                const urlCheck = filterUrl(url, {
+                    allowChainPages: false,
+                    minConfidence: 0.3, // Be a bit lenient for demo
+                    additionalBlockedDomains: [
+                        'weedmaps.com',
+                        'dutchie.com',
+                        'leafly.com',
+                        'iheartjane.com',
+                        'jane.co',
+                        'meadow.com',
+                        'potguide.com',
+                        'allbud.com',
+                        'wikileaf.com',
+                        'wheresweed.com',
+                        'cannaconnection.com',
+                    ]
+                });
+
+                if (!urlCheck.allowed) {
+                    console.log(`[Demo] Filtered out: ${url} (${urlCheck.reason})`);
+                    return false;
+                }
+
+                // "Best of" / "Listicle" Filter (title-based)
+                const isBestOfList =
+                    lowerTitle.includes('best dispensaries') ||
+                    lowerTitle.includes('top 10') ||
                     lowerTitle.includes('top 20') ||
+                    lowerTitle.includes('favorite dispensary') ||
                     lowerTitle.includes('near me') ||
                     lowerTitle.startsWith('dispensaries in');
 
-                if (isDirectory || isBestOfList) return false;
-
-                // 2. Domain Deduplication
-                try {
-                    const hostname = new URL(r.url).hostname.replace('www.', '');
-                    if (seenDomains.has(hostname)) return false;
-                    seenDomains.add(hostname);
-                } catch (e) {
-                    // Invalid URL, safer to skip or allow? Allow, but title check will be last line of defense
+                if (isBestOfList) {
+                    console.log(`[Demo] Filtered out listicle: ${lowerTitle}`);
+                    return false;
                 }
 
-                // 3. Name Deduplication (Simple fuzzy check)
-                // Remove common noise: "dispensary", "cannabis", "recreational", "menu"
+                // Domain Deduplication
+                try {
+                    const hostname = new URL(url).hostname.replace('www.', '');
+                    if (seenDomains.has(hostname)) return false;
+                    seenDomains.add(hostname);
+                } catch {
+                    // Invalid URL, skip
+                    return false;
+                }
+
+                // Name Deduplication (Simple fuzzy check)
                 const cleanName = lowerTitle
                     .replace(/dispensary|cannabis|marijuana|recreational|medical|menu|store|shop/g, '')
                     .replace(/[^a-z0-9]/g, '');
-                
-                // If this clean name is a substring of an existing one (or vice versa), skip
-                // This is aggressive but needed for "Body and Mind" vs "Body and Mind Markham"
+
                 for (const existing of Array.from(seenNames)) {
                     if (existing.includes(cleanName) || cleanName.includes(existing)) {
                         return false;
@@ -87,41 +106,55 @@ export async function searchDemoRetailers(zip: string) {
 
                 return true;
             })
-            .slice(0, 8) // Take top 8 unique
+            .slice(0, 10) // Take top 10 unique direct dispensary sites
             .map((r: any, idx: number) => {
-             return {
-                name: r.title || `Dispensary ${idx + 1}`,
-                address: r.description || 'Address not listed',
-                city: coords?.city || '',
-                state: coords?.state || '',
-                distance: 0,
-                menuUrl: r.url,
-                skuCount: Math.floor(Math.random() * (500 - 150) + 150),
-                riskScore: 'Low' as 'Low' | 'Med' | 'High',
-                pricingStrategy: 'Standard',
-                isEnriched: false,
-                enrichmentSummary: '',
-                phone: '',
-                rating: null,
-                hours: null
-            };
-        });
-        
+                const url = r.url || '';
+                const isPlatform = isDispensaryPlatform(url);
+
+                // Clean up title - remove SEO cruft
+                let cleanTitle = (r.title || `Dispensary ${idx + 1}`)
+                    .replace(/\s*[-|–]\s*(Cannabis|Dispensary|Menu|Shop|Store|Weed|Marijuana).*$/i, '')
+                    .replace(/\s*\|\s*.*$/, '')
+                    .trim();
+
+                // Extract dispensary name from description if title is generic
+                if (cleanTitle.length < 5 || cleanTitle.toLowerCase().includes('dispensary in')) {
+                    const descMatch = (r.description || '').match(/^([A-Z][^.!?]+(?:Dispensary|Cannabis|Shop))/i);
+                    if (descMatch) cleanTitle = descMatch[1].trim();
+                }
+
+                return {
+                    name: cleanTitle,
+                    address: r.description || 'Address not listed',
+                    city: coords?.city || '',
+                    state: coords?.state || '',
+                    distance: 0,
+                    menuUrl: url,
+                    skuCount: Math.floor(Math.random() * (500 - 150) + 150),
+                    riskScore: 'Low' as 'Low' | 'Med' | 'High',
+                    pricingStrategy: 'Standard',
+                    isEnriched: false,
+                    enrichmentSummary: '',
+                    isPlatform, // Track if this is from a known platform
+                    phone: '',
+                    rating: null,
+                    hours: null
+                };
+            });
+
         if (mapped.length === 0) {
-            return { 
+            return {
                 success: true, // Still success structurally
-                daa: [], 
+                daa: [],
                 location: locationStr,
-                message: "No specific retailer websites found. (Filtered out directories)"
+                message: "No dispensary websites found. Try a different location or check back later."
             };
         }
-        
+
         // 3. ENRICHMENT: Pick Top Result
-        // We only deep-dive one to keep it fast
-        const topCompIndex = mapped.findIndex((m: any) => m.menuUrl && !m.menuUrl.includes('weedmaps') && !m.menuUrl.includes('leafly')); 
-        // Try to find a direct site, not a directory like Weedmaps/Leafly if possible
-        
-        const targetIndex = topCompIndex !== -1 ? topCompIndex : 0;
+        // Prefer direct dispensary sites over aggregator pages for enrichment
+        const directSiteIndex = mapped.findIndex((m: any) => m.menuUrl && !m.isPlatform);
+        const targetIndex = directSiteIndex !== -1 ? directSiteIndex : 0;
         
         if (targetIndex !== -1 && discovery.isConfigured()) {
             try {

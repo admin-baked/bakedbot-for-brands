@@ -71,8 +71,8 @@ export async function POST(request: NextRequest) {
 
     // Select model based on tier
     const model = tier === 'paid'
-      ? 'googleai/gemini-2.0-flash' // Will upgrade to Gemini 3 when available
-      : 'googleai/gemini-2.0-flash';
+      ? 'googleai/gemini-2.5-flash' // Upgraded to Gemini 2.5 Flash
+      : 'googleai/gemini-2.5-flash';
 
     // Generate all slides in one call for consistency
     const result = await ai.generate({

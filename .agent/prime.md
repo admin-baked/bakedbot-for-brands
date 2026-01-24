@@ -134,7 +134,25 @@ Full index in `refs/README.md`.
 
 ---
 
-## 🕵️ Agent Squad (Quick Reference)
+## 🧠 Intelligence & Model Stack (Q1 2026 Update)
+
+BakedBot AI utilizes the **Gemini 2.5** family for all core reasoning and creative tasks.
+
+| Tier | Model ID | Purpose |
+|------|----------|---------|
+| **Standard** | `gemini-2.5-flash` | "Nano Banana" - Fast extraction, scraping (Ezal Team), and basic image generation. |
+| **Advanced** | `gemini-2.5-flash` | High-throughput coordination and complex tool use. |
+| **Expert** | `gemini-2.5-pro` | Strategic analysis and executive reasoning. |
+| **Genius** | `gemini-2.5-pro` | Deep research, long-context evaluation, and "Max Thinking" mode. |
+
+**Model Rules:**
+1. **Scraping/Extraction**: Always use `gemini-2.5-flash` for high-volume data transformation.
+2. **Creative/Image**: Basic image generation (Nano Banana) uses `gemini-2.5-flash`.
+3. **Reasoning**: Use `gemini-2.5-pro` for tasks requiring multi-step logical chain-of-thought.
+
+---
+
+🕵️ Agent Squad (Quick Reference)
 
 **Executive Boardroom (Super Users Only):**
 - Leo (COO) — Operations, delegation
