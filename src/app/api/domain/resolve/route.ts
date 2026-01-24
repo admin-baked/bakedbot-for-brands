@@ -27,6 +27,11 @@ export async function GET(request: NextRequest) {
 
     const normalizedHostname = hostname.toLowerCase();
 
+    // Build a proper base URL using the original hostname, not internal server URL
+    // This prevents redirects to 0.0.0.0:8080 or other internal addresses in production
+    const protocol = request.headers.get('x-forwarded-proto') || 'https';
+    const publicBaseUrl = `${protocol}://${hostname}`;
+
     try {
         // Check cache first
         let tenantId = getCachedTenant(normalizedHostname);
@@ -52,9 +57,9 @@ export async function GET(request: NextRequest) {
         }
 
         if (!tenantId) {
-            // Domain not found - return 404 page
+            // Domain not found - redirect to main site's 404
             logger.info('[Domain] Custom domain not found', { hostname: normalizedHostname });
-            return NextResponse.redirect(new URL('/404', request.url));
+            return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
         }
 
         // Get tenant to determine if it's a brand or dispensary
@@ -63,7 +68,7 @@ export async function GET(request: NextRequest) {
 
         if (!tenantDoc.exists) {
             logger.warn('[Domain] Tenant not found for custom domain', { hostname: normalizedHostname, tenantId });
-            return NextResponse.redirect(new URL('/404', request.url));
+            return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
         }
 
         const tenant = tenantDoc.data();
@@ -84,11 +89,12 @@ export async function GET(request: NextRequest) {
             redirect: redirectPath,
         });
 
-        // Rewrite to the brand/dispensary page (not redirect, to keep URL)
-        const url = new URL(redirectPath, request.url);
+        // Rewrite to the brand/dispensary page (not redirect, to keep URL in browser)
+        // Use the public base URL to avoid internal server addresses
+        const url = new URL(redirectPath, publicBaseUrl);
         return NextResponse.rewrite(url);
     } catch (error) {
         logger.error('[Domain] Resolution error', { hostname: normalizedHostname, error });
-        return NextResponse.redirect(new URL('/404', request.url));
+        return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
     }
 }
