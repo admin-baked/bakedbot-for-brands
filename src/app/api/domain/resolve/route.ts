@@ -14,8 +14,12 @@ import type { DomainMapping } from '@/types/tenant';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-    const hostname = request.nextUrl.searchParams.get('hostname');
-    const originalPath = request.nextUrl.searchParams.get('originalPath') || '/';
+    // Try headers first (set by middleware rewrite), then fall back to query params
+    const hostname = request.headers.get('x-custom-domain-hostname')
+        || request.nextUrl.searchParams.get('hostname');
+    const originalPath = request.headers.get('x-custom-domain-path')
+        || request.nextUrl.searchParams.get('originalPath')
+        || '/';
 
     if (!hostname) {
         return NextResponse.json({ error: 'Missing hostname' }, { status: 400 });
