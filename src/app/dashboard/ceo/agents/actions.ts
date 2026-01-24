@@ -519,19 +519,72 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
         const dispatch = await dispatchAgentJob(payload);
 
         if (!dispatch.success) {
-            console.error('Dispatch failed:', dispatch.error);
-            // Mark as failed in DB
-            await db.collection('jobs').doc(jobId).update({
-                status: 'failed',
-                error: dispatch.error,
-                updatedAt: FieldValue.serverTimestamp()
-            });
+            logger.warn('[runAgentChat] Cloud Tasks dispatch failed, using synchronous fallback', { error: dispatch.error });
 
-            return {
-                content: `**Error**: Failed to start agent job. ${dispatch.error}`,
-                toolCalls: [],
-                metadata: { jobId: undefined }
-            };
+            // SYNCHRONOUS FALLBACK: Run agent directly when Cloud Tasks isn't available
+            try {
+                const { runAgentCore } = await import('@/server/agents/agent-runner');
+
+                // Construct mock user token for agent execution
+                const mockUserToken = {
+                    uid: user.uid,
+                    email: user.email || '',
+                    email_verified: true,
+                    role: (user as any).role || 'customer',
+                    brandId: user.brandId || undefined,
+                    auth_time: Date.now() / 1000,
+                    iat: Date.now() / 1000,
+                    exp: (Date.now() / 1000) + 3600,
+                    aud: 'bakedbot',
+                    iss: 'https://securetoken.google.com/bakedbot',
+                    sub: user.uid,
+                    firebase: { identities: {}, sign_in_provider: 'custom' }
+                };
+
+                // Run agent synchronously
+                const result = await runAgentCore(
+                    userMessage,
+                    payload.persona,
+                    payload.options,
+                    mockUserToken as any,
+                    jobId
+                );
+
+                // Update job as completed
+                await db.collection('jobs').doc(jobId).update({
+                    status: 'completed',
+                    result: JSON.parse(JSON.stringify(result)),
+                    completedAt: FieldValue.serverTimestamp(),
+                    updatedAt: FieldValue.serverTimestamp()
+                });
+
+                // Return immediate result (no polling needed)
+                return {
+                    content: result.content || '',
+                    toolCalls: result.toolCalls || [],
+                    metadata: {
+                        jobId,
+                        agentName: finalPersonaId || 'BakedBot',
+                        type: result.metadata?.type || 'session_context',
+                        brandId: user.brandId,
+                        data: result.metadata?.data
+                    }
+                };
+            } catch (syncError: any) {
+                logger.error('[runAgentChat] Synchronous fallback also failed', { error: syncError.message });
+                // Mark as failed in DB
+                await db.collection('jobs').doc(jobId).update({
+                    status: 'failed',
+                    error: syncError.message,
+                    updatedAt: FieldValue.serverTimestamp()
+                });
+
+                return {
+                    content: `**Error**: Agent execution failed. ${syncError.message}`,
+                    toolCalls: [],
+                    metadata: { jobId: undefined }
+                };
+            }
         }
 
         return {
