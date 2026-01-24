@@ -6,7 +6,11 @@ import { getCorsHeaders, CORS_PREFLIGHT_HEADERS, isOriginAllowed } from './lib/c
  * Middleware for route protection, authentication, CORS, CSRF, and custom domain routing.
  * This runs on the Edge runtime before the request reaches the page.
  *
- * Custom Domain Routing:
+ * Subdomain Routing (brand.bakedbot.ai):
+ * - Extracts subdomain from *.bakedbot.ai hostnames
+ * - Rewrites to /{subdomain} to serve brand storefront
+ *
+ * Custom Domain Routing (mybrand.com):
  * - Checks if hostname is a custom domain (not bakedbot.ai or localhost)
  * - Looks up tenant via API call to avoid Firestore in Edge runtime
  * - Rewrites request to /{tenantId} or /dispensaries/{tenantId}
@@ -20,7 +24,55 @@ export function middleware(request: NextRequest) {
     const hostname = request.headers.get('host') || '';
 
     // ============================
-    // CUSTOM DOMAIN ROUTING
+    // SUBDOMAIN ROUTING (*.bakedbot.ai)
+    // ============================
+    // Check for subdomains like ecstaticedibles.bakedbot.ai
+    const bakedBotDomains = ['bakedbot.ai', 'bakedbot.dev', 'localhost:9000'];
+    const isBakedBotDomain = bakedBotDomains.some(d => hostname.includes(d));
+
+    if (isBakedBotDomain) {
+        // Extract subdomain (e.g., "ecstaticedibles" from "ecstaticedibles.bakedbot.ai")
+        const hostParts = hostname.split('.');
+
+        // Check if this is a subdomain (not just "bakedbot.ai" or "www.bakedbot.ai")
+        // For localhost, check for subdomain.localhost:port pattern
+        const isLocalhost = hostname.includes('localhost');
+        const hasSubdomain = isLocalhost
+            ? hostParts[0] !== 'localhost' && hostParts.length > 1
+            : hostParts.length > 2 && hostParts[0] !== 'www';
+
+        if (hasSubdomain) {
+            const subdomain = hostParts[0].toLowerCase();
+
+            // Skip reserved subdomains
+            const reservedSubdomains = ['www', 'api', 'app', 'dashboard', 'admin', 'mail', 'cdn', 'static'];
+            if (!reservedSubdomains.includes(subdomain)) {
+                // For subdomain requests, resolve to the brand's storefront
+                // If hitting root, rewrite to /{subdomain}
+                if (pathname === '/') {
+                    const url = request.nextUrl.clone();
+                    url.pathname = `/${subdomain}`;
+                    return NextResponse.rewrite(url);
+                }
+
+                // For other paths, rewrite with subdomain prefix if not already prefixed
+                // This allows ecstaticedibles.bakedbot.ai/products to work
+                if (!pathname.startsWith(`/${subdomain}`)) {
+                    const url = request.nextUrl.clone();
+                    url.pathname = `/${subdomain}${pathname}`;
+                    return NextResponse.rewrite(url);
+                }
+
+                // Pass through with subdomain header for tracking
+                const response = NextResponse.next();
+                response.headers.set('x-subdomain', subdomain);
+                return response;
+            }
+        }
+    }
+
+    // ============================
+    // CUSTOM DOMAIN ROUTING (mybrand.com)
     // ============================
     // Check if this is a custom domain request (not bakedbot.ai or localhost)
     const isCustomDomain =
@@ -143,9 +195,7 @@ export function middleware(request: NextRequest) {
 // Configure which routes the middleware should run on
 export const config = {
     matcher: [
-        '/api/:path*',
-        '/dashboard/:path*',
-        '/account/:path*',
-        '/onboarding',
+        // Subdomain and custom domain routing - match all paths
+        '/((?!_next/static|_next/image|favicon.ico|.*\\.png$|.*\\.jpg$|.*\\.svg$).*)',
     ],
 };
