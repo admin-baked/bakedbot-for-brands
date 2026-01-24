@@ -11,7 +11,7 @@
  */
 
 import { createServerClient } from '@/firebase/server-client';
-import { FieldValue } from '@google-cloud/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
 import type {
     CustomDomainConfig,
@@ -137,10 +137,17 @@ export async function addCustomDomain(
             config: responseConfig,
         };
     } catch (error) {
-        logger.error('[Domain] Failed to add custom domain', { tenantId, domain, error });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        logger.error('[Domain] Failed to add custom domain', {
+            tenantId,
+            domain,
+            error: errorMessage,
+            stack: errorStack,
+        });
         return {
             success: false,
-            error: 'Failed to add domain. Please try again.',
+            error: `Failed to add domain: ${errorMessage}`,
         };
     }
 }
