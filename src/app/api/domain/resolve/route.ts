@@ -14,15 +14,31 @@ import type { DomainMapping } from '@/types/tenant';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-    // Try headers first (set by middleware rewrite), then fall back to query params
-    const hostname = request.headers.get('x-custom-domain-hostname')
+    // Parse URL to get query params - try multiple methods for reliability
+    const url = new URL(request.url);
+    const hostname = url.searchParams.get('hostname')
         || request.nextUrl.searchParams.get('hostname');
-    const originalPath = request.headers.get('x-custom-domain-path')
+    const originalPath = url.searchParams.get('originalPath')
         || request.nextUrl.searchParams.get('originalPath')
         || '/';
 
+    // Debug logging for troubleshooting
+    logger.info('[Domain] Resolve request', {
+        requestUrl: request.url,
+        hostname,
+        originalPath,
+        method: request.method,
+    });
+
     if (!hostname) {
-        return NextResponse.json({ error: 'Missing hostname' }, { status: 400 });
+        // Return more helpful error for debugging
+        return NextResponse.json({
+            error: 'Missing hostname',
+            debug: {
+                url: request.url,
+                searchParams: Object.fromEntries(url.searchParams),
+            }
+        }, { status: 400 });
     }
 
     const normalizedHostname = hostname.toLowerCase();
@@ -90,10 +106,11 @@ export async function GET(request: NextRequest) {
         });
 
         // Rewrite to the brand/dispensary page (not redirect, to keep URL in browser)
-        // Use request.nextUrl for internal rewrites - this is the correct Next.js pattern
-        const url = request.nextUrl.clone();
-        url.pathname = redirectPath;
-        return NextResponse.rewrite(url);
+        // Use request.nextUrl for internal rewrites - clear search params to avoid passing them
+        const rewriteUrl = request.nextUrl.clone();
+        rewriteUrl.pathname = redirectPath;
+        rewriteUrl.search = ''; // Clear search params used for domain resolution
+        return NextResponse.rewrite(rewriteUrl);
     } catch (error) {
         logger.error('[Domain] Resolution error', { hostname: normalizedHostname, error });
         return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
