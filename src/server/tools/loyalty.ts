@@ -1,9 +1,9 @@
-import { getLoyaltyProfile } from '@/server/services/alpine-iq';
+import { alpineClient } from '@/server/integrations/alpine-iq/client';
 import { blackleafService } from '@/lib/notifications/blackleaf-service';
 
 export const LoyaltyTools = {
     checkPoints: async (phone: string) => {
-        const profile = await getLoyaltyProfile(phone);
+        const profile = await alpineClient.getLoyaltyProfile(phone);
         if (!profile) throw new Error('Customer not found');
         return {
             points: profile.points,
