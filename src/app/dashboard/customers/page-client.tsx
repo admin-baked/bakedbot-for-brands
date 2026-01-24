@@ -9,11 +9,18 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Users, UserPlus, AlertTriangle, Crown, Search,
-    Download, Loader2, TrendingUp, Filter, Sparkles
+    Download, Upload, Loader2, TrendingUp, Filter, Sparkles
 } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { CustomerProfile, CustomerSegment, CRMStats, getSegmentInfo, SegmentSuggestion } from '@/types/customers';
 import { getCustomers, getSuggestedSegments, type CustomersData } from './actions';
+import { CustomerImport } from '@/components/crm/customer-import';
 
 interface CRMDashboardProps {
     initialData?: CustomersData;
@@ -27,6 +34,7 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
     const [search, setSearch] = useState('');
     const [activeSegment, setActiveSegment] = useState<CustomerSegment | 'all'>('all');
     const [suggestions, setSuggestions] = useState<SegmentSuggestion[]>([]);
+    const [showImportDialog, setShowImportDialog] = useState(false);
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -118,6 +126,10 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setShowImportDialog(true)}>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import
+                    </Button>
                     <Button variant="outline" onClick={loadData} disabled={loading}>
                         <Loader2 className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                         Refresh
@@ -289,6 +301,22 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                     </Tabs>
                 </CardContent>
             </Card>
+
+            {/* Import Dialog */}
+            <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Import Customers</DialogTitle>
+                    </DialogHeader>
+                    <CustomerImport
+                        orgId={brandId}
+                        onImportComplete={() => {
+                            setShowImportDialog(false);
+                            loadData();
+                        }}
+                    />
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
