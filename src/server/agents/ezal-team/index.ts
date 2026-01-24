@@ -22,6 +22,15 @@ export {
   createDefaultPriceComparator,
 } from './analyzer-agent';
 
+// URL filtering utilities
+export {
+  filterUrl,
+  filterUrls,
+  extractDisplayDomain,
+  isDispensaryPlatform,
+} from './url-filter';
+export type { UrlFilterResult, UrlFilterOptions, FilteredUrlResult } from './url-filter';
+
 // Orchestrator (main entry point)
 export {
   runEzalPipeline,

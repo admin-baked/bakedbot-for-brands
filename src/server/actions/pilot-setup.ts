@@ -1549,6 +1549,14 @@ export interface FullPilotSetupOptions {
         url?: string;  // Import from URL
         useSampleProducts?: boolean;  // Use sample Thrive products
     };
+    /** Enable Competitive Intelligence Playbook (auto-creates "their own Ezal") */
+    enableCompetitiveIntel?: boolean;
+    /** Competitive Intel configuration */
+    competitiveIntel?: {
+        scheduleFrequency?: 'daily' | 'weekly' | 'monthly';
+        maxUrls?: number;
+        watchlistUrls?: string[];  // Specific competitor URLs to always track
+    };
 }
 
 export interface FullPilotSetupResult {
@@ -1560,6 +1568,7 @@ export interface FullPilotSetupResult {
         welcome?: string;
         winback?: string;
         vip?: string;
+        competitive_intel?: string;  // "Their own Ezal"
     };
     pos?: { configured: boolean };
     errors: string[];
@@ -1668,6 +1677,33 @@ export async function setupFullPilot(options: FullPilotSetupOptions): Promise<Fu
             }
         }
 
+        // 7. Create Competitive Intelligence Playbook ("Their own Ezal")
+        // Auto-enabled by default for all new signups
+        if (options.enableCompetitiveIntel !== false) {
+            if (!result.playbooks) result.playbooks = {};
+
+            const ciConfig: CompetitiveIntelPlaybookConfig = {
+                brandName: options.pilot.type === 'brand'
+                    ? options.pilot.brandName
+                    : options.pilot.dispensaryName,
+                brandType: options.pilot.type,
+                city: options.pilot.type === 'dispensary' ? options.pilot.city : undefined,
+                state: options.pilot.type === 'dispensary' ? options.pilot.state : undefined,
+                scheduleFrequency: options.competitiveIntel?.scheduleFrequency || 'weekly',
+                maxUrls: options.competitiveIntel?.maxUrls || 10,
+                watchlistUrls: options.competitiveIntel?.watchlistUrls,
+                reportEmail: options.pilot.email,
+            };
+
+            const ciResult = await createCompetitiveIntelPlaybook(orgId, brandId, ciConfig);
+            if (ciResult.success) {
+                result.playbooks.competitive_intel = ciResult.playbookId;
+                logger.info(`[PILOT] Created "their own Ezal" for ${ciConfig.brandName}`);
+            } else {
+                result.errors.push(`Competitive Intel playbook: ${ciResult.error}`);
+            }
+        }
+
         result.success = result.errors.length === 0;
         logger.info('[PILOT] Full pilot setup complete', {
             success: result.success,
@@ -1679,5 +1715,257 @@ export async function setupFullPilot(options: FullPilotSetupOptions): Promise<Fu
         logger.error('[PILOT] Full pilot setup failed', { error });
         result.errors.push(error instanceof Error ? error.message : String(error));
         return result;
+    }
+}
+
+// ============================================================================
+// COMPETITIVE INTELLIGENCE PLAYBOOK (AUTO-CREATED ON SIGNUP)
+// ============================================================================
+
+/**
+ * Configuration for Competitive Intelligence Playbook
+ */
+export interface CompetitiveIntelPlaybookConfig {
+    /** City for local competitor search (dispensaries) */
+    city?: string;
+    /** State for regional search */
+    state?: string;
+    /** Brand/dispensary name for the report */
+    brandName: string;
+    /** Brand type for tailoring search queries */
+    brandType: 'brand' | 'dispensary';
+    /** How often to run the scan */
+    scheduleFrequency: 'daily' | 'weekly' | 'monthly';
+    /** Max competitor URLs to scan per run */
+    maxUrls?: number;
+    /** Email to send reports to */
+    reportEmail?: string;
+    /** Additional competitor URLs to always include */
+    watchlistUrls?: string[];
+}
+
+/**
+ * Create Competitive Intelligence Playbook for a brand/dispensary
+ *
+ * This gives each customer "their own Ezal" - automated competitive intel
+ * that runs on a schedule and delivers actionable insights.
+ *
+ * @example
+ * ```typescript
+ * await createCompetitiveIntelPlaybook(orgId, brandId, {
+ *   brandName: 'Thrive Syracuse',
+ *   brandType: 'dispensary',
+ *   city: 'Syracuse',
+ *   state: 'NY',
+ *   scheduleFrequency: 'weekly',
+ * });
+ * ```
+ */
+export async function createCompetitiveIntelPlaybook(
+    orgId: string,
+    brandId: string,
+    config: CompetitiveIntelPlaybookConfig
+): Promise<{ success: boolean; playbookId?: string; error?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+
+        const playbookId = `playbook_${brandId.replace('brand_', '').replace('dispensary_', '')}_competitive_intel`;
+
+        // Build search query based on brand type
+        const searchQuery = config.brandType === 'dispensary'
+            ? `${config.city || ''} ${config.state || ''} cannabis dispensary menu prices`.trim()
+            : `${config.brandName} cannabis brand competitors ${config.state || ''}`.trim();
+
+        // Schedule based on frequency
+        const cronSchedule = {
+            daily: '0 8 * * *',      // Every day at 8 AM
+            weekly: '0 8 * * 1',      // Every Monday at 8 AM
+            monthly: '0 8 1 * *',     // 1st of each month at 8 AM
+        }[config.scheduleFrequency];
+
+        const competitiveIntelPlaybook: Partial<Playbook> = {
+            id: playbookId,
+            name: 'Competitive Intelligence Report',
+            description: `Automated competitor monitoring powered by Ezal. Your personal competitive intelligence agent tracks local competitors, monitors pricing, and delivers actionable insights.`,
+            status: 'active',
+            agent: 'ezal',
+            category: 'intelligence',
+            icon: 'Eye',
+            yaml: `name: Competitive Intelligence Report
+description: Automated competitor monitoring powered by Ezal
+
+triggers:
+  - type: schedule
+    cron: "${cronSchedule}"
+    timezone: America/New_York
+  - type: event
+    eventName: manual.competitive.scan
+
+config:
+  brandName: "${config.brandName}"
+  brandType: "${config.brandType}"
+  searchQuery: "${searchQuery}"
+  maxUrls: ${config.maxUrls || 10}
+  ${config.watchlistUrls?.length ? `watchlistUrls:\n${config.watchlistUrls.map(u => `    - ${u}`).join('\n')}` : ''}
+
+steps:
+  - action: ezal_pipeline
+    agent: ezal
+    task: Run competitive intelligence scan
+    params:
+      query: "${searchQuery}"
+      maxUrls: ${config.maxUrls || 10}
+      ${config.watchlistUrls?.length ? `manualUrls: ${JSON.stringify(config.watchlistUrls)}` : ''}
+
+  - action: analyze
+    agent: ezal
+    task: Generate competitive intelligence report
+    params:
+      compareWithOwnPrices: true
+      includeMarketTrends: true
+      highlightOpportunities: true
+
+  ${config.reportEmail ? `- action: send_email
+    provider: mailjet
+    to: "${config.reportEmail}"
+    subject: "Weekly Competitive Intel: ${config.brandName}"
+    template: competitive_intel_report` : ''}
+
+  - action: save_to_dashboard
+    task: Store report for dashboard viewing
+    params:
+      collection: competitive_intel_reports
+      retention_days: 90
+`,
+            triggers: [
+                {
+                    type: 'schedule',
+                    cron: cronSchedule,
+                    timezone: 'America/New_York',
+                    enabled: true,
+                } as PlaybookTrigger,
+                {
+                    type: 'event',
+                    eventName: 'manual.competitive.scan',
+                    enabled: true,
+                } as PlaybookTrigger,
+            ],
+            steps: [
+                {
+                    action: 'ezal_pipeline',
+                    params: {
+                        query: searchQuery,
+                        maxUrls: config.maxUrls || 10,
+                        manualUrls: config.watchlistUrls || [],
+                    },
+                    label: 'Run Ezal competitive scan',
+                } as PlaybookStep,
+                {
+                    action: 'analyze',
+                    params: {
+                        agent: 'ezal',
+                        compareWithOwnPrices: true,
+                        includeMarketTrends: true,
+                    },
+                    label: 'Generate insights report',
+                } as PlaybookStep,
+                {
+                    action: 'save_to_dashboard',
+                    params: {
+                        collection: 'competitive_intel_reports',
+                        retentionDays: 90,
+                    },
+                    label: 'Save report to dashboard',
+                } as PlaybookStep,
+            ],
+            isCustom: false,
+            templateId: 'competitive_intel_template',
+            requiresApproval: false,
+            runCount: 0,
+            successCount: 0,
+            failureCount: 0,
+            version: 1,
+            ownerId: 'system',
+            orgId: orgId,
+            createdBy: 'pilot_setup',
+            metadata: {
+                brandName: config.brandName,
+                brandType: config.brandType,
+                city: config.city,
+                state: config.state,
+                searchQuery: searchQuery,
+            },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        };
+
+        await firestore.collection('playbooks').doc(playbookId).set(competitiveIntelPlaybook, { merge: true });
+
+        logger.info(`[PILOT] Created Competitive Intelligence playbook: ${playbookId}`, {
+            brandName: config.brandName,
+            schedule: config.scheduleFrequency,
+        });
+
+        return { success: true, playbookId };
+    } catch (error) {
+        logger.error('[PILOT] Failed to create Competitive Intelligence playbook', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+        };
+    }
+}
+
+/**
+ * Run a one-time competitive intelligence scan (manual trigger)
+ */
+export async function runCompetitiveIntelScan(
+    orgId: string,
+    brandId: string,
+    options?: {
+        query?: string;
+        manualUrls?: string[];
+        maxUrls?: number;
+    }
+): Promise<{
+    success: boolean;
+    requestId?: string;
+    urlsFound?: number;
+    productsScraped?: number;
+    insightsGenerated?: number;
+    error?: string;
+}> {
+    try {
+        // Dynamic import to avoid circular deps
+        const { runEzalPipeline } = await import('@/server/agents/ezal-team');
+
+        const result = await runEzalPipeline({
+            tenantId: brandId,
+            query: options?.query || `cannabis dispensary competitor pricing`,
+            manualUrls: options?.manualUrls,
+            maxUrls: options?.maxUrls || 10,
+        });
+
+        if (result.errors.length > 0) {
+            logger.warn('[CI_SCAN] Pipeline completed with errors', {
+                requestId: result.requestId,
+                errors: result.errors,
+            });
+        }
+
+        return {
+            success: result.stage === 'complete',
+            requestId: result.requestId,
+            urlsFound: result.finderResult?.urls.length || 0,
+            productsScraped: result.scraperResult?.totalProducts || 0,
+            insightsGenerated: result.analyzerResult?.insights.length || 0,
+            error: result.errors.length > 0 ? result.errors.join('; ') : undefined,
+        };
+    } catch (error) {
+        logger.error('[CI_SCAN] Manual scan failed', { error, orgId, brandId });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+        };
     }
 }

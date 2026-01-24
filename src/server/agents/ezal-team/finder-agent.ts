@@ -14,6 +14,7 @@ import {
   EzalPipelineState,
 } from './types';
 import { z } from 'zod';
+import { filterUrls, extractDisplayDomain } from './url-filter';
 
 // ============================================================================
 // FINDER AGENT SYSTEM INSTRUCTIONS
@@ -22,28 +23,34 @@ import { z } from 'zod';
 const FINDER_SYSTEM_INSTRUCTIONS = `
 You are the FINDER - the first step in the Ezal Competitive Intelligence pipeline.
 
-YOUR MISSION: Discover competitor URLs and data sources for a given market/query.
+YOUR MISSION: Discover REAL DISPENSARY MENU URLs for competitive intelligence.
 
-STRATEGY:
-1. Start with Exa semantic search (best for finding dispensary/cannabis menus)
-2. Use Perplexity for real-time market data if available
-3. Fall back to web search for broader coverage
-4. Validate all URLs before returning
+=== CRITICAL: ONLY RETURN DISPENSARY MENUS ===
+We need ACTUAL DISPENSARY WEBSITES with live product menus and pricing.
+DO NOT return:
+- Reddit threads or forum posts
+- News articles or blog posts
+- Generic chain landing pages (e.g., medmen.com instead of medmen.com/stores/los-angeles)
+- Social media pages
+- Yelp reviews or Google Maps
+- Any URL without actual product/pricing data
 
-TARGET URLS:
-- Dispensary menus with live pricing (Dutchie, iHeartJane, custom)
-- Competitor website product pages
-- Online menu aggregators (Weedmaps, Leafly)
+=== VALID URL PATTERNS ===
+✅ Dutchie stores: dutchie.com/stores/[store-name]
+✅ iHeartJane stores: [store-name].iheartjane.com/menu
+✅ Weedmaps dispensaries: weedmaps.com/dispensaries/[name]
+✅ Individual dispensary websites with /menu or /shop pages
+✅ Leafly dispensary pages: leafly.com/dispensary-info/[name]
 
-OUTPUT:
-Return a ranked list of URLs with relevance scores.
-Focus on ACTIVE menus with pricing data, not news articles.
+=== SEARCH STRATEGY ===
+1. Search for "[city] cannabis dispensary menu" or "[city] dispensary online ordering"
+2. Focus on dispensary names + "menu" or "order online"
+3. Look for specific store URLs, not chain homepages
+4. Prioritize URLs from known platforms (Dutchie, iHeartJane, Weedmaps)
 
-RULES:
-- Max 10 URLs per search to keep scraping manageable
-- Validate URLs are accessible before including
-- Prioritize URLs with visible product/pricing data
-- Skip URLs that are clearly not menus (news, blogs, etc.)
+=== OUTPUT ===
+Return 5-10 high-quality dispensary menu URLs.
+Quality over quantity - 5 real menus beats 10 mixed results.
 `;
 
 // ============================================================================
@@ -189,9 +196,40 @@ Return up to 10 relevant URLs.`,
     }
   }
 
-  // Validate and filter URLs (limit to 10)
+  // =========================================================================
+  // FILTER URLs - Remove non-dispensary sites (blogs, Reddit, news, etc.)
+  // =========================================================================
+  const rawUrls = urls.map(u => u.url);
+  const filterResult = filterUrls(rawUrls, {
+    allowChainPages: false,
+    minConfidence: 0.4,
+  });
+
+  if (filterResult.blocked.length > 0) {
+    logger.info(
+      `[Ezal:Finder] Blocked ${filterResult.blocked.length} non-dispensary URLs: ` +
+      filterResult.blocked.slice(0, 5).map(b => extractDisplayDomain(b.url)).join(', ') +
+      (filterResult.blocked.length > 5 ? '...' : '')
+    );
+  }
+
+  // Map filtered URLs back to DiscoveredUrl objects with updated confidence
+  const filteredUrls: DiscoveredUrl[] = filterResult.allowed.map(filtered => {
+    const original = urls.find(u => u.url === filtered.url);
+    return {
+      url: filtered.normalizedUrl,
+      title: original?.title,
+      // Use the higher of original relevance or filter confidence
+      relevanceScore: Math.max(original?.relevanceScore || 0, filtered.confidence),
+      source: original?.source || 'manual',
+    };
+  });
+
+  // =========================================================================
+  // VALIDATE URLs - Check accessibility (limit to 10)
+  // =========================================================================
   const validatedUrls: DiscoveredUrl[] = [];
-  for (const urlEntry of urls.slice(0, 15)) {
+  for (const urlEntry of filteredUrls.slice(0, 15)) {
     try {
       const validation = await tools.validateUrl(urlEntry.url);
       if (validation.valid) {
@@ -211,7 +249,7 @@ Return up to 10 relevant URLs.`,
 
   return {
     urls: validatedUrls,
-    searchQueries: [...new Set(searchQueries)],
+    searchQueries: Array.from(new Set(searchQueries)),
     totalFound: urls.length,
     durationMs,
   };
