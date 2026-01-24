@@ -9,11 +9,11 @@ export function BrandChatWidget() {
     const { user, isUserLoading } = useUser();
 
     const BRAND_PROMPTS = [
-        "Where are we losing velocity and why?",
-        "Which retailers are underpricing us?",
-        "Draft a compliant launch campaign for Gummies",
-        "Find 20 new dispensaries that match our buyers",
-        "Summarize this week: wins, risks, next actions"
+        "Find dispensaries to carry my products",
+        "See where my brand appears online",
+        "Draft a campaign in 30 seconds",
+        "Spy on competitor pricing",
+        "See this week's wins & opportunities"
     ];
 
     // Show loading state while checking auth

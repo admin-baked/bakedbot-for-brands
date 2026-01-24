@@ -12,6 +12,8 @@ import {
     BRAND_CHAT_CONFIG,
     DISPENSARY_CHAT_CONFIG,
     OWNER_CHAT_CONFIG,
+    SUPER_ADMIN_CHAT_CONFIG,
+    CONCIERGE_CHAT_CONFIG,
     type UserRoleForChat,
     type RoleChatConfig
 } from '@/lib/chat/role-chat-config';
@@ -61,19 +63,37 @@ describe('Role Chat Configuration', () => {
             // Admin uses owner config as base
             expect(config.enabledFeatures.modelSelector).toBe(true);
         });
+
+        it('should return super_admin config for super_admin role', () => {
+            const config = getChatConfigForRole('super_admin');
+
+            expect(config.role).toBe('super_admin');
+            expect(config.title).toBe('Super Admin HQ');
+            expect(config.agentPersona).toBe('puff');
+        });
+
+        it('should return concierge config for concierge role', () => {
+            const config = getChatConfigForRole('concierge');
+
+            expect(config.role).toBe('concierge');
+            expect(config.title).toBe('BakedBot Concierge');
+            expect(config.agentPersona).toBe('smokey');
+        });
     });
 
     describe('getAllChatConfigs', () => {
         it('should return configs for all roles', () => {
             const configs = getAllChatConfigs();
 
-            expect(Object.keys(configs)).toHaveLength(6);
+            expect(Object.keys(configs)).toHaveLength(8);
             expect(configs.owner).toBeDefined();
             expect(configs.admin).toBeDefined();
             expect(configs.brand).toBeDefined();
             expect(configs.dispensary).toBeDefined();
             expect(configs.editor).toBeDefined();
             expect(configs.customer).toBeDefined();
+            expect(configs.super_admin).toBeDefined();
+            expect(configs.concierge).toBeDefined();
         });
     });
 
@@ -134,7 +154,9 @@ describe('Role Chat Configuration', () => {
             CUSTOMER_CHAT_CONFIG,
             BRAND_CHAT_CONFIG,
             DISPENSARY_CHAT_CONFIG,
-            OWNER_CHAT_CONFIG
+            OWNER_CHAT_CONFIG,
+            SUPER_ADMIN_CHAT_CONFIG,
+            CONCIERGE_CHAT_CONFIG
         ];
 
         it('all configs should have required fields', () => {
@@ -153,7 +175,7 @@ describe('Role Chat Configuration', () => {
         });
 
         it('all configs should have valid agent personas', () => {
-            const validPersonas = ['smokey', 'craig', 'deebo', 'mrs_parker', 'pops', 'money_mike'];
+            const validPersonas = ['smokey', 'craig', 'deebo', 'mrs_parker', 'pops', 'money_mike', 'puff'];
 
             allConfigs.forEach(config => {
                 expect(validPersonas).toContain(config.agentPersona);

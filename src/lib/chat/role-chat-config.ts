@@ -94,14 +94,14 @@ export const BRAND_CHAT_CONFIG: RoleChatConfig = {
     title: 'Brand Growth Assistant',
     subtitle: 'AI-powered insights for your brand',
     welcomeMessage: "Welcome! I'm here to help grow your brand presence. What would you like to explore?",
-    placeholder: 'Ask about analytics, campaigns, or competitive insights...',
+    placeholder: 'Ask about distribution, campaigns, or competitive insights...',
     promptSuggestions: [
-        'How is my brand performing this week?',
-        'Show me my top-performing products',
-        'What are my competitors pricing?',
-        'Help me create a marketing campaign',
-        'Analyze my customer segments',
-        'Optimize my brand page SEO'
+        'Find dispensaries to carry my products',
+        'See where my brand appears online',
+        'Draft a campaign in 30 seconds',
+        'Spy on competitor pricing',
+        'See this week\'s wins & opportunities',
+        'Get my SEO visibility report'
     ],
     agentPersona: 'craig', // Craig handles business insights
     themeColor: 'blue',
@@ -123,14 +123,14 @@ export const DISPENSARY_CHAT_CONFIG: RoleChatConfig = {
     title: 'Dispensary Operations',
     subtitle: 'AI assistant for your dispensary',
     welcomeMessage: "Hey! Ready to help with your dispensary operations. What do you need?",
-    placeholder: 'Ask about inventory, pricing, local marketing...',
+    placeholder: 'Ask about pricing, competitors, or marketing...',
     promptSuggestions: [
-        'Check my inventory levels',
-        'Compare my prices to competitors',
-        'Create a promotion for this weekend',
-        'Help me set up a deal',
-        'Analyze my customer traffic',
-        'Optimize my Google Business listing'
+        'Spy on competitor pricing near me',
+        'Scan my site for compliance risks',
+        'Draft a campaign in 30 seconds',
+        'Find slow movers I can bundle',
+        'Show me today\'s opportunities',
+        'Get my SEO visibility score'
     ],
     agentPersona: 'money_mike', // Money Mike handles pricing/operations
     themeColor: 'orange',

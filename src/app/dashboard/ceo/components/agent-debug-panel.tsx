@@ -191,7 +191,7 @@ function ToolCallItem({ toolCall }: { toolCall: ToolCall }) {
                             </pre>
                         </div>
                     )}
-                    {toolCall.output && (
+                    {toolCall.output !== undefined && toolCall.output !== null && (
                         <div>
                             <span className="text-muted-foreground">Output:</span>
                             <pre className="bg-muted p-2 rounded mt-1 overflow-x-auto max-h-32">

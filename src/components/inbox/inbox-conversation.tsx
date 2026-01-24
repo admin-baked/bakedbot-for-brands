@@ -54,11 +54,15 @@ const AGENT_NAMES: Record<InboxAgentPersona, { name: string; avatar: string }> =
     deebo: { name: 'Deebo', avatar: '🛡️' },
     pops: { name: 'Pops', avatar: '📊' },
     day_day: { name: 'Day Day', avatar: '📦' },
+    mrs_parker: { name: 'Mrs. Parker', avatar: '💜' },
+    big_worm: { name: 'Big Worm', avatar: '🐛' },
+    roach: { name: 'Roach', avatar: '📚' },
     // Executive Agents
     leo: { name: 'Leo', avatar: '⚙️' },
     jack: { name: 'Jack', avatar: '📈' },
     linus: { name: 'Linus', avatar: '🖥️' },
     glenda: { name: 'Glenda', avatar: '✨' },
+    mike: { name: 'Mike', avatar: '💵' },
     // Auto-routing
     auto: { name: 'Assistant', avatar: '🤖' },
 };

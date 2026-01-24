@@ -6,11 +6,11 @@ import { Sparkles } from 'lucide-react';
 
 export function DispensaryChatWidget() {
     const DISPENSARY_PROMPTS = [
-        "What’s hurting conversion today?",
-        "Any inventory risks in the next 72 hours?",
-        "Draft a compliant promo for slow-moving SKUs",
-        "Show competitor price gaps (top 10 items)",
-        "Summarize today’s issues + recommended actions"
+        "Spy on competitor pricing near me",
+        "Scan my site for compliance risks",
+        "Draft a campaign in 30 seconds",
+        "Find slow movers I can bundle",
+        "Show me today's opportunities"
     ];
 
     return (
