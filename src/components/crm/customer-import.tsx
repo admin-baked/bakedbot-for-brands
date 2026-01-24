@@ -64,8 +64,10 @@ interface CustomerImportProps {
 }
 
 // Available fields for manual mapping
+// Note: '__skip__' is used instead of empty string because Radix Select doesn't allow empty values
+const SKIP_VALUE = '__skip__';
 const MAPPABLE_FIELDS = [
-    { value: '', label: '-- Skip this column --' },
+    { value: SKIP_VALUE, label: '-- Skip this column --' },
     { value: 'email', label: 'Email (Required)' },
     { value: 'firstName', label: 'First Name' },
     { value: 'lastName', label: 'Last Name' },
@@ -434,8 +436,8 @@ export function CustomerImport({ orgId, onImportComplete }: CustomerImportProps)
                                             <ArrowRight className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                                         </div>
                                         <Select
-                                            value={manualMapping[item.original] ?? item.mapped ?? ''}
-                                            onValueChange={(value) => handleMappingChange(item.original, value)}
+                                            value={manualMapping[item.original] ?? item.mapped ?? SKIP_VALUE}
+                                            onValueChange={(value) => handleMappingChange(item.original, value === SKIP_VALUE ? '' : value)}
                                         >
                                             <SelectTrigger className="h-8 text-xs">
                                                 <SelectValue placeholder="Select field..." />
