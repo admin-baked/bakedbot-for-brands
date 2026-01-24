@@ -47,9 +47,9 @@ const BLOCKED_DOMAINS = new Set([
     'huffpost.com',
 
     // Cannabis News (not dispensaries)
+    // Note: leafly.com and weedmaps.com are ALLOWED because they host dispensary menus
+    // Their /news/ paths are blocked by BLOCKED_PATH_PATTERNS instead
     'hightimes.com',
-    'leafly.com/news',
-    'weedmaps.com/news',
     'cannabisnow.com',
     'ganjapreneur.com',
     'mjbizdaily.com',
