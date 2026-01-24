@@ -74,12 +74,15 @@ export function middleware(request: NextRequest) {
     // ============================
     // CUSTOM DOMAIN ROUTING (mybrand.com)
     // ============================
-    // Check if this is a custom domain request (not bakedbot.ai or localhost)
+    // Check if this is a custom domain request (not bakedbot.ai, localhost, or hosting domains)
     const isCustomDomain =
         !hostname.includes('bakedbot.ai') &&
         !hostname.includes('localhost') &&
         !hostname.includes('127.0.0.1') &&
         !hostname.includes('firebaseapp.com') &&
+        !hostname.includes('hosted.app') &&
+        !hostname.includes('web.app') &&
+        !hostname.includes('appspot.com') &&
         hostname.includes('.'); // Has a dot = is a domain
 
     if (isCustomDomain && pathname === '/') {
