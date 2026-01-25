@@ -108,12 +108,14 @@ export async function GET(request: NextRequest) {
             redirect: redirectPath,
         });
 
-        // Rewrite to the brand/dispensary page (not redirect, to keep URL in browser)
-        // Use request.nextUrl for internal rewrites - clear search params to avoid passing them
-        const rewriteUrl = request.nextUrl.clone();
-        rewriteUrl.pathname = redirectPath;
-        rewriteUrl.search = ''; // Clear search params used for domain resolution
-        return NextResponse.rewrite(rewriteUrl);
+        // Return JSON with resolved path - middleware will handle the actual rewrite
+        // We can't chain rewrites (middleware rewrite -> API rewrite), so return data instead
+        return NextResponse.json({
+            success: true,
+            tenantId,
+            type: tenantType,
+            path: redirectPath,
+        });
     } catch (error) {
         logger.error('[Domain] Resolution error', { hostname: normalizedHostname, error });
         return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
