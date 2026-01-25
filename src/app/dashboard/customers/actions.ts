@@ -391,7 +391,7 @@ export async function addCustomerNote(customerId: string, note: string): Promise
 
 /**
  * Get AI-suggested customer segments
- * References Craig (campaign manager) and Felicia (email specialist) agents
+ * References Craig (campaign manager) and Mrs. Parker (email specialist) agents
  */
 export async function getSuggestedSegments(brandId: string): Promise<SegmentSuggestion[]> {
     const data = await getCustomers(brandId);
@@ -405,7 +405,7 @@ export async function getSuggestedSegments(brandId: string): Promise<SegmentSugg
             description: 'Fresh signups ready for your welcome sequence',
             filters: [{ field: 'segment', operator: 'equals', value: 'new' }],
             estimatedCount: stats.newThisMonth,
-            reasoning: `Craig has automatically added these ${stats.newThisMonth} customers to your new customer welcome list. Felicia will now send personalized, segmented emails. Good stuff.`
+            reasoning: `Craig has automatically added these ${stats.newThisMonth} customers to your new customer welcome list. Mrs. Parker will now send personalized, segmented emails. Good stuff.`
         });
     }
 
@@ -415,7 +415,7 @@ export async function getSuggestedSegments(brandId: string): Promise<SegmentSugg
             description: 'Customers who haven\'t ordered recently',
             filters: [{ field: 'segment', operator: 'in', value: ['at_risk', 'slipping'] }],
             estimatedCount: stats.atRiskCount,
-            reasoning: `Craig spotted ${stats.atRiskCount} customers slipping away. Felicia can send them a re-engagement sequence with a special offer.`
+            reasoning: `Craig spotted ${stats.atRiskCount} customers slipping away. Mrs. Parker can send them a re-engagement sequence with a special offer.`
         });
     }
 
