@@ -3,4 +3,8 @@ uvicorn
 notebooklm-mcp
 mcp
 pydantic
+fastmcp
+httpx
+firebase-admin
+python-dotenv
 

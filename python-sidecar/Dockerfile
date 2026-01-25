@@ -1,7 +1,14 @@
-# Use official Playwright image to ensure browsers are installed
-FROM mcr.microsoft.com/playwright/python:v1.40.0-jammy
+# Use Python slim - Chrome/Selenium is optional (notebooklm-mcp handles webdriver-manager)
+FROM python:3.11-slim
 
 WORKDIR /app
+
+# Install minimal system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for cache
 COPY requirements.txt .
