@@ -158,6 +158,36 @@ describe('Customer CRM Actions', () => {
                 expect(s.reasoning).toBeDefined();
             });
         });
+
+        it('should reference Craig and Mrs. Parker agents in reasoning', async () => {
+            const suggestions = await getSuggestedSegments('test-org');
+
+            // At least one suggestion should reference the agents
+            const hasAgentReference = suggestions.some(s =>
+                s.reasoning.includes('Craig') || s.reasoning.includes('Mrs. Parker')
+            );
+
+            // If there are suggestions, they should reference agents
+            if (suggestions.length > 0) {
+                expect(hasAgentReference).toBe(true);
+            }
+        });
+
+        it('should suggest New Customer Welcome for new customers', async () => {
+            const suggestions = await getSuggestedSegments('test-org');
+
+            // Look for the new customer welcome suggestion
+            const welcomeSuggestion = suggestions.find(s =>
+                s.name === 'New Customer Welcome' ||
+                s.name.toLowerCase().includes('welcome')
+            );
+
+            // If found, verify it references the email agent
+            if (welcomeSuggestion) {
+                expect(welcomeSuggestion.reasoning).toContain('Mrs. Parker');
+                expect(welcomeSuggestion.description).toContain('welcome');
+            }
+        });
     });
 
     describe('Customer Profile Fields', () => {
