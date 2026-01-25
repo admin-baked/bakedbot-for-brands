@@ -781,6 +781,15 @@ export async function runInboxAgentChat(
             return { success: false, error: 'Unauthorized' };
         }
 
+        // Executive agents (Glenda, Jack, Mike) are restricted to super_user only
+        const executiveAgents: InboxAgentPersona[] = ['glenda', 'jack', 'mike'];
+        const userRole = (user as any).role || '';
+        const isSuperUser = userRole === 'super_user' || userRole === 'super_admin';
+
+        if (executiveAgents.includes(thread.primaryAgent) && !isSuperUser) {
+            return { success: false, error: 'This agent is only available in the Boardroom (Super User access required)' };
+        }
+
         // Map inbox agent persona to the agent chat persona ID
         const personaMap: Record<InboxAgentPersona, string> = {
             // Field Agents
