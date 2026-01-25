@@ -10,6 +10,7 @@ const ALL_SUPER_ADMIN_EMAILS = [
     'jack@bakedbot.ai',
     'vib@cannmenus.com',
     'owner@bakedbot.ai', // Dev persona - gated by environment check below
+    'rishabh@bakedbot.ai', // Added by request
 ] as const;
 
 export type SuperAdminEmail = typeof ALL_SUPER_ADMIN_EMAILS[number];

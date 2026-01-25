@@ -49,6 +49,17 @@ export type PaymentResponse = {
  */
 export async function createTransaction(payment: PaymentRequest): Promise<PaymentResponse> {
     if (!API_LOGIN_ID || !TRANSACTION_KEY) {
+        // MOCK fallback for local development
+        if (process.env.NODE_ENV !== 'production') {
+            logger.warn('Authorize.net credentials missing - Using MOCK transaction for dev');
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+            return {
+                success: true,
+                transactionId: `mock_tx_${Date.now()}`,
+                message: 'Transaction approved (MOCK)',
+            };
+        }
+
         logger.error('Authorize.net credentials missing');
         return {
             success: false,
