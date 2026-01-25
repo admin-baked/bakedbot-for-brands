@@ -233,6 +233,81 @@
     --sidebar-ring: 262 70% 65%;
   }
 
+  /* BakedBot Dark Green Glassmorphism Theme */
+  .baked {
+    --background: 140 20% 98%;
+    --foreground: 145 80% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 145 80% 5%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 145 80% 5%;
+    --primary: 142 70% 35%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 145 20% 90%;
+    --secondary-foreground: 145 80% 15%;
+    --muted: 145 20% 90%;
+    --muted-foreground: 145 40% 40%;
+    --accent: 142 70% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 145 20% 85%;
+    --input: 145 20% 88%;
+    --ring: 142 70% 35%;
+    --radius: 0.5rem;
+    --chart-1: 142 70% 35%;
+    --chart-2: 142 60% 45%;
+    --chart-3: 142 50% 55%;
+    --chart-4: 142 40% 65%;
+    --chart-5: 142 30% 75%;
+    --sidebar-background: 145 30% 96%;
+    --sidebar-border: 145 25% 90%;
+    --sidebar-foreground: 145 80% 5%;
+    --sidebar-primary: 142 70% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 142 60% 45%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-ring: 142 70% 35%;
+  }
+
+  .dark.baked {
+    --background: 145 50% 4%;
+    --foreground: 0 0% 98%;
+    --card: 145 45% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 145 45% 6%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 142 70% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 145 40% 10%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 145 35% 12%;
+    --muted-foreground: 145 15% 60%;
+    --accent: 142 60% 40%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 145 35% 15%;
+    --input: 145 35% 15%;
+    --ring: 142 70% 45%;
+    --chart-1: 142 70% 40%;
+    --chart-2: 142 60% 50%;
+    --chart-3: 142 50% 60%;
+    --chart-4: 142 40% 70%;
+    --chart-5: 142 30% 80%;
+    --sidebar-background: 145 50% 3%;
+    --sidebar-border: 145 40% 10%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 142 70% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 142 60% 40%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-ring: 142 70% 45%;
+    /* Glass effect variables for glassmorphism */
+    --glass-bg: 145 40% 8%;
+    --glass-border: 145 35% 18%;
+  }
+
 }
 
 @layer base {
@@ -293,5 +368,25 @@
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  }
+
+  /* Glass Card Utilities for Glassmorphism Effects */
+  .glass-card {
+    @apply bg-card/60 backdrop-blur-md border border-border/30;
+  }
+
+  .glass-card-hover {
+    @apply hover:bg-card/80 hover:border-border/50 transition-all duration-200;
+  }
+
+  /* Dark mode specific glass effect using baked theme variables */
+  .dark.baked .glass-card {
+    background: hsl(var(--glass-bg) / 0.6);
+    border-color: hsl(var(--glass-border) / 0.3);
+  }
+
+  .dark.baked .glass-card-hover:hover {
+    background: hsl(var(--glass-bg) / 0.8);
+    border-color: hsl(var(--glass-border) / 0.5);
   }
 }

@@ -70,14 +70,14 @@ export function NewProjectButton({ asCard = false, baseUrl = "/dashboard/project
     };
 
     const trigger = asCard ? (
-        <Card className="border-dashed border-2 bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer group h-full min-h-[160px]">
+        <Card className="border-dashed border-2 border-muted-foreground/30 bg-transparent hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 cursor-pointer group h-full min-h-[180px] rounded-xl">
             <CardContent className="flex flex-col items-center justify-center h-full text-center p-6">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <Plus className="h-5 w-5 text-primary" />
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-200">
+                    <Plus className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="font-semibold text-sm mb-1">New Project</h3>
+                <h3 className="font-semibold text-sm mb-1 text-foreground group-hover:text-primary transition-colors">New Project</h3>
                 <p className="text-xs text-muted-foreground">
-                    Create a focused workspace with custom instructions
+                    Create a focused workspace
                 </p>
             </CardContent>
         </Card>

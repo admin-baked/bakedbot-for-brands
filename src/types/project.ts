@@ -103,6 +103,9 @@ export type CreateProjectInput = z.infer<typeof CreateProjectSchema>;
 export type UpdateProjectInput = z.infer<typeof UpdateProjectSchema>;
 export type AddProjectDocumentInput = z.infer<typeof AddProjectDocumentSchema>;
 
+// --- Project Filter for UI ---
+export type ProjectFilter = 'my' | 'system';
+
 // --- Usage Limits ---
 export const PROJECT_LIMITS: Record<string, { maxProjects: number; maxDocsPerProject: number }> = {
     free: { maxProjects: 3, maxDocsPerProject: 5 },
