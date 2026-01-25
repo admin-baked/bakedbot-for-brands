@@ -6,12 +6,12 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@/firebase/server-client';
 import { DecodedIdToken } from 'firebase-admin/auth';
 import { SUPER_ADMIN_EMAILS } from '@/lib/super-admin-config';
-import { 
-    UserRole, 
-    isBrandRole, 
-    isDispensaryRole, 
-    BRAND_ALL_ROLES, 
-    DISPENSARY_ALL_ROLES 
+import {
+  UserRole,
+  isBrandRole,
+  isDispensaryRole,
+  BRAND_ALL_ROLES,
+  DISPENSARY_ALL_ROLES
 } from '@/types/roles';
 
 // Re-export Role type for backward compatibility
@@ -22,32 +22,32 @@ export type Role = UserRole;
  * Handles role hierarchy (e.g., brand_admin can act as brand_member)
  */
 function roleMatches(userRole: string, requiredRoles: Role[]): boolean {
-    // Direct match
-    if (requiredRoles.includes(userRole as Role)) {
-        return true;
+  // Direct match
+  if (requiredRoles.includes(userRole as Role)) {
+    return true;
+  }
+
+  // Check for role group matches
+  for (const required of requiredRoles) {
+    // If 'brand' is required, accept any brand role (admin or member)
+    if (required === 'brand' && isBrandRole(userRole)) {
+      return true;
     }
-    
-    // Check for role group matches
-    for (const required of requiredRoles) {
-        // If 'brand' is required, accept any brand role (admin or member)
-        if (required === 'brand' && isBrandRole(userRole)) {
-            return true;
-        }
-        // If 'dispensary' is required, accept any dispensary role
-        if (required === 'dispensary' && isDispensaryRole(userRole)) {
-            return true;
-        }
-        // If 'brand_member' is required, brand_admin also qualifies
-        if (required === 'brand_member' && (userRole === 'brand_admin' || userRole === 'brand')) {
-            return true;
-        }
-        // If 'dispensary_staff' is required, dispensary_admin also qualifies
-        if (required === 'dispensary_staff' && (userRole === 'dispensary_admin' || userRole === 'dispensary')) {
-            return true;
-        }
+    // If 'dispensary' is required, accept any dispensary role
+    if (required === 'dispensary' && isDispensaryRole(userRole)) {
+      return true;
     }
-    
-    return false;
+    // If 'brand_member' is required, brand_admin also qualifies
+    if (required === 'brand_member' && (userRole === 'brand_admin' || userRole === 'brand')) {
+      return true;
+    }
+    // If 'dispensary_staff' is required, dispensary_admin also qualifies
+    if (required === 'dispensary_staff' && (userRole === 'dispensary_admin' || userRole === 'dispensary')) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -98,10 +98,22 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
   }
 
   const { auth } = await createServerClient();
+  const isDevOrTest = process.env.NODE_ENV !== 'production';
 
   let decodedToken;
   try {
-    decodedToken = await auth.verifySessionCookie(sessionCookie, true);
+    // MOCK BYPASS for local development
+    if (isDevOrTest && sessionCookie.startsWith('mock_session_')) {
+      console.warn('[AUTH_BYPASS] Using synthetic token for mock session');
+      decodedToken = {
+        uid: `mock-user-${sessionCookie.split('_')[2]}`,
+        email: 'dev-user@bakedbot.ai',
+        email_verified: true,
+        // No role by default for mock sessions to trigger onboarding/role setup
+      } as any as DecodedIdToken;
+    } else {
+      decodedToken = await auth.verifySessionCookie(sessionCookie, true);
+    }
   } catch (error) {
     console.error('[AUTH_ERROR] verifySessionCookie failed:', error);
     throw new Error('Unauthorized: Invalid session cookie.');
@@ -132,13 +144,13 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
   // --- GLOBAL APPROVAL CHECK ---
   // Block access if the account is pending/rejected, UNLESS they are a super admin.
   if (!isSuperAdminByEmail && !isSuperUserRole) {
-      const approvalStatus = decodedToken.approvalStatus;
-      if (approvalStatus === 'pending') {
-           throw new Error('Forbidden: Your account is pending approval.');
-      }
-      if (approvalStatus === 'rejected') {
-           throw new Error('Forbidden: Your account has been rejected.');
-      }
+    const approvalStatus = decodedToken.approvalStatus;
+    if (approvalStatus === 'pending') {
+      throw new Error('Forbidden: Your account is pending approval.');
+    }
+    if (approvalStatus === 'rejected') {
+      throw new Error('Forbidden: Your account has been rejected.');
+    }
   }
 
   // --- ROLE CHECK (Optional) ---
@@ -163,17 +175,17 @@ export async function isSuperUser(): Promise<boolean> {
     const user = await requireUser();
     const role = (user.role as string) || '';
     const email = (user.email as string)?.toLowerCase() || '';
-    
+
     // Check 1: Role-based access
     if (role === 'super_user' || role === 'super_admin') {
       return true;
     }
-    
+
     // Check 2: Email whitelist (using static import)
     if (email && SUPER_ADMIN_EMAILS.some(adminEmail => adminEmail.toLowerCase() === email)) {
       return true;
     }
-    
+
     return false;
   } catch {
     return false;
