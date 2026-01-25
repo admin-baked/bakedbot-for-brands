@@ -52,6 +52,25 @@ function isFirestoreAssertionError(error: Error): boolean {
     );
 }
 
+/**
+ * Detects if an error is a React hooks ordering error
+ * These can occur due to hydration mismatches or stale cached code.
+ * Error codes: #300 (fewer hooks), #310 (more hooks), #418, #423 (hooks rules)
+ */
+function isReactHooksError(error: Error): boolean {
+    const message = error.message || '';
+    return (
+        message.includes('Rendered fewer hooks than expected') ||
+        message.includes('Rendered more hooks than expected') ||
+        message.includes('Minified React error #300') ||
+        message.includes('Minified React error #310') ||
+        message.includes('Minified React error #418') ||
+        message.includes('Minified React error #423') ||
+        message.includes('react.dev/errors/300') ||
+        message.includes('react.dev/errors/310')
+    );
+}
+
 interface ErrorBoundaryProps {
     children: React.ReactNode;
     fallback?: React.ReactNode;
@@ -74,13 +93,13 @@ export class ErrorBoundary extends React.Component<
     }
 
     static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
-        // Treat Firestore assertion errors like deployment mismatches - they're recoverable with refresh
-        const isDeploymentMismatch = isChunkLoadError(error) || isServerActionMismatch(error) || isFirestoreAssertionError(error);
+        // Treat Firestore assertion errors and React hooks errors like deployment mismatches - they're recoverable with refresh
+        const isDeploymentMismatch = isChunkLoadError(error) || isServerActionMismatch(error) || isFirestoreAssertionError(error) || isReactHooksError(error);
         return { hasError: true, error, isDeploymentMismatch };
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        const isDeploymentMismatch = isChunkLoadError(error) || isServerActionMismatch(error) || isFirestoreAssertionError(error);
+        const isDeploymentMismatch = isChunkLoadError(error) || isServerActionMismatch(error) || isFirestoreAssertionError(error) || isReactHooksError(error);
 
         // Log error to monitoring service
         logger.error('Error boundary caught error:', { error, errorInfo, isDeploymentMismatch });
