@@ -134,7 +134,7 @@ describe('2025 Attacks - Multi-Turn Manipulation', () => {
 
         it.each(contextAttacks)('should flag context poisoning: %s', (input) => {
             const result = validateInput(input);
-            expect(result.flags.some(f => f.severity === 'medium' || f.severity === 'high')).toBe(true);
+            expect(result.flags.some(f => ['medium', 'high', 'critical'].includes(f.severity))).toBe(true);
         });
     });
 });

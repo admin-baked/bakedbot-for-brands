@@ -11,112 +11,57 @@ export interface SidecarResult {
 }
 
 export class PythonSidecar {
-    private pythonPath: string;
-    private scriptPath: string;
-    private cachedPath: string | null = null;
+    private baseUrl: string;
 
     constructor() {
-        this.pythonPath = 'python'; // Default to PATH
-        this.scriptPath = path.join(process.cwd(), 'python', 'sidecar.py');
-    }
-
-    private async resolvePythonPath(): Promise<string> {
-        if (this.cachedPath) return this.cachedPath;
-
-        // 1. Try PATH (simplest check is just returning 'python' and letting spawn fail, but we can verify)
-        // For efficiency we assume 'python' is first choice. 
-        
-        // 2. Check Windows Specific Paths if we suspect PATH is missing it
-        if (process.platform === 'win32') {
-            const localAppData = process.env.LOCALAPPDATA;
-            if (localAppData) {
-                const shimPath = path.join(localAppData, 'Microsoft', 'WindowsApps', 'python.exe');
-                if (fs.existsSync(shimPath)) {
-                     // Verify it's not a 0-byte dummy (execution alias not installed)
-                     // Actually 0-byte might be the reparse point, so we just try to use it.
-                     // But we prefer explicit path if found.
-                     // Let's stick with 'python' first, but if that fails we use this.
-                }
-                
-                // We'll return this explicit path if we can't run 'python'
-                // For now, let's keep it simple: we try to run 'python' in execute, if it fails, we try shim.
-                // But to make this method useful, let's return a list or just use logic in execute.
-            }
-        }
-        
-        return 'python';
+        // Default to a local dev URL if not provided, but in Cloud Run we use the real one.
+        this.baseUrl = process.env.PYTHON_SIDECAR_URL || 'http://localhost:8080';
     }
 
     async execute(action: string, data: any = {}): Promise<SidecarResult> {
-        // Try default 'python' first
-        let result = await this.trySpawn('python', action, data);
-        
-        // Use fallback if default failed with ENOENT or similar
-        if (result.status === 'error' && (result.message?.includes('ENOENT') || result.message?.includes('not found'))) {
-             if (process.platform === 'win32' && process.env.LOCALAPPDATA) {
-                  const fallbackPath = path.join(process.env.LOCALAPPDATA, 'Microsoft', 'WindowsApps', 'python.exe');
-                  if (fs.existsSync(fallbackPath)) {
-                       console.log(`[PythonSidecar] Falling back to: ${fallbackPath}`);
-                       result = await this.trySpawn(fallbackPath, action, data);
-                  }
-             }
+        try {
+            // Legacy/Compatibility check: if action is 'mcp_call', route to the /mcp endpoint
+            if (action === 'mcp_call') {
+                return await this.callMcp(data.tool_name, data.arguments);
+            }
+
+            // Standard Sidecar Task Execution (e.g. for Big Worm)
+            const response = await fetch(`${this.baseUrl}/execute`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, data })
+            });
+
+            if (!response.ok) {
+                return {
+                    status: 'error',
+                    message: `Sidecar HTTP Error: ${response.status} ${response.statusText}`
+                };
+            }
+
+            return await response.json();
+        } catch (e: any) {
+            return {
+                status: 'error',
+                message: `Sidecar Connection Failed: ${e.message}. Is PYTHON_SIDECAR_URL set?`
+            };
         }
-        
-        return result;
     }
 
-    private async trySpawn(command: string, action: string, data: any): Promise<SidecarResult> {
-        return new Promise((resolve, reject) => {
-            const process = spawn(command, [
-                this.scriptPath,
-                '--action', action,
-                '--data', JSON.stringify(data)
-            ]);
-
-            let stdoutData = '';
-            let stderrData = '';
-
-            process.stdout.on('data', (data) => {
-                stdoutData += data.toString();
+    async callMcp(toolName: string, args: any): Promise<any> {
+        try {
+            const response = await fetch(`${this.baseUrl}/mcp/call`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tool_name: toolName, arguments: args })
             });
 
-            process.stderr.on('data', (data) => {
-                stderrData += data.toString();
-            });
-
-            process.on('close', (code) => {
-                if (code !== 0) {
-                    // console.error(`Python (${command}) Error:`, stderrData); 
-                    // Don't log error yet, allow fallback
-                    resolve({
-                        status: 'error',
-                        message: `Process exited with code ${code}: ${stderrData || 'Exit code ' + code}`
-                    });
-                    return;
-                }
-
-                try {
-                    const result = JSON.parse(stdoutData.trim());
-                    resolve(result);
-                } catch (e) {
-                    resolve({
-                        status: 'error',
-                        message: `Failed to parse JSON: ${stdoutData}`
-                    });
-                }
-            });
-
-            process.on('error', (err: any) => {
-                 let msg = err.message;
-                 if (err.code === 'ENOENT') {
-                     msg = `Executable not found: ${command}`;
-                 }
-                resolve({
-                    status: 'error',
-                    message: msg
-                });
-            });
-        });
+            const result = await response.json();
+            if (!result.success) throw new Error(result.error || 'Unknown MCP error');
+            return result.result;
+        } catch (e: any) {
+            throw new Error(`Remote MCP Call Failed: ${e.message}`);
+        }
     }
 }
 

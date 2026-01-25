@@ -1,6 +1,6 @@
-
-import { McpClient } from '@/server/services/mcp/client';
+import { McpClient, RemoteMcpClient, getMcpClient } from '@/server/services/mcp/client';
 import { EventEmitter } from 'events';
+import { sidecar } from '@/server/services/python-sidecar';
 
 // Mock child_process
 jest.mock('child_process', () => ({
@@ -10,24 +10,58 @@ jest.mock('child_process', () => ({
         mockProcess.stdout = new EventEmitter();
         mockProcess.stderr = new EventEmitter();
         mockProcess.kill = jest.fn();
-        
-        // Auto-emit 'data' on next tick to simulate handshake if needed
-        setTimeout(() => {
-            // Echo mock response
-        }, 10);
-        
         return mockProcess;
     })
 }));
 
-describe('McpClient', () => {
-    it('should connect to a subprocess', async () => {
-        const client = new McpClient({ id: 'test', command: 'echo', args: [] });
-        await expect(client.connect()).resolves.not.toThrow();
-        await client.disconnect();
+// Mock sidecar
+jest.mock('@/server/services/python-sidecar', () => ({
+    sidecar: {
+        execute: jest.fn(),
+        callMcp: jest.fn()
+    }
+}));
+
+describe('Mcp Integration', () => {
+    describe('McpClient (Local)', () => {
+        it('should connect to a subprocess', async () => {
+            const client = new McpClient({ id: 'test', command: 'echo', args: [] });
+            await expect(client.connect()).resolves.not.toThrow();
+            await client.disconnect();
+        });
     });
 
-    // NOTE: Full integration testing of stdio pipes inside Vitest is complex
-    // due to the mock nature. We rely on verify_mcp.ts for the Pipe logic,
-    // and this test simply ensures the class structure and spawn call work.
+    describe('RemoteMcpClient', () => {
+        it('should list tools by returning hardcoded discovery', async () => {
+            const client = new RemoteMcpClient({ id: 'remote-test' });
+            const tools = await client.listTools();
+            expect(tools).toHaveLength(3);
+            expect(tools[0].name).toBe('create_notebook');
+        });
+
+        it('should delegate callTool to sidecar', async () => {
+            const client = new RemoteMcpClient({ id: 'remote-test' });
+            (sidecar.callMcp as jest.Mock).mockResolvedValueOnce('tool-result');
+
+            const result = await client.callTool('some-tool', { arg1: 1 });
+
+            expect(sidecar.callMcp).toHaveBeenCalledWith('some-tool', { arg1: 1 });
+            expect(result).toBe('tool-result');
+        });
+
+        it('should verify connection via sidecar health check', async () => {
+            const client = new RemoteMcpClient({ id: 'remote-test' });
+            (sidecar.execute as jest.Mock).mockResolvedValueOnce({ status: 'success' });
+
+            await expect(client.connect()).resolves.not.toThrow();
+            expect(sidecar.execute).toHaveBeenCalledWith('test');
+        });
+    });
+
+    describe('Registry', () => {
+        it('should have notebooklm pre-registered as RemoteMcpClient', () => {
+            const client = getMcpClient('notebooklm');
+            expect(client).toBeInstanceOf(RemoteMcpClient);
+        });
+    });
 });
