@@ -94,7 +94,7 @@ export function useCreativeContent(
 
             try {
                 if (realtime && firebase?.firestore) {
-                    // Real-time listener
+                    // Real-time listener with enhanced error handling
                     let q = query(
                         collection(firebase.firestore, `tenants/${tenantId}/creative_content`),
                         where('status', 'in', statusFilter),
@@ -112,33 +112,49 @@ export function useCreativeContent(
                         );
                     }
 
-                    unsubscribe = onSnapshot(
-                        q,
-                        (snapshot) => {
-                            const items = snapshot.docs.map(doc => ({
-                                id: doc.id,
-                                ...doc.data()
-                            } as CreativeContent));
-                            setContent(items);
-                            setLoading(false);
-                        },
-                        (err) => {
-                            // Fall back to server action on permission errors
-                            if (err.code === 'permission-denied') {
+                    try {
+                        unsubscribe = onSnapshot(
+                            q,
+                            (snapshot) => {
+                                try {
+                                    const items = snapshot.docs.map(doc => ({
+                                        id: doc.id,
+                                        ...doc.data()
+                                    } as CreativeContent));
+                                    setContent(items);
+                                    setLoading(false);
+                                } catch (mapError) {
+                                    // Handle errors during data mapping
+                                    console.error('[useCreativeContent] Error mapping snapshot:', mapError);
+                                    fetchViaServerAction();
+                                }
+                            },
+                            (err) => {
+                                // Fall back to server action on any Firestore errors
+                                // This includes permission errors and SDK assertion failures
+                                console.warn('[useCreativeContent] Firestore listener error, falling back to server action:', err.message);
                                 fetchViaServerAction();
-                            } else {
-                                setError(err.message);
-                                setLoading(false);
                             }
-                        }
-                    );
+                        );
+                    } catch (listenerError) {
+                        // Catch synchronous errors from onSnapshot setup
+                        // This can happen with Firestore SDK assertion failures
+                        console.error('[useCreativeContent] Failed to setup Firestore listener:', listenerError);
+                        await fetchViaServerAction();
+                    }
                 } else {
                     // Fallback to server action
                     await fetchViaServerAction();
                 }
             } catch (err: unknown) {
-                setError(err instanceof Error ? err.message : 'Failed to fetch content');
-                setLoading(false);
+                // Final fallback - try server action if anything fails
+                console.error('[useCreativeContent] Error in fetchContent:', err);
+                try {
+                    await fetchViaServerAction();
+                } catch (serverErr) {
+                    setError(serverErr instanceof Error ? serverErr.message : 'Failed to fetch content');
+                    setLoading(false);
+                }
             }
         };
 
@@ -163,7 +179,13 @@ export function useCreativeContent(
 
         return () => {
             if (unsubscribe) {
-                unsubscribe();
+                try {
+                    unsubscribe();
+                } catch (cleanupError) {
+                    // Silently ignore cleanup errors - these can occur if the
+                    // Firestore SDK is in an invalid state (e.g., due to network issues)
+                    console.warn('[useCreativeContent] Error during listener cleanup:', cleanupError);
+                }
             }
         };
     }, [user, isUserLoading, tenantId, platform, realtime, firebase, refreshKey, options.limit, JSON.stringify(statusFilter)]);
