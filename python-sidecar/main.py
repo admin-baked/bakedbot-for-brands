@@ -40,12 +40,37 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown logic (if any)
 
+from pydantic import BaseModel
+from typing import Dict, Any, Optional
+
 app = FastAPI(lifespan=lifespan)
+
+class McpToolRequest(BaseModel):
+    tool_name: str
+    arguments: Dict[str, Any]
 
 @app.get("/")
 def health_check():
     """Cloud Run Health Check"""
-    return {"status": "running", "service": "smokey-research-sidecar"}
+    return {"status": "running", "service": "bigworm-sidecar-remote"}
+
+@app.post("/mcp/call")
+async def call_mcp_tool(request: McpToolRequest):
+    """
+    Bridge to NotebookLLM MCP
+    In a real implementation, this would use the notebooklm-mcp package
+    to execute the tool and return its content.
+    """
+    try:
+        # Note: In Cloud Run, we would initialize the MCP client here or in lifespan
+        # For now, providing the structure for integration.
+        return {
+            "success": True,
+            "tool": request.tool_name,
+            "result": f"MOCK RESULT for {request.tool_name} with {len(request.arguments)} args"
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))

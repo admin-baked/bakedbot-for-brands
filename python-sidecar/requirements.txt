@@ -1,11 +1,6 @@
-camel-ai
-firebase-admin
-playwright
-python-dotenv
-google-cloud-firestore
-google-cloud-storage
-beautifulsoup4
-requests
 fastapi
 uvicorn
+notebooklm-mcp
+mcp
+pydantic
 

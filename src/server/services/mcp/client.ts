@@ -37,7 +37,7 @@ export class McpClient extends EventEmitter {
 
     async connect() {
         logger.info(`[MCP:${this.serverId}] Connecting to ${this.config.command}...`);
-        
+
         this.process = spawn(this.config.command, this.config.args, {
             env: { ...process.env, ...this.config.env },
             stdio: ['pipe', 'pipe', 'pipe'] // stdin, stdout, stderr
@@ -45,7 +45,7 @@ export class McpClient extends EventEmitter {
 
         this.process.stdout?.on('data', (data) => this.handleData(data));
         this.process.stderr?.on('data', (data) => logger.warn(`[MCP:${this.serverId}:STDERR] ${data}`));
-        
+
         this.process.on('close', (code) => {
             logger.warn(`[MCP:${this.serverId}] Process exited with code ${code}`);
             this.process = null;
@@ -64,7 +64,7 @@ export class McpClient extends EventEmitter {
                 if (message.id !== undefined && this.pendingRequests.has(message.id)) {
                     const { resolve, reject } = this.pendingRequests.get(message.id)!;
                     this.pendingRequests.delete(message.id);
-                    
+
                     if (message.error) reject(message.error);
                     else resolve(message.result);
                 }
@@ -81,7 +81,7 @@ export class McpClient extends EventEmitter {
 
         const id = this.messageId++;
         const payload = JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n';
-        
+
         return new Promise((resolve, reject) => {
             this.pendingRequests.set(id, { resolve, reject });
             this.process!.stdin?.write(payload);
@@ -107,9 +107,45 @@ export class McpClient extends EventEmitter {
 }
 
 // Global Registry (Simulated for this Pilot)
-const registry = new Map<string, McpClient>();
+const registry = new Map<string, McpClient | RemoteMcpClient>();
 
-export function getMcpClient(serverId: string): McpClient | undefined {
+export class RemoteMcpClient {
+    private serverId: string;
+
+    constructor(config: { id: string }) {
+        this.serverId = config.id;
+    }
+
+    async connect() {
+        // HTTP is stateless, but we can do a health check
+        const { sidecar } = await import('@/server/services/python-sidecar');
+        const result = await sidecar.execute('test');
+        if (result.status === 'error') {
+            throw new Error(`Remote Sidecar Unreachable: ${result.message}`);
+        }
+    }
+
+    async listTools(): Promise<McpToolDefinition[]> {
+        // For the pilot, we'll hardcode the known NotebookLLM tools if the remote doesn't support discovery yet
+        // In a real version, we'd have a /mcp/list endpoint on the sidecar.
+        return [
+            { name: 'create_notebook', description: 'Create a new notebook', inputSchema: {} },
+            { name: 'add_source', description: 'Add a source to a notebook', inputSchema: {} },
+            { name: 'generate_audio', description: 'Generate a deep-dive audio overview', inputSchema: {} }
+        ];
+    }
+
+    async callTool(name: string, args: any): Promise<any> {
+        const { sidecar } = await import('@/server/services/python-sidecar');
+        return await sidecar.callMcp(name, args);
+    }
+
+    async disconnect() {
+        // No-op for HTTP
+    }
+}
+
+export function getMcpClient(serverId: string): McpClient | RemoteMcpClient | undefined {
     return registry.get(serverId);
 }
 
@@ -117,4 +153,12 @@ export function registerMcpServer(config: McpServerConfig) {
     const client = new McpClient(config);
     registry.set(config.id, client);
     return client;
+}
+
+// Initialize Default Servers
+try {
+    // NotebookLLM is now Remote (Cloud Run Sidecar)
+    registry.set('notebooklm', new RemoteMcpClient({ id: 'notebooklm' }));
+} catch (e) {
+    logger.error('[MCP] Failed to register default servers', e);
 }
