@@ -29,8 +29,37 @@ export const useUser = () => {
       async (user) => {
         try {
           if (user) {
-            const idTokenResult = await user.getIdTokenResult(true);
-            const claims = idTokenResult.claims;
+            let idTokenResult;
+            let claims: Record<string, unknown> = {};
+
+            try {
+              // Don't force refresh - use cached token to avoid 400 errors
+              idTokenResult = await user.getIdTokenResult(false);
+              claims = idTokenResult.claims;
+            } catch (tokenError: any) {
+              // Token refresh failed - handle gracefully
+              const errorCode = tokenError?.code || '';
+              const errorMessage = tokenError?.message || '';
+
+              // Handle invalid token errors - treat as signed out
+              if (errorCode === 'auth/invalid-user-token' ||
+                  errorCode === 'auth/user-token-expired' ||
+                  errorCode === 'auth/user-disabled' ||
+                  errorMessage.includes('400') ||
+                  errorMessage.includes('INVALID_REFRESH_TOKEN')) {
+                console.warn('[useUser] Invalid token, clearing user state:', errorCode || errorMessage);
+                setUser(null);
+                setIsLoading(false);
+                return;
+              }
+
+              // For other errors, use user without claims
+              console.warn('[useUser] Token error, using basic user:', errorCode);
+              setUser(user as any);
+              setIsLoading(false);
+              return;
+            }
+
             let userWithClaims = { ...user, ...claims } as any;
 
             // --- CLIENT-SIDE ROLE SIMULATION ---
@@ -53,14 +82,18 @@ export const useUser = () => {
           } else {
             setUser(null);
           }
-        } catch (e) {
-          setError(e instanceof Error ? e : new Error('An authentication error occurred.'));
+        } catch (e: any) {
+          // Handle all errors gracefully - don't crash the app
+          console.warn('[useUser] Auth error:', e?.code || e?.message);
+          setUser(null);
         } finally {
           setIsLoading(false);
         }
       },
-      (err) => {
-        setError(err);
+      (err: any) => {
+        // Auth listener error - log but don't crash
+        console.warn('[useUser] Auth listener error:', err?.code || err?.message);
+        setUser(null);
         setIsLoading(false);
       }
     );
