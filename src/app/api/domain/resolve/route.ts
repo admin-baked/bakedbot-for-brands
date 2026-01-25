@@ -14,11 +14,14 @@ import type { DomainMapping } from '@/types/tenant';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-    // Parse URL to get query params - try multiple methods for reliability
+    // Parse URL to get query params - try headers first (from middleware), then query params
     const url = new URL(request.url);
-    const hostname = url.searchParams.get('hostname')
+    const hostname = request.headers.get('x-resolve-hostname')
+        || url.searchParams.get('hostname')
         || request.nextUrl.searchParams.get('hostname');
-    const originalPath = url.searchParams.get('originalPath')
+
+    const originalPath = request.headers.get('x-resolve-path')
+        || url.searchParams.get('originalPath')
         || request.nextUrl.searchParams.get('originalPath')
         || '/';
 
