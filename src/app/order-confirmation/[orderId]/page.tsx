@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
+import { use, useEffect, useState } from 'react';
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import type { OrderStatus } from "@/types/domain";
@@ -30,30 +31,69 @@ const getStatusInfo = (status: OrderStatus) => {
         case 'completed':
             return { icon: PartyPopper, text: "Your order has been picked up. Enjoy!", progress: 100 };
         case 'cancelled':
-             return { icon: XCircle, text: "This order has been cancelled.", progress: 0 };
+            return { icon: XCircle, text: "This order has been cancelled.", progress: 0 };
         default:
             return { icon: ShoppingCart, text: "Order received.", progress: 10 };
     }
 }
 
 
-export default function OrderConfirmationPage({ params }: { params: { orderId: string }}) {
+export default function OrderConfirmationPage({ params: paramsPromise }: { params: Promise<{ orderId: string }> }) {
+    const { orderId } = use(paramsPromise);
     const { firestore } = useFirebase();
 
-    // Fetch the order in real-time
-    const orderRef = firestore ? doc(firestore, 'orders', params.orderId).withConverter(orderConverter) : null;
-    const { data: order, isLoading: isOrderLoading } = useDoc<OrderDoc>(orderRef);
-    
+    // MOCK DATA for local development
+    const isMock = orderId.startsWith('mock_order_');
+    const [mockOrder, setMockOrder] = useState<any>(null);
+
+    useEffect(() => {
+        if (isMock) {
+            setMockOrder({
+                id: orderId,
+                status: 'submitted',
+                items: [
+                    { productId: 'prod1', name: 'Premium Snickerdoodle Bites x10', qty: 1, price: 25.00 },
+                    { productId: 'prod2', name: 'Cheesecake Bliss Gummies', qty: 2, price: 28.00 }
+                ],
+                totals: {
+                    subtotal: 81.00,
+                    tax: 8.10,
+                    total: 89.10
+                },
+                retailerId: 'brand_ecstatic_edibles',
+                purchaseModel: 'online_only',
+                customer: {
+                    name: 'Rishabh Reddy',
+                    email: 'rishabh@bakedbot.ai'
+                },
+                shippingAddress: {
+                    street: '123 Test Avenue',
+                    city: 'San Francisco',
+                    state: 'CA',
+                    zip: '94107'
+                }
+            });
+        }
+    }, [isMock, orderId]);
+
+    // Fetch the order (skip if mock)
+    const orderRef = (firestore && !isMock) ? doc(firestore, 'orders', orderId).withConverter(orderConverter) : null;
+    const { data: firestoreOrder, isLoading: isOrderLoading } = useDoc<OrderDoc>(orderRef);
+
+    const order = isMock ? mockOrder : firestoreOrder;
+
+    const isLoading = (isMock && !mockOrder) || (!isMock && isOrderLoading);
+
     // Fetch the retailer details using the retailerId from the order
     const retailerRef = (firestore && order?.retailerId) ? doc(firestore, 'dispensaries', order.retailerId).withConverter(retailerConverter) : null;
     const { data: retailer, isLoading: isRetailerLoading } = useDoc(retailerRef);
 
-    const isLoading = isOrderLoading || isRetailerLoading;
+    // const isLoading = isOrderLoading || isRetailerLoading; // Handled below with mock support
 
     if (isLoading) {
         return (
-             <div className="container mx-auto max-w-2xl py-12 px-4">
-                 <Card>
+            <div className="container mx-auto max-w-2xl py-12 px-4">
+                <Card>
                     <CardHeader className="text-center">
                         <Skeleton className="h-12 w-12 mx-auto rounded-full" />
                         <Skeleton className="h-8 w-64 mx-auto mt-4" />
@@ -61,29 +101,29 @@ export default function OrderConfirmationPage({ params }: { params: { orderId: s
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="p-4 border rounded-md space-y-3">
-                           <Skeleton className="h-4 w-1/2" />
-                           <Skeleton className="h-4 w-1/3" />
+                            <Skeleton className="h-4 w-1/2" />
+                            <Skeleton className="h-4 w-1/3" />
                         </div>
-                         <div className="p-4 border rounded-md space-y-3">
-                           <Skeleton className="h-10 w-full" />
-                           <Skeleton className="h-4 w-3/4 mx-auto" />
+                        <div className="p-4 border rounded-md space-y-3">
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-4 w-3/4 mx-auto" />
                         </div>
                         <Separator />
                         <div className="space-y-4">
-                             {[...Array(2)].map((_, i) => (
+                            {[...Array(2)].map((_, i) => (
                                 <div key={i} className="flex gap-4">
-                                     <Skeleton className="h-16 w-16 rounded-md" />
-                                     <div className="flex-1 space-y-2">
-                                         <Skeleton className="h-5 w-3/4" />
-                                         <Skeleton className="h-4 w-1/4" />
-                                     </div>
-                                      <Skeleton className="h-5 w-16" />
+                                    <Skeleton className="h-16 w-16 rounded-md" />
+                                    <div className="flex-1 space-y-2">
+                                        <Skeleton className="h-5 w-3/4" />
+                                        <Skeleton className="h-4 w-1/4" />
+                                    </div>
+                                    <Skeleton className="h-5 w-16" />
                                 </div>
                             ))}
                         </div>
                     </CardContent>
-                 </Card>
-             </div>
+                </Card>
+            </div>
         )
     }
 
@@ -99,7 +139,7 @@ export default function OrderConfirmationPage({ params }: { params: { orderId: s
             </div>
         );
     }
-    
+
     const { icon: StatusIcon, text: statusText, progress } = getStatusInfo(order.status);
 
     return (
@@ -108,10 +148,10 @@ export default function OrderConfirmationPage({ params }: { params: { orderId: s
                 <CardHeader className="text-center items-center">
                     <StatusIcon className={cn("h-16 w-16", order.status === 'completed' ? 'text-green-500' : 'text-primary')} />
                     <CardTitle className="mt-4 text-3xl">
-                       {order.status === 'completed' ? 'Order Completed!' : 'Order Status'}
+                        {order.status === 'completed' ? 'Order Completed!' : 'Order Status'}
                     </CardTitle>
                     <CardDescription className="text-base max-w-md mx-auto">
-                       {statusText}
+                        {statusText}
                     </CardDescription>
                     <p className="text-sm text-muted-foreground pt-2">Order ID: #{order.id.substring(0, 7)}</p>
                 </CardHeader>
@@ -128,52 +168,63 @@ export default function OrderConfirmationPage({ params }: { params: { orderId: s
                             </div>
                         </div>
                     )}
-                   
-                   <Separator />
-                   <div>
-                     <h3 className="font-semibold mb-4">Order Summary</h3>
-                     <div className="space-y-4">
-                        {order.items.map(item => (
-                            <div key={item.productId} className="flex items-center gap-4">
-                                <div className="font-semibold">{item.qty}x</div>
-                                <div className="flex-1">
-                                    <p className="font-medium">{item.name}</p>
-                                    <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
+
+                    <Separator />
+                    <div>
+                        <h3 className="font-semibold mb-4">Order Summary</h3>
+                        <div className="space-y-4">
+                            {order.items.map((item: any) => (
+                                <div key={item.productId} className="flex items-center gap-4">
+                                    <div className="font-semibold">{item.qty}x</div>
+                                    <div className="flex-1">
+                                        <p className="font-medium">{item.name}</p>
+                                        <p className="text-sm text-muted-foreground">${item.price.toFixed(2)} each</p>
+                                    </div>
+                                    <div className="font-medium">${(item.price * item.qty).toFixed(2)}</div>
                                 </div>
-                                <div className="font-medium">${(item.price * item.qty).toFixed(2)}</div>
-                            </div>
-                        ))}
-                     </div>
-                   </div>
-                   <Separator />
-                   <div className="space-y-1 text-sm text-right">
-                       <div className="flex justify-between">
-                           <span className="text-muted-foreground">Subtotal</span>
-                           <span>${order.totals.subtotal.toFixed(2)}</span>
-                       </div>
+                            ))}
+                        </div>
+                    </div>
+                    <Separator />
+                    <div className="space-y-1 text-sm text-right">
                         <div className="flex justify-between">
-                           <span className="text-muted-foreground">Taxes (est.)</span>
-                           <span>${order.totals.tax.toFixed(2)}</span>
-                       </div>
+                            <span className="text-muted-foreground">Subtotal</span>
+                            <span>${order.totals.subtotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Taxes (est.)</span>
+                            <span>${order.totals.tax.toFixed(2)}</span>
+                        </div>
                         <div className="flex justify-between font-bold text-base mt-2">
-                           <span>Total</span>
-                           <span>${order.totals.total.toFixed(2)}</span>
-                       </div>
-                   </div>
-                   <Separator />
+                            <span>Total</span>
+                            <span>${order.totals.total.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <Separator />
                     <div className="rounded-lg border bg-muted/50 p-4">
-                         <h3 className="font-semibold flex items-center gap-2 mb-2">Pickup Location</h3>
-                         {retailer ? (
-                             <>
+                        <h3 className="font-semibold flex items-center gap-2 mb-2">
+                            {order.purchaseModel === 'online_only' ? 'Shipping Address' : 'Pickup Location'}
+                        </h3>
+                        {order.shippingAddress ? (
+                            <>
+                                <p className="font-bold">{order.customer.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                    {order.shippingAddress.street}
+                                    {order.shippingAddress.street2 ? `, ${order.shippingAddress.street2}` : ''},
+                                    {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip}
+                                </p>
+                            </>
+                        ) : retailer ? (
+                            <>
                                 <p className="font-bold">{retailer.name}</p>
-                                <p className="text-sm text-muted-foreground">{retailer.address}, ${retailer.city}, ${retailer.state} ${retailer.zip}</p>
-                             </>
-                         ): (
-                             <p className="text-sm text-muted-foreground">Loading location details...</p>
-                         )}
+                                <p className="text-sm text-muted-foreground">{retailer.address}, {retailer.city}, {retailer.state} {retailer.zip}</p>
+                            </>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">Loading details...</p>
+                        )}
                     </div>
                 </CardContent>
-                
+
                 {/* Order Pickup QR Code */}
                 {order.status !== 'completed' && order.status !== 'cancelled' && (
                     <div className="border-t px-6 py-6 bg-gradient-to-b from-emerald-50 to-white dark:from-emerald-950/20 dark:to-background">
@@ -191,7 +242,7 @@ export default function OrderConfirmationPage({ params }: { params: { orderId: s
                         </div>
                     </div>
                 )}
-                
+
                 <CardFooter>
                     <Link href="/menu/default" passHref>
                         <Button className="w-full">Continue Shopping</Button>

@@ -125,6 +125,22 @@ export default function BrandLoginPage() {
         await handleAuthSuccess(userCredential);
       }
     } catch (error: any) {
+      if (error.code === 'auth/email-already-in-use' && isSignUp) {
+        // Fallback: Try signing in with the same credentials
+        try {
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          toast({ title: 'Welcome Back!', description: 'Account already existed. Logging you in...' });
+          await handleAuthSuccess(userCredential);
+          return; // Success, exit
+        } catch (loginError: any) {
+          // If checking password failed
+          logger.error('Fallback login error', loginError);
+          toast({ variant: 'destructive', title: 'Account Exists', description: 'This email is already registered. Please login or reset your password.' });
+          setIsSignUp(false); // Switch to login mode
+          return;
+        }
+      }
+
       logger.error(`${isSignUp ? 'Sign up' : 'Login'} error`, error);
       const friendlyMessage = error.message.includes('auth/invalid-credential')
         ? 'Invalid email or password.'
