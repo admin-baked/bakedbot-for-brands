@@ -280,7 +280,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         description: 'Draft a multi-channel campaign in 30 seconds',
         icon: 'Megaphone',
         threadType: 'campaign',
-        defaultAgent: 'glenda',
+        defaultAgent: 'craig',  // Glenda restricted to super_user only
         promptTemplate: 'Draft a campaign for me - I need SMS, email, and social content ready to send',
         roles: ALL_BUSINESS_ROLES,
     },
@@ -292,7 +292,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         description: 'Create a full launch package with carousel, bundle, and social',
         icon: 'Rocket',
         threadType: 'launch',
-        defaultAgent: 'glenda',
+        defaultAgent: 'leo',  // Glenda restricted to super_user only
         promptTemplate: 'Help me plan a product launch',
         roles: ALL_BUSINESS_ROLES,
     },
@@ -345,7 +345,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         roles: ALL_BUSINESS_ROLES,
     },
 
-    // ============ Brand-Only Actions ============
+    // ============ Super User Only - Executive Marketing ============
     {
         id: 'retail-pitch',
         label: 'Retail Pitch',
@@ -354,7 +354,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         threadType: 'retail_partner',
         defaultAgent: 'glenda',
         promptTemplate: 'Find dispensaries that would be a good fit for my brand and help me draft an intro email',
-        roles: BRAND_ROLES,
+        roles: ['super_user'],  // Glenda restricted to Boardroom (super_user) level
     },
 
     // ============ Customer Actions ============
@@ -661,17 +661,17 @@ export const THREAD_AGENT_MAPPING: Record<InboxThreadType, {
         supporting: ['deebo', 'ezal'],
     },
     campaign: {
-        primary: 'glenda',
-        supporting: ['craig', 'money_mike', 'pops'],
+        primary: 'craig',  // Glenda restricted to super_user; Craig handles campaigns for business users
+        supporting: ['money_mike', 'pops', 'deebo'],
     },
 
     // New business thread types
     retail_partner: {
-        primary: 'glenda',
+        primary: 'glenda',  // Super User only thread type
         supporting: ['craig', 'money_mike'],
     },
     launch: {
-        primary: 'glenda',
+        primary: 'leo',  // Glenda restricted to super_user; Leo coordinates launches for business users
         supporting: ['smokey', 'money_mike', 'craig'],
     },
     performance: {
