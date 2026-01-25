@@ -21,7 +21,10 @@ import { getCorsHeaders, CORS_PREFLIGHT_HEADERS, isOriginAllowed } from './lib/c
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const origin = request.headers.get('origin');
-    const hostname = request.headers.get('host') || '';
+    // Use x-forwarded-host in cloud environments (Firebase/Cloud Run), fall back to host
+    const hostname = request.headers.get('x-forwarded-host')
+        || request.headers.get('host')
+        || '';
 
     // ============================
     // SUBDOMAIN ROUTING (*.bakedbot.ai)
