@@ -66,6 +66,20 @@ const nextConfig = {
     const isProd = process.env.NODE_ENV === 'production';
 
     return [
+      // Service worker must not be cached for reliable updates
+      {
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/',
+          },
+        ],
+      },
       // Embed routes - allow iframe embedding from any origin
       {
         source: '/embed/:path*',
