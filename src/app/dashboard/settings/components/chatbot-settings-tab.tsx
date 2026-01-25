@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, MessageCircle, Bot, Sparkles, Upload, Crown, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useDispensaryId } from '@/hooks/use-dispensary-id';
+import { useUserRole } from '@/hooks/use-user-role';
 import { doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/firebase/client';
@@ -32,7 +32,8 @@ interface ChatbotSettingsTabProps {
 }
 
 export function ChatbotSettingsTab({ planId }: ChatbotSettingsTabProps) {
-    const { dispensaryId, loading: idLoading } = useDispensaryId();
+    const { brandId, dispensaryId, isLoading: idLoading, isBrandRole } = useUserRole();
+    const orgId = isBrandRole ? brandId : dispensaryId;
     const { toast } = useToast();
     
     const [loading, setLoading] = useState(true);
@@ -52,13 +53,13 @@ export function ChatbotSettingsTab({ planId }: ChatbotSettingsTabProps) {
     // Load existing config
     useEffect(() => {
         async function loadConfig() {
-            if (!dispensaryId) return;
+            if (!orgId) return;
             
             try {
                 // Try brands collection first, then locations
-                let configDoc = await getDoc(doc(db, 'brands', dispensaryId));
+                let configDoc = await getDoc(doc(db, 'brands', orgId));
                 if (!configDoc.exists()) {
-                    configDoc = await getDoc(doc(db, 'locations', dispensaryId));
+                    configDoc = await getDoc(doc(db, 'locations', orgId));
                 }
                 
                 if (configDoc.exists()) {
@@ -82,7 +83,7 @@ export function ChatbotSettingsTab({ planId }: ChatbotSettingsTabProps) {
         if (!idLoading) {
             loadConfig();
         }
-    }, [dispensaryId, idLoading]);
+    }, [orgId, idLoading]);
     
     const handleMascotUpload = async (file: File) => {
         if (!dispensaryId || !file) return;
@@ -91,7 +92,7 @@ export function ChatbotSettingsTab({ planId }: ChatbotSettingsTabProps) {
         try {
             const fileId = uuidv4();
             const ext = file.name.split('.').pop();
-            const storageRef = ref(storage, `brands/${dispensaryId}/mascot/${fileId}.${ext}`);
+            const storageRef = ref(storage, `brands/${orgId}/mascot/${fileId}.${ext}`);
             
             await uploadBytes(storageRef, file);
             const url = await getDownloadURL(storageRef);
@@ -107,7 +108,7 @@ export function ChatbotSettingsTab({ planId }: ChatbotSettingsTabProps) {
     };
     
     const handleSave = async () => {
-        if (!dispensaryId) return;
+        if (!orgId) return;
         
         setSaving(true);
         try {
@@ -125,7 +126,7 @@ export function ChatbotSettingsTab({ planId }: ChatbotSettingsTabProps) {
             }
             
             // Try brands collection first
-            const brandRef = doc(db, 'brands', dispensaryId);
+            const brandRef = doc(db, 'brands', orgId);
             const brandDoc = await getDoc(brandRef);
             
             if (brandDoc.exists()) {
@@ -137,7 +138,7 @@ export function ChatbotSettingsTab({ planId }: ChatbotSettingsTabProps) {
                 });
             } else {
                 // Try locations
-                const locationRef = doc(db, 'locations', dispensaryId);
+                const locationRef = doc(db, 'locations', orgId);
                 await updateDoc(locationRef, {
                     chatbotConfig: {
                         ...config,
