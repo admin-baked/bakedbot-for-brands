@@ -1,3 +1,22 @@
+## Session: 2026-01-25 (Local Auth Bypass & D2C Checkout Refinement)
+### Task ID
+local_auth_bypass_d2c_refinement
+
+### Summary
+Implemented local developer overrides to bypass Firestore authentication errors and Authorize.Net credential requirements. Refined the "Ecstatic Edibles" mock brand to trigger the correct D2C Shipping Checkout flow (Authorise.net/Hemp model) instead of the low-touch pickup model. Fixed Next.js 15 breaking changes in the Order Confirmation page.
+
+### Key Changes
+*   **FIX**: `src/lib/brand-data.ts` - Added mock fallback for `brand_ecstatic_edibles` with `online_only` purchase model and Red/Rose theme. Downgraded auth errors to warnings to hide Next.js overlays.
+*   **FIX**: `src/lib/authorize-net.ts` - Implemented mock success response for local development when API keys are missing.
+*   **FIX**: `src/app/checkout/actions/createShippingOrder.ts` - Implemented mock order success fallback for local development when Firestore write fails due to unauthenticated state.
+*   **FIX**: `src/app/order-confirmation/[orderId]/page.tsx` - Updated to use `React.use(params)` for Next.js 15 compatibility and added mock order data display.
+*   **FIX**: `src/app/actions/bundles.ts` - Silenced `UNAUTHENTICATED` errors to prevent build/render blockers.
+
+### Result: ✅ Complete & Committed
+All fixes verified via local checkout flow and committed to `feat/national-discovery-pilot`.
+
+---
+
 ## Session: 2026-01-25 (Grant Super Admin Access)
 ### Task ID
 ops_grant_super_admin_access
