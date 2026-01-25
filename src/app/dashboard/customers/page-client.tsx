@@ -199,12 +199,17 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid gap-3 md:grid-cols-3">
+                        <div className="grid gap-3 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
                             {suggestions.map((s, i) => (
-                                <div key={i} className="p-3 bg-background rounded-lg border">
-                                    <div className="font-medium">{s.name}</div>
-                                    <div className="text-sm text-muted-foreground">{s.description}</div>
-                                    <div className="text-xs mt-2 text-primary">{s.estimatedCount} customers</div>
+                                <div key={i} className="p-4 bg-background rounded-lg border">
+                                    <div className="font-medium text-lg">{s.name}</div>
+                                    <div className="text-sm text-muted-foreground mt-1">{s.description}</div>
+                                    <div className="text-xs mt-3 font-medium text-primary">{s.estimatedCount} customers</div>
+                                    {s.reasoning && (
+                                        <div className="text-sm mt-3 text-foreground/80 border-t pt-3">
+                                            {s.reasoning}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
