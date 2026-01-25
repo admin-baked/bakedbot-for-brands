@@ -111,37 +111,60 @@ const registry = new Map<string, McpClient | RemoteMcpClient>();
 
 export class RemoteMcpClient {
     private serverId: string;
+    private connected: boolean = false;
 
     constructor(config: { id: string }) {
         this.serverId = config.id;
     }
 
-    async connect() {
-        // HTTP is stateless, but we can do a health check
+    async connect(): Promise<void> {
+        // HTTP is stateless, but we do a health check to verify connectivity
         const { sidecar } = await import('@/server/services/python-sidecar');
         const result = await sidecar.execute('test');
         if (result.status === 'error') {
             throw new Error(`Remote Sidecar Unreachable: ${result.message}`);
         }
+        this.connected = true;
+        logger.info(`[MCP:${this.serverId}] Connected to remote sidecar`);
     }
 
     async listTools(): Promise<McpToolDefinition[]> {
-        // For the pilot, we'll hardcode the known NotebookLLM tools if the remote doesn't support discovery yet
-        // In a real version, we'd have a /mcp/list endpoint on the sidecar.
-        return [
-            { name: 'create_notebook', description: 'Create a new notebook', inputSchema: {} },
-            { name: 'add_source', description: 'Add a source to a notebook', inputSchema: {} },
-            { name: 'generate_audio', description: 'Generate a deep-dive audio overview', inputSchema: {} }
-        ];
+        const { sidecar } = await import('@/server/services/python-sidecar');
+        try {
+            const tools = await sidecar.listMcpTools();
+            logger.info(`[MCP:${this.serverId}] Listed ${tools.length} tools`);
+            return tools;
+        } catch (error) {
+            logger.warn(`[MCP:${this.serverId}] Failed to list tools, using fallback`, {
+                error: error instanceof Error ? error.message : String(error)
+            });
+            // Fallback to known NotebookLLM tools
+            return [
+                { name: 'healthcheck', description: 'Check server health status', inputSchema: {} },
+                { name: 'chat_with_notebook', description: 'Send a message to NotebookLM and get a grounded response', inputSchema: {} },
+                { name: 'send_chat_message', description: 'Send a chat message without waiting for response', inputSchema: {} },
+                { name: 'get_chat_response', description: 'Get the response from NotebookLM', inputSchema: {} },
+                { name: 'navigate_to_notebook', description: 'Navigate to a specific notebook', inputSchema: {} },
+                { name: 'get_default_notebook', description: 'Get the currently active notebook', inputSchema: {} },
+                { name: 'set_default_notebook', description: 'Set the default notebook', inputSchema: {} }
+            ];
+        }
     }
 
-    async callTool(name: string, args: any): Promise<any> {
+    async callTool(name: string, args: Record<string, unknown>): Promise<unknown> {
         const { sidecar } = await import('@/server/services/python-sidecar');
+        logger.info(`[MCP:${this.serverId}] Calling tool: ${name}`);
         return await sidecar.callMcp(name, args);
     }
 
-    async disconnect() {
-        // No-op for HTTP
+    async disconnect(): Promise<void> {
+        // No-op for HTTP - stateless
+        this.connected = false;
+        logger.info(`[MCP:${this.serverId}] Disconnected`);
+    }
+
+    isConnected(): boolean {
+        return this.connected;
     }
 }
 
@@ -160,5 +183,5 @@ try {
     // NotebookLLM is now Remote (Cloud Run Sidecar)
     registry.set('notebooklm', new RemoteMcpClient({ id: 'notebooklm' }));
 } catch (e) {
-    logger.error('[MCP] Failed to register default servers', e);
+    logger.error('[MCP] Failed to register default servers', { error: e instanceof Error ? e.message : String(e) });
 }

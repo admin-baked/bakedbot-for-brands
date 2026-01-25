@@ -7,8 +7,9 @@
  * Consolidates Carousels, Bundles, and Creative Center into a single inbox.
  */
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useInboxStore, useActiveThread, useActiveThreadArtifacts } from '@/lib/store/inbox-store';
 import { useUserRole } from '@/hooks/use-user-role';
@@ -83,44 +84,82 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
     }, [role, orgId, hydrateThreads, setLoading]);
 
     return (
-        <div className={cn('flex h-full w-full overflow-hidden bg-background', className)}>
+        <div className={cn(
+            'relative flex h-full w-full overflow-hidden',
+            'bg-gradient-to-br from-background via-background to-baked-950/10',
+            className
+        )}>
+            {/* Subtle animated background orbs for premium feel */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-baked-500/5 rounded-full blur-3xl" />
+                <div className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-baked-600/5 rounded-full blur-3xl" />
+            </div>
+
             {/* Sidebar - Thread list and quick actions */}
             <InboxSidebar
                 collapsed={isSidebarCollapsed}
                 className={cn(
-                    'border-r transition-all duration-300',
+                    'relative z-10 transition-all duration-300',
                     isSidebarCollapsed ? 'w-16' : 'w-80'
                 )}
             />
 
             {/* Main Content Area */}
-            <div className="flex flex-1 overflow-hidden">
+            <div className="relative z-10 flex flex-1 overflow-hidden">
                 {/* Conversation Area */}
                 <div className={cn(
                     'flex-1 flex flex-col overflow-hidden transition-all duration-300',
                     isArtifactPanelOpen && 'mr-0'
                 )}>
-                    {activeThread ? (
-                        <InboxConversation
-                            thread={activeThread}
-                            artifacts={activeArtifacts}
-                            className="flex-1"
-                        />
-                    ) : (
-                        <InboxEmptyState
-                            isLoading={isLoading}
-                            className="flex-1"
-                        />
-                    )}
+                    <AnimatePresence mode="wait">
+                        {activeThread ? (
+                            <motion.div
+                                key={activeThread.id}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="flex-1 flex flex-col overflow-hidden"
+                            >
+                                <InboxConversation
+                                    thread={activeThread}
+                                    artifacts={activeArtifacts}
+                                    className="flex-1"
+                                />
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="empty"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="flex-1"
+                            >
+                                <InboxEmptyState
+                                    isLoading={isLoading}
+                                    className="flex-1"
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
-                {/* Artifact Panel - Right side preview */}
-                {isArtifactPanelOpen && activeArtifacts.length > 0 && (
-                    <InboxArtifactPanel
-                        artifacts={activeArtifacts}
-                        className="w-[400px] border-l"
-                    />
-                )}
+                {/* Artifact Panel - Right side preview with slide animation */}
+                <AnimatePresence>
+                    {isArtifactPanelOpen && activeArtifacts.length > 0 && (
+                        <motion.div
+                            initial={{ x: 100, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: 100, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            className="w-[400px]"
+                        >
+                            <InboxArtifactPanel
+                                artifacts={activeArtifacts}
+                                className="h-full"
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );
