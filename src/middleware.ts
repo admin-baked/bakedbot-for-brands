@@ -91,8 +91,9 @@ export function middleware(request: NextRequest) {
     if (isCustomDomain && pathname === '/') {
         // For custom domains hitting root path, we need to look up the tenant
         // We can't use Firestore in Edge, so we call an internal API
-        // Pass hostname via query params (response.headers doesn't pass to rewritten request)
-        const resolveUrl = new URL('/api/domain/resolve', request.url);
+        // Use request.nextUrl.clone() - the proper Next.js pattern for middleware rewrites
+        const resolveUrl = request.nextUrl.clone();
+        resolveUrl.pathname = '/api/domain/resolve';
         resolveUrl.searchParams.set('hostname', hostname);
         resolveUrl.searchParams.set('originalPath', pathname);
         return NextResponse.rewrite(resolveUrl);
