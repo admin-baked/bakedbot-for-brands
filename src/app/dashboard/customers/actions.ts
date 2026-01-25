@@ -391,39 +391,41 @@ export async function addCustomerNote(customerId: string, note: string): Promise
 
 /**
  * Get AI-suggested customer segments
+ * References Craig (campaign manager) and Felicia (email specialist) agents
  */
 export async function getSuggestedSegments(brandId: string): Promise<SegmentSuggestion[]> {
     const data = await getCustomers(brandId);
     const stats = data.stats;
     const suggestions: SegmentSuggestion[] = [];
 
+    // Always show New Customer Nurture first if there are new customers
+    if (stats.newThisMonth > 0) {
+        suggestions.push({
+            name: 'New Customer Welcome',
+            description: 'Fresh signups ready for your welcome sequence',
+            filters: [{ field: 'segment', operator: 'equals', value: 'new' }],
+            estimatedCount: stats.newThisMonth,
+            reasoning: `Craig has automatically added these ${stats.newThisMonth} customers to your new customer welcome list. Felicia will now send personalized, segmented emails. Good stuff.`
+        });
+    }
+
     if (stats.atRiskCount > 3) {
         suggestions.push({
-            name: 'Win-Back Campaign Targets',
-            description: 'Customers who haven\'t ordered in 30+ days',
+            name: 'Win-Back Campaign',
+            description: 'Customers who haven\'t ordered recently',
             filters: [{ field: 'segment', operator: 'in', value: ['at_risk', 'slipping'] }],
             estimatedCount: stats.atRiskCount,
-            reasoning: `You have ${stats.atRiskCount} at-risk customers. A win-back campaign could recover lost revenue.`
+            reasoning: `Craig spotted ${stats.atRiskCount} customers slipping away. Felicia can send them a re-engagement sequence with a special offer.`
         });
     }
 
     if (stats.vipCount > 0) {
         suggestions.push({
             name: 'VIP Appreciation',
-            description: 'Your top customers deserving special treatment',
+            description: 'Your top customers deserving VIP treatment',
             filters: [{ field: 'segment', operator: 'equals', value: 'vip' }],
             estimatedCount: stats.vipCount,
-            reasoning: `These ${stats.vipCount} VIP customers drive significant revenue.`
-        });
-    }
-
-    if (stats.newThisMonth > 2) {
-        suggestions.push({
-            name: 'New Customer Nurture',
-            description: 'Recent signups who need onboarding',
-            filters: [{ field: 'segment', operator: 'equals', value: 'new' }],
-            estimatedCount: stats.newThisMonth,
-            reasoning: `${stats.newThisMonth} new customers this month. Early engagement increases retention.`
+            reasoning: `Craig flagged ${stats.vipCount} VIP customers for exclusive treatment. These high-spenders drive your revenue.`
         });
     }
 
