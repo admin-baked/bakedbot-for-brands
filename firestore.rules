@@ -464,6 +464,15 @@ service cloud.firestore {
       allow write: if false; // Server-side only
     }
 
+    // Tenant Creative Content (Creative Command Center)
+    match /tenants/{tenantId}/creative_content/{contentId} {
+      // Tenant members can read creative content
+      allow read: if isTenantMember(tenantId) || isRole('owner');
+      // Tenant admins can manage creative content
+      allow create, update: if isTenantAdmin(tenantId) || isRole('owner');
+      allow delete: if isTenantAdmin(tenantId) || isRole('owner');
+    }
+
     // --- Domain Mappings Collection ---
     match /domain_mappings/{domain} {
       // Allow authenticated users to read domain mappings (needed for some client lookups)

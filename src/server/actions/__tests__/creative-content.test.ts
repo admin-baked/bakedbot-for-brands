@@ -7,6 +7,7 @@ import {
     deleteContent,
     updateContentStatus,
     getContentByPlatform,
+    updateCaption,
 } from '../creative-content';
 import { createServerClient } from '@/firebase/server-client';
 import type { GenerateContentRequest } from '@/types/creative-content';
@@ -240,7 +241,12 @@ describe('Creative Content Server Actions', () => {
         it('updates status to revision and adds note', async () => {
             mockDoc.get.mockResolvedValue({
                 exists: true,
-                data: () => ({ revisionNotes: [] })
+                data: () => ({
+                    revisionNotes: [],
+                    caption: 'Original caption',
+                    platform: 'instagram',
+                    hashtags: ['#test']
+                })
             });
             mockDoc.update.mockResolvedValue(undefined);
 
@@ -251,6 +257,7 @@ describe('Creative Content Server Actions', () => {
                 note: 'Please adjust the tone'
             });
 
+            // First call sets status to revision
             expect(mockDoc.update).toHaveBeenCalledWith(
                 expect.objectContaining({
                     status: 'revision',
@@ -270,7 +277,10 @@ describe('Creative Content Server Actions', () => {
                 data: () => ({
                     revisionNotes: [
                         { note: 'Previous note', requestedBy: 'other-user', requestedAt: 1000 }
-                    ]
+                    ],
+                    caption: 'Original caption',
+                    platform: 'instagram',
+                    hashtags: []
                 })
             });
             mockDoc.update.mockResolvedValue(undefined);
@@ -284,6 +294,100 @@ describe('Creative Content Server Actions', () => {
 
             const updateCall = mockDoc.update.mock.calls[0][0];
             expect(updateCall.revisionNotes).toHaveLength(2);
+        });
+
+        it('triggers Craig AI to regenerate caption with revision notes', async () => {
+            const { generateSocialCaption } = await import('@/ai/flows/generate-social-caption');
+
+            mockDoc.get.mockResolvedValue({
+                exists: true,
+                data: () => ({
+                    revisionNotes: [],
+                    caption: 'Original caption about our product',
+                    platform: 'instagram',
+                    hashtags: ['#cannabis']
+                })
+            });
+            mockDoc.update.mockResolvedValue(undefined);
+
+            await requestRevision({
+                contentId: 'content-1',
+                tenantId: 'tenant-123',
+                requesterId: 'user-123',
+                note: 'Make it more casual and fun'
+            });
+
+            // Verify Craig AI was called with revision context
+            expect(generateSocialCaption).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    platform: 'instagram',
+                    prompt: expect.stringContaining('ORIGINAL CAPTION'),
+                    includeHashtags: true
+                })
+            );
+        });
+
+        it('updates caption to regenerated version and sets status back to pending', async () => {
+            mockDoc.get.mockResolvedValue({
+                exists: true,
+                data: () => ({
+                    revisionNotes: [],
+                    caption: 'Original caption',
+                    platform: 'instagram',
+                    hashtags: []
+                })
+            });
+            mockDoc.update.mockResolvedValue(undefined);
+
+            await requestRevision({
+                contentId: 'content-1',
+                tenantId: 'tenant-123',
+                requesterId: 'user-123',
+                note: 'Make it shorter'
+            });
+
+            // Second update should set new caption and status back to pending
+            const secondUpdate = mockDoc.update.mock.calls[1][0];
+            expect(secondUpdate.caption).toBe('Check out our latest product! Quality cannabis you can trust.');
+            expect(secondUpdate.status).toBe('pending');
+        });
+    });
+
+    describe('updateCaption', () => {
+        it('updates caption directly for inline editing', async () => {
+            mockDoc.get.mockResolvedValue({ exists: true });
+            mockDoc.update.mockResolvedValue(undefined);
+
+            await updateCaption('tenant-123', 'content-1', 'New edited caption');
+
+            expect(mockFirestore.doc).toHaveBeenCalledWith(
+                'tenants/tenant-123/creative_content/content-1'
+            );
+            expect(mockDoc.update).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    caption: 'New edited caption',
+                    updatedAt: expect.any(Number)
+                })
+            );
+        });
+
+        it('throws error when content not found', async () => {
+            mockDoc.get.mockResolvedValue({ exists: false });
+
+            await expect(
+                updateCaption('tenant-123', 'nonexistent', 'New caption')
+            ).rejects.toThrow('Content not found');
+        });
+
+        it('preserves other fields when updating caption', async () => {
+            mockDoc.get.mockResolvedValue({ exists: true });
+            mockDoc.update.mockResolvedValue(undefined);
+
+            await updateCaption('tenant-123', 'content-1', 'Updated caption text');
+
+            const updateCall = mockDoc.update.mock.calls[0][0];
+            // Should only update caption and updatedAt
+            expect(Object.keys(updateCall)).toEqual(['caption', 'updatedAt']);
         });
     });
 

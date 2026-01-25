@@ -31,7 +31,8 @@ import {
     approveContent,
     requestRevision,
     generateContent,
-    deleteContent
+    deleteContent,
+    updateCaption
 } from '@/server/actions/creative-content';
 
 interface UseCreativeContentOptions {
@@ -49,6 +50,7 @@ interface UseCreativeContentReturn {
     generate: (request: Omit<GenerateContentRequest, 'tenantId' | 'brandId'>) => Promise<CreativeContent | null>;
     approve: (contentId: string, scheduledAt?: string) => Promise<void>;
     revise: (contentId: string, note: string) => Promise<void>;
+    editCaption: (contentId: string, newCaption: string) => Promise<void>;
     remove: (contentId: string) => Promise<void>;
     refresh: () => void;
     // State
@@ -254,6 +256,29 @@ export function useCreativeContent(
         }
     }, [tenantId, user, realtime]);
 
+    // Edit caption directly
+    const editCaption = useCallback(async (contentId: string, newCaption: string): Promise<void> => {
+        if (!tenantId) {
+            setError('Missing tenant ID');
+            return;
+        }
+
+        setError(null);
+
+        try {
+            await updateCaption(tenantId, contentId, newCaption);
+
+            // If not using realtime, manually update state
+            if (!realtime) {
+                setContent(prev => prev.map(item =>
+                    item.id === contentId ? { ...item, caption: newCaption } : item
+                ));
+            }
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Failed to update caption');
+        }
+    }, [tenantId, realtime]);
+
     // Delete content
     const remove = useCallback(async (contentId: string): Promise<void> => {
         if (!tenantId) {
@@ -287,6 +312,7 @@ export function useCreativeContent(
         generate,
         approve,
         revise,
+        editCaption,
         remove,
         refresh,
         isGenerating,

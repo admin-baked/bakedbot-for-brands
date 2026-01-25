@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Send, Edit2, CheckCircle2, XCircle } from 'lucide-react';
+import { Send, Edit2, CheckCircle2, XCircle, Pencil, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
@@ -21,12 +21,15 @@ interface ContentQueueProps {
   items: ContentItem[];
   onApprove: (id: string) => void;
   onRevise: (id: string, note: string) => void;
+  onEditCaption?: (id: string, newCaption: string) => void;
 }
 
-export function ContentQueue({ items, onApprove, onRevise }: ContentQueueProps) {
+export function ContentQueue({ items, onApprove, onRevise, onEditCaption }: ContentQueueProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [revisionNote, setRevisionNote] = useState('');
   const [isRevising, setIsRevising] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedCaption, setEditedCaption] = useState('');
 
   // Simple mock handling for demo
   const currentItem = items[activeIndex];
@@ -50,6 +53,26 @@ export function ContentQueue({ items, onApprove, onRevise }: ContentQueueProps) 
         handleNext();
     }
   };
+
+  const handleStartEdit = () => {
+    if (currentItem) {
+        setEditedCaption(currentItem.caption);
+        setIsEditing(true);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (currentItem && editedCaption && onEditCaption) {
+        onEditCaption(currentItem.id, editedCaption);
+        setIsEditing(false);
+        setEditedCaption('');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditedCaption('');
+  };;
 
   if (!items.length) {
     return (
@@ -92,10 +115,48 @@ export function ContentQueue({ items, onApprove, onRevise }: ContentQueueProps) 
             <div className="flex-1 p-6 flex flex-col">
                 <div className="flex-1 space-y-4">
                     <div>
-                        <h4 className="font-semibold text-lg mb-1">Generated Caption</h4>
-                        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                            {currentItem.caption}
-                        </p>
+                        <div className="flex items-center justify-between mb-1">
+                            <h4 className="font-semibold text-lg">Generated Caption</h4>
+                            {!isEditing && !isRevising && onEditCaption && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleStartEdit}
+                                    className="gap-1 h-7 text-xs"
+                                >
+                                    <Pencil className="w-3 h-3" />
+                                    Edit
+                                </Button>
+                            )}
+                        </div>
+                        {isEditing ? (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="space-y-2"
+                            >
+                                <Textarea
+                                    value={editedCaption}
+                                    onChange={(e) => setEditedCaption(e.target.value)}
+                                    className="text-sm min-h-[100px]"
+                                    placeholder="Edit your caption..."
+                                />
+                                <div className="flex gap-2">
+                                    <Button size="sm" variant="ghost" onClick={handleCancelEdit} className="gap-1">
+                                        <X className="w-3 h-3" />
+                                        Cancel
+                                    </Button>
+                                    <Button size="sm" onClick={handleSaveEdit} className="gap-1">
+                                        <Save className="w-3 h-3" />
+                                        Save
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                                {currentItem.caption}
+                            </p>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
