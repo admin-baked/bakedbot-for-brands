@@ -38,6 +38,20 @@ function isServerActionMismatch(error: Error): boolean {
     );
 }
 
+/**
+ * Detects if an error is a Firestore SDK internal assertion failure
+ * These can occur due to network issues, browser extensions blocking requests,
+ * or rapid auth state changes. They're typically recoverable with a refresh.
+ */
+function isFirestoreAssertionError(error: Error): boolean {
+    const message = error.message || '';
+    return (
+        message.includes('INTERNAL ASSERTION FAILED') ||
+        message.includes('Unexpected state') ||
+        (message.includes('FIRESTORE') && message.includes('assertion'))
+    );
+}
+
 interface ErrorBoundaryProps {
     children: React.ReactNode;
     fallback?: React.ReactNode;
@@ -60,12 +74,13 @@ export class ErrorBoundary extends React.Component<
     }
 
     static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
-        const isDeploymentMismatch = isChunkLoadError(error) || isServerActionMismatch(error);
+        // Treat Firestore assertion errors like deployment mismatches - they're recoverable with refresh
+        const isDeploymentMismatch = isChunkLoadError(error) || isServerActionMismatch(error) || isFirestoreAssertionError(error);
         return { hasError: true, error, isDeploymentMismatch };
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        const isDeploymentMismatch = isChunkLoadError(error) || isServerActionMismatch(error);
+        const isDeploymentMismatch = isChunkLoadError(error) || isServerActionMismatch(error) || isFirestoreAssertionError(error);
 
         // Log error to monitoring service
         logger.error('Error boundary caught error:', { error, errorInfo, isDeploymentMismatch });
