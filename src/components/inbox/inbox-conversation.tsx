@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Send,
     Loader2,
@@ -18,6 +19,7 @@ import {
     Trash2,
     Edit2,
     Sparkles,
+    RefreshCw,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -40,31 +42,39 @@ import { getThreadTypeLabel, getThreadTypeIcon } from '@/types/inbox';
 import { InboxCarouselCard } from './artifacts/carousel-card';
 import { InboxBundleCard } from './artifacts/bundle-card';
 import { InboxCreativeCard } from './artifacts/creative-card';
+import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
 import { formatDistanceToNow } from 'date-fns';
 import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inbox';
+import { useJobPoller } from '@/hooks/use-job-poller';
 
 // ============ Agent Name Mapping ============
 
-const AGENT_NAMES: Record<InboxAgentPersona, { name: string; avatar: string }> = {
+const AGENT_NAMES: Record<InboxAgentPersona, {
+    name: string;
+    avatar: string;
+    color: string;
+    bgColor: string;
+    ringColor: string;
+}> = {
     // Field Agents
-    smokey: { name: 'Smokey', avatar: '🌿' },
-    money_mike: { name: 'Money Mike', avatar: '💰' },
-    craig: { name: 'Craig', avatar: '📣' },
-    ezal: { name: 'Ezal', avatar: '🔍' },
-    deebo: { name: 'Deebo', avatar: '🛡️' },
-    pops: { name: 'Pops', avatar: '📊' },
-    day_day: { name: 'Day Day', avatar: '📦' },
-    mrs_parker: { name: 'Mrs. Parker', avatar: '💜' },
-    big_worm: { name: 'Big Worm', avatar: '🐛' },
-    roach: { name: 'Roach', avatar: '📚' },
+    smokey: { name: 'Smokey', avatar: '🌿', color: 'text-emerald-500', bgColor: 'bg-emerald-500/10', ringColor: 'ring-emerald-500/50' },
+    money_mike: { name: 'Money Mike', avatar: '💰', color: 'text-amber-500', bgColor: 'bg-amber-500/10', ringColor: 'ring-amber-500/50' },
+    craig: { name: 'Craig', avatar: '📣', color: 'text-blue-500', bgColor: 'bg-blue-500/10', ringColor: 'ring-blue-500/50' },
+    ezal: { name: 'Ezal', avatar: '🔍', color: 'text-purple-500', bgColor: 'bg-purple-500/10', ringColor: 'ring-purple-500/50' },
+    deebo: { name: 'Deebo', avatar: '🛡️', color: 'text-red-500', bgColor: 'bg-red-500/10', ringColor: 'ring-red-500/50' },
+    pops: { name: 'Pops', avatar: '📊', color: 'text-orange-500', bgColor: 'bg-orange-500/10', ringColor: 'ring-orange-500/50' },
+    day_day: { name: 'Day Day', avatar: '📦', color: 'text-cyan-500', bgColor: 'bg-cyan-500/10', ringColor: 'ring-cyan-500/50' },
+    mrs_parker: { name: 'Mrs. Parker', avatar: '💜', color: 'text-pink-500', bgColor: 'bg-pink-500/10', ringColor: 'ring-pink-500/50' },
+    big_worm: { name: 'Big Worm', avatar: '🐛', color: 'text-indigo-500', bgColor: 'bg-indigo-500/10', ringColor: 'ring-indigo-500/50' },
+    roach: { name: 'Roach', avatar: '📚', color: 'text-teal-500', bgColor: 'bg-teal-500/10', ringColor: 'ring-teal-500/50' },
     // Executive Agents
-    leo: { name: 'Leo', avatar: '⚙️' },
-    jack: { name: 'Jack', avatar: '📈' },
-    linus: { name: 'Linus', avatar: '🖥️' },
-    glenda: { name: 'Glenda', avatar: '✨' },
-    mike: { name: 'Mike', avatar: '💵' },
+    leo: { name: 'Leo', avatar: '⚙️', color: 'text-slate-400', bgColor: 'bg-slate-500/10', ringColor: 'ring-slate-500/50' },
+    jack: { name: 'Jack', avatar: '📈', color: 'text-violet-500', bgColor: 'bg-violet-500/10', ringColor: 'ring-violet-500/50' },
+    linus: { name: 'Linus', avatar: '🖥️', color: 'text-sky-500', bgColor: 'bg-sky-500/10', ringColor: 'ring-sky-500/50' },
+    glenda: { name: 'Glenda', avatar: '✨', color: 'text-rose-500', bgColor: 'bg-rose-500/10', ringColor: 'ring-rose-500/50' },
+    mike: { name: 'Mike', avatar: '💵', color: 'text-lime-500', bgColor: 'bg-lime-500/10', ringColor: 'ring-lime-500/50' },
     // Auto-routing
-    auto: { name: 'Assistant', avatar: '🤖' },
+    auto: { name: 'Assistant', avatar: '🤖', color: 'text-primary', bgColor: 'bg-primary/10', ringColor: 'ring-primary/50' },
 };
 
 // ============ Props ============
@@ -95,22 +105,29 @@ function MessageBubble({
     );
 
     return (
-        <div className={cn('flex gap-3 py-4', isUser && 'flex-row-reverse')}>
-            {/* Avatar */}
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn('flex gap-3 py-4', isUser && 'flex-row-reverse')}
+        >
+            {/* Avatar with colored ring */}
             <div
                 className={cn(
-                    'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm',
-                    isUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                    'flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-sm',
+                    'ring-2 ring-offset-2 ring-offset-background transition-all duration-200',
+                    isUser
+                        ? 'bg-primary text-primary-foreground ring-primary/50'
+                        : cn(agent.bgColor, agent.ringColor)
                 )}
             >
-                {isUser ? <User className="h-4 w-4" /> : agent.avatar}
+                {isUser ? <User className="h-4 w-4" /> : <span className="text-base">{agent.avatar}</span>}
             </div>
 
             {/* Content */}
             <div className={cn('flex-1 max-w-[80%]', isUser && 'text-right')}>
                 {/* Header */}
                 <div className={cn('flex items-center gap-2 mb-1', isUser && 'flex-row-reverse')}>
-                    <span className="text-sm font-medium">
+                    <span className={cn('text-sm font-medium', !isUser && agent.color)}>
                         {isUser ? 'You' : agent.name}
                     </span>
                     <span className="text-xs text-muted-foreground">
@@ -150,7 +167,7 @@ function MessageBubble({
                     </div>
                 )}
             </div>
-        </div>
+        </motion.div>
     );
 }
 
@@ -176,20 +193,25 @@ function ThreadHeader({ thread }: { thread: InboxThread }) {
     const agent = AGENT_NAMES[thread.primaryAgent] || AGENT_NAMES.auto;
 
     return (
-        <div className="flex items-center justify-between px-4 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
             <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-muted">
-                    <span className="text-lg">{agent.avatar}</span>
+                {/* Agent Avatar with colored ring */}
+                <div className={cn(
+                    'p-2 rounded-xl ring-2 ring-offset-2 ring-offset-background',
+                    agent.bgColor,
+                    agent.ringColor
+                )}>
+                    <span className="text-xl">{agent.avatar}</span>
                 </div>
                 <div>
                     <h2 className="font-semibold">{thread.title}</h2>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Badge variant="outline" className="h-5 px-1.5">
+                        <Badge variant="outline" className="h-5 px-1.5 border-white/10">
                             {getThreadTypeLabel(thread.type)}
                         </Badge>
-                        <span>with {agent.name}</span>
+                        <span>with <span className={agent.color}>{agent.name}</span></span>
                         {thread.status === 'draft' && (
-                            <Badge variant="secondary" className="h-5 px-1.5 bg-yellow-100 text-yellow-700">
+                            <Badge variant="secondary" className="h-5 px-1.5 bg-amber-500/10 text-amber-500 border-amber-500/20">
                                 Has Drafts
                             </Badge>
                         )}
@@ -406,12 +428,22 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                         ))
                     )}
 
-                    {isSubmitting && (
-                        <div className="flex items-center gap-2 py-4 text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            <span className="text-sm">Agent is thinking...</span>
-                        </div>
-                    )}
+                    {/* TaskFeed with Agent Pulse - shown while agent is thinking */}
+                    <AnimatePresence>
+                        {isSubmitting && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="py-4"
+                            >
+                                <InboxTaskFeed
+                                    agentPersona={thread.primaryAgent}
+                                    isRunning={isSubmitting}
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </ScrollArea>
 

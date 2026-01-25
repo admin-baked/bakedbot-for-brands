@@ -151,9 +151,9 @@ function ThreadListItem({
         <button
             onClick={() => setActiveThread(thread.id)}
             className={cn(
-                'w-full p-3 text-left rounded-lg transition-colors',
-                'hover:bg-muted/50',
-                isActive && 'bg-muted'
+                'w-full p-3 text-left rounded-lg transition-all duration-200',
+                'hover:bg-white/5 hover:backdrop-blur-sm',
+                isActive && 'bg-white/10 backdrop-blur-sm border border-white/10 shadow-sm'
             )}
         >
             <div className="flex items-start gap-3">
@@ -307,13 +307,21 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
     const archivedThreads = threads.filter((t) => t.status === 'archived' || t.status === 'completed');
 
     return (
-        <div className={cn('flex flex-col h-full bg-background', className)}>
+        <div className={cn(
+            'flex flex-col h-full',
+            'bg-sidebar/80 backdrop-blur-xl',
+            'border-r border-white/5',
+            'supports-[backdrop-filter]:bg-sidebar/60',
+            className
+        )}>
             {/* Header */}
-            <div className="p-4 border-b">
+            <div className="p-4 border-b border-white/5">
                 <div className="flex items-center justify-between">
                     {!collapsed && (
                         <div className="flex items-center gap-2">
-                            <InboxIcon className="h-5 w-5 text-primary" />
+                            <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                                <InboxIcon className="h-4 w-4" />
+                            </div>
                             <h2 className="font-semibold">Inbox</h2>
                         </div>
                     )}
@@ -333,7 +341,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
             </div>
 
             {/* Quick Actions */}
-            <div className={cn('p-3 border-b', collapsed && 'flex flex-col items-center gap-2')}>
+            <div className={cn('p-3 border-b border-white/5', collapsed && 'flex flex-col items-center gap-2')}>
                 {collapsed ? (
                     <>
                         <Button
@@ -364,7 +372,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
 
             {/* Search and Filter */}
             {!collapsed && (
-                <div className="p-3 border-b flex items-center gap-2">
+                <div className="p-3 border-b border-white/5 flex items-center gap-2">
                     <div className="relative flex-1">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                         <Input

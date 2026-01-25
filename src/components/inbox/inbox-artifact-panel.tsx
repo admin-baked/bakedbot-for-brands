@@ -6,18 +6,21 @@
  * Right-side panel for viewing and managing inbox artifacts in detail.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     X,
     Images,
     PackagePlus,
     Palette,
-    Check,
+    CheckCircle2,
     Trash2,
     Edit2,
     ExternalLink,
     ChevronLeft,
     ChevronRight,
+    Loader2,
+    Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -30,6 +33,7 @@ import type { Carousel } from '@/types/carousels';
 import type { BundleDeal } from '@/types/bundles';
 import type { CreativeContent } from '@/types/creative-content';
 import { approveAndPublishArtifact, deleteInboxArtifact } from '@/server/actions/inbox';
+import { ArtifactPipelineBar } from './artifact-pipeline-bar';
 
 // ============ Props ============
 
@@ -273,15 +277,25 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
 
     const Icon = selectedArtifact ? TYPE_ICONS[selectedArtifact.type] || Images : Images;
 
+    const [isApproving, setIsApproving] = useState(false);
+
     return (
-        <div className={cn('flex flex-col h-full bg-background', className)}>
+        <div className={cn(
+            'flex flex-col h-full',
+            'bg-sidebar/80 backdrop-blur-xl',
+            'border-l border-white/5',
+            'supports-[backdrop-filter]:bg-sidebar/60',
+            className
+        )}>
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b">
+            <div className="flex items-center justify-between p-4 border-b border-white/5">
                 <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4 text-primary" />
+                    <div className="p-1.5 rounded-lg bg-primary/10">
+                        <Icon className="h-4 w-4 text-primary" />
+                    </div>
                     <span className="font-medium">Artifact Details</span>
                     {artifacts.length > 1 && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-xs bg-white/10 border-white/10">
                             {currentIndex + 1} of {artifacts.length}
                         </Badge>
                     )}
@@ -325,24 +339,25 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                 <div className="p-4">
                     {selectedArtifact ? (
                         <>
-                            {/* Status Badge */}
-                            <div className="flex items-center gap-2 mb-4">
-                                <Badge
-                                    variant="outline"
-                                    className={cn(
-                                        selectedArtifact.status === 'draft' && 'bg-yellow-100 text-yellow-700',
-                                        selectedArtifact.status === 'published' && 'bg-green-100 text-green-700',
-                                        selectedArtifact.status === 'rejected' && 'bg-red-100 text-red-700'
-                                    )}
-                                >
-                                    {selectedArtifact.status.replace('_', ' ')}
-                                </Badge>
-                            </div>
+                            {/* HitL Pipeline Bar */}
+                            <ArtifactPipelineBar
+                                currentStatus={selectedArtifact.status}
+                                className="mb-4"
+                            />
 
                             {/* Type-specific detail view */}
-                            {selectedArtifact.type === 'carousel' && <CarouselDetail artifact={selectedArtifact} />}
-                            {selectedArtifact.type === 'bundle' && <BundleDetail artifact={selectedArtifact} />}
-                            {selectedArtifact.type === 'creative_content' && <CreativeDetail artifact={selectedArtifact} />}
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={selectedArtifact.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                >
+                                    {selectedArtifact.type === 'carousel' && <CarouselDetail artifact={selectedArtifact} />}
+                                    {selectedArtifact.type === 'bundle' && <BundleDetail artifact={selectedArtifact} />}
+                                    {selectedArtifact.type === 'creative_content' && <CreativeDetail artifact={selectedArtifact} />}
+                                </motion.div>
+                            </AnimatePresence>
                         </>
                     ) : (
                         <div className="text-center py-8 text-muted-foreground">
@@ -353,21 +368,59 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                 </div>
             </ScrollArea>
 
-            {/* Actions */}
+            {/* Actions - HitL Approval Workflow */}
             {selectedArtifact && selectedArtifact.status !== 'published' && (
-                <div className="p-4 border-t space-y-2">
-                    {selectedArtifact.status === 'draft' && (
-                        <Button className="w-full" onClick={handleApprove}>
-                            <Check className="h-4 w-4 mr-2" />
-                            Approve & Publish
-                        </Button>
+                <div className="p-4 border-t border-white/5 space-y-3">
+                    {/* Primary Approve Button - Green Check Emphasized */}
+                    {(selectedArtifact.status === 'draft' || selectedArtifact.status === 'pending_review') && (
+                        <motion.div
+                            initial={{ scale: 0.98 }}
+                            animate={{ scale: 1 }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            <Button
+                                className={cn(
+                                    'w-full gap-2 font-semibold h-11',
+                                    'bg-gradient-to-r from-baked-600 to-baked-500',
+                                    'hover:from-baked-500 hover:to-baked-400',
+                                    'text-white shadow-lg shadow-baked-500/25',
+                                    'transition-all duration-200'
+                                )}
+                                onClick={async () => {
+                                    setIsApproving(true);
+                                    await handleApprove();
+                                    setIsApproving(false);
+                                }}
+                                disabled={isApproving}
+                            >
+                                {isApproving ? (
+                                    <>
+                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                        Publishing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle2 className="h-5 w-5" />
+                                        Approve & Publish
+                                    </>
+                                )}
+                            </Button>
+                        </motion.div>
                     )}
+
+                    {/* Secondary Actions */}
                     <div className="flex gap-2">
-                        <Button variant="outline" className="flex-1">
+                        <Button variant="outline" className="flex-1 border-white/10 hover:bg-white/5">
                             <Edit2 className="h-4 w-4 mr-2" />
                             Edit
                         </Button>
-                        <Button variant="destructive" size="icon" onClick={handleDelete}>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="border-red-500/20 text-red-500 hover:bg-red-500/10 hover:text-red-400"
+                            onClick={handleDelete}
+                        >
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     </div>
