@@ -892,9 +892,16 @@ export async function runInboxAgentChat(
             message: agentMessage,
             artifacts: createdArtifacts,
         };
-    } catch (error) {
-        logger.error('Failed to run inbox agent chat', { error, threadId });
-        return { success: false, error: 'Failed to run agent chat' };
+    } catch (error: any) {
+        logger.error('Failed to run inbox agent chat', { error: error?.message || error, threadId });
+        // Return more specific error message for debugging
+        const errorMessage = error?.message || 'Failed to run agent chat';
+        return {
+            success: false,
+            error: errorMessage.includes('Unauthorized') || errorMessage.includes('session')
+                ? 'Session expired. Please refresh and log in again.'
+                : errorMessage
+        };
     }
 }
 
