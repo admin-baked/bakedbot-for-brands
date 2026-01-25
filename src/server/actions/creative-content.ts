@@ -29,7 +29,22 @@ const COLLECTION = 'creative_content';
  * Get all pending content items for approval
  */
 export async function getPendingContent(tenantId: string): Promise<CreativeContent[]> {
-    await requireUser();
+    // Validate tenantId - return empty if not provided
+    if (!tenantId) {
+        logger.warn('[creative-content] getPendingContent called with empty tenantId');
+        return [];
+    }
+
+    try {
+        await requireUser();
+    } catch (authError: any) {
+        // Return empty array on auth errors - let client handle re-auth
+        logger.warn('[creative-content] Auth error in getPendingContent', {
+            error: authError.message
+        });
+        return [];
+    }
+
     const { firestore } = await createServerClient();
 
     try {
@@ -48,15 +63,27 @@ export async function getPendingContent(tenantId: string): Promise<CreativeConte
         logger.error('[creative-content] Failed to get pending content', {
             tenantId,
             error: error.message,
-            code: error.code,
-            stack: error.stack
+            code: error.code
         });
 
-        // Check for common Firestore-on-server errors (like missing index)
-        if (error.message?.includes('index')) {
-            throw new Error(`Creative feed requires a Firestore index. Please check server logs for the generation link.`);
+        // Return empty array on common non-critical errors:
+        // - Missing collection (new tenant, no content yet)
+        // - Missing index (needs to be created but shouldn't block UI)
+        // - Permission denied (security rules blocking access)
+        const nonCriticalCodes = ['not-found', 'permission-denied', 'failed-precondition'];
+        const isIndexError = error.message?.includes('index');
+        const isNonCritical = nonCriticalCodes.includes(error.code) || isIndexError;
+
+        if (isNonCritical) {
+            if (isIndexError) {
+                logger.warn('[creative-content] Missing Firestore index - check console for creation link', {
+                    tenantId
+                });
+            }
+            return [];
         }
 
+        // Only throw on truly unexpected errors
         throw new Error(`Failed to load creative content: ${error.message}`);
     }
 }
@@ -336,7 +363,17 @@ export async function getContentByPlatform(
     platform: SocialPlatform,
     limit: number = 20
 ): Promise<CreativeContent[]> {
-    await requireUser();
+    // Validate tenantId - return empty if not provided
+    if (!tenantId) {
+        return [];
+    }
+
+    try {
+        await requireUser();
+    } catch {
+        return [];
+    }
+
     const { firestore } = await createServerClient();
 
     try {
@@ -351,12 +388,19 @@ export async function getContentByPlatform(
             id: doc.id,
             ...doc.data()
         } as CreativeContent));
-    } catch (error) {
+    } catch (error: any) {
         logger.error('[creative-content] Failed to get platform content', {
             tenantId,
             platform,
-            error
+            error: error.message
         });
+
+        // Return empty on non-critical errors (missing index, collection, permissions)
+        const nonCriticalCodes = ['not-found', 'permission-denied', 'failed-precondition'];
+        if (nonCriticalCodes.includes(error.code) || error.message?.includes('index')) {
+            return [];
+        }
+
         throw error;
     }
 }
