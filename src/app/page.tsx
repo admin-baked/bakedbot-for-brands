@@ -25,7 +25,7 @@ function AuthButtons() {
   return (
     <div className="flex gap-2">
       <Button variant="ghost" asChild className="hidden sm:inline-flex rounded-xl" size="sm">
-        <a href="/login">Login</a>
+        <a href="/signin">Login</a>
       </Button>
       <Button asChild className="rounded-xl shadow-sm" size="sm">
         <a href="/get-started">Get Started</a>
