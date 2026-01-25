@@ -94,15 +94,28 @@ export function usePlanInfo() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        let isMounted = true;
+
         async function fetchPlanInfo() {
             if (!user || !firestore) {
-                setIsLoading(false);
+                if (isMounted) setIsLoading(false);
                 return;
             }
 
             try {
                 // First try user document
-                const userDoc = await getDoc(doc(firestore, 'users', user.uid));
+                let userDoc;
+                try {
+                    userDoc = await getDoc(doc(firestore, 'users', user.uid));
+                } catch (firestoreError) {
+                    // Firestore SDK error (blocked, assertion failure, etc.)
+                    console.warn('[usePlanInfo] Firestore error fetching user doc, using defaults:', firestoreError);
+                    if (isMounted) {
+                        setPlanInfo(DEFAULT_PLAN);
+                        setIsLoading(false);
+                    }
+                    return;
+                }
                 const userData = userDoc.data();
 
                 // Unlock all features for Super Admins and Owners
@@ -151,14 +164,18 @@ export function usePlanInfo() {
                     features
                 });
             } catch (error) {
-                console.error('Error fetching plan info:', error);
-                setPlanInfo(DEFAULT_PLAN);
+                console.warn('[usePlanInfo] Error fetching plan info, using defaults:', error);
+                if (isMounted) setPlanInfo(DEFAULT_PLAN);
             } finally {
-                setIsLoading(false);
+                if (isMounted) setIsLoading(false);
             }
         }
 
         fetchPlanInfo();
+
+        return () => {
+            isMounted = false;
+        };
     }, [user, firestore]);
 
     return {

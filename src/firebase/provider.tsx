@@ -51,9 +51,29 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
             try {
               idTokenResult = await getIdTokenResult(user, false);
             } catch (refreshError: any) {
-              // If first attempt fails, try without cache
-              console.warn('Token refresh failed, using cached token:', refreshError.code);
-              idTokenResult = await getIdTokenResult(user, false);
+              // Token refresh failed - this can happen with invalid/expired tokens
+              // or when the token service returns 400
+              const errorCode = refreshError?.code || '';
+              const errorMessage = refreshError?.message || '';
+
+              // Handle invalid token errors gracefully - treat as signed out
+              if (errorCode === 'auth/invalid-user-token' ||
+                  errorCode === 'auth/user-token-expired' ||
+                  errorCode === 'auth/user-disabled' ||
+                  errorMessage.includes('400') ||
+                  errorMessage.includes('INVALID_REFRESH_TOKEN') ||
+                  errorMessage.includes('TOKEN_EXPIRED')) {
+                console.warn('[FirebaseProvider] Invalid token, clearing user state:', errorCode || errorMessage);
+                setUser(null);
+                setIsUserLoading(false);
+                return;
+              }
+
+              // For other transient errors, log but don't block - use user without claims
+              console.warn('[FirebaseProvider] Token refresh failed, using basic user:', errorCode);
+              setUser(user as any);
+              setIsUserLoading(false);
+              return;
             }
 
             const claims = idTokenResult.claims;
@@ -70,9 +90,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
             setUser(null);
           }
         } catch (error: any) {
-          // Don't set error for transient auth issues - just log them
-          if (error.code === 'auth/internal-error') {
-            console.warn('Transient auth error, user may still be usable:', error.code);
+          // Don't set error for transient auth issues - just log them and clear user
+          const errorCode = error?.code || '';
+          if (errorCode === 'auth/internal-error' ||
+              errorCode === 'auth/network-request-failed') {
+            console.warn('[FirebaseProvider] Transient auth error, clearing user:', errorCode);
+            setUser(null);
           } else {
             logger.error('Error getting ID token result:', error instanceof Error ? error : new Error(String(error)));
             setUserError(error instanceof Error ? error : new Error('An unknown authentication error occurred.'));
@@ -81,9 +104,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
           setIsUserLoading(false);
         }
       },
-      (error) => {
-        logger.error('Authentication state error:', error instanceof Error ? error : new Error(String(error)));
-        setUserError(error);
+      (error: any) => {
+        // Auth state listener error - log but don't crash
+        console.warn('[FirebaseProvider] Auth state listener error:', error?.code || error?.message);
+        setUser(null);
         setIsUserLoading(false);
       }
     );
