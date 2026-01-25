@@ -146,7 +146,18 @@
       "Bash(node scripts/find-customers-v2.js:*)",
       "Bash(node scripts/find-all-customers.js:*)",
       "Bash(node scripts/migrate-ecstatic-customers-v2.js:*)",
-      "Bash(node scripts/add-launch-party-tags.js:*)"
+      "Bash(node scripts/add-launch-party-tags.js:*)",
+      "Bash(gcloud run services list:*)",
+      "Bash(where gcloud)",
+      "Bash(\"C:\\\\Users\\\\admin\\\\AppData\\\\Local\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd\" run services list --platform managed --format=\"table\\(name,region,status.url\\)\")",
+      "Bash(\"C:\\\\Users\\\\admin\\\\AppData\\\\Local\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd\" config list project)",
+      "WebFetch(domain:github.com)",
+      "Bash(\"C:\\\\Users\\\\admin\\\\AppData\\\\Local\\\\Google\\\\Cloud SDK\\\\google-cloud-sdk\\\\bin\\\\gcloud.cmd\" auth print-access-token)",
+      "Bash(cd:*)",
+      "Bash(set:*)",
+      "Bash($env:PYTHON_SIDECAR_URL=\"https://bigworm-sidecar-1016399212569.us-central1.run.app\")",
+      "Bash(PYTHON_SIDECAR_URL=https://bigworm-sidecar-1016399212569.us-central1.run.app npx tsx:*)",
+      "Bash(gcloud config get-value:*)"
     ],
     "deny": [],
     "ask": []

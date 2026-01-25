@@ -18,6 +18,28 @@ Sign-up flow is now unblocked for local development and covered by tests.
 
 ---
 
+## Session: 2026-01-25 (NotebookLM MCP Integration & Remote Sidecar)
+### Task ID
+notebooklm_mcp_integration
+
+### Summary
+Integrated Google NotebookLM via the Model Context Protocol (MCP) using a Remote Sidecar architecture. Refactored the local CLI-based Python sidecar into a robust FastAPI-based HTTP service (Big Worm Sidecar) suitable for deployment on Cloud Run. This architecture solves local Python environment gaps and provides 24/7 strategic intelligence for agents.
+
+### Key Changes
+*   **CORE**: `src/server/services/mcp/client.ts` - Implemented `RemoteMcpClient` to support HTTP-to-MCP bridging and auto-registered the `notebooklm` server.
+*   **REFACTOR**: `src/server/services/python-sidecar.ts` - Refactored from local `spawn` to remote `fetch` POST requests, wired to `PYTHON_SIDECAR_URL`.
+*   **NEW**: `python-sidecar/main.py` - Added `/mcp/call` endpoint and Pydantic request models to support MCP tool execution over HTTP.
+*   **TEST**: Updated `python-sidecar.test.ts` and `mcp/client.test.ts` to cover the new HTTP-based remote architecture.
+*   **DOCS**: Created `implementation_plan.md` and `walkthrough.md` with GCloud deployment instructions.
+
+### Tests Run
+*   `npm test tests/server/services/python-sidecar.test.ts tests/server/services/mcp/client.test.ts` (9/9 Passed ✅)
+
+### Result: ✅ Complete & Pushed to Main
+NotebookLM is live in the codebase and ready for deployment to Cloud Run.
+
+---
+
 ## Session: 2026-01-25 (Local Auth Bypass & D2C Checkout Refinement)
 ### Task ID
 local_auth_bypass_d2c_refinement
