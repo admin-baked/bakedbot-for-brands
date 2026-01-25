@@ -305,11 +305,10 @@ export async function importCustomers(
                         continue;
                     }
 
-                    // Check if customer exists
+                    // Check if customer exists in top-level customers collection
                     const existingQuery = await db
-                        .collection('organizations')
-                        .doc(orgId)
                         .collection('customers')
+                        .where('orgId', '==', orgId)
                         .where('email', '==', customer.email)
                         .limit(1)
                         .get();
@@ -324,10 +323,8 @@ export async function importCustomers(
                         batch.update(existingDoc.ref, mergedData);
                         updated++;
                     } else {
-                        // Create new customer
+                        // Create new customer in top-level customers collection
                         const newRef = db
-                            .collection('organizations')
-                            .doc(orgId)
                             .collection('customers')
                             .doc();
 
@@ -365,19 +362,25 @@ export async function importCustomers(
             });
         }
 
-        // Log activity
-        await db.collection('organizations').doc(orgId).collection('activities').add({
-            type: 'customer_import',
-            description: `Imported ${imported} new customers, updated ${updated}`,
-            metadata: {
-                totalRows: rows.length,
-                imported,
-                updated,
-                skipped,
-                errorCount: errors.length
-            },
-            createdAt: new Date()
-        });
+        // Log activity (try both potential activity collection locations)
+        try {
+            await db.collection('activities').add({
+                type: 'customer_import',
+                orgId,
+                description: `Imported ${imported} new customers, updated ${updated}`,
+                metadata: {
+                    totalRows: rows.length,
+                    imported,
+                    updated,
+                    skipped,
+                    errorCount: errors.length
+                },
+                createdAt: new Date()
+            });
+        } catch (activityError) {
+            // Activity logging is non-critical, don't fail the import
+            logger.warn('[CustomerImport] Could not log activity:', { error: activityError });
+        }
 
         return {
             success: errors.length === 0,
