@@ -18,7 +18,7 @@ import { getCorsHeaders, CORS_PREFLIGHT_HEADERS, isOriginAllowed } from './lib/c
  * Note: CSRF validation is handled in API routes using the csrf middleware
  * because Edge runtime doesn't support the 'crypto' module needed for validation.
  */
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const origin = request.headers.get('origin');
     // Use x-forwarded-host in cloud environments (Firebase/Cloud Run), fall back to host
@@ -91,19 +91,34 @@ export function middleware(request: NextRequest) {
     if (isCustomDomain && pathname === '/') {
         // For custom domains hitting root path, we need to look up the tenant
         // We can't use Firestore in Edge, so we call an internal API
-        // Pass details via headers to ensure they persist through the rewrite/proxy
-        const requestHeaders = new Headers(request.headers);
-        requestHeaders.set('x-resolve-hostname', hostname);
-        requestHeaders.set('x-resolve-path', pathname);
+        try {
+            const protocol = request.headers.get('x-forwarded-proto') || 'https';
+            const internalHost = request.headers.get('host') || hostname;
+            const resolveUrl = `${protocol}://${internalHost}/api/domain/resolve`;
 
-        const resolveUrl = request.nextUrl.clone();
-        resolveUrl.pathname = '/api/domain/resolve';
+            const resolveResponse = await fetch(resolveUrl, {
+                headers: {
+                    'x-resolve-hostname': hostname,
+                    'x-resolve-path': pathname,
+                },
+            });
 
-        return NextResponse.rewrite(resolveUrl, {
-            request: {
-                headers: requestHeaders,
+            if (resolveResponse.ok) {
+                const data = await resolveResponse.json();
+                if (data.success && data.path) {
+                    // Rewrite to the resolved path
+                    const url = request.nextUrl.clone();
+                    url.pathname = data.path;
+                    return NextResponse.rewrite(url);
+                }
             }
-        });
+
+            // If resolution failed, redirect to 404
+            return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
+        } catch (error) {
+            console.error('[Middleware] Custom domain resolution failed:', error);
+            return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
+        }
     }
 
     // For custom domains on other paths, pass through with hostname header
