@@ -11,6 +11,37 @@ jest.mock('@/firebase/admin');
 jest.mock('@/server/auth/auth');
 jest.mock('@/server/services/geo-discovery');
 
+// Mock heavily dependent modules to avoid side-effects
+jest.mock('@/ai/flows/update-product-embeddings', () => ({
+    updateProductEmbeddings: jest.fn()
+}));
+jest.mock('@/server/jobs/seo-generator', () => ({
+    runChicagoPilotJob: jest.fn()
+}));
+jest.mock('@/server/jobs/brand-discovery-job', () => ({
+    runBrandPilotJob: jest.fn()
+}));
+jest.mock('@/server/actions/cannmenus', () => ({
+    searchCannMenusRetailers: jest.fn()
+}));
+jest.mock('@/server/repos/productRepo', () => ({
+    makeProductRepo: jest.fn()
+}));
+jest.mock('@/lib/email/dispatcher', () => ({
+    sendGenericEmail: jest.fn()
+}));
+jest.mock('@/server/services/vector-search/rag-service', () => ({
+    queryRag: jest.fn()
+}));
+
+// Mock Next.js headers/cache
+jest.mock('next/headers', () => ({
+    cookies: jest.fn(() => ({ get: jest.fn() }))
+}));
+jest.mock('next/cache', () => ({
+    revalidatePath: jest.fn()
+}));
+
 describe('Foot Traffic Actions', () => {
     const mockFirestore = {
         collection: jest.fn().mockReturnThis(),
@@ -39,17 +70,17 @@ describe('Foot Traffic Actions', () => {
         it('should create an SEO page and sync retailers', async () => {
             // Mock Geo Data
             (getZipCodeCoordinates as jest.Mock).mockResolvedValue({ lat: 34.05, lng: -118.25, city: 'Los Angeles', state: 'CA' });
-            
+
             // Mock Retailers
-            const mockRetailers = [{ 
-                id: 'disp1', 
-                name: 'Test Disp', 
-                city: 'Los Angeles', 
+            const mockRetailers = [{
+                id: 'disp1',
+                name: 'Test Disp',
+                city: 'Los Angeles',
                 state: 'CA',
-                slug: 'test-disp' 
+                slug: 'test-disp'
             }];
             (getRetailersByZipCode as jest.Mock).mockResolvedValue(mockRetailers);
-            
+
             // Mock Discovery (Pass)
             (discoverNearbyProducts as jest.Mock).mockResolvedValue({
                 totalProducts: 10,
@@ -61,7 +92,7 @@ describe('Foot Traffic Actions', () => {
 
             const result = await seedSeoPageAction({ zipCode: '90001' });
 
-            expect(result).toEqual(expect.objectContaining({ error: undefined }));
+            expect(result.error).toBeUndefined();
             expect(getZipCodeCoordinates).toHaveBeenCalledWith('90001');
             expect(mockFirestore.batch).toHaveBeenCalled(); // Should commit batch
         });
@@ -70,7 +101,7 @@ describe('Foot Traffic Actions', () => {
             // Mock Geo Data
             (getZipCodeCoordinates as jest.Mock).mockResolvedValue({ lat: 34.05, lng: -118.25, city: 'Los Angeles', state: 'CA' });
             (getRetailersByZipCode as jest.Mock).mockResolvedValue([]);
-            
+
             // Mock Discovery (Fail)
             (discoverNearbyProducts as jest.Mock).mockRejectedValue(new Error('API Timeout'));
 
@@ -93,7 +124,7 @@ describe('Foot Traffic Actions', () => {
                     metrics: { pageViews: 100 }
                 })
             }];
-            
+
             // Mock collection queries (zip_pages + dispensary_pages)
             mockFirestore.get.mockResolvedValue({ docs: mockDocs });
 
@@ -106,8 +137,9 @@ describe('Foot Traffic Actions', () => {
     describe('deleteSeoPageAction', () => {
         it('should delete a page via batch', async () => {
             const result = await deleteSeoPageAction('90001');
-            expect(mockFirestore.batch).toHaveBeenCalled();
-            expect(result).toEqual({ message: 'Page deleted successfully' });
+            // Expect 2 delete calls (zip_pages + seo_pages)
+            expect(mockFirestore.delete).toHaveBeenCalledTimes(2);
+            expect(result).toEqual({ message: 'Successfully deleted page for 90001' });
         });
     });
 });

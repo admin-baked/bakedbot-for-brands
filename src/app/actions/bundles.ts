@@ -170,7 +170,11 @@ export async function getActiveBundles(orgId: string): Promise<BundleDeal[]> {
                 endDate: toISOString(data.endDate),
             };
         }) as unknown as BundleDeal[];
-    } catch (error) {
+    } catch (error: any) {
+        if (error?.code === 16 || error?.message?.includes('UNAUTHENTICATED')) {
+            // console.warn('[Bundles] Skipped due to missing credentials (local dev)');
+            return [];
+        }
         console.error('Error fetching active bundles:', error);
         return [];
     }

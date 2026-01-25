@@ -34,8 +34,12 @@ export async function getPlatformStats(): Promise<PlatformStats> {
             pages: totalPages
         };
 
-    } catch (error) {
-        console.error('Error fetching platform stats:', error);
+    } catch (error: any) {
+        if (error?.code === 16 || error?.message?.includes('UNAUTHENTICATED')) {
+            console.warn('[PlatformStats] Skipped due to missing credentials (local dev)');
+        } else {
+            console.error('Error fetching platform stats:', error);
+        }
         // Return zeros on error to prevent UI crash
         return { dispensaries: 0, brands: 0, pages: 0 };
     }

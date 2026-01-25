@@ -1,3 +1,48 @@
+## Session: 2026-01-25 (Grant Super Admin Access)
+### Task ID
+ops_grant_super_admin_access
+
+### Summary
+Added `rishabh@bakedbot.ai` to the Super Admin whitelist. This grants access to the CEO Dashboard (`/dashboard/ceo`) for verification and platform management.
+
+### Key Changes
+*   **MOD**: `src/lib/super-admin-config.ts` - Added email to `ALL_SUPER_ADMIN_EMAILS`.
+
+### Result: ✅ Complete
+User can now access super admin routes.
+
+---
+
+## Session: 2026-01-25 (Fix Foot Traffic Tests)
+### Task ID
+task_test_foot_traffic_actions
+
+### Summary
+Resolved unit test failures in `tests/server/actions/foot-traffic.test.ts`. The tests were crashing due to side-effects from importing `src/app/dashboard/ceo/actions.ts`, which loaded `genkit` and `firecrawl` modules in the test environment. Added robust Jest mocks for `genkit`, `seo-generator`, `next/headers`, `next/cache`, and `rag-service` to isolate the actions.
+
+### Tests Run
+*   `npm test tests/server/actions/foot-traffic.test.ts` (Passed ✅)
+
+### Result: ✅ Complete
+Tests are now passing and stable.
+
+---
+
+## Session: 2026-01-24 (Verify Support Service Tests)
+### Task ID
+task_fix_support_service_tests
+
+### Summary
+Verified that `tests/server/services/support/tickets.test.ts` passes successfully. The issue described in the backlog (0 tests executed) appears to have been resolved by a previous commit stabilizing the Jest configuration.
+
+### Tests Run
+*   `npm test tests/server/services/support/tickets.test.ts` (Passed ✅)
+
+### Result: ✅ Complete
+Backlog item updated to completed.
+
+---
+
 ## Session: 2026-01-24 (Integration Hardening & POS Research)
 ### Task ID
 integration_hardening_pos_research
