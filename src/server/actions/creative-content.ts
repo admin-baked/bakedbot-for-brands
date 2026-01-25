@@ -258,6 +258,7 @@ export async function approveContent(request: ApproveContentRequest): Promise<vo
 
 /**
  * Request revision on content
+ * Triggers Craig to regenerate the caption with the revision notes
  */
 export async function requestRevision(request: ReviseContentRequest): Promise<void> {
     const user = await requireUser();
@@ -281,20 +282,113 @@ export async function requestRevision(request: ReviseContentRequest): Promise<vo
             requestedAt: Date.now()
         });
 
+        // Update status to revision while regenerating
         await ref.update({
             status: 'revision',
             revisionNotes,
             updatedAt: Date.now()
         });
 
-        logger.info('[creative-content] Revision requested', {
+        logger.info('[creative-content] Revision requested, triggering Craig regeneration', {
             contentId: request.contentId,
-            requesterId: userId
+            requesterId: userId,
+            note: request.note.substring(0, 100)
         });
 
-        // TODO: Trigger Craig to regenerate with revision notes
+        // Trigger Craig to regenerate the caption with revision context
+        try {
+            const newCaption = await regenerateCaptionWithRevision(existing, request.note);
+
+            // Update with new caption and move back to pending
+            await ref.update({
+                caption: newCaption,
+                status: 'pending',
+                updatedAt: Date.now()
+            });
+
+            logger.info('[creative-content] Caption regenerated successfully', {
+                contentId: request.contentId
+            });
+        } catch (regenerateError) {
+            // If regeneration fails, content stays in revision status for manual handling
+            logger.warn('[creative-content] Caption regeneration failed, content remains in revision', {
+                contentId: request.contentId,
+                error: regenerateError
+            });
+        }
     } catch (error) {
         logger.error('[creative-content] Failed to request revision', { error });
+        throw error;
+    }
+}
+
+/**
+ * Regenerate caption with revision notes using Craig AI
+ */
+async function regenerateCaptionWithRevision(
+    existingContent: CreativeContent,
+    revisionNote: string
+): Promise<string> {
+    try {
+        const { generateSocialCaption } = await import('@/ai/flows/generate-social-caption');
+
+        // Build context from existing content and revision request
+        const revisionPrompt = `
+ORIGINAL CAPTION:
+${existingContent.caption}
+
+REVISION REQUEST:
+${revisionNote}
+
+Please rewrite the caption incorporating the requested changes while maintaining the brand voice and platform best practices.
+`;
+
+        const result = await generateSocialCaption({
+            platform: existingContent.platform,
+            prompt: revisionPrompt,
+            style: 'professional',
+            includeHashtags: !!(existingContent.hashtags && existingContent.hashtags.length > 0),
+            includeEmojis: true,
+        });
+
+        return result.primaryCaption;
+    } catch (error) {
+        logger.error('[creative-content] Failed to regenerate caption', { error });
+        // Return original caption if regeneration fails
+        return existingContent.caption;
+    }
+}
+
+/**
+ * Update caption directly (for inline editing)
+ */
+export async function updateCaption(
+    tenantId: string,
+    contentId: string,
+    newCaption: string
+): Promise<void> {
+    await requireUser();
+    const { firestore } = await createServerClient();
+
+    try {
+        const ref = firestore.doc(`tenants/${tenantId}/${COLLECTION}/${contentId}`);
+        const doc = await ref.get();
+
+        if (!doc.exists) {
+            throw new Error('Content not found');
+        }
+
+        await ref.update({
+            caption: newCaption,
+            updatedAt: Date.now()
+        });
+
+        logger.info('[creative-content] Caption updated', {
+            contentId,
+            captionLength: newCaption.length
+        });
+    } catch (error) {
+        logger.error('[creative-content] Failed to update caption', { error });
         throw error;
     }
 }

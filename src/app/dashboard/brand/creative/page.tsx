@@ -7,7 +7,12 @@ import { TikTokPreview, TikTokPost } from '@/components/brand/creative/tiktok-pr
 import { LinkedInPreview, LinkedInPost } from '@/components/brand/creative/linkedin-preview';
 import { ContentQueue, ContentItem } from '@/components/brand/creative/content-queue';
 import { Button } from '@/components/ui/button';
-import { Sparkles, LayoutGrid, Video, Linkedin, RefreshCw, Plus, Loader2, ImageIcon } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Sparkles, LayoutGrid, Video, Linkedin, RefreshCw, Plus, Loader2, ImageIcon, Wand2 } from 'lucide-react';
 import { CarouselGenerator } from '@/components/brand/creative/carousel-generator';
 import { useCreativeContent } from '@/hooks/use-creative-content';
 import { useBrandId } from '@/hooks/use-brand-id';
@@ -132,6 +137,12 @@ export default function CreativeCommandCenterPage() {
     const { brandId, loading: brandLoading } = useBrandId();
     const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform>('instagram');
 
+    // Generate dialog state
+    const [showGenerateDialog, setShowGenerateDialog] = useState(false);
+    const [generatePrompt, setGeneratePrompt] = useState('');
+    const [generateStyle, setGenerateStyle] = useState<'professional' | 'playful' | 'educational' | 'hype'>('professional');
+    const [includeHashtags, setIncludeHashtags] = useState(true);
+
     // Fetch real content via hook
     const {
         content,
@@ -139,6 +150,7 @@ export default function CreativeCommandCenterPage() {
         error,
         approve,
         revise,
+        editCaption,
         generate,
         refresh,
         isGenerating,
@@ -147,8 +159,9 @@ export default function CreativeCommandCenterPage() {
         realtime: true
     });
 
-    // Determine if we should use demo data
-    const useDemo = !brandId || content.length === 0;
+    // Only show demo data when brand is not connected
+    // Empty content with a valid brand should show empty state, not demo
+    const useDemo = !brandId;
     const isLoading = brandLoading || contentLoading;
 
     // Transform content for display
@@ -190,14 +203,31 @@ export default function CreativeCommandCenterPage() {
         await revise(id, note);
     }, [useDemo, revise]);
 
+    const handleEditCaption = useCallback(async (id: string, newCaption: string) => {
+        if (useDemo) {
+            return;
+        }
+        await editCaption(id, newCaption);
+    }, [useDemo, editCaption]);
+
     const handleGenerate = useCallback(async () => {
+        if (!generatePrompt.trim()) return;
+
         await generate({
             platform: selectedPlatform,
-            prompt: 'Generate an engaging social media post for our cannabis brand',
-            style: 'professional',
-            includeHashtags: true
+            prompt: generatePrompt,
+            style: generateStyle,
+            includeHashtags
         });
-    }, [generate, selectedPlatform]);
+
+        // Reset and close dialog on success
+        setGeneratePrompt('');
+        setShowGenerateDialog(false);
+    }, [generate, selectedPlatform, generatePrompt, generateStyle, includeHashtags]);
+
+    const openGenerateDialog = useCallback(() => {
+        setShowGenerateDialog(true);
+    }, []);
 
     const handlePostSelect = useCallback((post: InstagramPost) => {
         // Could open detail modal here
@@ -219,21 +249,119 @@ export default function CreativeCommandCenterPage() {
                     )}
                 </div>
                 <div className="flex items-center gap-3">
-                    {/* Generate Button */}
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleGenerate}
-                        disabled={isGenerating || useDemo}
-                        className="gap-2"
-                    >
-                        {isGenerating ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                            <Plus className="w-4 h-4" />
-                        )}
-                        Generate
-                    </Button>
+                    {/* Generate Dialog */}
+                    <Dialog open={showGenerateDialog} onOpenChange={setShowGenerateDialog}>
+                        <DialogTrigger asChild>
+                            <Button
+                                variant="default"
+                                size="sm"
+                                disabled={isGenerating || useDemo}
+                                className="gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                            >
+                                {isGenerating ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Wand2 className="w-4 h-4" />
+                                )}
+                                Create Content
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[500px]">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                    <Sparkles className="w-5 h-5 text-purple-600" />
+                                    Generate with Agent Craig
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Describe the content you want to create. Craig will generate the caption and image.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="platform">Platform</Label>
+                                    <Select
+                                        value={selectedPlatform}
+                                        onValueChange={(v) => setSelectedPlatform(v as SocialPlatform)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select platform" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="instagram">Instagram</SelectItem>
+                                            <SelectItem value="tiktok">TikTok</SelectItem>
+                                            <SelectItem value="linkedin">LinkedIn</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="prompt">What do you want to post about?</Label>
+                                    <Textarea
+                                        id="prompt"
+                                        placeholder="E.g., 'Promote our new Delta-8 gummies with a weekend vibe' or 'Educational post about CBD benefits for sleep'"
+                                        value={generatePrompt}
+                                        onChange={(e) => setGeneratePrompt(e.target.value)}
+                                        className="min-h-[100px]"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="style">Tone/Style</Label>
+                                        <Select
+                                            value={generateStyle}
+                                            onValueChange={(v) => setGenerateStyle(v as typeof generateStyle)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="professional">Professional</SelectItem>
+                                                <SelectItem value="playful">Playful</SelectItem>
+                                                <SelectItem value="educational">Educational</SelectItem>
+                                                <SelectItem value="hype">Hype/Promo</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="hashtags">Include Hashtags</Label>
+                                        <Select
+                                            value={includeHashtags ? 'yes' : 'no'}
+                                            onValueChange={(v) => setIncludeHashtags(v === 'yes')}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="yes">Yes</SelectItem>
+                                                <SelectItem value="no">No</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setShowGenerateDialog(false)}>
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={handleGenerate}
+                                    disabled={!generatePrompt.trim() || isGenerating}
+                                    className="gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                                >
+                                    {isGenerating ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Generating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="w-4 h-4" />
+                                            Generate
+                                        </>
+                                    )}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
 
                     {/* Refresh Button */}
                     <Button
@@ -350,6 +478,7 @@ export default function CreativeCommandCenterPage() {
                             items={queueItems}
                             onApprove={handleApprove}
                             onRevise={handleRevise}
+                            onEditCaption={handleEditCaption}
                         />
                     </div>
                 </div>
