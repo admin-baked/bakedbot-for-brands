@@ -212,6 +212,7 @@ export function UnifiedAgentChat({
             <div className="flex-1 overflow-hidden">
                 <ErrorBoundary fallback={<div className="p-4 text-center text-sm text-muted-foreground">Detailed chat unavailable.</div>}>
                     <PuffChat
+                        key={config.role} // Force remount on role change
                         initialTitle={config.title}
                         promptSuggestions={suggestions}
                         hideHeader={showHeader} // Hide PuffChat's internal header if we show our own
