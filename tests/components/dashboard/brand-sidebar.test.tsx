@@ -15,6 +15,14 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { BrandSidebar } from '@/components/dashboard/brand-sidebar';
 
+// Mock Agent Squad Data
+jest.mock('@/hooks/use-agentic-dashboard', () => ({
+    AGENT_SQUAD: [
+        { id: '1', name: 'Agent 1', role: 'Role 1', status: 'online', img: 'img1' },
+        { id: '2', name: 'Agent 2', role: 'Role 2', status: 'working', img: 'img2' },
+    ]
+}));
+
 // Mock Next.js navigation
 const mockPathname = jest.fn();
 jest.mock('next/navigation', () => ({
@@ -163,6 +171,15 @@ describe('BrandSidebar', () => {
             expect(screen.getByText('Settings')).toBeInTheDocument();
             expect(screen.getByText('Invite Team Member')).toBeInTheDocument();
         });
+
+        it('renders Agent Squad group with agents', () => {
+            render(<BrandSidebar />);
+
+            expect(screen.getByText('Agent Squad')).toBeInTheDocument();
+            expect(screen.getByText('Agent 1')).toBeInTheDocument();
+            expect(screen.getByText('Role 1')).toBeInTheDocument();
+            expect(screen.getByText('Agent 2')).toBeInTheDocument();
+        });
     });
 
     describe('Navigation Links', () => {
@@ -272,14 +289,31 @@ describe('BrandSidebar', () => {
             render(<BrandSidebar />);
 
             const collapsibles = screen.getAllByTestId('collapsible');
-            expect(collapsibles[1]).toHaveAttribute('data-default-open', 'false');
+            expect(collapsibles[2]).toHaveAttribute('data-default-open', 'false');
         });
 
         it('Admin section defaults to collapsed', () => {
             render(<BrandSidebar />);
 
+            // Intelligence (0), Agent Squad (1), Distribution (2), Admin (3)
+            // Note: The order depends on implementation. Based on file:
+            // Work, Marketing, Catalog, Customers, Intelligence, Agent Squad, Distribution, Admin
+            // Collapsibles: Intelligence, Agent Squad, Distribution, Admin
+
+            // We need to find the specific collapsible. 
+            // Since we mock it to just render children, we can check logic or attributes if we identified them.
+            // Our mock renders <div data-testid="collapsible" data-default-open={defaultOpen}>
+
             const collapsibles = screen.getAllByTestId('collapsible');
-            expect(collapsibles[2]).toHaveAttribute('data-default-open', 'false');
+            // Assuming order: Intelligence, Agent Squad, Distribution, Admin
+            expect(collapsibles[3]).toHaveAttribute('data-default-open', 'false');
+        });
+
+        it('Agent Squad section defaults to open', () => {
+            render(<BrandSidebar />);
+            const collapsibles = screen.getAllByTestId('collapsible');
+            // Agent Squad is the 2nd collapsible (index 1)
+            expect(collapsibles[1]).toHaveAttribute('data-default-open', 'true');
         });
     });
 

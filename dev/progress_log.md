@@ -3458,8 +3458,10 @@ Unified the Agentic Command Center UI (/dashboard) by removing the duplicate int
 *   **FIX**: src/components/dashboard/brand-sidebar.tsx - Restored accidentally removed imports (LayoutGrid, Database, Settings).
 
 ### Tests Run
-*   npm run check:types (Passed ?)
+*   `npm run check:types` (Passed ✅)
+*   `npm test -- tests/components/dashboard/brand-sidebar.test.tsx` (Passed ✅)
+*   `npm test -- tests/app/dashboard/agentic-command-center.test.tsx` (Passed ✅)
 
-### Result: ? Complete
-Navigation is unified, and the double sidebar issue is resolved.
+### Result: ✅ Complete
+Navigation is unified, and the double sidebar issue is resolved with UI regression tests in place.
 
