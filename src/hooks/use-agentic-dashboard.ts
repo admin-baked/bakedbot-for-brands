@@ -40,7 +40,7 @@ export const AGENT_SQUAD: Agent[] = [
 
 export function useAgenticDashboard() {
     const { role } = useUserRole();
-    const [config, setConfig] = useState(getChatConfigForRole('board' as any)); // Default or derived
+    const [config, setConfig] = useState(getChatConfigForRole('brand' as any)); // Default or derived
 
     // State
     const [activeAgent, setActiveAgent] = useState<Agent>(AGENT_SQUAD[0]);
