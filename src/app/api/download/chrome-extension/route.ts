@@ -46,7 +46,7 @@ export async function GET() {
         resolve(Buffer.concat(chunks));
       });
 
-      archive.on('error', (err) => {
+      archive.on('error', (err: any) => {
         reject(err);
       });
     });

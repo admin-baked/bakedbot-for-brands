@@ -322,8 +322,8 @@ type ChatbotProps = {
 };
 
 export default function Chatbot({ products = [], brandId = "", dispensaryId, entityName, initialOpen = false, positionStrategy = 'fixed', className, windowClassName, isSuperAdmin = false, chatbotConfig }: ChatbotProps) {
-  // If chatbot is explicitly disabled, don't render
-  if (chatbotConfig?.enabled === false) return null;
+  // If chatbot is explicitly disabled, don't render (Moved to bottom)
+  // if (chatbotConfig?.enabled === false) return null;
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
@@ -728,6 +728,9 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
       description: `${product.name} has been added to your cart.`,
     });
   }, [addToCart, selectedRetailerId, toast]);
+  
+  // HIDE IF DISABLED (Moved to end to prevent Hook Violation)
+  if (chatbotConfig?.enabled === false) return null;
 
   return (
     <>

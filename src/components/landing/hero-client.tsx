@@ -131,7 +131,7 @@ export function HeroClient() {
                     {/* Agent Playground */}
                     <div className="mt-16 text-left relative z-10">
                         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/80 pointer-events-none -bottom-24 z-20"></div>
-                        <AgentPlayground overrideMode={userType} />
+                        <AgentPlayground />
 
                         {/* Floating Agent Chips */}
                         <div className="hidden lg:block absolute -right-20 top-0 animate-float-slow pointer-events-none">
