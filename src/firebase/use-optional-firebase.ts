@@ -1,9 +1,9 @@
-
 'use client';
 
-import { useFirebase } from '@/firebase/provider';
-
+import { useContext } from 'react';
+import { useFirebase, FirebaseContext } from '@/firebase/provider';
 import { logger } from '@/lib/logger';
+
 /**
  * A safe wrapper around useFirebase that never throws an error.
  * If the FirebaseProvider is missing, it returns a "null" version of the
@@ -13,22 +13,29 @@ import { logger } from '@/lib/logger';
  * on public marketing pages without a provider.
  */
 export function useOptionalFirebase() {
-  try {
-    return useFirebase();
-  } catch (e) {
+  const context = useFirebaseContext();
+
+  if (context === undefined) {
     if (process.env.NODE_ENV !== 'production') {
       logger.warn(
-        `[useOptionalFirebase] useFirebase() failed, likely because no <FirebaseProvider> is present in the component tree. This is expected on public pages. Components using this hook will fall back to a non-authenticated state.`,
+        `[useOptionalFirebase] FirebaseContext is missing. Components using this hook will fall back to a non-authenticated state.`,
       );
     }
     // Return a safe, "null" version of the context value with a consistent shape.
-    return { 
-        user: null,
-        isUserLoading: false,
-        userError: null,
-        firestore: null, 
-        auth: null,
-        firebaseApp: null,
+    return {
+      user: null,
+      isUserLoading: false,
+      userError: null,
+      firestore: null,
+      auth: null,
+      firebaseApp: null,
     };
   }
+
+  return context;
+}
+
+// Helper to access context directly without throwing
+function useFirebaseContext() {
+  return useContext(FirebaseContext);
 }
