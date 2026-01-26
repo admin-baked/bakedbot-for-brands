@@ -30,6 +30,36 @@ export default function PlaybooksPage() {
         Object.fromEntries(PLAYBOOKS.map((pb) => [pb.id, pb.active]))
     );
 
+    // IMPORTANT: All hooks must be called before any early returns
+    // Filter playbooks by search and category
+    const filteredPlaybooks = useMemo(() => {
+        let result = PLAYBOOKS;
+
+        // Apply category filter
+        if (activeFilter !== 'All') {
+            result = result.filter(
+                (pb) => pb.type.toUpperCase() === activeFilter.toUpperCase()
+            );
+        }
+
+        // Apply search
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            result = result.filter(
+                (pb) =>
+                    pb.title.toLowerCase().includes(query) ||
+                    pb.description.toLowerCase().includes(query) ||
+                    pb.tags.some((tag) => tag.toLowerCase().includes(query))
+            );
+        }
+
+        // Add current enabled state to playbooks
+        return result.map((pb) => ({
+            ...pb,
+            active: playbookStates[pb.id] ?? pb.active,
+        }));
+    }, [searchQuery, activeFilter, playbookStates]);
+
     const handleRunPlaybook = (playbook: Playbook) => {
         setSelectedPrompt(playbook.prompt);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -74,6 +104,7 @@ export default function PlaybooksPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    // Role-based redirects (AFTER all hooks)
     // Redirect Dispensary users to their specific console
     if (role === 'dispensary') {
         const brandId = (user as any)?.brandId || user?.uid || 'unknown-dispensary';
@@ -85,35 +116,7 @@ export default function PlaybooksPage() {
         return <BrandPlaybooksView brandId={brandId} />;
     }
 
-    // Filter playbooks by search and category
-    const filteredPlaybooks = useMemo(() => {
-        let result = PLAYBOOKS;
-
-        // Apply category filter
-        if (activeFilter !== 'All') {
-            result = result.filter(
-                (pb) => pb.type.toUpperCase() === activeFilter.toUpperCase()
-            );
-        }
-
-        // Apply search
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            result = result.filter(
-                (pb) =>
-                    pb.title.toLowerCase().includes(query) ||
-                    pb.description.toLowerCase().includes(query) ||
-                    pb.tags.some((tag) => tag.toLowerCase().includes(query))
-            );
-        }
-
-        // Add current enabled state to playbooks
-        return result.map((pb) => ({
-            ...pb,
-            active: playbookStates[pb.id] ?? pb.active,
-        }));
-    }, [searchQuery, activeFilter, playbookStates]);
-
+    // Super user / other roles see the full playbooks UI
     return (
         <div className="space-y-8 p-6 max-w-[1600px] mx-auto">
             {/* Header with Search and Filters */}
