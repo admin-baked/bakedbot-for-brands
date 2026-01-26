@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { Component, ErrorInfo, ReactNode, useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,7 +17,7 @@ export default function FelishaErrorBoundary({ error, reset }: ErrorBoundaryProp
     const { toast } = useToast();
     const [description, setDescription] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [autoReported, setAutoReported] = useState(false);
+    const hasReportedRef = useRef(false); // Use ref to prevent re-renders
 
     useEffect(() => {
         console.error('Felisha Error Boundary Caught:', error);
@@ -25,9 +25,13 @@ export default function FelishaErrorBoundary({ error, reset }: ErrorBoundaryProp
         // Auto-report critical errors to Linus (fire-and-forget)
         // This ensures Linus is notified even if user doesn't click "Report"
         const autoReportError = async () => {
-            if (autoReported) return; // Prevent double-reporting
+             // Check ref instead of state
+            if (hasReportedRef.current) return;
 
             try {
+                // Mark as reported immediately to prevent race conditions
+                hasReportedRef.current = true;
+                
                 const res = await fetch('/api/tickets', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -44,11 +48,11 @@ export default function FelishaErrorBoundary({ error, reset }: ErrorBoundaryProp
                     })
                 });
                 if (res.ok) {
-                    setAutoReported(true);
                     console.log('[FelishaErrorBoundary] Auto-reported to Linus');
                 }
             } catch (e) {
                 console.warn('[FelishaErrorBoundary] Auto-report failed (non-critical):', e);
+                // Optional: reset ref if we want to retry? keeping it simple for now (no retry loop)
             }
         };
 
@@ -56,7 +60,7 @@ export default function FelishaErrorBoundary({ error, reset }: ErrorBoundaryProp
         if (process.env.NODE_ENV === 'production') {
             autoReportError();
         }
-    }, [error, autoReported]);
+    }, [error]); // Removed autoReported dependency
 
     const handleCopyDetails = () => {
         const details = `Error: ${error.message}\nDigest: ${error.digest || 'N/A'}\nLocation: ${window.location.href}\nUser Agent: ${navigator.userAgent}`;

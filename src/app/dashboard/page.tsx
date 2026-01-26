@@ -179,7 +179,7 @@ const TaskFeed = ({ item }: { item: any }) => (
             <span className="text-[10px] text-baked-green font-mono">{item.progress}%</span>
           </div>
           <p className="text-xs text-baked-text-secondary truncate">{item.task}</p>
-          <Progress value={item.progress} className="h-1 bg-black/40" indicatorColor="bg-baked-green" />
+          <Progress value={item.progress} className="h-1 bg-black/40" />
         </div>
       </div>
     </CardContent>

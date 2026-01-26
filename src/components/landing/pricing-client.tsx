@@ -138,7 +138,6 @@ export function PricingClient() {
                                             <Button
                                                 className={`w-full h-11 text-base font-semibold transition-all duration-300 ${t.name === "Enterprise" ? "bg-muted text-foreground hover:bg-muted/80" : "bg-foreground text-background hover:opacity-90 shadow-lg hover:shadow-xl"}`}
                                                 asChild
-                                                href={t.name === "Enterprise" ? "/contact" : "/get-started"}
                                             >
                                                 <a href={t.name === "Enterprise" ? "/contact" : "/get-started"}>
                                                     {t.name === "Enterprise" ? "Talk to Sales" : t.pill}
@@ -185,7 +184,7 @@ export function PricingClient() {
                                             </p>
                                         </CardContent>
                                         <CardFooter>
-                                            <Button variant="outline" className="w-full hover:bg-primary/5 hover:text-primary hover:border-primary/30" asChild href="/get-started">
+                                            <Button variant="outline" className="w-full hover:bg-primary/5 hover:text-primary hover:border-primary/30" asChild>
                                                 <a href="/get-started">Add to Plan</a>
                                             </Button>
                                         </CardFooter>
