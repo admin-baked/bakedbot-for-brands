@@ -52,43 +52,51 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* BakedBot Dark Theme Overrides */
+    --background: 130 20% 5%;
+    /* baked-darkest */
+    --foreground: 0 0% 98%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 130 15% 10%;
+    /* baked-card */
+    --card-foreground: 0 0% 98%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 130 15% 10%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 142 69% 58%;
+    /* baked-green */
+    --primary-foreground: 144 70% 10%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 135 20% 18%;
+    /* baked-green-subtle */
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 130 10% 15%;
+    --muted-foreground: 240 5% 64.9%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 135 20% 18%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 83.9% 60.2%;
+    --border: 135 15% 25%;
+    /* baked-border */
+    --input: 135 15% 25%;
+    --ring: 142 69% 58%;
 
-    /* Custom dark theme variables */
-    --sidebar-background: 220 15% 10%;
-    --sidebar-border: 220 10% 15%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 210 40% 98%;
-    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-ring: 212.7 83.9% 60.2%;
+    --radius: 0.5rem;
+
+    --sidebar-background: 130 20% 6%;
+    /* baked-dark */
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 142 69% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 135 20% 18%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 135 15% 25%;
+    --sidebar-ring: 142 69% 58%;
   }
 
   .green {
@@ -351,15 +359,15 @@
     width: 6px;
     height: 6px;
   }
-  
+
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   .scrollbar-thin::-webkit-scrollbar-thumb {
     @apply bg-muted-foreground/30 rounded-full;
   }
-  
+
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground/50;
   }
