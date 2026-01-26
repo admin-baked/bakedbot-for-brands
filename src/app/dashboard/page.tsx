@@ -2,11 +2,8 @@
 
 import React from "react";
 import {
-  Bell,
-  ChevronDown,
   ChevronLeft,
   Check,
-  Plus,
   Send,
   Smile,
   MoreHorizontal,
@@ -14,15 +11,8 @@ import {
   Share,
   Trash2,
   ThumbsUp,
-  Bot,
-  HelpCircle,
   ChevronRight,
   ArrowUpRight,
-  Inbox,
-  Folder,
-  Megaphone,
-  LayoutGrid,
-  User
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -39,78 +29,7 @@ import { useAgenticDashboard, type ChatMessage } from '@/hooks/use-agentic-dashb
 
 // --- Sub-Components ---
 
-// 1. Sidebar Component
-const Sidebar = ({ agents }: { agents: any[] }) => (
-  <div className="w-64 h-screen bg-[#0f1a12] border-r border-baked-border flex flex-col p-4 relative font-sans shrink-0">
-    <div className="flex items-center gap-2 mb-8 px-2">
-      <div className="w-8 h-8 rounded-lg bg-baked-green/20 flex items-center justify-center border border-baked-green/30">
-        <Bot className="text-baked-green w-5 h-5" />
-      </div>
-      <h1 className="font-semibold text-lg tracking-tight text-white">BakedBot.ai</h1>
-    </div>
-
-    <Button variant="secondary" className="w-full justify-start gap-3 bg-baked-green/10 text-baked-green hover:bg-baked-green/20 border border-baked-green/20 mb-6 font-medium shadow-sm shadow-baked-green/5">
-      <Inbox className="w-4 h-4" />
-      Inbox
-    </Button>
-
-    <nav className="space-y-1 mb-8">
-      <Link href="/dashboard/projects" className="flex items-center gap-3 px-3 py-2 text-sm text-baked-text-secondary hover:text-white hover:bg-white/5 rounded-md transition-colors group">
-        <Folder className="w-4 h-4 opacity-70 group-hover:opacity-100" />
-        <span className="flex-1">Projects</span>
-        <ChevronDown className="w-3 h-3 opacity-50" />
-      </Link>
-      <Link href="/dashboard/marketing" className="flex items-center gap-3 px-3 py-2 text-sm text-baked-text-secondary hover:text-white hover:bg-white/5 rounded-md transition-colors group">
-        <Megaphone className="w-4 h-4 opacity-70 group-hover:opacity-100" />
-        <span className="flex-1">Marketing</span>
-        <ChevronDown className="w-3 h-3 opacity-50" />
-      </Link>
-      <Link href="/dashboard/products" className="flex items-center gap-3 px-3 py-2 text-sm text-baked-text-secondary hover:text-white hover:bg-white/5 rounded-md transition-colors group">
-        <LayoutGrid className="w-4 h-4 opacity-70 group-hover:opacity-100" />
-        <span className="flex-1">Catalog</span>
-      </Link>
-      <Link href="/dashboard/settings" className="flex items-center gap-3 px-3 py-2 text-sm text-baked-text-secondary hover:text-white hover:bg-white/5 rounded-md transition-colors group">
-        <User className="w-4 h-4 opacity-70 group-hover:opacity-100" />
-        <span className="flex-1">My Account</span>
-      </Link>
-    </nav>
-
-    <div className="mb-6 flex-1">
-      <div className="flex items-center justify-between text-xs font-semibold text-baked-text-muted uppercase tracking-wider mb-4 px-2">
-        <span>Agent Squad</span>
-        <Plus className="w-4 h-4 cursor-pointer hover:text-white transition-colors" />
-      </div>
-
-      <div className="space-y-2">
-        <div className="text-xs text-baked-text-muted/40 px-3 mb-2 font-mono">New Squad</div>
-        {agents.map((agent) => (
-          <div key={agent.id} className="flex items-center gap-3 px-2 py-1.5 text-baked-text-secondary hover:text-white hover:bg-white/5 rounded-md cursor-pointer transition-colors group">
-            <div className="relative">
-              <Avatar className="w-8 h-8 border border-baked-border/50 group-hover:border-baked-border">
-                <AvatarImage src={agent.img} />
-                <AvatarFallback>{agent.name[0]}</AvatarFallback>
-              </Avatar>
-              <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0f1a12] ${agent.status === 'online' ? 'bg-baked-green' :
-                  agent.status === 'working' ? 'bg-amber-500' : 'bg-baked-text-muted'
-                }`}></div>
-            </div>
-            <span className="text-sm font-medium">{agent.name}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-
-    <div className="mt-auto flex items-center gap-3 text-baked-text-secondary p-2 hover:bg-white/5 rounded-md cursor-pointer transition-colors border-t border-baked-border pt-4">
-      <Avatar className="w-8 h-8">
-        <AvatarImage src="https://github.com/shadcn.png" />
-        <AvatarFallback>CN</AvatarFallback>
-      </Avatar>
-      <div className="flex flex-col">
-        <span className="text-sm font-medium text-white">My Account</span>
-      </div>
-    </div>
-  </div>
-);
+// 1. Sidebar Component Removed (Unified with Global Sidebar)
 
 // 2. Chat Message Component
 const ChatMessageDisplay = ({ msg }: { msg: ChatMessage }) => (
@@ -326,34 +245,11 @@ export default function AgenticCommandCenter() {
   } = useAgenticDashboard();
 
   return (
-    <div className="flex h-screen bg-baked-darkest text-baked-text-primary overflow-hidden font-sans selection:bg-baked-green/30">
-      <Sidebar agents={agentSquad} />
-
-      <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
+    <div className="flex flex-col h-[calc(100vh-4rem)] w-full bg-baked-darkest text-baked-text-primary overflow-hidden font-sans selection:bg-baked-green/30">
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         {/* Background Gradients */}
         <div className="absolute top-0 left-0 w-full h-[500px] bg-baked-green/5 blur-[120px] pointer-events-none z-0"></div>
 
-        {/* Header */}
-        <header className="h-14 border-b border-baked-border bg-baked-darkest/80 backdrop-blur-xl flex items-center justify-between px-6 shrink-0 z-20">
-          <div className="flex items-center gap-4">
-            <h2 className="text-lg font-semibold tracking-tight">Agentic Command Center</h2>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="text-baked-text-secondary hover:text-white hover:bg-white/5 h-8 w-8 rounded-full">
-              <HelpCircle className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-baked-text-secondary hover:text-white hover:bg-white/5 h-8 w-8 rounded-full relative">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-red-500 rounded-full border border-baked-darkest"></span>
-            </Button>
-
-            <Avatar className="w-8 h-8 ml-2 border border-white/10">
-              <AvatarImage src="https://github.com/shadcn.png" />
-              <AvatarFallback>CN</AvatarFallback>
-            </Avatar>
-          </div>
-        </header>
 
         {/* Sub Header - Thread Context */}
         <div className="px-6 py-3 border-b border-baked-border/50 flex items-center justify-between bg-white/[0.02] z-20">

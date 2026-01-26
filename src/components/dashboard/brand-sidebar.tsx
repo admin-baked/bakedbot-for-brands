@@ -9,6 +9,7 @@
  * - Catalog: Products, Menu, Orders
  * - Customers: Customers, Segments, Leads, Loyalty
  * - Intelligence: Competitive Intel, Deep Research
+ * - Agent Squad: Active Agents
  * - Distribution: Dispensaries
  * - Admin: Brand Page, App Store, CannSchemas, Settings
  */
@@ -47,6 +48,8 @@ import { usePathname } from "next/navigation";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { InviteUserDialog } from "@/components/invitations/invite-user-dialog";
 import { useUserRole } from "@/hooks/use-user-role";
+import { AGENT_SQUAD } from '@/hooks/use-agentic-dashboard';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function BrandSidebar() {
     const pathname = usePathname();
@@ -214,6 +217,45 @@ export function BrandSidebar() {
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </CollapsibleContent>
+                </Collapsible>
+            </SidebarGroup>
+
+            {/* Agent Squad - Active Bots */}
+            <SidebarGroup>
+                <Collapsible defaultOpen={true} className="group/agents">
+                    <SidebarGroupLabel asChild>
+                        <CollapsibleTrigger className="flex w-full items-center">
+                            Agent Squad
+                            <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/agents:rotate-90" />
+                        </CollapsibleTrigger>
+                    </SidebarGroupLabel>
+                    <CollapsibleContent>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                {AGENT_SQUAD.map((agent) => (
+                                    <SidebarMenuItem key={agent.id}>
+                                        <SidebarMenuButton className="h-10 cursor-default hover:bg-sidebar-accent/50">
+                                            <div className="flex items-center gap-3 w-full">
+                                                <div className="relative">
+                                                    <Avatar className="h-6 w-6 border border-sidebar-border">
+                                                        <AvatarImage src={agent.img} />
+                                                        <AvatarFallback>{agent.name[0]}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-sidebar-background ${agent.status === 'online' ? 'bg-green-500' :
+                                                        agent.status === 'working' ? 'bg-amber-500' : 'bg-gray-400'
+                                                        }`}></div>
+                                                </div>
+                                                <div className="flex flex-col items-start leading-none group-data-[collapsible=icon]:hidden">
+                                                    <span className="font-medium text-xs">{agent.name}</span>
+                                                    <span className="text-[10px] text-muted-foreground">{agent.role}</span>
+                                                </div>
+                                            </div>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                ))}
                             </SidebarMenu>
                         </SidebarGroupContent>
                     </CollapsibleContent>
