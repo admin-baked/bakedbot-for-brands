@@ -20,6 +20,7 @@ import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 import { Sparkles, Briefcase, Store, ShoppingCart, Shield, MessageSquarePlus, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ErrorBoundary } from '@/components/error-boundary';
 
 export interface UnifiedAgentChatProps {
     /** User role determines prompts and theming */
@@ -209,17 +210,19 @@ export function UnifiedAgentChat({
 
             {/* Chat Interface - PuffChat with unified props */}
             <div className="flex-1 overflow-hidden">
-                <PuffChat
-                    initialTitle={config.title}
-                    promptSuggestions={suggestions}
-                    hideHeader={showHeader} // Hide PuffChat's internal header if we show our own
-                    isAuthenticated={isAuthenticated}
-                    isSuperUser={isSuperUser}
-                    locationInfo={locationInfo} // Pass location context
-                    persona={config.agentPersona as any}
-                    className="h-full"
-                    restrictedModels={role === 'public' ? ['deep_research', 'genius', 'expert', 'advanced'] : []}
-                />
+                <ErrorBoundary fallback={<div className="p-4 text-center text-sm text-muted-foreground">Detailed chat unavailable.</div>}>
+                    <PuffChat
+                        initialTitle={config.title}
+                        promptSuggestions={suggestions}
+                        hideHeader={showHeader} // Hide PuffChat's internal header if we show our own
+                        isAuthenticated={isAuthenticated}
+                        isSuperUser={isSuperUser}
+                        locationInfo={locationInfo} // Pass location context
+                        persona={config.agentPersona as any}
+                        className="h-full"
+                        restrictedModels={role === 'public' ? ['deep_research', 'genius', 'expert', 'advanced'] : []}
+                    />
+                </ErrorBoundary>
             </div>
         </div>
     );
