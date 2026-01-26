@@ -39,15 +39,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const firstSegment = pathname?.split('/')[1];
   const isBrandPage = firstSegment && !systemRoutes.includes(firstSegment) && firstSegment !== '';
 
-  if (isDashboardPage || isHomePage || isPricingPage || isOnboardingPage || isBrandPage) {
-    return <>{children}</>;
-  }
-
+  // Conditionally render Header implementation
   return (
     <>
-      <Header />
+      {!(isDashboardPage || isHomePage || isPricingPage || isOnboardingPage || isBrandPage) && <Header />}
       {children}
-      <Footer />
+      {!(isDashboardPage || isHomePage || isPricingPage || isOnboardingPage || isBrandPage) && <Footer />}
     </>
   );
 }

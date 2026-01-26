@@ -1,3 +1,5 @@
+'use server';
+
 // src/lib/cannmenus-api.ts
 /**
  * Enhanced CannMenus API client for headless menu system
@@ -394,7 +396,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<{ city: 
         const address = data.address || {};
 
         const city = address.city || address.town || address.village || address.hamlet || (address.county ? address.county.replace(' County', '') : undefined);
-        
+
         return {
             city: city || 'Unknown',
             state: address.state || '',
