@@ -24,57 +24,57 @@ import { useChatbotContext } from '@/contexts/chatbot-context';
 import { logger } from '@/lib/logger';
 
 const PRESET_WIDGET_RESPONSES: Record<string, { content: string }> = {
-    "How does BakedBot work?": {
-        content: "**Think of me as your AI workforce.** 🤖\n\nI connect brands, dispensaries, and customers to automate growth. My squad can:\n\n1.  **Sync Inventories**: Real-time menus across 40 Tons & retail partners.\n2.  **Recommend Products**: I know terpenes, effects, and lab data.\n3.  **Automate Compliance**: I audit marketing content against state laws.\n\nWant to see me in action? Try asking for a **Market Audit**."
-    },
-    "Explain the pricing models": {
-        content: "**Simple Plans. Massive Growth.** 🚀\n\n*   **Claim Pro ($99/mo)**: Claim your page & capture organic traffic.\n*   **The Specialist ($499/mo)**: Hire one AI agent (like me, or Ezal).\n*   **The Empire ($1,499/mo)**: Full 7-agent automation suite.\n\nCheck the **Pricing** page for the deep dive!"
-    },
-     "Try the Product Demo": { // Button click text
-        content: "**Welcome to the 40 Tons Experience!** 🌿\n\nI'm connected to the 40 Tons live inventory. Ask me anything, like:\n\n*   _\"Do you have anything for sleep?\"_\n*   _\"Show me your pre-rolls.\"_\n*   _\"What's fresh today?\"_"
-    }
+  "How does BakedBot work?": {
+    content: "**Think of me as your AI workforce.** 🤖\n\nI connect brands, dispensaries, and customers to automate growth. My squad can:\n\n1.  **Sync Inventories**: Real-time menus across 40 Tons & retail partners.\n2.  **Recommend Products**: I know terpenes, effects, and lab data.\n3.  **Automate Compliance**: I audit marketing content against state laws.\n\nWant to see me in action? Try asking for a **Market Audit**."
+  },
+  "Explain the pricing models": {
+    content: "**Simple Plans. Massive Growth.** 🚀\n\n*   **Claim Pro ($99/mo)**: Claim your page & capture organic traffic.\n*   **The Specialist ($499/mo)**: Hire one AI agent (like me, or Ezal).\n*   **The Empire ($1,499/mo)**: Full 7-agent automation suite.\n\nCheck the **Pricing** page for the deep dive!"
+  },
+  "Try the Product Demo": { // Button click text
+    content: "**Welcome to the 40 Tons Experience!** 🌿\n\nI'm connected to the 40 Tons live inventory. Ask me anything, like:\n\n*   _\"Do you have anything for sleep?\"_\n*   _\"Show me your pre-rolls.\"_\n*   _\"What's fresh today?\"_"
+  }
 };
 
 const DEMO_PRODUCTS: Product[] = [
-    {
-        id: '40t-1',
-        name: '40 Tons - Black Market (Indica)',
-        description: 'A potent indica strain enforcing relaxation. Known for its earthy tones and heavy effects.',
-        price: 45,
-        imageUrl: 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&w=400&q=80',
-        imageHint: 'Black market cannabis flower',
-        category: 'Flower',
-        thcPercent: 28,
-        cbdPercent: 0.5,
-        strainType: 'Indica',
-        brandId: '40tons'
-    },
-    {
-        id: '40t-2',
-        name: '40 Tons - Justice (Sativa)',
-        description: 'Uplifting sativa dominant strain. Perfect for creativity and advocacy work.',
-        price: 55,
-        imageUrl: 'https://images.unsplash.com/photo-1556928045-16f7f50be0f3?auto=format&fit=crop&w=400&q=80',
-        imageHint: 'Justice sativa flower',
-        category: 'Flower',
-        thcPercent: 24,
-        cbdPercent: 0.1,
-        strainType: 'Sativa',
-        brandId: '40tons'
-    },
-    {
-        id: '40t-3',
-        name: 'Freedom Gummies (Berry)',
-        description: 'Sweet berry flavored gummies for a balanced hybrid effect. 10mg per piece.',
-        price: 25,
-        imageUrl: 'https://images.unsplash.com/photo-1581006198904-7a93c4ca3476?auto=format&fit=crop&w=400&q=80',
-        imageHint: 'Freedom gummies berry flavor',
-        category: 'Edibles',
-        thcPercent: 10,  // mg
-        cbdPercent: 0,
-        strainType: 'Hybrid',
-        brandId: '40tons'
-    }
+  {
+    id: '40t-1',
+    name: '40 Tons - Black Market (Indica)',
+    description: 'A potent indica strain enforcing relaxation. Known for its earthy tones and heavy effects.',
+    price: 45,
+    imageUrl: 'https://images.unsplash.com/photo-1603909223429-69bb7101f420?auto=format&fit=crop&w=400&q=80',
+    imageHint: 'Black market cannabis flower',
+    category: 'Flower',
+    thcPercent: 28,
+    cbdPercent: 0.5,
+    strainType: 'Indica',
+    brandId: '40tons'
+  },
+  {
+    id: '40t-2',
+    name: '40 Tons - Justice (Sativa)',
+    description: 'Uplifting sativa dominant strain. Perfect for creativity and advocacy work.',
+    price: 55,
+    imageUrl: 'https://images.unsplash.com/photo-1556928045-16f7f50be0f3?auto=format&fit=crop&w=400&q=80',
+    imageHint: 'Justice sativa flower',
+    category: 'Flower',
+    thcPercent: 24,
+    cbdPercent: 0.1,
+    strainType: 'Sativa',
+    brandId: '40tons'
+  },
+  {
+    id: '40t-3',
+    name: 'Freedom Gummies (Berry)',
+    description: 'Sweet berry flavored gummies for a balanced hybrid effect. 10mg per piece.',
+    price: 25,
+    imageUrl: 'https://images.unsplash.com/photo-1581006198904-7a93c4ca3476?auto=format&fit=crop&w=400&q=80',
+    imageHint: 'Freedom gummies berry flavor',
+    category: 'Edibles',
+    thcPercent: 10,  // mg
+    cbdPercent: 0,
+    strainType: 'Hybrid',
+    brandId: '40tons'
+  }
 ];
 
 type Message = {
@@ -183,23 +183,23 @@ const ChatWindow = ({
                   {pathname === '/' ? "I'm the AI agent powering this platform. Ask me anything!" : "How can I help you?"}
                 </p>
               </div>
-              
+
               {pathname === '/' ? (
                 /* Platform Demo / Homepage Zero State */
                 <div className="w-full space-y-2">
-                   <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full justify-start text-left h-auto py-3 px-4 border-emerald-100 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
                     onClick={() => {
-                        handleQuickQuestion("How does BakedBot work?");
+                      handleQuickQuestion("How does BakedBot work?");
                     }}
                   >
-                    <Sparkles className="mr-2 h-4 w-4 text-emerald-500" /> 
+                    <Sparkles className="mr-2 h-4 w-4 text-emerald-500" />
                     <span>How does BakedBot work?</span>
                   </Button>
 
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full justify-start text-left h-auto py-3 px-4 border-emerald-100 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
                     onClick={() => handleQuickQuestion("What are the pricing plans?")}
                   >
@@ -208,7 +208,7 @@ const ChatWindow = ({
                   </Button>
 
                   <Button className="w-full mt-2" onClick={startOnboarding}>
-                     Try the Product Demo
+                    Try the Product Demo
                   </Button>
                 </div>
               ) : (
@@ -626,93 +626,93 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   }
 
   const handleQuickQuestion = (text: string) => {
-      setHasStartedChat(true);
-      setIsOnboarding(false);
-      const userMessage: Message = { id: Date.now(), text, sender: 'user' };
-      setMessages(prev => [...prev, userMessage]);
-      setInputValue(''); // Clear input if it was typed
-      
-      // Detect Preset / Intercept Logic (Client-Side Demo Optimization)
-      const demoIntercept = PRESET_WIDGET_RESPONSES[text.trim()];
+    setHasStartedChat(true);
+    setIsOnboarding(false);
+    const userMessage: Message = { id: Date.now(), text, sender: 'user' };
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue(''); // Clear input if it was typed
 
-      if (demoIntercept) {
-          setIsBotTyping(true);
-          
-          // Simulate "Thinking" delay
-          setTimeout(() => {
-              const botMessage: Message = {
-                  id: Date.now() + 1,
-                  text: demoIntercept.content,
-                  sender: 'bot'
-              };
-              setMessages(prev => [...prev, botMessage]);
-              setIsBotTyping(false);
-          }, 1200); // 1.2s delay for realism
+    // Detect Preset / Intercept Logic (Client-Side Demo Optimization)
+    const demoIntercept = PRESET_WIDGET_RESPONSES[text.trim()];
 
-          return; // EXIT EARLY
-      }
-                               
-      // Normal API Fallback
+    if (demoIntercept) {
       setIsBotTyping(true);
-      
-      (async () => {
-        try {
-            const payload: any = {
-                query: text,
-                userId,
-                sessionId,
-                brandId: effectiveDispensaryId || effectiveBrandId || undefined,
-                entityName: effectiveEntityName,
-                state: 'Illinois',
-            };
-    
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-    
-            const data = await response.json();
-    
-            if (data.sessionId) setSessionId(data.sessionId);
-    
-            if (data.ok && data.products && data.products.length > 0) {
-                 const productSuggestions = data.products.map((p: any) => ({
-                    id: p.id,
-                    name: p.name,
-                    category: p.category,
-                    price: p.price,
-                    imageUrl: p.imageUrl,
-                    description: p.description,
-                    thcPercent: p.thcPercent,
-                    cbdPercent: p.cbdPercent,
-                    url: p.url,
-                    reasoning: p.reasoning
-                  }));
-                  setMessages(prev => [...prev, {
-                      id: Date.now() + 1,
-                      text: data.message,
-                      sender: 'bot',
-                      productSuggestions
-                  }]);
-            } else {
-                 setMessages(prev => [...prev, {
-                      id: Date.now() + 1,
-                      text: data.message || "I couldn't process that request.",
-                      sender: 'bot'
-                 }]);
-            }
-        } catch (error) {
-             console.error(error);
-             setMessages(prev => [...prev, {
-                  id: Date.now() + 1,
-                  text: "Sorry, I'm having trouble connecting.",
-                  sender: 'bot'
-             }]);
-        } finally {
-            setIsBotTyping(false);
+
+      // Simulate "Thinking" delay
+      setTimeout(() => {
+        const botMessage: Message = {
+          id: Date.now() + 1,
+          text: demoIntercept.content,
+          sender: 'bot'
+        };
+        setMessages(prev => [...prev, botMessage]);
+        setIsBotTyping(false);
+      }, 1200); // 1.2s delay for realism
+
+      return; // EXIT EARLY
+    }
+
+    // Normal API Fallback
+    setIsBotTyping(true);
+
+    (async () => {
+      try {
+        const payload: any = {
+          query: text,
+          userId,
+          sessionId,
+          brandId: effectiveDispensaryId || effectiveBrandId || undefined,
+          entityName: effectiveEntityName,
+          state: 'Illinois',
+        };
+
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+
+        if (data.sessionId) setSessionId(data.sessionId);
+
+        if (data.ok && data.products && data.products.length > 0) {
+          const productSuggestions = data.products.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            category: p.category,
+            price: p.price,
+            imageUrl: p.imageUrl,
+            description: p.description,
+            thcPercent: p.thcPercent,
+            cbdPercent: p.cbdPercent,
+            url: p.url,
+            reasoning: p.reasoning
+          }));
+          setMessages(prev => [...prev, {
+            id: Date.now() + 1,
+            text: data.message,
+            sender: 'bot',
+            productSuggestions
+          }]);
+        } else {
+          setMessages(prev => [...prev, {
+            id: Date.now() + 1,
+            text: data.message || "I couldn't process that request.",
+            sender: 'bot'
+          }]);
         }
-      })();
+      } catch (error) {
+        console.error(error);
+        setMessages(prev => [...prev, {
+          id: Date.now() + 1,
+          text: "Sorry, I'm having trouble connecting.",
+          sender: 'bot'
+        }]);
+      } finally {
+        setIsBotTyping(false);
+      }
+    })();
   };
   const handleAddToCart = useCallback((product: Product) => {
     // Use selected retailer or fallback to the brand's default retailer if available
@@ -726,9 +726,10 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
       description: `${product.name} has been added to your cart.`,
     });
   }, [addToCart, selectedRetailerId, toast]);
-  
+
   // HIDE IF DISABLED (Moved to end to prevent Hook Violation)
   if (chatbotConfig?.enabled === false) return null;
+
 
   return (
     <>

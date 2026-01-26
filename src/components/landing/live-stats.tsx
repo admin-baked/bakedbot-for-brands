@@ -11,11 +11,6 @@ export function LiveStats() {
         getPlatformStats().then(setStats);
     }, []);
 
-    if (!stats) {
-        // Skeleton or nothing
-        return <div className="h-6 w-full max-w-sm animate-pulse rounded-md bg-muted/20 mx-auto mt-6" />;
-    }
-
     const [tickerIndex, setTickerIndex] = useState(0);
     const activities = [
         "Craig just drafted a win-back email campaign...",
@@ -31,6 +26,11 @@ export function LiveStats() {
         }, 3000);
         return () => clearInterval(interval);
     }, []);
+
+    if (!stats) {
+        // Skeleton or nothing
+        return <div className="h-6 w-full max-w-sm animate-pulse rounded-md bg-muted/20 mx-auto mt-6" />;
+    }
 
     return (
         <div className="mt-8 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-2 duration-700">
