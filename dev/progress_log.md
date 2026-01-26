@@ -3444,3 +3444,22 @@ The brand role is now production-ready with competitive intel integrated into th
 
 ### Result: ✅ Complete
 The application now features a more robust email system and a highly polished demo experience for prospect brand partners.
+
+## Session: 2026-01-26 (Unifying Agent Chat UI)
+### Task ID
+unify_agent_chat_ui
+
+### Summary
+Unified the Agentic Command Center UI (/dashboard) by removing the duplicate internal sidebar and integrating the 'Agent Squad' navigation into the global BrandSidebar. This aligns the navigation structure with the rest of the application while preserving the specialized Agentic content.
+
+### Key Changes
+*   **REFACTOR**: src/app/dashboard/page.tsx - Removed the internal Sidebar component and redundant header. Updated layout to sit within the standard DashboardLayout.
+*   **FEAT**: src/components/dashboard/brand-sidebar.tsx - Added an 'Agent Squad' group to the main sidebar using AGENT_SQUAD data.
+*   **FIX**: src/components/dashboard/brand-sidebar.tsx - Restored accidentally removed imports (LayoutGrid, Database, Settings).
+
+### Tests Run
+*   npm run check:types (Passed ?)
+
+### Result: ? Complete
+Navigation is unified, and the double sidebar issue is resolved.
+
