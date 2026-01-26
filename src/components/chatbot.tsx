@@ -327,7 +327,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
-  const { chatExperience } = useStore();
+  const { chatExperience, addToCart, selectedRetailerId } = useStore();
   const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -714,8 +714,6 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
         }
       })();
   };
-  const { addToCart, selectedRetailerId } = useStore();
-
   const handleAddToCart = useCallback((product: Product) => {
     // Use selected retailer or fallback to the brand's default retailer if available
     // For now, we'll use the current selectedRetailerId or a placeholder if none.

@@ -78,9 +78,7 @@ function Price({ value }: { value: number | null }) {
 
 export function PricingClient() {
     return (
-        <PricingTabs
-            initial="tiers"
-            tabs={[
+    const tabs = useMemo(() => [
                 {
                     key: "tiers",
                     label: "Plans",
@@ -226,7 +224,12 @@ export function PricingClient() {
                         </div>
                     ),
                 },
-            ]}
+            ], []);
+
+    return (
+        <PricingTabs
+            initial="tiers"
+            tabs={tabs}
         />
     );
 }
