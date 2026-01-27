@@ -34,9 +34,29 @@ function getAiInstance(): Genkit {
 
 // Export a proxy that lazily initializes on first use
 export const ai = new Proxy({} as Genkit, {
-  get(target, prop) {
-    const instance = getAiInstance();
-    const value = (instance as any)[prop];
-    return typeof value === 'function' ? value.bind(instance) : value;
+  get(_target, prop) {
+    // During build/static analysis, return safe values for introspection properties
+    if (typeof prop === 'string') {
+      if (prop === 'then' || prop === 'toJSON' || prop === 'constructor') {
+        return undefined;
+      }
+    }
+
+    // Handle symbol properties
+    if (prop === Symbol.toStringTag) {
+      return 'Genkit';
+    }
+
+    // Only initialize when actually needed (not during build-time analysis)
+    try {
+      const instance = getAiInstance();
+      const value = (instance as any)[prop];
+      return typeof value === 'function' ? value.bind(instance) : value;
+    } catch (error) {
+      // During build, if GEMINI_API_KEY isn't available, return a function that throws at runtime
+      return function() {
+        throw new Error(`[Genkit] Cannot call ${String(prop)} - GEMINI_API_KEY not available. This should only be called at runtime.`);
+      };
+    }
   }
 });
