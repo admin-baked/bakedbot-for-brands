@@ -40,7 +40,7 @@ describe('PythonSidecar', () => {
         const result = await sidecar.execute('mcp_call', { tool_name: 'test-tool', arguments: {} });
 
         expect(global.fetch).toHaveBeenCalledWith('http://test-sidecar.local/mcp/call', expect.any(Object));
-        expect(result).toBe('mcp-result');
+        expect(result).toEqual({ status: 'success', result: 'mcp-result' });
     });
 
     it('should handle fetch errors gracefully', async () => {
