@@ -11,6 +11,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ai } from '@/ai/genkit';
 import { logger } from '@/lib/logger';
 
+// Force dynamic rendering - prevents build-time evaluation of Genkit imports
+export const dynamic = 'force-dynamic';
+
 interface GenerateCarouselRequest {
   brandId: string;
   prompt: string;

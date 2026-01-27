@@ -17,6 +17,9 @@ import { requireUser } from "@/server/auth/auth";
 import { createServerClient } from "@/firebase/server-client";
 import { logger } from "@/lib/logger";
 
+// Force dynamic rendering - prevents build-time evaluation of Genkit imports
+export const dynamic = 'force-dynamic';
+
 // Helper to build the text we embed for a product
 function buildProductText(
   product: ProductDoc,

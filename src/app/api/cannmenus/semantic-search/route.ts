@@ -11,6 +11,9 @@ import { createServerClient } from "@/firebase/server-client";
 
 
 import { logger } from '@/lib/logger';
+
+// Force dynamic rendering - prevents build-time evaluation of Genkit imports
+export const dynamic = 'force-dynamic';
 // Simple cosine similarity between two vectors
 function cosineSimilarity(a: number[], b: number[]): number {
   if (!a.length || !b.length || a.length !== b.length) return 0;
