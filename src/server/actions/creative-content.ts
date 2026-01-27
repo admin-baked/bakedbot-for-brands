@@ -12,6 +12,7 @@ import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { generateImageFromPrompt } from '@/ai/flows/generate-social-image';
+import { generateCreativeQR } from '@/lib/qr/creative-qr';
 import type {
     CreativeContent,
     ContentStatus,
@@ -233,6 +234,13 @@ export async function approveContent(request: ApproveContentRequest): Promise<vo
             throw new Error('Content not found');
         }
 
+        // Generate QR code for approved content
+        const qrResult = await generateCreativeQR({
+            contentId: request.contentId,
+            size: 512,
+            baseUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai',
+        });
+
         const updateData: Partial<CreativeContent> = {
             status: request.scheduledAt ? 'scheduled' : 'approved',
             complianceStatus: 'active',
@@ -243,12 +251,25 @@ export async function approveContent(request: ApproveContentRequest): Promise<vo
             updateData.scheduledAt = request.scheduledAt;
         }
 
+        // Add QR code data if generation successful
+        if (qrResult.success) {
+            updateData.qrDataUrl = qrResult.qrDataUrl;
+            updateData.qrSvg = qrResult.qrSvg;
+            updateData.contentUrl = qrResult.contentUrl;
+            updateData.qrStats = {
+                scans: 0,
+                scansByPlatform: {},
+                scansByLocation: {},
+            };
+        }
+
         await ref.update(updateData);
 
         logger.info('[creative-content] Content approved', {
             contentId: request.contentId,
             approverId: userId,
-            scheduled: !!request.scheduledAt
+            scheduled: !!request.scheduledAt,
+            qrGenerated: qrResult.success,
         });
     } catch (error) {
         logger.error('[creative-content] Failed to approve content', { error });
