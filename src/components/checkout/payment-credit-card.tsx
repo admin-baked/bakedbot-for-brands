@@ -35,25 +35,31 @@ export function PaymentCreditCard({ amount, onSuccess, onError }: PaymentCreditC
         e.preventDefault();
         setLoading(true);
 
-        if (!cardData.cardNumber || !cardData.expirationDate || !cardData.cvv) {
-            onError('Please fill in all payment details');
+        try {
+            if (!cardData.cardNumber || !cardData.expirationDate || !cardData.cvv) {
+                onError('Please fill in all payment details');
+                setLoading(false);
+                return;
+            }
+
+            // Simulate processing delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Pass data to server action (Authorize.net)
+            await onSuccess({
+                method: 'authorize_net',
+                cardNumber: cardData.cardNumber.replace(/\s/g, ''),
+                expirationDate: cardData.expirationDate,
+                cvv: cardData.cvv,
+                zip: cardData.zip
+            });
+
             setLoading(false);
-            return;
+        } catch (error) {
+            setLoading(false);
+            const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
+            onError(errorMessage);
         }
-
-        // Simulate processing delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Pass data to server action (Authorize.net)
-        onSuccess({
-            method: 'authorize_net',
-            cardNumber: cardData.cardNumber.replace(/\s/g, ''),
-            expirationDate: cardData.expirationDate,
-            cvv: cardData.cvv,
-            zip: cardData.zip
-        });
-
-        setLoading(false);
     };
 
     return (

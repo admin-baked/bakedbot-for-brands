@@ -19,9 +19,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, Truck, AlertTriangle, Package } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { createShippingOrder } from '@/app/checkout/actions/createShippingOrder';
 import { useRouter } from 'next/navigation';
 import type { ShippingAddress } from '@/types/orders';
+import { logger } from '@/lib/logger';
 
 // States where hemp shipping is restricted
 const RESTRICTED_STATES = ['ID', 'MS', 'SD', 'NE', 'KS'];
@@ -127,23 +127,44 @@ export function ShippingCheckoutFlow({ brandId }: ShippingCheckoutFlowProps) {
     const handleOrderSubmit = async (paymentData?: any) => {
         setLoading(true);
         try {
-            const result = await createShippingOrder({
-                items: cartItems,
-                customer: customerDetails,
-                shippingAddress,
-                brandId,
-                paymentMethod: 'authorize_net',
-                paymentData,
-                total,
+            // Call API route instead of server action for better production reliability
+            const response = await fetch('/api/checkout/shipping', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    items: cartItems,
+                    customer: customerDetails,
+                    shippingAddress,
+                    brandId,
+                    paymentMethod: 'authorize_net',
+                    paymentData,
+                    total,
+                }),
             });
+
+            const result = await response.json();
 
             if (result.success) {
                 clearCart();
                 router.push(`/order-confirmation/${result.orderId}`);
             } else {
+                logger.error('[ShippingCheckout] Order creation failed', {
+                    error: result.error,
+                    brandId,
+                    total,
+                    statusCode: response.status
+                });
                 toast({ variant: 'destructive', title: 'Order Failed', description: result.error });
             }
         } catch (error) {
+            logger.error('[ShippingCheckout] Order submission error', {
+                error: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+                brandId,
+                total
+            });
             const errorMessage = error instanceof Error ? error.message : 'Unable to process your order.';
             toast({ variant: 'destructive', title: 'Order Failed', description: errorMessage });
         } finally {
