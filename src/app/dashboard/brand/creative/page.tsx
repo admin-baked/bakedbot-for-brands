@@ -38,6 +38,7 @@ import {
 import { useCreativeContent } from '@/hooks/use-creative-content';
 import { useBrandId } from '@/hooks/use-brand-id';
 import type { CreativeContent, SocialPlatform, ContentStatus } from '@/types/creative-content';
+import { InboxCTABanner } from '@/components/inbox/inbox-cta-banner';
 
 // --- Transform Functions ---
 
@@ -414,6 +415,11 @@ export default function CreativeCommandCenterPage() {
                     </div>
                 </div>
             )}
+
+            {/* Inbox CTA Banner */}
+            <div className="max-w-[1800px] mx-auto px-4 md:px-6 pt-4">
+                <InboxCTABanner variant="creative" />
+            </div>
 
             {/* Main 3-Column Layout */}
             <div className="max-w-[1800px] mx-auto px-4 md:px-6 py-6">
