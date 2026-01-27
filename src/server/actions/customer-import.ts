@@ -9,6 +9,7 @@
 
 import { z } from 'zod';
 import Papa from 'papaparse';
+// @ts-ignore - xlsx types may not be available in all environments
 import * as XLSX from 'xlsx';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
