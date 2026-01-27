@@ -39,13 +39,21 @@ export function SharedSidebarHistory() {
 
     const handleNewChat = () => {
         clearCurrentSession();
-        // Brand chat is on the main dashboard overview
-        if (role === 'brand') {
-            if (pathname !== '/dashboard') {
-                router.push('/dashboard');
+
+        // Inbox-First: Brand and dispensary users go to inbox
+        if (
+            role === 'brand' ||
+            role === 'brand_admin' ||
+            role === 'brand_member' ||
+            role === 'dispensary' ||
+            role === 'dispensary_admin' ||
+            role === 'dispensary_staff'
+        ) {
+            if (pathname !== '/dashboard/inbox') {
+                router.push('/dashboard/inbox');
             }
         } else {
-            // Default/Super User chat is in playbooks (or specific chat view)
+            // Super User chat is in playbooks (or specific chat view)
             if (pathname !== '/dashboard/playbooks') {
                 router.push('/dashboard/playbooks');
             }
@@ -54,9 +62,18 @@ export function SharedSidebarHistory() {
 
     const handleSelectSession = (sessionId: string) => {
         setActiveSession(sessionId);
-        if (role === 'brand') {
-            if (pathname !== '/dashboard') {
-                router.push('/dashboard');
+
+        // Inbox-First: Brand and dispensary users go to inbox
+        if (
+            role === 'brand' ||
+            role === 'brand_admin' ||
+            role === 'brand_member' ||
+            role === 'dispensary' ||
+            role === 'dispensary_admin' ||
+            role === 'dispensary_staff'
+        ) {
+            if (pathname !== '/dashboard/inbox') {
+                router.push('/dashboard/inbox');
             }
         } else {
             if (pathname !== '/dashboard/playbooks') {
