@@ -6,6 +6,10 @@ env:
   - variable: NODE_OPTIONS
     value: "--max-old-space-size=8192"
     availability: [ BUILD, RUNTIME ]
+  # Skip Next.js Node version check (Firebase App Hosting uses Node 18)
+  - variable: NEXT_SKIP_NODE_VERSION_CHECK
+    value: "1"
+    availability: [ BUILD ]
   # Firebase
   - variable: FIREBASE_SERVICE_ACCOUNT_KEY
     secret: FIREBASE_SERVICE_ACCOUNT_KEY@8
