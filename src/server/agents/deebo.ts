@@ -90,28 +90,27 @@ export const deebo = {
 
     try {
       // Prompt for Genkit (Semantic Check)
-      // Prompt for Genkit (Semantic Check)
-      // Enforce Global Claude Mandate (Claude 4.5 Opus)
+      // Use Gemini 2.5 Pro for compliance checking (fast and accurate)
       const prompt = `
             You are Deebo, the "Shield" and Chief Compliance Officer for jurisdiction: ${jurisdiction}.
             Channel: ${channel}.
-            
+
             MISSION: 100% Risk Mitigation.
-            
+
             Analyze the following content for compliance violations:
             "${content}"
-            
+
             Rules to enforce:
             1. No medical claims (cure, treat, prevent, health benefits).
             2. No appeal to minors (cartoons, candy-like imagery).
             3. No false or misleading statements.
-            
+
             Return JSON: { "status": "pass" | "fail" | "warning", "violations": [], "suggestions": [] }
             `;
 
       const result = await ai.generate({
         prompt: prompt,
-        model: 'claude', // Triggers harness routing to Claude 4.5 Opus
+        model: 'googleai/gemini-2.5-pro', // Use Gemini for compliance checking
         output: { schema: ComplianceResultSchema }
       });
 
