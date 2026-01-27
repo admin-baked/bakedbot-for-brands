@@ -44,6 +44,7 @@ import { InboxCarouselCard } from './artifacts/carousel-card';
 import { InboxBundleCard } from './artifacts/bundle-card';
 import { InboxCreativeCard } from './artifacts/creative-card';
 import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
+import { AgentHandoffNotification } from './agent-handoff-notification';
 import { formatDistanceToNow } from 'date-fns';
 import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inbox';
 import { useJobPoller } from '@/hooks/use-job-poller';
@@ -389,14 +390,35 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                             </p>
                         </div>
                     ) : (
-                        thread.messages.map((message) => (
-                            <MessageBubble
-                                key={message.id}
-                                message={message}
-                                agentPersona={thread.primaryAgent}
-                                artifacts={artifacts}
-                            />
-                        ))
+                        <>
+                            {thread.messages.map((message, index) => {
+                                // Check if there's a handoff before this message
+                                const handoffBefore = thread.handoffHistory?.find((handoff) => {
+                                    const handoffTime = new Date(handoff.timestamp).getTime();
+                                    const messageTime = new Date(message.timestamp).getTime();
+                                    const prevMessageTime = index > 0
+                                        ? new Date(thread.messages[index - 1].timestamp).getTime()
+                                        : 0;
+                                    return handoffTime > prevMessageTime && handoffTime <= messageTime;
+                                });
+
+                                return (
+                                    <React.Fragment key={message.id}>
+                                        {/* Show handoff notification if one occurred before this message */}
+                                        {handoffBefore && (
+                                            <div className="my-4">
+                                                <AgentHandoffNotification handoff={handoffBefore} />
+                                            </div>
+                                        )}
+                                        <MessageBubble
+                                            message={message}
+                                            agentPersona={thread.primaryAgent}
+                                            artifacts={artifacts}
+                                        />
+                                    </React.Fragment>
+                                );
+                            })}
+                        </>
                     )}
 
                     {/* TaskFeed with Agent Pulse - shown while agent is thinking */}
