@@ -173,6 +173,14 @@ env:
       - RUNTIME
 
 
+runConfig:
+  minInstances: 0
+  maxInstances: 10
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
 build:
+  runtime: nodejs20
   installCommand: npm install --legacy-peer-deps
   buildCommand: next build
