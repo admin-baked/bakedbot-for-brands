@@ -4,7 +4,7 @@ import { config } from 'dotenv';
 config({ path: '.env.local' });
 
 import { genkit, Genkit } from 'genkit';
-import { googleAI } from '@genkit-ai/googleai';
+import { googleAI } from '@genkit-ai/google-genai';
 
 export { googleAI };
 
