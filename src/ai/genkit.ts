@@ -47,16 +47,24 @@ export const ai = new Proxy({} as Genkit, {
       return 'Genkit';
     }
 
-    // Only initialize when actually needed (not during build-time analysis)
-    try {
-      const instance = getAiInstance();
-      const value = (instance as any)[prop];
-      return typeof value === 'function' ? value.bind(instance) : value;
-    } catch (error) {
-      // During build, if GEMINI_API_KEY isn't available, return a function that throws at runtime
-      return function() {
-        throw new Error(`[Genkit] Cannot call ${String(prop)} - GEMINI_API_KEY not available. This should only be called at runtime.`);
+    // Check if GEMINI_API_KEY is available - if not, we're in build mode
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      // During build, return no-op functions for all method calls
+      // This allows definePrompt and other setup calls to succeed without initializing
+      return function(..._args: any[]) {
+        // Return a mock object for definePrompt that has common properties
+        return {
+          name: String(prop),
+          render: () => ({ prompt: '' }),
+          stream: async function*() {},
+        };
       };
     }
+
+    // At runtime with API key available, initialize and use real Genkit
+    const instance = getAiInstance();
+    const value = (instance as any)[prop];
+    return typeof value === 'function' ? value.bind(instance) : value;
   }
 });
