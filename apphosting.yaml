@@ -62,6 +62,8 @@ env:
       - RUNTIME
   - variable: AUTHNET_ENV
     value: "sandbox"
+    availability:
+      - RUNTIME
   - variable: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
     value: "9K42597r7YGCrMfdxPTd3Zy59fKe9rvWLbmKBK4bWr7Rn5ghdEmT9Fz8CZNLcT2G"
     availability:

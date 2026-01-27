@@ -6,13 +6,19 @@
 
 import { logger } from '@/lib/logger';
 
-const API_LOGIN_ID = process.env.AUTHNET_API_LOGIN_ID;
-const TRANSACTION_KEY = process.env.AUTHNET_TRANSACTION_KEY;
-const IS_PRODUCTION = process.env.AUTHNET_ENV === 'production';
+function getConfig() {
+    return {
+        API_LOGIN_ID: process.env.AUTHNET_API_LOGIN_ID,
+        TRANSACTION_KEY: process.env.AUTHNET_TRANSACTION_KEY,
+        IS_PRODUCTION: process.env.AUTHNET_ENV === 'production',
+    };
+}
 
-const API_ENDPOINT = IS_PRODUCTION
-    ? 'https://api2.authorize.net/xml/v1/request.api'
-    : 'https://apitest.authorize.net/xml/v1/request.api';
+function getAPIEndpoint(isProduction: boolean) {
+    return isProduction
+        ? 'https://api2.authorize.net/xml/v1/request.api'
+        : 'https://apitest.authorize.net/xml/v1/request.api';
+}
 
 export type PaymentRequest = {
     amount: number;
@@ -48,6 +54,8 @@ export type PaymentResponse = {
  * Create a transaction (Auth & Capture)
  */
 export async function createTransaction(payment: PaymentRequest): Promise<PaymentResponse> {
+    const { API_LOGIN_ID, TRANSACTION_KEY, IS_PRODUCTION } = getConfig();
+
     // Force MOCK transactions in sandbox/test mode to avoid invalid credential issues
     if (!IS_PRODUCTION) {
         logger.warn('Authorize.net sandbox mode - Using MOCK transaction', {
@@ -72,6 +80,8 @@ export async function createTransaction(payment: PaymentRequest): Promise<Paymen
             errors: ['Missing API credentials'],
         };
     }
+
+    const API_ENDPOINT = getAPIEndpoint(IS_PRODUCTION);
 
     const requestBody = {
         createTransactionRequest: {
