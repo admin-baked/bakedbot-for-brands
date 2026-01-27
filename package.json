@@ -28,6 +28,7 @@
     "check:routes": "node scripts/check-routes.mjs",
     "check:all": "npm run check:structure && npm run check:types && npm run check:lint",
     "check:env": "node -e \"import('./dist/config/env.js').catch(e => { console.error(e); process.exit(1) })\"",
+    "push": "bash scripts/safe-push.sh",
     "dev:with-sa": "powershell -ExecutionPolicy Bypass -File ./scripts/start-dev-with-firebase.ps1",
     "migrate:artifacts": "npx tsx scripts/migrate-to-unified-artifacts.ts",
     "migrate:artifacts:execute": "npx tsx scripts/migrate-to-unified-artifacts.ts --execute"
