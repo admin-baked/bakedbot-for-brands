@@ -25,7 +25,7 @@ export async function loadGroundTruth(brandId: string): Promise<GroundTruthQASet
         ? brandId.replace('brand_', '')
         : brandId;
 
-    // 1. Try Firestore first
+    // 1. Try Firestore first (but only if Firebase is available)
     try {
         const firestoreGT = await loadFromFirestore(normalizedId);
         if (firestoreGT) {
@@ -33,7 +33,13 @@ export async function loadGroundTruth(brandId: string): Promise<GroundTruthQASet
             return firestoreGT;
         }
     } catch (error) {
-        logger.warn(`[Grounding] Error loading from Firestore for ${normalizedId}`, { error: error instanceof Error ? error.message : String(error) });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        // Don't log Firebase initialization errors as warnings during development
+        if (errorMessage.includes('Firebase') || errorMessage.includes('FIREBASE_SERVICE_ACCOUNT_KEY')) {
+            logger.debug(`[Grounding] Firestore not available for ${normalizedId}, falling back to code registry`);
+        } else {
+            logger.warn(`[Grounding] Error loading from Firestore for ${normalizedId}`, { error: errorMessage });
+        }
         // Continue to fallback
     }
 
@@ -98,7 +104,14 @@ export function hasGroundTruthSync(brandId: string): boolean {
  * Load from Firestore and reconstruct full GroundTruthQASet
  */
 async function loadFromFirestore(brandId: string): Promise<GroundTruthQASet | null> {
-    const db = getAdminFirestore();
+    let db;
+    try {
+        db = getAdminFirestore();
+    } catch (error) {
+        // If Firebase isn't initialized (e.g., no service account in dev), return null
+        logger.debug(`[Grounding] Firebase not available: ${error instanceof Error ? error.message : String(error)}`);
+        return null;
+    }
 
     // Get main document
     const docRef = db.collection('ground_truth').doc(brandId);
