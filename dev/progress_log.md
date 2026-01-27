@@ -3465,3 +3465,23 @@ Unified the Agentic Command Center UI (/dashboard) by removing the duplicate int
 ### Result: ✅ Complete
 Navigation is unified, and the double sidebar issue is resolved with UI regression tests in place.
 
+
+## Session: 2026-01-26 (Modernize Inbox UI)
+### Task ID
+modernize_inbox_ui
+
+### Summary
+Modernized the Unified Inbox UI (/dashboard/inbox) by extracting premium 'Agentic' components from the Command Center demo. Created a shared component library for the new design system and refactored both the Command Center and the real Inbox to use these shared assets, ensuring visual consistency across the platform.
+
+### Key Changes
+*   **NEW**: src/components/dashboard/agentic/message-bubble.tsx - Shared premium chat bubble component.
+*   **NEW**: src/components/dashboard/agentic/task-feed.tsx - Shared live task feed component.
+*   **REFACTOR**: src/app/dashboard/page.tsx - Updated Command Center to use shared components.
+*   **REFACTOR**: src/components/inbox/inbox-conversation.tsx - Updated Unified Inbox to use shared components.
+
+### Tests Run
+*   npm run check:types (Passed ?)
+
+### Result: ? Complete
+Inbox UI is modernized and type-safe.
+

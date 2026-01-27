@@ -21,6 +21,7 @@ import {
     Sparkles,
     RefreshCw,
 } from 'lucide-react';
+import { MessageBubble as SharedMessageBubble } from '@/components/dashboard/agentic/message-bubble';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
@@ -105,45 +106,16 @@ function MessageBubble({
     );
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={cn('flex gap-3 py-4', isUser && 'flex-row-reverse')}
-        >
-            {/* Avatar with colored ring */}
-            <div
-                className={cn(
-                    'flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-sm',
-                    'ring-2 ring-offset-2 ring-offset-background transition-all duration-200',
-                    isUser
-                        ? 'bg-primary text-primary-foreground ring-primary/50'
-                        : cn(agent.bgColor, agent.ringColor)
-                )}
-            >
-                {isUser ? <User className="h-4 w-4" /> : <span className="text-base">{agent.avatar}</span>}
-            </div>
-
-            {/* Content */}
-            <div className={cn('flex-1 max-w-[80%]', isUser && 'text-right')}>
-                {/* Header */}
-                <div className={cn('flex items-center gap-2 mb-1', isUser && 'flex-row-reverse')}>
-                    <span className={cn('text-sm font-medium', !isUser && agent.color)}>
-                        {isUser ? 'You' : agent.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
-                    </span>
-                </div>
-
-                {/* Message Content */}
-                <div
-                    className={cn(
-                        'rounded-lg px-4 py-3',
-                        isUser
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                    )}
-                >
+        <SharedMessageBubble
+            isUser={isUser}
+            name={isUser ? 'You' : agent.name}
+            role={!isUser ? agentPersona : undefined} // Or mapped role if available
+            avatarSrc={undefined} // No src for emojis in this current setup, or could use agent.avatar if image
+            avatarFallback={isUser ? <User className="h-4 w-4" /> : <span className="text-base">{agent.avatar}</span>} // Handling custom fallback for emojis
+            timestamp={formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
+            className={isUser ? 'flex-row-reverse' : ''}
+            content={
+                <>
                     {message.thinking?.isThinking ? (
                         <div className="flex items-center gap-2 text-sm">
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -156,18 +128,17 @@ function MessageBubble({
                             </ReactMarkdown>
                         </div>
                     )}
-                </div>
-
-                {/* Inline Artifact Cards */}
-                {messageArtifacts.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                        {messageArtifacts.map((artifact) => (
-                            <ArtifactPreviewCard key={artifact.id} artifact={artifact} />
-                        ))}
-                    </div>
-                )}
-            </div>
-        </motion.div>
+                    {/* Inline Artifact Cards */}
+                    {messageArtifacts.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                            {messageArtifacts.map((artifact) => (
+                                <ArtifactPreviewCard key={artifact.id} artifact={artifact} />
+                            ))}
+                        </div>
+                    )}
+                </>
+            }
+        />
     );
 }
 
@@ -226,7 +197,7 @@ function ThreadHeader({ thread }: { thread: InboxThread }) {
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => {/* TODO: Edit title */}}>
+                    <DropdownMenuItem onClick={() => {/* TODO: Edit title */ }}>
                         <Edit2 className="h-4 w-4 mr-2" />
                         Edit Title
                     </DropdownMenuItem>

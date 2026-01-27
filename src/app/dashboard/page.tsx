@@ -32,78 +32,12 @@ import { useAgenticDashboard, type ChatMessage } from '@/hooks/use-agentic-dashb
 // 1. Sidebar Component Removed (Unified with Global Sidebar)
 
 // 2. Chat Message Component
-const ChatMessageDisplay = ({ msg }: { msg: ChatMessage }) => (
-  <div className="flex gap-4 group animate-in fade-in slide-in-from-bottom-2 duration-500">
-    <Avatar className="w-10 h-10 border-2 border-baked-border/50 mt-1">
-      <AvatarImage src={msg.agent.img} />
-      <AvatarFallback>{msg.agent.name[0]}</AvatarFallback>
-    </Avatar>
-    <div className="flex-1 max-w-2xl">
-      <div className="flex items-baseline gap-2 mb-1.5">
-        <span className="font-semibold text-white/90 text-sm">{msg.agent.name}</span>
-        <span className="text-xs text-baked-text-muted">({msg.agent.role})</span>
-        <span className="text-[10px] text-baked-text-muted/60 ml-auto font-mono">{msg.time}</span>
-      </div>
-      <div className="text-baked-text-secondary text-sm bg-white/5 p-4 rounded-2xl rounded-tl-sm border border-white/5 group-hover:border-baked-border/50 transition-colors leading-relaxed shadow-sm">
-        {msg.message}
-      </div>
-      {msg.actions && (
-        <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-baked-text-muted hover:text-white hover:bg-white/10 rounded-full"><ThumbsUp className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-baked-text-muted hover:text-white hover:bg-white/10 rounded-full"><Edit2 className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-baked-text-muted hover:text-white hover:bg-white/10 rounded-full"><Share className="w-3.5 h-3.5" /></Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-baked-text-muted hover:text-red-400 hover:bg-red-400/10 rounded-full"><Trash2 className="w-3.5 h-3.5" /></Button>
-        </div>
-      )}
-    </div>
-  </div>
-);
+// (Moved to src/components/dashboard/agentic/message-bubble.tsx)
+import { MessageBubble } from "@/components/dashboard/agentic/message-bubble";
 
 // 3. Task Feed Component
-const TaskFeed = ({ item }: { item: any }) => (
-  <Card className="bg-baked-card/50 border-baked-border shadow-md mt-auto backdrop-blur-md">
-    <CardHeader className="pb-2 pt-3 px-4 flex flex-row items-center justify-between border-b border-baked-border/50">
-      <CardTitle className="text-xs font-semibold text-baked-text-primary uppercase tracking-wider">Task Feed</CardTitle>
-      <div className="flex items-center gap-2">
-        <motion.div
-          animate={item.status === 'live' ? { opacity: [0.5, 1, 0.5], scale: [1, 1.2, 1] } : {}}
-          transition={{ repeat: Infinity, duration: 2 }}
-          className={`w-1.5 h-1.5 rounded-full ${item.status === 'live' ? 'bg-baked-green shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 'bg-baked-text-muted'}`}
-        />
-        <span className={`text-[10px] font-medium font-mono ${item.status === 'live' ? 'text-baked-green' : 'text-baked-text-muted'}`}>
-          {item.status === 'live' ? 'LIVE' : 'IDLE'}
-        </span>
-        <MoreHorizontal className="w-3 h-3 text-baked-text-muted ml-1" />
-      </div>
-    </CardHeader>
-    <CardContent className="px-4 py-3">
-      <div className="flex gap-3 items-center">
-        <div className="relative shrink-0">
-          <Avatar className="w-8 h-8 border border-baked-border">
-            <AvatarImage src={item.agent.img} />
-            <AvatarFallback>{item.agent.name[0]}</AvatarFallback>
-          </Avatar>
-          {item.status === 'live' && (
-            <motion.div
-              animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
-              transition={{ repeat: Infinity, duration: 1.5 }}
-              className="absolute -inset-1 rounded-full border border-baked-green/40 z-0"
-            />
-          )}
-        </div>
-
-        <div className="flex-1 space-y-1.5 relative z-10 min-w-0">
-          <div className="flex justify-between items-center">
-            <span className="text-xs font-semibold text-white truncate">{item.agent.name} ({item.agent.role})</span>
-            <span className="text-[10px] text-baked-green font-mono">{item.progress}%</span>
-          </div>
-          <p className="text-xs text-baked-text-secondary truncate">{item.task}</p>
-          <Progress value={item.progress} className="h-1 bg-black/40" />
-        </div>
-      </div>
-    </CardContent>
-  </Card>
-);
+// (Moved to src/components/dashboard/agentic/task-feed.tsx)
+import { TaskFeedItem } from "@/components/dashboard/agentic/task-feed";
 
 // 4. Artifact Components
 const ArtifactPipeline = () => (
@@ -291,7 +225,16 @@ export default function AgenticCommandCenter() {
             <ScrollArea className="flex-1 -mx-2 px-2">
               <div className="space-y-6 pb-4">
                 {messages.map((msg, i) => (
-                  <ChatMessageDisplay key={i} msg={msg} />
+                  <MessageBubble
+                    key={i}
+                    isUser={msg.agent.name === 'You'}
+                    name={msg.agent.name}
+                    role={msg.agent.role}
+                    avatarSrc={msg.agent.img}
+                    timestamp={msg.time}
+                    content={msg.message}
+                    actions={msg.actions}
+                  />
                 ))}
               </div>
             </ScrollArea>
@@ -325,7 +268,7 @@ export default function AgenticCommandCenter() {
             </div>
 
             {/* Transparency via Task Feed */}
-            <TaskFeed item={taskFeed} />
+            <TaskFeedItem item={taskFeed} />
           </div>
 
           {/* Right Panel: Artifacts (Sidecar view) */}
