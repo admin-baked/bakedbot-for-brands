@@ -4,6 +4,8 @@ import { runChicagoPilotJob } from '@/server/jobs/seo-generator';
 import { runBrandPilotJob } from '@/server/jobs/brand-discovery-job';
 import { ragService } from '@/server/services/vector-search/rag-service';
 
+// Force dynamic rendering - prevents build-time evaluation of agent dependencies
+export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes
 
 export async function GET(request: Request) {

@@ -192,7 +192,6 @@ describe('Unified Demo API - New Features', () => {
         expect(res.items[0].title).toContain('Alert Sent');
         expect(res.items[0].description).toContain('555-123-4567');
     });
-    });
 
     it('intercepts "ezal research" triggers and returns the Ezal Talk Track', async () => {
         analyzeQuery.mockResolvedValue({ searchType: 'general' });
