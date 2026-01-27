@@ -11,6 +11,9 @@ import { verifySuperAdmin } from '@/server/utils/auth-check';
 import { runAgentChat } from '@/app/dashboard/ceo/agents/actions';
 import { z } from 'zod';
 
+// Force dynamic rendering - prevents build-time evaluation of agent dependencies
+export const dynamic = 'force-dynamic';
+
 const linusFixSchema = z.object({
     // Type of fix request
     type: z.enum(['ticket', 'test_failure', 'health_check', 'browser_test', 'code_review']),

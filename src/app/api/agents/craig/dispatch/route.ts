@@ -5,6 +5,10 @@ import { handleCraigEvent } from "@/server/agents/craig";
 import { requireUser } from "@/server/auth/auth";
 
 import { logger } from '@/lib/logger';
+
+// Force dynamic rendering - prevents build-time evaluation of agent dependencies
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   try {
     // Secure this endpoint: only 'owner' role can trigger it.
