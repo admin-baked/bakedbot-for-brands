@@ -5,7 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
 import { headers } from 'next/headers';
 
-type PageType = 'brand' | 'dispensary' | 'zip' | 'product';
+type PageType = 'brand' | 'dispensary' | 'zip' | 'product' | 'creative';
 
 interface PageViewData {
     pageType: PageType;

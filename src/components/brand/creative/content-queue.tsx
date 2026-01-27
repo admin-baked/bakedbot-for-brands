@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { CreativeQRCode } from '@/components/brand/creative/creative-qr-code';
+import type { CreativeContent } from '@/types/creative-content';
 
 // Mock types for content items
 export interface ContentItem {
@@ -15,6 +17,18 @@ export interface ContentItem {
   caption: string;
   status: 'pending' | 'approved' | 'revision';
   scheduledDate?: string;
+  // QR code data (for approved content)
+  qrDataUrl?: string;
+  qrSvg?: string;
+  contentUrl?: string;
+  qrStats?: {
+    scans: number;
+    lastScanned?: Date;
+    scansByPlatform?: Record<string, number>;
+    scansByLocation?: Record<string, number>;
+  };
+  // Full content object for QR component (if available)
+  fullContent?: CreativeContent;
 }
 
 interface ContentQueueProps {
@@ -163,6 +177,27 @@ export function ContentQueue({ items, onApprove, onRevise, onEditCaption }: Cont
                         <span className="font-medium text-primary">Scheduled for:</span>
                         {currentItem.scheduledDate || 'Next available slot'}
                     </div>
+
+                    {/* QR Code Section (shown for approved/scheduled content or if QR data exists) */}
+                    {currentItem.status === 'approved' && currentItem.fullContent && (
+                        <div className="mt-4">
+                            <CreativeQRCode
+                                content={currentItem.fullContent}
+                                size={200}
+                                showStats={true}
+                                showDownload={true}
+                            />
+                        </div>
+                    )}
+
+                    {/* Fallback QR notice for pending content */}
+                    {currentItem.status === 'pending' && (
+                        <div className="mt-4 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+                            <p className="text-xs text-green-700 dark:text-green-300 text-center">
+                                🎯 A trackable QR code will be generated automatically upon approval
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="mt-6 space-y-3">
