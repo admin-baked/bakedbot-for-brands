@@ -114,6 +114,45 @@ export async function getContentById(tenantId: string, contentId: string): Promi
 }
 
 /**
+ * Get public content by ID (no auth required - for QR landing pages)
+ * Only returns approved/scheduled/published content
+ */
+export async function getPublicContentById(contentId: string): Promise<CreativeContent | null> {
+    const { firestore } = await createServerClient();
+
+    try {
+        // Search across all tenants for this content ID
+        // This is safe because we only return public (approved+) content
+        const tenantsSnapshot = await firestore
+            .collection('tenants')
+            .listDocuments();
+
+        for (const tenantRef of tenantsSnapshot) {
+            const doc = await firestore
+                .doc(`${tenantRef.path}/${COLLECTION}/${contentId}`)
+                .get();
+
+            if (doc.exists) {
+                const content = {
+                    id: doc.id,
+                    ...doc.data()
+                } as CreativeContent;
+
+                // Only return if content is approved, scheduled, or published
+                if (['approved', 'scheduled', 'published'].includes(content.status)) {
+                    return content;
+                }
+            }
+        }
+
+        return null;
+    } catch (error) {
+        logger.error('[creative-content] Failed to get public content', { contentId, error });
+        return null;
+    }
+}
+
+/**
  * Generate new content using AI (Craig + Nano Banana)
  */
 export async function generateContent(

@@ -109,10 +109,17 @@ function toContentItem(content: CreativeContent): ContentItem {
         status:
             content.status === 'revision'
                 ? 'revision'
-                : content.status === 'approved'
+                : content.status === 'approved' || content.status === 'scheduled'
                 ? 'approved'
                 : 'pending',
         scheduledDate,
+        // Include QR data if available
+        qrDataUrl: content.qrDataUrl,
+        qrSvg: content.qrSvg,
+        contentUrl: content.contentUrl,
+        qrStats: content.qrStats,
+        // Pass full content object for QR component
+        fullContent: content,
     };
 }
 
