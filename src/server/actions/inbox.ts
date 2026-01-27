@@ -19,6 +19,7 @@ import type {
     InboxArtifact,
     InboxArtifactType,
     InboxArtifactStatus,
+    AgentHandoff,
 } from '@/types/inbox';
 import { parseArtifactsFromContent } from '@/types/artifact';
 import {

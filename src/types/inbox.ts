@@ -101,6 +101,20 @@ export type InboxAgentPersona =
     // ---- Auto-routing ----
     | 'auto';       // Auto-route based on message
 
+// ============ Agent Handoffs ============
+
+/**
+ * Agent handoff record for tracking agent transitions within a thread
+ */
+export interface AgentHandoff {
+    id: string;
+    fromAgent: InboxAgentPersona;
+    toAgent: InboxAgentPersona;
+    reason: string;
+    timestamp: Date;
+    messageId?: string; // Optional: link to the message where handoff occurred
+}
+
 // ============ Inbox Thread ============
 
 /**
@@ -120,6 +134,7 @@ export interface InboxThread {
     // Agent context
     primaryAgent: InboxAgentPersona;
     assignedAgents: InboxAgentPersona[];
+    handoffHistory?: AgentHandoff[]; // Agent transition history
 
     // Associated artifacts (carousels, bundles, content)
     artifactIds: string[];
