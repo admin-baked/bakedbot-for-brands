@@ -11,6 +11,9 @@ import { withProtection } from "@/server/middleware/with-protection";
 import { agentDispatchSchema, type AgentDispatchRequest } from "../../schemas";
 import { logger } from '@/lib/logger';
 
+// Force dynamic rendering - prevents build-time evaluation of agent dependencies
+export const dynamic = 'force-dynamic';
+
 export const POST = withProtection(
   async (req: NextRequest, data?: AgentDispatchRequest) => {
     try {

@@ -6,6 +6,9 @@ import { createTicketSchema } from '@/app/api/schemas';
 import { runAgentChat } from '@/app/dashboard/ceo/agents/actions';
 import { sanitizeForPrompt, wrapUserData, buildSystemDirectives } from '@/server/security';
 
+// Force dynamic rendering - prevents build-time evaluation of agent dependencies
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
     try {
         if (!await verifySuperAdmin(request)) {
