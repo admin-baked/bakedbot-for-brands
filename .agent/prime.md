@@ -196,6 +196,86 @@ BakedBot AI utilizes the **Gemini 2.5** family for all core reasoning and creati
 | Forgetting to archive | Use `archive_work` after significant changes |
 | Assuming file structure | Use Glob/Grep to verify |
 | Using `&&` in PowerShell | Use `;` instead |
+| Runtime-only env vars at module level | Use lazy initialization (see Next.js Build Gotcha below) |
+
+### Next.js Build Gotcha: Runtime-Only Environment Variables
+
+**Problem:** Next.js evaluates modules at build time during static analysis, even for routes with `export const dynamic = 'force-dynamic'`. If your module initializes SDKs that require runtime-only environment variables (marked `RUNTIME` in `apphosting.yaml`), the build will fail.
+
+**Example of BAD pattern:**
+```typescript
+// ❌ BAD: This runs at module import time (build-time)
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
+
+const apiKey = process.env.GEMINI_API_KEY; // undefined at build time!
+if (!apiKey) throw new Error('Missing key'); // Build fails here
+
+export const ai = genkit({ plugins: [googleAI({ apiKey })] });
+```
+
+**Why `export const dynamic = 'force-dynamic'` doesn't help:**
+- It prevents **static generation** of the route
+- It does NOT prevent **module evaluation** during build
+- Your imports still run when Next.js analyzes the dependency graph
+
+**Solution: Lazy Initialization with Proxy**
+```typescript
+// ✅ GOOD: Lazy initialization that's build-safe
+import { genkit, Genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
+
+let _ai: Genkit | null = null;
+
+function getAiInstance(): Genkit {
+  if (_ai) return _ai;
+
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!apiKey) {
+    throw new Error('[Genkit] API key required');
+  }
+
+  _ai = genkit({ plugins: [googleAI({ apiKey })] });
+  return _ai;
+}
+
+// Proxy that handles build-time vs runtime gracefully
+export const ai = new Proxy({} as Genkit, {
+  get(_target, prop) {
+    // During build/static analysis, return safe values
+    if (typeof prop === 'string') {
+      if (prop === 'then' || prop === 'toJSON' || prop === 'constructor') {
+        return undefined;
+      }
+    }
+    if (prop === Symbol.toStringTag) return 'Genkit';
+
+    // Check if we're in build mode (no API key available)
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      // Return mock functions that allow definePrompt() etc. to succeed
+      return function() {
+        return { name: String(prop), render: () => ({ prompt: '' }) };
+      };
+    }
+
+    // At runtime, initialize and use real instance
+    const instance = getAiInstance();
+    const value = (instance as any)[prop];
+    return typeof value === 'function' ? value.bind(instance) : value;
+  }
+});
+```
+
+**Real-World Example:** `src/ai/genkit.ts`
+
+**When to use this pattern:**
+- Any SDK that requires runtime-only secrets (Genkit, Anthropic, OpenAI, etc.)
+- Database clients with runtime credentials
+- Third-party APIs with build/runtime separation in Firebase App Hosting
+
+**Related Files:**
+- See `.agent/refs/backend.md` → Next.js + Firebase section for more patterns
 
 ### Security Gotchas (Q1 2026 Audit Update)
 
