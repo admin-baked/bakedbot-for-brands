@@ -4,6 +4,9 @@ import { logger } from '@/lib/logger';
 import { withProtection } from '@/server/middleware/with-protection';
 import { z } from 'zod';
 
+// Force dynamic rendering - prevents build-time evaluation of Genkit imports
+export const dynamic = 'force-dynamic';
+
 const generateSchema = z.object({
     goal: z.string().min(5),
     audience: z.string().optional(),

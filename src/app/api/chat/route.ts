@@ -13,6 +13,9 @@ import type { Product } from '@/types/products';
 import { hasGroundTruth } from '@/server/grounding';
 import { validateInput, validateOutput, getRiskLevel } from '@/server/security';
 
+// Force dynamic rendering - prevents build-time evaluation of Genkit imports
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/chat
  * Body: { query: string, userId?: string, sessionId?: string, brandId?: string, state?: string }

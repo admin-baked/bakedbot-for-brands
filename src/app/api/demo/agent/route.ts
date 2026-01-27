@@ -7,6 +7,9 @@ import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { TalkTrack } from '@/types/talk-track';
 import { findTalkTrackByTrigger } from '@/server/repos/talkTrackRepo';
 
+// Force dynamic rendering - prevents build-time evaluation of Genkit imports
+export const dynamic = 'force-dynamic';
+
 // ============================================================================
 // SMART QUESTION HANDLER - Contextual responses for custom questions
 // ============================================================================
