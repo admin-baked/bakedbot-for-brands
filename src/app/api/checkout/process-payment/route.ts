@@ -22,6 +22,9 @@ import { createServerClient } from '@/firebase/server-client';
 import { withProtection } from '@/server/middleware/with-protection';
 import { processPaymentSchema, type ProcessPaymentRequest } from '../../schemas';
 
+// Force dynamic rendering - prevents build-time evaluation of agent dependencies
+export const dynamic = 'force-dynamic';
+
 export const POST = withProtection(
     async (req: NextRequest, data?: ProcessPaymentRequest) => {
         try {
