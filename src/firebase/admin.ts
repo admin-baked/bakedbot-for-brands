@@ -81,38 +81,64 @@ function getServiceAccount() {
 }
 
 export function getAdminFirestore() {
-    if (getApps().length === 0) {
-        const serviceAccount = getServiceAccount();
-        if (serviceAccount) {
-            initializeApp({
-                credential: cert(serviceAccount)
-            });
-        } else {
-            // Fallback to application default credentials (useful on GCP)
-            initializeApp({
-                credential: applicationDefault(),
-                projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8'
-            });
+    try {
+        if (getApps().length === 0) {
+            console.log('[Firebase Admin] No apps found, initializing...');
+            const serviceAccount = getServiceAccount();
+            if (serviceAccount) {
+                console.log('[Firebase Admin] Using service account credentials');
+                initializeApp({
+                    credential: cert(serviceAccount)
+                });
+            } else {
+                console.log('[Firebase Admin] Using application default credentials');
+                // Fallback to application default credentials (useful on GCP)
+                initializeApp({
+                    credential: applicationDefault(),
+                    projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8'
+                });
+            }
+            console.log('[Firebase Admin] Firebase app initialized successfully');
         }
+        // Explicitly grab the default app to ensure no ambiguity
+        const app = getApps()[0];
+        if (!app) {
+            throw new Error('[Firebase Admin] Failed to initialize Firebase app - no apps found after initialization attempt');
+        }
+        return getFirestore(app);
+    } catch (error) {
+        console.error('[Firebase Admin] Error in getAdminFirestore:', error);
+        throw error;
     }
-    // Explicitly grab the default app to ensure no ambiguity
-    return getFirestore(getApps()[0]); 
 }
 
 export function getAdminAuth() {
-    if (getApps().length === 0) {
-        const serviceAccount = getServiceAccount();
-        if (serviceAccount) {
-            initializeApp({
-                credential: cert(serviceAccount)
-            });
-        } else {
-            initializeApp({
-                credential: applicationDefault(),
-                projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8'
-            });
+    try {
+        if (getApps().length === 0) {
+            console.log('[Firebase Admin] No apps found, initializing...');
+            const serviceAccount = getServiceAccount();
+            if (serviceAccount) {
+                console.log('[Firebase Admin] Using service account credentials');
+                initializeApp({
+                    credential: cert(serviceAccount)
+                });
+            } else {
+                console.log('[Firebase Admin] Using application default credentials');
+                initializeApp({
+                    credential: applicationDefault(),
+                    projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8'
+                });
+            }
+            console.log('[Firebase Admin] Firebase app initialized successfully');
         }
+        // Explicitly grab the default app to ensure no ambiguity
+        const app = getApps()[0];
+        if (!app) {
+            throw new Error('[Firebase Admin] Failed to initialize Firebase app - no apps found after initialization attempt');
+        }
+        return getAuth(app);
+    } catch (error) {
+        console.error('[Firebase Admin] Error in getAdminAuth:', error);
+        throw error;
     }
-    // Explicitly grab the default app to ensure no ambiguity
-    return getAuth(getApps()[0]);
 }
