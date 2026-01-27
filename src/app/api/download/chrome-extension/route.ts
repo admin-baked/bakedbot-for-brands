@@ -11,6 +11,7 @@ import { requireSuperUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import * as fs from 'fs';
 import * as path from 'path';
+// @ts-ignore - archiver types may not be available in all environments
 import archiver from 'archiver';
 
 export async function GET() {
