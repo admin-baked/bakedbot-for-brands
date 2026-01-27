@@ -5,6 +5,9 @@ import { createServerClient } from '@/firebase/server-client';
 import { DecodedIdToken } from 'firebase-admin/auth';
 import { formatAgentResponse } from '@/lib/agent-response-formatter';
 
+// Force dynamic rendering - prevents build-time evaluation of agent dependencies
+export const dynamic = 'force-dynamic';
+
 /**
  * Cloud Task Worker for Agent Jobs.
  * Receives a pushed task, reconstructs user context, and executes the agent.
