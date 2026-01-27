@@ -18,7 +18,8 @@ jest.mock('child_process', () => ({
 jest.mock('@/server/services/python-sidecar', () => ({
     sidecar: {
         execute: jest.fn(),
-        callMcp: jest.fn()
+        callMcp: jest.fn(),
+        listMcpTools: jest.fn()
     }
 }));
 
@@ -32,11 +33,25 @@ describe('Mcp Integration', () => {
     });
 
     describe('RemoteMcpClient', () => {
-        it('should list tools by returning hardcoded discovery', async () => {
+        it('should list tools using sidecar when available', async () => {
             const client = new RemoteMcpClient({ id: 'remote-test' });
+            const mockTools = [
+                { name: 'test_tool', description: 'desc', inputSchema: {} }
+            ];
+            (sidecar.listMcpTools as jest.Mock).mockResolvedValueOnce(mockTools);
+
             const tools = await client.listTools();
-            expect(tools).toHaveLength(3);
-            expect(tools[0].name).toBe('create_notebook');
+            expect(tools).toEqual(mockTools);
+            expect(sidecar.listMcpTools).toHaveBeenCalled();
+        });
+
+        it('should return fallback tools when sidecar listing fails', async () => {
+            const client = new RemoteMcpClient({ id: 'remote-test' });
+            (sidecar.listMcpTools as jest.Mock).mockRejectedValueOnce(new Error('Connection failed'));
+
+            const tools = await client.listTools();
+            expect(tools.length).toBeGreaterThan(0);
+            expect(tools[0].name).toBe('healthcheck');
         });
 
         it('should delegate callTool to sidecar', async () => {
