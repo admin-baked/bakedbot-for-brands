@@ -77,12 +77,16 @@ export async function POST(req: NextRequest) {
 
             if (!paymentResult.success) {
                 logger.warn('[ShippingOrderAPI] Payment failed', {
+                    message: paymentResult.message,
                     errors: paymentResult.errors,
-                    brandId
+                    responseCode: paymentResult.responseCode,
+                    brandId,
+                    total
                 });
                 return NextResponse.json({
                     success: false,
-                    error: paymentResult.message || 'Payment declined. Please check your card details.'
+                    error: paymentResult.message || 'Payment declined. Please check your card details.',
+                    details: paymentResult.errors
                 }, { status: 400 });
             }
 

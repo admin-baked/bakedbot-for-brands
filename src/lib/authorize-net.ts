@@ -49,18 +49,22 @@ export type PaymentResponse = {
  */
 export async function createTransaction(payment: PaymentRequest): Promise<PaymentResponse> {
     if (!API_LOGIN_ID || !TRANSACTION_KEY) {
-        // MOCK fallback for local development
-        if (process.env.NODE_ENV !== 'production') {
-            logger.warn('Authorize.net credentials missing - Using MOCK transaction for dev');
+        // MOCK fallback for local development OR sandbox mode without credentials
+        if (process.env.NODE_ENV !== 'production' || !IS_PRODUCTION) {
+            logger.warn('Authorize.net credentials missing - Using MOCK transaction for dev/sandbox', {
+                nodeEnv: process.env.NODE_ENV,
+                authnetEnv: process.env.AUTHNET_ENV,
+                amount: payment.amount
+            });
             await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
             return {
                 success: true,
                 transactionId: `mock_tx_${Date.now()}`,
-                message: 'Transaction approved (MOCK)',
+                message: 'Transaction approved (MOCK - sandbox mode)',
             };
         }
 
-        logger.error('Authorize.net credentials missing');
+        logger.error('Authorize.net credentials missing in production');
         return {
             success: false,
             message: 'Payment configuration error',
@@ -146,10 +150,16 @@ export async function createTransaction(payment: PaymentRequest): Promise<Paymen
                 };
             }
         } else {
+            const errors = data.messages.message.map((m: any) => `${m.code}: ${m.text}`);
+            logger.error('[Authorize.net] Transaction failed', {
+                resultCode: data.messages.resultCode,
+                errors,
+                amount: payment.amount
+            });
             return {
                 success: false,
                 message: 'Transaction failed',
-                errors: data.messages.message.map((m: any) => `${m.code}: ${m.text}`),
+                errors,
             };
         }
     } catch (error: any) {
