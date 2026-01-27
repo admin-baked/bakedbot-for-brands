@@ -77,6 +77,23 @@ export interface CreativeContentBase {
 
     /** Revision notes if sent back for edit */
     revisionNotes?: RevisionNote[];
+
+    /** QR code data URL (PNG) */
+    qrDataUrl?: string;
+
+    /** QR code SVG for vector graphics */
+    qrSvg?: string;
+
+    /** Content landing page URL */
+    contentUrl?: string;
+
+    /** QR code scan tracking */
+    qrStats?: {
+        scans: number;
+        lastScanned?: Date;
+        scansByPlatform?: Record<string, number>;
+        scansByLocation?: Record<string, number>;
+    };
 }
 
 /**
