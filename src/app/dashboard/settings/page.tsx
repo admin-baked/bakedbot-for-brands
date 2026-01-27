@@ -2,7 +2,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, Code, Download, Store, Users, Palette, Bot } from 'lucide-react';
+import { Globe, Code, Download, Store, Users, Palette, Bot, Plug } from 'lucide-react';
 import DomainSettingsTab from './components/domain-tab';
 import EmbedGeneratorTab from './components/embed-tab';
 import WordPressPluginTab from './components/wordpress-tab';
@@ -13,6 +13,7 @@ import { InvitationsList } from '@/components/invitations/invitations-list';
 import { CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { BillingForm } from './components/billing-form';
 import { CreditCard } from 'lucide-react';
+import { SidecarHealthCheck } from '@/components/settings/sidecar-health';
 
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from 'lucide-react';
@@ -99,6 +100,10 @@ export default function SettingsPage() {
             <Download className="mr-2 h-4 w-4" />
             WordPress Plugin
           </TabsTrigger>
+          <TabsTrigger value="integrations">
+            <Plug className="mr-2 h-4 w-4" />
+            Integrations
+          </TabsTrigger>
           {(hasBrandAdminAccess || hasDispensaryAdminAccess) && (
             <TabsTrigger value="team">
               <Users className="mr-2 h-4 w-4" />
@@ -135,6 +140,10 @@ export default function SettingsPage() {
 
         <TabsContent value="wordpress" className="space-y-4">
           <WordPressPluginTab />
+        </TabsContent>
+
+        <TabsContent value="integrations" className="space-y-4">
+          <SidecarHealthCheck />
         </TabsContent>
 
         <TabsContent value="team" className="space-y-4">
