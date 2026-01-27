@@ -160,11 +160,11 @@ export function useCreativeContent(
 
         const fetchViaServerAction = async () => {
             try {
-                const items = await getPendingContent(tenantId);
-                let filtered = items;
+                const response = await getPendingContent(tenantId, { limit: options.limit || 50 });
+                let filtered = response.content;
 
                 if (platform) {
-                    filtered = items.filter(item => item.platform === platform);
+                    filtered = response.content.filter((item: CreativeContent) => item.platform === platform);
                 }
 
                 setContent(filtered);

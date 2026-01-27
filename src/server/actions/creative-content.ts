@@ -27,13 +27,43 @@ import type {
 const COLLECTION = 'creative_content';
 
 /**
- * Get all pending content items for approval
+ * Pagination options for content queries
  */
-export async function getPendingContent(tenantId: string): Promise<CreativeContent[]> {
+export interface ContentPaginationOptions {
+    limit?: number;
+    startAfter?: string; // Document ID to start after
+    orderBy?: 'createdAt' | 'updatedAt';
+    orderDirection?: 'asc' | 'desc';
+}
+
+/**
+ * Paginated content response
+ */
+export interface PaginatedContentResponse {
+    content: CreativeContent[];
+    hasMore: boolean;
+    lastDocId?: string;
+    total?: number;
+}
+
+/**
+ * Get all pending content items for approval with pagination
+ */
+export async function getPendingContent(
+    tenantId: string,
+    options: ContentPaginationOptions = {}
+): Promise<PaginatedContentResponse> {
+    const {
+        limit = 50,
+        startAfter,
+        orderBy = 'createdAt',
+        orderDirection = 'desc'
+    } = options;
+
     // Validate tenantId - return empty if not provided
     if (!tenantId) {
         logger.warn('[creative-content] getPendingContent called with empty tenantId');
-        return [];
+        return { content: [], hasMore: false };
     }
 
     try {
@@ -43,23 +73,46 @@ export async function getPendingContent(tenantId: string): Promise<CreativeConte
         logger.warn('[creative-content] Auth error in getPendingContent', {
             error: authError.message
         });
-        return [];
+        return { content: [], hasMore: false };
     }
 
     const { firestore } = await createServerClient();
 
     try {
-        const snapshot = await firestore
+        let query = firestore
             .collection(`tenants/${tenantId}/${COLLECTION}`)
             .where('status', 'in', ['pending', 'draft'])
-            .orderBy('createdAt', 'desc')
-            .limit(50)
-            .get();
+            .orderBy(orderBy, orderDirection);
 
-        return snapshot.docs.map(doc => ({
+        // Apply cursor if provided
+        if (startAfter) {
+            const startDoc = await firestore
+                .doc(`tenants/${tenantId}/${COLLECTION}/${startAfter}`)
+                .get();
+
+            if (startDoc.exists) {
+                query = query.startAfter(startDoc);
+            }
+        }
+
+        // Fetch one extra to check if there are more pages
+        const snapshot = await query.limit(limit + 1).get();
+
+        const hasMore = snapshot.docs.length > limit;
+        const docs = hasMore ? snapshot.docs.slice(0, limit) : snapshot.docs;
+
+        const content = docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         } as CreativeContent));
+
+        const lastDocId = docs.length > 0 ? docs[docs.length - 1].id : undefined;
+
+        return {
+            content,
+            hasMore,
+            lastDocId,
+        };
     } catch (error: any) {
         logger.error('[creative-content] Failed to get pending content', {
             tenantId,
@@ -81,7 +134,7 @@ export async function getPendingContent(tenantId: string): Promise<CreativeConte
                     tenantId
                 });
             }
-            return [];
+            return { content: [], hasMore: false };
         }
 
         // Only throw on truly unexpected errors
@@ -510,38 +563,68 @@ export async function updateContentStatus(
 }
 
 /**
- * Get content for a specific platform
+ * Get content for a specific platform with pagination
  */
 export async function getContentByPlatform(
     tenantId: string,
     platform: SocialPlatform,
-    limit: number = 20
-): Promise<CreativeContent[]> {
+    options: ContentPaginationOptions = {}
+): Promise<PaginatedContentResponse> {
+    const {
+        limit = 20,
+        startAfter,
+        orderBy = 'createdAt',
+        orderDirection = 'desc'
+    } = options;
+
     // Validate tenantId - return empty if not provided
     if (!tenantId) {
-        return [];
+        return { content: [], hasMore: false };
     }
 
     try {
         await requireUser();
     } catch {
-        return [];
+        return { content: [], hasMore: false };
     }
 
     const { firestore } = await createServerClient();
 
     try {
-        const snapshot = await firestore
+        let query = firestore
             .collection(`tenants/${tenantId}/${COLLECTION}`)
             .where('platform', '==', platform)
-            .orderBy('createdAt', 'desc')
-            .limit(limit)
-            .get();
+            .orderBy(orderBy, orderDirection);
 
-        return snapshot.docs.map(doc => ({
+        // Apply cursor if provided
+        if (startAfter) {
+            const startDoc = await firestore
+                .doc(`tenants/${tenantId}/${COLLECTION}/${startAfter}`)
+                .get();
+
+            if (startDoc.exists) {
+                query = query.startAfter(startDoc);
+            }
+        }
+
+        // Fetch one extra to check if there are more pages
+        const snapshot = await query.limit(limit + 1).get();
+
+        const hasMore = snapshot.docs.length > limit;
+        const docs = hasMore ? snapshot.docs.slice(0, limit) : snapshot.docs;
+
+        const content = docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         } as CreativeContent));
+
+        const lastDocId = docs.length > 0 ? docs[docs.length - 1].id : undefined;
+
+        return {
+            content,
+            hasMore,
+            lastDocId,
+        };
     } catch (error: any) {
         logger.error('[creative-content] Failed to get platform content', {
             tenantId,
@@ -552,7 +635,7 @@ export async function getContentByPlatform(
         // Return empty on non-critical errors (missing index, collection, permissions)
         const nonCriticalCodes = ['not-found', 'permission-denied', 'failed-precondition'];
         if (nonCriticalCodes.includes(error.code) || error.message?.includes('index')) {
-            return [];
+            return { content: [], hasMore: false };
         }
 
         throw error;
