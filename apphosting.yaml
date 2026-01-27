@@ -181,6 +181,5 @@ runConfig:
   memoryMiB: 512
 
 build:
-  runtime: nodejs20
   installCommand: npm install --legacy-peer-deps
   buildCommand: next build
