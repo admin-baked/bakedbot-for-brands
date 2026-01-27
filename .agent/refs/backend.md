@@ -236,7 +236,157 @@ const snapshot = await docRef.get();
 
 ---
 
+## Next.js + Firebase App Hosting Patterns
+
+### The Build-Time vs Runtime Problem
+
+**Context:** Firebase App Hosting marks certain environment variables as `RUNTIME` only (like `GEMINI_API_KEY`). These variables are available at runtime but NOT during the Next.js build phase. Next.js 16 performs static analysis by evaluating modules during build, even for routes marked with `export const dynamic = 'force-dynamic'`.
+
+**The Failure Mode:**
+```typescript
+// ❌ This breaks Firebase builds:
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
+
+// This code runs at module import time (build-time)
+const apiKey = process.env.GEMINI_API_KEY; // undefined during build!
+if (!apiKey) {
+  throw new Error('Missing API key'); // Build fails here
+}
+
+export const ai = genkit({ plugins: [googleAI({ apiKey })] });
+```
+
+**Why `export const dynamic = 'force-dynamic'` doesn't help:**
+- ✅ **Does:** Prevents static generation, forces server-side rendering
+- ❌ **Doesn't:** Prevent module evaluation during Next.js build-time analysis
+- The route directive only affects rendering strategy, not import-time code execution
+
+### Lazy Initialization Pattern (Solution)
+
+**Implementation:** `src/ai/genkit.ts`
+
+```typescript
+import { genkit, Genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/google-genai';
+
+// Private instance holder (not initialized yet)
+let _ai: Genkit | null = null;
+
+// Initialization function (only called at runtime)
+function getAiInstance(): Genkit {
+  if (_ai) return _ai; // Cached
+
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!apiKey) {
+    throw new Error('[Genkit] API key required at runtime');
+  }
+
+  _ai = genkit({
+    plugins: [googleAI({ apiKey })],
+    model: 'googleai/gemini-2.5-flash-lite',
+  });
+
+  return _ai;
+}
+
+// Proxy that handles build-time vs runtime gracefully
+export const ai = new Proxy({} as Genkit, {
+  get(_target, prop) {
+    // Handle introspection properties (build-time analysis)
+    if (typeof prop === 'string') {
+      if (prop === 'then' || prop === 'toJSON' || prop === 'constructor') {
+        return undefined; // Not a Promise/JSON object
+      }
+    }
+    if (prop === Symbol.toStringTag) {
+      return 'Genkit'; // Type hint for debuggers
+    }
+
+    // Check if we're in build mode (no API key)
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      // Return mock functions that allow top-level definePrompt() calls
+      return function(..._args: any[]) {
+        return {
+          name: String(prop),
+          render: () => ({ prompt: '' }),
+          stream: async function*() {},
+        };
+      };
+    }
+
+    // At runtime with API key, initialize real Genkit
+    const instance = getAiInstance();
+    const value = (instance as any)[prop];
+    return typeof value === 'function' ? value.bind(instance) : value;
+  }
+});
+```
+
+**How it works:**
+1. **Build Time (no GEMINI_API_KEY):**
+   - Proxy returns mock functions
+   - Allows `ai.definePrompt()` calls at module top-level to succeed
+   - No actual Genkit initialization happens
+
+2. **Runtime (with GEMINI_API_KEY):**
+   - First property access triggers `getAiInstance()`
+   - Real Genkit instance created and cached
+   - All subsequent calls use the real instance
+
+### Why This Pattern is Necessary
+
+**Top-Level SDK Calls in Codebase:**
+```typescript
+// These are called at module import time across 13+ files:
+const analyzeQueryPrompt = ai.definePrompt({ ... });
+const generateChatResponsePrompt = ai.definePrompt({ ... });
+const generateCampaignPrompt = ai.definePrompt({ ... });
+```
+
+**Without lazy initialization:**
+- Next.js build evaluates these modules
+- `ai.definePrompt()` is called during build
+- Genkit initialization requires GEMINI_API_KEY
+- Build fails with "environment variable required" error
+
+**With lazy initialization:**
+- `ai.definePrompt()` gets a mock function during build
+- Build succeeds (mocks return placeholder objects)
+- At runtime, first actual use initializes real Genkit
+- All prompts work correctly in production
+
+### When to Use This Pattern
+
+Apply lazy initialization for:
+- **AI SDKs:** Genkit, OpenAI, Anthropic, etc.
+- **Database clients:** If credentials are runtime-only
+- **Third-party APIs:** Any service with `RUNTIME`-only secrets in `apphosting.yaml`
+- **Any top-level initialization:** That requires environment variables
+
+### Post-Mortem: Creative Center Build Failures (2026-01-27)
+
+**Timeline:**
+1. Implemented QR codes, social media integration, production polish
+2. Pushed to GitHub → Firebase App Hosting build triggered
+3. Build failed: "GEMINI_API_KEY environment variable is required"
+4. Added `export const dynamic = 'force-dynamic'` to 15 API routes → Still failed
+5. Root cause: `src/ai/genkit.ts` initialized Genkit at module import time
+6. Solution: Implemented lazy initialization with Proxy pattern → Build succeeded
+
+**Key Commits:**
+- `58f03be4` — Initial lazy initialization
+- `77c7c6e0` — Handle build-time property introspection (`then`, `Symbol.toStringTag`)
+- `4c3bbe24` — Return mocks during build, real instance at runtime
+
+**Lesson:** `export const dynamic = 'force-dynamic'` only affects rendering strategy, not module evaluation. Any code that runs during module import must be safe to run at build time without runtime-only environment variables.
+
+---
+
 ## Related Files
 - `src/lib/firebase/server-client.ts` — Firestore initialization
+- `src/ai/genkit.ts` — Genkit lazy initialization pattern (reference implementation)
 - `src/ai/genkit-flows.ts` — AI flow definitions
 - `CLAUDE.md` — Codebase context for Linus
+- `apphosting.yaml` — Environment variable availability configuration
