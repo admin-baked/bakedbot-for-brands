@@ -7,7 +7,7 @@ import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 
 // Get API key from environment - GEMINI_API_KEY takes priority, fallback to GOOGLE_API_KEY
-const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || 'AIzaSyAd9GmQtpFcXKHK_DixJA1Fi-49SGuPSDY';
 
 if (!apiKey) {
   console.error('[Genkit] WARNING: No API key found. Set GEMINI_API_KEY or GOOGLE_API_KEY environment variable.');
