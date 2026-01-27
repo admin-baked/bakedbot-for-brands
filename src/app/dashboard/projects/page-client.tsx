@@ -14,6 +14,7 @@ import { HelpButton } from './components/help-button';
 import { NewProjectButton } from './components/new-project-button';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { InboxCTABanner } from '@/components/inbox';
 
 interface ProjectsPageClientProps {
     projects: Project[];
@@ -92,6 +93,9 @@ export function ProjectsPageClient({ projects, currentUserId }: ProjectsPageClie
                 hasSystemProjects={hasSystemProjects}
                 onNewProject={handleNewProject}
             />
+
+            {/* Inbox CTA Banner */}
+            <InboxCTABanner variant="projects" />
 
             {/* Projects Grid */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

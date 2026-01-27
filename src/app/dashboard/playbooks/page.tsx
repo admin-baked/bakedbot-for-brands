@@ -19,6 +19,7 @@ import { PLAYBOOKS, Playbook } from './data';
 import { PlaybooksHeader, PlaybookFilterCategory } from './components/playbooks-header';
 import { PlaybookCardModern } from './components/playbook-card-modern';
 import { CreatePlaybookBanner } from './components/create-playbook-banner';
+import { InboxCTABanner } from '@/components/inbox';
 
 export default function PlaybooksPage() {
     const { role, user } = useUserRole();
@@ -127,6 +128,9 @@ export default function PlaybooksPage() {
                 onFilterChange={setActiveFilter}
                 onNewPlaybook={handleNewPlaybook}
             />
+
+            {/* Inbox CTA Banner */}
+            <InboxCTABanner variant="playbooks" />
 
             {/* Agent Builder Chat Interface */}
             <section className="w-full">
