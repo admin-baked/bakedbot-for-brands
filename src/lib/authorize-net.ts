@@ -48,22 +48,23 @@ export type PaymentResponse = {
  * Create a transaction (Auth & Capture)
  */
 export async function createTransaction(payment: PaymentRequest): Promise<PaymentResponse> {
-    if (!API_LOGIN_ID || !TRANSACTION_KEY) {
-        // MOCK fallback for local development OR sandbox mode without credentials
-        if (process.env.NODE_ENV !== 'production' || !IS_PRODUCTION) {
-            logger.warn('Authorize.net credentials missing - Using MOCK transaction for dev/sandbox', {
-                nodeEnv: process.env.NODE_ENV,
-                authnetEnv: process.env.AUTHNET_ENV,
-                amount: payment.amount
-            });
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
-            return {
-                success: true,
-                transactionId: `mock_tx_${Date.now()}`,
-                message: 'Transaction approved (MOCK - sandbox mode)',
-            };
-        }
+    // Force MOCK transactions in sandbox/test mode to avoid invalid credential issues
+    if (!IS_PRODUCTION) {
+        logger.warn('Authorize.net sandbox mode - Using MOCK transaction', {
+            nodeEnv: process.env.NODE_ENV,
+            authnetEnv: process.env.AUTHNET_ENV,
+            amount: payment.amount,
+            hasCredentials: !!(API_LOGIN_ID && TRANSACTION_KEY)
+        });
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
+        return {
+            success: true,
+            transactionId: `mock_tx_${Date.now()}`,
+            message: 'Transaction approved (MOCK - sandbox mode)',
+        };
+    }
 
+    if (!API_LOGIN_ID || !TRANSACTION_KEY) {
         logger.error('Authorize.net credentials missing in production');
         return {
             success: false,
