@@ -1,4 +1,28 @@
+## Session: 2026-01-27 (NotebookLLM MCP Setup & Unit Testing)
+### Task ID
+notebooklm_mcp_setup_and_tests
+
+### Summary
+Completed the setup and initialization of the NotebookLLM MCP server on the GCE sidecar VM (`notebooklm-vm`). Implemented specialized unit tests for the remote MCP client and fixed pre-existing sidecar integration test failures to align with the production return structure.
+
+### Key Changes
+*   **OPS**: Initialized `notebooklm-mcp` on `notebooklm-vm` with the designated notebook URL using `Xvfb` for headless support.
+*   **NEW**: `tests/server/services/mcp/notebooklm-remote.test.ts` - Specialized coverage for the Remote MCP client.
+*   **FIX**: `tests/server/services/mcp/client.test.ts` - Updated outdated tool discovery expectations.
+*   **FIX**: `tests/server/services/python-sidecar.test.ts` - Fixed result structure mismatch in the sidecar execution wrapper.
+
+### Tests Run
+*   `npm test tests/server/services/mcp/client.test.ts` (Passed ✅)
+*   `npm test tests/server/services/mcp/notebooklm-remote.test.ts` (Passed ✅)
+*   `npm test tests/server/services/python-sidecar.test.ts` (Passed ✅)
+
+### Result: ✅ Complete & Pushed to GitHub
+NotebookLLM integration is now fully verified and synchronized with the sidecar environment.
+
+---
+
 ## Session: 2026-01-25 (Fix Service Worker Logs & React Error #310)
+
 ### Task ID
 fix_sw_logs_react_error_310
 
