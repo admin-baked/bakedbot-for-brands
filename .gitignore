@@ -61,3 +61,11 @@ type_errors.txt
 test_output*.txt
 push_error.txt
 *.patch
+find-key.ps1
+update-api-key.ps1
+keys.json
+fresh-sa-key.json
+*.b64
+service-account-base64.txt
+service-account-base64-oneline.txt
+secrets_iam.json
