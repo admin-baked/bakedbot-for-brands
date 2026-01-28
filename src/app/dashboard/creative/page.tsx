@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
   MoreHorizontal,
@@ -275,56 +276,127 @@ const Sidebar = () => (
   </div>
 );
 
-const TheGrid = () => (
-  <div className="w-80 border-r border-baked-border flex flex-col h-full shrink-0">
-    <div className="p-4 flex items-center justify-between border-b border-baked-border shrink-0 h-16">
-      <h2 className="font-semibold text-lg">The Grid</h2>
-      <div className="flex gap-1">
+interface TheGridProps {
+  selectedPlatform: SocialPlatform;
+}
+
+const TheGrid = ({ selectedPlatform }: TheGridProps) => {
+  // Fetch published and scheduled content for The Grid
+  const { content: publishedContent, loading: gridLoading } = useCreativeContent({
+    platform: selectedPlatform,
+    statusFilter: ["approved", "scheduled"],
+    realtime: true,
+    limit: 12,
+  });
+
+  return (
+    <div className="w-80 border-r border-baked-border flex flex-col h-full shrink-0">
+      <div className="p-4 flex items-center justify-between border-b border-baked-border shrink-0 h-16">
+        <h2 className="font-semibold text-lg">The Grid</h2>
+        <div className="flex gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-baked-text-muted hover:text-white">
+            <LayoutGrid className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-baked-text-muted hover:text-white">
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+      <div className="p-4 flex items-center justify-between shrink-0">
+        <h3 className="text-sm font-medium text-baked-text-secondary">
+          {publishedContent.length} Published
+        </h3>
         <Button variant="ghost" size="icon" className="h-8 w-8 text-baked-text-muted hover:text-white">
-          <LayoutGrid className="w-4 h-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-baked-text-muted hover:text-white">
-          <ChevronRight className="w-4 h-4" />
+          <MoreHorizontal className="w-4 h-4" />
         </Button>
       </div>
+      <ScrollArea className="flex-1">
+        <div className="px-4 space-y-4 pb-4">
+          {gridLoading ? (
+            // Loading skeleton
+            <AnimatePresence>
+              {[1, 2, 3].map((i) => (
+                <motion.div
+                  key={`skeleton-${i}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="relative rounded-lg overflow-hidden border border-baked-border bg-baked-card animate-pulse"
+                >
+                  <div className="w-full aspect-[4/5] bg-baked-darkest" />
+                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-baked-darkest/50" />
+                    <div className="h-3 w-20 bg-baked-darkest/50 rounded" />
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          ) : publishedContent.length > 0 ? (
+            <AnimatePresence>
+              {publishedContent.map((post, index) => (
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ delay: index * 0.05, duration: 0.3 }}
+                  className="relative group rounded-lg overflow-hidden border border-baked-border hover:border-baked-green/30 transition-colors"
+                >
+                  {post.mediaUrls && post.mediaUrls[0] ? (
+                    <img
+                      src={post.mediaUrls[0]}
+                      alt={post.caption.substring(0, 50)}
+                      className="w-full aspect-[4/5] object-cover"
+                    />
+                  ) : post.thumbnailUrl ? (
+                    <img
+                      src={post.thumbnailUrl}
+                      alt={post.caption.substring(0, 50)}
+                      className="w-full aspect-[4/5] object-cover"
+                    />
+                  ) : (
+                    <div className="w-full aspect-[4/5] bg-gradient-to-br from-baked-green/20 to-baked-darkest flex items-center justify-center">
+                      <MessageSquare className="w-12 h-12 text-baked-green/50" />
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-baked-green" />
+                        <span className="text-xs font-medium text-white/90 capitalize">
+                          {post.status}
+                        </span>
+                      </div>
+                      <span className="text-xs text-white/70">
+                        {post.platform}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="secondary" size="icon" className="h-8 w-8 bg-baked-dark/80 hover:bg-baked-dark text-white backdrop-blur-sm">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-12 text-baked-text-muted"
+            >
+              <MessageSquare className="w-12 h-12 mx-auto mb-3 text-baked-text-muted/50" />
+              <p className="text-sm">No published content yet</p>
+              <p className="text-xs mt-1">Generate and approve content to see it here</p>
+            </motion.div>
+          )}
+        </div>
+      </ScrollArea>
     </div>
-    <div className="p-4 flex items-center justify-between shrink-0">
-      <h3 className="text-sm font-medium text-baked-text-secondary">Ghost Posts</h3>
-      <Button variant="ghost" size="icon" className="h-8 w-8 text-baked-text-muted hover:text-white">
-        <MoreHorizontal className="w-4 h-4" />
-      </Button>
-    </div>
-    <ScrollArea className="flex-1">
-      <div className="px-4 space-y-4 pb-4">
-        {mockGhostPosts.map((post) => (
-          <div key={post.id} className="relative group rounded-lg overflow-hidden border border-baked-border">
-            <img
-              src={post.imageUrl}
-              alt="Ghost Post"
-              className="w-full aspect-[4/5] object-cover"
-            />
-            <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent flex items-center gap-2">
-              <Avatar className="w-6 h-6 border border-white/20">
-                <AvatarImage src={post.avatarUrl} />
-                <AvatarFallback>
-                  {post.brandName.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium text-white">
-                {post.brandName}
-              </span>
-            </div>
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button variant="secondary" size="icon" className="h-8 w-8 bg-baked-dark/80 hover:bg-baked-dark text-white backdrop-blur-sm">
-                <MoreHorizontal className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </ScrollArea>
-  </div>
-);
+  );
+};
 
 // --- Main Page ---
 
@@ -340,6 +412,10 @@ export default function CreativeCommandCenter() {
   const [menuItem, setMenuItem] = useState("");
   const [revisionNote, setRevisionNote] = useState("");
 
+  // Caption editing state
+  const [isEditingCaption, setIsEditingCaption] = useState(false);
+  const [editedCaption, setEditedCaption] = useState("");
+
   // Creative content hook
   const {
     content,
@@ -348,6 +424,7 @@ export default function CreativeCommandCenter() {
     generate,
     approve,
     revise,
+    editCaption,
     isGenerating,
     isApproving,
   } = useCreativeContent({
@@ -407,6 +484,27 @@ export default function CreativeCommandCenter() {
       const safeCaption = "May help with relaxation."; // This would come from Deebo's suggestion
       toast.success("Safe version accepted!");
     }
+  };
+
+  // Handle caption editing
+  const handleStartEditCaption = () => {
+    if (currentContent) {
+      setEditedCaption(currentContent.caption);
+      setIsEditingCaption(true);
+    }
+  };
+
+  const handleSaveCaption = async () => {
+    if (!currentContent || !editedCaption.trim()) return;
+
+    await editCaption(currentContent.id, editedCaption);
+    setIsEditingCaption(false);
+    toast.success("Caption updated!");
+  };
+
+  const handleCancelEditCaption = () => {
+    setIsEditingCaption(false);
+    setEditedCaption("");
   };
 
   return (
@@ -495,11 +593,16 @@ export default function CreativeCommandCenter() {
           </div>
 
           <TabsContent value="instagram" className="flex-1 flex overflow-hidden m-0 p-0 relative">
-            <TheGrid />
+            <TheGrid selectedPlatform={selectedPlatform} />
             <ScrollArea className="flex-1">
             <div className="flex-1 p-6 flex gap-6 min-h-full w-full">
                 {/* Column 1: Prompt Input */}
-              <div className="w-[340px] shrink-0 flex flex-col gap-6">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1, duration: 0.4 }}
+                className="w-[340px] shrink-0 flex flex-col gap-6"
+              >
                 <h3 className="font-semibold text-lg">Prompt Input</h3>
                 <Card className="bg-baked-card border-baked-border shadow-none">
                   <CardHeader className="pb-3">
@@ -571,10 +674,15 @@ export default function CreativeCommandCenter() {
                     </Button>
                   </CardContent>
                 </Card>
-              </div>
+              </motion.div>
 
                {/* Column 2: Deebo Compliance Shield */}
-              <div className="w-[300px] shrink-0 flex flex-col gap-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+                className="w-[300px] shrink-0 flex flex-col gap-6"
+              >
                 <h3 className="font-semibold text-lg">Deebo Compliance Shield</h3>
                  <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col">
                     <CardContent className="p-6 flex-1 flex flex-col items-center justify-center space-y-6">
@@ -640,55 +748,205 @@ export default function CreativeCommandCenter() {
 
                     </CardContent>
                 </Card>
-              </div>
+              </motion.div>
 
               {/* Column 3: Draft & Revision */}
-              <div className="w-[380px] shrink-0 flex flex-col gap-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+                className="w-[380px] shrink-0 flex flex-col gap-6"
+              >
                 <h3 className="font-semibold text-lg">Draft & Revision</h3>
                 <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col overflow-hidden">
                     <ScrollArea className="flex-1">
                         <CardContent className="p-4 space-y-6">
-                        {mockChatHistory.map((msg) => (
-                            <div key={msg.id} className="flex gap-3 group">
+                        {currentContent ? (
+                          <AnimatePresence mode="wait">
+                            {/* Craig's Caption */}
+                            <motion.div
+                              key="craig-caption"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              className="flex gap-3 group"
+                            >
+                              <Avatar className="w-10 h-10 border border-baked-border shrink-0">
+                                <AvatarFallback>C</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 space-y-1.5">
+                                <div className="flex items-baseline justify-between">
+                                  <span className="font-semibold text-sm">Craig</span>
+                                  <span className="text-xs text-baked-text-muted flex items-center gap-1">
+                                    <MoreHorizontal className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"/>
+                                  </span>
+                                </div>
+                                <div className="space-y-3">
+                                  <p className="text-sm text-baked-text-secondary">
+                                    Here&apos;s your campaign content:
+                                  </p>
+                                  {isEditingCaption ? (
+                                    <div className="space-y-2">
+                                      <Textarea
+                                        value={editedCaption}
+                                        onChange={(e) => setEditedCaption(e.target.value)}
+                                        className="bg-baked-darkest border-baked-border resize-none h-32 text-sm focus-visible:ring-baked-green/50"
+                                      />
+                                      <div className="flex gap-2">
+                                        <Button
+                                          size="sm"
+                                          onClick={handleSaveCaption}
+                                          className="flex-1 bg-baked-green hover:bg-baked-green-muted text-baked-darkest font-semibold"
+                                        >
+                                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                                          Save
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={handleCancelEditCaption}
+                                          className="flex-1 border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark"
+                                        >
+                                          <XCircle className="w-3 h-3 mr-1" />
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div
+                                      onClick={handleStartEditCaption}
+                                      className="bg-baked-darkest p-3 rounded-md border border-baked-border text-sm hover:border-baked-green/50 cursor-pointer transition-colors group relative"
+                                    >
+                                      {currentContent.caption}
+                                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <span className="text-xs text-baked-green flex items-center gap-1">
+                                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                          </svg>
+                                          Edit
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {currentContent.hashtags && currentContent.hashtags.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                      {currentContent.hashtags.map((tag, idx) => (
+                                        <span key={idx} className="text-xs text-baked-green">
+                                          #{tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </motion.div>
+
+                            {/* Pinky's Images */}
+                            {currentContent.mediaUrls && currentContent.mediaUrls.length > 0 && (
+                              <motion.div
+                                key="pinky-images"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ delay: 0.1 }}
+                                className="flex gap-3 group"
+                              >
                                 <Avatar className="w-10 h-10 border border-baked-border shrink-0">
-                                    {/* <AvatarImage src={msg.sender.avatarUrl} /> */}
-                                    <AvatarFallback>{msg.sender.name[0]}</AvatarFallback>
+                                  <AvatarFallback className="bg-purple-600/20 text-purple-400">P</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 space-y-1.5">
-                                    <div className="flex items-baseline justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-semibold text-sm">{msg.sender.name}</span>
-                                            {/* <span className="text-xs text-baked-text-muted">({msg.sender.role})</span> */}
-                                        </div>
-                                        <span className="text-xs text-baked-text-muted flex items-center gap-1">
-                                            {msg.timestamp}
-                                            <MoreHorizontal className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"/>
-                                        </span>
+                                  <div className="flex items-baseline justify-between">
+                                    <span className="font-semibold text-sm">Pinky</span>
+                                    <span className="text-xs text-baked-text-muted">The Visual Artist</span>
+                                  </div>
+                                  <div className="space-y-3">
+                                    <p className="text-sm text-baked-text-secondary">
+                                      Generated {currentContent.mediaUrls.length} visual{currentContent.mediaUrls.length > 1 ? 's' : ''}
+                                    </p>
+                                    <div className={cn(
+                                      "grid gap-2",
+                                      currentContent.mediaUrls.length === 1 ? "grid-cols-1" : "grid-cols-2"
+                                    )}>
+                                      {currentContent.mediaUrls.map((url, idx) => (
+                                        <motion.img
+                                          key={idx}
+                                          initial={{ opacity: 0, scale: 0.9 }}
+                                          animate={{ opacity: 1, scale: 1 }}
+                                          transition={{ delay: 0.2 + (idx * 0.1) }}
+                                          src={url}
+                                          alt={`Generated ${idx + 1}`}
+                                          className="rounded-md object-cover aspect-square border border-baked-border hover:border-baked-green/50 transition-colors cursor-pointer"
+                                        />
+                                      ))}
                                     </div>
-                                    <div className="text-sm text-baked-text-secondary">
-                                        {msg.content}
-                                    </div>
+                                  </div>
                                 </div>
-                            </div>
-                        ))}
+                              </motion.div>
+                            )}
+
+                            {/* Revision Notes */}
+                            {currentContent.revisionNotes && currentContent.revisionNotes.length > 0 && (
+                              <motion.div
+                                key="revision-notes"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 space-y-2"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                                  <span className="font-medium text-yellow-500 text-sm">Revision Requested</span>
+                                </div>
+                                {currentContent.revisionNotes.map((note, idx) => (
+                                  <p key={idx} className="text-xs text-baked-text-secondary">
+                                    {note.note}
+                                  </p>
+                                ))}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        ) : (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="text-center py-12 text-baked-text-muted"
+                          >
+                            <Send className="w-12 h-12 mx-auto mb-3 text-baked-text-muted/50" />
+                            <p className="text-sm">No draft content</p>
+                            <p className="text-xs mt-1">Generate content to start the review process</p>
+                          </motion.div>
+                        )}
                         </CardContent>
                     </ScrollArea>
                      <div className="p-4 border-t border-baked-border bg-baked-darkest shrink-0">
-                        <div className="relative">
-                             <Input
-                                placeholder="Add a message..."
-                                className="bg-baked-dark border-baked-border pr-10 text-sm placeholder:text-baked-text-muted/50 focus-visible:ring-baked-green/50"
-                            />
-                            <Button size="icon" variant="ghost" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-baked-text-muted hover:text-baked-green">
-                                <Send className="w-4 h-4"/>
-                            </Button>
+                        <div className="space-y-3">
+                          <Textarea
+                            value={revisionNote}
+                            onChange={(e) => setRevisionNote(e.target.value)}
+                            placeholder="Request revisions or add feedback..."
+                            className="bg-baked-dark border-baked-border resize-none h-20 text-sm placeholder:text-baked-text-muted/50 focus-visible:ring-baked-green/50"
+                          />
+                          <Button
+                            onClick={handleRevise}
+                            disabled={!currentContent || !revisionNote.trim()}
+                            variant="outline"
+                            className="w-full border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark disabled:opacity-50"
+                          >
+                            Send Revision Request
+                          </Button>
                         </div>
                      </div>
                 </Card>
-              </div>
+              </motion.div>
 
               {/* Column 4: HitL Approval & Publishing */}
-              <div className="w-[320px] shrink-0 flex flex-col gap-6">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
+                className="w-[320px] shrink-0 flex flex-col gap-6"
+              >
                 <h3 className="font-semibold text-lg">HitL Approval & Publishing</h3>
                 <div className="space-y-6 flex-1 flex flex-col">
                     {/* Approval Pipeline */}
@@ -757,7 +1015,7 @@ export default function CreativeCommandCenter() {
                         </CardContent>
                     </Card>
                 </div>
-              </div>
+              </motion.div>
 
             </div>
             <ScrollBar orientation="horizontal" className="bg-baked-darkest z-10" />
