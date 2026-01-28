@@ -78,7 +78,7 @@ env:
     availability:
       - RUNTIME
   - variable: GEMINI_API_KEY
-    secret: GEMINI_API_KEY@2
+    secret: GEMINI_API_KEY@3
     availability:
       - RUNTIME
   - variable: SERPER_API_KEY
