@@ -43,6 +43,7 @@ import { getThreadTypeLabel, getThreadTypeIcon } from '@/types/inbox';
 import { InboxCarouselCard } from './artifacts/carousel-card';
 import { InboxBundleCard } from './artifacts/bundle-card';
 import { InboxCreativeCard } from './artifacts/creative-card';
+import { InboxQRCodeCard } from './artifacts/qr-code-card';
 import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
 import { AgentHandoffNotification } from './agent-handoff-notification';
 import { formatDistanceToNow } from 'date-fns';
@@ -153,6 +154,8 @@ function ArtifactPreviewCard({ artifact }: { artifact: InboxArtifact }) {
             return <InboxBundleCard artifact={artifact} />;
         case 'creative_content':
             return <InboxCreativeCard artifact={artifact} />;
+        case 'qr_code':
+            return <InboxQRCodeCard artifact={artifact} />;
         default:
             return null;
     }
@@ -378,6 +381,25 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             {/* Header */}
             <ThreadHeader thread={thread} />
 
+            {/* Persistent Task Feed - Always visible when agent is processing */}
+            <AnimatePresence>
+                {isSubmitting && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="sticky top-0 z-10 px-4 pt-3 pb-2 bg-gradient-to-b from-background to-background/80 backdrop-blur-md border-b border-white/5"
+                    >
+                        <div className="max-w-3xl mx-auto">
+                            <InboxTaskFeed
+                                agentPersona={thread.primaryAgent}
+                                isRunning={isSubmitting}
+                            />
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Messages */}
             <ScrollArea ref={scrollRef} className="flex-1 px-4">
                 <div className="max-w-3xl mx-auto py-4">
@@ -420,23 +442,6 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                             })}
                         </>
                     )}
-
-                    {/* TaskFeed with Agent Pulse - shown while agent is thinking */}
-                    <AnimatePresence>
-                        {isSubmitting && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -10 }}
-                                className="py-4"
-                            >
-                                <InboxTaskFeed
-                                    agentPersona={thread.primaryAgent}
-                                    isRunning={isSubmitting}
-                                />
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
                 </div>
             </ScrollArea>
 

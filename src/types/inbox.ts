@@ -9,6 +9,7 @@ import { z } from 'zod';
 import type { Carousel } from './carousels';
 import type { BundleDeal } from './bundles';
 import type { CreativeContent } from './creative-content';
+import type { QRCode } from './qr-code';
 import type { ChatMessage } from '@/lib/store/agent-chat-store';
 
 // ============ Thread Types ============
@@ -23,6 +24,7 @@ export type InboxThreadType =
     | 'bundle'            // Bundle deal creation
     | 'creative'          // Social media content
     | 'campaign'          // Multi-channel campaign
+    | 'qr_code'           // Trackable QR code generation
     | 'retail_partner'    // Retail partner outreach (brands only)
     | 'launch'            // Product launch coordination
     | 'performance'       // Performance review & analytics
@@ -163,6 +165,7 @@ export type InboxArtifactType =
     | 'carousel'          // Product carousel
     | 'bundle'            // Bundle deal
     | 'creative_content'  // Social media post
+    | 'qr_code'           // Trackable QR code
     | 'sell_sheet'        // Retail partner pitch materials
     | 'report'            // Performance/analytics report
     | 'outreach_draft'    // SMS/Email draft
@@ -219,7 +222,7 @@ export interface InboxArtifact {
     status: InboxArtifactStatus;
 
     // The actual data (polymorphic based on type)
-    data: Carousel | BundleDeal | CreativeContent;
+    data: Carousel | BundleDeal | CreativeContent | QRCode;
 
     // Agent rationale for the suggestion
     rationale?: string;
@@ -297,6 +300,16 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         threadType: 'campaign',
         defaultAgent: 'craig',  // Glenda restricted to super_user only
         promptTemplate: 'Draft a campaign for me - I need SMS, email, and social content ready to send',
+        roles: ALL_BUSINESS_ROLES,
+    },
+    {
+        id: 'create-qr',
+        label: 'QR Code',
+        description: 'Generate trackable QR codes for products, menus, or promotions',
+        icon: 'QrCode',
+        threadType: 'qr_code',
+        defaultAgent: 'craig',
+        promptTemplate: 'Help me create a trackable QR code',
         roles: ALL_BUSINESS_ROLES,
     },
 
@@ -679,6 +692,10 @@ export const THREAD_AGENT_MAPPING: Record<InboxThreadType, {
         primary: 'craig',  // Glenda restricted to super_user; Craig handles campaigns for business users
         supporting: ['money_mike', 'pops', 'deebo'],
     },
+    qr_code: {
+        primary: 'craig',
+        supporting: ['linus'], // Technical implementation
+    },
 
     // New business thread types
     retail_partner: {
@@ -864,6 +881,7 @@ export const InboxThreadTypeSchema = z.enum([
     'bundle',
     'creative',
     'campaign',
+    'qr_code',
     'retail_partner',
     'launch',
     'performance',
@@ -926,7 +944,7 @@ export const InboxAgentPersonaSchema = z.enum([
 
 export const InboxArtifactTypeSchema = z.enum([
     // Business Artifacts
-    'carousel', 'bundle', 'creative_content', 'sell_sheet', 'report', 'outreach_draft', 'event_promo',
+    'carousel', 'bundle', 'creative_content', 'qr_code', 'sell_sheet', 'report', 'outreach_draft', 'event_promo',
     // Growth Management Artifacts
     'growth_report', 'churn_scorecard', 'revenue_model', 'pipeline_report', 'health_scorecard', 'market_analysis', 'partnership_deck', 'experiment_plan',
     // Company Operations Artifacts
@@ -1010,6 +1028,7 @@ export function getThreadTypeIcon(type: InboxThreadType): string {
         bundle: 'PackagePlus',
         creative: 'Palette',
         campaign: 'Megaphone',
+        qr_code: 'QrCode',
         retail_partner: 'Presentation',
         launch: 'Rocket',
         performance: 'TrendingUp',
@@ -1069,6 +1088,7 @@ export function getThreadTypeLabel(type: InboxThreadType): string {
         bundle: 'Bundle',
         creative: 'Creative',
         campaign: 'Campaign',
+        qr_code: 'QR Code',
         retail_partner: 'Retail Partner',
         launch: 'Product Launch',
         performance: 'Performance',
@@ -1128,6 +1148,7 @@ export function getArtifactTypesForThreadType(type: InboxThreadType): InboxArtif
         bundle: ['bundle'],
         creative: ['creative_content'],
         campaign: ['carousel', 'bundle', 'creative_content'],
+        qr_code: ['qr_code'],
         retail_partner: ['sell_sheet'],
         launch: ['carousel', 'bundle', 'creative_content'],
         performance: ['report'],

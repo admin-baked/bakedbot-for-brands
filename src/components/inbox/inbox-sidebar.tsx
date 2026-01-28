@@ -209,6 +209,7 @@ function FilterButton({ collapsed }: { collapsed?: boolean }) {
         bundle: 'Bundles',
         creative: 'Creative',
         campaign: 'Campaigns',
+        qr_code: 'QR Codes',
         retail_partner: 'Retail Partners',
         launch: 'Product Launches',
         performance: 'Performance',

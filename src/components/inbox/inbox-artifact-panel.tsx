@@ -371,21 +371,23 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
             {/* Actions - HitL Approval Workflow */}
             {selectedArtifact && selectedArtifact.status !== 'published' && (
                 <div className="p-4 border-t border-white/5 space-y-3">
-                    {/* Primary Approve Button - Green Check Emphasized */}
+                    {/* Primary Approve Button - Green Check EMPHASIZED per Technical Brief */}
                     {(selectedArtifact.status === 'draft' || selectedArtifact.status === 'pending_review') && (
                         <motion.div
                             initial={{ scale: 0.98 }}
                             animate={{ scale: 1 }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                            className="relative"
                         >
                             <Button
                                 className={cn(
-                                    'w-full gap-2 font-semibold h-11',
-                                    'bg-gradient-to-r from-baked-600 to-baked-500',
-                                    'hover:from-baked-500 hover:to-baked-400',
-                                    'text-white shadow-lg shadow-baked-500/25',
-                                    'transition-all duration-200'
+                                    'w-full gap-3 font-bold h-14 text-base relative overflow-hidden',
+                                    'bg-gradient-to-r from-green-600 via-green-500 to-green-400',
+                                    'hover:from-green-500 hover:via-green-400 hover:to-green-300',
+                                    'text-white shadow-xl shadow-green-500/50',
+                                    'border-2 border-green-400/50',
+                                    'transition-all duration-300'
                                 )}
                                 onClick={async () => {
                                     setIsApproving(true);
@@ -394,18 +396,39 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                                 }}
                                 disabled={isApproving}
                             >
-                                {isApproving ? (
-                                    <>
-                                        <Loader2 className="h-5 w-5 animate-spin" />
-                                        Publishing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <CheckCircle2 className="h-5 w-5" />
-                                        Approve & Publish
-                                    </>
+                                {/* Animated shine effect */}
+                                {!isApproving && (
+                                    <motion.div
+                                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                                        animate={{ x: ['-100%', '200%'] }}
+                                        transition={{ repeat: Infinity, duration: 3, ease: 'linear', repeatDelay: 1 }}
+                                    />
                                 )}
+
+                                {/* Button content with z-index */}
+                                <div className="relative z-10 flex items-center gap-3">
+                                    {isApproving ? (
+                                        <>
+                                            <Loader2 className="h-6 w-6 animate-spin" />
+                                            <span>Publishing...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle2 className="h-6 w-6" />
+                                            <span>Approve & Publish</span>
+                                        </>
+                                    )}
+                                </div>
                             </Button>
+
+                            {/* Pulsing glow effect */}
+                            {!isApproving && (
+                                <motion.div
+                                    className="absolute -inset-1 rounded-lg bg-gradient-to-r from-green-600 to-green-400 -z-10 blur-md"
+                                    animate={{ opacity: [0.3, 0.6, 0.3] }}
+                                    transition={{ repeat: Infinity, duration: 2 }}
+                                />
+                            )}
                         </motion.div>
                     )}
 

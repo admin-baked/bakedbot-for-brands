@@ -819,7 +819,67 @@ export async function runInboxAgentChat(
         // Build context for the agent based on thread type
         const threadContext = buildThreadContext(thread);
 
-        // Call the agent chat
+        // === REMOTE SIDECAR ROUTING ===
+        // Route heavy research agents to remote Python sidecar if available
+        const REMOTE_THREAD_TYPES = ['deep_research', 'compliance_research', 'market_research'];
+        const REMOTE_AGENTS: InboxAgentPersona[] = ['big_worm', 'roach'];
+
+        const shouldUseRemote =
+            REMOTE_THREAD_TYPES.includes(thread.type) ||
+            REMOTE_AGENTS.includes(thread.primaryAgent);
+
+        if (shouldUseRemote && process.env.PYTHON_SIDECAR_ENDPOINT) {
+            try {
+                const { getRemoteMcpClient } = await import('@/server/services/remote-mcp-client');
+                const sidecarClient = getRemoteMcpClient();
+
+                if (sidecarClient) {
+                    logger.info('Routing to remote sidecar', {
+                        threadId,
+                        threadType: thread.type,
+                        agent: thread.primaryAgent,
+                    });
+
+                    // Start remote job
+                    const jobResult = await sidecarClient.startJob({
+                        method: 'agent.execute',
+                        params: {
+                            agent: thread.primaryAgent,
+                            query: userMessage,
+                            context: {
+                                threadId,
+                                threadType: thread.type,
+                                threadContext,
+                                orgId: thread.orgId,
+                            },
+                        },
+                    });
+
+                    if (jobResult.success && jobResult.data?.jobId) {
+                        // Return job ID for client polling
+                        return {
+                            success: true,
+                            jobId: jobResult.data.jobId,
+                        };
+                    } else {
+                        logger.warn('Sidecar job failed, falling back to local execution', {
+                            error: jobResult.error,
+                        });
+                    }
+                } else {
+                    logger.warn('Sidecar unavailable, falling back to local execution', {
+                        threadId,
+                    });
+                }
+            } catch (sidecarError) {
+                logger.error('Sidecar routing error, falling back to local execution', {
+                    error: sidecarError,
+                    threadId,
+                });
+            }
+        }
+
+        // === LOCAL EXECUTION (Default or Fallback) ===
         const { runAgentChat } = await import('@/app/dashboard/ceo/agents/actions');
         const agentResult = await runAgentChat(
             `${threadContext}\n\nUser: ${userMessage}`,
@@ -928,6 +988,11 @@ Always consider cannabis advertising compliance rules.`,
         campaign: `You are helping plan and execute a marketing campaign.
 Coordinate with other agents (Craig for content, Smokey for products, Money Mike for pricing).
 Break down the campaign into actionable artifacts.`,
+
+        qr_code: `You are helping create trackable QR codes for marketing campaigns.
+Generate QR codes for products, menus, promotions, events, or loyalty programs.
+Provide the target URL, customization options (colors, logo), and tracking analytics.
+Return structured artifacts using the :::artifact:qr_code:Title format.`,
 
         retail_partner: `You are helping create materials to pitch retail partners (dispensaries).
 Generate sell sheets, pitch decks, and partnership proposals.
