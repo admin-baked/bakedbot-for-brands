@@ -22,6 +22,9 @@ import type {
     ApproveContentRequest,
     ReviseContentRequest,
     SocialPlatform,
+    ApprovalRecord,
+    ApprovalState,
+    ApprovalChain,
 } from '@/types/creative-content';
 
 const COLLECTION = 'creative_content';
@@ -730,4 +733,262 @@ function mapPlatformToChannel(platform: SocialPlatform): string {
         facebook: 'social'
     };
     return channelMap[platform] || 'social';
+}
+
+// ==================== APPROVAL CHAIN FUNCTIONS ====================
+
+/**
+ * Approve content at current approval level
+ */
+export async function approveAtLevel(
+    contentId: string,
+    tenantId: string,
+    approverId: string,
+    approverName: string,
+    approverRole: string,
+    notes?: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+        const contentRef = firestore.collection(`tenants/${tenantId}/${COLLECTION}`).doc(contentId);
+
+        const contentDoc = await contentRef.get();
+        if (!contentDoc.exists) {
+            return { success: false, error: 'Content not found' };
+        }
+
+        const content = contentDoc.data() as CreativeContent;
+        const approvalState = content.approvalState;
+
+        if (!approvalState) {
+            return { success: false, error: 'No approval chain configured for this content' };
+        }
+
+        // Check if user already approved at this level
+        const alreadyApproved = approvalState.approvals.some(
+            (a) => a.approverId === approverId && a.level === approvalState.currentLevel
+        );
+
+        if (alreadyApproved) {
+            return { success: false, error: 'You have already approved at this level' };
+        }
+
+        // Check if user has required role
+        if (!approvalState.nextRequiredRoles.includes(approverRole)) {
+            return { success: false, error: 'You do not have permission to approve at this level' };
+        }
+
+        // Create approval record
+        const approvalRecord: ApprovalRecord = {
+            id: uuidv4(),
+            level: approvalState.currentLevel,
+            approverId,
+            approverName,
+            approverRole,
+            action: 'approved',
+            notes,
+            timestamp: Date.now(),
+            required: true,
+        };
+
+        // Add approval to list
+        const updatedApprovals = [...approvalState.approvals, approvalRecord];
+
+        // Check if we need to advance to next level
+        // For now, assume 1 approval per level is enough (can be configurable)
+        const approvalsAtCurrentLevel = updatedApprovals.filter(
+            (a) => a.level === approvalState.currentLevel && a.action === 'approved'
+        );
+
+        let updatedState: ApprovalState;
+        const maxLevel = 3; // Default max levels (can be from chain config)
+
+        if (approvalsAtCurrentLevel.length >= 1) {
+            // Advance to next level or mark as approved
+            if (approvalState.currentLevel >= maxLevel) {
+                // All levels complete - mark as approved
+                updatedState = {
+                    ...approvalState,
+                    approvals: updatedApprovals,
+                    status: 'approved',
+                    nextRequiredRoles: [],
+                };
+
+                // Update content status to approved
+                await contentRef.update({
+                    approvalState: updatedState,
+                    status: 'approved',
+                    updatedAt: Date.now(),
+                });
+            } else {
+                // Advance to next level
+                const nextLevel = approvalState.currentLevel + 1;
+                const nextRoles = getRequiredRolesForLevel(nextLevel);
+
+                updatedState = {
+                    ...approvalState,
+                    currentLevel: nextLevel,
+                    approvals: updatedApprovals,
+                    status: 'pending_approval',
+                    nextRequiredRoles: nextRoles,
+                };
+
+                await contentRef.update({
+                    approvalState: updatedState,
+                    updatedAt: Date.now(),
+                });
+            }
+        } else {
+            // Just add the approval, stay at current level
+            updatedState = {
+                ...approvalState,
+                approvals: updatedApprovals,
+            };
+
+            await contentRef.update({
+                approvalState: updatedState,
+                updatedAt: Date.now(),
+            });
+        }
+
+        logger.info('[approveAtLevel] Content approved', {
+            contentId,
+            level: approvalState.currentLevel,
+            approverId,
+        });
+
+        return { success: true };
+    } catch (error: unknown) {
+        logger.error('[approveAtLevel] Error:', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to approve content',
+        };
+    }
+}
+
+/**
+ * Reject content at current approval level
+ */
+export async function rejectAtLevel(
+    contentId: string,
+    tenantId: string,
+    approverId: string,
+    approverName: string,
+    approverRole: string,
+    notes: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+        const contentRef = firestore.collection(`tenants/${tenantId}/${COLLECTION}`).doc(contentId);
+
+        const contentDoc = await contentRef.get();
+        if (!contentDoc.exists) {
+            return { success: false, error: 'Content not found' };
+        }
+
+        const content = contentDoc.data() as CreativeContent;
+        const approvalState = content.approvalState;
+
+        if (!approvalState) {
+            return { success: false, error: 'No approval chain configured for this content' };
+        }
+
+        // Check if user has required role
+        if (!approvalState.nextRequiredRoles.includes(approverRole)) {
+            return { success: false, error: 'You do not have permission to reject at this level' };
+        }
+
+        // Create rejection record
+        const rejectionRecord: ApprovalRecord = {
+            id: uuidv4(),
+            level: approvalState.currentLevel,
+            approverId,
+            approverName,
+            approverRole,
+            action: 'rejected',
+            notes,
+            timestamp: Date.now(),
+            required: true,
+        };
+
+        // Add rejection to list and mark as rejected
+        const updatedState: ApprovalState = {
+            ...approvalState,
+            approvals: [...approvalState.approvals, rejectionRecord],
+            status: 'rejected',
+            rejectionReason: notes,
+            nextRequiredRoles: [],
+        };
+
+        await contentRef.update({
+            approvalState: updatedState,
+            status: 'revision', // Send back for revision
+            updatedAt: Date.now(),
+        });
+
+        logger.info('[rejectAtLevel] Content rejected', {
+            contentId,
+            level: approvalState.currentLevel,
+            approverId,
+        });
+
+        return { success: true };
+    } catch (error: unknown) {
+        logger.error('[rejectAtLevel] Error:', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to reject content',
+        };
+    }
+}
+
+/**
+ * Initialize approval chain for content
+ */
+export async function initializeApprovalChain(
+    contentId: string,
+    tenantId: string,
+    chainId?: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+        const contentRef = firestore.collection(`tenants/${tenantId}/${COLLECTION}`).doc(contentId);
+
+        // Initialize with default 3-level approval
+        const initialState: ApprovalState = {
+            chainId,
+            currentLevel: 1,
+            approvals: [],
+            status: 'pending_approval',
+            nextRequiredRoles: getRequiredRolesForLevel(1),
+        };
+
+        await contentRef.update({
+            approvalState: initialState,
+            updatedAt: Date.now(),
+        });
+
+        logger.info('[initializeApprovalChain] Approval chain initialized', { contentId, chainId });
+        return { success: true };
+    } catch (error: unknown) {
+        logger.error('[initializeApprovalChain] Error:', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to initialize approval chain',
+        };
+    }
+}
+
+/**
+ * Get required roles for approval level
+ * This is a simple implementation - can be made configurable via ApprovalChain
+ */
+function getRequiredRolesForLevel(level: number): string[] {
+    const rolesByLevel: Record<number, string[]> = {
+        1: ['content_creator', 'marketer'], // Level 1: Creator/Marketer review
+        2: ['brand_manager', 'super_user'], // Level 2: Brand Manager review
+        3: ['admin', 'super_user'], // Level 3: Admin final approval
+    };
+    return rolesByLevel[level] || ['super_user'];
 }

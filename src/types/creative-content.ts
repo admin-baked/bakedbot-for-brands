@@ -175,6 +175,9 @@ export interface CreativeContentBase {
 
     /** External platform post ID (for syncing metrics) */
     externalPostId?: string;
+
+    /** Approval chain state (multi-level review workflow) */
+    approvalState?: ApprovalState;
 }
 
 /**
@@ -194,6 +197,115 @@ export interface RevisionNote {
     note: string;
     requestedBy: string;
     requestedAt: number;
+}
+
+/**
+ * Approval action type
+ */
+export type ApprovalAction = 'approved' | 'rejected' | 'pending';
+
+/**
+ * Single approval record in the chain
+ */
+export interface ApprovalRecord {
+    /** Unique ID for this approval */
+    id: string;
+
+    /** Approval level (1 = first level, 2 = second level, etc.) */
+    level: number;
+
+    /** User ID of the approver */
+    approverId: string;
+
+    /** User name for display */
+    approverName: string;
+
+    /** User role at time of approval */
+    approverRole: string;
+
+    /** Approval action */
+    action: ApprovalAction;
+
+    /** Optional notes from approver */
+    notes?: string;
+
+    /** Timestamp of approval/rejection */
+    timestamp: number;
+
+    /** Is this approval required or optional? */
+    required: boolean;
+}
+
+/**
+ * Approval level configuration
+ */
+export interface ApprovalLevel {
+    /** Level number (1, 2, 3, etc.) */
+    level: number;
+
+    /** Display name for this level */
+    name: string;
+
+    /** Required roles for this level */
+    requiredRoles: string[];
+
+    /** Minimum number of approvals needed at this level */
+    minimumApprovals: number;
+
+    /** Can users at this level override previous rejections? */
+    canOverride: boolean;
+}
+
+/**
+ * Complete approval chain configuration
+ */
+export interface ApprovalChain {
+    /** Chain ID */
+    id: string;
+
+    /** Chain name */
+    name: string;
+
+    /** Description */
+    description?: string;
+
+    /** Levels in order */
+    levels: ApprovalLevel[];
+
+    /** Is this chain active? */
+    active: boolean;
+
+    /** Created timestamp */
+    createdAt: number;
+
+    /** Last updated timestamp */
+    updatedAt: number;
+}
+
+/**
+ * Current approval state for content
+ */
+export interface ApprovalState {
+    /** Which approval chain is being used */
+    chainId?: string;
+
+    /** Current level being reviewed */
+    currentLevel: number;
+
+    /** All approval records */
+    approvals: ApprovalRecord[];
+
+    /** Overall approval status */
+    status: 'pending_approval' | 'approved' | 'rejected' | 'override_required';
+
+    /** Next required approver roles */
+    nextRequiredRoles: string[];
+
+    /** Can current user approve at current level? */
+    canCurrentUserApprove?: boolean;
+
+    /** Rejection reason if rejected */
+    rejectionReason?: string;
 }
 
 /**
