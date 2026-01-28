@@ -511,7 +511,9 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
                 audioInput: extraOptions?.audioInput,
                 attachments: extraOptions?.attachments,
                 brandId: user.brandId,
-                projectId: extraOptions?.projectId // Pass project context
+                projectId: extraOptions?.projectId, // Pass project context
+                source: extraOptions?.source, // Pass source identifier (e.g., 'inbox')
+                context: extraOptions?.context // Pass additional context
             },
             jobId
         };
