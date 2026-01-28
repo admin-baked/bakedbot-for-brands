@@ -1,4 +1,0 @@
---- ITEM FIELDS ---
-Key: retailer_id | Value: 17273
-Key: sku | Value: 0027x5rQIDXmLB0SAxqJCqz1
-Key: products | Value: [{"cann_sku_id":"0027x5rQIDXmLB0SAxqJCqz1","brand_name":null,"brand_id":null,"url":"https://dutchie.com/stores/wellgreens-home/product/plastic-grinder-standard","image_url":"https://s3-us-west-2.amazonaws.com/dutchie-images/218124256055402d95f291f12705005d","raw_product_name":"Plastic Grinder (Standard)","product_name":"Plastic Grinder Standard","raw_weight_string":null,"display_weight":null,"raw_product_category":"Accessories","category":"Other","raw_subcategory":"glassware","subcategory":"Glassware","product_tags":["Grinder"],"percentage_thc":null,"percentage_cbd":null,"mg_thc":null,"mg_cbd":null,"quantity_per_package":null,"medical":false,"recreational":true,"latest_price":3.99,"original_price":3.99,"menu_provider":"Dutchie","is_below_threshold":null}]

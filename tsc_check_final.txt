@@ -1,2 +1,0 @@
-﻿.next/dev/types/validator.ts(1925,39): error TS2307: Cannot find module '../../../src/app/api/payments/create-intent/route.js' or its corresponding type declarations.
-.next/dev/types/validator.ts(1934,39): error TS2307: Cannot find module '../../../src/app/api/payments/webhooks/route.js' or its corresponding type declarations.
