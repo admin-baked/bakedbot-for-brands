@@ -64,6 +64,7 @@ interface InboxState {
     ) => InboxThread;
     setActiveThread: (threadId: string | null) => void;
     updateThread: (threadId: string, updates: Partial<InboxThread>) => void;
+    updateThreadId: (oldThreadId: string, newThreadId: string) => void;
     archiveThread: (threadId: string) => void;
     deleteThread: (threadId: string) => void;
     addMessageToThread: (threadId: string, message: ChatMessage) => void;
@@ -196,6 +197,18 @@ export const useInboxStore = create<InboxState>()(
                             ? { ...thread, ...updates, updatedAt: new Date() }
                             : thread
                     ),
+                }));
+            },
+
+            updateThreadId: (oldThreadId: string, newThreadId: string) => {
+                set((state) => ({
+                    threads: state.threads.map((thread) =>
+                        thread.id === oldThreadId
+                            ? { ...thread, id: newThreadId, updatedAt: new Date() }
+                            : thread
+                    ),
+                    // Update activeThreadId if it matches the old ID
+                    activeThreadId: state.activeThreadId === oldThreadId ? newThreadId : state.activeThreadId,
                 }));
             },
 

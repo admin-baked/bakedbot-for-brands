@@ -164,12 +164,13 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
 
 
     // --- GAUNTLET VERIFICATION LOOP ---
-        
+
     // 1. Configure Evaluators
     // TODO: Move this to a registry if it grows
+    // DISABLED FOR TESTING (2026-01-28): Gauntlet verification paused during QR code development
     const AGENT_EVALUATORS: Record<string, any[]> = {
-        'deebo': [new DeeboEvaluator()], 
-        'craig': [new DeeboEvaluator()], // Craig is now audited by Deebo
+        // 'deebo': [new DeeboEvaluator()],
+        // 'craig': [new DeeboEvaluator()], // Craig is now audited by Deebo
     };
 
     const evaluators = AGENT_EVALUATORS[agentName];
