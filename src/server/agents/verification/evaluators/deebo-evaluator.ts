@@ -1,5 +1,5 @@
 import { Evaluator, VerificationContext, VerificationResult } from '../types';
-import { executeWithTools, ClaudeTool } from '@/ai/claude';
+import { executeWithTools, ClaudeTool, CLAUDE_TOOL_MODEL } from '@/ai/claude';
 
 export class DeeboEvaluator implements Evaluator {
     name = 'Deebo (Compliance)';
@@ -63,7 +63,7 @@ export class DeeboEvaluator implements Evaluator {
                     return "Unknown tool.";
                 },
                 {
-                    model: 'claude-3-opus-20240229', // High intelligence model for compliance
+                    model: CLAUDE_TOOL_MODEL, // Use current Claude Opus model for compliance
                     role: 'Compliance Auditor'
                 }
             );

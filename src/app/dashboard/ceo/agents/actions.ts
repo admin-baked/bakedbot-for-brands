@@ -519,6 +519,7 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
         };
 
         const dispatch = await dispatchAgentJob(payload);
+        logger.info('[runAgentChat] dispatchAgentJob result', { success: dispatch.success, jobId, error: dispatch.error });
 
         if (!dispatch.success) {
             logger.warn('[runAgentChat] Cloud Tasks dispatch failed, using synchronous fallback', { error: dispatch.error });

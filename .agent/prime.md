@@ -19,7 +19,24 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-01-22)
+**Current Status:** 🟢 Passing (verified 2026-01-28)
+
+---
+
+## ⚠️ GAUNTLET VERIFICATION: DISABLED
+
+**Status:** 🔴 Disabled for testing (2026-01-28)
+
+The Gauntlet verification system (post-generation compliance auditing) is currently **disabled globally** in [agent-runner.ts](../src/server/agents/agent-runner.ts#L170-L177) to prevent triple response issues during QR code inbox feature development.
+
+**Why Disabled:**
+- Deebo compliance evaluator was causing 3x duplicate responses
+- Fixed deprecated Claude model (opus-20240229 → opus-4.5)
+- Need to debug response duplication before re-enabling
+
+**Location:** `src/server/agents/agent-runner.ts` (AGENT_EVALUATORS map)
+
+**To Re-enable:** Uncomment evaluators in AGENT_EVALUATORS map once triple-response bug is resolved.
 
 ---
 

@@ -30,8 +30,14 @@ function initBakedBot() {
             <EmbedProviders primaryColor={config.primaryColor}>
                 <Chatbot
                     brandId={config.brandId}
+                    dispensaryId={config.dispensaryId || config.cannMenusId}
+                    entityName={config.entityName}
                     initialOpen={false}
-                // We can pass other config props to Chatbot here if it supports them
+                    chatbotConfig={{
+                        botName: config.botName,
+                        welcomeMessage: config.welcomeMessage || config.greeting,
+                        mascotImageUrl: config.mascotImageUrl
+                    }}
                 />
             </EmbedProviders>
         </React.StrictMode>

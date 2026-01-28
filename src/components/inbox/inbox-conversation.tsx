@@ -48,6 +48,7 @@ import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
 import { AgentHandoffNotification } from './agent-handoff-notification';
 import { formatDistanceToNow } from 'date-fns';
 import { runInboxAgentChat, addMessageToInboxThread, createInboxThread } from '@/server/actions/inbox';
+import { QRCodeGeneratorInline } from './qr-code-generator-inline';
 import { useJobPoller } from '@/hooks/use-job-poller';
 
 // ============ Agent Name Mapping ============
@@ -229,11 +230,12 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [input, setInput] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+    const [showQRGenerator, setShowQRGenerator] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-    const { addMessageToThread, addArtifacts } = useInboxStore();
+    const { addMessageToThread, addArtifacts, updateThreadId } = useInboxStore();
 
     // Auto-scroll to bottom on new messages
     useEffect(() => {
@@ -254,7 +256,12 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     useEffect(() => {
         if (!currentJobId) return;
 
+        // Use a flag to prevent multiple completions from the same poll
+        let hasCompleted = false;
+
         const pollJob = async () => {
+            if (hasCompleted) return; // Prevent duplicate processing
+
             try {
                 const response = await fetch(`/api/jobs/${currentJobId}`);
                 if (!response.ok) return;
@@ -262,6 +269,11 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 const job = await response.json();
 
                 if (job.status === 'completed' || job.status === 'failed') {
+                    if (hasCompleted) return; // Double-check before processing
+                    hasCompleted = true; // Mark as completed
+
+                    console.log('[InboxConversation] Job finished with status:', job.status);
+
                     // Stop polling
                     if (pollingRef.current) {
                         clearInterval(pollingRef.current);
@@ -271,6 +283,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                     setIsSubmitting(false);
 
                     if (job.status === 'completed' && job.result?.content) {
+                        console.log('[InboxConversation] Adding agent message to thread');
                         const agentMessage: ChatMessage = {
                             id: `msg-${Date.now()}`,
                             type: 'agent',
@@ -299,12 +312,41 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         return () => {
             if (pollingRef.current) {
                 clearInterval(pollingRef.current);
+                pollingRef.current = null;
             }
         };
     }, [currentJobId, thread.id, addMessageToThread]);
 
     const handleSubmit = async () => {
-        if (!input.trim() || isSubmitting) return;
+        if (!input.trim() || isSubmitting) {
+            console.log('[InboxConversation] Submit blocked - isSubmitting:', isSubmitting, 'input:', input.trim());
+            return;
+        }
+
+        // Detect QR code creation intent
+        const lowerInput = input.toLowerCase().trim();
+        const qrCodeKeywords = ['create qr', 'qr code', 'generate qr', 'make qr', 'new qr'];
+        const isQRCodeRequest = qrCodeKeywords.some(keyword => lowerInput.includes(keyword));
+
+        if (isQRCodeRequest && thread.primaryAgent === 'craig') {
+            console.log('[InboxConversation] QR code request detected - showing inline generator');
+
+            // Add user message
+            const userMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'user',
+                content: input.trim(),
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, userMessage);
+
+            // Show QR generator inline
+            setShowQRGenerator(true);
+            setInput('');
+            return;
+        }
+
+        console.log('[InboxConversation] Starting submission');
 
         const userMessage: ChatMessage = {
             id: `msg-${Date.now()}`,
@@ -349,8 +391,11 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 // Use the Firestore thread ID for all subsequent calls
                 firestoreThreadId = createResult.thread.id;
 
-                // Add user message to local state
-                addMessageToThread(thread.id, userMessage);
+                // Sync the local thread ID with the Firestore thread ID
+                updateThreadId(thread.id, firestoreThreadId);
+
+                // Add user message to local state (using the NEW thread ID)
+                addMessageToThread(firestoreThreadId, userMessage);
             } else {
                 // Add user message to local state
                 addMessageToThread(thread.id, userMessage);
@@ -360,7 +405,9 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             }
 
             // Call the inbox agent chat with the correct Firestore thread ID
+            console.log('[InboxConversation] Calling runInboxAgentChat with threadId:', firestoreThreadId);
             const result = await runInboxAgentChat(firestoreThreadId, messageContent);
+            console.log('[InboxConversation] runInboxAgentChat result:', result);
 
             if (!result.success) {
                 const errorMessage: ChatMessage = {
@@ -376,6 +423,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
 
             // If we got a job ID, start polling
             if (result.jobId) {
+                console.log('[InboxConversation] Starting polling for jobId:', result.jobId);
                 setCurrentJobId(result.jobId);
                 return;
             }
@@ -402,6 +450,29 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             addMessageToThread(thread.id, errorMessage);
             setIsSubmitting(false);
         }
+    };
+
+    const handleCompleteQRCode = async (qrCodeData: {
+        url: string;
+        campaignName: string;
+        foregroundColor: string;
+        backgroundColor: string;
+        imageDataUrl: string;
+    }) => {
+        console.log('[InboxConversation] QR code completed:', qrCodeData);
+
+        // Hide the generator
+        setShowQRGenerator(false);
+
+        // Add a confirmation message to the thread
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `✅ QR Code created successfully!\n\n**Campaign:** ${qrCodeData.campaignName || 'QR Code'}\n**Target URL:** ${qrCodeData.url}\n\nYour QR code has been downloaded. You can use it in your marketing materials!`,
+            timestamp: new Date(),
+        };
+
+        addMessageToThread(thread.id, confirmationMessage);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -475,6 +546,15 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     </React.Fragment>
                                 );
                             })}
+
+                            {/* Show QR Code Generator inline after messages */}
+                            {showQRGenerator && (
+                                <div className="mt-4">
+                                    <QRCodeGeneratorInline
+                                        onComplete={handleCompleteQRCode}
+                                    />
+                                </div>
+                            )}
                         </>
                     )}
                 </div>

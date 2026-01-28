@@ -2,9 +2,14 @@
 export interface BakedBotConfig {
     brandId?: string;
     cannMenusId?: string;
+    dispensaryId?: string;        // CannMenus dispensary ID
+    entityName?: string;           // Brand/dispensary name for personalization
     customerName?: string;
     primaryColor?: string;
     greeting?: string;
+    welcomeMessage?: string;       // Custom welcome message
+    botName?: string;              // Custom bot name (default: "Smokey")
+    mascotImageUrl?: string;       // Custom chatbot icon
     position?: 'bottom-right' | 'bottom-left';
     type?: 'chatbot' | 'locator' | 'menu';
 
