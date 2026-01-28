@@ -115,12 +115,12 @@ const mockChatHistory: ChatMessage[] = [
         <p>
           Here&apos;s a draft for your campaign. How does this sound?
         </p>
-        <div className="bg-baked-darkest p-3 rounded-md border border-baked-border text-sm">
+        <div className="bg-background p-3 rounded-md border border-border text-sm">
           "Weekend unwind with Sunset Sherbet, focusing on citrus terpenes."
         </div>
         <Textarea
           placeholder="Revision request..."
-          className="bg-baked-darkest border-baked-border resize-none h-20 text-sm placeholder:text-baked-text-muted/50 focus-visible:ring-baked-green/50"
+          className="bg-background border-border resize-none h-20 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
         />
       </div>
     ),
@@ -141,15 +141,15 @@ const mockChatHistory: ChatMessage[] = [
           <img
             src="https://source.unsplash.com/random/300x300/?cannabis,flower,macro"
             alt="Generated 1"
-            className="rounded-md object-cover aspect-square border border-baked-border"
+            className="rounded-md object-cover aspect-square border border-border"
           />
           <img
             src="https://source.unsplash.com/random/300x300/?cannabis,terpenes"
             alt="Generated 2"
-            className="rounded-md object-cover aspect-square border border-baked-border"
+            className="rounded-md object-cover aspect-square border border-border"
           />
         </div>
-        <Button variant="outline" className="w-full border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark">
+        <Button variant="outline" className="w-full border-border text-muted-foreground hover:text-white hover:bg-muted">
           Generate More
         </Button>
       </div>
@@ -175,23 +175,23 @@ const TheGrid = ({ selectedPlatform }: TheGridProps) => {
   });
 
   return (
-    <div className="w-80 border-r border-baked-border flex flex-col h-full shrink-0">
-      <div className="p-4 flex items-center justify-between border-b border-baked-border shrink-0 h-16">
+    <div className="w-80 border-r border-border flex flex-col h-full shrink-0">
+      <div className="p-4 flex items-center justify-between border-b border-border shrink-0 h-16">
         <h2 className="font-semibold text-lg">The Grid</h2>
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-baked-text-muted hover:text-white">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white">
             <LayoutGrid className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-baked-text-muted hover:text-white">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white">
             <ChevronRight className="w-4 h-4" />
           </Button>
         </div>
       </div>
       <div className="p-4 flex items-center justify-between shrink-0">
-        <h3 className="text-sm font-medium text-baked-text-secondary">
+        <h3 className="text-sm font-medium text-muted-foreground">
           {publishedContent.length} Published
         </h3>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-baked-text-muted hover:text-white">
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white">
           <MoreHorizontal className="w-4 h-4" />
         </Button>
       </div>
@@ -207,12 +207,12 @@ const TheGrid = ({ selectedPlatform }: TheGridProps) => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ delay: i * 0.1 }}
-                  className="relative rounded-lg overflow-hidden border border-baked-border bg-baked-card animate-pulse"
+                  className="relative rounded-lg overflow-hidden border border-border bg-card animate-pulse"
                 >
-                  <div className="w-full aspect-[4/5] bg-baked-darkest" />
+                  <div className="w-full aspect-[4/5] bg-background" />
                   <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-baked-darkest/50" />
-                    <div className="h-3 w-20 bg-baked-darkest/50 rounded" />
+                    <div className="w-6 h-6 rounded-full bg-background/50" />
+                    <div className="h-3 w-20 bg-background/50 rounded" />
                   </div>
                 </motion.div>
               ))}
@@ -226,7 +226,7 @@ const TheGrid = ({ selectedPlatform }: TheGridProps) => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: index * 0.05, duration: 0.3 }}
-                  className="relative group rounded-lg overflow-hidden border border-baked-border hover:border-baked-green/30 transition-colors"
+                  className="relative group rounded-lg overflow-hidden border border-border hover:border-primary/30 transition-colors"
                 >
                   {post.mediaUrls && post.mediaUrls[0] ? (
                     <img
@@ -241,14 +241,14 @@ const TheGrid = ({ selectedPlatform }: TheGridProps) => {
                       className="w-full aspect-[4/5] object-cover"
                     />
                   ) : (
-                    <div className="w-full aspect-[4/5] bg-gradient-to-br from-baked-green/20 to-baked-darkest flex items-center justify-center">
-                      <MessageSquare className="w-12 h-12 text-baked-green/50" />
+                    <div className="w-full aspect-[4/5] bg-gradient-to-br from-primary/20 to-background flex items-center justify-center">
+                      <MessageSquare className="w-12 h-12 text-primary/50" />
                     </div>
                   )}
                   <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-baked-green" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                         <span className="text-xs font-medium text-white/90 capitalize">
                           {post.status}
                         </span>
@@ -259,7 +259,7 @@ const TheGrid = ({ selectedPlatform }: TheGridProps) => {
                     </div>
                   </div>
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="secondary" size="icon" className="h-8 w-8 bg-baked-dark/80 hover:bg-baked-dark text-white backdrop-blur-sm">
+                    <Button variant="secondary" size="icon" className="h-8 w-8 bg-muted/80 hover:bg-muted text-white backdrop-blur-sm">
                       <MoreHorizontal className="w-4 h-4" />
                     </Button>
                   </div>
@@ -270,9 +270,9 @@ const TheGrid = ({ selectedPlatform }: TheGridProps) => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center py-12 text-baked-text-muted"
+              className="text-center py-12 text-muted-foreground"
             >
-              <MessageSquare className="w-12 h-12 mx-auto mb-3 text-baked-text-muted/50" />
+              <MessageSquare className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
               <p className="text-sm">No published content yet</p>
               <p className="text-xs mt-1">Generate and approve content to see it here</p>
             </motion.div>
@@ -717,20 +717,20 @@ export default function CreativeCommandCenter() {
   };
 
   return (
-    <div className="flex h-screen bg-baked-darkest text-baked-text-primary font-sans overflow-hidden">
+    <div className="flex h-screen bg-background text-foreground font-sans overflow-hidden">
       <main className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-baked-border bg-baked-dark/50 backdrop-blur-md flex items-center justify-between px-6 shrink-0 z-20">
+        <header className="h-16 border-b border-border bg-muted/50 backdrop-blur-md flex items-center justify-between px-6 shrink-0 z-20">
           <div>
             <h1 className="text-xl font-semibold">Creative Command Center</h1>
-            <p className="text-sm text-baked-text-muted">
+            <p className="text-sm text-muted-foreground">
               Centralize your cannabis lifestyle, mannerstyle, and imponants.
             </p>
           </div>
           <div className="flex items-center gap-4">
              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-baked-green animate-pulse"></div>
-                <span className="text-sm text-baked-green font-medium">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                <span className="text-sm text-primary font-medium">
                   {isGenerating ? "Craig & Pinky generating..." : "Agent Craig ready"}
                 </span>
              </div>
@@ -741,7 +741,7 @@ export default function CreativeCommandCenter() {
               className={cn(
                 isBatchMode
                   ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
-                  : "border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark"
+                  : "border-border text-muted-foreground hover:text-white hover:bg-muted"
               )}
             >
               {isBatchMode ? "Batch Mode ON" : "Batch Mode"}
@@ -749,7 +749,7 @@ export default function CreativeCommandCenter() {
             <Button
               onClick={isBatchMode ? handleBatchGenerate : handleGenerate}
               disabled={isGenerating || !campaignPrompt.trim()}
-              className="bg-baked-green hover:bg-baked-green-muted text-baked-darkest font-semibold"
+              className="bg-primary hover:bg-primary-muted text-primary-foreground font-semibold"
             >
               {isGenerating ? (
                 <>
@@ -760,7 +760,7 @@ export default function CreativeCommandCenter() {
                 "Create Content"
               )}
             </Button>
-            <Button variant="ghost" size="icon" className="text-baked-text-secondary hover:text-white">
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white">
               <MoreHorizontal className="w-5 h-5" />
             </Button>
           </div>
@@ -773,29 +773,29 @@ export default function CreativeCommandCenter() {
           onValueChange={(value) => setSelectedPlatform(value as SocialPlatform)}
           className="flex-1 flex flex-col overflow-hidden"
         >
-          <div className="px-6 border-b border-baked-border shrink-0 flex items-center justify-between bg-baked-dark/30">
+          <div className="px-6 border-b border-border shrink-0 flex items-center justify-between bg-muted/30">
             <TabsList className="bg-transparent p-0 h-12 gap-6">
               <TabsTrigger
                 value="instagram"
-                className="data-[state=active]:bg-transparent data-[state=active]:text-baked-green data-[state=active]:border-b-2 data-[state=active]:border-baked-green rounded-none h-full px-0 font-medium text-baked-text-secondary transition-all"
+                className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 font-medium text-muted-foreground transition-all"
               >
                 Instagram
               </TabsTrigger>
               <TabsTrigger
                 value="tiktok"
-                className="data-[state=active]:bg-transparent data-[state=active]:text-baked-green data-[state=active]:border-b-2 data-[state=active]:border-baked-green rounded-none h-full px-0 font-medium text-baked-text-secondary transition-all"
+                className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 font-medium text-muted-foreground transition-all"
               >
                 TikTok
               </TabsTrigger>
               <TabsTrigger
                 value="linkedin"
-                className="data-[state=active]:bg-transparent data-[state=active]:text-baked-green data-[state=active]:border-b-2 data-[state=active]:border-baked-green rounded-none h-full px-0 font-medium text-baked-text-secondary transition-all"
+                className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 font-medium text-muted-foreground transition-all"
               >
                 LinkedIn
               </TabsTrigger>
               <TabsTrigger
                 value="hero-carousel"
-                className="data-[state=active]:bg-transparent data-[state=active]:text-baked-green data-[state=active]:border-b-2 data-[state=active]:border-baked-green rounded-none h-full px-0 font-medium text-baked-text-secondary transition-all"
+                className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 font-medium text-muted-foreground transition-all"
               >
                 Hero Carousel
               </TabsTrigger>
@@ -806,8 +806,8 @@ export default function CreativeCommandCenter() {
                 size="sm"
                 onClick={() => setShowGrid(!showGrid)}
                 className={cn(
-                  "h-8 gap-2 border-baked-border hover:bg-baked-dark",
-                  showGrid ? "text-baked-green border-baked-green" : "text-baked-text-secondary"
+                  "h-8 gap-2 border-border hover:bg-muted",
+                  showGrid ? "text-primary border-primary" : "text-muted-foreground"
                 )}
               >
                 <LayoutGrid className="w-4 h-4"/>
@@ -817,7 +817,7 @@ export default function CreativeCommandCenter() {
                 variant="outline"
                 size="sm"
                 onClick={() => router.push("/dashboard/inbox")}
-                className="h-8 gap-2 border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark"
+                className="h-8 gap-2 border-border text-muted-foreground hover:text-white hover:bg-muted"
               >
                 <MessageSquare className="w-4 h-4"/>
                 Unified Inbox
@@ -837,7 +837,7 @@ export default function CreativeCommandCenter() {
                 className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">Prompt Input</h3>
-                <Card className="bg-baked-card border-baked-border shadow-none">
+                <Card className="bg-card border-border shadow-none">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base font-medium">
                       Campaign Idea
@@ -846,7 +846,7 @@ export default function CreativeCommandCenter() {
                   <CardContent className="space-y-4">
                     {/* Campaign Templates */}
                     <div className="space-y-2">
-                      <label className="text-xs font-medium text-baked-text-muted">Quick Templates</label>
+                      <label className="text-xs font-medium text-muted-foreground">Quick Templates</label>
                       <div className="grid grid-cols-2 gap-2">
                         {campaignTemplates.map((template) => (
                           <Button
@@ -854,46 +854,46 @@ export default function CreativeCommandCenter() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleSelectTemplate(template)}
-                            className="h-auto py-2 px-3 border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark hover:border-baked-green/50 transition-colors text-xs"
+                            className="h-auto py-2 px-3 border-border text-muted-foreground hover:text-white hover:bg-muted hover:border-primary/50 transition-colors text-xs"
                           >
                             {template.label}
                           </Button>
                         ))}
                       </div>
                     </div>
-                    <Separator className="bg-baked-border" />
+                    <Separator className="bg-border" />
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-baked-text-secondary">Rich text</label>
+                        <label className="text-sm font-medium text-muted-foreground">Rich text</label>
                         <Textarea
                         value={campaignPrompt}
                         onChange={(e) => setCampaignPrompt(e.target.value)}
                         placeholder="Describe your campaign... e.g., 'Weekend unwind with Sunset Sherbet, focusing on citrus terpenes.'"
-                        className="bg-baked-darkest border-baked-border resize-none h-32 text-sm placeholder:text-baked-text-muted/50 focus-visible:ring-baked-green/50"
+                        className="bg-background border-border resize-none h-32 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
                         />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">Content Type</label>
+                      <label className="text-sm font-medium text-muted-foreground">Content Type</label>
                       <Select value={contentType} onValueChange={setContentType}>
-                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
                           <SelectValue placeholder="Select Type" />
                         </SelectTrigger>
-                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
-                          <SelectItem value="social-post" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Social Post</SelectItem>
-                          <SelectItem value="blog" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Blog Article</SelectItem>
-                          <SelectItem value="email" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Email Newsletter</SelectItem>
+                        <SelectContent className="bg-muted border-border text-foreground">
+                          <SelectItem value="social-post" className="focus:bg-background focus:text-white cursor-pointer">Social Post</SelectItem>
+                          <SelectItem value="blog" className="focus:bg-background focus:text-white cursor-pointer">Blog Article</SelectItem>
+                          <SelectItem value="email" className="focus:bg-background focus:text-white cursor-pointer">Email Newsletter</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">Tone</label>
+                      <label className="text-sm font-medium text-muted-foreground">Tone</label>
                       <Select value={tone} onValueChange={setTone}>
-                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
                           <SelectValue placeholder="Select Tone" />
                         </SelectTrigger>
-                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
-                          <SelectItem value="professional" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Professional</SelectItem>
-                          <SelectItem value="hype" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Hype / Energetic</SelectItem>
-                          <SelectItem value="educational" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Educational</SelectItem>
+                        <SelectContent className="bg-muted border-border text-foreground">
+                          <SelectItem value="professional" className="focus:bg-background focus:text-white cursor-pointer">Professional</SelectItem>
+                          <SelectItem value="hype" className="focus:bg-background focus:text-white cursor-pointer">Hype / Energetic</SelectItem>
+                          <SelectItem value="educational" className="focus:bg-background focus:text-white cursor-pointer">Educational</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -901,7 +901,7 @@ export default function CreativeCommandCenter() {
                     {/* Hashtag Suggestions */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-baked-text-secondary">
+                        <label className="text-sm font-medium text-muted-foreground">
                           Suggested Hashtags
                         </label>
                         {selectedHashtags.length > 0 && (
@@ -909,7 +909,7 @@ export default function CreativeCommandCenter() {
                             variant="ghost"
                             size="sm"
                             onClick={handleClearHashtags}
-                            className="h-6 text-xs text-baked-text-muted hover:text-red-500"
+                            className="h-6 text-xs text-muted-foreground hover:text-red-500"
                           >
                             Clear ({selectedHashtags.length})
                           </Button>
@@ -927,8 +927,8 @@ export default function CreativeCommandCenter() {
                                   "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
                                   "border hover:scale-105 active:scale-95",
                                   isSelected
-                                    ? "bg-baked-green/20 border-baked-green text-baked-green"
-                                    : "bg-baked-darkest border-baked-border text-baked-text-secondary hover:border-baked-green/50 hover:text-white"
+                                    ? "bg-primary/20 border-primary text-primary"
+                                    : "bg-background border-border text-muted-foreground hover:border-primary/50 hover:text-white"
                                 )}
                               >
                                 {isSelected && <CheckCircle2 className="w-3 h-3" />}
@@ -939,24 +939,24 @@ export default function CreativeCommandCenter() {
                         </div>
                       </ScrollArea>
                       {selectedHashtags.length > 0 && (
-                        <div className="text-xs text-baked-text-muted">
+                        <div className="text-xs text-muted-foreground">
                           Selected: {selectedHashtags.map(tag => `#${tag}`).join(' ')}
                         </div>
                       )}
                     </div>
 
                      <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">
+                      <label className="text-sm font-medium text-muted-foreground">
                         Menu Item Integration
-                        {isLoadingMenu && <span className="ml-2 text-xs text-baked-text-muted">(Loading...)</span>}
+                        {isLoadingMenu && <span className="ml-2 text-xs text-muted-foreground">(Loading...)</span>}
                       </label>
                       <Select value={menuItem} onValueChange={setMenuItem}>
-                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
                           <SelectValue placeholder={isLoadingMenu ? "Loading menu items..." : "Select a product (optional)"} />
                         </SelectTrigger>
-                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary max-h-[300px]">
+                        <SelectContent className="bg-muted border-border text-foreground max-h-[300px]">
                           {menuItems.length === 0 && !isLoadingMenu ? (
-                            <SelectItem value="none" disabled className="text-baked-text-muted text-xs">
+                            <SelectItem value="none" disabled className="text-muted-foreground text-xs">
                               No products available
                             </SelectItem>
                           ) : (
@@ -964,10 +964,10 @@ export default function CreativeCommandCenter() {
                               <SelectItem
                                 key={item.id}
                                 value={item.name}
-                                className="focus:bg-baked-darkest focus:text-white cursor-pointer"
+                                className="focus:bg-background focus:text-white cursor-pointer"
                               >
                                 {item.name}
-                                {item.brandName && <span className="ml-2 text-xs text-baked-text-muted">• {item.brandName}</span>}
+                                {item.brandName && <span className="ml-2 text-xs text-muted-foreground">• {item.brandName}</span>}
                               </SelectItem>
                             ))
                           )}
@@ -977,7 +977,7 @@ export default function CreativeCommandCenter() {
 
                     {/* Image Upload */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">Custom Images</label>
+                      <label className="text-sm font-medium text-muted-foreground">Custom Images</label>
                       <div
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
@@ -985,8 +985,8 @@ export default function CreativeCommandCenter() {
                         className={cn(
                           "border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer",
                           isDragging
-                            ? "border-baked-green bg-baked-green/10"
-                            : "border-baked-border hover:border-baked-green/50"
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
                         )}
                       >
                         <input
@@ -998,11 +998,11 @@ export default function CreativeCommandCenter() {
                           onChange={(e) => handleImageUpload(e.target.files)}
                         />
                         <label htmlFor="image-upload" className="cursor-pointer">
-                          <Plus className="w-6 h-6 mx-auto mb-2 text-baked-text-muted" />
-                          <p className="text-xs text-baked-text-muted">
+                          <Plus className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-xs text-muted-foreground">
                             {isDragging ? "Drop images here" : "Click or drag images here"}
                           </p>
-                          <p className="text-xs text-baked-text-muted mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {uploadedImages.length}/10 images
                           </p>
                         </label>
@@ -1014,7 +1014,7 @@ export default function CreativeCommandCenter() {
                               <img
                                 src={img}
                                 alt={`Upload ${idx + 1}`}
-                                className="w-full h-20 object-cover rounded border border-baked-border"
+                                className="w-full h-20 object-cover rounded border border-border"
                               />
                               <button
                                 onClick={() => handleRemoveImage(idx)}
@@ -1043,7 +1043,7 @@ export default function CreativeCommandCenter() {
                                   "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border",
                                   isSelected
                                     ? "bg-purple-600 border-purple-600 text-white"
-                                    : "bg-baked-darkest border-baked-border text-baked-text-secondary hover:border-purple-600/50"
+                                    : "bg-background border-border text-muted-foreground hover:border-purple-600/50"
                                 )}
                               >
                                 {isSelected && <CheckCircle2 className="w-3 h-3" />}
@@ -1084,10 +1084,10 @@ export default function CreativeCommandCenter() {
                 className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">Deebo Compliance Shield</h3>
-                 <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col">
+                 <Card className="bg-card border-border shadow-none flex-1 flex flex-col">
                     <CardContent className="p-6 flex-1 flex flex-col items-center justify-center space-y-6">
                         <div className="relative">
-                            <Avatar className="w-16 h-16 border-2 border-baked-border z-10 relative">
+                            <Avatar className="w-16 h-16 border-2 border-border z-10 relative">
                                 <AvatarImage src="/avatars/deebo.png" />
                                 <AvatarFallback>DB</AvatarFallback>
                             </Avatar>
@@ -1109,38 +1109,38 @@ export default function CreativeCommandCenter() {
                                           </span>
                                           <XCircle className="w-4 h-4 text-red-500 cursor-pointer hover:text-red-400"/>
                                       </div>
-                                      <p className="text-baked-text-primary text-xs">{check.message}</p>
+                                      <p className="text-foreground text-xs">{check.message}</p>
                                   </div>
                                 ))}
 
-                                <div className="bg-baked-green/10 border border-baked-green/30 rounded-lg p-3 text-sm space-y-3">
+                                <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-sm space-y-3">
                                     <div className="flex items-center justify-between mb-1">
-                                        <span className="font-medium text-baked-green flex items-center gap-1.5">
+                                        <span className="font-medium text-primary flex items-center gap-1.5">
                                             <CheckCircle2 className="w-4 h-4"/> Deebo's Safe Version
                                         </span>
                                     </div>
-                                    <p className="text-baked-text-primary">"May help with relaxation."</p>
+                                    <p className="text-foreground">"May help with relaxation."</p>
                                     <Button
                                       size="sm"
                                       onClick={handleAcceptSafeVersion}
-                                      className="w-full bg-baked-green hover:bg-baked-green-muted text-baked-darkest font-semibold"
+                                      className="w-full bg-primary hover:bg-primary-muted text-primary-foreground font-semibold"
                                     >
                                         Accept Safe Version
                                     </Button>
                                 </div>
                               </>
                             ) : currentContent ? (
-                              <div className="bg-baked-green/10 border border-baked-green/30 rounded-lg p-3 text-sm">
+                              <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-sm">
                                   <div className="flex items-center gap-2">
-                                      <CheckCircle2 className="w-5 h-5 text-baked-green"/>
-                                      <span className="font-medium text-baked-green">All Checks Passed!</span>
+                                      <CheckCircle2 className="w-5 h-5 text-primary"/>
+                                      <span className="font-medium text-primary">All Checks Passed!</span>
                                   </div>
-                                  <p className="text-baked-text-secondary text-xs mt-2">
+                                  <p className="text-muted-foreground text-xs mt-2">
                                     Content is compliant and ready for approval.
                                   </p>
                               </div>
                             ) : (
-                              <div className="text-center text-baked-text-muted text-sm py-8">
+                              <div className="text-center text-muted-foreground text-sm py-8">
                                 Generate content to see compliance status
                               </div>
                             )}
@@ -1158,7 +1158,7 @@ export default function CreativeCommandCenter() {
                 className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">Draft & Revision</h3>
-                <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col overflow-hidden">
+                <Card className="bg-card border-border shadow-none flex-1 flex flex-col overflow-hidden">
                     <ScrollArea className="flex-1">
                         <CardContent className="p-4 space-y-6">
                         {currentContent ? (
@@ -1171,18 +1171,18 @@ export default function CreativeCommandCenter() {
                               exit={{ opacity: 0 }}
                               className="flex gap-3 group"
                             >
-                              <Avatar className="w-10 h-10 border border-baked-border shrink-0">
+                              <Avatar className="w-10 h-10 border border-border shrink-0">
                                 <AvatarFallback>C</AvatarFallback>
                               </Avatar>
                               <div className="flex-1 space-y-1.5">
                                 <div className="flex items-baseline justify-between">
                                   <span className="font-semibold text-sm">Craig</span>
-                                  <span className="text-xs text-baked-text-muted flex items-center gap-1">
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
                                     <MoreHorizontal className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"/>
                                   </span>
                                 </div>
                                 <div className="space-y-3">
-                                  <p className="text-sm text-baked-text-secondary">
+                                  <p className="text-sm text-muted-foreground">
                                     Here&apos;s your campaign content:
                                   </p>
                                   {isEditingCaption ? (
@@ -1190,13 +1190,13 @@ export default function CreativeCommandCenter() {
                                       <Textarea
                                         value={editedCaption}
                                         onChange={(e) => setEditedCaption(e.target.value)}
-                                        className="bg-baked-darkest border-baked-border resize-none h-32 text-sm focus-visible:ring-baked-green/50"
+                                        className="bg-background border-border resize-none h-32 text-sm focus-visible:ring-primary/50"
                                       />
                                       <div className="flex gap-2">
                                         <Button
                                           size="sm"
                                           onClick={handleSaveCaption}
-                                          className="flex-1 bg-baked-green hover:bg-baked-green-muted text-baked-darkest font-semibold"
+                                          className="flex-1 bg-primary hover:bg-primary-muted text-primary-foreground font-semibold"
                                         >
                                           <CheckCircle2 className="w-3 h-3 mr-1" />
                                           Save
@@ -1205,7 +1205,7 @@ export default function CreativeCommandCenter() {
                                           size="sm"
                                           variant="outline"
                                           onClick={handleCancelEditCaption}
-                                          className="flex-1 border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark"
+                                          className="flex-1 border-border text-muted-foreground hover:text-white hover:bg-muted"
                                         >
                                           <XCircle className="w-3 h-3 mr-1" />
                                           Cancel
@@ -1215,11 +1215,11 @@ export default function CreativeCommandCenter() {
                                   ) : (
                                     <div
                                       onClick={handleStartEditCaption}
-                                      className="bg-baked-darkest p-3 rounded-md border border-baked-border text-sm hover:border-baked-green/50 cursor-pointer transition-colors group relative"
+                                      className="bg-background p-3 rounded-md border border-border text-sm hover:border-primary/50 cursor-pointer transition-colors group relative"
                                     >
                                       {currentContent.caption}
                                       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span className="text-xs text-baked-green flex items-center gap-1">
+                                        <span className="text-xs text-primary flex items-center gap-1">
                                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                           </svg>
@@ -1231,7 +1231,7 @@ export default function CreativeCommandCenter() {
                                   {currentContent.hashtags && currentContent.hashtags.length > 0 && (
                                     <div className="flex flex-wrap gap-2">
                                       {currentContent.hashtags.map((tag, idx) => (
-                                        <span key={idx} className="text-xs text-baked-green">
+                                        <span key={idx} className="text-xs text-primary">
                                           #{tag}
                                         </span>
                                       ))}
@@ -1251,16 +1251,16 @@ export default function CreativeCommandCenter() {
                                 transition={{ delay: 0.1 }}
                                 className="flex gap-3 group"
                               >
-                                <Avatar className="w-10 h-10 border border-baked-border shrink-0">
+                                <Avatar className="w-10 h-10 border border-border shrink-0">
                                   <AvatarFallback className="bg-purple-600/20 text-purple-400">P</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 space-y-1.5">
                                   <div className="flex items-baseline justify-between">
                                     <span className="font-semibold text-sm">Pinky</span>
-                                    <span className="text-xs text-baked-text-muted">The Visual Artist</span>
+                                    <span className="text-xs text-muted-foreground">The Visual Artist</span>
                                   </div>
                                   <div className="space-y-3">
-                                    <p className="text-sm text-baked-text-secondary">
+                                    <p className="text-sm text-muted-foreground">
                                       Generated {currentContent.mediaUrls.length} visual{currentContent.mediaUrls.length > 1 ? 's' : ''}
                                     </p>
                                     <div className={cn(
@@ -1275,7 +1275,7 @@ export default function CreativeCommandCenter() {
                                           transition={{ delay: 0.2 + (idx * 0.1) }}
                                           src={url}
                                           alt={`Generated ${idx + 1}`}
-                                          className="rounded-md object-cover aspect-square border border-baked-border hover:border-baked-green/50 transition-colors cursor-pointer"
+                                          className="rounded-md object-cover aspect-square border border-border hover:border-primary/50 transition-colors cursor-pointer"
                                         />
                                       ))}
                                     </div>
@@ -1299,7 +1299,7 @@ export default function CreativeCommandCenter() {
                                   <span className="font-medium text-yellow-500 text-sm">Revision Requested</span>
                                 </div>
                                 {currentContent.revisionNotes.map((note, idx) => (
-                                  <p key={idx} className="text-xs text-baked-text-secondary">
+                                  <p key={idx} className="text-xs text-muted-foreground">
                                     {note.note}
                                   </p>
                                 ))}
@@ -1310,28 +1310,28 @@ export default function CreativeCommandCenter() {
                           <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="text-center py-12 text-baked-text-muted"
+                            className="text-center py-12 text-muted-foreground"
                           >
-                            <Send className="w-12 h-12 mx-auto mb-3 text-baked-text-muted/50" />
+                            <Send className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
                             <p className="text-sm">No draft content</p>
                             <p className="text-xs mt-1">Generate content to start the review process</p>
                           </motion.div>
                         )}
                         </CardContent>
                     </ScrollArea>
-                     <div className="p-4 border-t border-baked-border bg-baked-darkest shrink-0">
+                     <div className="p-4 border-t border-border bg-background shrink-0">
                         <div className="space-y-3">
                           <Textarea
                             value={revisionNote}
                             onChange={(e) => setRevisionNote(e.target.value)}
                             placeholder="Request revisions or add feedback..."
-                            className="bg-baked-dark border-baked-border resize-none h-20 text-sm placeholder:text-baked-text-muted/50 focus-visible:ring-baked-green/50"
+                            className="bg-muted border-border resize-none h-20 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
                           />
                           <Button
                             onClick={handleRevise}
                             disabled={!currentContent || !revisionNote.trim()}
                             variant="outline"
-                            className="w-full border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark disabled:opacity-50"
+                            className="w-full border-border text-muted-foreground hover:text-white hover:bg-muted disabled:opacity-50"
                           >
                             Send Revision Request
                           </Button>
@@ -1359,32 +1359,32 @@ export default function CreativeCommandCenter() {
                         onReject={handleApprovalChainReject}
                       />
                     ) : (
-                      <Card className="bg-baked-card border-baked-border shadow-none p-4 space-y-2">
-                        <div className="bg-baked-darkest border border-baked-border rounded-md p-3 text-sm font-medium text-center text-baked-text-secondary">
+                      <Card className="bg-card border-border shadow-none p-4 space-y-2">
+                        <div className="bg-background border border-border rounded-md p-3 text-sm font-medium text-center text-muted-foreground">
                             Pending
                         </div>
-                        <div className="flex justify-center text-baked-text-muted"><ChevronDown className="w-4 h-4"/></div>
-                         <div className="bg-baked-darkest border border-baked-border rounded-md p-3 text-sm font-medium text-center text-baked-text-secondary">
+                        <div className="flex justify-center text-muted-foreground"><ChevronDown className="w-4 h-4"/></div>
+                         <div className="bg-background border border-border rounded-md p-3 text-sm font-medium text-center text-muted-foreground">
                             Under Revision
                         </div>
-                         <div className="flex justify-center text-baked-text-muted"><ChevronDown className="w-4 h-4"/></div>
-                        <div className="bg-baked-green/10 border border-baked-green/30 rounded-md p-3 text-sm font-medium flex items-center justify-between text-baked-green">
+                         <div className="flex justify-center text-muted-foreground"><ChevronDown className="w-4 h-4"/></div>
+                        <div className="bg-primary/10 border border-primary/30 rounded-md p-3 text-sm font-medium flex items-center justify-between text-primary">
                             <span>Approved by [User]</span>
-                            <CheckCircle2 className="w-4 h-4 fill-baked-green text-baked-darkest"/>
+                            <CheckCircle2 className="w-4 h-4 fill-primary text-primary-foreground"/>
                         </div>
                       </Card>
                     )}
 
                     {/* QR Code Analytics */}
                     {currentContent?.qrDataUrl && currentContent?.qrStats && (
-                      <Card className="bg-baked-card border-baked-border shadow-none p-4">
+                      <Card className="bg-card border-border shadow-none p-4">
                         <div className="space-y-4">
                           <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-semibold text-baked-text-primary flex items-center gap-2">
+                            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
                               <QrCode className="w-4 h-4 text-purple-400" />
                               QR Analytics
                             </h4>
-                            <BarChart3 className="w-4 h-4 text-baked-text-muted" />
+                            <BarChart3 className="w-4 h-4 text-muted-foreground" />
                           </div>
 
                           {/* QR Code Preview */}
@@ -1392,24 +1392,24 @@ export default function CreativeCommandCenter() {
                             <img
                               src={currentContent.qrDataUrl}
                               alt="QR Code"
-                              className="w-24 h-24 rounded-md border border-baked-border"
+                              className="w-24 h-24 rounded-md border border-border"
                             />
                           </div>
 
                           {/* Scan Statistics */}
                           <div className="space-y-2">
-                            <div className="flex items-center justify-between p-2 bg-baked-darkest rounded-md">
-                              <span className="text-xs text-baked-text-secondary">Total Scans</span>
+                            <div className="flex items-center justify-between p-2 bg-background rounded-md">
+                              <span className="text-xs text-muted-foreground">Total Scans</span>
                               <div className="flex items-center gap-1">
-                                <TrendingUp className="w-3 h-3 text-baked-green" />
-                                <span className="text-sm font-semibold text-baked-green">{currentContent.qrStats.scans || 0}</span>
+                                <TrendingUp className="w-3 h-3 text-primary" />
+                                <span className="text-sm font-semibold text-primary">{currentContent.qrStats.scans || 0}</span>
                               </div>
                             </div>
 
                             {currentContent.qrStats.lastScanned && (
-                              <div className="flex items-center justify-between p-2 bg-baked-darkest rounded-md">
-                                <span className="text-xs text-baked-text-secondary">Last Scanned</span>
-                                <span className="text-xs text-baked-text-muted">
+                              <div className="flex items-center justify-between p-2 bg-background rounded-md">
+                                <span className="text-xs text-muted-foreground">Last Scanned</span>
+                                <span className="text-xs text-muted-foreground">
                                   {new Date(currentContent.qrStats.lastScanned).toLocaleDateString()}
                                 </span>
                               </div>
@@ -1417,11 +1417,11 @@ export default function CreativeCommandCenter() {
 
                             {currentContent.qrStats.scansByPlatform && Object.keys(currentContent.qrStats.scansByPlatform).length > 0 && (
                               <div className="space-y-1">
-                                <span className="text-xs text-baked-text-secondary">By Platform</span>
+                                <span className="text-xs text-muted-foreground">By Platform</span>
                                 {Object.entries(currentContent.qrStats.scansByPlatform).map(([platform, count]) => (
-                                  <div key={platform} className="flex items-center justify-between p-1.5 bg-baked-darkest/50 rounded text-xs">
-                                    <span className="text-baked-text-muted capitalize">{platform}</span>
-                                    <span className="text-baked-text-primary font-medium">{count}</span>
+                                  <div key={platform} className="flex items-center justify-between p-1.5 bg-background/50 rounded text-xs">
+                                    <span className="text-muted-foreground capitalize">{platform}</span>
+                                    <span className="text-foreground font-medium">{count}</span>
                                   </div>
                                 ))}
                               </div>
@@ -1429,7 +1429,7 @@ export default function CreativeCommandCenter() {
                           </div>
 
                           {currentContent.contentUrl && (
-                            <div className="pt-2 border-t border-baked-border">
+                            <div className="pt-2 border-t border-border">
                               <a
                                 href={currentContent.contentUrl}
                                 target="_blank"
@@ -1454,7 +1454,7 @@ export default function CreativeCommandCenter() {
                     )}
 
                      {/* Publishing Schedule */}
-                    <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col">
+                    <Card className="bg-card border-border shadow-none flex-1 flex flex-col">
                         <CardHeader className="pb-3">
                             <CardTitle className="text-base font-medium">
                             Publishing Schedule
@@ -1465,14 +1465,14 @@ export default function CreativeCommandCenter() {
                                 mode="single"
                                 selected={date}
                                 onSelect={setDate}
-                                className="rounded-md border border-baked-border bg-baked-darkest w-full flex justify-center p-3"
+                                className="rounded-md border border-border bg-background w-full flex justify-center p-3"
                                 classNames={{
-                                    head_cell: "text-baked-text-muted font-normal text-[0.8rem]",
-                                    cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-baked-green/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                                    day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 hover:bg-baked-dark rounded-md transition-colors text-baked-text-primary",
-                                    day_selected: "bg-baked-green text-baked-darkest hover:bg-baked-green hover:text-baked-darkest focus:bg-baked-green focus:text-baked-darkest",
-                                    day_today: "bg-baked-border/50 text-baked-text-primary",
-                                    nav_button: "border border-baked-border hover:bg-baked-dark hover:text-white transition-colors",
+                                    head_cell: "text-muted-foreground font-normal text-[0.8rem]",
+                                    cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-primary/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                                    day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 hover:bg-muted rounded-md transition-colors text-foreground",
+                                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                                    day_today: "bg-border/50 text-foreground",
+                                    nav_button: "border border-border hover:bg-muted hover:text-white transition-colors",
                                 }}
                             />
                              <div className="space-y-3">
@@ -1495,7 +1495,7 @@ export default function CreativeCommandCenter() {
                                 <Button
                                   variant="outline"
                                   onClick={() => router.push("/dashboard/inbox")}
-                                  className="w-full border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark"
+                                  className="w-full border-border text-muted-foreground hover:text-white hover:bg-muted"
                                 >
                                     View in Unified Inbox
                                 </Button>
@@ -1521,7 +1521,7 @@ export default function CreativeCommandCenter() {
                 className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">Prompt Input</h3>
-                <Card className="bg-baked-card border-baked-border shadow-none">
+                <Card className="bg-card border-border shadow-none">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base font-medium">
                       Campaign Idea
@@ -1529,37 +1529,37 @@ export default function CreativeCommandCenter() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-baked-text-secondary">Rich text</label>
+                        <label className="text-sm font-medium text-muted-foreground">Rich text</label>
                         <Textarea
                         value={campaignPrompt}
                         onChange={(e) => setCampaignPrompt(e.target.value)}
                         placeholder="Describe your TikTok campaign... e.g., 'Quick tutorial on identifying quality flower.'"
-                        className="bg-baked-darkest border-baked-border resize-none h-32 text-sm placeholder:text-baked-text-muted/50 focus-visible:ring-baked-green/50"
+                        className="bg-background border-border resize-none h-32 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
                         />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">Content Type</label>
+                      <label className="text-sm font-medium text-muted-foreground">Content Type</label>
                       <Select value={contentType} onValueChange={setContentType}>
-                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
                           <SelectValue placeholder="Select Type" />
                         </SelectTrigger>
-                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
-                          <SelectItem value="social-post" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Social Post</SelectItem>
-                          <SelectItem value="blog" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Blog Article</SelectItem>
-                          <SelectItem value="email" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Email Newsletter</SelectItem>
+                        <SelectContent className="bg-muted border-border text-foreground">
+                          <SelectItem value="social-post" className="focus:bg-background focus:text-white cursor-pointer">Social Post</SelectItem>
+                          <SelectItem value="blog" className="focus:bg-background focus:text-white cursor-pointer">Blog Article</SelectItem>
+                          <SelectItem value="email" className="focus:bg-background focus:text-white cursor-pointer">Email Newsletter</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">Tone</label>
+                      <label className="text-sm font-medium text-muted-foreground">Tone</label>
                       <Select value={tone} onValueChange={setTone}>
-                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
                           <SelectValue placeholder="Select Tone" />
                         </SelectTrigger>
-                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
-                          <SelectItem value="professional" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Professional</SelectItem>
-                          <SelectItem value="hype" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Hype / Energetic</SelectItem>
-                          <SelectItem value="educational" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Educational</SelectItem>
+                        <SelectContent className="bg-muted border-border text-foreground">
+                          <SelectItem value="professional" className="focus:bg-background focus:text-white cursor-pointer">Professional</SelectItem>
+                          <SelectItem value="hype" className="focus:bg-background focus:text-white cursor-pointer">Hype / Energetic</SelectItem>
+                          <SelectItem value="educational" className="focus:bg-background focus:text-white cursor-pointer">Educational</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1567,7 +1567,7 @@ export default function CreativeCommandCenter() {
                     {/* Hashtag Suggestions */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-baked-text-secondary">
+                        <label className="text-sm font-medium text-muted-foreground">
                           Suggested Hashtags
                         </label>
                         {selectedHashtags.length > 0 && (
@@ -1575,7 +1575,7 @@ export default function CreativeCommandCenter() {
                             variant="ghost"
                             size="sm"
                             onClick={handleClearHashtags}
-                            className="h-6 text-xs text-baked-text-muted hover:text-red-500"
+                            className="h-6 text-xs text-muted-foreground hover:text-red-500"
                           >
                             Clear ({selectedHashtags.length})
                           </Button>
@@ -1593,8 +1593,8 @@ export default function CreativeCommandCenter() {
                                   "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
                                   "border hover:scale-105 active:scale-95",
                                   isSelected
-                                    ? "bg-baked-green/20 border-baked-green text-baked-green"
-                                    : "bg-baked-darkest border-baked-border text-baked-text-secondary hover:border-baked-green/50 hover:text-white"
+                                    ? "bg-primary/20 border-primary text-primary"
+                                    : "bg-background border-border text-muted-foreground hover:border-primary/50 hover:text-white"
                                 )}
                               >
                                 {isSelected && <CheckCircle2 className="w-3 h-3" />}
@@ -1605,24 +1605,24 @@ export default function CreativeCommandCenter() {
                         </div>
                       </ScrollArea>
                       {selectedHashtags.length > 0 && (
-                        <div className="text-xs text-baked-text-muted">
+                        <div className="text-xs text-muted-foreground">
                           Selected: {selectedHashtags.map(tag => `#${tag}`).join(' ')}
                         </div>
                       )}
                     </div>
 
                      <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">
+                      <label className="text-sm font-medium text-muted-foreground">
                         Menu Item Integration
-                        {isLoadingMenu && <span className="ml-2 text-xs text-baked-text-muted">(Loading...)</span>}
+                        {isLoadingMenu && <span className="ml-2 text-xs text-muted-foreground">(Loading...)</span>}
                       </label>
                       <Select value={menuItem} onValueChange={setMenuItem}>
-                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
                           <SelectValue placeholder={isLoadingMenu ? "Loading menu items..." : "Select a product (optional)"} />
                         </SelectTrigger>
-                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary max-h-[300px]">
+                        <SelectContent className="bg-muted border-border text-foreground max-h-[300px]">
                           {menuItems.length === 0 && !isLoadingMenu ? (
-                            <SelectItem value="none" disabled className="text-baked-text-muted text-xs">
+                            <SelectItem value="none" disabled className="text-muted-foreground text-xs">
                               No products available
                             </SelectItem>
                           ) : (
@@ -1630,10 +1630,10 @@ export default function CreativeCommandCenter() {
                               <SelectItem
                                 key={item.id}
                                 value={item.name}
-                                className="focus:bg-baked-darkest focus:text-white cursor-pointer"
+                                className="focus:bg-background focus:text-white cursor-pointer"
                               >
                                 {item.name}
-                                {item.brandName && <span className="ml-2 text-xs text-baked-text-muted">• {item.brandName}</span>}
+                                {item.brandName && <span className="ml-2 text-xs text-muted-foreground">• {item.brandName}</span>}
                               </SelectItem>
                             ))
                           )}
@@ -1643,7 +1643,7 @@ export default function CreativeCommandCenter() {
 
                     {/* Image Upload */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">Custom Images</label>
+                      <label className="text-sm font-medium text-muted-foreground">Custom Images</label>
                       <div
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
@@ -1651,8 +1651,8 @@ export default function CreativeCommandCenter() {
                         className={cn(
                           "border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer",
                           isDragging
-                            ? "border-baked-green bg-baked-green/10"
-                            : "border-baked-border hover:border-baked-green/50"
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
                         )}
                       >
                         <input
@@ -1664,11 +1664,11 @@ export default function CreativeCommandCenter() {
                           onChange={(e) => handleImageUpload(e.target.files)}
                         />
                         <label htmlFor="image-upload" className="cursor-pointer">
-                          <Plus className="w-6 h-6 mx-auto mb-2 text-baked-text-muted" />
-                          <p className="text-xs text-baked-text-muted">
+                          <Plus className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-xs text-muted-foreground">
                             {isDragging ? "Drop images here" : "Click or drag images here"}
                           </p>
-                          <p className="text-xs text-baked-text-muted mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {uploadedImages.length}/10 images
                           </p>
                         </label>
@@ -1680,7 +1680,7 @@ export default function CreativeCommandCenter() {
                               <img
                                 src={img}
                                 alt={`Upload ${idx + 1}`}
-                                className="w-full h-20 object-cover rounded border border-baked-border"
+                                className="w-full h-20 object-cover rounded border border-border"
                               />
                               <button
                                 onClick={() => handleRemoveImage(idx)}
@@ -1709,7 +1709,7 @@ export default function CreativeCommandCenter() {
                                   "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border",
                                   isSelected
                                     ? "bg-purple-600 border-purple-600 text-white"
-                                    : "bg-baked-darkest border-baked-border text-baked-text-secondary hover:border-purple-600/50"
+                                    : "bg-background border-border text-muted-foreground hover:border-purple-600/50"
                                 )}
                               >
                                 {isSelected && <CheckCircle2 className="w-3 h-3" />}
@@ -1750,10 +1750,10 @@ export default function CreativeCommandCenter() {
                 className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">Deebo Compliance Shield</h3>
-                 <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col">
+                 <Card className="bg-card border-border shadow-none flex-1 flex flex-col">
                     <CardContent className="p-6 flex-1 flex flex-col items-center justify-center space-y-6">
                         <div className="relative">
-                            <Avatar className="w-16 h-16 border-2 border-baked-border z-10 relative">
+                            <Avatar className="w-16 h-16 border-2 border-border z-10 relative">
                                 <AvatarImage src="/avatars/deebo.png" />
                                 <AvatarFallback>DB</AvatarFallback>
                             </Avatar>
@@ -1775,38 +1775,38 @@ export default function CreativeCommandCenter() {
                                           </span>
                                           <XCircle className="w-4 h-4 text-red-500 cursor-pointer hover:text-red-400"/>
                                       </div>
-                                      <p className="text-baked-text-primary text-xs">{check.message}</p>
+                                      <p className="text-foreground text-xs">{check.message}</p>
                                   </div>
                                 ))}
 
-                                <div className="bg-baked-green/10 border border-baked-green/30 rounded-lg p-3 text-sm space-y-3">
+                                <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-sm space-y-3">
                                     <div className="flex items-center justify-between mb-1">
-                                        <span className="font-medium text-baked-green flex items-center gap-1.5">
+                                        <span className="font-medium text-primary flex items-center gap-1.5">
                                             <CheckCircle2 className="w-4 h-4"/> Deebo's Safe Version
                                         </span>
                                     </div>
-                                    <p className="text-baked-text-primary">"May help with relaxation."</p>
+                                    <p className="text-foreground">"May help with relaxation."</p>
                                     <Button
                                       size="sm"
                                       onClick={handleAcceptSafeVersion}
-                                      className="w-full bg-baked-green hover:bg-baked-green-muted text-baked-darkest font-semibold"
+                                      className="w-full bg-primary hover:bg-primary-muted text-primary-foreground font-semibold"
                                     >
                                         Accept Safe Version
                                     </Button>
                                 </div>
                               </>
                             ) : currentContent ? (
-                              <div className="bg-baked-green/10 border border-baked-green/30 rounded-lg p-3 text-sm">
+                              <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-sm">
                                   <div className="flex items-center gap-2">
-                                      <CheckCircle2 className="w-5 h-5 text-baked-green"/>
-                                      <span className="font-medium text-baked-green">All Checks Passed!</span>
+                                      <CheckCircle2 className="w-5 h-5 text-primary"/>
+                                      <span className="font-medium text-primary">All Checks Passed!</span>
                                   </div>
-                                  <p className="text-baked-text-secondary text-xs mt-2">
+                                  <p className="text-muted-foreground text-xs mt-2">
                                     Content is compliant and ready for approval.
                                   </p>
                               </div>
                             ) : (
-                              <div className="text-center text-baked-text-muted text-sm py-8">
+                              <div className="text-center text-muted-foreground text-sm py-8">
                                 Generate content to see compliance status
                               </div>
                             )}
@@ -1824,7 +1824,7 @@ export default function CreativeCommandCenter() {
                 className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">Draft & Revision</h3>
-                <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col overflow-hidden">
+                <Card className="bg-card border-border shadow-none flex-1 flex flex-col overflow-hidden">
                     <ScrollArea className="flex-1">
                         <CardContent className="p-4 space-y-6">
                         {currentContent ? (
@@ -1837,18 +1837,18 @@ export default function CreativeCommandCenter() {
                               exit={{ opacity: 0 }}
                               className="flex gap-3 group"
                             >
-                              <Avatar className="w-10 h-10 border border-baked-border shrink-0">
+                              <Avatar className="w-10 h-10 border border-border shrink-0">
                                 <AvatarFallback>C</AvatarFallback>
                               </Avatar>
                               <div className="flex-1 space-y-1.5">
                                 <div className="flex items-baseline justify-between">
                                   <span className="font-semibold text-sm">Craig</span>
-                                  <span className="text-xs text-baked-text-muted flex items-center gap-1">
+                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
                                     <MoreHorizontal className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"/>
                                   </span>
                                 </div>
                                 <div className="space-y-3">
-                                  <p className="text-sm text-baked-text-secondary">
+                                  <p className="text-sm text-muted-foreground">
                                     Here&apos;s your campaign content:
                                   </p>
                                   {isEditingCaption ? (
@@ -1856,13 +1856,13 @@ export default function CreativeCommandCenter() {
                                       <Textarea
                                         value={editedCaption}
                                         onChange={(e) => setEditedCaption(e.target.value)}
-                                        className="bg-baked-darkest border-baked-border resize-none h-32 text-sm focus-visible:ring-baked-green/50"
+                                        className="bg-background border-border resize-none h-32 text-sm focus-visible:ring-primary/50"
                                       />
                                       <div className="flex gap-2">
                                         <Button
                                           size="sm"
                                           onClick={handleSaveCaption}
-                                          className="flex-1 bg-baked-green hover:bg-baked-green-muted text-baked-darkest font-semibold"
+                                          className="flex-1 bg-primary hover:bg-primary-muted text-primary-foreground font-semibold"
                                         >
                                           <CheckCircle2 className="w-3 h-3 mr-1" />
                                           Save
@@ -1871,7 +1871,7 @@ export default function CreativeCommandCenter() {
                                           size="sm"
                                           variant="outline"
                                           onClick={handleCancelEditCaption}
-                                          className="flex-1 border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark"
+                                          className="flex-1 border-border text-muted-foreground hover:text-white hover:bg-muted"
                                         >
                                           <XCircle className="w-3 h-3 mr-1" />
                                           Cancel
@@ -1881,11 +1881,11 @@ export default function CreativeCommandCenter() {
                                   ) : (
                                     <div
                                       onClick={handleStartEditCaption}
-                                      className="bg-baked-darkest p-3 rounded-md border border-baked-border text-sm hover:border-baked-green/50 cursor-pointer transition-colors group relative"
+                                      className="bg-background p-3 rounded-md border border-border text-sm hover:border-primary/50 cursor-pointer transition-colors group relative"
                                     >
                                       {currentContent.caption}
                                       <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span className="text-xs text-baked-green flex items-center gap-1">
+                                        <span className="text-xs text-primary flex items-center gap-1">
                                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                           </svg>
@@ -1897,7 +1897,7 @@ export default function CreativeCommandCenter() {
                                   {currentContent.hashtags && currentContent.hashtags.length > 0 && (
                                     <div className="flex flex-wrap gap-2">
                                       {currentContent.hashtags.map((tag, idx) => (
-                                        <span key={idx} className="text-xs text-baked-green">
+                                        <span key={idx} className="text-xs text-primary">
                                           #{tag}
                                         </span>
                                       ))}
@@ -1917,16 +1917,16 @@ export default function CreativeCommandCenter() {
                                 transition={{ delay: 0.1 }}
                                 className="flex gap-3 group"
                               >
-                                <Avatar className="w-10 h-10 border border-baked-border shrink-0">
+                                <Avatar className="w-10 h-10 border border-border shrink-0">
                                   <AvatarFallback className="bg-purple-600/20 text-purple-400">P</AvatarFallback>
                                 </Avatar>
                                 <div className="flex-1 space-y-1.5">
                                   <div className="flex items-baseline justify-between">
                                     <span className="font-semibold text-sm">Pinky</span>
-                                    <span className="text-xs text-baked-text-muted">The Visual Artist</span>
+                                    <span className="text-xs text-muted-foreground">The Visual Artist</span>
                                   </div>
                                   <div className="space-y-3">
-                                    <p className="text-sm text-baked-text-secondary">
+                                    <p className="text-sm text-muted-foreground">
                                       Generated {currentContent.mediaUrls.length} visual{currentContent.mediaUrls.length > 1 ? 's' : ''}
                                     </p>
                                     <div className={cn(
@@ -1941,7 +1941,7 @@ export default function CreativeCommandCenter() {
                                           transition={{ delay: 0.2 + (idx * 0.1) }}
                                           src={url}
                                           alt={`Generated ${idx + 1}`}
-                                          className="rounded-md object-cover aspect-square border border-baked-border hover:border-baked-green/50 transition-colors cursor-pointer"
+                                          className="rounded-md object-cover aspect-square border border-border hover:border-primary/50 transition-colors cursor-pointer"
                                         />
                                       ))}
                                     </div>
@@ -1965,7 +1965,7 @@ export default function CreativeCommandCenter() {
                                   <span className="font-medium text-yellow-500 text-sm">Revision Requested</span>
                                 </div>
                                 {currentContent.revisionNotes.map((note, idx) => (
-                                  <p key={idx} className="text-xs text-baked-text-secondary">
+                                  <p key={idx} className="text-xs text-muted-foreground">
                                     {note.note}
                                   </p>
                                 ))}
@@ -1976,28 +1976,28 @@ export default function CreativeCommandCenter() {
                           <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="text-center py-12 text-baked-text-muted"
+                            className="text-center py-12 text-muted-foreground"
                           >
-                            <Send className="w-12 h-12 mx-auto mb-3 text-baked-text-muted/50" />
+                            <Send className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
                             <p className="text-sm">No draft content</p>
                             <p className="text-xs mt-1">Generate content to start the review process</p>
                           </motion.div>
                         )}
                         </CardContent>
                     </ScrollArea>
-                     <div className="p-4 border-t border-baked-border bg-baked-darkest shrink-0">
+                     <div className="p-4 border-t border-border bg-background shrink-0">
                         <div className="space-y-3">
                           <Textarea
                             value={revisionNote}
                             onChange={(e) => setRevisionNote(e.target.value)}
                             placeholder="Request revisions or add feedback..."
-                            className="bg-baked-dark border-baked-border resize-none h-20 text-sm placeholder:text-baked-text-muted/50 focus-visible:ring-baked-green/50"
+                            className="bg-muted border-border resize-none h-20 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
                           />
                           <Button
                             onClick={handleRevise}
                             disabled={!currentContent || !revisionNote.trim()}
                             variant="outline"
-                            className="w-full border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark disabled:opacity-50"
+                            className="w-full border-border text-muted-foreground hover:text-white hover:bg-muted disabled:opacity-50"
                           >
                             Send Revision Request
                           </Button>
@@ -2025,32 +2025,32 @@ export default function CreativeCommandCenter() {
                         onReject={handleApprovalChainReject}
                       />
                     ) : (
-                      <Card className="bg-baked-card border-baked-border shadow-none p-4 space-y-2">
-                        <div className="bg-baked-darkest border border-baked-border rounded-md p-3 text-sm font-medium text-center text-baked-text-secondary">
+                      <Card className="bg-card border-border shadow-none p-4 space-y-2">
+                        <div className="bg-background border border-border rounded-md p-3 text-sm font-medium text-center text-muted-foreground">
                             Pending
                         </div>
-                        <div className="flex justify-center text-baked-text-muted"><ChevronDown className="w-4 h-4"/></div>
-                         <div className="bg-baked-darkest border border-baked-border rounded-md p-3 text-sm font-medium text-center text-baked-text-secondary">
+                        <div className="flex justify-center text-muted-foreground"><ChevronDown className="w-4 h-4"/></div>
+                         <div className="bg-background border border-border rounded-md p-3 text-sm font-medium text-center text-muted-foreground">
                             Under Revision
                         </div>
-                         <div className="flex justify-center text-baked-text-muted"><ChevronDown className="w-4 h-4"/></div>
-                        <div className="bg-baked-green/10 border border-baked-green/30 rounded-md p-3 text-sm font-medium flex items-center justify-between text-baked-green">
+                         <div className="flex justify-center text-muted-foreground"><ChevronDown className="w-4 h-4"/></div>
+                        <div className="bg-primary/10 border border-primary/30 rounded-md p-3 text-sm font-medium flex items-center justify-between text-primary">
                             <span>Approved by [User]</span>
-                            <CheckCircle2 className="w-4 h-4 fill-baked-green text-baked-darkest"/>
+                            <CheckCircle2 className="w-4 h-4 fill-primary text-primary-foreground"/>
                         </div>
                       </Card>
                     )}
 
                     {/* QR Code Analytics */}
                     {currentContent?.qrDataUrl && currentContent?.qrStats && (
-                      <Card className="bg-baked-card border-baked-border shadow-none p-4">
+                      <Card className="bg-card border-border shadow-none p-4">
                         <div className="space-y-4">
                           <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-semibold text-baked-text-primary flex items-center gap-2">
+                            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
                               <QrCode className="w-4 h-4 text-purple-400" />
                               QR Analytics
                             </h4>
-                            <BarChart3 className="w-4 h-4 text-baked-text-muted" />
+                            <BarChart3 className="w-4 h-4 text-muted-foreground" />
                           </div>
 
                           {/* QR Code Preview */}
@@ -2058,24 +2058,24 @@ export default function CreativeCommandCenter() {
                             <img
                               src={currentContent.qrDataUrl}
                               alt="QR Code"
-                              className="w-24 h-24 rounded-md border border-baked-border"
+                              className="w-24 h-24 rounded-md border border-border"
                             />
                           </div>
 
                           {/* Scan Statistics */}
                           <div className="space-y-2">
-                            <div className="flex items-center justify-between p-2 bg-baked-darkest rounded-md">
-                              <span className="text-xs text-baked-text-secondary">Total Scans</span>
+                            <div className="flex items-center justify-between p-2 bg-background rounded-md">
+                              <span className="text-xs text-muted-foreground">Total Scans</span>
                               <div className="flex items-center gap-1">
-                                <TrendingUp className="w-3 h-3 text-baked-green" />
-                                <span className="text-sm font-semibold text-baked-green">{currentContent.qrStats.scans || 0}</span>
+                                <TrendingUp className="w-3 h-3 text-primary" />
+                                <span className="text-sm font-semibold text-primary">{currentContent.qrStats.scans || 0}</span>
                               </div>
                             </div>
 
                             {currentContent.qrStats.lastScanned && (
-                              <div className="flex items-center justify-between p-2 bg-baked-darkest rounded-md">
-                                <span className="text-xs text-baked-text-secondary">Last Scanned</span>
-                                <span className="text-xs text-baked-text-muted">
+                              <div className="flex items-center justify-between p-2 bg-background rounded-md">
+                                <span className="text-xs text-muted-foreground">Last Scanned</span>
+                                <span className="text-xs text-muted-foreground">
                                   {new Date(currentContent.qrStats.lastScanned).toLocaleDateString()}
                                 </span>
                               </div>
@@ -2083,11 +2083,11 @@ export default function CreativeCommandCenter() {
 
                             {currentContent.qrStats.scansByPlatform && Object.keys(currentContent.qrStats.scansByPlatform).length > 0 && (
                               <div className="space-y-1">
-                                <span className="text-xs text-baked-text-secondary">By Platform</span>
+                                <span className="text-xs text-muted-foreground">By Platform</span>
                                 {Object.entries(currentContent.qrStats.scansByPlatform).map(([platform, count]) => (
-                                  <div key={platform} className="flex items-center justify-between p-1.5 bg-baked-darkest/50 rounded text-xs">
-                                    <span className="text-baked-text-muted capitalize">{platform}</span>
-                                    <span className="text-baked-text-primary font-medium">{count}</span>
+                                  <div key={platform} className="flex items-center justify-between p-1.5 bg-background/50 rounded text-xs">
+                                    <span className="text-muted-foreground capitalize">{platform}</span>
+                                    <span className="text-foreground font-medium">{count}</span>
                                   </div>
                                 ))}
                               </div>
@@ -2095,7 +2095,7 @@ export default function CreativeCommandCenter() {
                           </div>
 
                           {currentContent.contentUrl && (
-                            <div className="pt-2 border-t border-baked-border">
+                            <div className="pt-2 border-t border-border">
                               <a
                                 href={currentContent.contentUrl}
                                 target="_blank"
@@ -2120,7 +2120,7 @@ export default function CreativeCommandCenter() {
                     )}
 
                      {/* Publishing Schedule */}
-                    <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col">
+                    <Card className="bg-card border-border shadow-none flex-1 flex flex-col">
                         <CardHeader className="pb-3">
                             <CardTitle className="text-base font-medium">
                             Publishing Schedule
@@ -2131,14 +2131,14 @@ export default function CreativeCommandCenter() {
                                 mode="single"
                                 selected={date}
                                 onSelect={setDate}
-                                className="rounded-md border border-baked-border bg-baked-darkest w-full flex justify-center p-3"
+                                className="rounded-md border border-border bg-background w-full flex justify-center p-3"
                                 classNames={{
-                                    head_cell: "text-baked-text-muted font-normal text-[0.8rem]",
-                                    cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-baked-green/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                                    day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 hover:bg-baked-dark rounded-md transition-colors text-baked-text-primary",
-                                    day_selected: "bg-baked-green text-baked-darkest hover:bg-baked-green hover:text-baked-darkest focus:bg-baked-green focus:text-baked-darkest",
-                                    day_today: "bg-baked-border/50 text-baked-text-primary",
-                                    nav_button: "border border-baked-border hover:bg-baked-dark hover:text-white transition-colors",
+                                    head_cell: "text-muted-foreground font-normal text-[0.8rem]",
+                                    cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-primary/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                                    day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 hover:bg-muted rounded-md transition-colors text-foreground",
+                                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                                    day_today: "bg-border/50 text-foreground",
+                                    nav_button: "border border-border hover:bg-muted hover:text-white transition-colors",
                                 }}
                             />
                              <div className="space-y-3">
@@ -2161,7 +2161,7 @@ export default function CreativeCommandCenter() {
                                 <Button
                                   variant="outline"
                                   onClick={() => router.push("/dashboard/inbox")}
-                                  className="w-full border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark"
+                                  className="w-full border-border text-muted-foreground hover:text-white hover:bg-muted"
                                 >
                                     View in Unified Inbox
                                 </Button>
@@ -2187,7 +2187,7 @@ export default function CreativeCommandCenter() {
                 className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">Prompt Input</h3>
-                <Card className="bg-baked-card border-baked-border shadow-none">
+                <Card className="bg-card border-border shadow-none">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base font-medium">
                       Campaign Idea
@@ -2195,37 +2195,37 @@ export default function CreativeCommandCenter() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-baked-text-secondary">Rich text</label>
+                        <label className="text-sm font-medium text-muted-foreground">Rich text</label>
                         <Textarea
                         value={campaignPrompt}
                         onChange={(e) => setCampaignPrompt(e.target.value)}
                         placeholder="Describe your LinkedIn campaign... e.g., 'Industry insights on terpene profiles and effects.'"
-                        className="bg-baked-darkest border-baked-border resize-none h-32 text-sm placeholder:text-baked-text-muted/50 focus-visible:ring-baked-green/50"
+                        className="bg-background border-border resize-none h-32 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
                         />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">Content Type</label>
+                      <label className="text-sm font-medium text-muted-foreground">Content Type</label>
                       <Select value={contentType} onValueChange={setContentType}>
-                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
                           <SelectValue placeholder="Select Type" />
                         </SelectTrigger>
-                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
-                          <SelectItem value="social-post" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Social Post</SelectItem>
-                          <SelectItem value="blog" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Blog Article</SelectItem>
-                          <SelectItem value="email" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Email Newsletter</SelectItem>
+                        <SelectContent className="bg-muted border-border text-foreground">
+                          <SelectItem value="social-post" className="focus:bg-background focus:text-white cursor-pointer">Social Post</SelectItem>
+                          <SelectItem value="blog" className="focus:bg-background focus:text-white cursor-pointer">Blog Article</SelectItem>
+                          <SelectItem value="email" className="focus:bg-background focus:text-white cursor-pointer">Email Newsletter</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">Tone</label>
+                      <label className="text-sm font-medium text-muted-foreground">Tone</label>
                       <Select value={tone} onValueChange={setTone}>
-                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
                           <SelectValue placeholder="Select Tone" />
                         </SelectTrigger>
-                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
-                          <SelectItem value="professional" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Professional</SelectItem>
-                          <SelectItem value="hype" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Hype / Energetic</SelectItem>
-                          <SelectItem value="educational" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Educational</SelectItem>
+                        <SelectContent className="bg-muted border-border text-foreground">
+                          <SelectItem value="professional" className="focus:bg-background focus:text-white cursor-pointer">Professional</SelectItem>
+                          <SelectItem value="hype" className="focus:bg-background focus:text-white cursor-pointer">Hype / Energetic</SelectItem>
+                          <SelectItem value="educational" className="focus:bg-background focus:text-white cursor-pointer">Educational</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -2233,7 +2233,7 @@ export default function CreativeCommandCenter() {
                     {/* Hashtag Suggestions */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-baked-text-secondary">
+                        <label className="text-sm font-medium text-muted-foreground">
                           Suggested Hashtags
                         </label>
                         {selectedHashtags.length > 0 && (
@@ -2241,7 +2241,7 @@ export default function CreativeCommandCenter() {
                             variant="ghost"
                             size="sm"
                             onClick={handleClearHashtags}
-                            className="h-6 text-xs text-baked-text-muted hover:text-red-500"
+                            className="h-6 text-xs text-muted-foreground hover:text-red-500"
                           >
                             Clear ({selectedHashtags.length})
                           </Button>
@@ -2259,8 +2259,8 @@ export default function CreativeCommandCenter() {
                                   "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
                                   "border hover:scale-105 active:scale-95",
                                   isSelected
-                                    ? "bg-baked-green/20 border-baked-green text-baked-green"
-                                    : "bg-baked-darkest border-baked-border text-baked-text-secondary hover:border-baked-green/50 hover:text-white"
+                                    ? "bg-primary/20 border-primary text-primary"
+                                    : "bg-background border-border text-muted-foreground hover:border-primary/50 hover:text-white"
                                 )}
                               >
                                 {isSelected && <CheckCircle2 className="w-3 h-3" />}
@@ -2271,24 +2271,24 @@ export default function CreativeCommandCenter() {
                         </div>
                       </ScrollArea>
                       {selectedHashtags.length > 0 && (
-                        <div className="text-xs text-baked-text-muted">
+                        <div className="text-xs text-muted-foreground">
                           Selected: {selectedHashtags.map(tag => `#${tag}`).join(' ')}
                         </div>
                       )}
                     </div>
 
                      <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">
+                      <label className="text-sm font-medium text-muted-foreground">
                         Menu Item Integration
-                        {isLoadingMenu && <span className="ml-2 text-xs text-baked-text-muted">(Loading...)</span>}
+                        {isLoadingMenu && <span className="ml-2 text-xs text-muted-foreground">(Loading...)</span>}
                       </label>
                       <Select value={menuItem} onValueChange={setMenuItem}>
-                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
                           <SelectValue placeholder={isLoadingMenu ? "Loading menu items..." : "Select a product (optional)"} />
                         </SelectTrigger>
-                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary max-h-[300px]">
+                        <SelectContent className="bg-muted border-border text-foreground max-h-[300px]">
                           {menuItems.length === 0 && !isLoadingMenu ? (
-                            <SelectItem value="none" disabled className="text-baked-text-muted text-xs">
+                            <SelectItem value="none" disabled className="text-muted-foreground text-xs">
                               No products available
                             </SelectItem>
                           ) : (
@@ -2296,10 +2296,10 @@ export default function CreativeCommandCenter() {
                               <SelectItem
                                 key={item.id}
                                 value={item.name}
-                                className="focus:bg-baked-darkest focus:text-white cursor-pointer"
+                                className="focus:bg-background focus:text-white cursor-pointer"
                               >
                                 {item.name}
-                                {item.brandName && <span className="ml-2 text-xs text-baked-text-muted">• {item.brandName}</span>}
+                                {item.brandName && <span className="ml-2 text-xs text-muted-foreground">• {item.brandName}</span>}
                               </SelectItem>
                             ))
                           )}
@@ -2309,7 +2309,7 @@ export default function CreativeCommandCenter() {
 
                     {/* Image Upload */}
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">Custom Images</label>
+                      <label className="text-sm font-medium text-muted-foreground">Custom Images</label>
                       <div
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
@@ -2317,8 +2317,8 @@ export default function CreativeCommandCenter() {
                         className={cn(
                           "border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer",
                           isDragging
-                            ? "border-baked-green bg-baked-green/10"
-                            : "border-baked-border hover:border-baked-green/50"
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
                         )}
                       >
                         <input
@@ -2330,11 +2330,11 @@ export default function CreativeCommandCenter() {
                           onChange={(e) => handleImageUpload(e.target.files)}
                         />
                         <label htmlFor="image-upload" className="cursor-pointer">
-                          <Plus className="w-6 h-6 mx-auto mb-2 text-baked-text-muted" />
-                          <p className="text-xs text-baked-text-muted">
+                          <Plus className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-xs text-muted-foreground">
                             {isDragging ? "Drop images here" : "Click or drag images here"}
                           </p>
-                          <p className="text-xs text-baked-text-muted mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {uploadedImages.length}/10 images
                           </p>
                         </label>
@@ -2346,7 +2346,7 @@ export default function CreativeCommandCenter() {
                               <img
                                 src={img}
                                 alt={`Upload ${idx + 1}`}
-                                className="w-full h-20 object-cover rounded border border-baked-border"
+                                className="w-full h-20 object-cover rounded border border-border"
                               />
                               <button
                                 onClick={() => handleRemoveImage(idx)}
@@ -2375,7 +2375,7 @@ export default function CreativeCommandCenter() {
                                   "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border",
                                   isSelected
                                     ? "bg-purple-600 border-purple-600 text-white"
-                                    : "bg-baked-darkest border-baked-border text-baked-text-secondary hover:border-purple-600/50"
+                                    : "bg-background border-border text-muted-foreground hover:border-purple-600/50"
                                 )}
                               >
                                 {isSelected && <CheckCircle2 className="w-3 h-3" />}
@@ -2413,7 +2413,7 @@ export default function CreativeCommandCenter() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.4 }}
-                className="flex-1 text-center py-20 text-baked-text-muted"
+                className="flex-1 text-center py-20 text-muted-foreground"
               >
                 <p className="text-sm">LinkedIn content workflow coming soon</p>
                 <p className="text-xs mt-2">Full layout similar to Instagram and TikTok</p>
@@ -2431,7 +2431,7 @@ export default function CreativeCommandCenter() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1, duration: 0.4 }}
-                className="flex-1 text-center py-20 text-baked-text-muted"
+                className="flex-1 text-center py-20 text-muted-foreground"
               >
                 <p className="text-sm">Hero Carousel builder coming soon</p>
                 <p className="text-xs mt-2">Create website banners and carousel content</p>
@@ -2447,7 +2447,7 @@ export default function CreativeCommandCenter() {
         <Button
           variant="ghost"
           size="icon"
-          className="bg-baked-card border border-baked-border rounded-full h-10 w-10 text-baked-text-secondary hover:text-white shadow-lg"
+          className="bg-card border border-border rounded-full h-10 w-10 text-muted-foreground hover:text-white shadow-lg"
         >
           <HelpCircle className="w-5 h-5" />
         </Button>
