@@ -26,6 +26,81 @@ export type ContentStatus = 'draft' | 'pending' | 'approved' | 'revision' | 'sch
 export type MediaType = 'image' | 'video' | 'carousel' | 'text';
 
 /**
+ * Social media engagement metrics
+ * Tracks performance across platforms with platform-agnostic and platform-specific metrics
+ */
+export interface EngagementMetrics {
+    /** Total impressions (how many times content was displayed) */
+    impressions: number;
+
+    /** Total reach (unique users who saw the content) */
+    reach: number;
+
+    /** Total likes/reactions */
+    likes: number;
+
+    /** Total comments */
+    comments: number;
+
+    /** Total shares/reposts */
+    shares: number;
+
+    /** Total saves/bookmarks */
+    saves: number;
+
+    /** Click-through rate (percentage) */
+    clickThroughRate?: number;
+
+    /** Engagement rate (percentage) = (likes + comments + shares) / impressions * 100 */
+    engagementRate: number;
+
+    /** Last time metrics were synced from platform */
+    lastSyncedAt?: string;
+
+    /** Platform-specific metrics */
+    platformSpecific?: {
+        /** Instagram-specific */
+        instagram?: {
+            profileVisits?: number;
+            websiteClicks?: number;
+            storyReplies?: number;
+            reelPlays?: number;
+        };
+
+        /** TikTok-specific */
+        tiktok?: {
+            videoViews?: number;
+            averageWatchTime?: number;
+            completionRate?: number;
+            soundUses?: number;
+        };
+
+        /** LinkedIn-specific */
+        linkedin?: {
+            postClicks?: number;
+            followerGains?: number;
+            companyPageViews?: number;
+        };
+    };
+
+    /** Time-series data for historical tracking */
+    historicalData?: EngagementSnapshot[];
+}
+
+/**
+ * Snapshot of engagement metrics at a specific point in time
+ */
+export interface EngagementSnapshot {
+    timestamp: string;
+    impressions: number;
+    reach: number;
+    likes: number;
+    comments: number;
+    shares: number;
+    saves: number;
+}
+
+/**
  * Base interface for all creative content items
  */
 export interface CreativeContentBase {
@@ -94,6 +169,12 @@ export interface CreativeContentBase {
         scansByPlatform?: Record<string, number>;
         scansByLocation?: Record<string, number>;
     };
+
+    /** Social media engagement metrics */
+    engagementMetrics?: EngagementMetrics;
+
+    /** External platform post ID (for syncing metrics) */
+    externalPostId?: string;
 }
 
 /**

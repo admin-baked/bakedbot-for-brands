@@ -1351,6 +1351,83 @@ const handleSelectTemplate = (template) => {
 - Enhances Craig's caption generation with product context
 - Pinky uses product context for image generation
 
+#### 12. Engagement Analytics Dashboard
+**Goal:** Track social media performance with platform-specific metrics
+
+**Implementation:**
+- Comprehensive engagement metrics display component
+- Platform-agnostic metrics (impressions, reach, likes, comments, shares, saves)
+- Platform-specific insights (Instagram profile visits, TikTok completion rate, LinkedIn clicks)
+- Engagement rate and CTR calculations
+- Time-series tracking support
+- Conditionally renders in approval panel when metrics available
+- Integrated across all platform tabs
+
+**Metrics Tracked:**
+- **Core Metrics:**
+  - Impressions (total views)
+  - Reach (unique viewers)
+  - Likes/reactions
+  - Comments
+  - Shares/reposts
+  - Saves/bookmarks
+  - Engagement rate (calculated percentage)
+  - Click-through rate (optional)
+
+- **Instagram-Specific:**
+  - Profile visits from post
+  - Website link clicks
+  - Story replies
+  - Reel plays
+
+- **TikTok-Specific:**
+  - Total video views
+  - Average watch time
+  - Completion rate percentage
+  - Sound/audio uses
+
+- **LinkedIn-Specific:**
+  - Post clicks
+  - New followers gained
+  - Company page views
+
+**Visual Design:**
+- 3x2 metric grid with icon badges
+- Color-coded metric cards (blue/purple/red/green/amber/pink)
+- Performance overview cards (engagement rate, CTR)
+- Platform-specific insights sections
+- Animated metric card entrance (Framer Motion)
+- Last synced timestamp display
+
+**Type System:**
+```typescript
+interface EngagementMetrics {
+  impressions: number;
+  reach: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  saves: number;
+  clickThroughRate?: number;
+  engagementRate: number;
+  lastSyncedAt?: string;
+  platformSpecific?: {
+    instagram?: {...};
+    tiktok?: {...};
+    linkedin?: {...};
+  };
+  historicalData?: EngagementSnapshot[];
+}
+```
+
+**Future Integration:**
+- Real-time sync with Meta Graph API (Instagram/Facebook)
+- TikTok Analytics API integration
+- LinkedIn Marketing API connection
+- Automated metrics polling (hourly/daily)
+- Historical trend charts
+- Performance benchmarking against industry averages
+
 ### Files Created/Modified
 
 1. **src/app/dashboard/creative/page.tsx** (NEW FILE - ~2,200+ lines)
@@ -1362,6 +1439,7 @@ const handleSelectTemplate = (template) => {
    - Error handling and toast notifications
    - Menu item autocomplete from Firestore
    - QR code scan analytics display
+   - Engagement analytics dashboard
    - Image upload with drag-and-drop
    - Batch campaign mode
 
@@ -1377,10 +1455,21 @@ const handleSelectTemplate = (template) => {
    - QR code generation on approval
    - Revision workflow
 
-4. **src/types/creative-content.ts** (EXISTING - used)
+4. **src/types/creative-content.ts** (MODIFIED)
    - `CreativeContent`, `GenerateContentRequest` types
    - `ComplianceCheck`, `RevisionNote` types
    - Platform and status type definitions
+   - **NEW:** `EngagementMetrics` interface with platform-specific metrics
+   - **NEW:** `EngagementSnapshot` for time-series tracking
+   - Added `engagementMetrics` and `externalPostId` fields to `CreativeContentBase`
+
+5. **src/components/creative/engagement-analytics.tsx** (NEW FILE - 350+ lines)
+   - Engagement metrics display component
+   - Platform-specific insights sections
+   - Animated metric cards with Framer Motion
+   - Number formatting (K/M suffixes)
+   - Percentage calculations for rates
+   - Conditional platform-specific sections
 
 ### Architecture Pattern
 
@@ -1474,11 +1563,12 @@ await editCaption(contentId, newCaption);
 4. ✅ Batch campaign mode (all platforms at once)
 5. ✅ QR code scan statistics display
 6. ✅ Menu item autocomplete from Firestore
+7. ✅ Engagement analytics integration (social media metrics dashboard)
 
 **Medium Priority (Next):**
-7. Analytics integration (engagement metrics from social platforms)
 8. Approval chain (multi-level review workflow)
-9. Campaign performance tracking (CTR, conversions)
+9. Campaign performance tracking (CTR, conversions over time)
+10. Social platform API integrations (Meta, TikTok, LinkedIn for real-time metrics)
 
 **Low Priority:**
 9. Comments and collaboration features

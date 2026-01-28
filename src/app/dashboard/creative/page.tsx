@@ -55,6 +55,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { getMenuData } from "@/app/dashboard/menu/actions";
 import { BarChart3, TrendingUp, QrCode } from "lucide-react";
+import { EngagementAnalytics } from "@/components/creative/engagement-analytics";
 
 // --- Types & Mock Data ---
 
@@ -1484,6 +1485,14 @@ export default function CreativeCommandCenter() {
                       </Card>
                     )}
 
+                    {/* Engagement Analytics */}
+                    {currentContent?.engagementMetrics && (
+                      <EngagementAnalytics
+                        metrics={currentContent.engagementMetrics}
+                        platform={selectedPlatform}
+                      />
+                    )}
+
                      {/* Publishing Schedule */}
                     <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col">
                         <CardHeader className="pb-3">
@@ -2131,6 +2140,14 @@ export default function CreativeCommandCenter() {
                           )}
                         </div>
                       </Card>
+                    )}
+
+                    {/* Engagement Analytics */}
+                    {currentContent?.engagementMetrics && (
+                      <EngagementAnalytics
+                        metrics={currentContent.engagementMetrics}
+                        platform={selectedPlatform}
+                      />
                     )}
 
                      {/* Publishing Schedule */}
