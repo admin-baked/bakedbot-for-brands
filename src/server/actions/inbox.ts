@@ -7,7 +7,8 @@
  * thread CRUD, artifact management, and persistence to Firestore.
  */
 
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { getServerSessionUser } from '@/server/auth/session';
 import { logger } from '@/lib/logger';
 import type { ChatMessage } from '@/lib/store/agent-chat-store';
@@ -42,7 +43,7 @@ const INBOX_ARTIFACTS_COLLECTION = 'inbox_artifacts';
 // ============ Helper Functions ============
 
 function getDb() {
-    return getFirestore();
+    return getAdminFirestore();
 }
 
 /**
