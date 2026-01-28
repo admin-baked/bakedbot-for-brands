@@ -100,7 +100,14 @@ export async function executeWithTools(
             max_tokens: 4096,
             tools,
             messages,
-            system: buildSystemPrompt(context),
+            // Use prompt caching for faster responses on repeated requests
+            system: [
+                {
+                    type: 'text',
+                    text: buildSystemPrompt(context),
+                    cache_control: { type: 'ephemeral' }
+                }
+            ],
         });
         
         totalInputTokens += response.usage.input_tokens;
