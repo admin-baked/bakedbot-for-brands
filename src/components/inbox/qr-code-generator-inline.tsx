@@ -34,6 +34,7 @@ export function QRCodeGeneratorInline({ onComplete, initialUrl = '', className }
     const [backgroundColor, setBackgroundColor] = useState('#ffffff');
     const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isLibraryLoaded, setIsLibraryLoaded] = useState(false);
 
     const qrContainerRef = useRef<HTMLDivElement>(null);
 
@@ -42,11 +43,25 @@ export function QRCodeGeneratorInline({ onComplete, initialUrl = '', className }
         if (typeof window === 'undefined') return;
 
         // Check if QRCode is already loaded
-        if ((window as any).QRCode) return;
+        if ((window as any).QRCode) {
+            setIsLibraryLoaded(true);
+            return;
+        }
 
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
         script.async = true;
+
+        script.onload = () => {
+            console.log('[QRCodeGenerator] Library loaded successfully');
+            setIsLibraryLoaded(true);
+        };
+
+        script.onerror = () => {
+            console.error('[QRCodeGenerator] Failed to load QRCode library');
+            alert('Failed to load QR Code library. Please refresh the page.');
+        };
+
         document.body.appendChild(script);
 
         return () => {
@@ -62,6 +77,11 @@ export function QRCodeGeneratorInline({ onComplete, initialUrl = '', className }
             return;
         }
 
+        if (!isLibraryLoaded) {
+            console.log('[QRCodeGenerator] Library not loaded yet');
+            return;
+        }
+
         if (!qrContainerRef.current) return;
 
         setIsGenerating(true);
@@ -71,12 +91,6 @@ export function QRCodeGeneratorInline({ onComplete, initialUrl = '', className }
         setQrCodeImage(null);
 
         try {
-            // Wait for QRCode library to be available
-            if (!(window as any).QRCode) {
-                alert('QR Code library is still loading. Please try again in a moment.');
-                setIsGenerating(false);
-                return;
-            }
 
             // Generate QR code
             const QRCodeLib = (window as any).QRCode;
@@ -224,11 +238,11 @@ export function QRCodeGeneratorInline({ onComplete, initialUrl = '', className }
                     {/* Generate Button */}
                     <Button
                         onClick={generateQRCode}
-                        disabled={isGenerating || !url.trim()}
+                        disabled={!isLibraryLoaded || isGenerating || !url.trim()}
                         className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
                     >
                         <Sparkles className="h-4 w-4 mr-2" />
-                        {isGenerating ? 'Generating...' : 'Generate QR Code'}
+                        {!isLibraryLoaded ? 'Loading QR Library...' : isGenerating ? 'Generating...' : 'Generate QR Code'}
                     </Button>
 
                     {/* QR Code Display */}

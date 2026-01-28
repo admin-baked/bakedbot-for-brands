@@ -159,6 +159,27 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // --- Email Leads Collection (Age Gate + Marketing Capture) ---
+    match /email_leads/{leadId} {
+      // Server-side only creation (via server actions).
+      // No client-side writes to prevent spam/abuse.
+      allow create, update: if false;
+
+      // Brand managers can read leads for their brand.
+      allow read: if isRole('brand') &&
+                     (request.auth.token.brandId == resource.data.brandId);
+
+      // Dispensary managers can read leads for their dispensary.
+      allow read: if isRole('dispensary') &&
+                     (request.auth.token.locationId == resource.data.dispensaryId);
+
+      // Owner can read all leads.
+      allow read: if isRole('owner');
+
+      // No client-side deletes.
+      allow delete: if false;
+    }
+
     // --- Chat Sessions (subcollection under users) ---
     match /users/{userId}/chatSessions/{sessionId} {
       // Users can manage their own chat sessions.
