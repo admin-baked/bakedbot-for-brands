@@ -6,7 +6,8 @@
  * Generate, track, and manage QR codes for marketing campaigns.
  */
 
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { getServerSessionUser } from '@/server/auth/session';
 import { logger } from '@/lib/logger';
 import QRCode from 'qrcode';
@@ -19,7 +20,7 @@ const QR_CODES_COLLECTION = 'qr_codes';
 const QR_SCANS_COLLECTION = 'qr_scans';
 
 function getDb() {
-    return getFirestore();
+    return getAdminFirestore();
 }
 
 // ============ QR Code Generation ============
