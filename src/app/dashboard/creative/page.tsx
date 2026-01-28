@@ -161,128 +161,6 @@ const mockChatHistory: ChatMessage[] = [
 
 // --- Components ---
 
-const Sidebar = () => (
-  <div className="w-64 bg-baked-darkest border-r border-baked-border flex flex-col h-full shrink-0">
-    <div className="p-4 flex items-center gap-2 mb-6">
-      <div className="w-8 h-8 bg-baked-green rounded-lg flex items-center justify-center">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          className="w-5 h-5 text-baked-darkest"
-        >
-          <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.59a.75.75 0 101.06 1.061l1.591-1.59zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 10-1.061 1.06l1.59 1.591zM12 18a4.5 4.5 0 110-9 4.5 4.5 0 010 9zM3 12a.75.75 0 01.75-.75H6a.75.75 0 010 1.5H3.75A.75.75 0 013 12zM6.166 5.106a.75.75 0 00-1.06 1.06l1.591 1.59a.75.75 0 101.06-1.061l-1.59-1.591zM5.106 17.834a.75.75 0 001.06 1.06l1.59-1.591a.75.75 0 10-1.061 1.06l-1.59 1.591z" />
-        </svg>
-      </div>
-      <span className="font-semibold text-lg tracking-tight">BakedBot.ai</span>
-      <Button variant="ghost" size="icon" className="ml-auto text-baked-text-muted hover:text-white hidden lg:flex">
-        <ChevronLeft className="w-5 h-5" />
-      </Button>
-    </div>
-    <nav className="flex-1 space-y-1 px-2">
-      <Link
-        href="/dashboard"
-        className="flex items-center gap-3 px-3 py-2 rounded-md text-baked-text-secondary hover:bg-baked-dark hover:text-white transition-colors group"
-      >
-        <LayoutGrid className="w-5 h-5 group-hover:text-baked-green transition-colors" />
-        Dashboard
-      </Link>
-      <Link
-        href="/projects"
-        className="flex items-center gap-3 px-3 py-2 rounded-md text-baked-text-secondary hover:bg-baked-dark hover:text-white transition-colors group"
-      >
-        <Folder className="w-5 h-5 group-hover:text-baked-green transition-colors" />
-        Projects
-      </Link>
-      <Link
-        href="/chats"
-        className="flex items-center gap-3 px-3 py-2 rounded-md bg-baked-dark text-white font-medium transition-colors group"
-      >
-        <MessageSquare className="w-5 h-5 text-baked-green" />
-        AI Chats
-      </Link>
-      <Link
-        href="/notifications"
-        className="flex items-center gap-3 px-3 py-2 rounded-md text-baked-text-secondary hover:bg-baked-dark hover:text-white transition-colors group"
-      >
-        <Bell className="w-5 h-5 group-hover:text-baked-green transition-colors" />
-        Notifications
-      </Link>
-      <Link
-        href="/settings"
-        className="flex items-center gap-3 px-3 py-2 rounded-md text-baked-text-secondary hover:bg-baked-dark hover:text-white transition-colors group"
-      >
-        <Settings className="w-5 h-5 group-hover:text-baked-green transition-colors" />
-        Settings
-      </Link>
-    </nav>
-    <div className="p-4 border-t border-baked-border space-y-4">
-      <Link
-        href="/settings/team"
-        className="flex items-center justify-between px-3 py-2 rounded-md text-baked-text-secondary hover:bg-baked-dark hover:text-white transition-colors group"
-      >
-        <span className="flex items-center gap-3">
-          <Settings className="w-5 h-5 group-hover:text-baked-green transition-colors" />
-          Settings
-        </span>
-        <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
-          1
-        </span>
-      </Link>
-      <div className="space-y-3">
-        <div className="flex items-center gap-3 px-3">
-          <Avatar className="w-6 h-6">
-            <AvatarImage src="https://github.com/shadcn.png" />
-            <AvatarFallback>TR</AvatarFallback>
-          </Avatar>
-          <span className="text-sm text-baked-text-secondary">
-            Tractinghan
-          </span>
-        </div>
-        <div className="flex items-center gap-3 px-3">
-          <Avatar className="w-6 h-6">
-            <AvatarImage src="https://github.com/shadcn.png" />
-            <AvatarFallback>AN</AvatarFallback>
-          </Avatar>
-          <span className="text-sm text-baked-text-secondary">Anis</span>
-        </div>
-      </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="w-full justify-between px-2 hover:bg-baked-dark group h-auto py-2"
-          >
-            <div className="flex items-center gap-3">
-              <Avatar className="w-8 h-8 border border-baked-border">
-                <AvatarImage src="https://github.com/shadcn.png" />
-                <AvatarFallback>BB</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col items-start">
-                <span className="font-medium group-hover:text-white transition-colors text-sm">
-                  BakedBot.ai
-                </span>
-              </div>
-            </div>
-            <ChevronsUpDown className="w-4 h-4 text-baked-text-secondary group-hover:text-white transition-colors" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          className="w-56 bg-baked-dark border-baked-border text-baked-text-primary"
-        >
-          <DropdownMenuItem className="focus:bg-baked-darkest focus:text-white cursor-pointer">
-            Switch Workspace
-          </DropdownMenuItem>
-          <DropdownMenuItem className="focus:bg-baked-darkest focus:text-white cursor-pointer">
-            Log out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  </div>
-);
-
 interface TheGridProps {
   selectedPlatform: SocialPlatform;
 }
@@ -503,6 +381,9 @@ export default function CreativeCommandCenter() {
   // Image upload state
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+
+  // TheGrid toggle state
+  const [showGrid, setShowGrid] = useState(false);
 
   // Menu items autocomplete
   const [menuItems, setMenuItems] = useState<Array<{ id: string; name: string; brandName?: string }>>([]);
@@ -837,7 +718,6 @@ export default function CreativeCommandCenter() {
 
   return (
     <div className="flex h-screen bg-baked-darkest text-baked-text-primary font-sans overflow-hidden">
-      <Sidebar />
       <main className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Header */}
         <header className="h-16 border-b border-baked-border bg-baked-dark/50 backdrop-blur-md flex items-center justify-between px-6 shrink-0 z-20">
@@ -920,27 +800,41 @@ export default function CreativeCommandCenter() {
                 Hero Carousel
               </TabsTrigger>
             </TabsList>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/dashboard/inbox")}
-              className="h-8 gap-2 border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark"
-            >
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowGrid(!showGrid)}
+                className={cn(
+                  "h-8 gap-2 border-baked-border hover:bg-baked-dark",
+                  showGrid ? "text-baked-green border-baked-green" : "text-baked-text-secondary"
+                )}
+              >
+                <LayoutGrid className="w-4 h-4"/>
+                {showGrid ? "Hide" : "Show"} Grid
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push("/dashboard/inbox")}
+                className="h-8 gap-2 border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark"
+              >
                 <MessageSquare className="w-4 h-4"/>
-                View in Unified Inbox
-            </Button>
+                Unified Inbox
+              </Button>
+            </div>
           </div>
 
           <TabsContent value="instagram" className="flex-1 flex overflow-hidden m-0 p-0 relative">
-            <TheGrid selectedPlatform={selectedPlatform} />
+            {showGrid && <TheGrid selectedPlatform={selectedPlatform} />}
             <ScrollArea className="flex-1">
-            <div className="flex-1 p-6 flex gap-6 min-h-full w-full">
+            <div className="flex-1 p-6 grid grid-cols-1 xl:grid-cols-4 gap-6 min-h-full w-full">
                 {/* Column 1: Prompt Input */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1, duration: 0.4 }}
-                className="w-[340px] shrink-0 flex flex-col gap-6"
+                className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">Prompt Input</h3>
                 <Card className="bg-baked-card border-baked-border shadow-none">
@@ -1187,7 +1081,7 @@ export default function CreativeCommandCenter() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.4 }}
-                className="w-[300px] shrink-0 flex flex-col gap-6"
+                className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">Deebo Compliance Shield</h3>
                  <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col">
@@ -1261,7 +1155,7 @@ export default function CreativeCommandCenter() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.4 }}
-                className="w-[380px] shrink-0 flex flex-col gap-6"
+                className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">Draft & Revision</h3>
                 <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col overflow-hidden">
@@ -1451,7 +1345,7 @@ export default function CreativeCommandCenter() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4, duration: 0.4 }}
-                className="w-[320px] shrink-0 flex flex-col gap-6"
+                className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">HitL Approval & Publishing</h3>
                 <div className="space-y-6 flex-1 flex flex-col">
@@ -1612,20 +1506,19 @@ export default function CreativeCommandCenter() {
               </motion.div>
 
             </div>
-            <ScrollBar orientation="horizontal" className="bg-baked-darkest z-10" />
             </ScrollArea>
           </TabsContent>
 
           <TabsContent value="tiktok" className="flex-1 flex overflow-hidden m-0 p-0 relative">
-            <TheGrid selectedPlatform={selectedPlatform} />
+            {showGrid && <TheGrid selectedPlatform={selectedPlatform} />}
             <ScrollArea className="flex-1">
-            <div className="flex-1 p-6 flex gap-6 min-h-full w-full">
+            <div className="flex-1 p-6 grid grid-cols-1 xl:grid-cols-4 gap-6 min-h-full w-full">
                 {/* Column 1: Prompt Input */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1, duration: 0.4 }}
-                className="w-[340px] shrink-0 flex flex-col gap-6"
+                className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">Prompt Input</h3>
                 <Card className="bg-baked-card border-baked-border shadow-none">
@@ -1854,7 +1747,7 @@ export default function CreativeCommandCenter() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.4 }}
-                className="w-[300px] shrink-0 flex flex-col gap-6"
+                className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">Deebo Compliance Shield</h3>
                  <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col">
@@ -1928,7 +1821,7 @@ export default function CreativeCommandCenter() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.4 }}
-                className="w-[380px] shrink-0 flex flex-col gap-6"
+                className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">Draft & Revision</h3>
                 <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col overflow-hidden">
@@ -2118,7 +2011,7 @@ export default function CreativeCommandCenter() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4, duration: 0.4 }}
-                className="w-[320px] shrink-0 flex flex-col gap-6"
+                className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">HitL Approval & Publishing</h3>
                 <div className="space-y-6 flex-1 flex flex-col">
@@ -2279,20 +2172,19 @@ export default function CreativeCommandCenter() {
               </motion.div>
 
             </div>
-            <ScrollBar orientation="horizontal" className="bg-baked-darkest z-10" />
             </ScrollArea>
           </TabsContent>
 
           <TabsContent value="linkedin" className="flex-1 flex overflow-hidden m-0 p-0 relative">
-            <TheGrid selectedPlatform={selectedPlatform} />
+            {showGrid && <TheGrid selectedPlatform={selectedPlatform} />}
             <ScrollArea className="flex-1">
-            <div className="flex-1 p-6 flex gap-6 min-h-full w-full">
+            <div className="flex-1 p-6 grid grid-cols-1 xl:grid-cols-4 gap-6 min-h-full w-full">
                 {/* Same layout as Instagram/TikTok but with LinkedIn-specific placeholder */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1, duration: 0.4 }}
-                className="w-[340px] shrink-0 flex flex-col gap-6"
+                className="flex flex-col gap-6"
               >
                 <h3 className="font-semibold text-lg">Prompt Input</h3>
                 <Card className="bg-baked-card border-baked-border shadow-none">
@@ -2528,14 +2420,13 @@ export default function CreativeCommandCenter() {
               </motion.div>
 
             </div>
-            <ScrollBar orientation="horizontal" className="bg-baked-darkest z-10" />
             </ScrollArea>
           </TabsContent>
 
           <TabsContent value="hero-carousel" className="flex-1 flex overflow-hidden m-0 p-0 relative">
-            <TheGrid selectedPlatform={selectedPlatform} />
+            {showGrid && <TheGrid selectedPlatform={selectedPlatform} />}
             <ScrollArea className="flex-1">
-            <div className="flex-1 p-6 flex gap-6 min-h-full w-full">
+            <div className="flex-1 p-6 grid grid-cols-1 xl:grid-cols-4 gap-6 min-h-full w-full">
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -2546,7 +2437,6 @@ export default function CreativeCommandCenter() {
                 <p className="text-xs mt-2">Create website banners and carousel content</p>
               </motion.div>
             </div>
-            <ScrollBar orientation="horizontal" className="bg-baked-darkest z-10" />
             </ScrollArea>
           </TabsContent>
         </Tabs>
