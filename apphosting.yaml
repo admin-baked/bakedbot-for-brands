@@ -78,7 +78,7 @@ env:
     availability:
       - RUNTIME
   - variable: GEMINI_API_KEY
-    secret: GEMINI_API_KEY@4
+    secret: GEMINI_API_KEY@5
     availability:
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
