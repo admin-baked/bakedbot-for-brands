@@ -1,4 +1,4 @@
-$TargetKeyString = "YOUR_API_KEY_HERE" # DO NOT COMMIT REAL KEYS
+$TargetKeyString = "AIzaSyABrA374LHAvS22L1ztSdY0917K4BZjaaU" # DO NOT COMMIT REAL KEYS
 $Keys = Get-Content keys.json | ConvertFrom-Json
 
 $Match = $Keys | Where-Object { $_.keyString -eq $TargetKeyString }

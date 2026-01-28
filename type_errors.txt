@@ -1,5 +1,0 @@
-﻿
-> nextn@0.1.0 check:types
-> node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit
-
-src/server/agents/roach.ts(39,102): error TS2345: Argument of type '"compliance_officer"' is not assignable to parameter of type '"brand" | "dispensary" | "customer" | "executive"'.

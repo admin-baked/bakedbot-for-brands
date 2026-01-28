@@ -1,4 +1,0 @@
-Scraping https://dutchie.com/embedded-menu/essex-apothecary/products...
-Result keys: [ 'markdown', 'metadata', 'html' ]
-Scrape successful!
-Saved to essex_dutchie_menu.md
