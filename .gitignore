@@ -69,3 +69,6 @@ fresh-sa-key.json
 service-account-base64.txt
 service-account-base64-oneline.txt
 secrets_iam.json
+
+# Claude Code settings - NEVER COMMIT
+.claude/settings.local.json
