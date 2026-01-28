@@ -393,7 +393,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                         <>
                             {!collapsed && (
                                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-2 py-2">
-                                    Active ({activeThreads.length})
+                                    Active Threads ({activeThreads.length})
                                 </p>
                             )}
                             {activeThreads.map((thread) => (
