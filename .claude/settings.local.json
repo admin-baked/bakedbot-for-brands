@@ -189,7 +189,16 @@
       "Bash(Get-Process node -ErrorAction SilentlyContinue)",
       "Bash(Select-Object Id, ProcessName, StartTime)",
       "Bash(Format-Table)",
-      "Bash(firebase deploy:status:*)"
+      "Bash(firebase deploy:status:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfix\\(auth\\): use correct Firebase Web API Key for authentication\n\nThe authentication error \\(auth/api-key-not-valid\\) was caused by using\nthe Gemini API key instead of the Firebase Web API Key. These are two\ncompletely different Google services with separate API keys.\n\nChanges:\n- Updated .env.example to document both GEMINI_API_KEY and NEXT_PUBLIC_FIREBASE_API_KEY\n- Fixed apphosting.yaml to reference separate NEXT_PUBLIC_FIREBASE_API_KEY secret\n- Added clear comments explaining the difference between the two keys\n\nFirebase Web API Key: AIzaSyAGUhtFXf_4bblJ5U6soNnEKuT_7YOavos\nGemini API Key: AIzaSyA3KK678Du5u-Wm5PQL8HFyHxw4VLR3_Og\n\nProduction Deployment:\nBefore deploying, run: firebase apphosting:secrets:set NEXT_PUBLIC_FIREBASE_API_KEY\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(firebase apphosting:secrets:set:*)",
+      "Bash(firebase apphosting:secrets:grantaccess:*)",
+      "Bash(firebase apphosting:rollouts:create:*)",
+      "Bash(printf:*)",
+      "Bash(firebase apphosting:backends:get:*)",
+      "WebFetch(domain:bakedbot.ai)",
+      "WebFetch(domain:localhost)",
+      "Bash(npm run build:embed:*)"
     ],
     "deny": [],
     "ask": []

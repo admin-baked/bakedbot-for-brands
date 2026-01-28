@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BakedBot Chatbot Widget Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+        .demo-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .demo-section h2 {
+            color: #4ade80;
+            margin-top: 0;
+        }
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .code-comment {
+            color: #6a9955;
+        }
+        .code-string {
+            color: #ce9178;
+        }
+        .code-keyword {
+            color: #569cd6;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4ade80;
+            font-weight: bold;
+        }
+        .config-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .config-table th,
+        .config-table td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .config-table th {
+            background: #f3f4f6;
+            font-weight: 600;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .badge.required {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 BakedBot Chatbot Widget</h1>
+        <p class="subtitle">AI-powered budtender for cannabis brands & dispensaries</p>
+
+        <div class="demo-section">
+            <h2>🎯 What You're Seeing</h2>
+            <p>This page demonstrates the BakedBot embed chatbot widget. Look for the chatbot icon in the bottom-right corner of your screen!</p>
+            <ul class="feature-list">
+                <li>Click the chat icon to open Smokey, our AI budtender</li>
+                <li>Ask about products, get recommendations, or learn about cannabis</li>
+                <li>Fully customizable colors and branding</li>
+                <li>Works on any website with a simple script tag</li>
+            </ul>
+        </div>
+
+        <div class="demo-section">
+            <h2>📦 Installation</h2>
+            <p>Add these two lines to your website's HTML (before the closing <code>&lt;/body&gt;</code> tag):</p>
+            <pre><code><span class="code-comment">&lt;!-- BakedBot Chatbot Embed --&gt;</span>
+<span class="code-keyword">&lt;link</span> <span class="code-string">rel="stylesheet"</span> <span class="code-string">href="https://bakedbot.ai/embed/chatbot.css"</span><span class="code-keyword">&gt;</span>
+<span class="code-keyword">&lt;script&gt;</span>
+    <span class="code-comment">// Configure your chatbot</span>
+    window.BakedBotConfig = {
+        <span class="code-string">brandId</span>: <span class="code-string">'your-brand-id'</span>,        <span class="code-comment">// Required: Your BakedBot brand ID</span>
+        <span class="code-string">primaryColor</span>: <span class="code-string">'#4ade80'</span>,         <span class="code-comment">// Optional: Your brand color</span>
+        <span class="code-string">dispensaryId</span>: <span class="code-string">'your-disp-id'</span>,   <span class="code-comment">// Optional: For dispensary context</span>
+        <span class="code-string">entityName</span>: <span class="code-string">'Your Brand Name'</span>   <span class="code-comment">// Optional: For personalization</span>
+    };
+<span class="code-keyword">&lt;/script&gt;</span>
+<span class="code-keyword">&lt;script</span> <span class="code-string">src="https://bakedbot.ai/embed/chatbot.js"</span><span class="code-keyword">&gt;&lt;/script&gt;</span></code></pre>
+        </div>
+
+        <div class="demo-section">
+            <h2>⚙️ Configuration Options</h2>
+            <table class="config-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Type</th>
+                        <th>Required</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>brandId</code></td>
+                        <td>string</td>
+                        <td><span class="badge required">Required</span></td>
+                        <td>Your unique BakedBot brand identifier</td>
+                    </tr>
+                    <tr>
+                        <td><code>primaryColor</code></td>
+                        <td>string</td>
+                        <td><span class="badge">Optional</span></td>
+                        <td>Hex color for branding (e.g., '#4ade80')</td>
+                    </tr>
+                    <tr>
+                        <td><code>dispensaryId</code></td>
+                        <td>string</td>
+                        <td><span class="badge">Optional</span></td>
+                        <td>CannMenus dispensary ID for product context</td>
+                    </tr>
+                    <tr>
+                        <td><code>entityName</code></td>
+                        <td>string</td>
+                        <td><span class="badge">Optional</span></td>
+                        <td>Brand/dispensary name for personalized greetings</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="demo-section">
+            <h2>🚀 Use Cases</h2>
+            <ul class="feature-list">
+                <li><strong>Cannabis Brands:</strong> Help customers find your products at nearby dispensaries</li>
+                <li><strong>Dispensaries:</strong> Answer product questions 24/7 and reduce staff workload</li>
+                <li><strong>Hemp/CBD Brands:</strong> Guide customers through your CBD product line</li>
+                <li><strong>Educational Sites:</strong> Provide information about strains, terpenes, and effects</li>
+            </ul>
+        </div>
+
+        <div class="demo-section">
+            <h2>💡 Features</h2>
+            <ul class="feature-list">
+                <li>Natural language product recommendations</li>
+                <li>Strain information and effects guidance</li>
+                <li>Terpene profile explanations</li>
+                <li>Beginner-friendly dosage suggestions</li>
+                <li>Integration with your product inventory</li>
+                <li>Onboarding flow for first-time users</li>
+                <li>Image generation for brand marketing</li>
+                <li>Conversation memory and context</li>
+            </ul>
+        </div>
+
+        <div class="demo-section">
+            <h2>📞 Get Your Brand ID</h2>
+            <p>To get started with BakedBot:</p>
+            <ol>
+                <li>Visit <a href="https://bakedbot.ai" target="_blank">bakedbot.ai</a></li>
+                <li>Sign up for a free account</li>
+                <li>Claim your brand or dispensary page</li>
+                <li>Get your unique <code>brandId</code> from your dashboard</li>
+                <li>Copy the embed code and paste it into your website</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- BakedBot Chatbot Embed (Using local files for demo) -->
+    <link rel="stylesheet" href="/embed/chatbot.css">
+    <script>
+        // Demo configuration for 40 Tons brand
+        window.BakedBotConfig = {
+            brandId: 'demo-40tons',
+            primaryColor: '#4ade80',
+            entityName: '40 Tons Demo'
+        };
+    </script>
+    <script src="/embed/chatbot.js"></script>
+</body>
+</html>
