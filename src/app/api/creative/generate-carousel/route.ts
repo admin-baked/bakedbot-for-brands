@@ -65,6 +65,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check for API key before attempting generation
+    const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      logger.error('[generate-carousel] Missing Gemini API key');
+      return NextResponse.json(
+        { error: 'GEMINI_API_KEY is not configured. Please add it to your environment variables.' },
+        { status: 500 }
+      );
+    }
+
     logger.info('[generate-carousel] Starting generation', {
       brandId,
       slideCount,
@@ -164,8 +174,21 @@ Return ONLY the JSON array, no other text.`,
     return NextResponse.json({ slides });
   } catch (error) {
     logger.error('[generate-carousel] Error generating carousel', { error });
+
+    // Provide more specific error messages
+    let errorMessage = 'Failed to generate carousel';
+    if (error instanceof Error) {
+      if (error.message.includes('GEMINI_API_KEY') || error.message.includes('GOOGLE_API_KEY')) {
+        errorMessage = 'GEMINI_API_KEY is not configured. Please add it to your environment variables.';
+      } else if (error.message.includes('quota') || error.message.includes('rate limit')) {
+        errorMessage = 'API rate limit exceeded. Please try again in a few moments.';
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      }
+    }
+
     return NextResponse.json(
-      { error: 'Failed to generate carousel' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
