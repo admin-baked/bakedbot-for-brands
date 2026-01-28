@@ -82,7 +82,7 @@ env:
     availability:
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
-    secret: NEXT_PUBLIC_FIREBASE_API_KEY
+    secret: NEXT_PUBLIC_FIREBASE_API_KEY@4
     availability:
       - RUNTIME
       - BUILD
