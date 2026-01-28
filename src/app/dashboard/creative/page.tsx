@@ -52,6 +52,9 @@ import { useCreativeContent } from "@/hooks/use-creative-content";
 import { toast } from "sonner";
 import type { SocialPlatform } from "@/types/creative-content";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { getMenuData } from "@/app/dashboard/menu/actions";
+import { BarChart3, TrendingUp, QrCode } from "lucide-react";
 
 // --- Types & Mock Data ---
 
@@ -495,6 +498,32 @@ export default function CreativeCommandCenter() {
   // Image upload state
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Menu items autocomplete
+  const [menuItems, setMenuItems] = useState<Array<{ id: string; name: string; brandName?: string }>>([]);
+  const [isLoadingMenu, setIsLoadingMenu] = useState(false);
+  const [showMenuDropdown, setShowMenuDropdown] = useState(false);
+
+  // Fetch menu items on mount
+  useEffect(() => {
+    const fetchMenuItems = async () => {
+      setIsLoadingMenu(true);
+      try {
+        const menuData = await getMenuData();
+        const items = menuData.products.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          brandName: p.brandName || p.brand,
+        }));
+        setMenuItems(items);
+      } catch (err) {
+        console.error('[Creative] Failed to fetch menu items:', err);
+      } finally {
+        setIsLoadingMenu(false);
+      }
+    };
+    fetchMenuItems();
+  }, []);
 
   // Creative content hook
   const {
@@ -966,14 +995,31 @@ export default function CreativeCommandCenter() {
                     </div>
 
                      <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">Menu Item Integration</label>
+                      <label className="text-sm font-medium text-baked-text-secondary">
+                        Menu Item Integration
+                        {isLoadingMenu && <span className="ml-2 text-xs text-baked-text-muted">(Loading...)</span>}
+                      </label>
                       <Select value={menuItem} onValueChange={setMenuItem}>
                         <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
-                          <SelectValue placeholder="e.g., 'Sunset Sherbet Flower'" />
+                          <SelectValue placeholder={isLoadingMenu ? "Loading menu items..." : "Select a product (optional)"} />
                         </SelectTrigger>
-                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
-                          <SelectItem value="sunset-sherbet" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Sunset Sherbet Flower</SelectItem>
-                          <SelectItem value="blue-dream" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Blue Dream Vape Cart</SelectItem>
+                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary max-h-[300px]">
+                          {menuItems.length === 0 && !isLoadingMenu ? (
+                            <SelectItem value="none" disabled className="text-baked-text-muted text-xs">
+                              No products available
+                            </SelectItem>
+                          ) : (
+                            menuItems.map(item => (
+                              <SelectItem
+                                key={item.id}
+                                value={item.name}
+                                className="focus:bg-baked-darkest focus:text-white cursor-pointer"
+                              >
+                                {item.name}
+                                {item.brandName && <span className="ml-2 text-xs text-baked-text-muted">• {item.brandName}</span>}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -1367,6 +1413,76 @@ export default function CreativeCommandCenter() {
                             <CheckCircle2 className="w-4 h-4 fill-baked-green text-baked-darkest"/>
                         </div>
                     </Card>
+
+                    {/* QR Code Analytics */}
+                    {currentContent?.qrDataUrl && currentContent?.qrStats && (
+                      <Card className="bg-baked-card border-baked-border shadow-none p-4">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-semibold text-baked-text-primary flex items-center gap-2">
+                              <QrCode className="w-4 h-4 text-purple-400" />
+                              QR Analytics
+                            </h4>
+                            <BarChart3 className="w-4 h-4 text-baked-text-muted" />
+                          </div>
+
+                          {/* QR Code Preview */}
+                          <div className="flex justify-center">
+                            <img
+                              src={currentContent.qrDataUrl}
+                              alt="QR Code"
+                              className="w-24 h-24 rounded-md border border-baked-border"
+                            />
+                          </div>
+
+                          {/* Scan Statistics */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between p-2 bg-baked-darkest rounded-md">
+                              <span className="text-xs text-baked-text-secondary">Total Scans</span>
+                              <div className="flex items-center gap-1">
+                                <TrendingUp className="w-3 h-3 text-baked-green" />
+                                <span className="text-sm font-semibold text-baked-green">{currentContent.qrStats.scans || 0}</span>
+                              </div>
+                            </div>
+
+                            {currentContent.qrStats.lastScanned && (
+                              <div className="flex items-center justify-between p-2 bg-baked-darkest rounded-md">
+                                <span className="text-xs text-baked-text-secondary">Last Scanned</span>
+                                <span className="text-xs text-baked-text-muted">
+                                  {new Date(currentContent.qrStats.lastScanned).toLocaleDateString()}
+                                </span>
+                              </div>
+                            )}
+
+                            {currentContent.qrStats.scansByPlatform && Object.keys(currentContent.qrStats.scansByPlatform).length > 0 && (
+                              <div className="space-y-1">
+                                <span className="text-xs text-baked-text-secondary">By Platform</span>
+                                {Object.entries(currentContent.qrStats.scansByPlatform).map(([platform, count]) => (
+                                  <div key={platform} className="flex items-center justify-between p-1.5 bg-baked-darkest/50 rounded text-xs">
+                                    <span className="text-baked-text-muted capitalize">{platform}</span>
+                                    <span className="text-baked-text-primary font-medium">{count}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {currentContent.contentUrl && (
+                            <div className="pt-2 border-t border-baked-border">
+                              <a
+                                href={currentContent.contentUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 justify-center"
+                              >
+                                View Landing Page
+                                <ArrowUpRight className="w-3 h-3" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    )}
 
                      {/* Publishing Schedule */}
                     <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col">
@@ -1528,14 +1644,31 @@ export default function CreativeCommandCenter() {
                     </div>
 
                      <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">Menu Item Integration</label>
+                      <label className="text-sm font-medium text-baked-text-secondary">
+                        Menu Item Integration
+                        {isLoadingMenu && <span className="ml-2 text-xs text-baked-text-muted">(Loading...)</span>}
+                      </label>
                       <Select value={menuItem} onValueChange={setMenuItem}>
                         <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
-                          <SelectValue placeholder="e.g., 'Sunset Sherbet Flower'" />
+                          <SelectValue placeholder={isLoadingMenu ? "Loading menu items..." : "Select a product (optional)"} />
                         </SelectTrigger>
-                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
-                          <SelectItem value="sunset-sherbet" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Sunset Sherbet Flower</SelectItem>
-                          <SelectItem value="blue-dream" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Blue Dream Vape Cart</SelectItem>
+                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary max-h-[300px]">
+                          {menuItems.length === 0 && !isLoadingMenu ? (
+                            <SelectItem value="none" disabled className="text-baked-text-muted text-xs">
+                              No products available
+                            </SelectItem>
+                          ) : (
+                            menuItems.map(item => (
+                              <SelectItem
+                                key={item.id}
+                                value={item.name}
+                                className="focus:bg-baked-darkest focus:text-white cursor-pointer"
+                              >
+                                {item.name}
+                                {item.brandName && <span className="ml-2 text-xs text-baked-text-muted">• {item.brandName}</span>}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -1930,6 +2063,76 @@ export default function CreativeCommandCenter() {
                         </div>
                     </Card>
 
+                    {/* QR Code Analytics */}
+                    {currentContent?.qrDataUrl && currentContent?.qrStats && (
+                      <Card className="bg-baked-card border-baked-border shadow-none p-4">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-semibold text-baked-text-primary flex items-center gap-2">
+                              <QrCode className="w-4 h-4 text-purple-400" />
+                              QR Analytics
+                            </h4>
+                            <BarChart3 className="w-4 h-4 text-baked-text-muted" />
+                          </div>
+
+                          {/* QR Code Preview */}
+                          <div className="flex justify-center">
+                            <img
+                              src={currentContent.qrDataUrl}
+                              alt="QR Code"
+                              className="w-24 h-24 rounded-md border border-baked-border"
+                            />
+                          </div>
+
+                          {/* Scan Statistics */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between p-2 bg-baked-darkest rounded-md">
+                              <span className="text-xs text-baked-text-secondary">Total Scans</span>
+                              <div className="flex items-center gap-1">
+                                <TrendingUp className="w-3 h-3 text-baked-green" />
+                                <span className="text-sm font-semibold text-baked-green">{currentContent.qrStats.scans || 0}</span>
+                              </div>
+                            </div>
+
+                            {currentContent.qrStats.lastScanned && (
+                              <div className="flex items-center justify-between p-2 bg-baked-darkest rounded-md">
+                                <span className="text-xs text-baked-text-secondary">Last Scanned</span>
+                                <span className="text-xs text-baked-text-muted">
+                                  {new Date(currentContent.qrStats.lastScanned).toLocaleDateString()}
+                                </span>
+                              </div>
+                            )}
+
+                            {currentContent.qrStats.scansByPlatform && Object.keys(currentContent.qrStats.scansByPlatform).length > 0 && (
+                              <div className="space-y-1">
+                                <span className="text-xs text-baked-text-secondary">By Platform</span>
+                                {Object.entries(currentContent.qrStats.scansByPlatform).map(([platform, count]) => (
+                                  <div key={platform} className="flex items-center justify-between p-1.5 bg-baked-darkest/50 rounded text-xs">
+                                    <span className="text-baked-text-muted capitalize">{platform}</span>
+                                    <span className="text-baked-text-primary font-medium">{count}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {currentContent.contentUrl && (
+                            <div className="pt-2 border-t border-baked-border">
+                              <a
+                                href={currentContent.contentUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 justify-center"
+                              >
+                                View Landing Page
+                                <ArrowUpRight className="w-3 h-3" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    )}
+
                      {/* Publishing Schedule */}
                     <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col">
                         <CardHeader className="pb-3">
@@ -2090,14 +2293,31 @@ export default function CreativeCommandCenter() {
                     </div>
 
                      <div className="space-y-2">
-                      <label className="text-sm font-medium text-baked-text-secondary">Menu Item Integration</label>
+                      <label className="text-sm font-medium text-baked-text-secondary">
+                        Menu Item Integration
+                        {isLoadingMenu && <span className="ml-2 text-xs text-baked-text-muted">(Loading...)</span>}
+                      </label>
                       <Select value={menuItem} onValueChange={setMenuItem}>
                         <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
-                          <SelectValue placeholder="e.g., 'Sunset Sherbet Flower'" />
+                          <SelectValue placeholder={isLoadingMenu ? "Loading menu items..." : "Select a product (optional)"} />
                         </SelectTrigger>
-                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
-                          <SelectItem value="sunset-sherbet" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Sunset Sherbet Flower</SelectItem>
-                          <SelectItem value="blue-dream" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Blue Dream Vape Cart</SelectItem>
+                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary max-h-[300px]">
+                          {menuItems.length === 0 && !isLoadingMenu ? (
+                            <SelectItem value="none" disabled className="text-baked-text-muted text-xs">
+                              No products available
+                            </SelectItem>
+                          ) : (
+                            menuItems.map(item => (
+                              <SelectItem
+                                key={item.id}
+                                value={item.name}
+                                className="focus:bg-baked-darkest focus:text-white cursor-pointer"
+                              >
+                                {item.name}
+                                {item.brandName && <span className="ml-2 text-xs text-baked-text-muted">• {item.brandName}</span>}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
