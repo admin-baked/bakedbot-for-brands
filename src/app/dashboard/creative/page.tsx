@@ -488,6 +488,14 @@ export default function CreativeCommandCenter() {
 
   const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
 
+  // Batch mode state
+  const [isBatchMode, setIsBatchMode] = useState(false);
+  const [batchPlatforms, setBatchPlatforms] = useState<SocialPlatform[]>([]);
+
+  // Image upload state
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+
   // Creative content hook
   const {
     content,
@@ -635,6 +643,112 @@ export default function CreativeCommandCenter() {
     toast.success("Hashtags cleared");
   };
 
+  // Handle image upload
+  const handleImageUpload = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    const validFiles = fileArray.filter(file => file.type.startsWith('image/'));
+
+    if (validFiles.length !== fileArray.length) {
+      toast.error("Some files were not images and were skipped");
+    }
+
+    if (uploadedImages.length + validFiles.length > 10) {
+      toast.error("Maximum 10 images allowed");
+      return;
+    }
+
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        setUploadedImages(prev => [...prev, dataUrl]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    toast.success(`${validFiles.length} image${validFiles.length > 1 ? 's' : ''} uploaded`);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleImageUpload(e.dataTransfer.files);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+    toast.success("Image removed");
+  };
+
+  // Handle batch mode toggle
+  const handleToggleBatchMode = () => {
+    setIsBatchMode(!isBatchMode);
+    if (!isBatchMode) {
+      setBatchPlatforms(['instagram', 'tiktok', 'linkedin']);
+      toast.success("Batch mode enabled - Generate for all platforms!");
+    } else {
+      setBatchPlatforms([]);
+      toast.success("Batch mode disabled");
+    }
+  };
+
+  const handleToggleBatchPlatform = (platform: SocialPlatform) => {
+    setBatchPlatforms(prev => {
+      if (prev.includes(platform)) {
+        return prev.filter(p => p !== platform);
+      } else {
+        return [...prev, platform];
+      }
+    });
+  };
+
+  // Handle batch content generation
+  const handleBatchGenerate = async () => {
+    if (!campaignPrompt.trim()) {
+      toast.error("Please enter a campaign description");
+      return;
+    }
+
+    if (batchPlatforms.length === 0) {
+      toast.error("Please select at least one platform");
+      return;
+    }
+
+    toast.success(`Generating content for ${batchPlatforms.length} platforms...`);
+
+    try {
+      const promises = batchPlatforms.map(platform =>
+        generate({
+          platform,
+          prompt: campaignPrompt,
+          style: tone as any,
+          includeHashtags: true,
+          productName: menuItem || undefined,
+          tier: "free",
+        })
+      );
+
+      const results = await Promise.all(promises);
+      const successCount = results.filter(r => r !== null).length;
+
+      toast.success(`Generated ${successCount}/${batchPlatforms.length} campaigns successfully!`);
+      setSelectedHashtags([]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate batch content");
+    }
+  };
+
   return (
     <div className="flex h-screen bg-baked-darkest text-baked-text-primary font-sans overflow-hidden">
       <Sidebar />
@@ -655,7 +769,19 @@ export default function CreativeCommandCenter() {
                 </span>
              </div>
             <Button
-              onClick={handleGenerate}
+              onClick={handleToggleBatchMode}
+              variant={isBatchMode ? "default" : "outline"}
+              size="sm"
+              className={cn(
+                isBatchMode
+                  ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
+                  : "border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark"
+              )}
+            >
+              {isBatchMode ? "Batch Mode ON" : "Batch Mode"}
+            </Button>
+            <Button
+              onClick={isBatchMode ? handleBatchGenerate : handleGenerate}
               disabled={isGenerating || !campaignPrompt.trim()}
               className="bg-baked-green hover:bg-baked-green-muted text-baked-darkest font-semibold"
             >
@@ -703,8 +829,7 @@ export default function CreativeCommandCenter() {
               </TabsTrigger>
               <TabsTrigger
                 value="hero-carousel"
-                disabled
-                className="data-[state=active]:bg-transparent data-[state=active]:text-baked-green data-[state=active]:border-b-2 data-[state=active]:border-baked-green rounded-none h-full px-0 font-medium text-baked-text-secondary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="data-[state=active]:bg-transparent data-[state=active]:text-baked-green data-[state=active]:border-b-2 data-[state=active]:border-baked-green rounded-none h-full px-0 font-medium text-baked-text-secondary transition-all"
               >
                 Hero Carousel
               </TabsTrigger>
@@ -852,8 +977,92 @@ export default function CreativeCommandCenter() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Image Upload */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-baked-text-secondary">Custom Images</label>
+                      <div
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        className={cn(
+                          "border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer",
+                          isDragging
+                            ? "border-baked-green bg-baked-green/10"
+                            : "border-baked-border hover:border-baked-green/50"
+                        )}
+                      >
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          id="image-upload"
+                          onChange={(e) => handleImageUpload(e.target.files)}
+                        />
+                        <label htmlFor="image-upload" className="cursor-pointer">
+                          <Plus className="w-6 h-6 mx-auto mb-2 text-baked-text-muted" />
+                          <p className="text-xs text-baked-text-muted">
+                            {isDragging ? "Drop images here" : "Click or drag images here"}
+                          </p>
+                          <p className="text-xs text-baked-text-muted mt-1">
+                            {uploadedImages.length}/10 images
+                          </p>
+                        </label>
+                      </div>
+                      {uploadedImages.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                          {uploadedImages.map((img, idx) => (
+                            <div key={idx} className="relative group">
+                              <img
+                                src={img}
+                                alt={`Upload ${idx + 1}`}
+                                className="w-full h-20 object-cover rounded border border-baked-border"
+                              />
+                              <button
+                                onClick={() => handleRemoveImage(idx)}
+                                className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <XCircle className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Batch Mode Platform Selection */}
+                    {isBatchMode && (
+                      <div className="space-y-2 p-3 bg-purple-600/10 border border-purple-600/30 rounded-lg">
+                        <label className="text-sm font-medium text-purple-400">Batch Platforms</label>
+                        <div className="flex flex-wrap gap-2">
+                          {(['instagram', 'tiktok', 'linkedin'] as SocialPlatform[]).map(platform => {
+                            const isSelected = batchPlatforms.includes(platform);
+                            return (
+                              <button
+                                key={platform}
+                                onClick={() => handleToggleBatchPlatform(platform)}
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border",
+                                  isSelected
+                                    ? "bg-purple-600 border-purple-600 text-white"
+                                    : "bg-baked-darkest border-baked-border text-baked-text-secondary hover:border-purple-600/50"
+                                )}
+                              >
+                                {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                                {platform}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-purple-300/70">
+                          {batchPlatforms.length} platform{batchPlatforms.length !== 1 ? 's' : ''} selected
+                        </p>
+                      </div>
+                    )}
+
                     <Button
-                      onClick={handleGenerate}
+                      onClick={isBatchMode ? handleBatchGenerate : handleGenerate}
                       disabled={isGenerating || !campaignPrompt.trim()}
                       className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -1330,8 +1539,92 @@ export default function CreativeCommandCenter() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Image Upload */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-baked-text-secondary">Custom Images</label>
+                      <div
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        className={cn(
+                          "border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer",
+                          isDragging
+                            ? "border-baked-green bg-baked-green/10"
+                            : "border-baked-border hover:border-baked-green/50"
+                        )}
+                      >
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          id="image-upload"
+                          onChange={(e) => handleImageUpload(e.target.files)}
+                        />
+                        <label htmlFor="image-upload" className="cursor-pointer">
+                          <Plus className="w-6 h-6 mx-auto mb-2 text-baked-text-muted" />
+                          <p className="text-xs text-baked-text-muted">
+                            {isDragging ? "Drop images here" : "Click or drag images here"}
+                          </p>
+                          <p className="text-xs text-baked-text-muted mt-1">
+                            {uploadedImages.length}/10 images
+                          </p>
+                        </label>
+                      </div>
+                      {uploadedImages.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                          {uploadedImages.map((img, idx) => (
+                            <div key={idx} className="relative group">
+                              <img
+                                src={img}
+                                alt={`Upload ${idx + 1}`}
+                                className="w-full h-20 object-cover rounded border border-baked-border"
+                              />
+                              <button
+                                onClick={() => handleRemoveImage(idx)}
+                                className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <XCircle className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Batch Mode Platform Selection */}
+                    {isBatchMode && (
+                      <div className="space-y-2 p-3 bg-purple-600/10 border border-purple-600/30 rounded-lg">
+                        <label className="text-sm font-medium text-purple-400">Batch Platforms</label>
+                        <div className="flex flex-wrap gap-2">
+                          {(['instagram', 'tiktok', 'linkedin'] as SocialPlatform[]).map(platform => {
+                            const isSelected = batchPlatforms.includes(platform);
+                            return (
+                              <button
+                                key={platform}
+                                onClick={() => handleToggleBatchPlatform(platform)}
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border",
+                                  isSelected
+                                    ? "bg-purple-600 border-purple-600 text-white"
+                                    : "bg-baked-darkest border-baked-border text-baked-text-secondary hover:border-purple-600/50"
+                                )}
+                              >
+                                {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                                {platform}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-purple-300/70">
+                          {batchPlatforms.length} platform{batchPlatforms.length !== 1 ? 's' : ''} selected
+                        </p>
+                      </div>
+                    )}
+
                     <Button
-                      onClick={handleGenerate}
+                      onClick={isBatchMode ? handleBatchGenerate : handleGenerate}
                       disabled={isGenerating || !campaignPrompt.trim()}
                       className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -1808,8 +2101,92 @@ export default function CreativeCommandCenter() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Image Upload */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-baked-text-secondary">Custom Images</label>
+                      <div
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        className={cn(
+                          "border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer",
+                          isDragging
+                            ? "border-baked-green bg-baked-green/10"
+                            : "border-baked-border hover:border-baked-green/50"
+                        )}
+                      >
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          id="image-upload"
+                          onChange={(e) => handleImageUpload(e.target.files)}
+                        />
+                        <label htmlFor="image-upload" className="cursor-pointer">
+                          <Plus className="w-6 h-6 mx-auto mb-2 text-baked-text-muted" />
+                          <p className="text-xs text-baked-text-muted">
+                            {isDragging ? "Drop images here" : "Click or drag images here"}
+                          </p>
+                          <p className="text-xs text-baked-text-muted mt-1">
+                            {uploadedImages.length}/10 images
+                          </p>
+                        </label>
+                      </div>
+                      {uploadedImages.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                          {uploadedImages.map((img, idx) => (
+                            <div key={idx} className="relative group">
+                              <img
+                                src={img}
+                                alt={`Upload ${idx + 1}`}
+                                className="w-full h-20 object-cover rounded border border-baked-border"
+                              />
+                              <button
+                                onClick={() => handleRemoveImage(idx)}
+                                className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <XCircle className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Batch Mode Platform Selection */}
+                    {isBatchMode && (
+                      <div className="space-y-2 p-3 bg-purple-600/10 border border-purple-600/30 rounded-lg">
+                        <label className="text-sm font-medium text-purple-400">Batch Platforms</label>
+                        <div className="flex flex-wrap gap-2">
+                          {(['instagram', 'tiktok', 'linkedin'] as SocialPlatform[]).map(platform => {
+                            const isSelected = batchPlatforms.includes(platform);
+                            return (
+                              <button
+                                key={platform}
+                                onClick={() => handleToggleBatchPlatform(platform)}
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border",
+                                  isSelected
+                                    ? "bg-purple-600 border-purple-600 text-white"
+                                    : "bg-baked-darkest border-baked-border text-baked-text-secondary hover:border-purple-600/50"
+                                )}
+                              >
+                                {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                                {platform}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-purple-300/70">
+                          {batchPlatforms.length} platform{batchPlatforms.length !== 1 ? 's' : ''} selected
+                        </p>
+                      </div>
+                    )}
+
                     <Button
-                      onClick={handleGenerate}
+                      onClick={isBatchMode ? handleBatchGenerate : handleGenerate}
                       disabled={isGenerating || !campaignPrompt.trim()}
                       className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -1837,6 +2214,24 @@ export default function CreativeCommandCenter() {
                 <p className="text-xs mt-2">Full layout similar to Instagram and TikTok</p>
               </motion.div>
 
+            </div>
+            <ScrollBar orientation="horizontal" className="bg-baked-darkest z-10" />
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="hero-carousel" className="flex-1 flex overflow-hidden m-0 p-0 relative">
+            <TheGrid selectedPlatform={selectedPlatform} />
+            <ScrollArea className="flex-1">
+            <div className="flex-1 p-6 flex gap-6 min-h-full w-full">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1, duration: 0.4 }}
+                className="flex-1 text-center py-20 text-baked-text-muted"
+              >
+                <p className="text-sm">Hero Carousel builder coming soon</p>
+                <p className="text-xs mt-2">Create website banners and carousel content</p>
+              </motion.div>
             </div>
             <ScrollBar orientation="horizontal" className="bg-baked-darkest z-10" />
             </ScrollArea>
