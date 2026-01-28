@@ -1296,15 +1296,74 @@ const handleSelectTemplate = (template) => {
 - "No published content yet"
 - "Generate and approve content to see it here"
 
+#### 10. QR Code Scan Analytics
+**Goal:** Display real-time QR code scan statistics and engagement metrics
+
+**Implementation:**
+- Conditionally renders when content has `qrDataUrl` and `qrStats`
+- Displays QR code preview image (96x96px)
+- Shows total scans with TrendingUp icon
+- Displays last scanned timestamp (formatted date)
+- Breaks down scans by platform (Instagram, web, etc.)
+- Links to content landing page with external link icon
+- Positioned between approval pipeline and publishing schedule
+
+**Data Displayed:**
+- Total scans count (highlighted in green)
+- Last scanned date
+- Scans by platform (breakdown with counts)
+- Content landing page URL (if available)
+
+**Visual Design:**
+- Purple QR icon header with analytics icon
+- 96x96 QR code preview with rounded border
+- Dark background panels for stats
+- Green highlighting for scan counts
+- Hover states on landing page link
+
+#### 11. Menu Item Autocomplete
+**Goal:** Intelligent product selection from Firestore inventory
+
+**Implementation:**
+- Fetches menu items on component mount via `getMenuData()` server action
+- Displays loading state while fetching
+- Populates Select dropdown with real product data
+- Shows product name and brand name for context
+- Filters empty/unavailable items gracefully
+- Max height scrollable dropdown (300px)
+- Optional selection (placeholder: "Select a product (optional)")
+
+**Data Source:**
+- Uses existing `src/app/dashboard/menu/actions.ts`
+- Supports POS-synced products (Dutchie)
+- Falls back to CannMenus or manual products
+- Handles brand-specific and location-specific filtering
+
+**UI Features:**
+- Loading indicator during fetch
+- Empty state message if no products
+- Product name with brand name badge
+- Smooth scrolling for long lists
+- Integrated across all platform tabs (Instagram, TikTok, LinkedIn)
+
+**Integration:**
+- Selected product name passed to `generate()` as `productName`
+- Enhances Craig's caption generation with product context
+- Pinky uses product context for image generation
+
 ### Files Created/Modified
 
-1. **src/app/dashboard/creative/page.tsx** (NEW FILE - 1,881 lines)
+1. **src/app/dashboard/creative/page.tsx** (NEW FILE - ~2,200+ lines)
    - Main Creative Command Center implementation
    - Multi-platform tabs (Instagram, TikTok, LinkedIn)
    - Campaign templates integration
    - Real-time content display
    - Inline caption editing
    - Error handling and toast notifications
+   - Menu item autocomplete from Firestore
+   - QR code scan analytics display
+   - Image upload with drag-and-drop
+   - Batch campaign mode
 
 2. **src/hooks/use-creative-content.ts** (EXISTING - leveraged)
    - Real-time Firestore listeners
@@ -1359,7 +1418,14 @@ Deebo (compliance) → Human Approval → Scheduled/Published
 
 - All TypeScript checks passing: ✅
 - Build status: ✅ Healthy
-- Commits: `9cff8fb2`, `cdf6db17`, `85707740`
+- Latest features: QR analytics + Menu autocomplete ✅
+- Integration: Firestore menu data loading working ✅
+- All 6 high-priority features completed ✅
+
+**Recent Commits:**
+- Image upload, batch mode, hero carousel tab
+- QR code scan analytics display
+- Menu item autocomplete from Firestore
 - Pushed to: `origin main`
 
 ### Key Insights
@@ -1369,6 +1435,8 @@ Deebo (compliance) → Human Approval → Scheduled/Published
 3. **Real-time updates critical** - Users expect instant feedback from agent actions
 4. **Templates reduce friction** - Quick-start options significantly speed up content creation
 5. **Toast notifications essential** - Users need immediate confirmation of all actions
+6. **Menu integration adds context** - Product selection enriches both Craig's captions and Pinky's image generation
+7. **QR analytics drive engagement** - Showing scan metrics encourages content optimization
 
 ### Quick Reference
 
@@ -1399,17 +1467,18 @@ await editCaption(contentId, newCaption);
 
 ### Next Steps (Roadmap)
 
-**High Priority:**
-1. Hero Carousel tab implementation
-2. Hashtag autocomplete from brand voice
-3. Image upload functionality
-4. Batch campaign mode (all platforms at once)
+**Completed (High Priority):**
+1. ✅ Hero Carousel tab implementation
+2. ✅ Hashtag suggestions with chip selection
+3. ✅ Image upload functionality (drag-and-drop)
+4. ✅ Batch campaign mode (all platforms at once)
+5. ✅ QR code scan statistics display
+6. ✅ Menu item autocomplete from Firestore
 
-**Medium Priority:**
-5. Analytics integration (engagement metrics)
-6. QR code scan statistics display
-7. Menu item autocomplete from Firestore
-8. Approval chain (multi-level review)
+**Medium Priority (Next):**
+7. Analytics integration (engagement metrics from social platforms)
+8. Approval chain (multi-level review workflow)
+9. Campaign performance tracking (CTR, conversions)
 
 **Low Priority:**
 9. Comments and collaboration features
