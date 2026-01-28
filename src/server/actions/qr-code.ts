@@ -349,11 +349,3 @@ export async function deleteQRCode(
         return { success: false, error: 'Failed to delete QR code' };
     }
 }
-
-export default {
-    generateQRCode,
-    trackQRCodeScan,
-    getQRCodes,
-    getQRCodeAnalytics,
-    deleteQRCode,
-};
