@@ -5,7 +5,7 @@ export const firebaseConfig = {
   projectId: "studio-567050101-bc6e8",
   appId: "1:1016399212569:web:d9c43842ea4d824e13ba88",
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: "studio-567050101-bc6e8.firebaseapp.com", // Reverted to default to fix 404
+  authDomain: "studio-567050101-bc6e8.firebaseapp.com",
   storageBucket: "studio-567050101-bc6e8.firebasestorage.app",
   measurementId: "G-B4FT9QTWD1",
   messagingSenderId: "1016399212569"
