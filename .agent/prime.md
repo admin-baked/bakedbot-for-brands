@@ -1127,4 +1127,303 @@ const health = await client?.healthCheck();
 
 ---
 
+## 🎨 Creative Command Center (2026-01-27)
+
+Complete implementation of multi-platform content creation workflow with AI agents Craig (marketer) and Pinky (visual artist using Gemini 2.5 Flash). Human-in-the-Loop approval system with Deebo compliance checking.
+
+### What Was Implemented
+
+#### 1. Multi-Platform Workflow
+**Goal:** Enable content creation for Instagram, TikTok, and LinkedIn from single interface
+
+**Implementation:**
+- Platform-specific tabs with real-time content filtering
+- The Grid sidebar showing published/scheduled content per platform
+- Unified workflow across all platforms
+- Platform-specific placeholder text for guidance
+
+**Key File:** `src/app/dashboard/creative/page.tsx`
+
+**Platform Support:**
+- Instagram - Feed posts, Stories, Reels
+- TikTok - Short-form video content
+- LinkedIn - Professional content
+- Hero Carousel - Coming soon (disabled tab)
+
+#### 2. Campaign Templates
+**Goal:** Quick-start content generation with pre-built scenarios
+
+**Implementation:**
+- 4 template buttons above prompt input
+- Auto-populate prompt and tone settings
+- Toast notification on template selection
+
+**Templates:**
+- **Product Launch** - Hype tone, new product announcements
+- **Weekend Special** - Professional tone, relaxation focus
+- **Educational** - Educational tone, terpene profiles and effects
+- **Event Promo** - Hype tone, event announcements
+
+```typescript
+const handleSelectTemplate = (template) => {
+  setCampaignPrompt(template.prompt);
+  setTone(template.tone);
+  toast.success(`${template.label} template loaded!`);
+};
+```
+
+#### 3. Real-Time Content Integration
+**Goal:** Display actual generated content, not mock data
+
+**Implementation:**
+- The Grid loads real published/scheduled content from Firestore
+- Draft & Revision section shows actual Craig captions and Pinky images
+- Real-time listeners update UI automatically
+- Loading skeletons with Framer Motion animations
+
+**Key Features:**
+- Dynamic image grid (1 column for single, 2 columns for multiple)
+- Status badges (approved, scheduled)
+- Empty states with helpful guidance
+- Fallback gradient backgrounds for text-only posts
+
+#### 4. Inline Caption Editing
+**Goal:** Enable direct caption editing without revision requests
+
+**Implementation:**
+- Click-to-edit interface on caption cards
+- Hover shows edit pencil icon
+- Expands to Textarea with Save/Cancel buttons
+- Real-time Firestore update via `editCaption` hook
+- Success toast on save
+
+**UX Flow:**
+1. User clicks on caption → Edit mode activates
+2. User edits text → Save/Cancel buttons appear
+3. User clicks Save → Caption updates in Firestore
+4. Toast confirms: "Caption updated!"
+
+#### 5. Framer Motion Animations
+**Goal:** Smooth, professional UI with staggered entrance effects
+
+**Implementation:**
+- Staggered column entrance (0.1s, 0.2s, 0.3s, 0.4s delays)
+- The Grid skeleton with pulse animation
+- Image entrance with scale effect
+- Content card hover transitions
+- AnimatePresence for smooth exits
+
+**Animation Patterns:**
+```typescript
+// Column entrance
+<motion.div
+  initial={{ opacity: 0, x: -20 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ delay: 0.1, duration: 0.4 }}
+>
+
+// Image stagger
+<motion.img
+  initial={{ opacity: 0, scale: 0.9 }}
+  animate={{ opacity: 1, scale: 1 }}
+  transition={{ delay: 0.2 + (idx * 0.1) }}
+/>
+```
+
+#### 6. Enhanced Error Handling
+**Goal:** Provide specific, actionable error messages
+
+**Implementation:**
+- Try/catch blocks on all async handlers
+- Error message extraction from exceptions
+- Toast notifications for all error states
+- Graceful fallbacks for missing data
+
+**Handlers Enhanced:**
+- `handleGenerate()` - Content generation errors
+- `handleApprove()` - Approval failures
+- `handleRevise()` - Revision request errors
+- `handleSaveCaption()` - Caption update failures
+- `handleAcceptSafeVersion()` - Deebo safe version errors
+
+#### 7. Toast Notification System
+**Goal:** Immediate user feedback for all actions
+
+**Success Notifications:**
+- "Content generated! Craig & Pinky worked their magic ✨"
+- "Content scheduled for publishing!"
+- "Content approved and published!"
+- "Revision request sent to Craig!"
+- "Caption updated!"
+- "Safe version accepted! Caption updated."
+- "[Template Name] template loaded!"
+
+**Error Notifications:**
+- Specific error messages from caught exceptions
+- "Please enter a campaign description"
+- "Please enter revision notes"
+- "Failed to generate content. Please try again."
+
+#### 8. Deebo Compliance Shield
+**Goal:** Real-time compliance checking with safe version suggestions
+
+**Implementation:**
+- Displays actual `complianceChecks` from Firestore
+- Red alerts for failed checks with specific messages
+- Green checkmark for passed checks
+- Deebo's safe version suggestion with Accept button
+- Accept button actually updates caption via API
+
+**Compliance Flow:**
+1. Content generated → Deebo runs checks
+2. Failed check → Red alert displays with reason
+3. Deebo suggests safe version → User clicks Accept
+4. Caption updates to compliant version
+5. Toast confirms: "Safe version accepted!"
+
+#### 9. The Grid Architecture
+**Goal:** Show published content history filtered by platform
+
+**Implementation:**
+- Separate `useCreativeContent` hook instance
+- Filters by `approved` and `scheduled` status
+- Real-time Firestore listeners
+- Displays `mediaUrls` or `thumbnailUrl`
+- Shows count: "X Published"
+
+**Empty State:**
+- MessageSquare icon
+- "No published content yet"
+- "Generate and approve content to see it here"
+
+### Files Created/Modified
+
+1. **src/app/dashboard/creative/page.tsx** (NEW FILE - 1,881 lines)
+   - Main Creative Command Center implementation
+   - Multi-platform tabs (Instagram, TikTok, LinkedIn)
+   - Campaign templates integration
+   - Real-time content display
+   - Inline caption editing
+   - Error handling and toast notifications
+
+2. **src/hooks/use-creative-content.ts** (EXISTING - leveraged)
+   - Real-time Firestore listeners
+   - `generate`, `approve`, `revise`, `editCaption` actions
+   - Platform and status filtering
+   - Graceful fallbacks to server actions
+
+3. **src/server/actions/creative-content.ts** (EXISTING - leveraged)
+   - Craig + Pinky content generation
+   - Deebo compliance checking
+   - QR code generation on approval
+   - Revision workflow
+
+4. **src/types/creative-content.ts** (EXISTING - used)
+   - `CreativeContent`, `GenerateContentRequest` types
+   - `ComplianceCheck`, `RevisionNote` types
+   - Platform and status type definitions
+
+### Architecture Pattern
+
+**4-Column Layout:**
+1. **Prompt Input** (340px) - Campaign templates, form inputs, generate button
+2. **Deebo Compliance Shield** (300px) - Real-time compliance status
+3. **Draft & Revision** (380px) - Craig's caption, Pinky's images, revision notes
+4. **HitL Approval & Publishing** (320px) - Approval pipeline, calendar, publish button
+
+**Component Flow:**
+```
+User Input → Craig (marketer) → Pinky (visual artist) →
+Deebo (compliance) → Human Approval → Scheduled/Published
+```
+
+### Integration Points
+
+**Craig (Marketer):**
+- Generates campaign captions based on prompt and tone
+- Includes hashtag suggestions
+- Respects brand voice settings
+
+**Pinky (Visual Artist):**
+- Uses Gemini 2.5 Flash "Nano Banana" AI
+- Generates images matching campaign theme
+- Stores in `mediaUrls` array
+
+**Deebo (Compliance Enforcer):**
+- Runs compliance checks on generated content
+- Flags violations with specific messages
+- Suggests safe alternative versions
+- Blocks non-compliant content from approval
+
+### Testing & Verification
+
+- All TypeScript checks passing: ✅
+- Build status: ✅ Healthy
+- Commits: `9cff8fb2`, `cdf6db17`, `85707740`
+- Pushed to: `origin main`
+
+### Key Insights
+
+1. **Existing infrastructure was comprehensive** - Backend server actions and hooks were already fully implemented
+2. **Framer Motion is project standard** - All animations use Framer, not CSS keyframes
+3. **Real-time updates critical** - Users expect instant feedback from agent actions
+4. **Templates reduce friction** - Quick-start options significantly speed up content creation
+5. **Toast notifications essential** - Users need immediate confirmation of all actions
+
+### Quick Reference
+
+**Generate Content:**
+```typescript
+const result = await generate({
+  platform: 'instagram',
+  prompt: 'Weekend unwind with Sunset Sherbet',
+  style: 'professional',
+  includeHashtags: true,
+  productName: 'Sunset Sherbet Flower',
+  tier: 'free',
+});
+```
+
+**Approve Content:**
+```typescript
+await approve(
+  contentId,
+  scheduledDate ? scheduledDate.toISOString() : undefined
+);
+```
+
+**Edit Caption:**
+```typescript
+await editCaption(contentId, newCaption);
+```
+
+### Next Steps (Roadmap)
+
+**High Priority:**
+1. Hero Carousel tab implementation
+2. Hashtag autocomplete from brand voice
+3. Image upload functionality
+4. Batch campaign mode (all platforms at once)
+
+**Medium Priority:**
+5. Analytics integration (engagement metrics)
+6. QR code scan statistics display
+7. Menu item autocomplete from Firestore
+8. Approval chain (multi-level review)
+
+**Low Priority:**
+9. Comments and collaboration features
+10. Performance optimizations (lazy loading)
+11. Advanced template library
+12. A/B testing variations
+
+### Related Files
+
+- Main UI: `src/app/dashboard/creative/page.tsx`
+- Content hook: `src/hooks/use-creative-content.ts`
+- Server actions: `src/server/actions/creative-content.ts`
+- Type definitions: `src/types/creative-content.ts`
+
+---
+
 *This context loads automatically. For domain-specific details, consult `.agent/refs/`.*
