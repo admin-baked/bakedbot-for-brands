@@ -440,6 +440,54 @@ export default function CreativeCommandCenter() {
     },
   ];
 
+  // Hashtag suggestions
+  const hashtagSuggestions: Record<SocialPlatform, Array<{ tag: string; category: string }>> = {
+    instagram: [
+      { tag: "cannabiscommunity", category: "Community" },
+      { tag: "cannabisculture", category: "Community" },
+      { tag: "cannabislifestyle", category: "Lifestyle" },
+      { tag: "terpenes", category: "Education" },
+      { tag: "cannabiseducation", category: "Education" },
+      { tag: "plantsoverpills", category: "Wellness" },
+      { tag: "cannabiswellness", category: "Wellness" },
+      { tag: "420life", category: "Lifestyle" },
+    ],
+    tiktok: [
+      { tag: "cannabistiktok", category: "Platform" },
+      { tag: "cannabischeck", category: "Trending" },
+      { tag: "cannabiseducation", category: "Education" },
+      { tag: "terpenes", category: "Education" },
+      { tag: "weedtok", category: "Platform" },
+      { tag: "420", category: "Community" },
+      { tag: "cannabislifestyle", category: "Lifestyle" },
+    ],
+    linkedin: [
+      { tag: "cannabisindustry", category: "Industry" },
+      { tag: "cannabisbusiness", category: "Business" },
+      { tag: "cannabisregulation", category: "Compliance" },
+      { tag: "cannabisinnovation", category: "Innovation" },
+      { tag: "hempindustry", category: "Industry" },
+      { tag: "cannabismarketing", category: "Business" },
+    ],
+    twitter: [
+      { tag: "cannabis", category: "General" },
+      { tag: "cannabiscommunity", category: "Community" },
+      { tag: "cannabisnews", category: "News" },
+      { tag: "420", category: "Community" },
+      { tag: "cannabisreform", category: "Advocacy" },
+      { tag: "legalcannabis", category: "Advocacy" },
+    ],
+    facebook: [
+      { tag: "cannabis", category: "General" },
+      { tag: "cannabiscommunity", category: "Community" },
+      { tag: "cannabiseducation", category: "Education" },
+      { tag: "cannabiswellness", category: "Wellness" },
+      { tag: "plantsoverpills", category: "Wellness" },
+    ],
+  };
+
+  const [selectedHashtags, setSelectedHashtags] = useState<string[]>([]);
+
   // Creative content hook
   const {
     content,
@@ -468,9 +516,14 @@ export default function CreativeCommandCenter() {
     }
 
     try {
+      // Include selected hashtags in the prompt context
+      const enhancedPrompt = selectedHashtags.length > 0
+        ? `${campaignPrompt}\n\nSuggested hashtags: ${selectedHashtags.map(tag => `#${tag}`).join(' ')}`
+        : campaignPrompt;
+
       const result = await generate({
         platform: selectedPlatform,
-        prompt: campaignPrompt,
+        prompt: enhancedPrompt,
         style: tone as any,
         includeHashtags: true,
         productName: menuItem || undefined,
@@ -479,6 +532,8 @@ export default function CreativeCommandCenter() {
 
       if (result) {
         toast.success("Content generated! Craig & Pinky worked their magic ✨");
+        // Clear selected hashtags after successful generation
+        setSelectedHashtags([]);
       } else {
         toast.error("Failed to generate content. Please try again.");
       }
@@ -557,6 +612,27 @@ export default function CreativeCommandCenter() {
     setCampaignPrompt(template.prompt);
     setTone(template.tone);
     toast.success(`${template.label} template loaded!`);
+  };
+
+  // Handle hashtag toggle
+  const handleToggleHashtag = (tag: string) => {
+    setSelectedHashtags(prev => {
+      if (prev.includes(tag)) {
+        return prev.filter(t => t !== tag);
+      } else {
+        if (prev.length >= 10) {
+          toast.error("Maximum 10 hashtags allowed");
+          return prev;
+        }
+        return [...prev, tag];
+      }
+    });
+  };
+
+  // Clear all hashtags
+  const handleClearHashtags = () => {
+    setSelectedHashtags([]);
+    toast.success("Hashtags cleared");
   };
 
   return (
@@ -716,6 +792,54 @@ export default function CreativeCommandCenter() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Hashtag Suggestions */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-baked-text-secondary">
+                          Suggested Hashtags
+                        </label>
+                        {selectedHashtags.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleClearHashtags}
+                            className="h-6 text-xs text-baked-text-muted hover:text-red-500"
+                          >
+                            Clear ({selectedHashtags.length})
+                          </Button>
+                        )}
+                      </div>
+                      <ScrollArea className="h-24">
+                        <div className="flex flex-wrap gap-2 pr-3">
+                          {hashtagSuggestions[selectedPlatform].map(({ tag, category }) => {
+                            const isSelected = selectedHashtags.includes(tag);
+                            return (
+                              <button
+                                key={tag}
+                                onClick={() => handleToggleHashtag(tag)}
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
+                                  "border hover:scale-105 active:scale-95",
+                                  isSelected
+                                    ? "bg-baked-green/20 border-baked-green text-baked-green"
+                                    : "bg-baked-darkest border-baked-border text-baked-text-secondary hover:border-baked-green/50 hover:text-white"
+                                )}
+                              >
+                                {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                                #{tag}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                      {selectedHashtags.length > 0 && (
+                        <div className="text-xs text-baked-text-muted">
+                          Selected: {selectedHashtags.map(tag => `#${tag}`).join(' ')}
+                        </div>
+                      )}
+                    </div>
+
                      <div className="space-y-2">
                       <label className="text-sm font-medium text-baked-text-secondary">Menu Item Integration</label>
                       <Select value={menuItem} onValueChange={setMenuItem}>
@@ -1146,6 +1270,54 @@ export default function CreativeCommandCenter() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Hashtag Suggestions */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-baked-text-secondary">
+                          Suggested Hashtags
+                        </label>
+                        {selectedHashtags.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleClearHashtags}
+                            className="h-6 text-xs text-baked-text-muted hover:text-red-500"
+                          >
+                            Clear ({selectedHashtags.length})
+                          </Button>
+                        )}
+                      </div>
+                      <ScrollArea className="h-24">
+                        <div className="flex flex-wrap gap-2 pr-3">
+                          {hashtagSuggestions[selectedPlatform].map(({ tag, category }) => {
+                            const isSelected = selectedHashtags.includes(tag);
+                            return (
+                              <button
+                                key={tag}
+                                onClick={() => handleToggleHashtag(tag)}
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
+                                  "border hover:scale-105 active:scale-95",
+                                  isSelected
+                                    ? "bg-baked-green/20 border-baked-green text-baked-green"
+                                    : "bg-baked-darkest border-baked-border text-baked-text-secondary hover:border-baked-green/50 hover:text-white"
+                                )}
+                              >
+                                {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                                #{tag}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                      {selectedHashtags.length > 0 && (
+                        <div className="text-xs text-baked-text-muted">
+                          Selected: {selectedHashtags.map(tag => `#${tag}`).join(' ')}
+                        </div>
+                      )}
+                    </div>
+
                      <div className="space-y-2">
                       <label className="text-sm font-medium text-baked-text-secondary">Menu Item Integration</label>
                       <Select value={menuItem} onValueChange={setMenuItem}>
@@ -1576,6 +1748,54 @@ export default function CreativeCommandCenter() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* Hashtag Suggestions */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-baked-text-secondary">
+                          Suggested Hashtags
+                        </label>
+                        {selectedHashtags.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleClearHashtags}
+                            className="h-6 text-xs text-baked-text-muted hover:text-red-500"
+                          >
+                            Clear ({selectedHashtags.length})
+                          </Button>
+                        )}
+                      </div>
+                      <ScrollArea className="h-24">
+                        <div className="flex flex-wrap gap-2 pr-3">
+                          {hashtagSuggestions[selectedPlatform].map(({ tag, category }) => {
+                            const isSelected = selectedHashtags.includes(tag);
+                            return (
+                              <button
+                                key={tag}
+                                onClick={() => handleToggleHashtag(tag)}
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
+                                  "border hover:scale-105 active:scale-95",
+                                  isSelected
+                                    ? "bg-baked-green/20 border-baked-green text-baked-green"
+                                    : "bg-baked-darkest border-baked-border text-baked-text-secondary hover:border-baked-green/50 hover:text-white"
+                                )}
+                              >
+                                {isSelected && <CheckCircle2 className="w-3 h-3" />}
+                                #{tag}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                      {selectedHashtags.length > 0 && (
+                        <div className="text-xs text-baked-text-muted">
+                          Selected: {selectedHashtags.map(tag => `#${tag}`).join(' ')}
+                        </div>
+                      )}
+                    </div>
+
                      <div className="space-y-2">
                       <label className="text-sm font-medium text-baked-text-secondary">Menu Item Integration</label>
                       <Select value={menuItem} onValueChange={setMenuItem}>
