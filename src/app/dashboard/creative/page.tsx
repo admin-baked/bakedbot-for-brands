@@ -827,8 +827,7 @@ export default function CreativeCommandCenter() {
 
           <TabsContent value="instagram" className="flex-1 flex overflow-hidden m-0 p-0 relative">
             {showGrid && <TheGrid selectedPlatform={selectedPlatform} />}
-            <ScrollArea className="flex-1">
-            <div className="flex-1 p-6 grid grid-cols-1 xl:grid-cols-4 gap-6 min-h-full w-full">
+            <div className="flex-1 p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 overflow-auto">
                 {/* Column 1: Prompt Input */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
@@ -1506,13 +1505,11 @@ export default function CreativeCommandCenter() {
               </motion.div>
 
             </div>
-            </ScrollArea>
           </TabsContent>
 
           <TabsContent value="tiktok" className="flex-1 flex overflow-hidden m-0 p-0 relative">
             {showGrid && <TheGrid selectedPlatform={selectedPlatform} />}
-            <ScrollArea className="flex-1">
-            <div className="flex-1 p-6 grid grid-cols-1 xl:grid-cols-4 gap-6 min-h-full w-full">
+            <div className="flex-1 p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 overflow-auto">
                 {/* Column 1: Prompt Input */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
@@ -2172,13 +2169,11 @@ export default function CreativeCommandCenter() {
               </motion.div>
 
             </div>
-            </ScrollArea>
           </TabsContent>
 
           <TabsContent value="linkedin" className="flex-1 flex overflow-hidden m-0 p-0 relative">
             {showGrid && <TheGrid selectedPlatform={selectedPlatform} />}
-            <ScrollArea className="flex-1">
-            <div className="flex-1 p-6 grid grid-cols-1 xl:grid-cols-4 gap-6 min-h-full w-full">
+            <div className="flex-1 p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 overflow-auto">
                 {/* Same layout as Instagram/TikTok but with LinkedIn-specific placeholder */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
@@ -2420,13 +2415,11 @@ export default function CreativeCommandCenter() {
               </motion.div>
 
             </div>
-            </ScrollArea>
           </TabsContent>
 
           <TabsContent value="hero-carousel" className="flex-1 flex overflow-hidden m-0 p-0 relative">
             {showGrid && <TheGrid selectedPlatform={selectedPlatform} />}
-            <ScrollArea className="flex-1">
-            <div className="flex-1 p-6 grid grid-cols-1 xl:grid-cols-4 gap-6 min-h-full w-full">
+            <div className="flex-1 p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 overflow-auto">
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -2437,7 +2430,6 @@ export default function CreativeCommandCenter() {
                 <p className="text-xs mt-2">Create website banners and carousel content</p>
               </motion.div>
             </div>
-            </ScrollArea>
           </TabsContent>
         </Tabs>
       </main>
