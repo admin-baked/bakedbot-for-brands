@@ -54,8 +54,11 @@ import type { SocialPlatform } from "@/types/creative-content";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { getMenuData } from "@/app/dashboard/menu/actions";
+import { approveAtLevel, rejectAtLevel } from "@/server/actions/creative-content";
 import { BarChart3, TrendingUp, QrCode } from "lucide-react";
 import { EngagementAnalytics } from "@/components/creative/engagement-analytics";
+import { ApprovalChain } from "@/components/creative/approval-chain";
+import { useUser } from "@/firebase/auth/use-user";
 
 // --- Types & Mock Data ---
 
@@ -406,6 +409,7 @@ const TheGrid = ({ selectedPlatform }: TheGridProps) => {
 
 export default function CreativeCommandCenter() {
   const router = useRouter();
+  const { user } = useUser();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform>("instagram");
 
@@ -776,6 +780,58 @@ export default function CreativeCommandCenter() {
       setSelectedHashtags([]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to generate batch content");
+    }
+  };
+
+  // Handle approval chain approve
+  const handleApprovalChainApprove = async (notes: string) => {
+    if (!currentContent || !user?.uid) return;
+
+    const tenantId = (user as any)?.tenantId || (user as any)?.brandId;
+    if (!tenantId) {
+      toast.error("Unable to determine tenant ID");
+      return;
+    }
+
+    const result = await approveAtLevel(
+      currentContent.id,
+      tenantId,
+      user.uid,
+      user.displayName || user.email || 'Unknown User',
+      (user as any)?.role || 'user',
+      notes
+    );
+
+    if (result.success) {
+      toast.success("Content approved at this level!");
+    } else {
+      toast.error(result.error || "Failed to approve content");
+    }
+  };
+
+  // Handle approval chain reject
+  const handleApprovalChainReject = async (notes: string) => {
+    if (!currentContent || !user?.uid) return;
+
+    const tenantId = (user as any)?.tenantId || (user as any)?.brandId;
+    if (!tenantId) {
+      toast.error("Unable to determine tenant ID");
+      return;
+    }
+
+    const result = await rejectAtLevel(
+      currentContent.id,
+      tenantId,
+      user.uid,
+      user.displayName || user.email || 'Unknown User',
+      (user as any)?.role || 'user',
+      notes
+    );
+
+    if (result.success) {
+      toast.success("Content rejected and sent for revision");
+    } else {
+      toast.error(result.error || "Failed to reject content");
     }
   };
 
@@ -1399,8 +1455,17 @@ export default function CreativeCommandCenter() {
               >
                 <h3 className="font-semibold text-lg">HitL Approval & Publishing</h3>
                 <div className="space-y-6 flex-1 flex flex-col">
-                    {/* Approval Pipeline */}
-                    <Card className="bg-baked-card border-baked-border shadow-none p-4 space-y-2">
+                    {/* Approval Pipeline / Approval Chain */}
+                    {currentContent?.approvalState ? (
+                      <ApprovalChain
+                        approvalState={currentContent.approvalState}
+                        currentUserRole={(user as any)?.role}
+                        currentUserId={user?.uid}
+                        onApprove={handleApprovalChainApprove}
+                        onReject={handleApprovalChainReject}
+                      />
+                    ) : (
+                      <Card className="bg-baked-card border-baked-border shadow-none p-4 space-y-2">
                         <div className="bg-baked-darkest border border-baked-border rounded-md p-3 text-sm font-medium text-center text-baked-text-secondary">
                             Pending
                         </div>
@@ -1413,7 +1478,8 @@ export default function CreativeCommandCenter() {
                             <span>Approved by [User]</span>
                             <CheckCircle2 className="w-4 h-4 fill-baked-green text-baked-darkest"/>
                         </div>
-                    </Card>
+                      </Card>
+                    )}
 
                     {/* QR Code Analytics */}
                     {currentContent?.qrDataUrl && currentContent?.qrStats && (
@@ -2056,8 +2122,17 @@ export default function CreativeCommandCenter() {
               >
                 <h3 className="font-semibold text-lg">HitL Approval & Publishing</h3>
                 <div className="space-y-6 flex-1 flex flex-col">
-                    {/* Approval Pipeline */}
-                    <Card className="bg-baked-card border-baked-border shadow-none p-4 space-y-2">
+                    {/* Approval Pipeline / Approval Chain */}
+                    {currentContent?.approvalState ? (
+                      <ApprovalChain
+                        approvalState={currentContent.approvalState}
+                        currentUserRole={(user as any)?.role}
+                        currentUserId={user?.uid}
+                        onApprove={handleApprovalChainApprove}
+                        onReject={handleApprovalChainReject}
+                      />
+                    ) : (
+                      <Card className="bg-baked-card border-baked-border shadow-none p-4 space-y-2">
                         <div className="bg-baked-darkest border border-baked-border rounded-md p-3 text-sm font-medium text-center text-baked-text-secondary">
                             Pending
                         </div>
@@ -2070,7 +2145,8 @@ export default function CreativeCommandCenter() {
                             <span>Approved by [User]</span>
                             <CheckCircle2 className="w-4 h-4 fill-baked-green text-baked-darkest"/>
                         </div>
-                    </Card>
+                      </Card>
+                    )}
 
                     {/* QR Code Analytics */}
                     {currentContent?.qrDataUrl && currentContent?.qrStats && (

@@ -1428,6 +1428,120 @@ interface EngagementMetrics {
 - Historical trend charts
 - Performance benchmarking against industry averages
 
+#### 13. Approval Chain (Multi-Level Review Workflow)
+**Goal:** Enable configurable multi-level approval workflows for content review
+
+**Implementation:**
+- Flexible approval chain system with 1-3 configurable levels
+- Role-based approval requirements per level
+- Visual progress indicator showing current approval level
+- Approval history with notes and timestamps
+- Rejection handling with required notes
+- Override capabilities for senior roles
+- Conditional rendering (shows approval chain when configured, otherwise simple pipeline)
+
+**Key Features:**
+- **Level-Based Workflow:**
+  - Each level can require specific roles (e.g., "content_manager", "brand_director")
+  - Minimum approval count per level
+  - Sequential level progression
+  - Visual color coding (purple=current, green=approved, red=rejected, gray=future)
+
+- **Approval Actions:**
+  - Approve with optional notes
+  - Reject with required notes (rejection reason)
+  - Override previous rejections (for authorized roles)
+  - Prevent duplicate approvals (same user can't approve twice at same level)
+
+- **User Experience:**
+  - Real-time approval status updates
+  - Avatar badges for approvers
+  - Timestamp tracking for each action
+  - Pending approver role display
+  - "Already approved" messages
+  - Permission-based action button visibility
+
+**Type System:**
+```typescript
+interface ApprovalState {
+  chainId?: string;
+  currentLevel: number;
+  approvals: ApprovalRecord[];
+  status: 'pending_approval' | 'approved' | 'rejected' | 'override_required';
+  nextRequiredRoles: string[];
+  canCurrentUserApprove?: boolean;
+  rejectionReason?: string;
+}
+
+interface ApprovalRecord {
+  id: string;
+  level: number;
+  approverId: string;
+  approverName: string;
+  approverRole: string;
+  action: 'approved' | 'rejected' | 'pending';
+  notes?: string;
+  timestamp: number;
+  required: boolean;
+}
+
+interface ApprovalLevel {
+  level: number;
+  name: string;
+  requiredRoles: string[];
+  minimumApprovals: number;
+  canOverride: boolean;
+}
+```
+
+**Visual Design:**
+- Card-based level display with progressive disclosure
+- Animated level transitions (Framer Motion)
+- Color-coded status badges
+- Pulsing clock icon for pending levels
+- Checkmark/X icons for completed levels
+- User avatars with role badges
+- Notes display with quoted formatting
+- Textarea for approval notes
+- Split approve/reject button layout
+
+**Server Actions:**
+```typescript
+// Approve at current level
+await approveAtLevel(
+  contentId,
+  tenantId,
+  approverId,
+  approverName,
+  approverRole,
+  notes
+);
+
+// Reject at current level
+await rejectAtLevel(
+  contentId,
+  tenantId,
+  approverId,
+  approverName,
+  approverRole,
+  notes
+);
+
+// Initialize approval chain for content
+await initializeApprovalChain(
+  contentId,
+  tenantId,
+  chainId
+);
+```
+
+**Integration:**
+- Conditionally replaces simple approval pipeline when `approvalState` exists
+- Integrates with existing content approval flow
+- Works across all platforms (Instagram, TikTok, LinkedIn)
+- Role-based permission checking on server and client
+- Real-time updates via Firestore listeners
+
 ### Files Created/Modified
 
 1. **src/app/dashboard/creative/page.tsx** (NEW FILE - ~2,200+ lines)
@@ -1471,6 +1585,14 @@ interface EngagementMetrics {
    - Percentage calculations for rates
    - Conditional platform-specific sections
 
+6. **src/components/creative/approval-chain.tsx** (NEW FILE - 430+ lines)
+   - Multi-level approval workflow display component
+   - Visual progress indicator for approval levels
+   - Approval history with user avatars and notes
+   - Approve/reject action buttons with permission checking
+   - Animated level transitions and status indicators
+   - Conditional rendering based on user role and approval state
+
 ### Architecture Pattern
 
 **4-Column Layout:**
@@ -1507,14 +1629,16 @@ Deebo (compliance) → Human Approval → Scheduled/Published
 
 - All TypeScript checks passing: ✅
 - Build status: ✅ Healthy
-- Latest features: QR analytics + Menu autocomplete ✅
+- Latest features: QR analytics + Menu autocomplete + Approval Chain ✅
 - Integration: Firestore menu data loading working ✅
-- All 6 high-priority features completed ✅
+- All 8 high-priority features completed ✅
 
 **Recent Commits:**
 - Image upload, batch mode, hero carousel tab
 - QR code scan analytics display
 - Menu item autocomplete from Firestore
+- Engagement analytics dashboard
+- Multi-level approval chain workflow
 - Pushed to: `origin main`
 
 ### Key Insights
@@ -1564,9 +1688,9 @@ await editCaption(contentId, newCaption);
 5. ✅ QR code scan statistics display
 6. ✅ Menu item autocomplete from Firestore
 7. ✅ Engagement analytics integration (social media metrics dashboard)
+8. ✅ Approval chain (multi-level review workflow)
 
 **Medium Priority (Next):**
-8. Approval chain (multi-level review workflow)
 9. Campaign performance tracking (CTR, conversions over time)
 10. Social platform API integrations (Meta, TikTok, LinkedIn for real-time metrics)
 
