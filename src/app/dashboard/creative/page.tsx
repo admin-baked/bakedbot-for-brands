@@ -416,6 +416,30 @@ export default function CreativeCommandCenter() {
   const [isEditingCaption, setIsEditingCaption] = useState(false);
   const [editedCaption, setEditedCaption] = useState("");
 
+  // Campaign templates
+  const campaignTemplates = [
+    {
+      label: "Product Launch",
+      prompt: "Exciting new product launch! Highlighting unique features and benefits.",
+      tone: "hype" as const,
+    },
+    {
+      label: "Weekend Special",
+      prompt: "Weekend unwind promotion focusing on relaxation and quality time.",
+      tone: "professional" as const,
+    },
+    {
+      label: "Educational",
+      prompt: "Educational content about terpene profiles, effects, and proper usage.",
+      tone: "educational" as const,
+    },
+    {
+      label: "Event Promo",
+      prompt: "Upcoming event announcement with details and registration information.",
+      tone: "hype" as const,
+    },
+  ];
+
   // Creative content hook
   const {
     content,
@@ -443,17 +467,23 @@ export default function CreativeCommandCenter() {
       return;
     }
 
-    const result = await generate({
-      platform: selectedPlatform,
-      prompt: campaignPrompt,
-      style: tone as any,
-      includeHashtags: true,
-      productName: menuItem || undefined,
-      tier: "free",
-    });
+    try {
+      const result = await generate({
+        platform: selectedPlatform,
+        prompt: campaignPrompt,
+        style: tone as any,
+        includeHashtags: true,
+        productName: menuItem || undefined,
+        tier: "free",
+      });
 
-    if (result) {
-      toast.success("Content generated! Craig & Pinky worked their magic ✨");
+      if (result) {
+        toast.success("Content generated! Craig & Pinky worked their magic ✨");
+      } else {
+        toast.error("Failed to generate content. Please try again.");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "An error occurred while generating content");
     }
   };
 
@@ -461,10 +491,15 @@ export default function CreativeCommandCenter() {
   const handleApprove = async () => {
     if (!currentContent) return;
 
-    await approve(
-      currentContent.id,
-      date ? date.toISOString() : undefined
-    );
+    try {
+      await approve(
+        currentContent.id,
+        date ? date.toISOString() : undefined
+      );
+      toast.success(date ? "Content scheduled for publishing!" : "Content approved and published!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to approve content");
+    }
   };
 
   // Handle revision request
@@ -474,15 +509,25 @@ export default function CreativeCommandCenter() {
       return;
     }
 
-    await revise(currentContent.id, revisionNote);
-    setRevisionNote("");
+    try {
+      await revise(currentContent.id, revisionNote);
+      setRevisionNote("");
+      toast.success("Revision request sent to Craig!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to send revision request");
+    }
   };
 
   // Handle accepting safe version from Deebo
-  const handleAcceptSafeVersion = () => {
-    if (currentContent && currentContent.complianceChecks) {
-      const safeCaption = "May help with relaxation."; // This would come from Deebo's suggestion
-      toast.success("Safe version accepted!");
+  const handleAcceptSafeVersion = async () => {
+    if (!currentContent) return;
+
+    try {
+      const safeCaption = "May help with relaxation."; // This would come from Deebo's suggestion in real implementation
+      await editCaption(currentContent.id, safeCaption);
+      toast.success("Safe version accepted! Caption updated.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to accept safe version");
     }
   };
 
@@ -505,6 +550,13 @@ export default function CreativeCommandCenter() {
   const handleCancelEditCaption = () => {
     setIsEditingCaption(false);
     setEditedCaption("");
+  };
+
+  // Handle template selection
+  const handleSelectTemplate = (template: typeof campaignTemplates[0]) => {
+    setCampaignPrompt(template.prompt);
+    setTone(template.tone);
+    toast.success(`${template.label} template loaded!`);
   };
 
   return (
@@ -611,6 +663,24 @@ export default function CreativeCommandCenter() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {/* Campaign Templates */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-baked-text-muted">Quick Templates</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {campaignTemplates.map((template) => (
+                          <Button
+                            key={template.label}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSelectTemplate(template)}
+                            className="h-auto py-2 px-3 border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark hover:border-baked-green/50 transition-colors text-xs"
+                          >
+                            {template.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    <Separator className="bg-baked-border" />
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-baked-text-secondary">Rich text</label>
                         <Textarea
@@ -1021,7 +1091,536 @@ export default function CreativeCommandCenter() {
             <ScrollBar orientation="horizontal" className="bg-baked-darkest z-10" />
             </ScrollArea>
           </TabsContent>
-          {/* Other TabsContent would go here */}
+
+          <TabsContent value="tiktok" className="flex-1 flex overflow-hidden m-0 p-0 relative">
+            <TheGrid selectedPlatform={selectedPlatform} />
+            <ScrollArea className="flex-1">
+            <div className="flex-1 p-6 flex gap-6 min-h-full w-full">
+                {/* Column 1: Prompt Input */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1, duration: 0.4 }}
+                className="w-[340px] shrink-0 flex flex-col gap-6"
+              >
+                <h3 className="font-semibold text-lg">Prompt Input</h3>
+                <Card className="bg-baked-card border-baked-border shadow-none">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-medium">
+                      Campaign Idea
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-baked-text-secondary">Rich text</label>
+                        <Textarea
+                        value={campaignPrompt}
+                        onChange={(e) => setCampaignPrompt(e.target.value)}
+                        placeholder="Describe your TikTok campaign... e.g., 'Quick tutorial on identifying quality flower.'"
+                        className="bg-baked-darkest border-baked-border resize-none h-32 text-sm placeholder:text-baked-text-muted/50 focus-visible:ring-baked-green/50"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-baked-text-secondary">Content Type</label>
+                      <Select value={contentType} onValueChange={setContentType}>
+                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                          <SelectValue placeholder="Select Type" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
+                          <SelectItem value="social-post" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Social Post</SelectItem>
+                          <SelectItem value="blog" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Blog Article</SelectItem>
+                          <SelectItem value="email" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Email Newsletter</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-baked-text-secondary">Tone</label>
+                      <Select value={tone} onValueChange={setTone}>
+                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                          <SelectValue placeholder="Select Tone" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
+                          <SelectItem value="professional" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Professional</SelectItem>
+                          <SelectItem value="hype" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Hype / Energetic</SelectItem>
+                          <SelectItem value="educational" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Educational</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                     <div className="space-y-2">
+                      <label className="text-sm font-medium text-baked-text-secondary">Menu Item Integration</label>
+                      <Select value={menuItem} onValueChange={setMenuItem}>
+                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                          <SelectValue placeholder="e.g., 'Sunset Sherbet Flower'" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
+                          <SelectItem value="sunset-sherbet" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Sunset Sherbet Flower</SelectItem>
+                          <SelectItem value="blue-dream" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Blue Dream Vape Cart</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      onClick={handleGenerate}
+                      disabled={isGenerating || !campaignPrompt.trim()}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        "Generate Campaign with Craig & Pinky"
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+               {/* Column 2: Deebo Compliance Shield */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+                className="w-[300px] shrink-0 flex flex-col gap-6"
+              >
+                <h3 className="font-semibold text-lg">Deebo Compliance Shield</h3>
+                 <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col">
+                    <CardContent className="p-6 flex-1 flex flex-col items-center justify-center space-y-6">
+                        <div className="relative">
+                            <Avatar className="w-16 h-16 border-2 border-baked-border z-10 relative">
+                                <AvatarImage src="/avatars/deebo.png" />
+                                <AvatarFallback>DB</AvatarFallback>
+                            </Avatar>
+                            {/* Scanning Effect */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-red-500/50 rounded-lg overflow-hidden z-0">
+                                <div className="w-full h-full bg-[url('https://source.unsplash.com/random/300x300/?cannabis')] bg-cover opacity-30 grayscale"></div>
+                                <div className="absolute top-0 left-0 w-full h-0.5 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-[scan_2s_ease-in-out_infinite]"></div>
+                            </div>
+                        </div>
+
+                        <div className="w-full space-y-3">
+                            {currentContent && currentContent.complianceChecks && currentContent.complianceChecks.some(c => !c.passed) ? (
+                              <>
+                                {currentContent.complianceChecks.filter(c => !c.passed).map((check, idx) => (
+                                  <div key={idx} className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm">
+                                      <div className="flex items-center justify-between mb-1">
+                                          <span className="font-medium text-red-500 flex items-center gap-1.5">
+                                              <AlertTriangle className="w-4 h-4"/> {check.checkType.replace(/_/g, ' ').toUpperCase()}
+                                          </span>
+                                          <XCircle className="w-4 h-4 text-red-500 cursor-pointer hover:text-red-400"/>
+                                      </div>
+                                      <p className="text-baked-text-primary text-xs">{check.message}</p>
+                                  </div>
+                                ))}
+
+                                <div className="bg-baked-green/10 border border-baked-green/30 rounded-lg p-3 text-sm space-y-3">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="font-medium text-baked-green flex items-center gap-1.5">
+                                            <CheckCircle2 className="w-4 h-4"/> Deebo's Safe Version
+                                        </span>
+                                    </div>
+                                    <p className="text-baked-text-primary">"May help with relaxation."</p>
+                                    <Button
+                                      size="sm"
+                                      onClick={handleAcceptSafeVersion}
+                                      className="w-full bg-baked-green hover:bg-baked-green-muted text-baked-darkest font-semibold"
+                                    >
+                                        Accept Safe Version
+                                    </Button>
+                                </div>
+                              </>
+                            ) : currentContent ? (
+                              <div className="bg-baked-green/10 border border-baked-green/30 rounded-lg p-3 text-sm">
+                                  <div className="flex items-center gap-2">
+                                      <CheckCircle2 className="w-5 h-5 text-baked-green"/>
+                                      <span className="font-medium text-baked-green">All Checks Passed!</span>
+                                  </div>
+                                  <p className="text-baked-text-secondary text-xs mt-2">
+                                    Content is compliant and ready for approval.
+                                  </p>
+                              </div>
+                            ) : (
+                              <div className="text-center text-baked-text-muted text-sm py-8">
+                                Generate content to see compliance status
+                              </div>
+                            )}
+                        </div>
+
+                    </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Column 3: Draft & Revision */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.4 }}
+                className="w-[380px] shrink-0 flex flex-col gap-6"
+              >
+                <h3 className="font-semibold text-lg">Draft & Revision</h3>
+                <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col overflow-hidden">
+                    <ScrollArea className="flex-1">
+                        <CardContent className="p-4 space-y-6">
+                        {currentContent ? (
+                          <AnimatePresence mode="wait">
+                            {/* Craig's Caption */}
+                            <motion.div
+                              key="craig-caption"
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0 }}
+                              className="flex gap-3 group"
+                            >
+                              <Avatar className="w-10 h-10 border border-baked-border shrink-0">
+                                <AvatarFallback>C</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 space-y-1.5">
+                                <div className="flex items-baseline justify-between">
+                                  <span className="font-semibold text-sm">Craig</span>
+                                  <span className="text-xs text-baked-text-muted flex items-center gap-1">
+                                    <MoreHorizontal className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"/>
+                                  </span>
+                                </div>
+                                <div className="space-y-3">
+                                  <p className="text-sm text-baked-text-secondary">
+                                    Here&apos;s your campaign content:
+                                  </p>
+                                  {isEditingCaption ? (
+                                    <div className="space-y-2">
+                                      <Textarea
+                                        value={editedCaption}
+                                        onChange={(e) => setEditedCaption(e.target.value)}
+                                        className="bg-baked-darkest border-baked-border resize-none h-32 text-sm focus-visible:ring-baked-green/50"
+                                      />
+                                      <div className="flex gap-2">
+                                        <Button
+                                          size="sm"
+                                          onClick={handleSaveCaption}
+                                          className="flex-1 bg-baked-green hover:bg-baked-green-muted text-baked-darkest font-semibold"
+                                        >
+                                          <CheckCircle2 className="w-3 h-3 mr-1" />
+                                          Save
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={handleCancelEditCaption}
+                                          className="flex-1 border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark"
+                                        >
+                                          <XCircle className="w-3 h-3 mr-1" />
+                                          Cancel
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div
+                                      onClick={handleStartEditCaption}
+                                      className="bg-baked-darkest p-3 rounded-md border border-baked-border text-sm hover:border-baked-green/50 cursor-pointer transition-colors group relative"
+                                    >
+                                      {currentContent.caption}
+                                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <span className="text-xs text-baked-green flex items-center gap-1">
+                                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                          </svg>
+                                          Edit
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {currentContent.hashtags && currentContent.hashtags.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                      {currentContent.hashtags.map((tag, idx) => (
+                                        <span key={idx} className="text-xs text-baked-green">
+                                          #{tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </motion.div>
+
+                            {/* Pinky's Images */}
+                            {currentContent.mediaUrls && currentContent.mediaUrls.length > 0 && (
+                              <motion.div
+                                key="pinky-images"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ delay: 0.1 }}
+                                className="flex gap-3 group"
+                              >
+                                <Avatar className="w-10 h-10 border border-baked-border shrink-0">
+                                  <AvatarFallback className="bg-purple-600/20 text-purple-400">P</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 space-y-1.5">
+                                  <div className="flex items-baseline justify-between">
+                                    <span className="font-semibold text-sm">Pinky</span>
+                                    <span className="text-xs text-baked-text-muted">The Visual Artist</span>
+                                  </div>
+                                  <div className="space-y-3">
+                                    <p className="text-sm text-baked-text-secondary">
+                                      Generated {currentContent.mediaUrls.length} visual{currentContent.mediaUrls.length > 1 ? 's' : ''}
+                                    </p>
+                                    <div className={cn(
+                                      "grid gap-2",
+                                      currentContent.mediaUrls.length === 1 ? "grid-cols-1" : "grid-cols-2"
+                                    )}>
+                                      {currentContent.mediaUrls.map((url, idx) => (
+                                        <motion.img
+                                          key={idx}
+                                          initial={{ opacity: 0, scale: 0.9 }}
+                                          animate={{ opacity: 1, scale: 1 }}
+                                          transition={{ delay: 0.2 + (idx * 0.1) }}
+                                          src={url}
+                                          alt={`Generated ${idx + 1}`}
+                                          className="rounded-md object-cover aspect-square border border-baked-border hover:border-baked-green/50 transition-colors cursor-pointer"
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+
+                            {/* Revision Notes */}
+                            {currentContent.revisionNotes && currentContent.revisionNotes.length > 0 && (
+                              <motion.div
+                                key="revision-notes"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 space-y-2"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                                  <span className="font-medium text-yellow-500 text-sm">Revision Requested</span>
+                                </div>
+                                {currentContent.revisionNotes.map((note, idx) => (
+                                  <p key={idx} className="text-xs text-baked-text-secondary">
+                                    {note.note}
+                                  </p>
+                                ))}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        ) : (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="text-center py-12 text-baked-text-muted"
+                          >
+                            <Send className="w-12 h-12 mx-auto mb-3 text-baked-text-muted/50" />
+                            <p className="text-sm">No draft content</p>
+                            <p className="text-xs mt-1">Generate content to start the review process</p>
+                          </motion.div>
+                        )}
+                        </CardContent>
+                    </ScrollArea>
+                     <div className="p-4 border-t border-baked-border bg-baked-darkest shrink-0">
+                        <div className="space-y-3">
+                          <Textarea
+                            value={revisionNote}
+                            onChange={(e) => setRevisionNote(e.target.value)}
+                            placeholder="Request revisions or add feedback..."
+                            className="bg-baked-dark border-baked-border resize-none h-20 text-sm placeholder:text-baked-text-muted/50 focus-visible:ring-baked-green/50"
+                          />
+                          <Button
+                            onClick={handleRevise}
+                            disabled={!currentContent || !revisionNote.trim()}
+                            variant="outline"
+                            className="w-full border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark disabled:opacity-50"
+                          >
+                            Send Revision Request
+                          </Button>
+                        </div>
+                     </div>
+                </Card>
+              </motion.div>
+
+              {/* Column 4: HitL Approval & Publishing */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4, duration: 0.4 }}
+                className="w-[320px] shrink-0 flex flex-col gap-6"
+              >
+                <h3 className="font-semibold text-lg">HitL Approval & Publishing</h3>
+                <div className="space-y-6 flex-1 flex flex-col">
+                    {/* Approval Pipeline */}
+                    <Card className="bg-baked-card border-baked-border shadow-none p-4 space-y-2">
+                        <div className="bg-baked-darkest border border-baked-border rounded-md p-3 text-sm font-medium text-center text-baked-text-secondary">
+                            Pending
+                        </div>
+                        <div className="flex justify-center text-baked-text-muted"><ChevronDown className="w-4 h-4"/></div>
+                         <div className="bg-baked-darkest border border-baked-border rounded-md p-3 text-sm font-medium text-center text-baked-text-secondary">
+                            Under Revision
+                        </div>
+                         <div className="flex justify-center text-baked-text-muted"><ChevronDown className="w-4 h-4"/></div>
+                        <div className="bg-baked-green/10 border border-baked-green/30 rounded-md p-3 text-sm font-medium flex items-center justify-between text-baked-green">
+                            <span>Approved by [User]</span>
+                            <CheckCircle2 className="w-4 h-4 fill-baked-green text-baked-darkest"/>
+                        </div>
+                    </Card>
+
+                     {/* Publishing Schedule */}
+                    <Card className="bg-baked-card border-baked-border shadow-none flex-1 flex flex-col">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-base font-medium">
+                            Publishing Schedule
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex-1 flex flex-col justify-between gap-4">
+                            <Calendar
+                                mode="single"
+                                selected={date}
+                                onSelect={setDate}
+                                className="rounded-md border border-baked-border bg-baked-darkest w-full flex justify-center p-3"
+                                classNames={{
+                                    head_cell: "text-baked-text-muted font-normal text-[0.8rem]",
+                                    cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-baked-green/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                                    day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 hover:bg-baked-dark rounded-md transition-colors text-baked-text-primary",
+                                    day_selected: "bg-baked-green text-baked-darkest hover:bg-baked-green hover:text-baked-darkest focus:bg-baked-green focus:text-baked-darkest",
+                                    day_today: "bg-baked-border/50 text-baked-text-primary",
+                                    nav_button: "border border-baked-border hover:bg-baked-dark hover:text-white transition-colors",
+                                }}
+                            />
+                             <div className="space-y-3">
+                                <Button
+                                  onClick={handleApprove}
+                                  disabled={!currentContent || isApproving !== null}
+                                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold disabled:opacity-50"
+                                >
+                                    {isApproving ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Approving...
+                                      </>
+                                    ) : date ? (
+                                      "Schedule & Publish"
+                                    ) : (
+                                      "Approve & Publish"
+                                    )}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => router.push("/dashboard/inbox")}
+                                  className="w-full border-baked-border text-baked-text-secondary hover:text-white hover:bg-baked-dark"
+                                >
+                                    View in Unified Inbox
+                                </Button>
+                             </div>
+                        </CardContent>
+                    </Card>
+                </div>
+              </motion.div>
+
+            </div>
+            <ScrollBar orientation="horizontal" className="bg-baked-darkest z-10" />
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="linkedin" className="flex-1 flex overflow-hidden m-0 p-0 relative">
+            <TheGrid selectedPlatform={selectedPlatform} />
+            <ScrollArea className="flex-1">
+            <div className="flex-1 p-6 flex gap-6 min-h-full w-full">
+                {/* Same layout as Instagram/TikTok but with LinkedIn-specific placeholder */}
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1, duration: 0.4 }}
+                className="w-[340px] shrink-0 flex flex-col gap-6"
+              >
+                <h3 className="font-semibold text-lg">Prompt Input</h3>
+                <Card className="bg-baked-card border-baked-border shadow-none">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base font-medium">
+                      Campaign Idea
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-baked-text-secondary">Rich text</label>
+                        <Textarea
+                        value={campaignPrompt}
+                        onChange={(e) => setCampaignPrompt(e.target.value)}
+                        placeholder="Describe your LinkedIn campaign... e.g., 'Industry insights on terpene profiles and effects.'"
+                        className="bg-baked-darkest border-baked-border resize-none h-32 text-sm placeholder:text-baked-text-muted/50 focus-visible:ring-baked-green/50"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-baked-text-secondary">Content Type</label>
+                      <Select value={contentType} onValueChange={setContentType}>
+                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                          <SelectValue placeholder="Select Type" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
+                          <SelectItem value="social-post" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Social Post</SelectItem>
+                          <SelectItem value="blog" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Blog Article</SelectItem>
+                          <SelectItem value="email" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Email Newsletter</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-baked-text-secondary">Tone</label>
+                      <Select value={tone} onValueChange={setTone}>
+                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                          <SelectValue placeholder="Select Tone" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
+                          <SelectItem value="professional" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Professional</SelectItem>
+                          <SelectItem value="hype" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Hype / Energetic</SelectItem>
+                          <SelectItem value="educational" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Educational</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                     <div className="space-y-2">
+                      <label className="text-sm font-medium text-baked-text-secondary">Menu Item Integration</label>
+                      <Select value={menuItem} onValueChange={setMenuItem}>
+                        <SelectTrigger className="bg-baked-darkest border-baked-border text-baked-text-primary focus:ring-baked-green/50">
+                          <SelectValue placeholder="e.g., 'Sunset Sherbet Flower'" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-baked-dark border-baked-border text-baked-text-primary">
+                          <SelectItem value="sunset-sherbet" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Sunset Sherbet Flower</SelectItem>
+                          <SelectItem value="blue-dream" className="focus:bg-baked-darkest focus:text-white cursor-pointer">Blue Dream Vape Cart</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      onClick={handleGenerate}
+                      disabled={isGenerating || !campaignPrompt.trim()}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        "Generate Campaign with Craig & Pinky"
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+               {/* Remaining columns same as above... */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+                className="flex-1 text-center py-20 text-baked-text-muted"
+              >
+                <p className="text-sm">LinkedIn content workflow coming soon</p>
+                <p className="text-xs mt-2">Full layout similar to Instagram and TikTok</p>
+              </motion.div>
+
+            </div>
+            <ScrollBar orientation="horizontal" className="bg-baked-darkest z-10" />
+            </ScrollArea>
+          </TabsContent>
         </Tabs>
       </main>
 
