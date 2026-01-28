@@ -47,7 +47,7 @@ import { InboxQRCodeCard } from './artifacts/qr-code-card';
 import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
 import { AgentHandoffNotification } from './agent-handoff-notification';
 import { formatDistanceToNow } from 'date-fns';
-import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inbox';
+import { runInboxAgentChat, addMessageToInboxThread, createInboxThread } from '@/server/actions/inbox';
 import { useJobPoller } from '@/hooks/use-job-poller';
 
 // ============ Agent Name Mapping ============
@@ -313,17 +313,48 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             timestamp: new Date(),
         };
 
-        // Add user message to local state
-        addMessageToThread(thread.id, userMessage);
-
-        // Persist user message to server
-        await addMessageToInboxThread(thread.id, userMessage);
-
         const messageContent = input.trim();
         setInput('');
         setIsSubmitting(true);
 
         try {
+            // Check if this is the first message (thread doesn't exist in Firestore yet)
+            const isFirstMessage = thread.messages.length === 0;
+
+            if (isFirstMessage) {
+                // Create thread in Firestore first
+                const createResult = await createInboxThread({
+                    type: thread.type,
+                    title: thread.title,
+                    primaryAgent: thread.primaryAgent,
+                    projectId: thread.projectId,
+                    brandId: thread.brandId,
+                    dispensaryId: thread.dispensaryId,
+                    initialMessage: userMessage,
+                });
+
+                if (!createResult.success) {
+                    const errorMessage: ChatMessage = {
+                        id: `msg-${Date.now()}`,
+                        type: 'agent',
+                        content: `Failed to create conversation: ${createResult.error || 'Unknown error'}. Please try again.`,
+                        timestamp: new Date(),
+                    };
+                    addMessageToThread(thread.id, errorMessage);
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                // Add user message to local state
+                addMessageToThread(thread.id, userMessage);
+            } else {
+                // Add user message to local state
+                addMessageToThread(thread.id, userMessage);
+
+                // Persist user message to server
+                await addMessageToInboxThread(thread.id, userMessage);
+            }
+
             // Call the inbox agent chat
             const result = await runInboxAgentChat(thread.id, messageContent);
 
