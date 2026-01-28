@@ -1328,6 +1328,119 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         };
     }
 
+    // --- Inbox Artifact Tools (Smokey, Money Mike, Craig) ---
+    if (def.name === 'createCarouselArtifact') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        // Carousel artifacts are handled by the inbox system
+        return {
+            status: 'success',
+            data: {
+                artifactId: `carousel-${Date.now()}`,
+                type: 'carousel',
+                title: inputs.title,
+                productIds: inputs.productIds,
+                rationale: inputs.rationale
+            }
+        };
+    }
+
+    if (def.name === 'createBundleArtifact') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        // Bundle artifacts are handled by the inbox system
+        return {
+            status: 'success',
+            data: {
+                artifactId: `bundle-${Date.now()}`,
+                type: 'bundle',
+                name: inputs.name,
+                bundlePrice: inputs.bundlePrice,
+                savingsPercent: inputs.savingsPercent,
+                rationale: inputs.rationale
+            }
+        };
+    }
+
+    if (def.name === 'createCreativeArtifact') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        // Creative artifacts are handled by the inbox system
+        return {
+            status: 'success',
+            data: {
+                artifactId: `creative-${Date.now()}`,
+                type: 'creative_content',
+                platform: inputs.platform,
+                caption: inputs.caption,
+                hashtags: inputs.hashtags,
+                rationale: inputs.rationale
+            }
+        };
+    }
+
+    if (def.name === 'createQRCodeArtifact') {
+        if (!request.tenantId) throw new Error('Tool requires tenant context.');
+        try {
+            const { generateQRCode } = await import('@/server/actions/qr-code');
+
+            // Parse expiration date if provided
+            let expiresAt: Date | undefined;
+            if (inputs.expiresAt) {
+                expiresAt = new Date(inputs.expiresAt as string);
+            }
+
+            // Generate the QR code with tracking
+            const result = await generateQRCode({
+                type: inputs.type as any,
+                title: inputs.title as string,
+                description: inputs.description as string | undefined,
+                targetUrl: inputs.targetUrl as string,
+                style: inputs.style as any,
+                primaryColor: inputs.primaryColor as string | undefined,
+                backgroundColor: inputs.backgroundColor as string | undefined,
+                logoUrl: inputs.logoUrl as string | undefined,
+                campaign: inputs.campaign as string | undefined,
+                tags: inputs.tags as string[] | undefined,
+                expiresAt
+            });
+
+            if (!result.success || !result.qrCode) {
+                return {
+                    status: 'failed',
+                    error: result.error || 'Failed to generate QR code'
+                };
+            }
+
+            // Return QR code artifact data for inbox system
+            return {
+                status: 'success',
+                data: {
+                    artifactId: result.qrCode.id,
+                    type: 'qr_code',
+                    qrCode: {
+                        id: result.qrCode.id,
+                        type: result.qrCode.type,
+                        title: result.qrCode.title,
+                        description: result.qrCode.description,
+                        targetUrl: result.qrCode.targetUrl,
+                        shortCode: result.qrCode.shortCode,
+                        imageUrl: result.qrCode.imageUrl,
+                        trackingUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/qr/${result.qrCode.shortCode}`,
+                        style: inputs.style,
+                        primaryColor: inputs.primaryColor,
+                        backgroundColor: inputs.backgroundColor,
+                        campaign: inputs.campaign,
+                        tags: inputs.tags
+                    },
+                    rationale: inputs.rationale
+                }
+            };
+        } catch (error: any) {
+            return {
+                status: 'failed',
+                error: `QR code generation failed: ${error.message}`
+            };
+        }
+    }
+
     // --- Internal Support Tools (Felisha & Linus) ---
     if (def.name === 'triageError') {
         try {

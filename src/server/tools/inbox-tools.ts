@@ -8,6 +8,7 @@
 import { z } from 'zod';
 import type { BundleType } from '@/types/bundles';
 import type { SocialPlatform, MediaType, ComplianceStatus } from '@/types/creative-content';
+import type { QRCode } from '@/types/qr-code';
 
 // ============================================================================
 // CAROUSEL ARTIFACT TOOL
@@ -119,6 +120,43 @@ IMPORTANT: Always consider platform-specific requirements and cannabis advertisi
 };
 
 // ============================================================================
+// QR CODE ARTIFACT TOOL
+// Used by Craig to create trackable QR codes for campaigns
+// ============================================================================
+
+export const createQRCodeArtifactSchema = z.object({
+    type: z.enum(['link', 'menu', 'promotion', 'event', 'social', 'vcard'] as const)
+        .describe("QR code type: link=general URL, menu=product menu, promotion=special offer, event=event details, social=social profile, vcard=contact card"),
+    title: z.string().describe("Display title for the QR code (e.g., 'Shop Our Menu', 'Follow Us on Instagram')"),
+    description: z.string().optional().describe("Optional description of what the QR code links to"),
+    targetUrl: z.string().url().describe("Full URL the QR code should direct to"),
+    style: z.enum(['standard', 'rounded', 'dots', 'gradient'] as const).optional()
+        .describe("Visual style of the QR code"),
+    primaryColor: z.string().optional().describe("Primary color for the QR code in hex format (e.g., '#000000')"),
+    backgroundColor: z.string().optional().describe("Background color in hex format (e.g., '#FFFFFF')"),
+    logoUrl: z.string().url().optional().describe("Optional logo to embed in center of QR code"),
+    campaign: z.string().optional().describe("Campaign name for tracking purposes"),
+    tags: z.array(z.string()).optional().describe("Tags for organizing QR codes"),
+    expiresAt: z.string().optional().describe("Optional expiration date in ISO format (YYYY-MM-DD)"),
+    rationale: z.string().describe("Explanation of QR code purpose and campaign strategy"),
+});
+
+export type CreateQRCodeArtifactInput = z.infer<typeof createQRCodeArtifactSchema>;
+
+export const createQRCodeArtifactToolDef = {
+    name: "createQRCodeArtifact",
+    description: `Create a trackable QR code for marketing campaigns. Use this when the user asks for:
+- QR codes for menus, websites, or landing pages
+- Trackable links for print materials (flyers, posters, packaging)
+- Social media profile QR codes
+- Event or promotion QR codes
+- Contactless ordering or menu access
+
+The QR code will include tracking analytics (scans, locations, devices) and can be customized with brand colors and logos.`,
+    schema: createQRCodeArtifactSchema,
+};
+
+// ============================================================================
 // COMBINED INBOX TOOL DEFINITIONS
 // Import these into agent configurations
 // ============================================================================
@@ -127,12 +165,13 @@ export const inboxToolDefs = [
     createCarouselArtifactToolDef,
     createBundleArtifactToolDef,
     createCreativeArtifactToolDef,
+    createQRCodeArtifactToolDef,
 ];
 
 // Per-agent tool sets
 export const smokeyInboxToolDefs = [createCarouselArtifactToolDef];
 export const moneyMikeInboxToolDefs = [createBundleArtifactToolDef];
-export const craigInboxToolDefs = [createCreativeArtifactToolDef];
+export const craigInboxToolDefs = [createCreativeArtifactToolDef, createQRCodeArtifactToolDef];
 
 // ============================================================================
 // TOOL IMPLEMENTATION INTERFACES
@@ -143,6 +182,7 @@ export interface InboxTools {
     createCarouselArtifact(input: CreateCarouselArtifactInput): Promise<CarouselArtifactResult>;
     createBundleArtifact(input: CreateBundleArtifactInput): Promise<BundleArtifactResult>;
     createCreativeArtifact(input: CreateCreativeArtifactInput): Promise<CreativeArtifactResult>;
+    createQRCodeArtifact(input: CreateQRCodeArtifactInput): Promise<QRCodeArtifactResult>;
 }
 
 export interface CarouselArtifactResult {
@@ -203,6 +243,27 @@ export interface CreativeArtifactResult {
     rationale: string;
 }
 
+export interface QRCodeArtifactResult {
+    success: boolean;
+    artifactId: string;
+    qrCode: {
+        id: string;
+        type: QRCode['type'];
+        title: string;
+        description?: string;
+        targetUrl: string;
+        shortCode: string;
+        imageUrl: string;
+        trackingUrl: string;
+        style?: string;
+        primaryColor?: string;
+        backgroundColor?: string;
+        campaign?: string;
+        tags?: string[];
+    };
+    rationale: string;
+}
+
 // ============================================================================
 // ARTIFACT MARKER UTILITIES
 // Functions to format tool outputs as parseable artifact markers
@@ -241,4 +302,15 @@ export function formatCreativeArtifactMarker(result: CreativeArtifactResult): st
         rationale: result.rationale,
     });
     return `:::artifact:creative_content:${result.content.platform} Post\n${data}\n:::`;
+}
+
+/**
+ * Format QR code artifact as marker for parsing
+ */
+export function formatQRCodeArtifactMarker(result: QRCodeArtifactResult): string {
+    const data = JSON.stringify({
+        ...result.qrCode,
+        rationale: result.rationale,
+    });
+    return `:::artifact:qr_code:${result.qrCode.title}\n${data}\n:::`;
 }
