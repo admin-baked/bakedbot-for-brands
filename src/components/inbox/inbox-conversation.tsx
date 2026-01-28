@@ -320,6 +320,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         try {
             // Check if this is the first message (thread doesn't exist in Firestore yet)
             const isFirstMessage = thread.messages.length === 0;
+            let firestoreThreadId = thread.id;
 
             if (isFirstMessage) {
                 // Create thread in Firestore first
@@ -333,7 +334,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                     initialMessage: userMessage,
                 });
 
-                if (!createResult.success) {
+                if (!createResult.success || !createResult.thread) {
                     const errorMessage: ChatMessage = {
                         id: `msg-${Date.now()}`,
                         type: 'agent',
@@ -345,6 +346,9 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                     return;
                 }
 
+                // Use the Firestore thread ID for all subsequent calls
+                firestoreThreadId = createResult.thread.id;
+
                 // Add user message to local state
                 addMessageToThread(thread.id, userMessage);
             } else {
@@ -355,8 +359,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 await addMessageToInboxThread(thread.id, userMessage);
             }
 
-            // Call the inbox agent chat
-            const result = await runInboxAgentChat(thread.id, messageContent);
+            // Call the inbox agent chat with the correct Firestore thread ID
+            const result = await runInboxAgentChat(firestoreThreadId, messageContent);
 
             if (!result.success) {
                 const errorMessage: ChatMessage = {
