@@ -1662,6 +1662,227 @@ const comparison = await compareCampaigns(
 - A/B test comparison
 - Automated campaign optimization recommendations
 
+#### 15. Social Platform API Integrations (Real-Time Metrics Sync)
+**Goal:** Automate engagement metrics collection from Meta, TikTok, and LinkedIn APIs
+
+**Status:** 🔄 High Priority - Planning Phase
+
+**Implementation Plan:**
+
+**Phase 1: OAuth & Authentication Infrastructure**
+- Set up OAuth 2.0 flows for each platform
+- Secure token storage in Firestore (encrypted)
+- Token refresh automation (handle expiration)
+- Platform connection management UI
+- Multi-tenant credential isolation (per brand)
+
+**Phase 2: API Client Libraries**
+- Meta Graph API client (`src/lib/integrations/meta-api.ts`)
+  - Instagram Insights API
+  - Facebook Graph API
+  - Media retrieval and metrics
+- TikTok Business API client (`src/lib/integrations/tiktok-api.ts`)
+  - TikTok Analytics API
+  - Video metrics retrieval
+- LinkedIn Marketing API client (`src/lib/integrations/linkedin-api.ts`)
+  - Organic content analytics
+  - Share statistics
+
+**Phase 3: Metrics Sync Service**
+- Background job scheduler (Cloud Functions or serverless)
+- Metrics polling service (`src/server/services/metrics-sync.ts`)
+  - Poll frequency: Hourly for published content
+  - Batch processing for multiple posts
+  - Rate limiting and quota management
+  - Error handling and retry logic
+- Historical backfill for existing content
+- Real-time webhook listeners (where supported)
+
+**Phase 4: Data Mapping & Storage**
+- Map platform-specific metrics to unified `EngagementMetrics` schema
+- Store in Firestore with timestamps
+- Update `CreativeContent.engagementMetrics` field
+- Historical snapshots for time-series charts
+- Platform-specific insights storage
+
+**Phase 5: UI Integration**
+- Platform connection page (`/dashboard/integrations`)
+  - OAuth authorization buttons
+  - Connection status indicators
+  - Disconnect/reconnect flows
+- Auto-sync toggle per content item
+- Manual "Refresh Metrics" button
+- Last synced timestamp display
+- Sync status indicators (syncing, error, success)
+
+**API Endpoints & Credentials Required:**
+
+**Meta (Instagram/Facebook):**
+- API: Meta Graph API v18.0+
+- Scopes: `instagram_basic`, `instagram_manage_insights`, `pages_read_engagement`
+- Credentials: App ID, App Secret, Access Token
+- Rate Limits: 200 calls per hour (per user token)
+- Endpoints:
+  - `/{media-id}/insights` - Get media metrics
+  - `/{media-id}` - Get media details
+  - `/me/media` - List user media
+
+**TikTok:**
+- API: TikTok Business API
+- Scopes: `video.list`, `video.insights`
+- Credentials: Client Key, Client Secret, Access Token
+- Rate Limits: 100 requests per day (varies by endpoint)
+- Endpoints:
+  - `/video/list` - List videos
+  - `/video/insights` - Get video analytics
+
+**LinkedIn:**
+- API: LinkedIn Marketing API
+- Scopes: `r_organization_social`, `rw_organization_admin`
+- Credentials: Client ID, Client Secret, Access Token
+- Rate Limits: 500 requests per day
+- Endpoints:
+  - `/organizationalEntityShareStatistics` - Share stats
+  - `/shares` - Get shares
+
+**Type System Extensions:**
+```typescript
+// Platform connection credentials (encrypted in Firestore)
+interface PlatformConnection {
+  id: string;
+  tenantId: string;
+  platform: 'meta' | 'tiktok' | 'linkedin';
+  status: 'connected' | 'disconnected' | 'error';
+  accessToken: string; // Encrypted
+  refreshToken?: string; // Encrypted
+  expiresAt: number;
+  connectedAt: number;
+  lastSyncedAt?: number;
+  error?: string;
+}
+
+// Sync job status
+interface MetricsSyncJob {
+  id: string;
+  contentId: string;
+  platform: SocialPlatform;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  startedAt: number;
+  completedAt?: number;
+  error?: string;
+  metricsUpdated?: number;
+}
+
+// Platform-specific API response types
+interface MetaInsightsResponse {
+  data: Array<{
+    name: string;
+    period: string;
+    values: Array<{ value: number }>;
+  }>;
+}
+
+interface TikTokInsightsResponse {
+  data: {
+    video_views: number;
+    likes: number;
+    comments: number;
+    shares: number;
+  };
+}
+```
+
+**Server Actions:**
+```typescript
+// Connect platform account
+await connectPlatform(
+  platform: 'meta' | 'tiktok' | 'linkedin',
+  tenantId: string,
+  authCode: string
+);
+
+// Disconnect platform
+await disconnectPlatform(
+  platform: 'meta' | 'tiktok' | 'linkedin',
+  tenantId: string
+);
+
+// Manual metrics sync
+await syncContentMetrics(
+  contentId: string,
+  tenantId: string,
+  platform: SocialPlatform
+);
+
+// Batch sync all published content
+await syncAllContentMetrics(
+  tenantId: string,
+  platform?: SocialPlatform
+);
+
+// Get connection status
+const status = await getPlatformConnectionStatus(
+  tenantId: string,
+  platform: 'meta' | 'tiktok' | 'linkedin'
+);
+```
+
+**Security Considerations:**
+- Encrypt all access tokens using Firebase App Check
+- Store tokens in Firestore with tenant-level security rules
+- Never expose tokens in client-side code
+- Use server-side API calls only
+- Implement token rotation and refresh
+- Rate limit API calls to prevent abuse
+- Audit log all API interactions
+
+**Error Handling:**
+- Graceful degradation (show cached metrics if API fails)
+- User-friendly error messages
+- Retry logic with exponential backoff
+- Alert admins on repeated failures
+- Manual reconnection flow for expired tokens
+
+**Testing Strategy:**
+- Mock API responses for unit tests
+- Sandbox/test accounts for integration tests
+- Rate limit simulation
+- Token expiration scenarios
+- Network failure handling
+- Concurrent sync job handling
+
+**Files to Create:**
+- `src/lib/integrations/meta-api.ts` - Meta Graph API client
+- `src/lib/integrations/tiktok-api.ts` - TikTok Business API client
+- `src/lib/integrations/linkedin-api.ts` - LinkedIn Marketing API client
+- `src/lib/integrations/oauth-handler.ts` - Universal OAuth flow handler
+- `src/server/services/metrics-sync.ts` - Metrics polling service
+- `src/server/actions/platform-connections.ts` - Connection management actions
+- `src/app/dashboard/integrations/page.tsx` - Platform connection UI
+- `src/components/integrations/platform-card.tsx` - Connection status card
+- `src/types/platform-integrations.ts` - Integration type definitions
+
+**Deployment Checklist:**
+- [ ] Register OAuth apps on Meta Developer Portal
+- [ ] Register OAuth apps on TikTok Developer Portal
+- [ ] Register OAuth apps on LinkedIn Developer Portal
+- [ ] Configure redirect URIs in app settings
+- [ ] Store API credentials in Firebase App Hosting secrets
+- [ ] Set up Cloud Functions for background sync jobs
+- [ ] Configure Firestore security rules for connection data
+- [ ] Set up monitoring and alerting for sync failures
+- [ ] Create admin dashboard for monitoring sync health
+- [ ] Document OAuth setup process for end users
+
+**Estimated Timeline:**
+- Phase 1 (OAuth): 1 week
+- Phase 2 (API Clients): 1 week
+- Phase 3 (Sync Service): 1 week
+- Phase 4 (Data Mapping): 3 days
+- Phase 5 (UI): 1 week
+- Testing & Deployment: 1 week
+- **Total: ~6 weeks**
+
 ### Files Created/Modified
 
 1. **src/app/dashboard/creative/page.tsx** (NEW FILE - ~2,200+ lines)
@@ -1768,6 +1989,8 @@ Deebo (compliance) → Human Approval → Scheduled/Published
 - Engagement analytics dashboard
 - Multi-level approval chain workflow
 - Campaign performance tracking dashboard
+- Fixed Creative Command Center layout issues (removed extra sidebar, fixed horizontal scroll)
+- Updated Creative Command Center color scheme to match Dashboard/Inbox
 - Pushed to: `origin main`
 
 ### Key Insights
@@ -1820,15 +2043,15 @@ await editCaption(contentId, newCaption);
 8. ✅ Approval chain (multi-level review workflow)
 9. ✅ Campaign performance tracking (CTR, conversions over time)
 
-**Medium Priority (Next):**
-10. Social platform API integrations (Meta, TikTok, LinkedIn for real-time metrics)
-11. Real-time metrics syncing automation
+**High Priority (In Progress):**
+10. 🔄 Social platform API integrations (Meta, TikTok, LinkedIn for real-time metrics)
+11. 🔄 Real-time metrics syncing automation
 
 **Low Priority:**
-9. Comments and collaboration features
-10. Performance optimizations (lazy loading)
-11. Advanced template library
-12. A/B testing variations
+12. Comments and collaboration features
+13. Performance optimizations (lazy loading)
+14. Advanced template library
+15. A/B testing variations
 
 ### Related Files
 
