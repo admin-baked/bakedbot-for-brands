@@ -77,6 +77,8 @@ export interface ChatExtraOptions {
     modelLevel?: string;
     audioInput?: string; // base64
     attachments?: { name: string; type: string; base64: string }[];
+    source?: string; // Source identifier (e.g., 'inbox', 'interrupt', 'pulse')
+    context?: Record<string, unknown>; // Additional context for browser automation, etc.
 }
 
 // Local Agent Map
@@ -728,8 +730,12 @@ export async function runAgentCore(
         // ... (Other playbooks) ...
 
         // 2. Media Generation (Image/Video) - Check BEFORE agent handoff
+        // IMPORTANT: Skip media detection for inbox requests to allow agent tools to handle specialized requests
+        // (e.g., Craig's QR code tool instead of misrouting to video generation)
+        const shouldSkipMediaDetection = extraOptions?.source === 'inbox';
+
         const { detectMediaRequest } = await import('@/server/agents/tools/media-detection');
-        const mediaRequestType = detectMediaRequest(userMessage);
+        const mediaRequestType = shouldSkipMediaDetection ? null : detectMediaRequest(userMessage);
 
         if (mediaRequestType === 'image') {
             await emitThought(jobId, 'Tool Detected', 'Image Generation triggered');
