@@ -178,6 +178,12 @@ export interface CreativeContentBase {
 
     /** Approval chain state (multi-level review workflow) */
     approvalState?: ApprovalState;
+
+    /** Campaign ID for performance tracking and grouping */
+    campaignId?: string;
+
+    /** Campaign name for display */
+    campaignName?: string;
 }
 
 /**
@@ -422,4 +428,195 @@ export interface ContentBatch {
     campaignId?: string;
     createdAt: number;
     status: 'draft' | 'pending' | 'approved' | 'published';
+}
+
+/**
+ * Campaign performance metrics aggregated across all content
+ */
+export interface CampaignPerformance {
+    /** Campaign ID */
+    campaignId: string;
+
+    /** Campaign name */
+    campaignName: string;
+
+    /** Total content items in campaign */
+    totalContent: number;
+
+    /** Content by status */
+    contentByStatus: Record<ContentStatus, number>;
+
+    /** Content by platform */
+    contentByPlatform: Record<SocialPlatform, number>;
+
+    /** Aggregated engagement metrics */
+    aggregatedMetrics: {
+        /** Total impressions across all content */
+        totalImpressions: number;
+
+        /** Total reach across all content */
+        totalReach: number;
+
+        /** Total likes */
+        totalLikes: number;
+
+        /** Total comments */
+        totalComments: number;
+
+        /** Total shares */
+        totalShares: number;
+
+        /** Total saves */
+        totalSaves: number;
+
+        /** Average engagement rate */
+        avgEngagementRate: number;
+
+        /** Average click-through rate */
+        avgClickThroughRate?: number;
+
+        /** Total QR code scans */
+        totalQRScans: number;
+    };
+
+    /** Conversion funnel metrics */
+    conversionFunnel: ConversionFunnel;
+
+    /** Time period for these metrics */
+    startDate: string;
+    endDate: string;
+
+    /** Last updated timestamp */
+    lastUpdated: number;
+}
+
+/**
+ * Conversion funnel tracking from awareness to conversion
+ */
+export interface ConversionFunnel {
+    /** Stage 1: Total impressions (awareness) */
+    impressions: number;
+
+    /** Stage 2: Total clicks (interest) */
+    clicks: number;
+
+    /** Stage 3: QR code scans (consideration) */
+    qrScans: number;
+
+    /** Stage 4: Conversions/purchases (action) - future integration */
+    conversions?: number;
+
+    /** Conversion rates between stages */
+    rates: {
+        /** Click-through rate: clicks / impressions */
+        clickRate: number;
+
+        /** QR scan rate: qrScans / clicks */
+        scanRate: number;
+
+        /** Conversion rate: conversions / qrScans */
+        conversionRate?: number;
+
+        /** Overall conversion rate: conversions / impressions */
+        overallConversionRate?: number;
+    };
+}
+
+/**
+ * Time-series snapshot of campaign metrics
+ */
+export interface CampaignMetricSnapshot {
+    /** Date of snapshot (ISO string, day granularity) */
+    date: string;
+
+    /** Impressions on this day */
+    impressions: number;
+
+    /** Reach on this day */
+    reach: number;
+
+    /** Engagement on this day (likes + comments + shares) */
+    engagement: number;
+
+    /** QR scans on this day */
+    qrScans: number;
+
+    /** Click-through rate on this day */
+    clickThroughRate: number;
+
+    /** Engagement rate on this day */
+    engagementRate: number;
+}
+
+/**
+ * Top performing content item in campaign
+ */
+export interface TopPerformingContent {
+    /** Content ID */
+    contentId: string;
+
+    /** Platform */
+    platform: SocialPlatform;
+
+    /** Caption preview (first 100 chars) */
+    captionPreview: string;
+
+    /** Thumbnail URL */
+    thumbnailUrl?: string;
+
+    /** Engagement metrics */
+    metrics: {
+        impressions: number;
+        reach: number;
+        likes: number;
+        comments: number;
+        shares: number;
+        engagementRate: number;
+    };
+
+    /** Published date */
+    publishedAt?: string;
+
+    /** Performance score (0-100, calculated) */
+    performanceScore: number;
+}
+
+/**
+ * Campaign comparison data for side-by-side analysis
+ */
+export interface CampaignComparison {
+    /** Campaigns being compared */
+    campaigns: Array<{
+        campaignId: string;
+        campaignName: string;
+        totalContent: number;
+        avgEngagementRate: number;
+        totalImpressions: number;
+        totalReach: number;
+        totalQRScans: number;
+        conversionRate: number;
+    }>;
+
+    /** Date range for comparison */
+    startDate: string;
+    endDate: string;
+}
+
+/**
+ * Request to get campaign performance data
+ */
+export interface GetCampaignPerformanceRequest {
+    campaignId: string;
+    tenantId: string;
+    startDate?: string;
+    endDate?: string;
+}
+
+/**
+ * Response from campaign performance query
+ */
+export interface GetCampaignPerformanceResponse {
+    performance: CampaignPerformance;
+    timeSeries: CampaignMetricSnapshot[];
+    topPerformingContent: TopPerformingContent[];
 }
