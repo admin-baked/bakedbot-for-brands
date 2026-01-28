@@ -884,4 +884,247 @@ iframe-based embeddable menu widget for external sites.
 
 ---
 
+## 🎨 Inbox Optimization (2026-01-27)
+
+Complete modernization of BakedBot Inbox per Technical Handover Brief requirements. All optimizations implemented and TypeScript checks passing.
+
+### What Was Implemented
+
+#### 1. Task Feed Prominence
+**Goal:** Make agent activity transparent and always visible
+
+**Implementation:**
+- Moved Task Feed from bottom to sticky top position
+- Added backdrop blur glassmorphism effect
+- Smooth slide-in/out animations with Framer Motion
+- Always visible during agent processing
+
+**Key File:** `src/components/inbox/inbox-conversation.tsx`
+
+```typescript
+<motion.div
+  initial={{ opacity: 0, height: 0 }}
+  animate={{ opacity: 1, height: 'auto' }}
+  exit={{ opacity: 0, height: 0 }}
+  className="sticky top-0 z-10 px-4 pt-3 pb-2
+             bg-gradient-to-b from-background to-background/80
+             backdrop-blur-md border-b border-white/5"
+>
+  <InboxTaskFeed agentPersona={thread.primaryAgent} isRunning={isSubmitting} />
+</motion.div>
+```
+
+#### 2. Enhanced Green Check Button (HitL)
+**Goal:** Make approval action unmissable ("Green Check is primary user success action")
+
+**Implementation:**
+- Gradient background: green-600 → green-500 → green-400
+- Animated shine effect sweeping across button (3s loop)
+- Pulsing glow behind button (2s cycle)
+- Larger size (h-14) with bold text
+- Scale animations on hover/tap
+
+**Key File:** `src/components/inbox/inbox-artifact-panel.tsx`
+
+**Visual Effect:**
+- Shine: Infinite horizontal sweep of white gradient
+- Glow: Pulsing blur effect at 30-60% opacity
+- Hover: Scale up to 103%
+- Tap: Scale down to 97%
+
+#### 3. QR Code Feature (Complete System)
+**Goal:** Generate standalone, trackable QR codes for products, menus, promotions
+
+**Implementation:**
+- Full type system with analytics support
+- Server actions for generation, tracking, and analytics
+- Display component with download capability
+- Integration into inbox thread types and quick actions
+- Firestore collections: `qr_codes`, `qr_scans`
+- Uses `qrcode` npm package for 1024x1024 PNG generation
+- Short code tracking: `bakedbot.ai/qr/{shortCode}`
+
+**New Files Created:**
+1. `src/types/qr-code.ts` (231 lines) — Types, interfaces, utilities
+2. `src/server/actions/qr-code.ts` (328 lines) — Server actions (generate, track, analytics)
+3. `src/components/inbox/artifacts/qr-code-card.tsx` (170 lines) — Display component
+
+**QR Code Types:**
+- `product` — Individual product QR
+- `menu` — Full menu link
+- `promotion` — Campaign/offer link
+- `event` — Event registration
+- `loyalty` — Loyalty program signup
+- `custom` — General purpose
+
+**Analytics Features:**
+- Total scans and unique scans tracking
+- Device type detection (mobile/desktop/tablet)
+- Location tracking (if available)
+- Scans by date aggregation
+- Last scanned timestamp
+
+**Quick Action Added:**
+```typescript
+{
+  id: 'create-qr',
+  label: 'QR Code',
+  description: 'Generate trackable QR codes for products, menus, or promotions',
+  icon: 'QrCode',
+  threadType: 'qr_code',
+  defaultAgent: 'craig',
+}
+```
+
+#### 4. Remote Sidecar Routing
+**Goal:** Offload heavy research to prevent blocking Next.js runtime
+
+**Implementation:**
+- Conditional routing logic for Big Worm and Roach agents
+- Detects heavy research thread types
+- Routes to Python sidecar if available via `RemoteMcpClient`
+- Graceful fallback to local execution if sidecar unavailable
+- Environment variable: `PYTHON_SIDECAR_ENDPOINT`
+
+**Key File:** `src/server/actions/inbox.ts`
+
+**Routed Agents:**
+- `big_worm` — Deep research
+- `roach` — Compliance research
+
+**Routed Thread Types:**
+- `deep_research`
+- `compliance_research`
+- `market_research`
+
+```typescript
+const REMOTE_THREAD_TYPES = ['deep_research', 'compliance_research', 'market_research'];
+const REMOTE_AGENTS: InboxAgentPersona[] = ['big_worm', 'roach'];
+
+if (shouldUseRemote && process.env.PYTHON_SIDECAR_ENDPOINT) {
+  const sidecarClient = getRemoteMcpClient();
+  if (sidecarClient) {
+    const jobResult = await sidecarClient.startJob({
+      method: 'agent.execute',
+      params: { agent, query, context }
+    });
+    // Poll for completion...
+  }
+}
+// Fallback to local execution
+```
+
+#### 5. Agent Handoffs (Discovery)
+**Status:** Already implemented!
+
+During codebase audit, discovered that agent handoff visualization was already fully implemented:
+- `handoffHistory` field in `InboxThread` schema
+- `AgentHandoffNotification` component exists
+- Detection logic in `inbox-conversation.tsx`
+- Server action: `handoffToAgent()`
+
+**Result:** Saved ~3 hours by not reimplementing existing feature.
+
+#### 6. Color Palette Alignment
+**Goal:** Match Technical Brief exactly
+
+**Status:** ✅ Already implemented in `tailwind.config.ts`
+
+```typescript
+baked: {
+  darkest: '#0a120a',  // Main background
+  dark: '#0f1a12',     // Sidebar
+  card: '#142117',     // Cards
+  border: '#1f3324',   // Borders
+  green: {
+    DEFAULT: '#4ade80', // Bright accent
+    muted: '#2f5e3d',
+    subtle: '#1a3b26'
+  }
+}
+```
+
+### Files Modified
+
+1. **src/components/inbox/inbox-conversation.tsx**
+   - Moved Task Feed to sticky top position
+   - Added QR code card integration
+
+2. **src/components/inbox/inbox-artifact-panel.tsx**
+   - Enhanced Green Check button with gradient and animations
+
+3. **src/types/inbox.ts**
+   - Added `qr_code` thread type and artifact type
+   - Updated all type mappings
+
+4. **src/components/inbox/inbox-sidebar.tsx**
+   - Added QR filter label
+
+5. **src/server/actions/inbox.ts**
+   - Added remote sidecar routing logic
+   - Added QR code thread context
+
+### Documentation Created
+
+- **dev/inbox-optimization-plan-2026-01.md** (400+ lines) — Detailed planning document with gap analysis
+- **dev/inbox-optimization-complete-2026-01.md** (extensive) — Complete implementation summary
+
+### Testing & Verification
+
+- All TypeScript checks passing: ✅
+- Build status: ✅ Healthy
+- Commit: `04fdf9e6`
+- Pushed to: `origin main`
+
+### Technical Brief Alignment
+
+| Requirement | Status |
+|-------------|--------|
+| "Conversation → Artifact" paradigm | ✅ Already implemented |
+| Task Feed transparency | ✅ Now persistent at top |
+| HitL Green Check emphasis | ✅ Enhanced with animations |
+| Multi-agent handoffs | ✅ Already implemented |
+| Remote sidecar routing | ✅ Implemented |
+| Glassmorphism + animations | ✅ Already implemented |
+| Color palette | ✅ Already aligned |
+
+### Key Insights
+
+1. **Agent handoffs were already built** — Saved significant time by auditing before implementing
+2. **Framer Motion is heavily utilized** — All animations use Framer, not CSS keyframes
+3. **Type system required updates** — Added `qr_code` to all `Record<InboxThreadType, ...>` mappings
+4. **RemoteMcpClient uses method/params structure** — Not type/agent (corrected during implementation)
+
+### Quick Reference
+
+**QR Code Generation:**
+```typescript
+import { generateQRCode } from '@/server/actions/qr-code';
+
+const result = await generateQRCode({
+  type: 'product',
+  title: 'Blue Dream 3.5g',
+  targetUrl: 'https://shop.mybrand.com/products/blue-dream',
+  campaign: 'spring-sale-2026',
+  tags: ['flower', 'sativa'],
+});
+```
+
+**Check Sidecar Health:**
+```typescript
+import { getRemoteMcpClient } from '@/server/services/remote-mcp-client';
+
+const client = getRemoteMcpClient();
+const health = await client?.healthCheck();
+```
+
+### Related Files
+
+- Technical Brief requirements: `dev/inbox-optimization-plan-2026-01.md`
+- Complete implementation details: `dev/inbox-optimization-complete-2026-01.md`
+- QR code types: `src/types/qr-code.ts`
+- Remote MCP client: `src/server/services/remote-mcp-client.ts`
+
+---
+
 *This context loads automatically. For domain-specific details, consult `.agent/refs/`.*
