@@ -963,7 +963,9 @@ export async function runAgentCore(
 
         // === CLAUDE TOOL CALLING ===
         // Route tool-heavy requests to Claude for superior tool execution
-        if (isClaudeAvailable() && shouldUseClaudeTools(userMessage) && isSuperUser) {
+        // Allow for super users OR inbox requests (brand users creating QR codes, etc.)
+        const allowClaudeTools = isSuperUser || extraOptions?.source === 'inbox';
+        if (isClaudeAvailable() && shouldUseClaudeTools(userMessage) && allowClaudeTools) {
             await emitThought(jobId, 'Claude Mode', 'Routing to Claude for enhanced tool calling...');
             
             try {
