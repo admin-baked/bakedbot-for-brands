@@ -90,6 +90,8 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
 
         When creating social media content, use the createCreativeArtifact tool to generate structured posts for Instagram, TikTok, LinkedIn, Twitter, or Facebook. Include captions, hashtags, and compliance notes.
 
+        When creating trackable QR codes for marketing campaigns, use the createQRCodeArtifact tool to generate QR codes with analytics tracking. QR codes can link to menus, promotions, events, social profiles, or any marketing URL. Customize with brand colors and logos.
+
         Output Format:
         Respond as a charismatic marketing partner. No technical IDs. Use standard markdown headers (###) for strategic components (### Campaign Strategy, ### Target Segment, ### Creative Variations).
         Always cite the source of any data you reference.
