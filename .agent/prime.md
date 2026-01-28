@@ -1542,6 +1542,126 @@ await initializeApprovalChain(
 - Role-based permission checking on server and client
 - Real-time updates via Firestore listeners
 
+#### 14. Campaign Performance Tracking
+**Goal:** Track campaign performance with CTR, conversions, and time-series analytics
+
+**Implementation:**
+- Comprehensive performance dashboard component
+- Server-side aggregation of metrics across campaign content
+- Conversion funnel visualization (impressions → clicks → QR scans → conversions)
+- Time-series charts showing daily performance trends
+- Top performing content leaderboard
+- Platform and status breakdowns
+- Campaign comparison capabilities
+
+**Key Features:**
+- **Aggregated Metrics:**
+  - Total impressions, reach, likes, comments, shares, saves
+  - Average engagement rate and click-through rate
+  - Total QR code scans
+  - Metrics calculated across all content in campaign
+
+- **Conversion Funnel:**
+  - Stage 1: Impressions (awareness)
+  - Stage 2: Clicks (interest)
+  - Stage 3: QR Scans (consideration)
+  - Stage 4: Conversions (action) - ready for future integration
+  - Conversion rates between each stage
+
+- **Time-Series Analysis:**
+  - Daily metric snapshots
+  - Interactive chart with metric toggles (impressions/engagement/QR scans)
+  - Trend visualization with hover tooltips
+  - Date range filtering
+
+- **Top Performing Content:**
+  - Performance score calculation (0-100)
+  - Weighted scoring: engagement rate (50%), reach (30%), CTR (20%)
+  - Leaderboard with rank badges (gold/silver/bronze)
+  - Thumbnail previews and metric breakdown
+
+- **Platform & Status Breakdowns:**
+  - Content distribution by platform (Instagram, TikTok, LinkedIn)
+  - Content distribution by status (published, scheduled, approved, etc.)
+  - Animated progress bars with percentages
+
+**Type System:**
+```typescript
+interface CampaignPerformance {
+  campaignId: string;
+  campaignName: string;
+  totalContent: number;
+  contentByStatus: Record<ContentStatus, number>;
+  contentByPlatform: Record<SocialPlatform, number>;
+  aggregatedMetrics: {
+    totalImpressions: number;
+    totalReach: number;
+    totalLikes: number;
+    totalComments: number;
+    totalShares: number;
+    totalSaves: number;
+    avgEngagementRate: number;
+    avgClickThroughRate?: number;
+    totalQRScans: number;
+  };
+  conversionFunnel: ConversionFunnel;
+  startDate: string;
+  endDate: string;
+  lastUpdated: number;
+}
+
+interface ConversionFunnel {
+  impressions: number;
+  clicks: number;
+  qrScans: number;
+  conversions?: number;
+  rates: {
+    clickRate: number;
+    scanRate: number;
+    conversionRate?: number;
+    overallConversionRate?: number;
+  };
+}
+```
+
+**Server Actions:**
+```typescript
+// Get campaign performance
+const result = await getCampaignPerformance(
+  campaignId,
+  tenantId,
+  startDate,
+  endDate
+);
+
+// Compare multiple campaigns
+const comparison = await compareCampaigns(
+  ['campaign-1', 'campaign-2'],
+  tenantId,
+  startDate,
+  endDate
+);
+```
+
+**Performance Calculation:**
+- Performance score = (engagementRate/10 * 50) + (reach/10000 * 30) + (CTR/5 * 20)
+- Engagement rate = (likes + comments + shares) / impressions * 100
+- Click rate = clicks / impressions * 100
+- Scan rate = qrScans / clicks * 100
+
+**Visual Design:**
+- 2x2 metric card grid with animated counters
+- Conversion funnel with progressive width bars
+- Time-series bar chart with 30-day display
+- Top content cards with rank badges
+- Platform/status distribution bars
+
+**Future Integration:**
+- Direct conversion tracking from e-commerce platforms
+- Revenue attribution per campaign
+- A/B test comparison
+- Automated campaign optimization recommendations
+
 ### Files Created/Modified
 
 1. **src/app/dashboard/creative/page.tsx** (NEW FILE - ~2,200+ lines)
@@ -1593,6 +1713,14 @@ await initializeApprovalChain(
    - Animated level transitions and status indicators
    - Conditional rendering based on user role and approval state
 
+7. **src/components/creative/campaign-performance.tsx** (NEW FILE - 650+ lines)
+   - Campaign performance dashboard component
+   - Aggregated metrics display (impressions, reach, engagement, QR scans)
+   - Conversion funnel visualization with progressive bars
+   - Time-series chart with interactive metric toggles
+   - Top performing content leaderboard with rank badges
+   - Platform and status breakdown bars
+
 ### Architecture Pattern
 
 **4-Column Layout:**
@@ -1629,9 +1757,9 @@ Deebo (compliance) → Human Approval → Scheduled/Published
 
 - All TypeScript checks passing: ✅
 - Build status: ✅ Healthy
-- Latest features: QR analytics + Menu autocomplete + Approval Chain ✅
-- Integration: Firestore menu data loading working ✅
-- All 8 high-priority features completed ✅
+- Latest features: Campaign Performance Tracking ✅
+- Integration: All components compile without errors ✅
+- All 9 high-priority features completed ✅
 
 **Recent Commits:**
 - Image upload, batch mode, hero carousel tab
@@ -1639,6 +1767,7 @@ Deebo (compliance) → Human Approval → Scheduled/Published
 - Menu item autocomplete from Firestore
 - Engagement analytics dashboard
 - Multi-level approval chain workflow
+- Campaign performance tracking dashboard
 - Pushed to: `origin main`
 
 ### Key Insights
@@ -1689,10 +1818,11 @@ await editCaption(contentId, newCaption);
 6. ✅ Menu item autocomplete from Firestore
 7. ✅ Engagement analytics integration (social media metrics dashboard)
 8. ✅ Approval chain (multi-level review workflow)
+9. ✅ Campaign performance tracking (CTR, conversions over time)
 
 **Medium Priority (Next):**
-9. Campaign performance tracking (CTR, conversions over time)
 10. Social platform API integrations (Meta, TikTok, LinkedIn for real-time metrics)
+11. Real-time metrics syncing automation
 
 **Low Priority:**
 9. Comments and collaboration features

@@ -992,3 +992,340 @@ function getRequiredRolesForLevel(level: number): string[] {
     };
     return rolesByLevel[level] || ['super_user'];
 }
+
+// ==================== CAMPAIGN PERFORMANCE TRACKING ====================
+
+/**
+ * Get campaign performance metrics with aggregated data
+ */
+export async function getCampaignPerformance(
+    campaignId: string,
+    tenantId: string,
+    startDate?: string,
+    endDate?: string
+): Promise<{
+    success: boolean;
+    data?: {
+        performance: any;
+        timeSeries: any[];
+        topPerformingContent: any[];
+    };
+    error?: string;
+}> {
+    try {
+        const { firestore } = await createServerClient();
+
+        // Query all content for this campaign
+        const contentQuery = firestore
+            .collection(`tenants/${tenantId}/${COLLECTION}`)
+            .where('campaignId', '==', campaignId);
+
+        const contentSnapshot = await contentQuery.get();
+
+        if (contentSnapshot.empty) {
+            return {
+                success: true,
+                data: {
+                    performance: null,
+                    timeSeries: [],
+                    topPerformingContent: [],
+                },
+            };
+        }
+
+        const allContent = contentSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+        })) as CreativeContent[];
+
+        // Calculate aggregated metrics
+        const contentByStatus: Record<ContentStatus, number> = {
+            draft: 0,
+            pending: 0,
+            approved: 0,
+            revision: 0,
+            scheduled: 0,
+            published: 0,
+            failed: 0,
+        };
+
+        const contentByPlatform: Record<SocialPlatform, number> = {
+            instagram: 0,
+            tiktok: 0,
+            linkedin: 0,
+            twitter: 0,
+            facebook: 0,
+        };
+
+        let totalImpressions = 0;
+        let totalReach = 0;
+        let totalLikes = 0;
+        let totalComments = 0;
+        let totalShares = 0;
+        let totalSaves = 0;
+        let totalQRScans = 0;
+        let engagementRateSum = 0;
+        let ctrSum = 0;
+        let contentWithMetrics = 0;
+        let contentWithCTR = 0;
+
+        allContent.forEach((content) => {
+            // Count by status
+            contentByStatus[content.status]++;
+
+            // Count by platform
+            contentByPlatform[content.platform]++;
+
+            // Aggregate engagement metrics
+            if (content.engagementMetrics) {
+                totalImpressions += content.engagementMetrics.impressions || 0;
+                totalReach += content.engagementMetrics.reach || 0;
+                totalLikes += content.engagementMetrics.likes || 0;
+                totalComments += content.engagementMetrics.comments || 0;
+                totalShares += content.engagementMetrics.shares || 0;
+                totalSaves += content.engagementMetrics.saves || 0;
+                engagementRateSum += content.engagementMetrics.engagementRate || 0;
+                contentWithMetrics++;
+
+                if (content.engagementMetrics.clickThroughRate) {
+                    ctrSum += content.engagementMetrics.clickThroughRate;
+                    contentWithCTR++;
+                }
+            }
+
+            // Aggregate QR scans
+            if (content.qrStats) {
+                totalQRScans += content.qrStats.scans || 0;
+            }
+        });
+
+        const avgEngagementRate = contentWithMetrics > 0 ? engagementRateSum / contentWithMetrics : 0;
+        const avgClickThroughRate = contentWithCTR > 0 ? ctrSum / contentWithCTR : undefined;
+
+        // Calculate conversion funnel
+        const totalClicks = totalImpressions > 0 && avgClickThroughRate
+            ? Math.round((totalImpressions * avgClickThroughRate) / 100)
+            : 0;
+
+        const clickRate = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+        const scanRate = totalClicks > 0 ? (totalQRScans / totalClicks) * 100 : 0;
+
+        const performance = {
+            campaignId,
+            campaignName: allContent[0]?.campaignName || 'Unnamed Campaign',
+            totalContent: allContent.length,
+            contentByStatus,
+            contentByPlatform,
+            aggregatedMetrics: {
+                totalImpressions,
+                totalReach,
+                totalLikes,
+                totalComments,
+                totalShares,
+                totalSaves,
+                avgEngagementRate,
+                avgClickThroughRate,
+                totalQRScans,
+            },
+            conversionFunnel: {
+                impressions: totalImpressions,
+                clicks: totalClicks,
+                qrScans: totalQRScans,
+                rates: {
+                    clickRate,
+                    scanRate,
+                },
+            },
+            startDate: startDate || new Date(0).toISOString(),
+            endDate: endDate || new Date().toISOString(),
+            lastUpdated: Date.now(),
+        };
+
+        // Generate time-series data (daily snapshots)
+        const timeSeries = generateCampaignTimeSeries(
+            allContent,
+            startDate || new Date(0).toISOString(),
+            endDate || new Date().toISOString()
+        );
+
+        // Get top performing content
+        const topPerformingContent = getTopPerformingContentItems(allContent, 5);
+
+        logger.info('[getCampaignPerformance] Performance data retrieved', {
+            campaignId,
+            totalContent: allContent.length,
+        });
+
+        return {
+            success: true,
+            data: {
+                performance,
+                timeSeries,
+                topPerformingContent,
+            },
+        };
+    } catch (error: unknown) {
+        logger.error('[getCampaignPerformance] Error:', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to get campaign performance',
+        };
+    }
+}
+
+/**
+ * Generate daily time-series snapshots for campaign
+ */
+function generateCampaignTimeSeries(
+    content: CreativeContent[],
+    startDate: string,
+    endDate: string
+): any[] {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const dayMap = new Map<string, any>();
+
+    // Initialize days
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateKey = d.toISOString().split('T')[0];
+        dayMap.set(dateKey, {
+            date: dateKey,
+            impressions: 0,
+            reach: 0,
+            engagement: 0,
+            qrScans: 0,
+            clickThroughRate: 0,
+            engagementRate: 0,
+            count: 0,
+        });
+    }
+
+    // Aggregate metrics by day (based on publishedAt)
+    content.forEach((item) => {
+        if (!item.publishedAt || !item.engagementMetrics) return;
+
+        const publishDate = new Date(item.publishedAt).toISOString().split('T')[0];
+        const dayData = dayMap.get(publishDate);
+
+        if (dayData) {
+            dayData.impressions += item.engagementMetrics.impressions || 0;
+            dayData.reach += item.engagementMetrics.reach || 0;
+            dayData.engagement +=
+                (item.engagementMetrics.likes || 0) +
+                (item.engagementMetrics.comments || 0) +
+                (item.engagementMetrics.shares || 0);
+            dayData.qrScans += item.qrStats?.scans || 0;
+            dayData.clickThroughRate += item.engagementMetrics.clickThroughRate || 0;
+            dayData.engagementRate += item.engagementMetrics.engagementRate || 0;
+            dayData.count++;
+        }
+    });
+
+    // Calculate averages
+    const timeSeries = Array.from(dayMap.values()).map((day) => ({
+        ...day,
+        clickThroughRate: day.count > 0 ? day.clickThroughRate / day.count : 0,
+        engagementRate: day.count > 0 ? day.engagementRate / day.count : 0,
+    }));
+
+    return timeSeries;
+}
+
+/**
+ * Get top performing content items by performance score
+ */
+function getTopPerformingContentItems(content: CreativeContent[], limit: number = 5): any[] {
+    const scoredContent = content
+        .filter((item) => item.engagementMetrics && item.status === 'published')
+        .map((item) => {
+            const metrics = item.engagementMetrics!;
+
+            // Calculate performance score (0-100)
+            // Weighted: engagement rate (50%), reach (30%), CTR (20%)
+            const engagementScore = Math.min((metrics.engagementRate / 10) * 50, 50);
+            const reachScore = Math.min((metrics.reach / 10000) * 30, 30);
+            const ctrScore = metrics.clickThroughRate
+                ? Math.min((metrics.clickThroughRate / 5) * 20, 20)
+                : 0;
+
+            const performanceScore = Math.round(engagementScore + reachScore + ctrScore);
+
+            return {
+                contentId: item.id,
+                platform: item.platform,
+                captionPreview: item.caption.slice(0, 100),
+                thumbnailUrl: item.thumbnailUrl || item.mediaUrls[0],
+                metrics: {
+                    impressions: metrics.impressions,
+                    reach: metrics.reach,
+                    likes: metrics.likes,
+                    comments: metrics.comments,
+                    shares: metrics.shares,
+                    engagementRate: metrics.engagementRate,
+                },
+                publishedAt: item.publishedAt,
+                performanceScore,
+            };
+        })
+        .sort((a, b) => b.performanceScore - a.performanceScore)
+        .slice(0, limit);
+
+    return scoredContent;
+}
+
+/**
+ * Compare multiple campaigns side-by-side
+ */
+export async function compareCampaigns(
+    campaignIds: string[],
+    tenantId: string,
+    startDate?: string,
+    endDate?: string
+): Promise<{
+    success: boolean;
+    data?: any;
+    error?: string;
+}> {
+    try {
+        const campaigns = [];
+
+        for (const campaignId of campaignIds) {
+            const result = await getCampaignPerformance(campaignId, tenantId, startDate, endDate);
+
+            if (result.success && result.data?.performance) {
+                const perf = result.data.performance;
+                campaigns.push({
+                    campaignId: perf.campaignId,
+                    campaignName: perf.campaignName,
+                    totalContent: perf.totalContent,
+                    avgEngagementRate: perf.aggregatedMetrics.avgEngagementRate,
+                    totalImpressions: perf.aggregatedMetrics.totalImpressions,
+                    totalReach: perf.aggregatedMetrics.totalReach,
+                    totalQRScans: perf.aggregatedMetrics.totalQRScans,
+                    conversionRate: perf.conversionFunnel.rates.scanRate,
+                });
+            }
+        }
+
+        const comparison = {
+            campaigns,
+            startDate: startDate || new Date(0).toISOString(),
+            endDate: endDate || new Date().toISOString(),
+        };
+
+        logger.info('[compareCampaigns] Campaigns compared', {
+            campaignCount: campaigns.length,
+        });
+
+        return {
+            success: true,
+            data: comparison,
+        };
+    } catch (error: unknown) {
+        logger.error('[compareCampaigns] Error:', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to compare campaigns',
+        };
+    }
+}
