@@ -6,7 +6,7 @@
  * Left sidebar with quick actions, thread filters, and thread list.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import {
     Plus,
     Search,
@@ -298,10 +298,17 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
         setSidebarCollapsed,
         getFilteredThreads,
         getQuickActions,
+        loadQuickActions,
+        currentRole,
     } = useInboxStore();
 
     const threads = getFilteredThreads();
     const quickActions = getQuickActions();
+
+    // Load quick actions when role changes
+    useEffect(() => {
+        loadQuickActions();
+    }, [currentRole, loadQuickActions]);
 
     // Group threads by status
     const activeThreads = threads.filter((t) => t.status === 'active' || t.status === 'draft');

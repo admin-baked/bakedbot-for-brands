@@ -22,7 +22,7 @@ import {
     createInboxArtifactId,
     getDefaultAgentForThreadType,
     getSupportingAgentsForThreadType,
-    getQuickActionsForRole,
+    getQuickActionsForRoleAsync,
 } from '@/types/inbox';
 
 // ============ Store State Interface ============
@@ -35,6 +35,7 @@ interface InboxState {
 
     // Quick action state
     quickActionMode: InboxThreadType | null;
+    quickActions: InboxQuickAction[];
 
     // Artifact management (inbox-specific)
     inboxArtifacts: InboxArtifact[];
@@ -76,6 +77,7 @@ interface InboxState {
 
     // Quick action
     setQuickActionMode: (mode: InboxThreadType | null) => void;
+    loadQuickActions: () => Promise<void>;
 
     // Artifact actions
     addArtifactToThread: (threadId: string, artifact: Omit<InboxArtifact, 'id' | 'createdAt' | 'updatedAt'>) => InboxArtifact;
@@ -127,6 +129,7 @@ export const useInboxStore = create<InboxState>()(
             activeThreadId: null,
             threadFilter: DEFAULT_FILTER,
             quickActionMode: null,
+            quickActions: [],
             inboxArtifacts: [],
             selectedArtifactId: null,
             isArtifactPanelOpen: false,
@@ -280,6 +283,22 @@ export const useInboxStore = create<InboxState>()(
 
             setQuickActionMode: (mode) => {
                 set({ quickActionMode: mode });
+            },
+
+            loadQuickActions: async () => {
+                const { currentRole, currentOrgId } = get();
+                if (!currentRole) {
+                    set({ quickActions: [] });
+                    return;
+                }
+
+                try {
+                    const actions = await getQuickActionsForRoleAsync(currentRole, currentOrgId || undefined);
+                    set({ quickActions: actions });
+                } catch (error) {
+                    console.error('[InboxStore] Failed to load quick actions:', error);
+                    set({ quickActions: [] });
+                }
             },
 
             // ============ Artifact Actions ============
@@ -476,9 +495,7 @@ export const useInboxStore = create<InboxState>()(
             },
 
             getQuickActions: () => {
-                const { currentRole } = get();
-                if (!currentRole) return [];
-                return getQuickActionsForRole(currentRole);
+                return get().quickActions;
             },
         }),
         {

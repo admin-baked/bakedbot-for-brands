@@ -1,0 +1,272 @@
+[
+  {
+    "question": "How do I review our company's growth metrics?",
+    "ideal_answer": "Use the 'Growth Review' quick action. I'll analyze key metrics including MRR/ARR growth, customer acquisition, churn rate, expansion revenue, CAC payback period, and growth trajectory. I'll identify what's driving growth, spot concerning trends, and recommend high-leverage opportunities. You'll get a comprehensive view of momentum across all business areas.",
+    "context": "Executive team needs regular growth pulse checks to make strategic decisions and identify issues early.",
+    "intent": "growth_analysis",
+    "keywords": ["growth", "metrics", "KPIs", "MRR", "ARR", "momentum"],
+    "priority": "critical",
+    "category": "growth_management"
+  },
+  {
+    "question": "How can I identify and prevent customer churn?",
+    "ideal_answer": "Use the 'Churn Analysis' quick action. I'll analyze customer health scores, engagement patterns, usage trends, and  payment history to identify at-risk accounts. I'll segment by churn risk level, identify common patterns, and recommend targeted retention interventions. You can create automated playbooks for different risk levels and track the effectiveness of retention efforts.",
+    "context": "Preventing churn is more cost-effective than acquisition - early identification enables proactive intervention.",
+    "intent": "churn_prevention",
+    "keywords": ["churn", "retention", "at-risk customers", "customer health"],
+    "priority": "critical",
+    "category": "growth_management"
+  },
+  {
+    "question": "How do I forecast revenue and model different scenarios?",
+    "ideal_answer": "Use the 'Revenue Forecast' quick action. I'll build models based on your current metrics, growth trends, and key assumptions. You can run scenarios for best/worst/likely cases, model the impact of pricing changes, expansion strategies, or new product launches. I'll show sensitivity analysis for key variables and help you plan resources accordingly.",
+    "context": "Revenue forecasting guides resource allocation, fundraising, and strategic planning.",
+    "intent": "financial_planning",
+    "keywords": ["revenue", "forecast", "modeling", "scenarios", "projections"],
+    "priority": "high",
+    "category": "finance"
+  },
+  {
+    "question": "How can I monitor our sales pipeline and deal velocity?",
+    "ideal_answer": "Use the 'Pipeline Review' quick action. I'll analyze deal stages, conversion rates, velocity, bottlenecks, and win/loss patterns. I can identify which deals need attention, forecast close timing, and recommend actions to accelerate stuck deals. You'll see pipeline health, coverage ratio, and whether you're on track to hit targets.",
+    "context": "Pipeline visibility enables accurate forecasting and early identification of revenue risks.",
+    "intent": "sales_management",
+    "keywords": ["pipeline", "deals", "sales", "conversion", "velocity"],
+    "priority": "high",
+    "category": "growth_management"
+  },
+  {
+    "question": "How do I assess customer health across segments?",
+    "ideal_answer": "Use the 'Customer Health' quick action. I'll analyze engagement scores, product adoption, support tickets, payment health, and growth indicators across customer segments. I'll identify healthy/at-risk/expanding accounts, compare cohorts, and track leading indicators. You can set up automated health scoring and trigger interventions based on score changes.",
+    "context": "Customer health monitoring prevents surprises and enables proactive account management.",
+    "intent": "customer_success",
+    "keywords": ["customer health", "engagement", "adoption", "segments"],
+    "priority": "high",
+    "category": "customer_success"
+  },
+  {
+    "question": "How can I gather competitive intelligence on pricing and positioning?",
+    "ideal_answer": "Use the 'Market Intel' quick action with Ezal. I'll research competitor pricing, product features, positioning, and market moves. I can monitor competitor websites, analyze their marketing messaging, track pricing changes, and identify market gaps. You'll get actionable intelligence to inform product strategy, pricing decisions, and competitive positioning.",
+    "context": "Competitive intelligence helps identify threats, opportunities, and market positioning gaps.",
+    "intent": "competitive_analysis",
+    "keywords": ["competitive intelligence", "market research", "competitors", "pricing"],
+    "priority": "medium",
+    "category": "strategic_initiatives"
+  },
+  {
+    "question": "How do I plan partnership outreach and expansion?",
+    "ideal_answer": "Use the 'BizDev' quick action with Glenda. I'll help identify potential partners, analyze partnership fit, draft outreach messaging, and create partnership proposals. I can research companies in your target sectors, find decision-makers, and craft compelling value propositions. You'll get a structured approach to building strategic partnerships.",
+    "context": "Strategic partnerships can accelerate growth, expand distribution, or add capabilities.",
+    "intent": "business_development",
+    "keywords": ["partnerships", "bizdev", "expansion", "outreach", "alliances"],
+    "priority": "medium",
+    "category": "strategic_initiatives"
+  },
+  {
+    "question": "How can I plan and analyze growth experiments?",
+    "ideal_answer": "Use the 'Experiment' quick action. I'll help design A/B tests, set success metrics, calculate required sample sizes, and analyze results with statistical significance. Whether testing pricing, messaging, features, or channels, I'll ensure experiments are properly structured and provide clear go/no-go recommendations based on data.",
+    "context": "Systematic experimentation reduces risk and identifies high-leverage growth opportunities.",
+    "intent": "growth_experimentation",
+    "keywords": ["experiments", "A/B testing", "growth", "testing", "optimization"],
+    "priority": "medium",
+    "category": "strategic_initiatives"
+  },
+  {
+    "question": "How do I run our daily standup efficiently?",
+    "ideal_answer": "Use the 'Daily Standup' quick action with Leo. I'll gather updates across all departments (what shipped yesterday, what's in progress, what's blocked), identify dependencies and blockers, flag issues needing escalation, and create action items. You'll get a structured async standup that saves time while maintaining alignment.",
+    "context": "Daily standups keep the team aligned without consuming excessive meeting time.",
+    "intent": "team_coordination",
+    "keywords": ["standup", "daily sync", "blockers", "updates", "coordination"],
+    "priority": "high",
+    "category": "engineering"
+  },
+  {
+    "question": "How can I plan our next sprint?",
+    "ideal_answer": "Use the 'Sprint Planning' quick action with Linus. I'll review the backlog, prioritize based on strategic goals, estimate effort, identify dependencies, and create a balanced sprint plan. I'll flag potential risks, ensure team capacity isn't overloaded, and align work with quarterly objectives. You'll get a realistic, well-prioritized sprint plan.",
+    "context": "Effective sprint planning balances strategic goals, team capacity, and technical dependencies.",
+    "intent": "sprint_planning",
+    "keywords": ["sprint", "planning", "backlog", "prioritization", "agile"],
+    "priority": "high",
+    "category": "engineering"
+  },
+  {
+    "question": "How do I handle a production incident?",
+    "ideal_answer": "Use the 'Incident Response' quick action with Linus. I'll help triage severity, coordinate response team, investigate root cause, implement fixes, communicate status updates, and create postmortem documentation. I'll track incident timeline, impact assessment, and follow-up action items to prevent recurrence.",
+    "context": "Fast, coordinated incident response minimizes customer impact and prevents escalation.",
+    "intent": "incident_management",
+    "keywords": ["incident", "outage", "production issue", "emergency", "firefighting"],
+    "priority": "critical",
+    "category": "engineering"
+  },
+  {
+    "question": "How can I prepare for a release?",
+    "ideal_answer": "Use the 'Release Prep' quick action with Linus. I'll create release checklist, coordinate testing, review deployment plan, prepare rollback procedures, draft release notes, plan communication timing, and ensure monitoring is in place. I'll flag any gaps in testing or documentation and recommend release vs. delay based on readiness.",
+    "context": "Thorough release preparation prevents deployment issues and ensures smooth rollouts.",
+    "intent": "release_management",
+    "keywords": ["release", "deployment", "shipping", "launch", "rollout"],
+    "priority": "high",
+    "category": "engineering"
+  },
+  {
+    "question": "How do I review and optimize our customer onboarding?",
+    "ideal_answer": "Use the 'Customer Onboarding' quick action with Mrs. Parker. I'll analyze onboarding funnel, time-to-value metrics, activation rates, and common drop-off points. I'll review welcome emails, product tours, and initial touchpoints. You'll get recommendations to improve onboarding experience, reduce time-to-first-value, and increase activation rates.",
+    "context": "Effective onboarding reduces churn and accelerates customer success.",
+    "intent": "onboarding_optimization",
+    "keywords": ["onboarding", "activation", "welcome", "customer success"],
+    "priority": "high",
+    "category": "customer_success"
+  },
+  {
+    "question": "How can I gather and act on customer feedback?",
+    "ideal_answer": "Use the 'Customer Pulse' quick action with Jack. I'll aggregate feedback from support tickets, NPS surveys, product reviews, and customer calls. I'll categorize themes, quantify impact, prioritize issues, and recommend actions. You'll see trending topics, sentiment analysis, and which feedback items should influence product roadmap.",
+    "context": "Customer feedback guides product development and identifies issues before they cause churn.",
+    "intent": "feedback_analysis",
+    "keywords": ["feedback", "customer voice", "NPS", "surveys", "sentiment"],
+    "priority": "medium",
+    "category": "customer_success"
+  },
+  {
+    "question": "How do I run our weekly executive sync?",
+    "ideal_answer": "Use the 'Weekly Sync' quick action with Leo. I'll gather department updates, track OKR progress, identify cross-functional blockers, surface decisions needed, and create action items with owners. You'll get a structured agenda, status across all functions, and clear next steps - all without a 2-hour meeting.",
+    "context": "Weekly exec syncs maintain alignment without consuming excessive leadership time.",
+    "intent": "executive_coordination",
+    "keywords": ["executive sync", "weekly meeting", "leadership", "alignment"],
+    "priority": "high",
+    "category": "executive"
+  },
+  {
+    "question": "How can I create content briefs for our blog and marketing?",
+    "ideal_answer": "Use the 'Content Brief' quick action with Glenda. I'll research topics, identify keyword opportunities, analyze competitor content, define target audience, outline structure, and provide SEO guidance. You'll get a comprehensive brief that your content team can execute on, optimized for search and aligned with your marketing goals.",
+    "context": "Content marketing drives organic acquisition and establishes thought leadership.",
+    "intent": "content_strategy",
+    "keywords": ["content", "blog", "SEO", "marketing", "thought leadership"],
+    "priority": "medium",
+    "category": "content_marketing"
+  },
+  {
+    "question": "How do I review our cash flow and runway?",
+    "ideal_answer": "Use the 'Cash Flow' quick action with Mike. I'll analyze current cash position, burn rate, runway calculation, and cash flow projections. I'll model scenarios for different growth rates, identify cash crunches before they happen, and recommend actions to extend runway or optimize cash usage. You'll get clear visibility into financial health and time to key milestones.",
+    "context": "Cash flow management is critical for startups - surprises can be fatal.",
+    "intent": "financial_management",
+    "keywords": ["cash flow", "runway", "burn rate", "finances"],
+    "priority": "critical",
+    "category": "finance"
+  },
+  {
+    "question": "How can I prepare our board update or investor report?",
+    "ideal_answer": "Use the 'Board Update' quick action with Mike. I'll compile key metrics, growth highlights, challenges, strategic initiatives, and financial snapshot. I'll create narrative around the numbers, highlight wins, address concerns proactively, and outline asks/decisions needed. You'll get a comprehensive yet concise update that builds investor confidence.",
+    "context": "Regular investor communication maintains confidence and surfaces support when needed.",
+    "intent": "investor_relations",
+    "keywords": ["board update", "investor report", "board deck", "fundraising"],
+    "priority": "high",
+    "category": "executive"
+  },
+  {
+    "question": "How do I audit our compliance and identify risks?",
+    "ideal_answer": "Use the 'Compliance Audit' quick action with Deebo. I'll scan your website, marketing materials, product labels, and business practices for compliance issues. For cannabis businesses, I'll check for: health claims, age-gating, required warnings, advertising restrictions, and state-specific regulations. You'll get a risk-prioritized list of issues with remediation steps.",
+    "context": "Compliance violations can result in fines, license suspension, or legal action.",
+    "intent": "compliance_audit",
+    "keywords": ["compliance", "audit", "regulations", "risk", "legal"],
+    "priority": "critical",
+    "category": "compliance"
+  },
+  {
+    "question": "How can I plan our hiring and build the team?",
+    "ideal_answer": "Use the 'Hiring' quick action with Leo. I'll help create job descriptions, define hiring criteria, plan interview process, set compensation benchmarks, and track candidate pipeline. I'll analyze your org chart for gaps, recommend roles to prioritize, and ensure hiring aligns with growth stage and runway.",
+    "context": "Strategic hiring builds the right team at the right time without over-hiring relative to runway.",
+    "intent": "talent_acquisition",
+    "keywords": ["hiring", "recruiting", "team building", "talent"],
+    "priority": "high",
+    "category": "people_ops"
+  },
+  {
+    "question": "How do I conduct deep research on a market or topic?",
+    "ideal_answer": "Use the 'Deep Research' quick action with Big Worm. I'll conduct comprehensive research including market sizing, competitive landscape, regulatory environment, trends, customer insights, and strategic implications. You'll get a thorough research brief with citations, data analysis, and actionable recommendations to inform strategy.",
+    "context": "Deep research informs major strategic decisions like market entry, product direction, or M&A.",
+    "intent": "market_research",
+    "keywords": ["research", "market analysis", "competitive research", "due diligence"],
+    "priority": "medium",
+    "category": "research"
+  },
+  {
+    "question": "How can I research compliance requirements for new markets or products?",
+    "ideal_answer": "Use the 'Compliance Brief' quick action with Roach. I'll research applicable regulations, licensing requirements, compliance obligations, and risk factors for new markets, products, or business activities. For cannabis, I'll cover state-specific rules, federal considerations, and industry best practices. You'll get a comprehensive compliance brief to inform go/no-go decisions.",
+    "context": "Understanding compliance requirements upfront prevents costly mistakes and delays.",
+    "intent": "regulatory_research",
+    "keywords": ["compliance research", "regulations", "legal requirements", "licensing"],
+    "priority": "high",
+    "category": "compliance"
+  },
+  {
+    "question": "What OKRs should we set for our company?",
+    "ideal_answer": "Effective OKRs should be: ambitious but achievable, measurable, time-bound (quarterly), and aligned across the company. Focus on 3-5 key objectives per quarter. For early-stage companies: growth metrics (MRR, customer acquisition), product development (features shipped, adoption), and operational efficiency (burn rate, unit economics). I can help draft OKRs based on your stage and strategic priorities.",
+    "context": "OKRs provide focus and alignment on what matters most each quarter.",
+    "intent": "goal_setting",
+    "keywords": ["OKRs", "objectives", "key results", "goals", "strategy"],
+    "priority": "high",
+    "category": "executive"
+  },
+  {
+    "question": "How do I build an effective product roadmap?",
+    "ideal_answer": "Start with strategic goals, prioritize based on customer impact and effort, balance new features with tech debt, validate with customer research, and sequence for dependencies. Use frameworks like RICE (Reach, Impact, Confidence, Effort) or value vs. effort matrix. Communicate the 'why' behind priorities and maintain flexibility for urgent needs. I can help analyze feature requests, estimate impact, and create a balanced roadmap.",
+    "context": "Product roadmap guides development resources and sets customer expectations.",
+    "intent": "product_planning",
+    "keywords": ["roadmap", "product strategy", "feature prioritization", "planning"],
+    "priority": "high",
+    "category": "product_management"
+  },
+  {
+    "question": "What metrics should we track for a SaaS business?",
+    "ideal_answer": "Core SaaS metrics: MRR/ARR and growth rate, net revenue retention, customer acquisition cost (CAC), lifetime value (LTV), LTV:CAC ratio, payback period, churn rate (logo and revenue), expansion revenue, and gross margins. For early stage: also track activation rate, time-to-value, and product engagement. I can help you calculate these metrics and set benchmarks based on your stage and industry.",
+    "context": "SaaS metrics provide insight into business health, efficiency, and scalability.",
+    "intent": "metrics_education",
+    "keywords": ["SaaS metrics", "KPIs", "MRR", "ARR", "LTV", "CAC"],
+    "priority": "high",
+    "category": "growth_management"
+  },
+  {
+    "question": "How should we approach fundraising and investor outreach?",
+    "ideal_answer": "Fundraising best practices: raise when you're 6-9 months from running out, target investors who know your space, create FOMO with parallel conversations, tell a compelling growth story with metrics to back it up, be clear on use of funds and key milestones, and maintain regular investor updates even when not raising. I can help prepare materials, model scenarios, and craft your narrative.",
+    "context": "Fundraising is time-consuming and distracting - doing it right the first time is critical.",
+    "intent": "fundraising_strategy",
+    "keywords": ["fundraising", "investors", "pitch deck", "venture capital", "Series A"],
+    "priority": "medium",
+    "category": "finance"
+  },
+  {
+    "question": "What's the best way to handle a company crisis or major setback?",
+    "ideal_answer": "Crisis management steps: assess the situation quickly, gather facts, communicate transparently with stakeholders (team, customers, investors), take ownership, create action plan, execute decisively, and document lessons learned. Prioritize customer impact first, then team morale, then investor confidence. Over-communicate during crisis - silence creates speculation. I can help draft communications and coordinate response.",
+    "context": "How you handle crisis defines company culture and stakeholder trust.",
+    "intent": "crisis_management",
+    "keywords": ["crisis", "emergency", "setback", "damage control"],
+    "priority": "critical",
+    "category": "executive"
+  },
+  {
+    "question": "How do I scale our customer success function?",
+    "ideal_answer": "CS scaling strategies: segment customers by value/complexity, create self-service resources for low-touch, build customer health scoring, implement automated playbooks, define clear handoff from sales, track leading indicators, and measure CS efficiency (customers per CSM, GRR/NRR). Start with high-touch for top accounts, then systematize and automate for scale. I can help design your CS operating model.",
+    "context": "CS must scale with customer growth while maintaining quality and profitability.",
+    "intent": "customer_success_strategy",
+    "keywords": ["customer success", "scaling", "CS operations", "retention"],
+    "priority": "medium",
+    "category": "customer_success"
+  },
+  {
+    "question": "What should our go-to-market strategy be for a new product?",
+    "ideal_answer": "GTM strategy components: define ICP (ideal customer profile), identify key value propositions and differentiators, choose primary channels (inbound vs. outbound), set pricing and packaging, plan launch sequence, create sales enablement, and establish success metrics. Start with focused beachhead market before expanding. I can help research market, validate ICP, and create launch plan.",
+    "context": "GTM strategy determines product-market fit velocity and customer acquisition efficiency.",
+    "intent": "gtm_strategy",
+    "keywords": ["go-to-market", "GTM", "launch strategy", "product launch"],
+    "priority": "high",
+    "category": "product_management"
+  },
+  {
+    "question": "How do I build a data-driven culture?",
+    "ideal_answer": "Building data culture: make metrics visible (dashboards, weekly reviews), tie decisions to data, celebrate data-driven wins, invest in tooling and training, define key metrics per function, establish data quality standards, and make analytics accessible to all teams. Start with a few critical metrics everyone understands, then expand. I can help define your metrics framework and dashboard strategy.",
+    "context": "Data-driven decision making improves outcomes and reduces bias/guesswork.",
+    "intent": "organizational_development",
+    "keywords": ["data culture", "analytics", "metrics", "dashboards"],
+    "priority": "medium",
+    "category": "executive"
+  }
+]

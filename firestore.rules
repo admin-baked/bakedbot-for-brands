@@ -494,6 +494,49 @@ service cloud.firestore {
       allow delete: if isTenantAdmin(tenantId) || isRole('owner');
     }
 
+    // Tenant Ground Truth Overrides (Role-specific fine-tuning)
+    match /tenants/{tenantId}/ground_truth_overrides/{roleId} {
+      // Tenant members can read overrides for visibility
+      allow read: if isTenantMember(tenantId) || isRole('owner');
+      // Tenant admins can manage overrides (add custom presets, disable global ones)
+      allow write: if isTenantAdmin(tenantId) || isRole('owner');
+    }
+
+    // ===========================================================================
+    // GROUND TRUTH V2 (Role-Based Fine-Tuning)
+    // See: src/types/ground-truth.ts
+    // ===========================================================================
+
+    // Helper: Check if user can access role-specific ground truth
+    function canAccessRoleGroundTruth(roleId) {
+      return isRole('owner') ||
+             (roleId == 'brand' && isRole('brand')) ||
+             (roleId == 'dispensary' && isRole('dispensary')) ||
+             (roleId == 'super_user' && isRole('owner')) ||
+             (roleId == 'customer'); // Customer ground truth is public (for Smokey)
+    }
+
+    // Global role-based ground truth (defaults)
+    match /ground_truth_v2/{roleId} {
+      // Read access based on role
+      allow read: if canAccessRoleGroundTruth(roleId);
+
+      // Only super admins can write global ground truth
+      allow write: if isRole('owner');
+
+      // QA pairs organized by category
+      match /categories/{categoryKey} {
+        allow read: if canAccessRoleGroundTruth(roleId);
+        allow write: if isRole('owner');
+
+        // Individual QA pairs within category
+        match /qa_pairs/{qaId} {
+          allow read: if canAccessRoleGroundTruth(roleId);
+          allow write: if isRole('owner');
+        }
+      }
+    }
+
     // --- Domain Mappings Collection ---
     match /domain_mappings/{domain} {
       // Allow authenticated users to read domain mappings (needed for some client lookups)

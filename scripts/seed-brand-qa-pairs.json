@@ -1,0 +1,182 @@
+[
+  {
+    "question": "How do I create a product carousel?",
+    "ideal_answer": "To create a product carousel, use the 'New Carousel' quick action in your inbox. I'll help you select products, generate descriptions, and create eye-catching visuals. You can customize the layout, add promotional messaging, and preview before publishing to your website or social media.",
+    "context": "Brand users frequently create carousels to showcase products on their website, social media, or in email campaigns.",
+    "intent": "product_marketing",
+    "keywords": ["carousel", "products", "showcase", "visual", "gallery"],
+    "priority": "high",
+    "category": "marketing"
+  },
+  {
+    "question": "How can I launch a new product?",
+    "ideal_answer": "Use the 'Product Launch' quick action to create a comprehensive launch package. I'll help you build a product carousel, create bundle deals, generate social media content, draft customer outreach emails, and plan promotional campaigns. Everything you need for a successful launch in one place.",
+    "context": "Product launches are critical moments for brands, requiring coordinated marketing across multiple channels.",
+    "intent": "product_launch",
+    "keywords": ["launch", "new product", "promotion", "marketing campaign"],
+    "priority": "high",
+    "category": "product_launches"
+  },
+  {
+    "question": "How do I create a bundle deal?",
+    "ideal_answer": "Use the 'New Bundle' quick action. I'll help you select complementary products, calculate pricing (including discounts), create bundle descriptions, and generate marketing materials. You can create themed bundles like 'Sleep Stack', 'Pain Relief Kit', or seasonal promotions.",
+    "context": "Bundle deals increase average order value and help move inventory.",
+    "intent": "bundle_creation",
+    "keywords": ["bundle", "deal", "package", "promotion", "discount"],
+    "priority": "high",
+    "category": "marketing"
+  },
+  {
+    "question": "How can I plan a marketing campaign?",
+    "ideal_answer": "Use the 'Plan Campaign' quick action. I'll draft a multi-channel campaign including SMS messages (via Blackleaf), email content (via Mailjet), and social media posts. All content is compliance-checked and ready to send in about 30 seconds. You can customize messaging, targeting, and timing.",
+    "context": "Brands run regular campaigns for product launches, holidays, promotions, and customer re-engagement.",
+    "intent": "campaign_planning",
+    "keywords": ["campaign", "marketing", "SMS", "email", "social media", "multi-channel"],
+    "priority": "high",
+    "category": "marketing"
+  },
+  {
+    "question": "How do I generate QR codes for my products?",
+    "ideal_answer": "Use the 'QR Code' quick action. I'll create trackable QR codes that link to product pages, menus, promotions, or any URL you specify. QR codes are perfect for packaging, in-store displays, print ads, and events. You can track scans and conversions in your analytics dashboard.",
+    "context": "QR codes bridge physical and digital marketing, commonly used on packaging, point-of-sale displays, and print materials.",
+    "intent": "qr_generation",
+    "keywords": ["QR code", "trackable", "product link", "menu", "scan"],
+    "priority": "medium",
+    "category": "marketing"
+  },
+  {
+    "question": "How can I create social media content?",
+    "ideal_answer": "Use the 'Create Post' quick action. I'll generate compliant social media content including captions, hashtags, and visual concepts. Tell me what you want to promote (product, event, education) and I'll create platform-specific content for Instagram, Facebook, Twitter, or LinkedIn.",
+    "context": "Brands need consistent social media presence but face cannabis advertising restrictions on major platforms.",
+    "intent": "content_creation",
+    "keywords": ["social media", "post", "content", "Instagram", "Facebook", "compliance"],
+    "priority": "high",
+    "category": "marketing"
+  },
+  {
+    "question": "How do I send a customer blast?",
+    "ideal_answer": "Use the 'Customer Blast' quick action. I'll draft compliant SMS or email messages ready to send through Blackleaf (SMS) or Mailjet (email). Just tell me your goal (promotion, announcement, re-engagement) and target audience. All messaging is automatically checked for cannabis compliance.",
+    "context": "Customer outreach is highly regulated in cannabis. Messages must comply with state laws regarding health claims, dosing, and advertising.",
+    "intent": "customer_outreach",
+    "keywords": ["SMS", "email", "blast", "outreach", "customer message", "compliant"],
+    "priority": "high",
+    "category": "customer_engagement"
+  },
+  {
+    "question": "How can I move slow-moving inventory?",
+    "ideal_answer": "Use the 'Move Inventory' quick action. I'll help create promotions to clear excess stock - bundle deals, flash sales, loyalty rewards, or targeted discounts. I can analyze which products pair well together and suggest promotional strategies based on your inventory data.",
+    "context": "Cannabis products have expiration dates and brands need to move aging inventory before it loses potency or expires.",
+    "intent": "inventory_management",
+    "keywords": ["inventory", "slow moving", "clearance", "promotion", "stock"],
+    "priority": "medium",
+    "category": "inventory_management"
+  },
+  {
+    "question": "How do I plan marketing for an event?",
+    "ideal_answer": "Use the 'Plan Event' quick action. I'll help create event marketing materials including social media posts, email invitations, QR codes for check-in, and promotional content. Whether it's a product launch party, dispensary activation, or industry event, I'll generate a complete marketing package.",
+    "context": "Events are key for brand awareness and customer engagement in cannabis, from dispensary pop-ups to industry conferences.",
+    "intent": "event_marketing",
+    "keywords": ["event", "activation", "launch party", "marketing", "promotion"],
+    "priority": "medium",
+    "category": "events"
+  },
+  {
+    "question": "How can I review my marketing performance?",
+    "ideal_answer": "Use the 'Review Performance' quick action. I'll analyze your recent campaigns, product performance, customer engagement, and ROI. I'll identify what's working, what needs optimization, and provide actionable recommendations to improve results.",
+    "context": "Brands need to track campaign performance, product sales, and customer engagement to optimize marketing spend.",
+    "intent": "analytics",
+    "keywords": ["performance", "analytics", "ROI", "metrics", "campaign results"],
+    "priority": "medium",
+    "category": "analytics"
+  },
+  {
+    "question": "What compliance requirements do I need to follow for cannabis marketing?",
+    "ideal_answer": "Cannabis marketing must comply with state and federal regulations including: no health claims, no appeal to minors, age-gating on websites, warning labels, dosing disclaimers, and advertising restrictions on major platforms. All content I generate is automatically checked for compliance. Key rules: avoid medical claims, don't use cartoons or youth-appealing imagery, include required warnings, and respect platform-specific cannabis policies.",
+    "context": "Compliance is critical in cannabis marketing - violations can result in fines, license suspension, or platform bans.",
+    "intent": "compliance_education",
+    "keywords": ["compliance", "regulations", "legal", "requirements", "warnings", "restrictions"],
+    "priority": "critical",
+    "category": "compliance"
+  },
+  {
+    "question": "How do I find retail partners to carry my products?",
+    "ideal_answer": "I can help research dispensaries in your target markets, analyze their product mix to find good fits, and draft professional outreach emails. I'll identify dispensaries that carry similar products, check their inventory for gaps you can fill, and help you build relationships with retail buyers.",
+    "context": "Brand distribution requires finding the right retail partners who align with brand positioning and serve target customers.",
+    "intent": "business_development",
+    "keywords": ["retail", "partners", "dispensaries", "distribution", "wholesale"],
+    "priority": "medium",
+    "category": "partnerships"
+  },
+  {
+    "question": "How can I create educational content about my products?",
+    "ideal_answer": "I'll help create compliant educational content about cannabinoids, terpenes, effects, and usage without making health claims. Content can include blog posts, social media education series, email courses, and FAQ pages. All content follows compliance guidelines - focusing on general information and avoiding medical advice.",
+    "context": "Education builds trust and helps customers make informed decisions, but must avoid health claims and medical advice.",
+    "intent": "content_creation",
+    "keywords": ["education", "content", "cannabinoids", "terpenes", "informational"],
+    "priority": "medium",
+    "category": "content_marketing"
+  },
+  {
+    "question": "What's the best way to use SMS marketing for my cannabis brand?",
+    "ideal_answer": "SMS marketing is highly effective for cannabis brands (open rates of 98% vs. 20% for email). Best practices: get opt-in consent, segment your audience, time messages strategically (not too early/late), keep messages short and actionable, include clear CTAs, and always provide opt-out options. Use SMS for flash sales, new drops, event reminders, and VIP offers. All messages must be cannabis-compliant.",
+    "context": "SMS is a primary marketing channel for cannabis brands due to advertising restrictions on major platforms.",
+    "intent": "marketing_strategy",
+    "keywords": ["SMS", "text marketing", "Blackleaf", "mobile", "messaging"],
+    "priority": "high",
+    "category": "customer_engagement"
+  },
+  {
+    "question": "How do I build customer loyalty for my brand?",
+    "ideal_answer": "Build loyalty through: consistent product quality, educational content, exclusive offers for returning customers, SMS VIP programs, referral incentives, limited edition drops, and personalized recommendations. I can help you create loyalty campaigns, segment your customer base, and develop retention strategies. Focus on education, community, and consistent brand experience.",
+    "context": "Customer retention is more cost-effective than acquisition, especially important in competitive cannabis markets.",
+    "intent": "customer_retention",
+    "keywords": ["loyalty", "retention", "repeat customers", "VIP", "rewards"],
+    "priority": "high",
+    "category": "customer_engagement"
+  },
+  {
+    "question": "What product information should I include in my carousels and content?",
+    "ideal_answer": "Essential product info: strain name, product type (flower, vape, edible, etc.), cannabinoid content (THC%, CBD%), key terpenes and their effects, suggested use occasions, packaging size, and price. Optional: lab test results, farm/cultivation details, awards, and customer reviews. Always include required warnings and avoid health claims.",
+    "context": "Clear product information helps customers make informed purchases and reduces post-purchase questions.",
+    "intent": "product_content",
+    "keywords": ["product info", "cannabinoids", "terpenes", "descriptions", "specifications"],
+    "priority": "medium",
+    "category": "product_management"
+  },
+  {
+    "question": "How can I differentiate my brand in a crowded market?",
+    "ideal_answer": "Differentiation strategies: unique product formulations, compelling brand story, specific use cases (sleep, focus, pain), quality certifications, sustainable practices, exceptional packaging, education focus, community building, or niche targeting (athletes, wellness-focused, etc.). I can help develop messaging that highlights your unique value proposition and resonates with your target audience.",
+    "context": "Cannabis market is increasingly competitive with many brands competing for shelf space and customer attention.",
+    "intent": "brand_strategy",
+    "keywords": ["differentiation", "positioning", "unique", "competitive advantage", "branding"],
+    "priority": "medium",
+    "category": "brand_strategy"
+  },
+  {
+    "question": "What are the best practices for product photography and visuals?",
+    "ideal_answer": "Best practices: high-resolution images, consistent lighting and backgrounds, show product packaging and actual product, include lifestyle shots showing use context, use clean backgrounds (white or brand-colored), photograph from multiple angles, show scale with props, and ensure colors are accurate. Avoid youth-appealing imagery, cartoons, or anything that could be seen as targeting minors.",
+    "context": "Quality visuals are critical for e-commerce and social media, especially when customers can't physically examine products before purchase.",
+    "intent": "content_creation",
+    "keywords": ["photography", "visuals", "images", "product photos", "lifestyle shots"],
+    "priority": "medium",
+    "category": "content_creation"
+  },
+  {
+    "question": "How do I price my products competitively?",
+    "ideal_answer": "I can help analyze competitor pricing in your market using market intelligence. Key factors: product quality/potency, packaging, brand positioning, distribution costs, and market positioning (premium vs. value). Consider your COGS, desired margins, retail partner margins (typically 30-50%), and competitive landscape. I can spy on competitor pricing and help you find the sweet spot for your positioning.",
+    "context": "Pricing affects brand perception, profit margins, and competitive positioning in cannabis markets.",
+    "intent": "pricing_strategy",
+    "keywords": ["pricing", "competitive", "margins", "cost", "value"],
+    "priority": "medium",
+    "category": "product_management"
+  },
+  {
+    "question": "What seasonal promotions work well for cannabis brands?",
+    "ideal_answer": "High-performing seasonal campaigns: 4/20 (biggest cannabis holiday), Green Wednesday (before Thanksgiving), New Year wellness focus, summer outdoor activities, fall harvest season, holiday gift sets, and monthly themes (Sleep September, Focus February). I can help create seasonal campaigns with product bundles, themed content, and limited-time offers tailored to each occasion.",
+    "context": "Seasonal promotions drive sales spikes and create urgency, especially important for cannabis brands with limited advertising options.",
+    "intent": "campaign_planning",
+    "keywords": ["seasonal", "promotions", "4/20", "holidays", "campaigns"],
+    "priority": "medium",
+    "category": "marketing"
+  }
+]
