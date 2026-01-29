@@ -27,12 +27,15 @@ export default function AutoLoginPage() {
       return;
     }
 
-    async function authenticate() {
+    // TypeScript now knows token is not null after the check above
+    const validToken: string = token;
+
+    async function authenticate(authToken: string) {
       try {
         setStatus('loading');
 
         // Sign in with custom token
-        const userCredential = await signInWithCustomToken(auth, token);
+        const userCredential = await signInWithCustomToken(auth, authToken);
 
         console.log('Auto-login successful:', userCredential.user.email);
 
@@ -50,7 +53,7 @@ export default function AutoLoginPage() {
       }
     }
 
-    authenticate();
+    authenticate(token);
   }, [searchParams, router]);
 
   return (

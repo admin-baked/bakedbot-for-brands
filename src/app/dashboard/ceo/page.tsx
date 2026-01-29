@@ -101,22 +101,6 @@ function CeoDashboardContent() {
         }
     }, [isLoading, isSuperAdmin, router]);
 
-    // Loading state
-    if (isLoading) {
-        return (
-            <div className="flex min-h-[400px] items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Verifying access...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (!isSuperAdmin) {
-        return null; // Don't render anything while redirecting
-    }
-
     // Redirect legacy tabs to unified pages
     useEffect(() => {
         const legacyAnalyticsTabs: Record<string, string> = {
@@ -147,6 +131,22 @@ function CeoDashboardContent() {
             router.replace(`/dashboard/ceo?tab=admin&${legacyAdminTabs[currentTab]}`);
         }
     }, [currentTab, router]);
+
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className="flex min-h-[400px] items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Verifying access...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!isSuperAdmin) {
+        return null; // Don't render anything while redirecting
+    }
 
     // Authorized - show CEO dashboard
     const renderContent = () => {
