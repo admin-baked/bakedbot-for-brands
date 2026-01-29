@@ -5,7 +5,7 @@ import { ProductForm } from '../../components/product-form';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/server/auth/auth';
 
-export default async function EditProductPage({ params }: { params: { id: string } }) {
+export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   let user;
   try {
     user = await requireUser(['brand', 'super_user']);
@@ -18,10 +18,13 @@ export default async function EditProductPage({ params }: { params: { id: string
     // Should not happen if role is brand, but a good safeguard.
     redirect('/dashboard');
   }
-  
+
+  // Next.js 15: params is now a Promise
+  const { id } = await params;
+
   const { firestore } = await createServerClient();
   const productRepo = makeProductRepo(firestore);
-  const product = await productRepo.getById(params.id);
+  const product = await productRepo.getById(id);
 
   // Security check: ensure the user is editing a product that belongs to their brand
   if (!product || (user.role !== 'super_user' && product.brandId !== brandId)) {
