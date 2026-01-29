@@ -88,8 +88,14 @@ export const columns: ColumnDef<Product>[] = [
       const imageUrl = row.getValue('imageUrl') as string;
       const name = row.getValue('name') as string;
       return (
-        <div className="relative h-12 w-12 rounded-md overflow-hidden border">
-          <Image src={imageUrl} alt={name} fill className="object-cover" />
+        <div className="relative h-12 w-12 rounded-md overflow-hidden border bg-muted">
+          {imageUrl ? (
+            <Image src={imageUrl} alt={name} fill className="object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+              No Image
+            </div>
+          )}
         </div>
       )
     },
