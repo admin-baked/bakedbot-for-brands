@@ -256,18 +256,26 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
 
     // Auto-open QR generator for qr_code threads
     useEffect(() => {
-        // Reset auto-show flag when thread changes
-        hasAutoShownQR.current = false;
-    }, [thread.id]);
+        console.log('[InboxConversation] Thread changed or mounted:', {
+            threadId: thread.id,
+            threadType: thread.type,
+            showQRGenerator,
+            hasAutoShownQR: hasAutoShownQR.current,
+        });
 
-    useEffect(() => {
-        // If this is a QR code thread and we haven't auto-shown yet, show generator immediately
-        if (thread.type === 'qr_code' && !hasAutoShownQR.current && !showQRGenerator) {
-            console.log('[InboxConversation] QR code thread detected - auto-showing inline generator');
-            setShowQRGenerator(true);
-            hasAutoShownQR.current = true;
+        // Reset auto-show flag when thread changes
+        if (thread.type === 'qr_code') {
+            if (!hasAutoShownQR.current) {
+                console.log('[InboxConversation] QR code thread detected - auto-showing inline generator');
+                setShowQRGenerator(true);
+                hasAutoShownQR.current = true;
+            }
+        } else {
+            // Reset flag when switching away from QR code thread
+            hasAutoShownQR.current = false;
+            setShowQRGenerator(false);
         }
-    }, [thread.type, showQRGenerator, thread.id]);
+    }, [thread.id, thread.type]);
 
     // Poll for job completion
     useEffect(() => {
