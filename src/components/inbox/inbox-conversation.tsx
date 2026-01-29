@@ -50,6 +50,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { runInboxAgentChat, addMessageToInboxThread, createInboxThread } from '@/server/actions/inbox';
 import { QRCodeGeneratorInline } from './qr-code-generator-inline';
 import { useJobPoller } from '@/hooks/use-job-poller';
+import { generateQRCode } from '@/server/actions/qr-code';
 
 // ============ Agent Name Mapping ============
 
@@ -464,15 +465,38 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         // Hide the generator
         setShowQRGenerator(false);
 
-        // Add a confirmation message to the thread
-        const confirmationMessage: ChatMessage = {
-            id: `msg-${Date.now()}`,
-            type: 'agent',
-            content: `✅ QR Code created successfully!\n\n**Campaign:** ${qrCodeData.campaignName || 'QR Code'}\n**Target URL:** ${qrCodeData.url}\n\nYour QR code has been downloaded. You can use it in your marketing materials!`,
-            timestamp: new Date(),
-        };
+        // Save QR code to database with tracking enabled
+        const result = await generateQRCode({
+            type: 'custom',
+            title: qrCodeData.campaignName || 'QR Code',
+            description: `QR code for ${qrCodeData.url}`,
+            targetUrl: qrCodeData.url,
+            style: 'branded',
+            primaryColor: qrCodeData.foregroundColor,
+            backgroundColor: qrCodeData.backgroundColor,
+            campaign: qrCodeData.campaignName,
+            tags: ['inbox', 'craig'],
+        });
 
-        addMessageToThread(thread.id, confirmationMessage);
+        if (result.success && result.qrCode) {
+            // Add success message with tracking URL
+            const confirmationMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'agent',
+                content: `✅ QR Code created successfully with tracking enabled!\n\n**Campaign:** ${result.qrCode.title}\n**Target URL:** ${result.qrCode.targetUrl}\n**Tracking URL:** \`${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/qr/${result.qrCode.shortCode}\`\n\nYour QR code has been saved and will track:\n• Total scans\n• Unique visitors\n• Device types\n• Geographic location\n\nView analytics in your dashboard!`,
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, confirmationMessage);
+        } else {
+            // Fallback message if save failed
+            const confirmationMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'agent',
+                content: `✅ QR Code created!\n\n**Campaign:** ${qrCodeData.campaignName || 'QR Code'}\n**Target URL:** ${qrCodeData.url}\n\nYour QR code has been downloaded. You can use it in your marketing materials!`,
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, confirmationMessage);
+        }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
