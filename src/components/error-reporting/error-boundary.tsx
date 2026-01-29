@@ -56,10 +56,9 @@ export default function FelishaErrorBoundary({ error, reset }: ErrorBoundaryProp
             }
         };
 
-        // Auto-report in production, skip in dev to avoid spam
-        if (process.env.NODE_ENV === 'production') {
-            autoReportError();
-        }
+        // Auto-report in both production and development
+        // This ensures Linus (AI CTO) is notified of all errors for investigation
+        autoReportError();
     }, [error]); // Removed autoReported dependency
 
     const handleCopyDetails = () => {

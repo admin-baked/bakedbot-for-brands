@@ -11,6 +11,7 @@ from src.firestore_listener import listen_for_tasks
 from dotenv import load_dotenv
 import httpx
 import json
+import re
 
 load_dotenv()
 
@@ -25,6 +26,7 @@ NOTEBOOKLM_MCP_URL = f"http://localhost:{NOTEBOOKLM_MCP_PORT}/mcp"
 # Global state
 notebooklm_process = None
 mcp_client = None
+mcp_session_id = None
 
 # ============================================================================
 # Firebase Initialization
@@ -46,8 +48,82 @@ def initialize_firebase():
 db_client = initialize_firebase()
 
 # ============================================================================
+# Helper Functions
+# ============================================================================
+
+def parse_sse_response(text: str):
+    """
+    Parse Server-Sent Events (SSE) format response.
+    Format: "event: message\\ndata: {...}\\n\\n"
+    Returns the parsed JSON data.
+    """
+    try:
+        # Extract JSON from SSE format
+        # Look for "data: " followed by JSON
+        match = re.search(r'data:\s*(\{.*\})', text, re.DOTALL)
+        if match:
+            json_str = match.group(1)
+            return json.loads(json_str)
+        # If no SSE format, try parsing as plain JSON
+        return json.loads(text)
+    except Exception as e:
+        print(f"[SSE Parser] Error parsing response: {e}")
+        print(f"[SSE Parser] Raw text: {text[:200]}")
+        return None
+
+# ============================================================================
 # NotebookLM MCP Server Management
 # ============================================================================
+
+async def initialize_mcp_session():
+    """
+    Initialize MCP session with the NotebookLM MCP server.
+    Returns session ID if successful, None otherwise.
+    """
+    global mcp_session_id
+
+    try:
+        print("[NotebookLM MCP] Initializing session...")
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                NOTEBOOKLM_MCP_URL,
+                json={
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {},
+                        "clientInfo": {
+                            "name": "bakedbot-sidecar",
+                            "version": "2.0.0"
+                        }
+                    }
+                },
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream"
+                }
+            )
+
+            if response.status_code == 200:
+                session_id = response.headers.get("mcp-session-id")
+                if session_id:
+                    mcp_session_id = session_id
+                    print(f"[NotebookLM MCP] Session initialized: {session_id[:16]}...")
+                    # Verify the response is valid
+                    data = parse_sse_response(response.text)
+                    if data and "result" in data:
+                        print(f"[NotebookLM MCP] Session capabilities: {data['result'].get('capabilities', {})}")
+                    return session_id
+                else:
+                    print("[NotebookLM MCP] Warning: No session ID in response headers")
+            else:
+                print(f"[NotebookLM MCP] Session init failed: {response.status_code}")
+    except Exception as e:
+        print(f"[NotebookLM MCP] Session init error: {e}")
+
+    return None
 
 def start_notebooklm_mcp_server():
     """
@@ -74,14 +150,14 @@ def start_notebooklm_mcp_server():
         print(f"[NotebookLM MCP] Starting HTTP server on port {NOTEBOOKLM_MCP_PORT}...")
         notebooklm_process = subprocess.Popen(
             [
-                "python", "-m", "notebooklm_mcp",
+                "notebooklm-mcp",
                 "--config", config_path,
                 "server",
                 "--transport", "http",
                 "--port", str(NOTEBOOKLM_MCP_PORT)
             ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stdout=None,
+            stderr=None
         )
         print(f"[NotebookLM MCP] Server started with PID {notebooklm_process.pid}")
         return notebooklm_process
@@ -120,6 +196,8 @@ async def lifespan(app: FastAPI):
         start_notebooklm_mcp_server()
         # Give it time to start
         await asyncio.sleep(2)
+        # Initialize MCP session
+        await initialize_mcp_session()
 
     yield
 
@@ -174,7 +252,8 @@ def detailed_health():
         "status": "healthy",
         "notebooklm_mcp": {
             "enabled": os.getenv("ENABLE_NOTEBOOKLM_MCP", "false").lower() == "true",
-            "process_running": notebooklm_process is not None and notebooklm_process.poll() is None
+            "process_running": notebooklm_process is not None and notebooklm_process.poll() is None,
+            "session_id": mcp_session_id[:16] + "..." if mcp_session_id else None
         },
         "firebase": {
             "connected": db_client is not None
@@ -194,6 +273,14 @@ async def list_mcp_tools() -> List[McpToolInfo]:
     # Check if internal MCP server is running
     if notebooklm_process and notebooklm_process.poll() is None:
         try:
+            headers = {
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/event-stream"
+            }
+            # Include session ID if available
+            if mcp_session_id:
+                headers["mcp-session-id"] = mcp_session_id
+
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
                     NOTEBOOKLM_MCP_URL,
@@ -203,11 +290,12 @@ async def list_mcp_tools() -> List[McpToolInfo]:
                         "method": "tools/list",
                         "params": {}
                     },
-                    headers={"Content-Type": "application/json"}
+                    headers=headers
                 )
                 if response.status_code == 200:
-                    data = response.json()
-                    if "result" in data and "tools" in data["result"]:
+                    # Parse SSE response
+                    data = parse_sse_response(response.text)
+                    if data and "result" in data and "tools" in data["result"]:
                         return [McpToolInfo(**t) for t in data["result"]["tools"]]
         except Exception as e:
             print(f"[MCP] Failed to query internal server: {e}")
@@ -290,6 +378,19 @@ async def call_mcp_tool(request: McpToolRequest):
     # Check if internal MCP server is running
     if notebooklm_process and notebooklm_process.poll() is None:
         try:
+            headers = {
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/event-stream"
+            }
+            # Include session ID if available
+            if mcp_session_id:
+                headers["mcp-session-id"] = mcp_session_id
+            else:
+                # Try to reinitialize session if missing
+                await initialize_mcp_session()
+                if mcp_session_id:
+                    headers["mcp-session-id"] = mcp_session_id
+
             async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(
                     NOTEBOOKLM_MCP_URL,
@@ -302,11 +403,14 @@ async def call_mcp_tool(request: McpToolRequest):
                             "arguments": request.arguments
                         }
                     },
-                    headers={"Content-Type": "application/json"}
+                    headers=headers
                 )
 
                 if response.status_code == 200:
-                    data = response.json()
+                    # Parse SSE response
+                    data = parse_sse_response(response.text)
+                    if not data:
+                        return {"success": False, "error": "Failed to parse MCP response"}
                     if "error" in data:
                         return {"success": False, "error": data["error"]}
                     return {
@@ -315,9 +419,13 @@ async def call_mcp_tool(request: McpToolRequest):
                         "result": data.get("result", {}).get("content", data.get("result"))
                     }
                 else:
+                    # Log error details
+                    error_text = response.text[:500] if response.text else "No response body"
+                    print(f"[MCP Call] Error {response.status_code}: {error_text}")
                     return {
                         "success": False,
-                        "error": f"MCP server returned {response.status_code}"
+                        "error": f"MCP server returned {response.status_code}",
+                        "details": error_text
                     }
         except httpx.TimeoutException:
             return {"success": False, "error": "MCP call timed out"}
