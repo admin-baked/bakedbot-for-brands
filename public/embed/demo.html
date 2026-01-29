@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BakedBot Embed Widgets Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+        .demo-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .demo-section h2 {
+            color: #4ade80;
+            margin-top: 0;
+        }
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .code-comment {
+            color: #6a9955;
+        }
+        .code-string {
+            color: #ce9178;
+        }
+        .code-keyword {
+            color: #569cd6;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4ade80;
+            font-weight: bold;
+        }
+        .widget-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .widget-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            background: white;
+        }
+        .widget-card h3 {
+            margin-top: 0;
+            color: #4ade80;
+        }
+        @media (max-width: 768px) {
+            .widget-comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌿 BakedBot Embed Widgets</h1>
+        <p class="subtitle">AI-powered tools for cannabis brands & dispensaries</p>
+
+        <div class="widget-comparison">
+            <div class="widget-card">
+                <h3>🛡️ Age Gate Widget</h3>
+                <p>Compliance + lead capture in one modal</p>
+                <ul class="feature-list" style="font-size: 14px;">
+                    <li>Age verification</li>
+                    <li>Email/phone capture</li>
+                    <li>TCPA compliant</li>
+                    <li>24-hour caching</li>
+                </ul>
+            </div>
+            <div class="widget-card">
+                <h3>💬 Chatbot Widget</h3>
+                <p>AI budtender for product recommendations</p>
+                <ul class="feature-list" style="font-size: 14px;">
+                    <li>Natural language search</li>
+                    <li>Product recommendations</li>
+                    <li>Strain information</li>
+                    <li>CannMenus integration</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🛡️ Age Gate Widget</h2>
+            <p>Turn compliance friction into funnel growth! Capture email/phone leads during age verification.</p>
+
+            <h3>📦 Installation</h3>
+            <pre><code><span class="code-comment">&lt;!-- BakedBot Age Gate Embed --&gt;</span>
+<span class="code-keyword">&lt;link</span> <span class="code-string">rel="stylesheet"</span> <span class="code-string">href="https://bakedbot.ai/embed/age-gate.css"</span><span class="code-keyword">&gt;</span>
+<span class="code-keyword">&lt;script&gt;</span>
+    window.BakedBotAgeGateConfig = {
+        <span class="code-string">brandId</span>: <span class="code-string">'your-brand-id'</span>,       <span class="code-comment">// Required</span>
+        <span class="code-string">dispensaryId</span>: <span class="code-string">'your-disp-id'</span>,  <span class="code-comment">// Optional</span>
+        <span class="code-string">state</span>: <span class="code-string">'IL'</span>,                    <span class="code-comment">// Two-letter state code</span>
+        <span class="code-string">source</span>: <span class="code-string">'external-website'</span>,   <span class="code-comment">// For analytics</span>
+        <span class="code-string">primaryColor</span>: <span class="code-string">'#4ade80'</span>        <span class="code-comment">// Optional branding</span>
+    };
+<span class="code-keyword">&lt;/script&gt;</span>
+<span class="code-keyword">&lt;script</span> <span class="code-string">src="https://bakedbot.ai/embed/age-gate.js"</span><span class="code-keyword">&gt;&lt;/script&gt;</span></code></pre>
+
+            <h3>✨ Features</h3>
+            <ul class="feature-list">
+                <li><strong>State-Aware Age Verification</strong> - 18+ medical, 21+ recreational (powered by Deebo)</li>
+                <li><strong>Optional Email/Phone Capture</strong> - Turn every visitor into a lead opportunity</li>
+                <li><strong>TCPA/CAN-SPAM Compliant</strong> - Explicit consent checkboxes with clear disclosures</li>
+                <li><strong>24-Hour LocalStorage Cache</strong> - Don't annoy returning visitors</li>
+                <li><strong>Craig Welcome Emails</strong> - Automatic personalized welcome messages via Mailjet</li>
+                <li><strong>Mobile Responsive</strong> - Beautiful on all devices</li>
+                <li><strong>Dark Mode Support</strong> - Respects user preferences</li>
+            </ul>
+
+            <h3>🎯 Use Cases</h3>
+            <ul class="feature-list">
+                <li>Brand websites (ecstaticedibles.com, 40tons.com)</li>
+                <li>Dispensary menus</li>
+                <li>E-commerce cannabis shops</li>
+                <li>Educational content sites</li>
+            </ul>
+        </div>
+
+        <div class="demo-section">
+            <h2>💬 Chatbot Widget</h2>
+            <p>AI budtender that helps customers find products, learn about strains, and get recommendations.</p>
+
+            <h3>📦 Installation</h3>
+            <pre><code><span class="code-comment">&lt;!-- BakedBot Chatbot Embed --&gt;</span>
+<span class="code-keyword">&lt;link</span> <span class="code-string">rel="stylesheet"</span> <span class="code-string">href="https://bakedbot.ai/embed/chatbot.css"</span><span class="code-keyword">&gt;</span>
+<span class="code-keyword">&lt;script&gt;</span>
+    window.BakedBotConfig = {
+        <span class="code-string">brandId</span>: <span class="code-string">'your-brand-id'</span>,        <span class="code-comment">// Required</span>
+        <span class="code-string">dispensaryId</span>: <span class="code-string">'your-disp-id'</span>,   <span class="code-comment">// Optional</span>
+        <span class="code-string">entityName</span>: <span class="code-string">'Your Brand Name'</span>,  <span class="code-comment">// For personalization</span>
+        <span class="code-string">primaryColor</span>: <span class="code-string">'#4ade80'</span>,        <span class="code-comment">// Brand color</span>
+        <span class="code-string">botName</span>: <span class="code-string">'Smokey'</span>,             <span class="code-comment">// Custom bot name</span>
+        <span class="code-string">welcomeMessage</span>: <span class="code-string">'Hi! Looking for something specific?'</span>
+    };
+<span class="code-keyword">&lt;/script&gt;</span>
+<span class="code-keyword">&lt;script</span> <span class="code-string">src="https://bakedbot.ai/embed/chatbot.js"</span><span class="code-keyword">&gt;&lt;/script&gt;</span></code></pre>
+
+            <h3>✨ Features</h3>
+            <ul class="feature-list">
+                <li><strong>Natural Language Product Search</strong> - "I want something relaxing for sleep"</li>
+                <li><strong>CannMenus Integration</strong> - Real-time product search and filtering</li>
+                <li><strong>AI-Powered Ranking</strong> - Chemotype and effect matching</li>
+                <li><strong>Strain Information</strong> - Effects, terpenes, THC/CBD content</li>
+                <li><strong>Beginner Guidance</strong> - Safe dosage recommendations</li>
+                <li><strong>Custom Branding</strong> - Match your brand colors and voice</li>
+            </ul>
+        </div>
+
+        <div class="demo-section">
+            <h2>🚀 Using Both Widgets Together</h2>
+            <p>Combine age gate + chatbot for the ultimate customer experience:</p>
+
+            <pre><code><span class="code-comment">&lt;!-- Age gate appears first, chatbot loads after verification --&gt;</span>
+<span class="code-keyword">&lt;link</span> <span class="code-string">rel="stylesheet"</span> <span class="code-string">href="https://bakedbot.ai/embed/age-gate.css"</span><span class="code-keyword">&gt;</span>
+<span class="code-keyword">&lt;link</span> <span class="code-string">rel="stylesheet"</span> <span class="code-string">href="https://bakedbot.ai/embed/chatbot.css"</span><span class="code-keyword">&gt;</span>
+
+<span class="code-keyword">&lt;script&gt;</span>
+    <span class="code-comment">// Age gate configuration</span>
+    window.BakedBotAgeGateConfig = {
+        brandId: <span class="code-string">'ecstatic-edibles'</span>,
+        state: <span class="code-string">'IL'</span>,
+        source: <span class="code-string">'ecstaticedibles.com'</span>
+    };
+
+    <span class="code-comment">// Chatbot configuration</span>
+    window.BakedBotConfig = {
+        brandId: <span class="code-string">'ecstatic-edibles'</span>,
+        entityName: <span class="code-string">'Ecstatic Edibles'</span>,
+        primaryColor: <span class="code-string">'#8b5cf6'</span>,
+        botName: <span class="code-string">'Smokey'</span>
+    };
+<span class="code-keyword">&lt;/script&gt;</span>
+
+<span class="code-keyword">&lt;script</span> <span class="code-string">src="https://bakedbot.ai/embed/age-gate.js"</span><span class="code-keyword">&gt;&lt;/script&gt;</span>
+<span class="code-keyword">&lt;script</span> <span class="code-string">src="https://bakedbot.ai/embed/chatbot.js"</span><span class="code-keyword">&gt;&lt;/script&gt;</span></code></pre>
+
+            <p><strong>💡 Pro Tip:</strong> The age gate caches verification for 24 hours, so returning visitors won't see it again. The chatbot is always available!</p>
+        </div>
+
+        <div class="demo-section">
+            <h2>📊 Lead Analytics</h2>
+            <p>View captured leads in your BakedBot dashboard:</p>
+            <ul class="feature-list">
+                <li><strong>Dashboard:</strong> <a href="https://bakedbot.ai/dashboard/ceo?tab=leads">bakedbot.ai/dashboard/ceo?tab=leads</a></li>
+                <li><strong>Metrics:</strong> Total leads, email/SMS opt-in rates, breakdown by source</li>
+                <li><strong>Export:</strong> Download as CSV for your CRM</li>
+                <li><strong>Campaigns:</strong> Send bulk emails/SMS via Craig</li>
+            </ul>
+        </div>
+
+        <div class="demo-section">
+            <h2>💰 Pricing & Support</h2>
+            <p><strong>Widgets are FREE</strong> for BakedBot brands and dispensaries!</p>
+            <ul class="feature-list">
+                <li>Unlimited age gate verifications</li>
+                <li>Unlimited chatbot conversations</li>
+                <li>Lead capture included</li>
+                <li>Email support</li>
+            </ul>
+
+            <p style="margin-top: 20px;">Questions? Email us at <a href="mailto:support@bakedbot.ai">support@bakedbot.ai</a></p>
+        </div>
+    </div>
+
+    <!-- DEMO: Age Gate Widget -->
+    <link rel="stylesheet" href="/embed/age-gate.css">
+    <script>
+        // Demo configuration for testing
+        window.BakedBotAgeGateConfig = {
+            brandId: 'demo-40tons',
+            state: 'IL',
+            source: 'embed-demo',
+            primaryColor: '#4ade80'
+        };
+    </script>
+    <script src="/embed/age-gate.js"></script>
+
+    <!-- DEMO: Chatbot Widget (loads after age verification) -->
+    <link rel="stylesheet" href="/embed/chatbot.css">
+    <script>
+        window.BakedBotConfig = {
+            brandId: 'demo-40tons',
+            entityName: '40 Tons Demo',
+            primaryColor: '#4ade80'
+        };
+    </script>
+    <script src="/embed/chatbot.js"></script>
+</body>
+</html>
