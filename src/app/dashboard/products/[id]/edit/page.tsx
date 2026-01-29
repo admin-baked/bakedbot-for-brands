@@ -55,7 +55,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
 
   return (
     <div className="mx-auto max-w-2xl">
-      <ProductForm product={serializeProduct(product)} />
+      <ProductForm product={serializeProduct(product)} showBackButton />
     </div>
   );
 }
