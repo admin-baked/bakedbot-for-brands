@@ -153,6 +153,16 @@ export async function captureEmailLead(request: CaptureEmailLeadRequest): Promis
                             error: err.message,
                         });
                     });
+
+                // ALSO trigger Welcome Email Campaign playbook for tracking
+                triggerWelcomePlaybook(leadId, request.email, request.firstName, request.brandId, request.dispensaryId)
+                    .catch(err => {
+                        logger.error('[EmailCapture] Failed to trigger welcome playbook', {
+                            leadId,
+                            email: request.email,
+                            error: err.message,
+                        });
+                    });
             }
 
             // Trigger welcome SMS via Craig (async, don't block)
@@ -317,6 +327,55 @@ export async function getLeads(brandId?: string, dispensaryId?: string): Promise
             error: err.message,
         });
         return [];
+    }
+}
+
+/**
+ * Trigger Welcome Email Campaign playbook
+ * Logs lead in playbook system for tracking and future automation
+ */
+async function triggerWelcomePlaybook(
+    leadId: string,
+    email: string,
+    firstName?: string,
+    brandId?: string,
+    dispensaryId?: string
+): Promise<void> {
+    try {
+        const db = getAdminFirestore();
+
+        // Create a user.signup event to trigger the Welcome Email Campaign playbook
+        await db.collection('events').add({
+            type: 'user.signup',
+            eventPattern: 'user.signup',
+            source: 'age_gate',
+            data: {
+                leadId,
+                email,
+                firstName,
+                brandId,
+                dispensaryId,
+                accountType: 'customer', // Age gate captures are always customers
+                signupContext: 'age_verification',
+                timestamp: Date.now(),
+            },
+            triggeredAt: Date.now(),
+            processed: false,
+        });
+
+        logger.info('[EmailCapture] Welcome playbook event triggered', {
+            leadId,
+            email,
+            eventType: 'user.signup',
+        });
+    } catch (error: unknown) {
+        const err = error as Error;
+        logger.error('[EmailCapture] Failed to trigger welcome playbook event', {
+            leadId,
+            email,
+            error: err.message,
+        });
+        throw err;
     }
 }
 
