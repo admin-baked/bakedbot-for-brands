@@ -1,6 +1,6 @@
 /**
  * Server-Side Age Verification
- * 
+ *
  * CRITICAL: Age verification MUST happen server-side before any transaction is committed.
  * Client-side verification is strictly for UX only and is NOT enforceable.
  */
@@ -9,6 +9,7 @@
 
 import { logger } from '@/lib/logger';
 import { validateStateCompliance } from '@/lib/compliance/state-rules';
+import { deeboCheckAge, deeboCheckStateAllowed } from '@/server/agents/deebo';
 
 export interface AgeVerificationInput {
   dateOfBirth: string; // ISO date string: YYYY-MM-DD
@@ -158,4 +159,119 @@ export async function logAgeVerificationDecision(
   //   metadata: decision,
   //   timestamp: serverTimestamp(),
   // });
+}
+
+// ============================================================================
+// Age Gate Component Support (using Deebo for state-aware verification)
+// ============================================================================
+
+export interface DeeboAgeVerificationResult {
+    allowed: boolean;
+    minAge: number;
+    reason?: string;
+    stateBlocked?: boolean;
+}
+
+export interface StateCheckResult {
+    allowed: boolean;
+    reason?: string;
+}
+
+/**
+ * Verify user's age for age gate component (Deebo-powered)
+ */
+export async function verifyAgeForGate(
+    dateOfBirth: string,
+    state: string = 'IL'
+): Promise<DeeboAgeVerificationResult> {
+    try {
+        // Check if state allows cannabis sales
+        const stateCheck = deeboCheckStateAllowed(state);
+        if (!stateCheck.allowed) {
+            logger.warn('[AgeGate] State blocked', { state });
+            return {
+                allowed: false,
+                minAge: 21,
+                reason: stateCheck.reason || 'Cannabis sales are not available in your state',
+                stateBlocked: true
+            };
+        }
+
+        // Verify age
+        const ageCheck = deeboCheckAge(dateOfBirth, state);
+
+        logger.info('[AgeGate] Age check completed', {
+            state,
+            allowed: ageCheck.allowed,
+            minAge: ageCheck.minAge
+        });
+
+        return {
+            allowed: ageCheck.allowed,
+            minAge: ageCheck.minAge,
+            reason: ageCheck.reason,
+            stateBlocked: false
+        };
+    } catch (error: unknown) {
+        const err = error as Error;
+        logger.error('[AgeGate] Error verifying age', {
+            error: err.message,
+            state
+        });
+
+        return {
+            allowed: false,
+            minAge: 21,
+            reason: 'Failed to verify age. Please try again.',
+            stateBlocked: false
+        };
+    }
+}
+
+/**
+ * Check if a state allows cannabis sales
+ */
+export async function checkStateAllowed(state: string): Promise<StateCheckResult> {
+    try {
+        const result = deeboCheckStateAllowed(state);
+
+        logger.info('[AgeGate] State check completed', {
+            state,
+            allowed: result.allowed
+        });
+
+        return result;
+    } catch (error: unknown) {
+        const err = error as Error;
+        logger.error('[AgeGate] Error checking state', {
+            error: err.message,
+            state
+        });
+
+        return {
+            allowed: false,
+            reason: 'Failed to verify state availability'
+        };
+    }
+}
+
+/**
+ * Get minimum age for a state
+ */
+export async function getMinimumAge(state: string = 'IL'): Promise<number> {
+    try {
+        // Use a test DOB to get the minimum age for the state
+        const testDob = new Date(2000, 0, 1).toISOString().split('T')[0];
+        const ageCheck = deeboCheckAge(testDob, state);
+
+        return ageCheck.minAge;
+    } catch (error: unknown) {
+        const err = error as Error;
+        logger.error('[AgeGate] Error getting minimum age', {
+            error: err.message,
+            state
+        });
+
+        return 21; // Default to 21
+    }
 }

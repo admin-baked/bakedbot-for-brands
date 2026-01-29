@@ -10,6 +10,7 @@
  */
 
 import { useState, useMemo, useEffect } from 'react';
+import { AgeGateWithEmail, isAgeVerified } from '@/components/compliance/age-gate-with-email';
 import dynamicImport from 'next/dynamic';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
@@ -104,6 +105,16 @@ const demoBrand = {
 };
 
 export default function DemoShopClient() {
+    // Age verification state
+    const [showAgeGate, setShowAgeGate] = useState(false);
+
+    // Check age verification on mount
+    useEffect(() => {
+        if (!isAgeVerified()) {
+            setShowAgeGate(true);
+        }
+    }, []);
+
     // Menu mode state
     const [menuMode, setMenuMode] = useState<MenuMode>('dispensary');
     const [brandView, setBrandView] = useState<BrandView>('shop');
@@ -1076,6 +1087,14 @@ export default function DemoShopClient() {
     // Render based on menu mode
     return (
         <>
+            {showAgeGate && (
+                <AgeGateWithEmail
+                    onVerified={() => setShowAgeGate(false)}
+                    brandId="demo-40tons"
+                    source="demo-shop"
+                    state="IL"
+                />
+            )}
             {renderWelcomeDialog()}
             {menuMode === 'brand' ? renderBrandMenu() : renderDispensaryMenu()}
         </>

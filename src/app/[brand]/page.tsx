@@ -10,6 +10,9 @@ import DispensaryLocator from '@/components/dispensary-locator';
 import { DispensaryHeader } from '@/components/dispensary/dispensary-header';
 import { BrandMenuClient } from './brand-menu-client';
 import { getActiveBundles } from '@/app/actions/bundles';
+import { MenuWithAgeGate } from '@/components/menu/menu-with-age-gate';
+import { headers } from 'next/headers';
+import { detectStateFromIP, getIPFromHeaders } from '@/lib/geo/state-detection';
 
 // Disable caching to ensure fresh data on each request
 export const dynamic = 'force-dynamic';
@@ -71,15 +74,36 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
         console.error('Failed to fetch bundles:', e);
     }
 
+    // Detect user's state for age verification
+    let userState = 'IL'; // Default fallback
+    try {
+        const headersList = await headers();
+        const ipAddress = getIPFromHeaders(headersList);
+        const stateDetection = await detectStateFromIP(ipAddress, headersList);
+
+        // Priority: brand's primary state > detected state > fallback
+        userState = (brand as any).primaryState || stateDetection.state || 'IL';
+    } catch (e) {
+        console.error('Failed to detect state:', e);
+        // Use brand's state if available, otherwise fallback to IL
+        userState = (brand as any).primaryState || 'IL';
+    }
+
     return (
-        <main className="relative min-h-screen">
-            <BrandMenuClient
-                brand={brand}
-                products={products}
-                retailers={retailers}
-                brandSlug={brandParam}
-                bundles={bundles}
-            />
-        </main>
+        <MenuWithAgeGate
+            brandId={brand.id}
+            state={userState}
+            source={`brand-menu-${brandParam}`}
+        >
+            <main className="relative min-h-screen">
+                <BrandMenuClient
+                    brand={brand}
+                    products={products}
+                    retailers={retailers}
+                    brandSlug={brandParam}
+                    bundles={bundles}
+                />
+            </main>
+        </MenuWithAgeGate>
     );
 }
