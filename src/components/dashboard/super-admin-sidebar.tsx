@@ -299,6 +299,16 @@ export function SuperAdminSidebar() {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
 
+                                {/* Ground Truth Section */}
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={isActive("ground-truth")}>
+                                        <Link href="/dashboard/ceo?tab=ground-truth">
+                                            <BookOpen />
+                                            <span>Ground Truth</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+
                                 {/* Integrations Section */}
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isAdminSectionActive("integrations")}>
