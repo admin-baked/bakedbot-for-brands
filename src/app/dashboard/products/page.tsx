@@ -20,12 +20,20 @@ export const dynamic = 'force-dynamic';
 
 // Serialize Firestore Timestamp objects to plain objects for Client Components
 function serializeProducts(products: Product[]): Product[] {
-    return products.map(product => ({
-        ...product,
-        sourceTimestamp: product.sourceTimestamp
-            ? new Date((product.sourceTimestamp as any)._seconds * 1000).toISOString()
-            : undefined,
-    })) as Product[];
+    return products.map(product => {
+        const serialized: any = { ...product };
+
+        // Serialize all Firestore Timestamp fields (defensive check for any timestamp-like objects)
+        Object.keys(serialized).forEach(key => {
+            const value = serialized[key];
+            if (value && typeof value === 'object' && '_seconds' in value && '_nanoseconds' in value) {
+                // Convert Firestore Timestamp to ISO string
+                serialized[key] = new Date(value._seconds * 1000).toISOString();
+            }
+        });
+
+        return serialized;
+    }) as Product[];
 }
 
 
