@@ -235,6 +235,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
+    const hasAutoShownQR = useRef<boolean>(false);
 
     const { addMessageToThread, addArtifacts, updateThreadId } = useInboxStore();
 
@@ -255,12 +256,18 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
 
     // Auto-open QR generator for qr_code threads
     useEffect(() => {
-        // If this is a QR code thread and has no/minimal messages, show generator immediately
-        if (thread.type === 'qr_code' && thread.messages.length <= 1 && !showQRGenerator) {
+        // Reset auto-show flag when thread changes
+        hasAutoShownQR.current = false;
+    }, [thread.id]);
+
+    useEffect(() => {
+        // If this is a QR code thread and we haven't auto-shown yet, show generator immediately
+        if (thread.type === 'qr_code' && !hasAutoShownQR.current && !showQRGenerator) {
             console.log('[InboxConversation] QR code thread detected - auto-showing inline generator');
             setShowQRGenerator(true);
+            hasAutoShownQR.current = true;
         }
-    }, [thread.type, thread.messages.length, showQRGenerator]);
+    }, [thread.type, showQRGenerator, thread.id]);
 
     // Poll for job completion
     useEffect(() => {
