@@ -19,7 +19,83 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-01-28)
+**Current Status:** 🟢 Passing (verified 2026-01-29)
+
+---
+
+## 🆕 Recent Updates (2026-01-29)
+
+### Linus Development Mode Enabled
+**Status:** ✅ Active in both development and production
+
+The error boundary now auto-reports errors to Linus (AI CTO) in both development and production environments. Previously, Linus only received notifications in production.
+
+**Key Changes:**
+- Removed production-only gate in [error-boundary.tsx:59-61](../src/components/error-reporting/error-boundary.tsx#L59-L61)
+- Errors auto-reported to `/api/tickets` with `priority: 'high'`
+- Linus auto-dispatched via [tickets/route.ts:69-107](../src/app/api/tickets/route.ts#L69-L107)
+- Full workflow: Error → Ticket → Linus Investigation → Fix Proposal
+
+**How It Works:**
+1. Error Boundary catches error
+2. Creates high-priority ticket with stack trace
+3. Tickets API detects system error and calls `runAgentChat('linus')`
+4. Linus receives structured prompt with error details
+5. User sees: "Linus (AI CTO) has been automatically notified and is investigating"
+
+**Files Modified:**
+- `src/components/error-reporting/error-boundary.tsx` - Enabled dev mode auto-reporting
+- `src/app/auth/auto-login/page.tsx` - Fixed TypeScript null check error
+
+### Product Image Upload Improvements
+**Status:** ✅ Multiple images supported with backward compatibility
+
+Products now support multiple images with a gallery view while maintaining backward compatibility with single `imageUrl`.
+
+**Key Features:**
+- Multiple image upload (file upload or URL)
+- Gallery view with delete buttons and "Primary" badge
+- Backward compatible with existing `imageUrl` field
+- Firebase Storage integration with timeout handling
+- CORS configured for `gs://bakedbot-global-assets`
+
+**Type System:**
+```typescript
+export type Product = {
+  imageUrl: string; // Primary image (backward compatible)
+  images?: string[]; // Multiple product images
+  // ... other fields
+}
+```
+
+**Firebase Storage Configuration:**
+- Bucket: `bakedbot-global-assets` (updated from non-existent bucket)
+- CORS: Configured to allow `localhost:3000`, `localhost:3001`, `bakedbot.ai`
+- Upload timeout: 60 seconds with Promise.race() pattern
+- Storage path: `products/{brandId}/{productId}-{timestamp}-{filename}`
+
+**UI Enhancements:**
+- Gallery grid with hover delete buttons
+- "Back to Products" button on edit/new pages ([products/new/page.tsx:33](../src/app/dashboard/products/new/page.tsx#L33))
+- Primary image badge on first image
+- "Clear All" button for multiple images
+- Image preview with Next.js Image component
+
+**Files Modified:**
+- `src/types/products.ts` - Added `images?: string[]` field
+- `src/app/dashboard/products/components/product-image-upload.tsx` - Complete rewrite for multiple images
+- `src/app/dashboard/products/components/product-form.tsx` - Updated to use images array
+- `src/app/dashboard/products/actions.ts` - Handle multiple images from form data
+- `src/app/dashboard/products/new/page.tsx` - Added back button
+- `src/app/dashboard/products/[id]/edit/page.tsx` - Added back button
+- `src/firebase/config.ts` - Updated storageBucket to `bakedbot-global-assets`
+- `cors.json` - Created CORS configuration for Firebase Storage
+
+**Security:**
+- File type validation (JPEG, PNG, WebP only)
+- File size limit (5MB max)
+- Authenticated uploads only (Firebase Storage rules)
+- Path validation and sanitization
 
 ---
 
