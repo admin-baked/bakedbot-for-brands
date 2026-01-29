@@ -254,9 +254,27 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [input]);
 
+    // Reset state when thread changes
+    useEffect(() => {
+        console.log('[InboxConversation] Thread changed - resetting state:', {
+            threadId: thread.id,
+            threadType: thread.type,
+        });
+
+        // Clear any ongoing jobs and submission state
+        setCurrentJobId(null);
+        setIsSubmitting(false);
+
+        // Clear polling interval
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+    }, [thread.id]);
+
     // Auto-open QR generator for qr_code threads
     useEffect(() => {
-        console.log('[InboxConversation] Thread changed or mounted:', {
+        console.log('[InboxConversation] QR generator check:', {
             threadId: thread.id,
             threadType: thread.type,
             showQRGenerator,
