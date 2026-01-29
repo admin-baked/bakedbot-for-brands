@@ -53,7 +53,7 @@ export default function AutoLoginPage() {
       }
     }
 
-    authenticate(token);
+    authenticate(validToken);
   }, [searchParams, router]);
 
   return (
