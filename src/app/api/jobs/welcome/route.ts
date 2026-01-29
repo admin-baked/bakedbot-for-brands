@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
             .where('type', '==', 'send_welcome_email')
             .where('agent', '==', 'mrs_parker')
             .where('status', '==', 'pending')
-            .orderBy('createdAt', 'asc')
             .limit(10) // Process max 10 at a time to avoid timeouts
             .get();
 
@@ -37,7 +36,6 @@ export async function POST(request: NextRequest) {
             .where('type', '==', 'send_welcome_sms')
             .where('agent', '==', 'mrs_parker')
             .where('status', '==', 'pending')
-            .orderBy('createdAt', 'asc')
             .limit(10)
             .get();
 
