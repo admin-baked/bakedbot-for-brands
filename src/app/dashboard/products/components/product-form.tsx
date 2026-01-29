@@ -27,7 +27,13 @@ export function ProductForm({ product, userRole, brands = [] }: ProductFormProps
   const [state, formAction] = useActionState(saveProduct, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
-  const [imageUrl, setImageUrl] = useState(product?.imageUrl || '');
+  const [images, setImages] = useState<string[]>(
+    product?.images && product.images.length > 0
+      ? product.images
+      : product?.imageUrl
+        ? [product.imageUrl]
+        : []
+  );
 
   useEffect(() => {
     // Only show toast for general (non-field) errors.
@@ -89,10 +95,11 @@ export function ProductForm({ product, userRole, brands = [] }: ProductFormProps
                     {state.fieldErrors?.price && <p className="text-sm text-destructive">{state.fieldErrors.price[0]}</p>}
                 </div>
             </div>
-            {/* Product Image - Upload or URL */}
+            {/* Product Images - Upload or URL */}
             <ProductImageUpload
-                currentImageUrl={product?.imageUrl || ''}
-                onImageChange={setImageUrl}
+                currentImages={images}
+                onImageChange={() => {}} // Backward compat (not used in multiple mode)
+                onImagesChange={setImages}
                 brandId={product?.brandId}
                 productId={product?.id}
                 fieldError={state.fieldErrors?.imageUrl?.[0]}
