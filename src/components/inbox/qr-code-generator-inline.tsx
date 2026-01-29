@@ -6,7 +6,7 @@
  * Interactive QR code creation tool that appears inline in the chat conversation.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { QrCode, Download, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import QRCodeLib from 'qrcode';
 
 interface QRCodeGeneratorInlineProps {
     onComplete?: (qrCodeData: {
@@ -34,83 +35,35 @@ export function QRCodeGeneratorInline({ onComplete, initialUrl = '', className }
     const [backgroundColor, setBackgroundColor] = useState('#ffffff');
     const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [isLibraryLoaded, setIsLibraryLoaded] = useState(false);
 
-    const qrContainerRef = useRef<HTMLDivElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    // Load QRCode.js library dynamically
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-
-        // Check if QRCode is already loaded
-        if ((window as any).QRCode) {
-            setIsLibraryLoaded(true);
-            return;
-        }
-
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-        script.async = true;
-
-        script.onload = () => {
-            console.log('[QRCodeGenerator] Library loaded successfully');
-            setIsLibraryLoaded(true);
-        };
-
-        script.onerror = () => {
-            console.error('[QRCodeGenerator] Failed to load QRCode library');
-            alert('Failed to load QR Code library. Please refresh the page.');
-        };
-
-        document.body.appendChild(script);
-
-        return () => {
-            if (document.body.contains(script)) {
-                document.body.removeChild(script);
-            }
-        };
-    }, []);
-
-    const generateQRCode = () => {
+    const generateQRCode = async () => {
         if (!url.trim()) {
             alert('Please enter a URL or text content.');
             return;
         }
 
-        if (!isLibraryLoaded) {
-            console.log('[QRCodeGenerator] Library not loaded yet');
-            return;
-        }
-
-        if (!qrContainerRef.current) return;
+        if (!canvasRef.current) return;
 
         setIsGenerating(true);
 
-        // Clear previous QR code
-        qrContainerRef.current.innerHTML = '';
-        setQrCodeImage(null);
-
         try {
-
-            // Generate QR code
-            const QRCodeLib = (window as any).QRCode;
-            new QRCodeLib(qrContainerRef.current, {
-                text: url,
+            // Generate QR code using the npm package
+            await QRCodeLib.toCanvas(canvasRef.current, url, {
                 width: 256,
-                height: 256,
-                colorDark: foregroundColor,
-                colorLight: backgroundColor,
-                correctLevel: QRCodeLib.CorrectLevel?.H || 2,
+                margin: 2,
+                color: {
+                    dark: foregroundColor,
+                    light: backgroundColor,
+                },
+                errorCorrectionLevel: 'H',
             });
 
-            // Extract the generated image
-            setTimeout(() => {
-                const img = qrContainerRef.current?.querySelector('img') as HTMLImageElement;
-                if (img) {
-                    setQrCodeImage(img.src);
-                }
-                setIsGenerating(false);
-            }, 100);
+            // Get the data URL from the canvas
+            const dataUrl = canvasRef.current.toDataURL('image/png');
+            setQrCodeImage(dataUrl);
+            setIsGenerating(false);
         } catch (error) {
             console.error('Error generating QR code:', error);
             alert('Error generating QR code. Please try again.');
@@ -238,11 +191,11 @@ export function QRCodeGeneratorInline({ onComplete, initialUrl = '', className }
                     {/* Generate Button */}
                     <Button
                         onClick={generateQRCode}
-                        disabled={!isLibraryLoaded || isGenerating || !url.trim()}
+                        disabled={isGenerating || !url.trim()}
                         className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
                     >
                         <Sparkles className="h-4 w-4 mr-2" />
-                        {!isLibraryLoaded ? 'Loading QR Library...' : isGenerating ? 'Generating...' : 'Generate QR Code'}
+                        {isGenerating ? 'Generating...' : 'Generate QR Code'}
                     </Button>
 
                     {/* QR Code Display */}
@@ -255,21 +208,22 @@ export function QRCodeGeneratorInline({ onComplete, initialUrl = '', className }
                     >
                         {qrCodeImage ? (
                             <div className="p-4">
-                                <div
-                                    ref={qrContainerRef}
-                                    className="flex items-center justify-center"
+                                <canvas
+                                    ref={canvasRef}
+                                    className="max-w-full h-auto"
                                 />
                             </div>
                         ) : (
-                            <div
-                                ref={qrContainerRef}
-                                className="text-center text-muted-foreground italic text-sm p-4"
-                            >
+                            <div className="text-center text-muted-foreground italic text-sm p-4">
                                 {!url.trim() ? (
                                     'Enter a URL above to get started'
                                 ) : (
                                     'Click Generate to create your QR code'
                                 )}
+                                <canvas
+                                    ref={canvasRef}
+                                    className="hidden"
+                                />
                             </div>
                         )}
                     </div>
