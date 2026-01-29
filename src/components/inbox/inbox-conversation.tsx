@@ -253,6 +253,15 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [input]);
 
+    // Auto-open QR generator for qr_code threads
+    useEffect(() => {
+        // If this is a QR code thread and has no/minimal messages, show generator immediately
+        if (thread.type === 'qr_code' && thread.messages.length <= 1 && !showQRGenerator) {
+            console.log('[InboxConversation] QR code thread detected - auto-showing inline generator');
+            setShowQRGenerator(true);
+        }
+    }, [thread.type, thread.messages.length, showQRGenerator]);
+
     // Poll for job completion
     useEffect(() => {
         if (!currentJobId) return;
