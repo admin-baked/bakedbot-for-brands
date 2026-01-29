@@ -5,7 +5,7 @@
  * Provides a clean API for querying NotebookLM from agents.
  */
 
-import { callPythonSidecar } from './python-sidecar';
+import { sidecar } from './python-sidecar';
 import { logger } from '@/lib/logger';
 
 export interface NotebookLMResponse {
@@ -167,40 +167,38 @@ export class NotebookLMClient {
   ): Promise<NotebookLMResponse> {
     for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
       try {
-        const result = await callPythonSidecar({
-          action: 'mcp_call',
-          data: {
-            tool_name: toolName,
-            arguments: arguments_
-          }
+        const result = await sidecar.execute('mcp_call', {
+          tool_name: toolName,
+          arguments: arguments_
         });
 
-        if (result.success && result.result) {
+        if (result.status === 'success' && result.result) {
           // Parse the response
           let responseData: any = {};
+          const resultData = result.result as any;
 
-          if (typeof result.result === 'string') {
+          if (typeof resultData === 'string') {
             try {
-              responseData = JSON.parse(result.result);
+              responseData = JSON.parse(resultData);
             } catch {
-              responseData = { response: result.result };
+              responseData = { response: resultData };
             }
-          } else if (result.result.text) {
+          } else if (resultData.text) {
             try {
-              responseData = JSON.parse(result.result.text);
+              responseData = JSON.parse(resultData.text);
             } catch {
               // If it's an error message, it won't be JSON
-              if (result.result.text.includes('Error calling tool')) {
+              if (resultData.text.includes('Error calling tool')) {
                 responseData = {
-                  error: result.result.text,
+                  error: resultData.text,
                   authenticated: false
                 };
               } else {
-                responseData = { response: result.result.text };
+                responseData = { response: resultData.text };
               }
             }
           } else {
-            responseData = result.result;
+            responseData = resultData;
           }
 
           return {
@@ -212,7 +210,7 @@ export class NotebookLMClient {
         }
 
         // Request failed
-        throw new Error(result.error || 'Tool call failed');
+        throw new Error(result.message || 'Tool call failed');
 
       } catch (error) {
         logger.error('NotebookLM tool call failed', {
