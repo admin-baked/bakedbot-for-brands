@@ -1026,6 +1026,12 @@
     "description": "Use when completing tasks, implementing major features, or before merging to verify work meets requirements"
   },
   {
+    "id": "restart-dev",
+    "path": "skills/restart-dev",
+    "name": "restart-dev",
+    "description": "Kill any running dev server processes and restart npm run dev. Use when you need to restart the development server after changes."
+  },
+  {
     "id": "research-engineer",
     "path": "skills/research-engineer",
     "name": "research-engineer",

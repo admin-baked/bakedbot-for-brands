@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { getCorsHeaders, CORS_PREFLIGHT_HEADERS, isOriginAllowed } from './lib/cors';
 
 /**
- * Middleware for route protection, authentication, CORS, CSRF, and custom domain routing.
+ * Proxy for route protection, authentication, CORS, CSRF, and custom domain routing.
  * This runs on the Edge runtime before the request reaches the page.
  *
  * Subdomain Routing (brand.bakedbot.ai):
@@ -18,7 +18,7 @@ import { getCorsHeaders, CORS_PREFLIGHT_HEADERS, isOriginAllowed } from './lib/c
  * Note: CSRF validation is handled in API routes using the csrf middleware
  * because Edge runtime doesn't support the 'crypto' module needed for validation.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const origin = request.headers.get('origin');
     // Use x-forwarded-host in cloud environments (Firebase/Cloud Run), fall back to host
@@ -116,7 +116,7 @@ export async function middleware(request: NextRequest) {
             // If resolution failed, redirect to 404
             return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
         } catch (error) {
-            console.error('[Middleware] Custom domain resolution failed:', error);
+            console.error('[Proxy] Custom domain resolution failed:', error);
             return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
         }
     }
@@ -218,7 +218,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
 }
 
-// Configure which routes the middleware should run on
+// Configure which routes the proxy should run on
 export const config = {
     matcher: [
         // Subdomain and custom domain routing - match all paths

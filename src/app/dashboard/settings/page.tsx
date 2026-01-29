@@ -14,6 +14,7 @@ import { CardHeader, CardTitle, CardContent, CardDescription } from '@/component
 import { BillingForm } from './components/billing-form';
 import { CreditCard } from 'lucide-react';
 import { SidecarHealthCheck } from '@/components/settings/sidecar-health';
+import { NotebookLMAuth } from '@/components/settings/notebooklm-auth';
 
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from 'lucide-react';
@@ -144,6 +145,7 @@ export default function SettingsPage() {
 
         <TabsContent value="integrations" className="space-y-4">
           <SidecarHealthCheck />
+          <NotebookLMAuth />
         </TabsContent>
 
         <TabsContent value="team" className="space-y-4">
