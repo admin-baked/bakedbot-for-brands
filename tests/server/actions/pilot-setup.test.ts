@@ -3,9 +3,8 @@
  * Tests customer segment generation, sample orders, playbooks, and flush functionality
  */
 
+import { PILOT_CUSTOMER_SEGMENTS, THRIVE_SAMPLE_PRODUCTS } from '@/server/actions/pilot-setup-constants';
 import {
-    PILOT_CUSTOMER_SEGMENTS,
-    THRIVE_SAMPLE_PRODUCTS,
     type PilotPOSConfig,
     type PilotEmailConfig,
 } from '@/server/actions/pilot-setup';

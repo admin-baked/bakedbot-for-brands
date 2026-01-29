@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { PILOT_CUSTOMER_SEGMENTS, THRIVE_SAMPLE_PRODUCTS } from '@/server/actions/pilot-setup-constants';
 import {
     setupPilotCustomer,
     addPilotProducts,
@@ -22,8 +23,6 @@ import {
     createVIPPlaybook,
     configurePilotPOS,
     flushPilotData,
-    PILOT_CUSTOMER_SEGMENTS,
-    THRIVE_SAMPLE_PRODUCTS,
     type BrandPilotConfig,
     type DispensaryPilotConfig,
     type ImportedMenuData,
