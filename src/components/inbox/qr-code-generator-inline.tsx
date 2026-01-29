@@ -86,6 +86,9 @@ export function QRCodeGeneratorInline({ onComplete, initialUrl = '', className }
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+
+        // Auto-save to database when downloading
+        handleComplete();
     };
 
     const handleComplete = () => {
@@ -240,7 +243,7 @@ export function QRCodeGeneratorInline({ onComplete, initialUrl = '', className }
                                 className="flex-1 border-white/10 hover:bg-white/5"
                             >
                                 <Download className="h-4 w-4 mr-2" />
-                                Download PNG
+                                Download & Save
                             </Button>
                             {onComplete && (
                                 <Button
@@ -248,7 +251,7 @@ export function QRCodeGeneratorInline({ onComplete, initialUrl = '', className }
                                     className="flex-1 bg-green-500 hover:bg-green-600"
                                 >
                                     <Sparkles className="h-4 w-4 mr-2" />
-                                    Done
+                                    Save QR Code
                                 </Button>
                             )}
                         </motion.div>

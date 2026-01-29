@@ -478,6 +478,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             tags: ['inbox', 'craig'],
         });
 
+        console.log('[InboxConversation] generateQRCode result:', result);
+
         if (result.success && result.qrCode) {
             // Add success message with tracking URL
             const confirmationMessage: ChatMessage = {
