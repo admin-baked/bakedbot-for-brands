@@ -353,6 +353,62 @@ if (authHeader !== `Bearer ${cronSecret}`) {
 
 ---
 
+## 🆕 Recent Changes (2026-01-28)
+
+### CannMenus Chatbot Integration
+
+The BakedBot budtender chatbot widget is now fully integrated with CannMenus for brand and dispensary pages.
+
+**Key Features:**
+- ✅ Real-time product search via CannMenus API
+- ✅ Brand/dispensary context filtering (`brandId`, `dispensaryId`)
+- ✅ Natural language product discovery
+- ✅ AI-powered ranking using chemotype and effect matching
+- ✅ Custom branding (botName, welcomeMessage, mascotImageUrl, primaryColor)
+
+**Widget Configuration (CannMenus Brand Page):**
+```html
+<link rel="stylesheet" href="https://bakedbot.ai/embed/chatbot.css">
+<script>
+  window.BakedBotConfig = {
+    brandId: '{{ cannmenus_brand_id }}',
+    entityName: '{{ brand_name }}',
+    primaryColor: '{{ brand_color }}',
+    botName: 'Smokey',
+    dispensaryId: null  // Optional
+  };
+</script>
+<script src="https://bakedbot.ai/embed/chatbot.js"></script>
+```
+
+**Files Modified:**
+- `src/embed/index.tsx` - Pass dispensaryId and chatbotConfig to Chatbot component
+- `src/types/embed.ts` - Add dispensaryId, entityName, botName, welcomeMessage, mascotImageUrl
+- `public/embed/chatbot.js` - Rebuilt (819.24 KB) with CannMenus support
+- `CANNMENUS_INTEGRATION_STATUS.md` - Complete integration overview
+- `public/embed/CANNMENUS_INTEGRATION.md` - Detailed setup guide for CannMenus
+
+**Backend Integration:**
+The `/api/chat` endpoint already supports CannMenus via `CannMenusService.searchProducts()`:
+- Filters by `brandId` (for brand pages)
+- Filters by `dispensaryId` (for dispensary pages)
+- Maps natural language queries to CannMenus API parameters
+- Returns AI-ranked product recommendations
+
+**Demo:**
+- Visit `/demo-shop` to see chatbot in action (uses demo products)
+- Widget works with both brand menu and dispensary menu modes
+- CannMenus API integration tested and operational
+
+**Documentation:**
+- `CANNMENUS_INTEGRATION_STATUS.md` - Status report and testing guide
+- `public/embed/CANNMENUS_INTEGRATION.md` - Installation and configuration
+- `CHATBOT_STATUS.md` - Overall widget operational status
+
+**Status:** ✅ Ready for CannMenus brand/dispensary page deployment
+
+---
+
 ## 🆕 Recent Changes (2026-01-22)
 
 ### Multi-Agent Patterns (from awesome-llm-apps)
