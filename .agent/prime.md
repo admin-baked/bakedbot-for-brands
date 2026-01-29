@@ -353,6 +353,117 @@ if (authHeader !== `Bearer ${cronSecret}`) {
 
 ---
 
+## 🆕 Recent Changes (2026-01-29)
+
+### Role-Based Ground Truth System v2.0
+
+Complete migration from hardcoded preset prompts to a dynamic, database-backed Ground Truth system with role-based customization for Brands, Dispensaries, Super Users, and Customers.
+
+**Key Features:**
+- ✅ **57 preset prompts migrated** across 4 roles (Brand: 10, Dispensary: 10, Super User: 34, Customer: 3)
+- ✅ **70 QA pairs** migrated (Brand: 20, Dispensary: 20, Super User: 30)
+- ✅ **Database-backed quick actions** with feature flag (`NEXT_PUBLIC_USE_DB_QUICK_ACTIONS`)
+- ✅ **Tenant-specific overrides** for customization
+- ✅ **6-tab CEO dashboard** for managing ground truth
+- ✅ **Variable substitution** in prompt templates using Mustache syntax (`{{variable_name}}`)
+- ✅ **Workflow guides** with step-by-step agent orchestration
+
+**Access:**
+- Navigate to **Dashboard → CEO → Admin → Ground Truth**
+- Requires Super User or Owner role
+- Available at `/dashboard/ceo?tab=ground-truth`
+
+**Dashboard Tabs:**
+1. **QA Pairs (Legacy)** - Brand-specific Smokey knowledge base
+2. **Preset Prompts** - Role-based quick actions and templates
+3. **Workflow Guides** - Step-by-step agent workflows
+4. **Tenant Overrides** - Tenant-specific customizations
+5. **Live Tester** - Test agent responses with ground truth
+6. **Import/Export** - Backup and restore ground truth data
+
+**Database Structure:**
+```
+ground_truth_v2/{roleId}/
+  - metadata
+  - preset_prompts (array)
+  - workflow_guides (array)
+  - categories/{categoryKey}/qa_pairs/{qaId}
+
+tenants/{tenantId}/ground_truth_overrides/{roleId}/
+  - preset_prompts (overrides)
+  - disabled_presets (array)
+  - custom_workflows (array)
+```
+
+**Migration:**
+```powershell
+# Preview migration
+node scripts/migrate-quick-actions.mjs --dry-run
+
+# Run migration
+node scripts/migrate-quick-actions.mjs
+
+# Enable database-backed quick actions
+# In .env.local:
+NEXT_PUBLIC_USE_DB_QUICK_ACTIONS=true
+```
+
+**Files Created:**
+- `scripts/migrate-quick-actions.mjs` - Migration script (367 lines)
+- `src/server/grounding/role-loader.ts` - Dynamic ground truth loader
+- `src/server/actions/role-ground-truth.ts` - CRUD operations
+- `tests/server/grounding/role-ground-truth.test.ts` - Unit tests
+- `MIGRATION_GUIDE.md` - Complete migration documentation (540 lines)
+
+**Files Modified:**
+- `src/types/ground-truth.ts` - Extended with `RoleGroundTruth`, `PresetPromptTemplate`, `WorkflowGuide`
+- `src/components/dashboard/super-admin-sidebar.tsx` - Added Ground Truth navigation
+- `src/app/dashboard/ceo/components/ground-truth-tab.tsx` - Extended with role management UI
+- `firestore.rules` - Added security rules for `ground_truth_v2` collection
+
+**Key Types:**
+```typescript
+export interface PresetPromptTemplate {
+  id: string;
+  label: string;
+  description: string;
+  threadType: InboxThreadType;
+  defaultAgent: InboxAgentPersona;
+  promptTemplate: string;  // With {{variables}}
+  variables?: string[];
+  category: string;
+  roles: string[];
+  icon?: string;
+  version: string;
+}
+
+export interface RoleGroundTruth extends GroundTruthQASet {
+  role: 'brand' | 'dispensary' | 'super_user' | 'customer';
+  preset_prompts: PresetPromptTemplate[];
+  workflow_guides: WorkflowGuide[];
+}
+```
+
+**Agent Integration:**
+All agents (Smokey, Craig, Leo, etc.) now load role-specific ground truth during initialization:
+```typescript
+const userRole = brandMemory.user_context?.role as RoleContextType;
+const roleGT = await loadRoleGroundTruth(userRole, tenantId);
+if (roleGT) {
+  const rolePrompt = buildRoleSystemPrompt(roleGT, agentId);
+  agentMemory.system_instructions += rolePrompt;
+}
+```
+
+**Rollback:**
+Hardcoded `INBOX_QUICK_ACTIONS` preserved as fallback. Set `NEXT_PUBLIC_USE_DB_QUICK_ACTIONS=false` to revert.
+
+**Status:** ✅ Fully operational with migration complete
+
+**Documentation:** See `MIGRATION_GUIDE.md` for detailed setup and troubleshooting.
+
+---
+
 ## 🆕 Recent Changes (2026-01-28)
 
 ### CannMenus Chatbot Integration
