@@ -177,7 +177,7 @@ export async function sendWelcomeSms(context: WelcomeSmsContext): Promise<{ succ
 
 /**
  * Save lead to Letta for personalization
- * TODO: Implement Letta memory integration for customer retention
+ * Mrs. Parker uses Letta memory to remember customer details for future interactions
  */
 async function saveleadToLetta(leadData: {
     leadId: string;
@@ -190,22 +190,60 @@ async function saveleadToLetta(leadData: {
     capturedAt: number;
 }): Promise<void> {
     try {
-        // === FUTURE: LETTA MEMORY INTEGRATION ===
-        // When Letta is fully integrated, save customer facts here
-        // const { lettaBlockManager } = await import('@/server/services/letta');
-        // await lettaBlockManager.saveFact(brandId, agentId, fact, metadata);
+        const { archivalTagsService, CATEGORY_TAGS, AGENT_TAGS } = await import('@/server/services/letta');
 
-        logger.info('[MrsParker:Letta] Lead saved (memory integration pending)', {
+        // Build memory content with customer details
+        const customerIdentifier = leadData.firstName || leadData.email || leadData.phone || 'Unknown Customer';
+        const contact = leadData.email || leadData.phone || 'No contact provided';
+        const captureDate = new Date(leadData.capturedAt).toLocaleDateString();
+
+        const memoryContent = `
+New customer lead captured from age gate:
+- Name: ${customerIdentifier}
+- Contact: ${contact}
+- State: ${leadData.state || 'Unknown'}
+- Source: ${leadData.source}
+- Captured: ${captureDate}
+- Lead ID: ${leadData.leadId}
+
+This customer opted in through the age verification process and wants to receive updates about exclusive deals and new product drops. They showed initial interest in cannabis products and should be treated as a warm lead for future marketing campaigns.
+        `.trim();
+
+        // Create tags for filtering and search
+        const tags = [
+            CATEGORY_TAGS.CUSTOMER,         // category:customer
+            AGENT_TAGS.MRS_PARKER,          // agent:mrs_parker
+            `source:${leadData.source}`,    // source:age_gate_welcome
+            `state:${leadData.state || 'unknown'}`, // state:IL
+            'priority:high',                 // High priority - new lead
+        ];
+
+        // Get or create Mrs. Parker's Letta agent ID
+        // For now, use a fixed agent ID per brand
+        const agentId = `mrs_parker_${leadData.brandId || 'default'}`;
+
+        // Save to Letta archival memory with tags
+        await archivalTagsService.insertWithTags(agentId, {
+            content: memoryContent,
+            tags,
+            agentId,
+            tenantId: leadData.brandId || 'default',
+        });
+
+        logger.info('[MrsParker:Letta] Lead saved to memory successfully', {
             leadId: leadData.leadId,
             brandId: leadData.brandId,
+            agentId,
+            tags: tags.join(', '),
         });
     } catch (error: unknown) {
         const err = error as Error;
-        logger.error('[MrsParker:Letta] Failed to save lead', {
+        logger.error('[MrsParker:Letta] Failed to save lead to memory', {
             leadId: leadData.leadId,
             error: err.message,
         });
         // Non-fatal: don't throw, just log
+        // Welcome email should still be sent even if memory save fails
     }
 }
 
