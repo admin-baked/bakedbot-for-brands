@@ -47,6 +47,12 @@ export async function generateQRCode(input: {
             return { success: false, error: 'Unauthorized' };
         }
 
+        // Normalize target URL to ensure it has a protocol
+        let normalizedTargetUrl = input.targetUrl.trim();
+        if (!normalizedTargetUrl.startsWith('http://') && !normalizedTargetUrl.startsWith('https://')) {
+            normalizedTargetUrl = `https://${normalizedTargetUrl}`;
+        }
+
         const db = getDb();
         const qrCodeId = `qr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const shortCode = generateQRShortCode();
@@ -77,7 +83,7 @@ export async function generateQRCode(input: {
             type: input.type,
             title: input.title,
             description: input.description,
-            targetUrl: input.targetUrl,
+            targetUrl: normalizedTargetUrl,
             shortCode,
             style: input.style || 'standard',
             primaryColor: input.primaryColor,
@@ -339,9 +345,19 @@ export async function updateQRCode(
             return { success: false, error: 'Unauthorized' };
         }
 
+        // Normalize target URL if it's being updated
+        const normalizedUpdates = { ...updates };
+        if (normalizedUpdates.targetUrl) {
+            let url = normalizedUpdates.targetUrl.trim();
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = `https://${url}`;
+            }
+            normalizedUpdates.targetUrl = url;
+        }
+
         // Update QR code
         await db.collection(QR_CODES_COLLECTION).doc(qrCodeId).update({
-            ...updates,
+            ...normalizedUpdates,
             updatedAt: FieldValue.serverTimestamp(),
         });
 

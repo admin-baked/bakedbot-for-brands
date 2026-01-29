@@ -38,6 +38,12 @@ export async function GET(
         );
     }
 
+    // Ensure target URL has protocol for redirect
+    let targetUrl = result.targetUrl;
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+        targetUrl = `https://${targetUrl}`;
+    }
+
     // Redirect to target URL
-    return NextResponse.redirect(result.targetUrl, 307);
+    return NextResponse.redirect(targetUrl, 307);
 }
