@@ -51,8 +51,12 @@ export default function QRCodesPage() {
     const loadQRCodes = async () => {
         setLoading(true);
         const result = await getQRCodes({ limit: 100 });
+        console.log('[QRCodesPage] Load result:', result);
         if (result.success && result.qrCodes) {
+            console.log('[QRCodesPage] Loaded QR codes:', result.qrCodes.length);
             setQrCodes(result.qrCodes);
+        } else {
+            console.error('[QRCodesPage] Failed to load QR codes:', result.error);
         }
         setLoading(false);
     };
