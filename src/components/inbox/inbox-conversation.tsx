@@ -562,13 +562,26 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             <ScrollArea ref={scrollRef} className="flex-1 px-4">
                 <div className="max-w-3xl mx-auto py-4">
                     {thread.messages.length === 0 ? (
-                        <div className="text-center py-12">
-                            <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                            <h3 className="font-medium text-lg mb-2">Start the conversation</h3>
-                            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                                Describe what you'd like to create and {AGENT_NAMES[thread.primaryAgent]?.name || 'your assistant'} will help you build it.
-                            </p>
-                        </div>
+                        <>
+                            {!showQRGenerator && (
+                                <div className="text-center py-12">
+                                    <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                                    <h3 className="font-medium text-lg mb-2">Start the conversation</h3>
+                                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                                        Describe what you'd like to create and {AGENT_NAMES[thread.primaryAgent]?.name || 'your assistant'} will help you build it.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Show QR Code Generator inline for empty QR threads */}
+                            {showQRGenerator && (
+                                <div className="mt-4">
+                                    <QRCodeGeneratorInline
+                                        onComplete={handleCompleteQRCode}
+                                    />
+                                </div>
+                            )}
+                        </>
                     ) : (
                         <>
                             {thread.messages.map((message, index) => {
