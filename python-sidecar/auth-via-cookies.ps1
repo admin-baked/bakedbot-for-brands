@@ -60,6 +60,7 @@ $importScript = @'
 import json
 import sqlite3
 import sys
+import time
 from pathlib import Path
 
 # Read cookies JSON
@@ -83,6 +84,8 @@ columns = [row[1] for row in cursor.fetchall()]
 print(f"Cookie table columns: {columns}")
 
 imported = 0
+current_time = int(time.time() * 1000000)  # Chrome uses microseconds since epoch
+
 for cookie in cookies:
     try:
         # Extract cookie fields (adjust based on your export format)
@@ -93,18 +96,50 @@ for cookie in cookies:
         expires = cookie.get('expirationDate', 0)
         secure = 1 if cookie.get('secure', False) else 0
         httponly = 1 if cookie.get('httpOnly', False) else 0
-        samesite = cookie.get('sameSite', 'no_restriction')
+
+        # Map sameSite values
+        samesite_map = {
+            'unspecified': 0,
+            'no_restriction': 0,
+            'lax': 1,
+            'strict': 2
+        }
+        samesite_value = samesite_map.get(cookie.get('sameSite', 'unspecified').lower(), 0)
 
         # Only import Google-related cookies
         if 'google' not in host.lower():
             continue
 
-        # Insert or replace cookie
+        # Insert or replace cookie with all required fields
         cursor.execute("""
             INSERT OR REPLACE INTO cookies
-            (host_key, name, value, path, expires_utc, is_secure, is_httponly, samesite)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (host, name, value, path, int(expires * 1000000), secure, httponly, samesite))
+            (creation_utc, host_key, top_frame_site_key, name, value, encrypted_value,
+             path, expires_utc, is_secure, is_httponly, last_access_utc, has_expires,
+             is_persistent, priority, samesite, source_scheme, source_port,
+             last_update_utc, source_type, has_cross_site_ancestor)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            current_time,           # creation_utc
+            host,                   # host_key
+            '',                     # top_frame_site_key
+            name,                   # name
+            value,                  # value
+            b'',                    # encrypted_value
+            path,                   # path
+            int(expires * 1000000) if expires > 0 else 0,  # expires_utc
+            secure,                 # is_secure
+            httponly,               # is_httponly
+            current_time,           # last_access_utc
+            1 if expires > 0 else 0,  # has_expires
+            1 if expires > 0 else 0,  # is_persistent
+            1,                      # priority (medium)
+            samesite_value,         # samesite
+            2 if secure else 0,     # source_scheme (2=secure, 0=unset)
+            443 if secure else 80,  # source_port
+            current_time,           # last_update_utc
+            0,                      # source_type
+            0                       # has_cross_site_ancestor
+        ))
 
         imported += 1
     except Exception as e:
@@ -127,14 +162,7 @@ Write-Host "`n[2/4] Stopping service..." -ForegroundColor Yellow
 gcloud compute ssh $VM_NAME --zone=$ZONE --command="sudo systemctl stop bakedbot-sidecar"
 
 Write-Host "`n[3/4] Importing cookies..." -ForegroundColor Yellow
-gcloud compute ssh $VM_NAME --zone=$ZONE --command=@"
-cd /opt/bakedbot-sidecar
-sudo mv /tmp/cookies.json .
-sudo mv /tmp/import_cookies.py .
-source venv/bin/activate
-python3 import_cookies.py
-sudo rm cookies.json import_cookies.py
-"@
+gcloud compute ssh $VM_NAME --zone=$ZONE --command="cd /opt/bakedbot-sidecar && sudo mv /tmp/cookies.json . && sudo mv /tmp/import_cookies.py . && sudo python3 import_cookies.py && sudo rm cookies.json import_cookies.py"
 
 Write-Host "`n[4/4] Restarting service..." -ForegroundColor Yellow
 gcloud compute ssh $VM_NAME --zone=$ZONE --command="sudo systemctl start bakedbot-sidecar && sleep 5"

@@ -518,11 +518,20 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
             jobId
         };
 
-        const dispatch = await dispatchAgentJob(payload);
-        logger.info('[runAgentChat] dispatchAgentJob result', { success: dispatch.success, jobId, error: dispatch.error });
+        // DEVELOPMENT MODE: Force synchronous execution to avoid Cloud Tasks localhost issues
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        let dispatch: { success: boolean; error?: string; taskId?: any } = {
+            success: !isDevelopment,
+            error: isDevelopment ? 'Development mode - using synchronous fallback' : undefined
+        };
+
+        if (!isDevelopment) {
+            dispatch = await dispatchAgentJob(payload);
+            logger.info('[runAgentChat] dispatchAgentJob result', { success: dispatch.success, jobId, error: dispatch.error });
+        }
 
         if (!dispatch.success) {
-            logger.warn('[runAgentChat] Cloud Tasks dispatch failed, using synchronous fallback', { error: dispatch.error });
+            logger.warn('[runAgentChat] Cloud Tasks dispatch failed or skipped in dev, using synchronous fallback', { error: dispatch.error });
 
             // SYNCHRONOUS FALLBACK: Run agent directly when Cloud Tasks isn't available
             try {
