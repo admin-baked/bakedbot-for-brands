@@ -23,7 +23,9 @@ async function testNotebookLM() {
       body: JSON.stringify({
         tool_name: 'chat_with_notebook',
         arguments: {
-          message: 'What is this notebook about?'
+          request: {
+            message: 'What is this notebook about?'
+          }
         }
       })
     });

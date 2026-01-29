@@ -520,6 +520,13 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
 
         // DEVELOPMENT MODE: Force synchronous execution to avoid Cloud Tasks localhost issues
         const isDevelopment = process.env.NODE_ENV === 'development';
+        logger.info('[runAgentChat] Environment check', {
+            NODE_ENV: process.env.NODE_ENV,
+            isDevelopment,
+            jobId,
+            willSkipCloudTasks: isDevelopment
+        });
+
         let dispatch: { success: boolean; error?: string; taskId?: any } = {
             success: !isDevelopment,
             error: isDevelopment ? 'Development mode - using synchronous fallback' : undefined
@@ -528,10 +535,12 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
         if (!isDevelopment) {
             dispatch = await dispatchAgentJob(payload);
             logger.info('[runAgentChat] dispatchAgentJob result', { success: dispatch.success, jobId, error: dispatch.error });
+        } else {
+            logger.info('[runAgentChat] Skipping Cloud Tasks in development, will use synchronous execution');
         }
 
         if (!dispatch.success) {
-            logger.warn('[runAgentChat] Cloud Tasks dispatch failed or skipped in dev, using synchronous fallback', { error: dispatch.error });
+            logger.warn('[runAgentChat] Using synchronous fallback', { reason: dispatch.error, jobId });
 
             // SYNCHRONOUS FALLBACK: Run agent directly when Cloud Tasks isn't available
             try {
@@ -570,12 +579,13 @@ export async function runAgentChat(userMessage: string, personaId?: string, extr
                     updatedAt: FieldValue.serverTimestamp()
                 });
 
-                // Return immediate result (no polling needed)
+                // Return immediate result (no polling needed - NO jobId in metadata!)
+                logger.info('[runAgentChat] Synchronous execution completed, returning result immediately');
                 return {
                     content: result.content || '',
                     toolCalls: result.toolCalls || [],
                     metadata: {
-                        jobId,
+                        // DO NOT include jobId here - it triggers polling in inbox
                         agentName: finalPersonaId || 'BakedBot',
                         type: result.metadata?.type || 'session_context',
                         brandId: user.brandId,
