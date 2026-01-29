@@ -46,6 +46,7 @@ service-account.json
 *.key
 secrets/
 credentials/
+.super-user-token
 
 # Playwright
 /test-results/

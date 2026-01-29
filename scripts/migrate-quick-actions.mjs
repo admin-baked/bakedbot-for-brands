@@ -5,11 +5,15 @@
  *   node scripts/migrate-quick-actions.mjs [--dry-run] [--role brand|dispensary|super_user|customer]
  */
 
+import { config } from 'dotenv';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+
+// Load environment variables from .env.local
+config({ path: '.env.local' });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

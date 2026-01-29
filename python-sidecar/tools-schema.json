@@ -1,0 +1,200 @@
+﻿{
+    "value":  [
+                  {
+                      "name":  "healthcheck",
+                      "description":  "Check if the NotebookLM server is healthy and responsive.",
+                      "inputSchema":  {
+                                          "properties":  {
+
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "send_chat_message",
+                      "description":  "Send a message to NotebookLM chat interface.",
+                      "inputSchema":  {
+                                          "$defs":  {
+                                                        "SendMessageRequest":  {
+                                                                                   "description":  "Request model for sending a message to NotebookLM",
+                                                                                   "properties":  {
+                                                                                                      "message":  {
+                                                                                                                      "description":  "The message to send to NotebookLM",
+                                                                                                                      "type":  "string"
+                                                                                                                  },
+                                                                                                      "wait_for_response":  {
+                                                                                                                                "default":  true,
+                                                                                                                                "description":  "Whether to wait for response after sending",
+                                                                                                                                "type":  "boolean"
+                                                                                                                            }
+                                                                                                  },
+                                                                                   "required":  [
+                                                                                                    "message"
+                                                                                                ],
+                                                                                   "type":  "object"
+                                                                               }
+                                                    },
+                                          "properties":  {
+                                                             "request":  {
+                                                                             "$ref":  "#/$defs/SendMessageRequest"
+                                                                         }
+                                                         },
+                                          "required":  [
+                                                           "request"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "get_chat_response",
+                      "description":  "Get the latest response from NotebookLM with streaming support.",
+                      "inputSchema":  {
+                                          "$defs":  {
+                                                        "GetResponseRequest":  {
+                                                                                   "description":  "Request model for getting response from NotebookLM",
+                                                                                   "properties":  {
+                                                                                                      "timeout":  {
+                                                                                                                      "default":  30,
+                                                                                                                      "description":  "Timeout in seconds for waiting for response",
+                                                                                                                      "type":  "integer"
+                                                                                                                  }
+                                                                                                  },
+                                                                                   "type":  "object"
+                                                                               }
+                                                    },
+                                          "properties":  {
+                                                             "request":  {
+                                                                             "$ref":  "#/$defs/GetResponseRequest"
+                                                                         }
+                                                         },
+                                          "required":  [
+                                                           "request"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "get_quick_response",
+                      "description":  "Get current response without waiting for completion.",
+                      "inputSchema":  {
+                                          "properties":  {
+
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "chat_with_notebook",
+                      "description":  "Complete chat interaction: send message and get response.",
+                      "inputSchema":  {
+                                          "$defs":  {
+                                                        "ChatRequest":  {
+                                                                            "description":  "Request model for complete chat interaction",
+                                                                            "properties":  {
+                                                                                               "message":  {
+                                                                                                               "description":  "The message to send",
+                                                                                                               "type":  "string"
+                                                                                                           },
+                                                                                               "notebook_id":  {
+                                                                                                                   "anyOf":  [
+                                                                                                                                 {
+                                                                                                                                     "type":  "string"
+                                                                                                                                 },
+                                                                                                                                 {
+                                                                                                                                     "type":  "null"
+                                                                                                                                 }
+                                                                                                                             ],
+                                                                                                                   "default":  null,
+                                                                                                                   "description":  "Optional notebook ID to switch to"
+                                                                                                               }
+                                                                                           },
+                                                                            "required":  [
+                                                                                             "message"
+                                                                                         ],
+                                                                            "type":  "object"
+                                                                        }
+                                                    },
+                                          "properties":  {
+                                                             "request":  {
+                                                                             "$ref":  "#/$defs/ChatRequest"
+                                                                         }
+                                                         },
+                                          "required":  [
+                                                           "request"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "navigate_to_notebook",
+                      "description":  "Navigate to a specific notebook.",
+                      "inputSchema":  {
+                                          "$defs":  {
+                                                        "NavigateRequest":  {
+                                                                                "description":  "Request model for navigating to a notebook",
+                                                                                "properties":  {
+                                                                                                   "notebook_id":  {
+                                                                                                                       "description":  "The notebook ID to navigate to",
+                                                                                                                       "type":  "string"
+                                                                                                                   }
+                                                                                               },
+                                                                                "required":  [
+                                                                                                 "notebook_id"
+                                                                                             ],
+                                                                                "type":  "object"
+                                                                            }
+                                                    },
+                                          "properties":  {
+                                                             "request":  {
+                                                                             "$ref":  "#/$defs/NavigateRequest"
+                                                                         }
+                                                         },
+                                          "required":  [
+                                                           "request"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "get_default_notebook",
+                      "description":  "Get the current default notebook ID.",
+                      "inputSchema":  {
+                                          "properties":  {
+
+                                                         },
+                                          "type":  "object"
+                                      }
+                  },
+                  {
+                      "name":  "set_default_notebook",
+                      "description":  "Set the default notebook ID.",
+                      "inputSchema":  {
+                                          "$defs":  {
+                                                        "SetNotebookRequest":  {
+                                                                                   "description":  "Request model for setting default notebook",
+                                                                                   "properties":  {
+                                                                                                      "notebook_id":  {
+                                                                                                                          "description":  "The notebook ID to set as default",
+                                                                                                                          "type":  "string"
+                                                                                                                      }
+                                                                                                  },
+                                                                                   "required":  [
+                                                                                                    "notebook_id"
+                                                                                                ],
+                                                                                   "type":  "object"
+                                                                               }
+                                                    },
+                                          "properties":  {
+                                                             "request":  {
+                                                                             "$ref":  "#/$defs/SetNotebookRequest"
+                                                                         }
+                                                         },
+                                          "required":  [
+                                                           "request"
+                                                       ],
+                                          "type":  "object"
+                                      }
+                  }
+              ],
+    "Count":  8
+}

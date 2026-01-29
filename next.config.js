@@ -43,6 +43,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'images.dutchie.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+      },
     ],
   },
   serverExternalPackages: [

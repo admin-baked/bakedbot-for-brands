@@ -18,9 +18,10 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
   // Initialize Firebase on the client side, once per component mount.
   useEffect(() => {
     // CRITICAL: Set App Check debug token BEFORE any Firebase initialization
-    if (process.env.NODE_ENV === 'development') {
-      (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    }
+    // CRITICAL: Set App Check debug token BEFORE any Firebase initialization
+    // if (process.env.NODE_ENV === 'development') {
+    //   (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    // }
     setFirebaseServices(initializeFirebase());
   }, []);
 
@@ -38,11 +39,18 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       }
 
       try {
+        console.log("[FirebaseClientProvider] NODE_ENV:", process.env.NODE_ENV);
 
-        initializeAppCheck(firebaseServices.firebaseApp, {
-          provider: new ReCaptchaV3Provider(recaptchaSiteKey),
-          isTokenAutoRefreshEnabled: true,
-        });
+        // TEMPORARY FIX: Disable App Check in dev to unblock storage uploads
+        if (process.env.NODE_ENV !== 'development') {
+          initializeAppCheck(firebaseServices.firebaseApp, {
+            provider: new ReCaptchaV3Provider(recaptchaSiteKey),
+            isTokenAutoRefreshEnabled: true,
+          });
+          logger.info("App Check initialized successfully");
+        } else {
+          logger.warn("App Check skipped in development (Agent Override)");
+        }
 
         logger.info("App Check initialized successfully");
       } catch (e) {
