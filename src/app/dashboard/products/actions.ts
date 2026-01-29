@@ -258,6 +258,19 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
   const sortOrderStr = formData.get('sortOrder') as string;
   const sortOrder = sortOrderStr ? parseInt(sortOrderStr, 10) : undefined;
 
+  // Collect all images (multiple image support)
+  const images: string[] = [];
+  if (imageUrl) images.push(imageUrl); // Primary image
+  // Collect additional images
+  let imageIndex = 1;
+  while (formData.has(`images[${imageIndex}]`)) {
+    const additionalImage = formData.get(`images[${imageIndex}]`) as string;
+    if (additionalImage && !images.includes(additionalImage)) {
+      images.push(additionalImage);
+    }
+    imageIndex++;
+  }
+
   // Hemp e-commerce fields
   const weightStr = formData.get('weight') as string;
   const weight = weightStr ? parseFloat(weightStr) : undefined;
@@ -288,7 +301,8 @@ export async function saveProduct(prevState: ProductFormState, formData: FormDat
     description,
     category,
     price,
-    imageUrl,
+    imageUrl: images[0] || imageUrl || '', // Primary image (backward compatible)
+    images: images.length > 0 ? images : undefined, // Multiple images array
     imageHint,
     brandId: brandId || user.uid,
     source: 'manual' as const, // Explicit manual source

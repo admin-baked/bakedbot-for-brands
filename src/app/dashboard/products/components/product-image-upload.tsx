@@ -13,7 +13,9 @@ import Image from 'next/image';
 
 interface ProductImageUploadProps {
     currentImageUrl?: string;
+    currentImages?: string[]; // For multiple images
     onImageChange: (url: string) => void;
+    onImagesChange?: (urls: string[]) => void; // For multiple images
     brandId?: string;
     productId?: string;
     fieldError?: string;
@@ -21,23 +23,66 @@ interface ProductImageUploadProps {
 
 export function ProductImageUpload({
     currentImageUrl = '',
+    currentImages = [],
     onImageChange,
+    onImagesChange,
     brandId,
     productId,
     fieldError,
 }: ProductImageUploadProps) {
+    // Support both single and multiple images
+    const isMultipleMode = !!onImagesChange;
+    const initialImages = isMultipleMode && currentImages.length > 0
+        ? currentImages
+        : currentImageUrl
+            ? [currentImageUrl]
+            : [];
+
+    const [images, setImages] = useState<string[]>(initialImages);
     const [imageUrl, setImageUrl] = useState(currentImageUrl);
     const [isUploading, setIsUploading] = useState(false);
-    const [previewUrl, setPreviewUrl] = useState(currentImageUrl);
-    const [activeTab, setActiveTab] = useState<string>(currentImageUrl ? 'url' : 'upload');
+    const [activeTab, setActiveTab] = useState<string>(initialImages.length > 0 ? 'url' : 'upload');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
 
     // Handle URL input change
     const handleUrlChange = (url: string) => {
-        setImageUrl(url);
-        setPreviewUrl(url);
-        onImageChange(url);
+        if (!url.trim()) return;
+
+        if (isMultipleMode) {
+            // Add to images array if not already present
+            if (!images.includes(url)) {
+                const newImages = [...images, url];
+                setImages(newImages);
+                onImagesChange?.(newImages);
+                setImageUrl(''); // Clear input after adding
+                toast({
+                    title: 'Image added',
+                    description: 'Image URL has been added successfully.',
+                });
+            }
+        } else {
+            // Single image mode (backward compatible)
+            setImageUrl(url);
+            onImageChange(url);
+        }
+    };
+
+    // Handle deleting an image
+    const handleDeleteImage = (urlToDelete: string) => {
+        const newImages = images.filter(url => url !== urlToDelete);
+        setImages(newImages);
+        if (isMultipleMode) {
+            onImagesChange?.(newImages);
+        } else if (newImages.length > 0) {
+            onImageChange(newImages[0]);
+        } else {
+            onImageChange('');
+        }
+        toast({
+            title: 'Image removed',
+            description: 'Image has been removed successfully.',
+        });
     };
 
     // Handle file selection and upload
@@ -65,13 +110,6 @@ export function ProductImageUpload({
             return;
         }
 
-        // Create preview
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            setPreviewUrl(event.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-
         // Upload to Firebase Storage
         setIsUploading(true);
         try {
@@ -97,9 +135,16 @@ export function ProductImageUpload({
             const downloadUrl = await getDownloadURL(storageRef);
             console.log('[ProductImageUpload] Got download URL:', downloadUrl);
 
-            setImageUrl(downloadUrl);
-            setPreviewUrl(downloadUrl);
-            onImageChange(downloadUrl);
+            if (isMultipleMode) {
+                // Add to images array
+                const newImages = [...images, downloadUrl];
+                setImages(newImages);
+                onImagesChange?.(newImages);
+            } else {
+                // Single image mode (backward compatible)
+                setImageUrl(downloadUrl);
+                onImageChange(downloadUrl);
+            }
 
             toast({
                 title: 'Image uploaded',
@@ -113,7 +158,6 @@ export function ProductImageUpload({
                 title: 'Upload failed',
                 description: `Failed to upload image: ${errorMessage}. Please try again or use a URL.`,
             });
-            setPreviewUrl(currentImageUrl);
         } finally {
             setIsUploading(false);
             // Reset file input
@@ -123,11 +167,15 @@ export function ProductImageUpload({
         }
     };
 
-    // Clear image
-    const handleClear = () => {
+    // Clear all images
+    const handleClearAll = () => {
+        setImages([]);
         setImageUrl('');
-        setPreviewUrl('');
-        onImageChange('');
+        if (isMultipleMode) {
+            onImagesChange?.([]);
+        } else {
+            onImageChange('');
+        }
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
@@ -135,7 +183,20 @@ export function ProductImageUpload({
 
     return (
         <div className="space-y-4">
-            <Label>Product Image</Label>
+            <div className="flex items-center justify-between">
+                <Label>{isMultipleMode ? 'Product Images' : 'Product Image'}</Label>
+                {isMultipleMode && images.length > 0 && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClearAll}
+                        className="text-xs text-muted-foreground hover:text-destructive"
+                    >
+                        Clear All
+                    </Button>
+                )}
+            </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
@@ -173,7 +234,7 @@ export function ProductImageUpload({
                                 <>
                                     <Upload className="h-8 w-8 text-muted-foreground" />
                                     <span className="text-sm text-muted-foreground">
-                                        Click to upload or drag and drop
+                                        Click to upload{isMultipleMode ? ' to add more images' : ' or drag and drop'}
                                     </span>
                                     <span className="text-xs text-muted-foreground">
                                         JPEG, PNG, WebP (max 5MB)
@@ -185,50 +246,85 @@ export function ProductImageUpload({
                 </TabsContent>
 
                 <TabsContent value="url" className="space-y-4">
-                    <Input
-                        type="url"
-                        placeholder="https://example.com/image.png"
-                        value={imageUrl}
-                        onChange={(e) => handleUrlChange(e.target.value)}
-                    />
+                    <div className="flex gap-2">
+                        <Input
+                            type="url"
+                            placeholder="https://example.com/image.png"
+                            value={imageUrl}
+                            onChange={(e) => setImageUrl(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleUrlChange(imageUrl);
+                                }
+                            }}
+                        />
+                        <Button
+                            type="button"
+                            onClick={() => handleUrlChange(imageUrl)}
+                            disabled={!imageUrl.trim()}
+                        >
+                            {isMultipleMode ? 'Add' : 'Set'}
+                        </Button>
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                        Enter the full URL to your product image
+                        Enter the full URL to your product image{isMultipleMode ? ' and click Add' : ''}
                     </p>
                 </TabsContent>
             </Tabs>
 
-            {/* Hidden input for form submission */}
-            <input type="hidden" name="imageUrl" value={imageUrl} />
+            {/* Hidden inputs for form submission */}
+            {isMultipleMode ? (
+                images.map((url, index) => (
+                    <input
+                        key={index}
+                        type="hidden"
+                        name={index === 0 ? 'imageUrl' : `images[${index}]`}
+                        value={url}
+                    />
+                ))
+            ) : (
+                <input type="hidden" name="imageUrl" value={images[0] || imageUrl || ''} />
+            )}
 
-            {/* Preview */}
-            {previewUrl && (
-                <div className="relative">
-                    <div className="relative aspect-square w-32 rounded-lg overflow-hidden border bg-muted">
-                        <Image
-                            src={previewUrl}
-                            alt="Product preview"
-                            fill
-                            className="object-cover"
-                            onError={() => setPreviewUrl('')}
-                        />
-                    </div>
-                    <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                        onClick={handleClear}
-                    >
-                        <X className="h-3 w-3" />
-                    </Button>
+            {/* Image Gallery */}
+            {images.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {images.map((url, index) => (
+                        <div key={index} className="relative group">
+                            <div className="relative aspect-square rounded-lg overflow-hidden border bg-muted">
+                                <Image
+                                    src={url}
+                                    alt={`Product image ${index + 1}`}
+                                    fill
+                                    className="object-cover"
+                                    onError={() => handleDeleteImage(url)}
+                                />
+                                {index === 0 && (
+                                    <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded">
+                                        Primary
+                                    </div>
+                                )}
+                            </div>
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute -top-2 -right-2 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => handleDeleteImage(url)}
+                            >
+                                <X className="h-3 w-3" />
+                            </Button>
+                        </div>
+                    ))}
                 </div>
             )}
 
             {/* No image placeholder */}
-            {!previewUrl && (
+            {images.length === 0 && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <ImageIcon className="h-4 w-4" />
-                    <span>No image selected</span>
+                    <span>No {isMultipleMode ? 'images' : 'image'} selected</span>
                 </div>
             )}
 

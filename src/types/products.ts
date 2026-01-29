@@ -92,7 +92,8 @@ export type Product = {
     category: string;
     price: number;
     prices?: { [retailerId: string]: number };
-    imageUrl: string;
+    imageUrl: string; // Primary image (backward compatible)
+    images?: string[]; // Multiple product images
     imageHint: string;
     description: string;
     likes?: number; // Deprecate?
