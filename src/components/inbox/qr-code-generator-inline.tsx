@@ -201,29 +201,28 @@ export function QRCodeGeneratorInline({ onComplete, initialUrl = '', className }
                     {/* QR Code Display */}
                     <div
                         className={cn(
-                            'min-h-[280px] rounded-lg border-2 border-dashed border-white/10 bg-muted/30',
-                            'flex items-center justify-center',
-                            qrCodeImage && 'bg-white'
+                            'min-h-[280px] rounded-lg border-2 border-dashed border-white/10',
+                            'flex items-center justify-center relative',
+                            qrCodeImage ? 'bg-white' : 'bg-muted/30'
                         )}
                     >
-                        {qrCodeImage ? (
-                            <div className="p-4">
-                                <canvas
-                                    ref={canvasRef}
-                                    className="max-w-full h-auto"
-                                />
-                            </div>
-                        ) : (
+                        {/* Canvas - always present */}
+                        <canvas
+                            ref={canvasRef}
+                            className={cn(
+                                'max-w-full h-auto p-4',
+                                !qrCodeImage && 'hidden'
+                            )}
+                        />
+
+                        {/* Placeholder text - only shown when no QR code */}
+                        {!qrCodeImage && (
                             <div className="text-center text-muted-foreground italic text-sm p-4">
                                 {!url.trim() ? (
                                     'Enter a URL above to get started'
                                 ) : (
                                     'Click Generate to create your QR code'
                                 )}
-                                <canvas
-                                    ref={canvasRef}
-                                    className="hidden"
-                                />
                             </div>
                         )}
                     </div>
