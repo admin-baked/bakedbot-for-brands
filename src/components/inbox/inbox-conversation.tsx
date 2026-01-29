@@ -263,19 +263,21 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             hasAutoShownQR: hasAutoShownQR.current,
         });
 
-        // Reset auto-show flag when thread changes
         if (thread.type === 'qr_code') {
-            if (!hasAutoShownQR.current) {
+            // For QR code threads, always ensure generator is shown
+            if (!showQRGenerator) {
                 console.log('[InboxConversation] QR code thread detected - auto-showing inline generator');
                 setShowQRGenerator(true);
-                hasAutoShownQR.current = true;
             }
+            hasAutoShownQR.current = true;
         } else {
-            // Reset flag when switching away from QR code thread
+            // Reset when switching away from QR code thread
+            if (showQRGenerator) {
+                setShowQRGenerator(false);
+            }
             hasAutoShownQR.current = false;
-            setShowQRGenerator(false);
         }
-    }, [thread.id, thread.type]);
+    }, [thread.id, thread.type, showQRGenerator]);
 
     // Poll for job completion
     useEffect(() => {
