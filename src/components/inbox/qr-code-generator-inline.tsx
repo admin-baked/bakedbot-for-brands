@@ -206,8 +206,9 @@ export function QRCodeGeneratorInline({ onComplete, initialUrl = '', className }
                         className={cn(
                             'min-h-[280px] rounded-lg border-2 border-dashed border-white/10',
                             'flex items-center justify-center relative',
-                            qrCodeImage ? 'bg-white' : 'bg-muted/30'
+                            !qrCodeImage && 'bg-muted/30'
                         )}
+                        style={qrCodeImage ? { backgroundColor } : undefined}
                     >
                         {/* Canvas - always present */}
                         <canvas

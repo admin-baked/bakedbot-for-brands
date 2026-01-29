@@ -261,10 +261,11 @@ export function QRCodeGenerator({ isOpen, onClose, onSave, initialUrl = '', clas
                             {/* QR Code Display */}
                             <div
                                 className={cn(
-                                    'min-h-[280px] rounded-lg border-2 border-dashed border-white/10 bg-muted/30',
+                                    'min-h-[280px] rounded-lg border-2 border-dashed border-white/10',
                                     'flex items-center justify-center',
-                                    qrCodeImage && 'bg-white'
+                                    !qrCodeImage && 'bg-muted/30'
                                 )}
+                                style={qrCodeImage ? { backgroundColor } : undefined}
                             >
                                 {qrCodeImage ? (
                                     <div className="p-4">
