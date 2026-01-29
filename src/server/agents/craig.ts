@@ -110,6 +110,46 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         logger.warn(`[Craig:HiveMind] Failed to connect: ${e}`);
     }
 
+    // === ROLE-BASED GROUND TRUTH (v2.0) ===
+    try {
+        const { loadRoleGroundTruth, buildRoleSystemPrompt } = await import('@/server/grounding/role-loader');
+
+        // Detect user role from context (brand, dispensary, super_user, customer)
+        const userRole = (brandMemory as any).user_context?.role || 'brand';
+        const tenantId = (brandMemory.brand_profile as any)?.id;
+
+        // Map user role to RoleContextType
+        let roleContext: 'brand' | 'dispensary' | 'super_user' | 'customer' = 'brand';
+        if (userRole === 'dispensary' || userRole === 'budtender') {
+            roleContext = 'dispensary';
+        } else if (userRole === 'super_user' || userRole === 'super_admin' || userRole === 'owner') {
+            roleContext = 'super_user';
+        } else if (userRole === 'customer') {
+            roleContext = 'customer';
+        }
+
+        // Load role-specific ground truth
+        const roleGT = await loadRoleGroundTruth(roleContext, tenantId);
+
+        if (roleGT) {
+            // Build role-specific system prompt additions
+            const rolePrompt = buildRoleSystemPrompt(roleGT, 'craig', 'full');
+
+            // Append to system instructions
+            agentMemory.system_instructions += `\n\n${rolePrompt}`;
+
+            logger.info(`[Craig:GroundTruth] Loaded ${roleContext} ground truth`, {
+                qaPairs: roleGT.metadata.total_qa_pairs,
+                presetPrompts: roleGT.preset_prompts.length,
+                workflows: roleGT.workflow_guides.length,
+            });
+        } else {
+            logger.debug(`[Craig:GroundTruth] No ground truth found for role: ${roleContext}`);
+        }
+    } catch (e) {
+        logger.warn(`[Craig:GroundTruth] Failed to load role ground truth: ${e}`);
+    }
+
     return agentMemory;
   },
 

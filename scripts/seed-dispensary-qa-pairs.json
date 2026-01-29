@@ -1,0 +1,182 @@
+[
+  {
+    "question": "How do I create promotional content for my dispensary?",
+    "ideal_answer": "Use the 'New Creative' or 'Plan Campaign' quick actions to generate promotional content. I'll create compliant messaging for social media, email, SMS, and in-store displays. Tell me what you're promoting (daily deals, new products, events) and I'll generate platform-specific content with proper compliance warnings and age-gating.",
+    "context": "Dispensaries run frequent promotions to drive foot traffic and compete in local markets.",
+    "intent": "promotion_creation",
+    "keywords": ["promotion", "deals", "dispensary marketing", "in-store", "content"],
+    "priority": "high",
+    "category": "marketing"
+  },
+  {
+    "question": "How can I move slow-selling inventory?",
+    "ideal_answer": "Use the 'Move Inventory' quick action. I'll help create targeted promotions like bundle deals, daily specials, loyalty rewards, or flash sales. I can analyze your inventory data to identify which products to pair together, optimal discount levels, and best timing for promotions to maximize turnover before expiration dates.",
+    "context": "Cannabis products have shelf life and dispensaries need to manage inventory turnover to maintain freshness and minimize write-offs.",
+    "intent": "inventory_optimization",
+    "keywords": ["inventory", "slow moving", "clearance", "deals", "turnover"],
+    "priority": "high",
+    "category": "inventory_management"
+  },
+  {
+    "question": "How do I send customer notifications about new products or deals?",
+    "ideal_answer": "Use the 'Customer Blast' quick action. I'll draft compliant SMS or email messages for your customer base. Messages can promote new products, daily deals, happy hour specials, or events. All content is automatically compliance-checked and ready to send through Blackleaf (SMS) or Mailjet (email). You can segment by customer preferences or purchase history.",
+    "context": "Customer communication is essential for dispensaries to drive repeat visits and compete with nearby locations.",
+    "intent": "customer_communication",
+    "keywords": ["SMS", "email", "customer notification", "deals", "new products"],
+    "priority": "high",
+    "category": "customer_engagement"
+  },
+  {
+    "question": "What are the daily deal best practices for dispensaries?",
+    "ideal_answer": "Effective daily deal strategies: rotate categories (Flower Friday, Concentrate Wednesday), target slow periods (morning deals to drive early traffic), bundle slow-movers with bestsellers, offer loyalty multipliers, and promote via SMS the night before. Keep deals simple, clearly communicate restrictions, and ensure staff is trained on deal mechanics. I can help create a weekly deal calendar and promotional messaging.",
+    "context": "Daily deals are a primary traffic driver for dispensaries competing in markets with multiple nearby locations.",
+    "intent": "promotion_strategy",
+    "keywords": ["daily deals", "specials", "promotions", "traffic driver"],
+    "priority": "high",
+    "category": "operations"
+  },
+  {
+    "question": "How can I create product displays and merchandising for my store?",
+    "ideal_answer": "I can help create merchandising plans and signage. Best practices: feature high-margin products at eye level, create themed displays (Sleep Solutions, Pain Relief), use vendor-provided materials when available, highlight new arrivals, showcase daily deals prominently, and rotate displays weekly. I can generate QR codes for displays linking to detailed product info and create print-ready signage.",
+    "context": "Effective merchandising increases impulse purchases and helps customers navigate the store.",
+    "intent": "merchandising",
+    "keywords": ["displays", "merchandising", "in-store", "signage", "product placement"],
+    "priority": "medium",
+    "category": "operations"
+  },
+  {
+    "question": "How do I handle customer education in my dispensary?",
+    "ideal_answer": "Create educational content that budtenders can reference: strain guides, cannabinoid and terpene education, consumption method comparisons, dosing guidelines, and effect profiles. I can generate compliant educational materials, FAQ sheets, and product comparison charts. Focus on empowering customers to make informed choices without making medical claims.",
+    "context": "Many dispensary customers are new to cannabis or exploring new products and need education.",
+    "intent": "customer_education",
+    "keywords": ["education", "budtender", "training", "customer service", "product knowledge"],
+    "priority": "high",
+    "category": "customer_service"
+  },
+  {
+    "question": "What compliance requirements do dispensaries need to follow?",
+    "ideal_answer": "Key compliance areas: age verification (21+ or 18+ medical), inventory tracking (seed-to-sale), purchase limits, packaging requirements, marketing restrictions (no health claims, no appeal to minors), employee training, security requirements, and accurate labeling. All marketing content I generate is compliance-checked. Maintain detailed records, follow state-specific regulations, and implement regular compliance audits.",
+    "context": "Dispensaries face strict compliance requirements varying by state - violations can result in fines or license suspension.",
+    "intent": "compliance_education",
+    "keywords": ["compliance", "regulations", "legal", "license", "requirements"],
+    "priority": "critical",
+    "category": "compliance"
+  },
+  {
+    "question": "How can I build a loyalty program for my dispensary?",
+    "ideal_answer": "Effective loyalty programs: points per dollar spent, birthday rewards, referral bonuses, VIP tiers with exclusive perks, early access to new products, and double-point days. I can help design a loyalty structure, create promotional messaging, and generate sign-up materials. Best practice: make rewards easy to understand and quickly attainable to encourage repeat visits.",
+    "context": "Loyalty programs increase customer lifetime value and encourage repeat visits in competitive markets.",
+    "intent": "loyalty_strategy",
+    "keywords": ["loyalty", "rewards", "points", "repeat customers", "retention"],
+    "priority": "high",
+    "category": "customer_engagement"
+  },
+  {
+    "question": "How do I plan events or activations at my dispensary?",
+    "ideal_answer": "Use the 'Plan Event' quick action. I'll help create marketing for vendor days, product launches, educational sessions, or community events. I'll generate promotional content (social, email, SMS), create QR codes for event registration, draft event descriptions, and create day-of materials like schedules and signage. Include compliance considerations like checking IDs and avoiding consumption on-site where prohibited.",
+    "context": "Events drive traffic, build community, and provide opportunities for vendor partnerships and brand activations.",
+    "intent": "event_planning",
+    "keywords": ["events", "activations", "vendor days", "product launch", "community"],
+    "priority": "medium",
+    "category": "events"
+  },
+  {
+    "question": "What are the best practices for first-time customer experience?",
+    "ideal_answer": "Create a welcoming first-visit experience: greet warmly, explain the menu structure, offer recommendations based on goals (sleep, focus, relaxation), explain consumption methods, start with lower doses, and provide educational materials. Offer a first-time customer discount, collect contact info for future promotions, and ensure budtenders take time to answer questions. I can create first-visit guides and promotional materials.",
+    "context": "First impressions determine if customers return - especially important as new customers enter the cannabis market.",
+    "intent": "customer_experience",
+    "keywords": ["first-time", "new customer", "onboarding", "customer service", "welcome"],
+    "priority": "high",
+    "category": "customer_service"
+  },
+  {
+    "question": "How can I optimize my dispensary's product menu?",
+    "ideal_answer": "Menu optimization strategies: balance variety and focus, carry products across all price points, feature local brands alongside majors, rotate slow-movers, maintain bestseller stock, group by effect or use case, and ensure budtender favorites are well-stocked. I can analyze sales data to identify gaps, recommend product mix adjustments, and help create organized digital/print menus.",
+    "context": "Product selection and menu organization directly impact sales, customer satisfaction, and inventory turnover.",
+    "intent": "product_management",
+    "keywords": ["menu", "product selection", "inventory", "SKU optimization"],
+    "priority": "medium",
+    "category": "operations"
+  },
+  {
+    "question": "How do I handle online ordering and pickup?",
+    "ideal_answer": "Best practices for online ordering: keep menu updated in real-time, offer order status notifications via SMS, prepare orders promptly, have dedicated pickup area, verify ID efficiently, and send post-pickup thank you with loyalty points earned. I can help create automated messaging for order confirmations, ready-for-pickup notifications, and post-purchase follow-up with personalized recommendations.",
+    "context": "Online ordering is now standard expectation - efficiency and communication quality affect customer satisfaction.",
+    "intent": "operations",
+    "keywords": ["online ordering", "pickup", "e-commerce", "fulfillment"],
+    "priority": "high",
+    "category": "operations"
+  },
+  {
+    "question": "What should I include in my dispensary's email marketing?",
+    "ideal_answer": "Effective dispensary email content: weekly deals calendar, new product arrivals, educational content, event announcements, exclusive online-only offers, and personalized recommendations based on purchase history. Send 2-3 times per week maximum to avoid unsubscribes. I can generate email campaigns with compliant content, engaging subject lines, and clear calls-to-action.",
+    "context": "Email marketing maintains customer engagement between visits and drives targeted promotions.",
+    "intent": "email_marketing",
+    "keywords": ["email", "newsletter", "Mailjet", "campaigns", "marketing"],
+    "priority": "medium",
+    "category": "customer_engagement"
+  },
+  {
+    "question": "How can I compete with other dispensaries in my area?",
+    "ideal_answer": "Competitive strategies: superior customer service, loyalty rewards, convenient location/hours, competitive pricing on key items, unique product selection, educational focus, community involvement, and consistent stock of bestsellers. I can help analyze competitor pricing, identify market gaps, create differentiated messaging, and develop promotions that highlight your unique advantages.",
+    "context": "Most markets have multiple dispensaries competing for customers within a few miles.",
+    "intent": "competitive_strategy",
+    "keywords": ["competition", "market share", "differentiation", "pricing"],
+    "priority": "medium",
+    "category": "strategy"
+  },
+  {
+    "question": "How do I manage vendor relationships and product placement?",
+    "ideal_answer": "Strong vendor relationships provide benefits: priority allocation of popular products, marketing support, exclusive strains, better pricing, and vendor-funded promotions. Best practices: communicate sales data, provide shelf space for performers, coordinate vendor days, share customer feedback, and negotiate co-op marketing funds. I can help create vendor performance reports and co-marketing campaigns.",
+    "context": "Vendor relationships affect product availability, pricing, and marketing support.",
+    "intent": "vendor_management",
+    "keywords": ["vendors", "brands", "wholesale", "partnerships", "suppliers"],
+    "priority": "medium",
+    "category": "operations"
+  },
+  {
+    "question": "What security and compliance measures do I need for cannabis storage?",
+    "ideal_answer": "Required security measures typically include: video surveillance with 90-day retention, alarm systems, limited access areas, inventory tracking systems, secure product storage, cash management protocols, and employee background checks. Maintain detailed logs of all inventory movements, conduct regular audits, and ensure cameras cover all product areas. Specific requirements vary by state - consult your local regulations.",
+    "context": "Security and inventory control are critical compliance requirements for cannabis licenses.",
+    "intent": "security_compliance",
+    "keywords": ["security", "storage", "inventory control", "surveillance", "compliance"],
+    "priority": "critical",
+    "category": "compliance"
+  },
+  {
+    "question": "How can I train my budtenders to provide better service?",
+    "ideal_answer": "Comprehensive budtender training should cover: product knowledge (cannabinoids, terpenes, effects), consumption methods, dosing guidance, compliance requirements, sales techniques, POS system operation, and customer service skills. Create product fact sheets, conduct regular product training with vendors, role-play customer scenarios, and encourage budtenders to try products. I can generate training materials and product education guides.",
+    "context": "Budtender knowledge directly impacts customer experience, safety, and sales.",
+    "intent": "staff_training",
+    "keywords": ["training", "budtender", "staff", "education", "customer service"],
+    "priority": "high",
+    "category": "operations"
+  },
+  {
+    "question": "What metrics should I track for my dispensary?",
+    "ideal_answer": "Key dispensary metrics: daily/weekly/monthly sales, average transaction value, customer count, product category performance, inventory turnover rate, customer acquisition cost, repeat customer rate, loyalty program engagement, and gross margin by category. I can help analyze these metrics, identify trends, and provide actionable recommendations to improve performance.",
+    "context": "Data-driven decisions help optimize inventory, pricing, and marketing for profitability.",
+    "intent": "analytics",
+    "keywords": ["metrics", "KPIs", "analytics", "performance", "data"],
+    "priority": "medium",
+    "category": "analytics"
+  },
+  {
+    "question": "How do I handle customer complaints or product returns?",
+    "ideal_answer": "Best practices for issue resolution: listen actively, empathize, document the issue, follow state regulations on returns (many prohibit returns due to compliance), offer store credit when appropriate, escalate quality issues to vendors, and follow up to ensure satisfaction. Create a clear policy, train staff on conflict resolution, and track common issues to identify systemic problems. I can help create customer service scripts and policies.",
+    "context": "How complaints are handled affects customer retention and online reviews.",
+    "intent": "customer_service",
+    "keywords": ["complaints", "returns", "customer service", "issue resolution"],
+    "priority": "medium",
+    "category": "customer_service"
+  },
+  {
+    "question": "What are the best times and days to run promotions?",
+    "ideal_answer": "Strategic promotion timing: Thursday-Saturday for weekend traffic, Sunday-Tuesday for slower days, morning deals to drive early traffic, happy hour promotions (typically 4-7pm), payday timing (1st and 15th), and seasonal moments (4/20, Green Wednesday). Avoid over-discounting on naturally busy times. I can analyze your sales patterns and recommend optimal promotional calendar based on your traffic data.",
+    "context": "Promotion timing affects ROI - good timing drives traffic during slow periods without sacrificing margin during peak times.",
+    "intent": "promotion_strategy",
+    "keywords": ["timing", "promotions", "deals", "traffic", "calendar"],
+    "priority": "medium",
+    "category": "marketing"
+  }
+]

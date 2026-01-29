@@ -975,10 +975,78 @@ export const UpdateInboxThreadSchema = z.object({
 // ============ Helper Functions ============
 
 /**
- * Get quick actions available for a given role
+ * Get quick actions available for a given role (hardcoded fallback)
+ *
+ * @deprecated Use getQuickActionsForRoleAsync for database-backed actions
  */
 export function getQuickActionsForRole(role: string): InboxQuickAction[] {
     return INBOX_QUICK_ACTIONS.filter(action => action.roles.includes(role));
+}
+
+/**
+ * Get quick actions available for a given role (database-backed with fallback)
+ *
+ * Feature flag: NEXT_PUBLIC_USE_DB_QUICK_ACTIONS
+ *
+ * Load strategy:
+ * 1. If feature flag enabled, load from database (with tenant overrides)
+ * 2. Fallback to hardcoded INBOX_QUICK_ACTIONS
+ * 3. Cache for 5 minutes
+ *
+ * @param role - User role context
+ * @param tenantId - Optional tenant ID for tenant-specific overrides
+ */
+export async function getQuickActionsForRoleAsync(
+    role: string,
+    tenantId?: string
+): Promise<InboxQuickAction[]> {
+    // Check feature flag
+    const useDatabase = process.env.NEXT_PUBLIC_USE_DB_QUICK_ACTIONS === 'true';
+
+    if (!useDatabase) {
+        // Fallback to hardcoded actions
+        return getQuickActionsForRole(role);
+    }
+
+    try {
+        // Dynamic import to avoid circular dependencies
+        const { getPresetPrompts } = await import('@/server/actions/role-ground-truth');
+
+        // Map role to RoleContextType
+        let roleContext: 'brand' | 'dispensary' | 'super_user' | 'customer' = 'brand';
+        if (role === 'dispensary' || role === 'budtender') {
+            roleContext = 'dispensary';
+        } else if (role === 'super_user' || role === 'super_admin' || role === 'owner') {
+            roleContext = 'super_user';
+        } else if (role === 'customer') {
+            roleContext = 'customer';
+        } else if (role === 'brand' || role === 'brand_admin' || role === 'brand_member') {
+            roleContext = 'brand';
+        }
+
+        // Load preset prompts from database (with tenant overrides)
+        const result = await getPresetPrompts(roleContext, tenantId);
+
+        if (result.success && result.data) {
+            // Convert PresetPromptTemplate to InboxQuickAction
+            return result.data.map(preset => ({
+                id: preset.id,
+                label: preset.label,
+                description: preset.description,
+                icon: preset.icon || 'MessageSquare',
+                threadType: preset.threadType,
+                defaultAgent: preset.defaultAgent,
+                promptTemplate: preset.promptTemplate,
+                roles: preset.roles,
+            }));
+        }
+
+        // Fallback to hardcoded if database load fails
+        return getQuickActionsForRole(role);
+    } catch (error) {
+        console.error('[getQuickActionsForRoleAsync] Error loading from database, falling back to hardcoded:', error);
+        return getQuickActionsForRole(role);
+    }
 }
 
 /**

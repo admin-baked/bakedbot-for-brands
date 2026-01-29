@@ -1,12 +1,16 @@
 'use client';
 
 /**
- * Ground Truth Management Tab
+ * Ground Truth Management Tab (v2.0)
  *
- * CEO Dashboard tab for managing Ground Truth QA sets.
+ * CEO Dashboard tab for managing Ground Truth QA sets with role-based support.
  * Features:
- * - Brand selector (all brands for super admin)
- * - Category accordion with QA editing
+ * - Role selector (Brand, Dispensary, Super User, Customer)
+ * - Brand selector (for legacy Smokey ground truth)
+ * - QA Pairs management per role
+ * - Preset Prompts management
+ * - Workflow Guides editor
+ * - Tenant Overrides panel
  * - Live Smokey tester
  * - Import/Export functionality
  */
@@ -98,7 +102,10 @@ import {
     type TestResult,
 } from '@/server/actions/ground-truth';
 
-import type { GroundTruthQAPair, GroundTruthQASet, QAPriority } from '@/types/ground-truth';
+import type { GroundTruthQAPair, GroundTruthQASet, QAPriority, RoleContextType } from '@/types/ground-truth';
+import { PresetPromptsManager } from '@/components/ground-truth/preset-prompts-manager';
+import { WorkflowGuidesEditor } from '@/components/ground-truth/workflow-guides-editor';
+import { TenantOverridesPanel } from '@/components/ground-truth/tenant-overrides-panel';
 
 // ============================================================================
 // Sub-Components
@@ -668,8 +675,11 @@ export default function GroundTruthTab() {
     const { toast } = useToast();
 
     // State
+    const [selectedRole, setSelectedRole] = useState<RoleContextType>('brand');
     const [brands, setBrands] = useState<GroundTruthBrandSummary[]>([]);
     const [selectedBrandId, setSelectedBrandId] = useState<string>('');
+    const [selectedTenantId, setSelectedTenantId] = useState<string>('');
+    const [selectedTenantName, setSelectedTenantName] = useState<string>('');
     const [categories, setCategories] = useState<CategorySummary[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingCategories, setIsLoadingCategories] = useState(false);
@@ -821,15 +831,29 @@ export default function GroundTruthTab() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Ground Truth Management</h2>
+                    <h2 className="text-2xl font-bold tracking-tight">Ground Truth Management (v2.0)</h2>
                     <p className="text-muted-foreground">
-                        Manage QA sets that train Smokey for accurate, compliant responses
+                        Manage role-based ground truth, preset prompts, workflows, and QA sets for all agents
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
+                    {/* Role Selector */}
+                    <Select value={selectedRole} onValueChange={(value: RoleContextType) => setSelectedRole(value)}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="brand">Brand</SelectItem>
+                            <SelectItem value="dispensary">Dispensary</SelectItem>
+                            <SelectItem value="super_user">Super User</SelectItem>
+                            <SelectItem value="customer">Customer</SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    {/* Legacy Brand Selector (for Smokey QA pairs) */}
                     <Select value={selectedBrandId} onValueChange={setSelectedBrandId}>
                         <SelectTrigger className="w-[200px]">
-                            <SelectValue placeholder="Select brand" />
+                            <SelectValue placeholder="Select brand (legacy)" />
                         </SelectTrigger>
                         <SelectContent>
                             {brands.map(brand => (
@@ -908,15 +932,21 @@ export default function GroundTruthTab() {
             <StatsCards brand={selectedBrand} />
 
             {/* Main Content */}
-            {selectedBrandId && (
-                <Tabs defaultValue="editor" className="space-y-4">
-                    <TabsList>
-                        <TabsTrigger value="editor">Editor</TabsTrigger>
-                        <TabsTrigger value="tester">Live Tester</TabsTrigger>
-                        <TabsTrigger value="import-export">Import/Export</TabsTrigger>
-                    </TabsList>
+            <Tabs defaultValue="qa-pairs" className="space-y-4">
+                <TabsList>
+                    <TabsTrigger value="qa-pairs">QA Pairs</TabsTrigger>
+                    <TabsTrigger value="preset-prompts">Preset Prompts</TabsTrigger>
+                    <TabsTrigger value="workflows">Workflow Guides</TabsTrigger>
+                    <TabsTrigger value="tenant-overrides">Tenant Overrides</TabsTrigger>
+                    <TabsTrigger value="tester">Live Tester</TabsTrigger>
+                    <TabsTrigger value="import-export">Import/Export</TabsTrigger>
+                </TabsList>
 
-                    <TabsContent value="editor" className="space-y-4">
+                {/* QA Pairs Tab (Legacy + Role-Based) */}
+                <TabsContent value="qa-pairs" className="space-y-4">
+                    {selectedBrandId ? (
+                        // Legacy brand-specific QA pairs
+                        <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <Dialog open={showAddCategoryDialog} onOpenChange={setShowAddCategoryDialog}>
@@ -991,11 +1021,61 @@ export default function GroundTruthTab() {
                                 </CardContent>
                             </Card>
                         )}
-                    </TabsContent>
+                        </div>
+                    ) : (
+                        <Card>
+                            <CardContent className="py-12 text-center">
+                                <p className="text-muted-foreground">
+                                    Select a brand above to manage legacy Smokey QA pairs
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+                </TabsContent>
 
-                    <TabsContent value="tester">
+                {/* Preset Prompts Tab */}
+                <TabsContent value="preset-prompts">
+                    <PresetPromptsManager role={selectedRole} />
+                </TabsContent>
+
+                {/* Workflow Guides Tab */}
+                <TabsContent value="workflows">
+                    <WorkflowGuidesEditor role={selectedRole} />
+                </TabsContent>
+
+                {/* Tenant Overrides Tab */}
+                <TabsContent value="tenant-overrides">
+                    {selectedTenantId ? (
+                        <TenantOverridesPanel
+                            role={selectedRole}
+                            tenantId={selectedTenantId}
+                            tenantName={selectedTenantName}
+                        />
+                    ) : (
+                        <Card>
+                            <CardContent className="py-12 text-center">
+                                <p className="text-muted-foreground">
+                                    Select a tenant to manage their overrides (coming soon: tenant selector)
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+                </TabsContent>
+
+                {/* Live Tester Tab */}
+                <TabsContent value="tester">
+                    {selectedBrandId ? (
                         <LiveTester brandId={selectedBrandId} />
-                    </TabsContent>
+                    ) : (
+                        <Card>
+                            <CardContent className="py-12 text-center">
+                                <p className="text-muted-foreground">
+                                    Select a brand above to test Smokey responses
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+                </TabsContent>
 
                     <TabsContent value="import-export" className="space-y-4">
                         <div className="grid md:grid-cols-2 gap-6">
@@ -1062,21 +1142,6 @@ export default function GroundTruthTab() {
                         </div>
                     </TabsContent>
                 </Tabs>
-            )}
-
-            {!selectedBrandId && brands.length === 0 && (
-                <Card>
-                    <CardContent className="py-12 text-center">
-                        <p className="text-muted-foreground mb-4">
-                            No ground truth configured yet. Create one to get started.
-                        </p>
-                        <Button onClick={() => setShowCreateDialog(true)}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Create Ground Truth
-                        </Button>
-                    </CardContent>
-                </Card>
-            )}
         </div>
     );
 }

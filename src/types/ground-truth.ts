@@ -1,19 +1,21 @@
 /**
- * Ground Truth QA System - v1.0
+ * Ground Truth QA System - v2.0
  *
- * Structured QA pairs for training and evaluating Smokey (AI Budtender).
- * Each dispensary/brand gets their own ground truth set for accurate, compliant responses.
+ * Structured QA pairs for training and evaluating AI agents across all roles.
+ * Originally for Smokey (AI Budtender), now extended for role-based fine-tuning.
  *
- * @version 1.0 - Initial release with recommendation strategies
+ * @version 2.0 - Role-based ground truth with preset prompts and workflows
  *
  * Changelog:
+ * - 2.0 (2026-01-29): Added role-based ground truth, preset prompts, workflow guides
  * - 1.0 (2026-01-22): Added recommendation strategies, versioning system
  */
 
 import { z } from 'zod';
+import type { InboxThreadType, InboxAgentPersona } from './inbox';
 
 // --- Version ---
-export const GROUND_TRUTH_VERSION = '1.0';
+export const GROUND_TRUTH_VERSION = '2.0';
 
 // ============================================================================
 // RECOMMENDATION STRATEGIES (v1.0)
@@ -607,5 +609,334 @@ export function createDefaultRecommendationConfig(): RecommendationConfig {
             medical_disclaimer: 'These products are not intended to diagnose, treat, cure, or prevent any disease. Please consult a healthcare professional.',
             no_health_claims: true,
         },
+    };
+}
+
+// ============================================================================
+// ROLE-BASED GROUND TRUTH (v2.0)
+// ============================================================================
+
+/**
+ * Role context types for role-based ground truth
+ *
+ * Each role gets its own ground truth configuration with:
+ * - Role-specific QA pairs
+ * - Preset prompts and quick actions
+ * - Workflow guides
+ * - Agent persona customizations
+ */
+export type RoleContextType = 'brand' | 'dispensary' | 'super_user' | 'customer';
+
+export const ROLE_DISPLAY_NAMES: Record<RoleContextType, string> = {
+    brand: 'Brand',
+    dispensary: 'Dispensary',
+    super_user: 'Super User',
+    customer: 'Customer',
+};
+
+/**
+ * Preset prompt template with variable substitution support
+ *
+ * Used for quick actions, campaign templates, and other preset prompts.
+ * Supports Mustache-style variables: {{variable_name}}
+ */
+export interface PresetPromptTemplate {
+    id: string;                          // Unique ID (e.g., "brand-product-launch")
+    label: string;                       // Display label (e.g., "Product Launch")
+    description: string;                 // What this preset does
+    threadType: InboxThreadType;         // Thread type to create
+    defaultAgent: InboxAgentPersona;     // Primary agent for this task
+    promptTemplate: string;              // Template with {{variables}}
+    variables?: string[];                // Variable names (e.g., ["product_name", "target_date"])
+    category: string;                    // Category (e.g., "marketing", "operations")
+    roles: string[];                     // Allowed roles
+    icon?: string;                       // Lucide icon name
+    estimatedTime?: string;              // Estimated completion time (e.g., "5-10 min")
+    version: string;                     // Version for A/B testing
+    createdAt?: string;                  // ISO date
+    updatedAt?: string;                  // ISO date
+}
+
+/**
+ * Workflow guide - step-by-step instructions for complex tasks
+ *
+ * Provides human-readable guidance for multi-step workflows.
+ * Different from Playbooks (which are executable YAML).
+ */
+export interface WorkflowGuide {
+    id: string;                          // Unique ID
+    title: string;                       // Workflow title
+    description: string;                 // What this workflow accomplishes
+    steps: Array<{
+        title: string;                   // Step title
+        description: string;             // What to do in this step
+        agentId?: InboxAgentPersona;     // Which agent helps with this step
+        toolsUsed?: string[];            // Tools/features used
+        expectedOutput: string;          // What success looks like
+    }>;
+    tags: string[];                      // Searchable tags
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    estimatedTime?: string;              // Total estimated time
+    prerequisites?: string[];            // Required before starting
+}
+
+/**
+ * Agent persona customization per role
+ *
+ * Role-specific additions to agent system prompts.
+ * These are ADDITIVE (appended to base persona, not replacing).
+ */
+export interface RoleAgentPersona {
+    system_prompt_additions: string;     // Role-specific instructions
+    example_responses: string[];         // Example good responses
+    dos: string[];                       // What agent SHOULD do for this role
+    donts: string[];                     // What agent SHOULD NOT do for this role
+}
+
+/**
+ * Role-based ground truth - extends base ground truth with role-specific data
+ *
+ * Storage:
+ * - Global: ground_truth_v2/{roleId}
+ * - Tenant overrides: tenants/{tenantId}/ground_truth_overrides/{roleId}
+ */
+export interface RoleGroundTruth extends GroundTruthQASet {
+    role: RoleContextType;                                    // Which role this is for
+    preset_prompts: PresetPromptTemplate[];                   // Quick actions and templates
+    workflow_guides: WorkflowGuide[];                         // Step-by-step workflows
+    agent_personas?: Record<InboxAgentPersona, RoleAgentPersona>;  // Agent customizations
+}
+
+/**
+ * Tenant-specific override configuration
+ *
+ * Allows tenants to:
+ * - Add custom preset prompts
+ * - Disable global presets
+ * - Add custom workflows
+ * - Override QA pairs (future)
+ */
+export interface TenantGroundTruthOverride {
+    tenantId: string;
+    roleId: RoleContextType;
+    preset_prompts: PresetPromptTemplate[];  // Custom tenant presets
+    disabled_presets: string[];              // Disabled preset IDs from global
+    custom_workflows: WorkflowGuide[];       // Tenant-specific workflows
+    createdAt: string;                       // ISO date
+    updatedAt: string;                       // ISO date
+}
+
+// ============================================================================
+// ROLE-BASED ZOD SCHEMAS (v2.0)
+// ============================================================================
+
+export const PresetPromptTemplateSchema = z.object({
+    id: z.string(),
+    label: z.string(),
+    description: z.string(),
+    threadType: z.string(),              // InboxThreadType
+    defaultAgent: z.string(),            // InboxAgentPersona
+    promptTemplate: z.string(),
+    variables: z.array(z.string()).optional(),
+    category: z.string(),
+    roles: z.array(z.string()),
+    icon: z.string().optional(),
+    estimatedTime: z.string().optional(),
+    version: z.string(),
+    createdAt: z.string().optional(),
+    updatedAt: z.string().optional(),
+});
+
+export const WorkflowGuideSchema = z.object({
+    id: z.string(),
+    title: z.string(),
+    description: z.string(),
+    steps: z.array(z.object({
+        title: z.string(),
+        description: z.string(),
+        agentId: z.string().optional(),  // InboxAgentPersona
+        toolsUsed: z.array(z.string()).optional(),
+        expectedOutput: z.string(),
+    })),
+    tags: z.array(z.string()),
+    difficulty: z.enum(['beginner', 'intermediate', 'advanced']),
+    estimatedTime: z.string().optional(),
+    prerequisites: z.array(z.string()).optional(),
+});
+
+export const RoleAgentPersonaSchema = z.object({
+    system_prompt_additions: z.string(),
+    example_responses: z.array(z.string()),
+    dos: z.array(z.string()),
+    donts: z.array(z.string()),
+});
+
+export const RoleGroundTruthSchema = GroundTruthQASetSchema.extend({
+    role: z.enum(['brand', 'dispensary', 'super_user', 'customer']),
+    preset_prompts: z.array(PresetPromptTemplateSchema),
+    workflow_guides: z.array(WorkflowGuideSchema),
+    agent_personas: z.record(RoleAgentPersonaSchema).optional(),
+});
+
+export const TenantGroundTruthOverrideSchema = z.object({
+    tenantId: z.string(),
+    roleId: z.enum(['brand', 'dispensary', 'super_user', 'customer']),
+    preset_prompts: z.array(PresetPromptTemplateSchema),
+    disabled_presets: z.array(z.string()),
+    custom_workflows: z.array(WorkflowGuideSchema),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+});
+
+// ============================================================================
+// ROLE-BASED HELPER FUNCTIONS (v2.0)
+// ============================================================================
+
+/**
+ * Get all preset prompts for a role
+ */
+export function getPresetPrompts(roleGT: RoleGroundTruth): PresetPromptTemplate[] {
+    return roleGT.preset_prompts || [];
+}
+
+/**
+ * Get preset prompts filtered by category
+ */
+export function getPresetPromptsByCategory(
+    roleGT: RoleGroundTruth,
+    category: string
+): PresetPromptTemplate[] {
+    return getPresetPrompts(roleGT).filter(p => p.category === category);
+}
+
+/**
+ * Get a specific preset prompt by ID
+ */
+export function getPresetPromptById(
+    roleGT: RoleGroundTruth,
+    id: string
+): PresetPromptTemplate | null {
+    return getPresetPrompts(roleGT).find(p => p.id === id) || null;
+}
+
+/**
+ * Substitute variables in a preset prompt template
+ *
+ * @example
+ * substitutePromptVariables(
+ *   "Launch {{product_name}} on {{target_date}}",
+ *   { product_name: "Blue Dream", target_date: "2026-02-15" }
+ * )
+ * // Returns: "Launch Blue Dream on 2026-02-15"
+ */
+export function substitutePromptVariables(
+    template: string,
+    variables: Record<string, string>
+): string {
+    let result = template;
+    for (const [key, value] of Object.entries(variables)) {
+        result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+    }
+    return result;
+}
+
+/**
+ * Extract variable names from a preset prompt template
+ *
+ * @example
+ * extractTemplateVariables("Launch {{product_name}} on {{target_date}}")
+ * // Returns: ["product_name", "target_date"]
+ */
+export function extractTemplateVariables(template: string): string[] {
+    const regex = /\{\{([^}]+)\}\}/g;
+    const matches = [];
+    let match;
+    while ((match = regex.exec(template)) !== null) {
+        matches.push(match[1].trim());
+    }
+    return [...new Set(matches)]; // Remove duplicates
+}
+
+/**
+ * Get all workflow guides for a role
+ */
+export function getWorkflowGuides(roleGT: RoleGroundTruth): WorkflowGuide[] {
+    return roleGT.workflow_guides || [];
+}
+
+/**
+ * Get workflow guides filtered by difficulty
+ */
+export function getWorkflowGuidesByDifficulty(
+    roleGT: RoleGroundTruth,
+    difficulty: 'beginner' | 'intermediate' | 'advanced'
+): WorkflowGuide[] {
+    return getWorkflowGuides(roleGT).filter(w => w.difficulty === difficulty);
+}
+
+/**
+ * Get workflow guides filtered by tag
+ */
+export function getWorkflowGuidesByTag(
+    roleGT: RoleGroundTruth,
+    tag: string
+): WorkflowGuide[] {
+    return getWorkflowGuides(roleGT).filter(w => w.tags.includes(tag));
+}
+
+/**
+ * Get agent persona customization for a specific agent in a role
+ */
+export function getAgentPersonaForRole(
+    roleGT: RoleGroundTruth,
+    agentId: InboxAgentPersona
+): RoleAgentPersona | null {
+    return roleGT.agent_personas?.[agentId] || null;
+}
+
+/**
+ * Check if a role ground truth has preset prompts configured
+ */
+export function hasPresetPrompts(roleGT: RoleGroundTruth): boolean {
+    return roleGT.preset_prompts && roleGT.preset_prompts.length > 0;
+}
+
+/**
+ * Check if a role ground truth has workflow guides configured
+ */
+export function hasWorkflowGuides(roleGT: RoleGroundTruth): boolean {
+    return roleGT.workflow_guides && roleGT.workflow_guides.length > 0;
+}
+
+/**
+ * Check if a role ground truth has agent persona customizations
+ */
+export function hasAgentPersonas(roleGT: RoleGroundTruth): boolean {
+    return !!(roleGT.agent_personas && Object.keys(roleGT.agent_personas).length > 0);
+}
+
+/**
+ * Merge role ground truth with tenant overrides
+ *
+ * Merge strategy:
+ * 1. Start with base role ground truth
+ * 2. Add tenant custom preset prompts
+ * 3. Filter out disabled preset prompts
+ * 4. Add tenant custom workflows
+ */
+export function mergeWithTenantOverrides(
+    baseGT: RoleGroundTruth,
+    override: TenantGroundTruthOverride
+): RoleGroundTruth {
+    return {
+        ...baseGT,
+        preset_prompts: [
+            ...baseGT.preset_prompts.filter(p => !override.disabled_presets.includes(p.id)),
+            ...override.preset_prompts,
+        ],
+        workflow_guides: [
+            ...baseGT.workflow_guides,
+            ...override.custom_workflows,
+        ],
     };
 }

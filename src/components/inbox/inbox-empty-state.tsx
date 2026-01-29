@@ -6,7 +6,7 @@
  * Shown when no thread is selected in the inbox.
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Inbox, Images, PackagePlus, Palette, Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -62,8 +62,13 @@ function QuickStartCard({ action }: { action: InboxQuickAction }) {
 // ============ Main Component ============
 
 export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) {
-    const { getQuickActions } = useInboxStore();
+    const { getQuickActions, loadQuickActions, currentRole } = useInboxStore();
     const quickActions = getQuickActions();
+
+    // Load quick actions when role changes
+    useEffect(() => {
+        loadQuickActions();
+    }, [currentRole, loadQuickActions]);
 
     if (isLoading) {
         return (
