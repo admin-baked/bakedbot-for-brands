@@ -23,6 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AlertCircle, Mail, Phone, Sparkles } from 'lucide-react';
 import { verifyAgeForGate, checkStateAllowed, getMinimumAge } from '@/server/actions/age-verification';
 import { captureEmailLead } from '@/server/actions/email-capture';
+import { logger } from '@/lib/logger';
 
 interface AgeGateWithEmailProps {
     onVerified: () => void;
@@ -171,30 +172,61 @@ export function AgeGateWithEmail({
             };
             localStorage.setItem('age_verified', JSON.stringify(verification));
 
-            // Capture email lead if provided (asynchronously, don't block verification)
+            // Capture email lead if provided (synchronously to catch errors)
             if (email || phone) {
-                captureEmailLead({
-                    email: email || undefined,
-                    phone: phone ? phone.replace(/\D/g, '') : undefined,
-                    firstName: firstName || undefined,
-                    emailConsent,
-                    smsConsent,
-                    brandId,
-                    dispensaryId,
-                    state: userState,
-                    source,
-                    ageVerified: true,
-                    dateOfBirth,
-                }).catch(err => {
-                    console.error('[AgeGateWithEmail] Failed to capture lead:', err);
-                    // Don't show error to user - still let them through
-                });
+                try {
+                    const leadResult = await captureEmailLead({
+                        email: email || undefined,
+                        phone: phone ? phone.replace(/\D/g, '') : undefined,
+                        firstName: firstName || undefined,
+                        emailConsent,
+                        smsConsent,
+                        brandId,
+                        dispensaryId,
+                        state: userState,
+                        source,
+                        ageVerified: true,
+                        dateOfBirth,
+                    });
+
+                    if (!leadResult.success) {
+                        logger.error('[AgeGateWithEmail] Failed to capture lead', {
+                            error: leadResult.error,
+                            email,
+                            phone,
+                            source
+                        });
+                        // Show warning but still let them through
+                        setError('Age verified! However, we couldn\'t save your contact info. You can still access the site.');
+                        // Clear error after 5 seconds
+                        setTimeout(() => setError(''), 5000);
+                    } else {
+                        logger.info('[AgeGateWithEmail] Successfully captured lead', {
+                            leadId: leadResult.leadId,
+                            source
+                        });
+                    }
+                } catch (err) {
+                    logger.error('[AgeGateWithEmail] Exception while capturing lead', {
+                        error: err instanceof Error ? err.message : String(err),
+                        email,
+                        phone,
+                        source
+                    });
+                    // Show warning but still let them through
+                    setError('Age verified! However, we couldn\'t save your contact info. You can still access the site.');
+                    // Clear error after 5 seconds
+                    setTimeout(() => setError(''), 5000);
+                }
             }
 
             setIsSubmitting(false);
             onVerified();
         } catch (err) {
-            console.error('[AgeGateWithEmail] Submission error:', err);
+            logger.error('[AgeGateWithEmail] Submission error', {
+                error: err instanceof Error ? err.message : String(err),
+                stack: err instanceof Error ? err.stack : undefined
+            });
             setError('Something went wrong. Please try again.');
             setIsSubmitting(false);
         }
