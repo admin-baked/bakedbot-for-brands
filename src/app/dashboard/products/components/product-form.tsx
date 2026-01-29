@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ProductImageUpload } from './product-image-upload';
+import { ChevronLeft } from 'lucide-react';
 
 const initialState: ProductFormState = { message: '', error: false };
 
@@ -21,9 +22,10 @@ interface ProductFormProps {
   product?: Product | null;
   userRole?: string | null;
   brands?: Brand[];
+  showBackButton?: boolean;
 }
 
-export function ProductForm({ product, userRole, brands = [] }: ProductFormProps) {
+export function ProductForm({ product, userRole, brands = [], showBackButton = false }: ProductFormProps) {
   const [state, formAction] = useActionState(saveProduct, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
@@ -48,9 +50,20 @@ export function ProductForm({ product, userRole, brands = [] }: ProductFormProps
   }, [state, toast]);
 
   return (
-      <form ref={formRef} action={formAction}>
-        {product && <input type="hidden" name="id" value={product.id} />}
-        <Card>
+      <>
+        {showBackButton && (
+          <div className="mb-6">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/dashboard/products" className="flex items-center gap-2">
+                <ChevronLeft className="h-4 w-4" />
+                Back to Products
+              </Link>
+            </Button>
+          </div>
+        )}
+        <form ref={formRef} action={formAction}>
+          {product && <input type="hidden" name="id" value={product.id} />}
+          <Card>
           <CardHeader>
             <CardTitle>{product ? 'Edit Product' : 'Add New Product'}</CardTitle>
             <CardDescription>
@@ -166,5 +179,6 @@ export function ProductForm({ product, userRole, brands = [] }: ProductFormProps
           </CardFooter>
         </Card>
       </form>
+      </>
   );
 }

@@ -31,7 +31,7 @@ export default async function NewProductPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <ProductForm userRole={user.role} brands={brands} />
+      <ProductForm userRole={user.role} brands={brands} showBackButton />
     </div>
   );
 }
