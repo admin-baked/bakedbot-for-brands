@@ -81,9 +81,21 @@ export function ProductImageUpload({
                 ? `products/${brandId}/${productId || 'new'}-${timestamp}-${safeName}`
                 : `products/uploads/${timestamp}-${safeName}`;
 
+            console.log('[ProductImageUpload] Starting upload to:', storagePath);
+
             const storageRef = ref(storage, storagePath);
-            await uploadBytes(storageRef, file);
+
+            // Add timeout to prevent indefinite hanging
+            const uploadPromise = uploadBytes(storageRef, file);
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Upload timeout after 60 seconds')), 60000)
+            );
+
+            await Promise.race([uploadPromise, timeoutPromise]);
+            console.log('[ProductImageUpload] Upload complete, getting download URL');
+
             const downloadUrl = await getDownloadURL(storageRef);
+            console.log('[ProductImageUpload] Got download URL:', downloadUrl);
 
             setImageUrl(downloadUrl);
             setPreviewUrl(downloadUrl);
@@ -94,11 +106,12 @@ export function ProductImageUpload({
                 description: 'Product image has been uploaded successfully.',
             });
         } catch (error) {
-            console.error('Upload error:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            console.error('[ProductImageUpload] Upload error:', errorMessage, error);
             toast({
                 variant: 'destructive',
                 title: 'Upload failed',
-                description: 'Failed to upload image. Please try again or use a URL.',
+                description: `Failed to upload image: ${errorMessage}. Please try again or use a URL.`,
             });
             setPreviewUrl(currentImageUrl);
         } finally {
