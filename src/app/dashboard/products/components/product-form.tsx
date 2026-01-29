@@ -1,8 +1,7 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useEffect, useRef, useState, useActionState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -25,7 +24,7 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ product, userRole, brands = [] }: ProductFormProps) {
-  const [state, formAction] = useFormState(saveProduct, initialState);
+  const [state, formAction] = useActionState(saveProduct, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
   const [imageUrl, setImageUrl] = useState(product?.imageUrl || '');
