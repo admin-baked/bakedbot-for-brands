@@ -2,7 +2,8 @@
  * Email Lead Capture Server Actions
  *
  * Handles email/phone capture from age gates and other lead magnets.
- * Stores in Firestore and triggers Craig welcome email workflow.
+ * Stores in Firestore and triggers Mrs. Parker welcome email workflow.
+ * Mrs. Parker uses Letta to personalize welcome messages with customer memory.
  */
 
 'use server';
@@ -183,7 +184,8 @@ export async function captureEmailLead(request: CaptureEmailLeadRequest): Promis
 }
 
 /**
- * Trigger welcome email via Craig (marketer agent)
+ * Trigger welcome email via Mrs. Parker (retention agent)
+ * Mrs. Parker uses Letta to personalize welcome emails with warm "Southern Hospitality"
  */
 async function triggerWelcomeEmail(
     leadId: string,
@@ -195,10 +197,10 @@ async function triggerWelcomeEmail(
     try {
         const db = getAdminFirestore();
 
-        // Queue job for Craig to send welcome email
+        // Queue job for Mrs. Parker to send personalized welcome email
         await db.collection('jobs').add({
             type: 'send_welcome_email',
-            agent: 'craig',
+            agent: 'mrs_parker',
             status: 'pending',
             data: {
                 leadId,
@@ -206,9 +208,10 @@ async function triggerWelcomeEmail(
                 firstName,
                 brandId,
                 dispensaryId,
+                emailType: 'welcome', // Mrs. Parker's sendPersonalizedEmail tool
             },
             createdAt: Date.now(),
-            priority: 'normal',
+            priority: 'high', // Welcome emails are high priority for retention
         });
 
         // Mark lead as having welcome email sent
@@ -233,7 +236,8 @@ async function triggerWelcomeEmail(
 }
 
 /**
- * Trigger welcome SMS via Craig (marketer agent)
+ * Trigger welcome SMS via Mrs. Parker (retention agent)
+ * Mrs. Parker uses Letta to personalize welcome SMS with warm "Southern Hospitality"
  */
 async function triggerWelcomeSms(
     leadId: string,
@@ -245,10 +249,10 @@ async function triggerWelcomeSms(
     try {
         const db = getAdminFirestore();
 
-        // Queue job for Craig to send welcome SMS
+        // Queue job for Mrs. Parker to send personalized welcome SMS
         await db.collection('jobs').add({
             type: 'send_welcome_sms',
-            agent: 'craig',
+            agent: 'mrs_parker',
             status: 'pending',
             data: {
                 leadId,
@@ -256,9 +260,10 @@ async function triggerWelcomeSms(
                 firstName,
                 brandId,
                 dispensaryId,
+                messageType: 'welcome', // For Mrs. Parker's SMS tool
             },
             createdAt: Date.now(),
-            priority: 'normal',
+            priority: 'high', // Welcome messages are high priority for retention
         });
 
         // Mark lead as having welcome SMS sent
