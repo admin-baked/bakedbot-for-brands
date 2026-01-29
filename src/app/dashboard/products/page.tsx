@@ -18,6 +18,16 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal, AlertCircle } from "lucide-react";
 export const dynamic = 'force-dynamic';
 
+// Serialize Firestore Timestamp objects to plain objects for Client Components
+function serializeProducts(products: Product[]): Product[] {
+    return products.map(product => ({
+        ...product,
+        sourceTimestamp: product.sourceTimestamp
+            ? new Date((product.sourceTimestamp as any)._seconds * 1000).toISOString()
+            : undefined,
+    })) as Product[];
+}
+
 
 export default async function DashboardProductsPage() {
     const isDemo = (await cookies()).get('isUsingDemoData')?.value === 'true';
@@ -119,7 +129,7 @@ export default async function DashboardProductsPage() {
                     </Link>
                 </div>
             </div>
-            <ProductsDataTable columns={columns} data={products} />
+            <ProductsDataTable columns={columns} data={serializeProducts(products)} />
         </div>
     );
 }
