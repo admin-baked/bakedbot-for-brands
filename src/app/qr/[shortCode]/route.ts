@@ -11,12 +11,12 @@ import { headers } from 'next/headers';
  */
 export async function GET(
     request: NextRequest,
-    { params }: { params: { shortCode: string } }
+    { params }: { params: Promise<{ shortCode: string }> }
 ) {
-    const { shortCode } = params;
+    const { shortCode } = await params;
 
     // Get tracking context from headers
-    const headersList = headers();
+    const headersList = await headers();
     const userAgent = headersList.get('user-agent') || undefined;
     const referer = headersList.get('referer') || undefined;
     const forwardedFor = headersList.get('x-forwarded-for');

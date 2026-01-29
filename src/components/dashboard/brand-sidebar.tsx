@@ -27,6 +27,7 @@ import {
     FolderKanban,
     BookOpen,
     Palette,
+    QrCode,
     Package,
     Utensils,
     ShoppingCart,
@@ -107,6 +108,14 @@ export function BrandSidebar() {
                                 <Link href="/dashboard/brand/creative">
                                     <Palette />
                                     <span>Creative Center</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/qr-codes')}>
+                                <Link href="/dashboard/qr-codes">
+                                    <QrCode />
+                                    <span>QR Codes</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

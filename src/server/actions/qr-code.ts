@@ -314,6 +314,47 @@ export async function getQRCodeAnalytics(
 }
 
 /**
+ * Update a QR code
+ */
+export async function updateQRCode(
+    qrCodeId: string,
+    updates: Partial<Pick<QRCodeType, 'targetUrl' | 'title' | 'description' | 'campaign' | 'tags'>>
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await getServerSessionUser();
+        if (!user) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        const db = getDb();
+
+        // Get QR code to verify ownership
+        const qrCodeDoc = await db.collection(QR_CODES_COLLECTION).doc(qrCodeId).get();
+        if (!qrCodeDoc.exists) {
+            return { success: false, error: 'QR code not found' };
+        }
+
+        const qrCode = qrCodeDoc.data() as QRCodeType;
+        if (qrCode.orgId !== user.uid) {
+            return { success: false, error: 'Unauthorized' };
+        }
+
+        // Update QR code
+        await db.collection(QR_CODES_COLLECTION).doc(qrCodeId).update({
+            ...updates,
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        logger.info('QR code updated', { qrCodeId, userId: user.uid, updates });
+
+        return { success: true };
+    } catch (error) {
+        logger.error('Failed to update QR code', { error, qrCodeId });
+        return { success: false, error: 'Failed to update QR code' };
+    }
+}
+
+/**
  * Delete a QR code
  */
 export async function deleteQRCode(
