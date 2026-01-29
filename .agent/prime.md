@@ -97,6 +97,110 @@ export type Product = {
 - Authenticated uploads only (Firebase Storage rules)
 - Path validation and sanitization
 
+### Mrs. Parker Welcome Message System
+**Status:** ✅ Production Ready
+
+Complete lead nurturing system for age gate captures with automated welcome emails, SMS, and Letta memory integration.
+
+**Key Features:**
+- Mrs. Parker (Customer Retention Manager) sends personalized welcome messages
+- Letta archival memory integration for customer retention
+- CEO Dashboard leads tab with analytics and CSV export
+- Cloud Scheduler automated job processing (every minute)
+- Non-fatal error handling (welcome messages send even if Letta fails)
+- Beautiful HTML email templates with "Southern Hospitality" personality
+- Playbook integration for user.signup events
+
+**Architecture:**
+```
+Age Gate Capture → Firestore Job Queue → Cloud Scheduler →
+/api/jobs/welcome → Mrs. Parker Service → Letta Memory + Email/SMS
+```
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/server/services/mrs-parker-welcome.ts` | Welcome email/SMS service with Letta integration |
+| `src/app/api/jobs/welcome/route.ts` | Job processor (processes up to 10 jobs per run) |
+| `src/app/dashboard/ceo/components/leads-tab.tsx` | Leads analytics dashboard |
+| `src/server/actions/email-capture.ts` | Lead capture with job creation |
+| `CLOUD_SCHEDULER_SETUP.md` | Cloud Scheduler deployment guide |
+
+**Mrs. Parker's Personality:**
+- Warm "Southern Hospitality" style
+- Greetings: "Hey Sugar!", "Well aren't you just a breath of fresh air!"
+- Sign-off: "With love and good vibes, Mrs. Parker 💜"
+- Email subject: "Welcome to [Brand], [Name]! 🌿"
+
+**Letta Memory Integration:**
+```typescript
+// Tags for searchable memory
+const tags = [
+  CATEGORY_TAGS.CUSTOMER,         // category:customer
+  AGENT_TAGS.MRS_PARKER,          // agent:mrs_parker
+  `source:${leadData.source}`,    // source:age_gate_welcome
+  `state:${leadData.state}`,      // state:IL
+  'priority:high',                // High priority - new lead
+];
+
+// Agent ID format: mrs_parker_{brandId}
+await archivalTagsService.insertWithTags(agentId, {
+  content: memoryContent,
+  tags,
+  tenantId: leadData.brandId || 'default',
+});
+```
+
+**Firestore Job Queue Pattern:**
+```typescript
+// Jobs collection schema
+{
+  type: 'send_welcome_email' | 'send_welcome_sms',
+  agent: 'mrs_parker',
+  status: 'pending' | 'running' | 'completed' | 'failed',
+  priority: 'high',
+  data: { leadId, email, firstName, brandId, dispensaryId, state },
+  createdAt: number,
+  attempts: number
+}
+```
+
+**CEO Dashboard Leads Tab:**
+- Access: [/dashboard/ceo?tab=leads](../src/app/dashboard/ceo/components/leads-tab.tsx)
+- Stats: Total leads, email opt-ins, SMS opt-ins, age verified
+- Filter by source, export to CSV
+- Real-time updates
+
+**Cloud Scheduler Setup:**
+```bash
+# Deploy automated job processing
+gcloud scheduler jobs create http process-welcome-jobs \
+  --schedule="* * * * *" \
+  --uri="https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app/api/jobs/welcome" \
+  --http-method=POST \
+  --location=us-central1
+
+# Cost: ~$0.10/month
+```
+
+**Testing:**
+```bash
+# Test welcome jobs endpoint
+curl -X POST https://bakedbot.ai/api/jobs/welcome
+
+# Expected: {"success": true, "processed": 3, "results": [...]}
+```
+
+**Environment Variables Required:**
+- `LETTA_API_KEY` - Letta memory service API key
+- `MAILJET_API_KEY` / `MAILJET_SECRET_KEY` - Email delivery
+- `BLACKLEAF_API_KEY` - SMS delivery (optional)
+
+**Related Documentation:**
+- `CLOUD_SCHEDULER_SETUP.md` - Complete scheduler setup guide
+- `.agent/refs/agents.md` - Mrs. Parker agent details
+- `.agent/refs/bakedbot-intelligence.md` - Letta memory system
+
 ---
 
 ## ⚠️ GAUNTLET VERIFICATION: DISABLED
