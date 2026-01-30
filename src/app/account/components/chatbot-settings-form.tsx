@@ -1,8 +1,7 @@
 
 'use client';
 
-import { useFormState } from 'react-dom';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useActionState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,7 +20,7 @@ interface ChatbotSettingsFormProps {
 }
 
 export default function ChatbotSettingsForm({ brand }: ChatbotSettingsFormProps) {
-  const [state, formAction] = useFormState(updateChatbotSettings, initialState);
+  const [state, formAction] = useActionState(updateChatbotSettings, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
 

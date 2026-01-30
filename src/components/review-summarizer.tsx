@@ -1,8 +1,8 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useRef, useState, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -35,7 +35,7 @@ interface ReviewSummarizerProps {
 }
 
 export default function ReviewSummarizer({ products, areProductsLoading }: ReviewSummarizerProps) {
-    const [state, formAction] = useFormState(summarizeProductReviews, initialState);
+    const [state, formAction] = useActionState(summarizeProductReviews, initialState);
     const { toast } = useToast();
     const formRef = useRef<HTMLFormElement>(null);
     const [selectedProductName, setSelectedProductName] = useState('');

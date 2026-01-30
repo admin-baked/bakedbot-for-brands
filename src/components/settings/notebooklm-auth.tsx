@@ -34,6 +34,8 @@ export function NotebookLMAuth() {
     const [isAuthenticating, setIsAuthenticating] = useState(false);
     const [authMessage, setAuthMessage] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
+    console.log('[NotebookLMAuth] Rendering. isSuperUser:', isSuperUser);
+
     const checkStatus = async () => {
         setIsChecking(true);
         try {

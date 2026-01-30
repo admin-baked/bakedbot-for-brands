@@ -1,8 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useState, useRef, useEffect } from 'react';
-import { useFormState } from 'react-dom';
+import { useState, useRef, useEffect, useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, LogIn, Sparkles, CheckCircle } from 'lucide-react';
@@ -56,7 +55,7 @@ export default function OnboardingPage() {
   const [zipCode, setZipCode] = useState('');
 
   // Form State
-  const [formState, formAction] = useFormState(completeOnboarding, { message: '', error: false });
+  const [formState, formAction] = useActionState(completeOnboarding, { message: '', error: false });
   const formRef = useRef<HTMLFormElement>(null);
 
   // Auth State

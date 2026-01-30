@@ -1,9 +1,7 @@
-import { useRef } from 'react';
-import { useFormState } from 'react-dom';
+import { useRef, useEffect, useState, useActionState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { importDemoData, clearAllData, type ActionResult } from '../actions';
 import { SubmitButton } from './submit-button';
-import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, Trash2 } from 'lucide-react';
@@ -26,8 +24,8 @@ const initialState: ActionResult = {
 };
 
 export default function DataManagerTab() {
-  const [importState, importAction] = useFormState(importDemoData, initialState);
-  const [clearState, clearAction] = useFormState(clearAllData, initialState);
+  const [importState, importAction] = useActionState(importDemoData, initialState);
+  const [clearState, clearAction] = useActionState(clearAllData, initialState);
   const { toast } = useToast();
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isClearOpen, setIsClearOpen] = useState(false);

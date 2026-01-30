@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { DutchieClient } from '@/lib/pos/adapters/dutchie';
+import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { createImport } from './import-actions';
 import { logger } from '@/lib/logger';
 
@@ -39,6 +40,30 @@ export async function syncPOSProducts(locationId: string, orgId: string) {
             apiKey: posConfig.apiKey,
             storeId: posConfig.dispensaryId || posConfig.storeId,
         });
+    } else if (posConfig.provider === 'alleaves') {
+        // Alleaves configuration - supports both Bearer token and Basic Auth
+        const alleavesConfig: ALLeavesConfig = {
+            // Try API key first (Bearer), fallback to username/password (Basic Auth)
+            apiKey: posConfig.apiKey,
+            username: posConfig.username || process.env.ALLEAVES_USERNAME,
+            password: posConfig.password || process.env.ALLEAVES_PASSWORD,
+            pin: posConfig.pin || process.env.ALLEAVES_PIN,
+            storeId: posConfig.storeId,
+            locationId: posConfig.locationId || posConfig.storeId,
+            partnerId: posConfig.partnerId,
+            environment: posConfig.environment || 'production',
+        };
+
+        logger.info('[POS_SYNC] Initializing Alleaves client', {
+            locationId: alleavesConfig.locationId,
+            authMethod: alleavesConfig.apiKey ? 'bearer' : (alleavesConfig.username ? 'basic' : 'none'),
+            hasUsername: !!alleavesConfig.username,
+            hasPassword: !!alleavesConfig.password,
+            hasPin: !!alleavesConfig.pin,
+            hasPartnerId: !!alleavesConfig.partnerId,
+        });
+
+        client = new ALLeavesClient(alleavesConfig);
     } else {
         logger.warn('[POS_SYNC] Unsupported POS provider', { provider: posConfig.provider });
         return 0;

@@ -1,8 +1,7 @@
 
 'use client';
 
-import { useFormState } from 'react-dom';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useActionState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -22,7 +21,7 @@ interface BrandSettingsFormProps {
 }
 
 export default function BrandSettingsForm({ brand }: BrandSettingsFormProps) {
-  const [state, formAction] = useFormState(updateBrandSettings, initialState);
+  const [state, formAction] = useActionState(updateBrandSettings, initialState);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
 

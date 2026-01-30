@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useState, useActionState } from 'react';
 import type { GenerateProductDescriptionOutput } from '@/ai/flows/generate-product-description';
 import ProductDescriptionDisplay from '@/components/product-description-display';
 import ProductDescriptionForm from '@/components/product-description-form';
 import ReviewSummarizer from '@/components/review-summarizer';
 import SeoOptimizer from '@/components/seo-optimizer';
-import { useFormState } from 'react-dom';
 import { createProductDescription, createSocialMediaImage, type DescriptionFormState, type ImageFormState } from '@/app/dashboard/content/actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PenSquare, MessageSquare, Search } from 'lucide-react';
@@ -21,8 +20,8 @@ interface ContentAITabProps {
 export default function ContentAITab({ initialProducts, areProductsLoading }: ContentAITabProps) {
   const [generatedContent, setGeneratedContent] = useState<(GenerateProductDescriptionOutput & { productId?: string }) | null>(null);
 
-  const [descriptionState, descriptionFormAction] = useFormState(createProductDescription, initialDescriptionState);
-  const [imageState, imageFormAction] = useFormState(createSocialMediaImage, initialImageState);
+  const [descriptionState, descriptionFormAction] = useActionState(createProductDescription, initialDescriptionState);
+  const [imageState, imageFormAction] = useActionState(createSocialMediaImage, initialImageState);
 
   const handleContentUpdate = (content: (GenerateProductDescriptionOutput & { productId?: string }) | null) => {
     setGeneratedContent(content);

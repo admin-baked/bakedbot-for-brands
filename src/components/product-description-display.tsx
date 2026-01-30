@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Clipboard, ThumbsUp, ThumbsDown, Share2, ImageIcon, Save, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
-import { useFormState, useFormStatus } from 'react-dom';
-import { useEffect, useTransition } from 'react';
+import { useFormStatus } from 'react-dom';
+import { useEffect, useTransition, useActionState } from 'react';
 import { updateProductFeedback } from '@/app/products/[id]/actions';
 import { useUser } from '@/firebase/auth/use-user';
 import { applyGeneratedContentToProduct, type ApplyContentFormState } from '@/app/dashboard/content/actions';
@@ -35,8 +35,8 @@ export default function ProductDescriptionDisplay({ productDescription }: Produc
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
 
-  const [feedbackState, submitFeedbackAction] = useFormState(updateProductFeedback, initialFeedbackState);
-  const [applyState, submitApplyAction] = useFormState(applyGeneratedContentToProduct, initialApplyState);
+  const [feedbackState, submitFeedbackAction] = useActionState(updateProductFeedback, initialFeedbackState);
+  const [applyState, submitApplyAction] = useActionState(applyGeneratedContentToProduct, initialApplyState);
 
   const [isFeedbackPending, startFeedbackTransition] = useTransition();
   const { pending: isContentPending } = useFormStatus();

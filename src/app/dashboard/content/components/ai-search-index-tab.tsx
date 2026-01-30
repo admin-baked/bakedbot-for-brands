@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { initializeAllEmbeddings, type EmbeddingActionResult } from '../../ceo/actions';
 import { BrainCircuit, Check, Loader2, ServerCrash, X } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useActionState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -26,7 +26,7 @@ function GenerateButton() {
 }
 
 export default function AISearchIndexTab() {
-  const [state, formAction] = useFormState(initializeAllEmbeddings, initialState);
+  const [state, formAction] = useActionState(initializeAllEmbeddings, initialState);
   const { toast } = useToast();
 
   useEffect(() => {
