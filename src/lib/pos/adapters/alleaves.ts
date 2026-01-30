@@ -629,7 +629,7 @@ export class ALLeavesClient implements POSClient {
     async getCustomerSpending(): Promise<Map<number, { totalSpent: number; orderCount: number; lastOrderDate: Date; firstOrderDate: Date }>> {
         console.log('[ALLEAVES] Fetching all orders to calculate customer spending...');
 
-        const orders = await this.getAllOrders(10000); // Get recent 10k orders
+        const orders = await this.getAllOrders(100000); // Get up to 100k orders for complete history
         console.log(`[ALLEAVES] Analyzing ${orders.length} orders for customer spending`);
 
         const customerSpending = new Map<number, { totalSpent: number; orderCount: number; lastOrderDate: Date; firstOrderDate: Date }>();

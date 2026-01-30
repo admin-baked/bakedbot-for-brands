@@ -219,17 +219,17 @@ export function calculateSegment(profile: Partial<CustomerProfile>): CustomerSeg
         if (daysSinceFirst < 30) return 'new';
     }
 
-    // VIP: High LTV (top tier)
-    if (lifetimeValue >= 1000 || (orderCount >= 10 && avgOrderValue >= 100)) return 'vip';
+    // VIP: High LTV (top tier) - Adjusted for realistic dispensary spending
+    if (lifetimeValue >= 500 || (orderCount >= 8 && avgOrderValue >= 50)) return 'vip';
 
-    // High Value: High AOV but low frequency
-    if (avgOrderValue >= 150 && orderCount < 5) return 'high_value';
+    // High Value: High AOV but low frequency - Adjusted thresholds
+    if (avgOrderValue >= 75 && orderCount < 5) return 'high_value';
 
-    // Frequent: Many orders but lower AOV
-    if (orderCount >= 8 && avgOrderValue < 75) return 'frequent';
+    // Frequent: Many orders but lower AOV - Adjusted for more inclusivity
+    if (orderCount >= 5 && avgOrderValue < 60) return 'frequent';
 
-    // Loyal: Regular customer
-    if (orderCount >= 3) return 'loyal';
+    // Loyal: Regular customer - Adjusted to capture more customers
+    if (orderCount >= 2) return 'loyal';
 
     return 'new';
 }
