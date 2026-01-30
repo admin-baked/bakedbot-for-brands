@@ -1,5 +1,6 @@
 import type { POSClient, POSConfig, POSProduct } from '../types';
 import { logger } from '@/lib/logger';
+import { getPlaceholderImageForCategory } from '@/lib/product-images';
 
 /**
  * ALLeaves POS Adapter with JWT Authentication
@@ -369,7 +370,7 @@ export class ALLeavesClient implements POSClient {
                 stock: item.available,                       // Use available (not on_hand) for accurate stock
                 thcPercent: item.thc || undefined,
                 cbdPercent: item.cbd || undefined,
-                imageUrl: undefined,                         // Not provided by inventory endpoint
+                imageUrl: getPlaceholderImageForCategory(category), // Use category-based placeholder
                 rawData: item,
             };
         });
