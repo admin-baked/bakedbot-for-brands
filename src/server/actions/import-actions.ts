@@ -316,7 +316,7 @@ async function runImportPipeline(
             cbdPercent: product.potency?.cbd?.unit === 'percent' ? product.potency.cbd.value : undefined,
             imageUrl: product.images?.[0]?.url,
             imageUrls: product.images?.map(i => i.url),
-            price: productPrices.get(product.id),
+            price: productPrices.get(product.id) || 0, // Default to $0 for products without pricing
             currency: 'USD',
             viewBuiltAt: new Date() as any,
             sourceProductUpdatedAt: product.updatedAt
