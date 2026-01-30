@@ -1,0 +1,2090 @@
+{
+  "categories": [
+    {
+      "productCategory": "25f7929bea65c3d6",
+      "productCategoryName": "Accessories",
+      "count": 5,
+      "productIds": [
+        "ca434ceadbd23af0",
+        "d367a495baff5c1a",
+        "3144d268682771bf",
+        "88e7b705795cd006",
+        "3548f69c50d5ab30"
+      ]
+    },
+    {
+      "productCategory": "a0e2ea472d83aa81",
+      "productCategoryName": "Concentrates",
+      "count": 13,
+      "productIds": [
+        "ef7ba3aa7f1dde9e",
+        "b49dbbb605f7b088",
+        "21347081b3001be0",
+        "813b999deb82de60",
+        "107ef2464f972a4b",
+        "db606dda7c19557c",
+        "08e38a5e2127df8a",
+        "7ea9408273a5dc11",
+        "d99da41639468477",
+        "4347f98742c17cc8",
+        "0ad58e041808f9d9",
+        "ba7ead3bc2d1eac7",
+        "b214d48ae6da82b9"
+      ]
+    },
+    {
+      "productCategory": "1a371742cac2bde5",
+      "productCategoryName": "Edibles",
+      "count": 66,
+      "productIds": [
+        "0f765fe4f1184b82",
+        "21097a9532f770d6",
+        "7f68f5b7766e0326",
+        "502bd7904d5e013a",
+        "8b2b10438a101ed0",
+        "30fb9dcea3545de7",
+        "1835a96b0385e698",
+        "2f20a1fa81b77b5a",
+        "f8c05a11663e3024",
+        "1b6b479890f40c0e",
+        "2fc1532a16af1da3",
+        "36f599646a9693fc",
+        "a06333d3716a81fd",
+        "0fabcdb230fd13c4",
+        "4550198bcdcbe054",
+        "d26887aa1909be5d",
+        "985dabc9ec1a669e",
+        "0dacb5efac8447b6",
+        "3fa19aa7fbc45443",
+        "9775105ebaa244f8",
+        "cdb81b557948c9cc",
+        "991c2949280422d2",
+        "687249484feb5cef",
+        "9de7baaf72632f35",
+        "27b25f58936e15dd",
+        "6cf75c553edcb419",
+        "f1d94d6d207439b8",
+        "55752395fff27542",
+        "688729f624dfed66",
+        "0c5506d3aaa2c3eb",
+        "80c5d550a8a5143d",
+        "0dff6fa7939e893e",
+        "408ed17721da37d0",
+        "300f1acdb6721fa4",
+        "7041beefd694ce09",
+        "e111a4b836b34070",
+        "58204465714d3b3a",
+        "8668d538887899fb",
+        "46c540321ae79b39",
+        "7db59f1ee6d6d20e",
+        "90613e143d9d79f1",
+        "03fa5668e50c8245",
+        "0799d70f561d7952",
+        "d6cd613ce6dcdb59",
+        "2abb582d8c22bd4d",
+        "a0bd07d79fc1d34b",
+        "8765e4df74b1a9e9",
+        "8356e453079cfc7b",
+        "63585a439fce72ac",
+        "ac91a33b713aecf4",
+        "8ccdfba39d199b48",
+        "539fc6e68f0859fa",
+        "5f0af00cd9aeacbd",
+        "bf25d41973c991bd",
+        "814692fd4dcab313",
+        "2db8f43f7a471af2",
+        "fe0ee9e02021c6ed",
+        "7f3428c591dbf496",
+        "f5cec003310cada5",
+        "5142d02d03f2dd5d",
+        "d5068004e80e65fd",
+        "d9f85e3f03cdc634",
+        "3fa198005d4480de",
+        "db479b959cc86e12",
+        "d59185787c4041e8",
+        "89f1f100f3978dce"
+      ]
+    },
+    {
+      "productCategory": "e19bb9cbebe556a7",
+      "productCategoryName": "Vaporizers",
+      "count": 69,
+      "productIds": [
+        "d5c788b951a878de",
+        "a303493b1ac73ed4",
+        "35582f20cf1ed4d7",
+        "1e14804b5866b6b5",
+        "a592df061b913cf9",
+        "20c2d9db9be0870b",
+        "10d8fe6f0d5e12dd",
+        "dd79b094b0198bce",
+        "a4f932f1704ad397",
+        "066ff2b1f338d636",
+        "3db0ce5bc0f57a47",
+        "dbf523d99a23cbb3",
+        "80203e5966bf19b3",
+        "422f2bcdc8947cfa",
+        "1942fd4e33b7fa94",
+        "63e9dd999cbe875c",
+        "6be594c3842a9368",
+        "bdb4b2805842f7a5",
+        "2c6d1d774b043906",
+        "a31f90dbd4cd5e09",
+        "f24e51ee18065ed7",
+        "39e61d6c9852d574",
+        "e4ee28c4df6a4090",
+        "65bfd7ef35da47cb",
+        "3743f986b2b75211",
+        "14345f0313d605d4",
+        "81ae02dd71cee0ac",
+        "ee2aed707182ccaf",
+        "9e46208bf1fa0187",
+        "2ccfd53e4fbd7f75",
+        "c75976b0345bcac5",
+        "fd71a70becbed86f",
+        "f12f70b32aaf5c77",
+        "7e58688fdee09bac",
+        "7f3640e33a7c91f6",
+        "45747f4327ca2ffa",
+        "26dbc0ffb2711b8f",
+        "7b3ad09619c6637a",
+        "9552af1357dd7f51",
+        "0a5b967e5c06c639",
+        "d29eb5fd3a38ff3d",
+        "217be491152f851e",
+        "54fd0d25a6e2d10d",
+        "a87f73e6e14cb6a1",
+        "eb092a3af2b77b3e",
+        "f87ce9ba5bc8ad06",
+        "0d6578cbbce98a40",
+        "87d1d78f15f0aa20",
+        "af620fb89dc6a093",
+        "f91a0a1ab29f127e",
+        "5c59f4688f63f2ea",
+        "8ab298e7784c8d1c",
+        "e9c088638f04b70e",
+        "15bf05b4080f0a39",
+        "d5ced029b8916cff",
+        "e5878633421b666f",
+        "b8adca682a4fd3d8",
+        "bd9c97d74e92690e",
+        "ceeaff4453f5467d",
+        "cb72151cfdbf7d52",
+        "a17e6f7a48b88452",
+        "f41c9f727d07b7cd",
+        "1e1977a58ad0bd02",
+        "973c1283c503885e",
+        "3bee7545520e2478",
+        "307b796ba10a691c",
+        "d2b0cbcefd239582",
+        "d4180ceba8f5b97d",
+        "62557835b25bbd23"
+      ]
+    },
+    {
+      "productCategory": "14224447f8cd7724",
+      "productCategoryName": "Topicals",
+      "count": 3,
+      "productIds": [
+        "e4111feafa394144",
+        "b52224341e6db752",
+        "304894ba0670153e"
+      ]
+    },
+    {
+      "productCategory": "778d114c5cfe6f27",
+      "productCategoryName": "Flower",
+      "count": 67,
+      "productIds": [
+        "905a4ddd5b3bab63",
+        "de89a9561def1124",
+        "6c6e54e5251f6633",
+        "b05b73709a3e70b7",
+        "a19a96283193af0c",
+        "f24bfa368ae9fda0",
+        "3d419073f9c6e66c",
+        "ceff3021aa49e3dd",
+        "2e83a4a9cde3c392",
+        "4011606cacde2bbc",
+        "efdf5ca85d0d93bd",
+        "822c395c8b6631f4",
+        "922cff0ac1853e7f",
+        "4fc323954d2ea6bc",
+        "671b6fe92480f714",
+        "cc2a608f67b70a68",
+        "3889140ce1711066",
+        "2104689ad916884f",
+        "b5a5ed1f5a928b04",
+        "51d494ac1f886595",
+        "acdfea04e9adb777",
+        "1b312d9442d48e1e",
+        "1ecbddbe52bb580f",
+        "c453721a41834b5e",
+        "051ed5f6f9ead088",
+        "db10439b17cc25f0",
+        "f93d429dc9d27955",
+        "252e176c9ec4a997",
+        "9badf318238677e3",
+        "efb626ed942546b3",
+        "a8237954a9f78a7a",
+        "b2e85346e8d15a8d",
+        "ef07eff3d935f8a0",
+        "f6a1419a0faaf837",
+        "eda5180aaf66f82f",
+        "da9536c28aea0f3f",
+        "a46f350e7ef0230d",
+        "7ffdf94ecc73e152",
+        "39b16fa1cd5b3589",
+        "100328b9ae81716a",
+        "297a21a9a32689cf",
+        "506a2b422a838de7",
+        "82eeb3e6c7d906cc",
+        "5c890bdc3b7ff8db",
+        "77d4f1bcf88c3e99",
+        "76adb87b3cc3013c",
+        "d6afa12151fe8ef9",
+        "195e1c3c8a5980a6",
+        "da0df51187b61410",
+        "fa4486d41c0a12d8",
+        "441da8254a834a2b",
+        "0d3452f1df15a311",
+        "dddc9d93abb6633a",
+        "d8f8535e2702de93",
+        "f7b012a02feea4d6",
+        "a91057e1a421c82a",
+        "585c3cd3c5314585",
+        "bc7e437551b88df0",
+        "7b7c378429e7a1d9",
+        "0b34671f4c37c4ca",
+        "a9b5fe6f8f5cf962",
+        "92223c0724d2cf9b",
+        "8cf45d7ef3b47928",
+        "bab886ba7d68e321",
+        "990864cffbfad518",
+        "b599e91c15ce7829",
+        "4e172991f460acef"
+      ]
+    },
+    {
+      "productCategory": "7c569de902825bca",
+      "productCategoryName": "Pre Rolls",
+      "count": 57,
+      "productIds": [
+        "004d4ca7ea48ee1d",
+        "2da8d3c55cabca5c",
+        "4f526723611825fc",
+        "ad5998e881ccc43f",
+        "c7d4007c21a37f92",
+        "2f26821e394d0dd6",
+        "ef12d44992648376",
+        "f98f51582d00867a",
+        "4bd9b064da4663e0",
+        "2b44f28400b8e53b",
+        "bcb152d78de9926e",
+        "534a172ed74523bd",
+        "df87113ac0eb7651",
+        "a4fb434df4ba0df0",
+        "968a6ad6fdc22d0f",
+        "5453e003a4b54428",
+        "c0e71227a2b2521e",
+        "4a44b2132b9a91a2",
+        "963cbe777d9cb5e5",
+        "71220ef4bcfbaeea",
+        "0b01bdf56892b4cf",
+        "acd22c8e479f826e",
+        "d0d14ca3672f759c",
+        "5078ada0cfda2860",
+        "877cbc871eee5051",
+        "fd5b42e550cc53c4",
+        "878f14de164a98de",
+        "2c1d16836ac284e5",
+        "ffaa80caf33de8a3",
+        "4a2218953a3d8008",
+        "994cad8ec0233302",
+        "8e7d996b2f64c303",
+        "1205347e346b7d43",
+        "5604bc53473a4364",
+        "0a33f51dca5b598e",
+        "7abb0d974d1b0308",
+        "1f9084d2b1901322",
+        "d9a926a2acc0cd8a",
+        "88f2d0aa4f4f5660",
+        "97168a00b6be5b46",
+        "6dd2a09ba8af4a07",
+        "6677a1473974e30e",
+        "51d4d20d88c214ed",
+        "c31e5ff48b083a16",
+        "bfbebd0825e1bf14",
+        "57d78bd255f7d2f3",
+        "0c953072c42cee70",
+        "a719ac52632a1e75",
+        "1e3a207107270df8",
+        "3bb59347ba9c432a",
+        "8b35144ccf2a5255",
+        "79813bad98c00455",
+        "1a943888d8280e19",
+        "90f85c84ea37ef91",
+        "b0647b1a03665da0",
+        "219f2dec456abcea",
+        "b3058f8f9bfc1160"
+      ]
+    },
+    {
+      "productCategory": "242aec4520fd2640",
+      "productCategoryName": "Tinctures",
+      "count": 7,
+      "productIds": [
+        "ebc7eed5e438807f",
+        "695cc12635c94c37",
+        "1bb1874e24e267a9",
+        "8920ee41548ccfc6",
+        "b7a0e224e058a7b4",
+        "5b56c27e4faafea5",
+        "e29954201611f1ce"
+      ]
+    }
+  ],
+  "subTypes": [
+    {
+      "productCategory": "7c569de902825bca",
+      "subType": "Pre Rolls",
+      "count": 57,
+      "productIds": [
+        "1205347e346b7d43",
+        "5604bc53473a4364",
+        "0a33f51dca5b598e",
+        "2c1d16836ac284e5",
+        "ffaa80caf33de8a3",
+        "4a2218953a3d8008",
+        "994cad8ec0233302",
+        "8e7d996b2f64c303",
+        "6677a1473974e30e",
+        "51d4d20d88c214ed",
+        "7abb0d974d1b0308",
+        "1f9084d2b1901322",
+        "d9a926a2acc0cd8a",
+        "88f2d0aa4f4f5660",
+        "97168a00b6be5b46",
+        "6dd2a09ba8af4a07",
+        "57d78bd255f7d2f3",
+        "0c953072c42cee70",
+        "a719ac52632a1e75",
+        "c31e5ff48b083a16",
+        "bfbebd0825e1bf14",
+        "8b35144ccf2a5255",
+        "79813bad98c00455",
+        "b3058f8f9bfc1160",
+        "2da8d3c55cabca5c",
+        "1a943888d8280e19",
+        "219f2dec456abcea",
+        "90f85c84ea37ef91",
+        "b0647b1a03665da0",
+        "1e3a207107270df8",
+        "3bb59347ba9c432a",
+        "ef12d44992648376",
+        "f98f51582d00867a",
+        "004d4ca7ea48ee1d",
+        "4f526723611825fc",
+        "ad5998e881ccc43f",
+        "c7d4007c21a37f92",
+        "2f26821e394d0dd6",
+        "a4fb434df4ba0df0",
+        "5453e003a4b54428",
+        "968a6ad6fdc22d0f",
+        "4bd9b064da4663e0",
+        "2b44f28400b8e53b",
+        "bcb152d78de9926e",
+        "534a172ed74523bd",
+        "df87113ac0eb7651",
+        "4a44b2132b9a91a2",
+        "963cbe777d9cb5e5",
+        "c0e71227a2b2521e",
+        "877cbc871eee5051",
+        "fd5b42e550cc53c4",
+        "878f14de164a98de",
+        "71220ef4bcfbaeea",
+        "0b01bdf56892b4cf",
+        "acd22c8e479f826e",
+        "d0d14ca3672f759c",
+        "5078ada0cfda2860"
+      ]
+    },
+    {
+      "productCategory": "1a371742cac2bde5",
+      "subType": "Edibles",
+      "count": 59,
+      "productIds": [
+        "0c5506d3aaa2c3eb",
+        "991c2949280422d2",
+        "cdb81b557948c9cc",
+        "80c5d550a8a5143d",
+        "0dff6fa7939e893e",
+        "688729f624dfed66",
+        "55752395fff27542",
+        "408ed17721da37d0",
+        "6cf75c553edcb419",
+        "f1d94d6d207439b8",
+        "9de7baaf72632f35",
+        "0dacb5efac8447b6",
+        "985dabc9ec1a669e",
+        "d26887aa1909be5d",
+        "9775105ebaa244f8",
+        "3fa19aa7fbc45443",
+        "a06333d3716a81fd",
+        "1b6b479890f40c0e",
+        "2f20a1fa81b77b5a",
+        "1835a96b0385e698",
+        "30fb9dcea3545de7",
+        "f8c05a11663e3024",
+        "2fc1532a16af1da3",
+        "21097a9532f770d6",
+        "0f765fe4f1184b82",
+        "8b2b10438a101ed0",
+        "502bd7904d5e013a",
+        "7f68f5b7766e0326",
+        "d5068004e80e65fd",
+        "5142d02d03f2dd5d",
+        "7f3428c591dbf496",
+        "f5cec003310cada5",
+        "89f1f100f3978dce",
+        "d59185787c4041e8",
+        "db479b959cc86e12",
+        "3fa198005d4480de",
+        "d9f85e3f03cdc634",
+        "bf25d41973c991bd",
+        "539fc6e68f0859fa",
+        "8ccdfba39d199b48",
+        "ac91a33b713aecf4",
+        "5f0af00cd9aeacbd",
+        "63585a439fce72ac",
+        "2db8f43f7a471af2",
+        "fe0ee9e02021c6ed",
+        "d6cd613ce6dcdb59",
+        "0799d70f561d7952",
+        "90613e143d9d79f1",
+        "03fa5668e50c8245",
+        "7db59f1ee6d6d20e",
+        "8356e453079cfc7b",
+        "a0bd07d79fc1d34b",
+        "2abb582d8c22bd4d",
+        "7041beefd694ce09",
+        "300f1acdb6721fa4",
+        "46c540321ae79b39",
+        "8668d538887899fb",
+        "58204465714d3b3a",
+        "e111a4b836b34070"
+      ]
+    },
+    {
+      "productCategory": null,
+      "subType": "Gift Cards",
+      "count": 1,
+      "productIds": [
+        "627a274686ea78a2"
+      ]
+    },
+    {
+      "productCategory": "e19bb9cbebe556a7",
+      "subType": "Vapes",
+      "count": 69,
+      "productIds": [
+        "45747f4327ca2ffa",
+        "26dbc0ffb2711b8f",
+        "9552af1357dd7f51",
+        "7b3ad09619c6637a",
+        "d29eb5fd3a38ff3d",
+        "0a5b967e5c06c639",
+        "217be491152f851e",
+        "a87f73e6e14cb6a1",
+        "54fd0d25a6e2d10d",
+        "eb092a3af2b77b3e",
+        "0d6578cbbce98a40",
+        "f87ce9ba5bc8ad06",
+        "87d1d78f15f0aa20",
+        "af620fb89dc6a093",
+        "f91a0a1ab29f127e",
+        "5c59f4688f63f2ea",
+        "8ab298e7784c8d1c",
+        "e9c088638f04b70e",
+        "d5ced029b8916cff",
+        "15bf05b4080f0a39",
+        "e5878633421b666f",
+        "bd9c97d74e92690e",
+        "b8adca682a4fd3d8",
+        "ceeaff4453f5467d",
+        "cb72151cfdbf7d52",
+        "a17e6f7a48b88452",
+        "1e1977a58ad0bd02",
+        "f41c9f727d07b7cd",
+        "973c1283c503885e",
+        "3bee7545520e2478",
+        "d2b0cbcefd239582",
+        "307b796ba10a691c",
+        "d4180ceba8f5b97d",
+        "62557835b25bbd23",
+        "d5c788b951a878de",
+        "a303493b1ac73ed4",
+        "35582f20cf1ed4d7",
+        "1e14804b5866b6b5",
+        "a592df061b913cf9",
+        "20c2d9db9be0870b",
+        "10d8fe6f0d5e12dd",
+        "dd79b094b0198bce",
+        "a4f932f1704ad397",
+        "066ff2b1f338d636",
+        "dbf523d99a23cbb3",
+        "3db0ce5bc0f57a47",
+        "422f2bcdc8947cfa",
+        "80203e5966bf19b3",
+        "1942fd4e33b7fa94",
+        "bdb4b2805842f7a5",
+        "63e9dd999cbe875c",
+        "6be594c3842a9368",
+        "a31f90dbd4cd5e09",
+        "2c6d1d774b043906",
+        "39e61d6c9852d574",
+        "f24e51ee18065ed7",
+        "65bfd7ef35da47cb",
+        "e4ee28c4df6a4090",
+        "3743f986b2b75211",
+        "14345f0313d605d4",
+        "81ae02dd71cee0ac",
+        "ee2aed707182ccaf",
+        "9e46208bf1fa0187",
+        "c75976b0345bcac5",
+        "2ccfd53e4fbd7f75",
+        "f12f70b32aaf5c77",
+        "fd71a70becbed86f",
+        "7e58688fdee09bac",
+        "7f3640e33a7c91f6"
+      ]
+    },
+    {
+      "productCategory": "242aec4520fd2640",
+      "subType": "Tinctures",
+      "count": 7,
+      "productIds": [
+        "ebc7eed5e438807f",
+        "e29954201611f1ce",
+        "1bb1874e24e267a9",
+        "695cc12635c94c37",
+        "8920ee41548ccfc6",
+        "b7a0e224e058a7b4",
+        "5b56c27e4faafea5"
+      ]
+    },
+    {
+      "productCategory": null,
+      "subType": "Beverages",
+      "count": 2,
+      "productIds": [
+        "b1a8ea35ac66b361",
+        "6dde200d0d005866"
+      ]
+    },
+    {
+      "productCategory": "14224447f8cd7724",
+      "subType": "Topicals",
+      "count": 3,
+      "productIds": [
+        "b52224341e6db752",
+        "304894ba0670153e",
+        "e4111feafa394144"
+      ]
+    },
+    {
+      "productCategory": "a0e2ea472d83aa81",
+      "subType": "Concentrate",
+      "count": 13,
+      "productIds": [
+        "ef7ba3aa7f1dde9e",
+        "b49dbbb605f7b088",
+        "21347081b3001be0",
+        "813b999deb82de60",
+        "107ef2464f972a4b",
+        "db606dda7c19557c",
+        "08e38a5e2127df8a",
+        "7ea9408273a5dc11",
+        "d99da41639468477",
+        "4347f98742c17cc8",
+        "0ad58e041808f9d9",
+        "ba7ead3bc2d1eac7",
+        "b214d48ae6da82b9"
+      ]
+    },
+    {
+      "productCategory": "778d114c5cfe6f27",
+      "subType": "Flower",
+      "count": 67,
+      "productIds": [
+        "195e1c3c8a5980a6",
+        "441da8254a834a2b",
+        "0d3452f1df15a311",
+        "da0df51187b61410",
+        "fa4486d41c0a12d8",
+        "100328b9ae81716a",
+        "39b16fa1cd5b3589",
+        "297a21a9a32689cf",
+        "506a2b422a838de7",
+        "5c890bdc3b7ff8db",
+        "76adb87b3cc3013c",
+        "d6afa12151fe8ef9",
+        "82eeb3e6c7d906cc",
+        "77d4f1bcf88c3e99",
+        "8cf45d7ef3b47928",
+        "7b7c378429e7a1d9",
+        "0b34671f4c37c4ca",
+        "a9b5fe6f8f5cf962",
+        "92223c0724d2cf9b",
+        "990864cffbfad518",
+        "bab886ba7d68e321",
+        "b599e91c15ce7829",
+        "4e172991f460acef",
+        "dddc9d93abb6633a",
+        "bc7e437551b88df0",
+        "f7b012a02feea4d6",
+        "d8f8535e2702de93",
+        "a91057e1a421c82a",
+        "585c3cd3c5314585",
+        "ceff3021aa49e3dd",
+        "2e83a4a9cde3c392",
+        "4011606cacde2bbc",
+        "4fc323954d2ea6bc",
+        "cc2a608f67b70a68",
+        "671b6fe92480f714",
+        "3889140ce1711066",
+        "efdf5ca85d0d93bd",
+        "822c395c8b6631f4",
+        "922cff0ac1853e7f",
+        "a19a96283193af0c",
+        "de89a9561def1124",
+        "905a4ddd5b3bab63",
+        "6c6e54e5251f6633",
+        "b05b73709a3e70b7",
+        "3d419073f9c6e66c",
+        "f24bfa368ae9fda0",
+        "9badf318238677e3",
+        "252e176c9ec4a997",
+        "efb626ed942546b3",
+        "a8237954a9f78a7a",
+        "eda5180aaf66f82f",
+        "f93d429dc9d27955",
+        "a46f350e7ef0230d",
+        "da9536c28aea0f3f",
+        "7ffdf94ecc73e152",
+        "ef07eff3d935f8a0",
+        "b2e85346e8d15a8d",
+        "f6a1419a0faaf837",
+        "1b312d9442d48e1e",
+        "acdfea04e9adb777",
+        "051ed5f6f9ead088",
+        "1ecbddbe52bb580f",
+        "2104689ad916884f",
+        "c453721a41834b5e",
+        "51d494ac1f886595",
+        "b5a5ed1f5a928b04",
+        "db10439b17cc25f0"
+      ]
+    },
+    {
+      "productCategory": "1a371742cac2bde5",
+      "subType": "Beverages",
+      "count": 7,
+      "productIds": [
+        "27b25f58936e15dd",
+        "687249484feb5cef",
+        "36f599646a9693fc",
+        "4550198bcdcbe054",
+        "814692fd4dcab313",
+        "8765e4df74b1a9e9",
+        "0fabcdb230fd13c4"
+      ]
+    },
+    {
+      "productCategory": "25f7929bea65c3d6",
+      "subType": "Accessories",
+      "count": 5,
+      "productIds": [
+        "ca434ceadbd23af0",
+        "d367a495baff5c1a",
+        "3144d268682771bf",
+        "88e7b705795cd006",
+        "3548f69c50d5ab30"
+      ]
+    }
+  ],
+  "weights": [
+    {
+      "weightFormatted": "28g",
+      "weight": 28,
+      "count": 4,
+      "productIds": [
+        "b5a5ed1f5a928b04",
+        "efb626ed942546b3",
+        "c453721a41834b5e",
+        "f7b012a02feea4d6"
+      ]
+    },
+    {
+      "weightFormatted": "14g",
+      "weight": 14,
+      "count": 10,
+      "productIds": [
+        "f24bfa368ae9fda0",
+        "acdfea04e9adb777",
+        "195e1c3c8a5980a6",
+        "ceff3021aa49e3dd",
+        "92223c0724d2cf9b",
+        "3889140ce1711066",
+        "4fc323954d2ea6bc",
+        "77d4f1bcf88c3e99",
+        "585c3cd3c5314585",
+        "d8f8535e2702de93"
+      ]
+    },
+    {
+      "weightFormatted": "1.25g",
+      "weight": 1.25,
+      "count": 5,
+      "productIds": [
+        "f98f51582d00867a",
+        "ffaa80caf33de8a3",
+        "7abb0d974d1b0308",
+        "d0d14ca3672f759c",
+        "4bd9b064da4663e0"
+      ]
+    },
+    {
+      "weightFormatted": "150mg",
+      "weight": 150,
+      "count": 2,
+      "productIds": [
+        "8920ee41548ccfc6",
+        "1bb1874e24e267a9"
+      ]
+    },
+    {
+      "weightFormatted": "60g",
+      "weight": 60,
+      "count": 8,
+      "productIds": [
+        "5142d02d03f2dd5d",
+        "58204465714d3b3a",
+        "a0bd07d79fc1d34b",
+        "0dff6fa7939e893e",
+        "8ccdfba39d199b48",
+        "90613e143d9d79f1",
+        "0dacb5efac8447b6",
+        "991c2949280422d2"
+      ]
+    },
+    {
+      "weightFormatted": "0.5g",
+      "weight": 0.5,
+      "count": 17,
+      "productIds": [
+        "7e58688fdee09bac",
+        "7f3640e33a7c91f6",
+        "d5c788b951a878de",
+        "c7d4007c21a37f92",
+        "e4ee28c4df6a4090",
+        "8e7d996b2f64c303",
+        "963cbe777d9cb5e5",
+        "9e46208bf1fa0187",
+        "bcb152d78de9926e",
+        "3db0ce5bc0f57a47",
+        "877cbc871eee5051",
+        "a4fb434df4ba0df0",
+        "d2b0cbcefd239582",
+        "15bf05b4080f0a39",
+        "1942fd4e33b7fa94",
+        "6be594c3842a9368",
+        "bdb4b2805842f7a5"
+      ]
+    },
+    {
+      "weightFormatted": "1000mg",
+      "weight": 1000,
+      "count": 3,
+      "productIds": [
+        "e4111feafa394144",
+        "304894ba0670153e",
+        "b52224341e6db752"
+      ]
+    },
+    {
+      "weightFormatted": "4g",
+      "weight": 4,
+      "count": 3,
+      "productIds": [
+        "a46f350e7ef0230d",
+        "4011606cacde2bbc",
+        "d6afa12151fe8ef9"
+      ]
+    },
+    {
+      "weightFormatted": "35g",
+      "weight": 35,
+      "count": 9,
+      "productIds": [
+        "8356e453079cfc7b",
+        "2f20a1fa81b77b5a",
+        "7f3428c591dbf496",
+        "cdb81b557948c9cc",
+        "7f68f5b7766e0326",
+        "3fa198005d4480de",
+        "9775105ebaa244f8",
+        "55752395fff27542",
+        "8b2b10438a101ed0"
+      ]
+    },
+    {
+      "weightFormatted": "100mg",
+      "weight": 100,
+      "count": 17,
+      "productIds": [
+        "5f0af00cd9aeacbd",
+        "539fc6e68f0859fa",
+        "63585a439fce72ac",
+        "408ed17721da37d0",
+        "bf25d41973c991bd",
+        "3fa19aa7fbc45443",
+        "e111a4b836b34070",
+        "46c540321ae79b39",
+        "fe0ee9e02021c6ed",
+        "7db59f1ee6d6d20e",
+        "a06333d3716a81fd",
+        "d5068004e80e65fd",
+        "0c5506d3aaa2c3eb",
+        "0799d70f561d7952",
+        "2abb582d8c22bd4d",
+        "d9f85e3f03cdc634",
+        "db479b959cc86e12"
+      ]
+    },
+    {
+      "weightFormatted": "1.75g",
+      "weight": 1.75,
+      "count": 6,
+      "productIds": [
+        "219f2dec456abcea",
+        "f93d429dc9d27955",
+        "fd5b42e550cc53c4",
+        "297a21a9a32689cf",
+        "1e3a207107270df8",
+        "ef12d44992648376"
+      ]
+    },
+    {
+      "weightFormatted": "1g",
+      "weight": 1,
+      "count": 86,
+      "productIds": [
+        "b0647b1a03665da0",
+        "2da8d3c55cabca5c",
+        "db606dda7c19557c",
+        "8b35144ccf2a5255",
+        "2ccfd53e4fbd7f75",
+        "b49dbbb605f7b088",
+        "c75976b0345bcac5",
+        "f12f70b32aaf5c77",
+        "fd71a70becbed86f",
+        "ee2aed707182ccaf",
+        "88e7b705795cd006",
+        "7ea9408273a5dc11",
+        "81ae02dd71cee0ac",
+        "0c953072c42cee70",
+        "813b999deb82de60",
+        "3743f986b2b75211",
+        "f8c05a11663e3024",
+        "f24e51ee18065ed7",
+        "30fb9dcea3545de7",
+        "c31e5ff48b083a16",
+        "65bfd7ef35da47cb",
+        "2c6d1d774b043906",
+        "57d78bd255f7d2f3",
+        "bfbebd0825e1bf14",
+        "63e9dd999cbe875c",
+        "da0df51187b61410",
+        "6677a1473974e30e",
+        "97168a00b6be5b46",
+        "dbf523d99a23cbb3",
+        "107ef2464f972a4b",
+        "b214d48ae6da82b9",
+        "a4f932f1704ad397",
+        "d9a926a2acc0cd8a",
+        "066ff2b1f338d636",
+        "6cf75c553edcb419",
+        "dd79b094b0198bce",
+        "5604bc53473a4364",
+        "1205347e346b7d43",
+        "35582f20cf1ed4d7",
+        "1e14804b5866b6b5",
+        "994cad8ec0233302",
+        "2c1d16836ac284e5",
+        "a303493b1ac73ed4",
+        "d4180ceba8f5b97d",
+        "62557835b25bbd23",
+        "7ffdf94ecc73e152",
+        "252e176c9ec4a997",
+        "9badf318238677e3",
+        "4347f98742c17cc8",
+        "71220ef4bcfbaeea",
+        "ba7ead3bc2d1eac7",
+        "f41c9f727d07b7cd",
+        "1e1977a58ad0bd02",
+        "ceeaff4453f5467d",
+        "973c1283c503885e",
+        "2104689ad916884f",
+        "b8adca682a4fd3d8",
+        "bd9c97d74e92690e",
+        "cb72151cfdbf7d52",
+        "0ad58e041808f9d9",
+        "e5878633421b666f",
+        "08e38a5e2127df8a",
+        "5453e003a4b54428",
+        "21347081b3001be0",
+        "e9c088638f04b70e",
+        "ef7ba3aa7f1dde9e",
+        "d5ced029b8916cff",
+        "f91a0a1ab29f127e",
+        "df87113ac0eb7651",
+        "ac91a33b713aecf4",
+        "8ab298e7784c8d1c",
+        "2b44f28400b8e53b",
+        "d99da41639468477",
+        "87d1d78f15f0aa20",
+        "af620fb89dc6a093",
+        "a87f73e6e14cb6a1",
+        "eb092a3af2b77b3e",
+        "f87ce9ba5bc8ad06",
+        "5c59f4688f63f2ea",
+        "54fd0d25a6e2d10d",
+        "d59185787c4041e8",
+        "7b3ad09619c6637a",
+        "2f26821e394d0dd6",
+        "0a5b967e5c06c639",
+        "d29eb5fd3a38ff3d",
+        "45747f4327ca2ffa"
+      ]
+    },
+    {
+      "weightFormatted": "5mg",
+      "weight": 5,
+      "count": 1,
+      "productIds": [
+        "502bd7904d5e013a"
+      ]
+    },
+    {
+      "weightFormatted": "7g",
+      "weight": 7,
+      "count": 13,
+      "productIds": [
+        "688729f624dfed66",
+        "441da8254a834a2b",
+        "905a4ddd5b3bab63",
+        "1835a96b0385e698",
+        "d6cd613ce6dcdb59",
+        "0b34671f4c37c4ca",
+        "051ed5f6f9ead088",
+        "100328b9ae81716a",
+        "1ecbddbe52bb580f",
+        "4e172991f460acef",
+        "9de7baaf72632f35",
+        "b2e85346e8d15a8d",
+        "da9536c28aea0f3f"
+      ]
+    },
+    {
+      "weightFormatted": "50mg",
+      "weight": 50,
+      "count": 2,
+      "productIds": [
+        "985dabc9ec1a669e",
+        "0f765fe4f1184b82"
+      ]
+    },
+    {
+      "weightFormatted": "300g",
+      "weight": 300,
+      "count": 1,
+      "productIds": [
+        "ebc7eed5e438807f"
+      ]
+    },
+    {
+      "weightFormatted": "0.7g",
+      "weight": 0.7,
+      "count": 1,
+      "productIds": [
+        "4a44b2132b9a91a2"
+      ]
+    },
+    {
+      "weightFormatted": "1.5g",
+      "weight": 1.5,
+      "count": 4,
+      "productIds": [
+        "80203e5966bf19b3",
+        "a592df061b913cf9",
+        "90f85c84ea37ef91",
+        "c0e71227a2b2521e"
+      ]
+    },
+    {
+      "weightFormatted": "2g",
+      "weight": 2,
+      "count": 15,
+      "productIds": [
+        "20c2d9db9be0870b",
+        "14345f0313d605d4",
+        "217be491152f851e",
+        "10d8fe6f0d5e12dd",
+        "6dd2a09ba8af4a07",
+        "26dbc0ffb2711b8f",
+        "9552af1357dd7f51",
+        "a31f90dbd4cd5e09",
+        "004d4ca7ea48ee1d",
+        "a17e6f7a48b88452",
+        "39e61d6c9852d574",
+        "307b796ba10a691c",
+        "422f2bcdc8947cfa",
+        "0d6578cbbce98a40",
+        "3bee7545520e2478"
+      ]
+    },
+    {
+      "weightFormatted": "466mg",
+      "weight": 466,
+      "count": 1,
+      "productIds": [
+        "5b56c27e4faafea5"
+      ]
+    },
+    {
+      "weightFormatted": "100g",
+      "weight": 100,
+      "count": 3,
+      "productIds": [
+        "8668d538887899fb",
+        "300f1acdb6721fa4",
+        "7041beefd694ce09"
+      ]
+    },
+    {
+      "weightFormatted": "0.75g",
+      "weight": 0.75,
+      "count": 6,
+      "productIds": [
+        "534a172ed74523bd",
+        "5078ada0cfda2860",
+        "ad5998e881ccc43f",
+        "0a33f51dca5b598e",
+        "968a6ad6fdc22d0f",
+        "51d4d20d88c214ed"
+      ]
+    },
+    {
+      "weightFormatted": "300mg",
+      "weight": 300,
+      "count": 3,
+      "productIds": [
+        "b7a0e224e058a7b4",
+        "e29954201611f1ce",
+        "695cc12635c94c37"
+      ]
+    },
+    {
+      "weightFormatted": "120g",
+      "weight": 120,
+      "count": 4,
+      "productIds": [
+        "1b6b479890f40c0e",
+        "2fc1532a16af1da3",
+        "d26887aa1909be5d",
+        "f5cec003310cada5"
+      ]
+    },
+    {
+      "weightFormatted": "3.5g",
+      "weight": 3.5,
+      "count": 39,
+      "productIds": [
+        "eda5180aaf66f82f",
+        "3d419073f9c6e66c",
+        "80c5d550a8a5143d",
+        "76adb87b3cc3013c",
+        "82eeb3e6c7d906cc",
+        "39b16fa1cd5b3589",
+        "5c890bdc3b7ff8db",
+        "506a2b422a838de7",
+        "de89a9561def1124",
+        "a19a96283193af0c",
+        "6c6e54e5251f6633",
+        "b05b73709a3e70b7",
+        "0d3452f1df15a311",
+        "cc2a608f67b70a68",
+        "671b6fe92480f714",
+        "efdf5ca85d0d93bd",
+        "fa4486d41c0a12d8",
+        "822c395c8b6631f4",
+        "922cff0ac1853e7f",
+        "1f9084d2b1901322",
+        "2e83a4a9cde3c392",
+        "bc7e437551b88df0",
+        "db10439b17cc25f0",
+        "a91057e1a421c82a",
+        "1b312d9442d48e1e",
+        "51d494ac1f886595",
+        "dddc9d93abb6633a",
+        "79813bad98c00455",
+        "ef07eff3d935f8a0",
+        "bab886ba7d68e321",
+        "b599e91c15ce7829",
+        "f6a1419a0faaf837",
+        "990864cffbfad518",
+        "a8237954a9f78a7a",
+        "acd22c8e479f826e",
+        "3bb59347ba9c432a",
+        "7b7c378429e7a1d9",
+        "8cf45d7ef3b47928",
+        "a9b5fe6f8f5cf962"
+      ]
+    },
+    {
+      "weightFormatted": "1n/a",
+      "weight": 1,
+      "count": 1,
+      "productIds": [
+        "b3058f8f9bfc1160"
+      ]
+    },
+    {
+      "weightFormatted": "3g",
+      "weight": 3,
+      "count": 2,
+      "productIds": [
+        "4a2218953a3d8008",
+        "a719ac52632a1e75"
+      ]
+    },
+    {
+      "weightFormatted": "1.1g",
+      "weight": 1.1,
+      "count": 2,
+      "productIds": [
+        "1a943888d8280e19",
+        "0b01bdf56892b4cf"
+      ]
+    },
+    {
+      "weightFormatted": "10mg",
+      "weight": 10,
+      "count": 14,
+      "productIds": [
+        "2db8f43f7a471af2",
+        "4550198bcdcbe054",
+        "b1a8ea35ac66b361",
+        "89f1f100f3978dce",
+        "0fabcdb230fd13c4",
+        "36f599646a9693fc",
+        "814692fd4dcab313",
+        "6dde200d0d005866",
+        "8765e4df74b1a9e9",
+        "27b25f58936e15dd",
+        "f1d94d6d207439b8",
+        "21097a9532f770d6",
+        "687249484feb5cef",
+        "03fa5668e50c8245"
+      ]
+    },
+    {
+      "weightFormatted": "2.5g",
+      "weight": 2.5,
+      "count": 3,
+      "productIds": [
+        "88f2d0aa4f4f5660",
+        "878f14de164a98de",
+        "4f526723611825fc"
+      ]
+    }
+  ],
+  "brands": [
+    {
+      "brand": "Space Buds",
+      "count": 2,
+      "productIds": [
+        "a46f350e7ef0230d",
+        "4011606cacde2bbc"
+      ]
+    },
+    {
+      "brand": "Anthem",
+      "count": 1,
+      "productIds": [
+        "acd22c8e479f826e"
+      ]
+    },
+    {
+      "brand": "B Noble",
+      "count": 1,
+      "productIds": [
+        "6dd2a09ba8af4a07"
+      ]
+    },
+    {
+      "brand": "Matter",
+      "count": 6,
+      "productIds": [
+        "ef12d44992648376",
+        "f24bfa368ae9fda0",
+        "d8f8535e2702de93",
+        "1e3a207107270df8",
+        "76adb87b3cc3013c",
+        "a8237954a9f78a7a"
+      ]
+    },
+    {
+      "brand": "Small A$$ Bud",
+      "count": 2,
+      "productIds": [
+        "585c3cd3c5314585",
+        "92223c0724d2cf9b"
+      ]
+    },
+    {
+      "brand": "Grassroots",
+      "count": 7,
+      "productIds": [
+        "004d4ca7ea48ee1d",
+        "3bee7545520e2478",
+        "51d494ac1f886595",
+        "39e61d6c9852d574",
+        "14345f0313d605d4",
+        "bc7e437551b88df0",
+        "822c395c8b6631f4"
+      ]
+    },
+    {
+      "brand": "NAR",
+      "count": 2,
+      "productIds": [
+        "57d78bd255f7d2f3",
+        "71220ef4bcfbaeea"
+      ]
+    },
+    {
+      "brand": "1937",
+      "count": 4,
+      "productIds": [
+        "100328b9ae81716a",
+        "441da8254a834a2b",
+        "a19a96283193af0c",
+        "3d419073f9c6e66c"
+      ]
+    },
+    {
+      "brand": "Operator Canna Co",
+      "count": 5,
+      "productIds": [
+        "88f2d0aa4f4f5660",
+        "a91057e1a421c82a",
+        "922cff0ac1853e7f",
+        "f6a1419a0faaf837",
+        "878f14de164a98de"
+      ]
+    },
+    {
+      "brand": "Generic AF",
+      "count": 2,
+      "productIds": [
+        "8668d538887899fb",
+        "7db59f1ee6d6d20e"
+      ]
+    },
+    {
+      "brand": "New York Honey",
+      "count": 4,
+      "productIds": [
+        "fd71a70becbed86f",
+        "1e1977a58ad0bd02",
+        "e9c088638f04b70e",
+        "d5ced029b8916cff"
+      ]
+    },
+    {
+      "brand": "Holiday",
+      "count": 1,
+      "productIds": [
+        "e5878633421b666f"
+      ]
+    },
+    {
+      "brand": "#Hash",
+      "count": 6,
+      "productIds": [
+        "107ef2464f972a4b",
+        "ef7ba3aa7f1dde9e",
+        "b214d48ae6da82b9",
+        "813b999deb82de60",
+        "21347081b3001be0",
+        "b49dbbb605f7b088"
+      ]
+    },
+    {
+      "brand": "Pot & Head",
+      "count": 1,
+      "productIds": [
+        "1f9084d2b1901322"
+      ]
+    },
+    {
+      "brand": "Wyld",
+      "count": 8,
+      "productIds": [
+        "63585a439fce72ac",
+        "408ed17721da37d0",
+        "f1d94d6d207439b8",
+        "0c5506d3aaa2c3eb",
+        "300f1acdb6721fa4",
+        "bf25d41973c991bd",
+        "7041beefd694ce09",
+        "a06333d3716a81fd"
+      ]
+    },
+    {
+      "brand": "LivWell",
+      "count": 3,
+      "productIds": [
+        "c453721a41834b5e",
+        "4fc323954d2ea6bc",
+        "acdfea04e9adb777"
+      ]
+    },
+    {
+      "brand": "Tyson",
+      "count": 3,
+      "productIds": [
+        "5c890bdc3b7ff8db",
+        "eda5180aaf66f82f",
+        "990864cffbfad518"
+      ]
+    },
+    {
+      "brand": "Cannabols",
+      "count": 5,
+      "productIds": [
+        "81ae02dd71cee0ac",
+        "f24e51ee18065ed7",
+        "20c2d9db9be0870b",
+        "26dbc0ffb2711b8f",
+        "9552af1357dd7f51"
+      ]
+    },
+    {
+      "brand": "Leal",
+      "count": 3,
+      "productIds": [
+        "b5a5ed1f5a928b04",
+        "efb626ed942546b3",
+        "f7b012a02feea4d6"
+      ]
+    },
+    {
+      "brand": "Magnitude",
+      "count": 2,
+      "productIds": [
+        "65bfd7ef35da47cb",
+        "62557835b25bbd23"
+      ]
+    },
+    {
+      "brand": "Florist Farms",
+      "count": 2,
+      "productIds": [
+        "fa4486d41c0a12d8",
+        "0b34671f4c37c4ca"
+      ]
+    },
+    {
+      "brand": "Ready 2 Roll",
+      "count": 1,
+      "productIds": [
+        "1ecbddbe52bb580f"
+      ]
+    },
+    {
+      "brand": "Kings Road",
+      "count": 3,
+      "productIds": [
+        "b0647b1a03665da0",
+        "2b44f28400b8e53b",
+        "c31e5ff48b083a16"
+      ]
+    },
+    {
+      "brand": "High Peaks",
+      "count": 5,
+      "productIds": [
+        "27b25f58936e15dd",
+        "d99da41639468477",
+        "90f85c84ea37ef91",
+        "8765e4df74b1a9e9",
+        "c0e71227a2b2521e"
+      ]
+    },
+    {
+      "brand": "Brass Kunckles",
+      "count": 3,
+      "productIds": [
+        "b8adca682a4fd3d8",
+        "7b3ad09619c6637a",
+        "88e7b705795cd006"
+      ]
+    },
+    {
+      "brand": "Rolling Green",
+      "count": 6,
+      "productIds": [
+        "2e83a4a9cde3c392",
+        "db10439b17cc25f0",
+        "6677a1473974e30e",
+        "d9a926a2acc0cd8a",
+        "b05b73709a3e70b7",
+        "bfbebd0825e1bf14"
+      ]
+    },
+    {
+      "brand": "MFNY",
+      "count": 12,
+      "productIds": [
+        "9e46208bf1fa0187",
+        "4347f98742c17cc8",
+        "534a172ed74523bd",
+        "e4ee28c4df6a4090",
+        "f12f70b32aaf5c77",
+        "5078ada0cfda2860",
+        "5b56c27e4faafea5",
+        "db606dda7c19557c",
+        "1942fd4e33b7fa94",
+        "2abb582d8c22bd4d",
+        "51d4d20d88c214ed",
+        "f87ce9ba5bc8ad06"
+      ]
+    },
+    {
+      "brand": "Monarchy",
+      "count": 3,
+      "productIds": [
+        "df87113ac0eb7651",
+        "5604bc53473a4364",
+        "1205347e346b7d43"
+      ]
+    },
+    {
+      "brand": "Fernway",
+      "count": 7,
+      "productIds": [
+        "217be491152f851e",
+        "35582f20cf1ed4d7",
+        "f91a0a1ab29f127e",
+        "bd9c97d74e92690e",
+        "0d6578cbbce98a40",
+        "dd79b094b0198bce",
+        "f41c9f727d07b7cd"
+      ]
+    },
+    {
+      "brand": "DragonFly",
+      "count": 5,
+      "productIds": [
+        "7abb0d974d1b0308",
+        "d0d14ca3672f759c",
+        "2da8d3c55cabca5c",
+        "8ab298e7784c8d1c",
+        "de89a9561def1124"
+      ]
+    },
+    {
+      "brand": "Nanticoke",
+      "count": 14,
+      "productIds": [
+        "efdf5ca85d0d93bd",
+        "ee2aed707182ccaf",
+        "051ed5f6f9ead088",
+        "b2e85346e8d15a8d",
+        "da9536c28aea0f3f",
+        "877cbc871eee5051",
+        "0d3452f1df15a311",
+        "4e172991f460acef",
+        "8e7d996b2f64c303",
+        "dddc9d93abb6633a",
+        "ceff3021aa49e3dd",
+        "994cad8ec0233302",
+        "5c59f4688f63f2ea",
+        "2c6d1d774b043906"
+      ]
+    },
+    {
+      "brand": "Ayrloom",
+      "count": 37,
+      "productIds": [
+        "e29954201611f1ce",
+        "0a5b967e5c06c639",
+        "d5c788b951a878de",
+        "1e14804b5866b6b5",
+        "e4111feafa394144",
+        "687249484feb5cef",
+        "4a2218953a3d8008",
+        "ebc7eed5e438807f",
+        "eb092a3af2b77b3e",
+        "b1a8ea35ac66b361",
+        "304894ba0670153e",
+        "db479b959cc86e12",
+        "539fc6e68f0859fa",
+        "dbf523d99a23cbb3",
+        "5f0af00cd9aeacbd",
+        "87d1d78f15f0aa20",
+        "bdb4b2805842f7a5",
+        "63e9dd999cbe875c",
+        "3fa19aa7fbc45443",
+        "15bf05b4080f0a39",
+        "03fa5668e50c8245",
+        "814692fd4dcab313",
+        "8920ee41548ccfc6",
+        "0799d70f561d7952",
+        "0fabcdb230fd13c4",
+        "a719ac52632a1e75",
+        "4550198bcdcbe054",
+        "c75976b0345bcac5",
+        "0f765fe4f1184b82",
+        "2ccfd53e4fbd7f75",
+        "6dde200d0d005866",
+        "7f3640e33a7c91f6",
+        "7e58688fdee09bac",
+        "b52224341e6db752",
+        "d2b0cbcefd239582",
+        "502bd7904d5e013a",
+        "36f599646a9693fc"
+      ]
+    },
+    {
+      "brand": "The Plug Pack",
+      "count": 1,
+      "productIds": [
+        "77d4f1bcf88c3e99"
+      ]
+    },
+    {
+      "brand": "Revert",
+      "count": 6,
+      "productIds": [
+        "82eeb3e6c7d906cc",
+        "bcb152d78de9926e",
+        "3db0ce5bc0f57a47",
+        "a4fb434df4ba0df0",
+        "195e1c3c8a5980a6",
+        "c7d4007c21a37f92"
+      ]
+    },
+    {
+      "brand": "Bison",
+      "count": 1,
+      "productIds": [
+        "905a4ddd5b3bab63"
+      ]
+    },
+    {
+      "brand": "5-BORO",
+      "count": 3,
+      "productIds": [
+        "2104689ad916884f",
+        "9badf318238677e3",
+        "7ffdf94ecc73e152"
+      ]
+    },
+    {
+      "brand": "DANK",
+      "count": 6,
+      "productIds": [
+        "0b01bdf56892b4cf",
+        "1a943888d8280e19",
+        "2f26821e394d0dd6",
+        "671b6fe92480f714",
+        "8b35144ccf2a5255",
+        "963cbe777d9cb5e5"
+      ]
+    },
+    {
+      "brand": "Kushy Punch",
+      "count": 6,
+      "productIds": [
+        "d4180ceba8f5b97d",
+        "af620fb89dc6a093",
+        "ceeaff4453f5467d",
+        "d5068004e80e65fd",
+        "cb72151cfdbf7d52",
+        "e111a4b836b34070"
+      ]
+    },
+    {
+      "brand": "Jaunty",
+      "count": 4,
+      "productIds": [
+        "80203e5966bf19b3",
+        "6be594c3842a9368",
+        "3743f986b2b75211",
+        "a592df061b913cf9"
+      ]
+    },
+    {
+      "brand": "Bouket",
+      "count": 1,
+      "productIds": [
+        "d6afa12151fe8ef9"
+      ]
+    },
+    {
+      "brand": "Hepworth Sungrown",
+      "count": 1,
+      "productIds": [
+        "4f526723611825fc"
+      ]
+    },
+    {
+      "brand": "OCB",
+      "count": 2,
+      "productIds": [
+        "d367a495baff5c1a",
+        "ca434ceadbd23af0"
+      ]
+    },
+    {
+      "brand": "1906",
+      "count": 3,
+      "productIds": [
+        "21097a9532f770d6",
+        "89f1f100f3978dce",
+        "2db8f43f7a471af2"
+      ]
+    },
+    {
+      "brand": "NYCE",
+      "count": 3,
+      "productIds": [
+        "08e38a5e2127df8a",
+        "7ea9408273a5dc11",
+        "0ad58e041808f9d9"
+      ]
+    },
+    {
+      "brand": "Pura",
+      "count": 1,
+      "productIds": [
+        "ba7ead3bc2d1eac7"
+      ]
+    },
+    {
+      "brand": "CAM",
+      "count": 2,
+      "productIds": [
+        "3889140ce1711066",
+        "8cf45d7ef3b47928"
+      ]
+    },
+    {
+      "brand": "ROVE",
+      "count": 4,
+      "productIds": [
+        "d29eb5fd3a38ff3d",
+        "54fd0d25a6e2d10d",
+        "973c1283c503885e",
+        "066ff2b1f338d636"
+      ]
+    },
+    {
+      "brand": "Thrive T-shirt",
+      "count": 2,
+      "productIds": [
+        "3548f69c50d5ab30",
+        "3144d268682771bf"
+      ]
+    },
+    {
+      "brand": "Alibi",
+      "count": 3,
+      "productIds": [
+        "97168a00b6be5b46",
+        "5453e003a4b54428",
+        "0c953072c42cee70"
+      ]
+    },
+    {
+      "brand": "Mfused",
+      "count": 5,
+      "productIds": [
+        "a17e6f7a48b88452",
+        "a31f90dbd4cd5e09",
+        "307b796ba10a691c",
+        "10d8fe6f0d5e12dd",
+        "422f2bcdc8947cfa"
+      ]
+    },
+    {
+      "brand": "KOA",
+      "count": 1,
+      "productIds": [
+        "4a44b2132b9a91a2"
+      ]
+    },
+    {
+      "brand": "Melo",
+      "count": 2,
+      "productIds": [
+        "6c6e54e5251f6633",
+        "a9b5fe6f8f5cf962"
+      ]
+    },
+    {
+      "brand": "Off Hours",
+      "count": 1,
+      "productIds": [
+        "fe0ee9e02021c6ed"
+      ]
+    },
+    {
+      "brand": "E29 labs",
+      "count": 4,
+      "productIds": [
+        "a4f932f1704ad397",
+        "45747f4327ca2ffa",
+        "a303493b1ac73ed4",
+        "a87f73e6e14cb6a1"
+      ]
+    },
+    {
+      "brand": "Find",
+      "count": 1,
+      "productIds": [
+        "7b7c378429e7a1d9"
+      ]
+    },
+    {
+      "brand": "Head and Heal",
+      "count": 3,
+      "productIds": [
+        "695cc12635c94c37",
+        "1bb1874e24e267a9",
+        "b7a0e224e058a7b4"
+      ]
+    },
+    {
+      "brand": "Flowerhouse",
+      "count": 3,
+      "productIds": [
+        "1b312d9442d48e1e",
+        "bab886ba7d68e321",
+        "ef07eff3d935f8a0"
+      ]
+    },
+    {
+      "brand": "ATC",
+      "count": 3,
+      "productIds": [
+        "46c540321ae79b39",
+        "985dabc9ec1a669e",
+        "d9f85e3f03cdc634"
+      ]
+    }
+  ],
+  "sizes": [],
+  "terpenes": [],
+  "effects": [],
+  "cannabisTypes": [
+    {
+      "cannabisType": "INDICA",
+      "count": 83,
+      "productIds": [
+        "b214d48ae6da82b9",
+        "107ef2464f972a4b",
+        "441da8254a834a2b",
+        "1942fd4e33b7fa94",
+        "fa4486d41c0a12d8",
+        "2c1d16836ac284e5",
+        "297a21a9a32689cf",
+        "4a2218953a3d8008",
+        "695cc12635c94c37",
+        "0c5506d3aaa2c3eb",
+        "1e14804b5866b6b5",
+        "8e7d996b2f64c303",
+        "408ed17721da37d0",
+        "80c5d550a8a5143d",
+        "0a33f51dca5b598e",
+        "27b25f58936e15dd",
+        "a592df061b913cf9",
+        "1e3a207107270df8",
+        "3bb59347ba9c432a",
+        "8cf45d7ef3b47928",
+        "f12f70b32aaf5c77",
+        "fd71a70becbed86f",
+        "2ccfd53e4fbd7f75",
+        "0f765fe4f1184b82",
+        "79813bad98c00455",
+        "b3058f8f9bfc1160",
+        "1a943888d8280e19",
+        "8b35144ccf2a5255",
+        "e29954201611f1ce",
+        "b599e91c15ce7829",
+        "219f2dec456abcea",
+        "b49dbbb605f7b088",
+        "4e172991f460acef",
+        "c31e5ff48b083a16",
+        "f24e51ee18065ed7",
+        "3743f986b2b75211",
+        "f7b012a02feea4d6",
+        "af620fb89dc6a093",
+        "2b44f28400b8e53b",
+        "63585a439fce72ac",
+        "2db8f43f7a471af2",
+        "4fc323954d2ea6bc",
+        "cc2a608f67b70a68",
+        "21347081b3001be0",
+        "968a6ad6fdc22d0f",
+        "efdf5ca85d0d93bd",
+        "822c395c8b6631f4",
+        "e5878633421b666f",
+        "26dbc0ffb2711b8f",
+        "45747f4327ca2ffa",
+        "ad5998e881ccc43f",
+        "004d4ca7ea48ee1d",
+        "b05b73709a3e70b7",
+        "7b3ad09619c6637a",
+        "2f26821e394d0dd6",
+        "3d419073f9c6e66c",
+        "ef12d44992648376",
+        "89f1f100f3978dce",
+        "f24bfa368ae9fda0",
+        "d29eb5fd3a38ff3d",
+        "a87f73e6e14cb6a1",
+        "54fd0d25a6e2d10d",
+        "0b01bdf56892b4cf",
+        "252e176c9ec4a997",
+        "acd22c8e479f826e",
+        "4347f98742c17cc8",
+        "5078ada0cfda2860",
+        "f93d429dc9d27955",
+        "71220ef4bcfbaeea",
+        "eda5180aaf66f82f",
+        "fd5b42e550cc53c4",
+        "7041beefd694ce09",
+        "46c540321ae79b39",
+        "ef07eff3d935f8a0",
+        "62557835b25bbd23",
+        "f6a1419a0faaf837",
+        "1b312d9442d48e1e",
+        "acdfea04e9adb777",
+        "878f14de164a98de",
+        "b8adca682a4fd3d8",
+        "51d494ac1f886595",
+        "b5a5ed1f5a928b04",
+        "f41c9f727d07b7cd"
+      ]
+    },
+    {
+      "cannabisType": "NA",
+      "count": 28,
+      "productIds": [
+        "9775105ebaa244f8",
+        "2f20a1fa81b77b5a",
+        "f8c05a11663e3024",
+        "1835a96b0385e698",
+        "30fb9dcea3545de7",
+        "d6cd613ce6dcdb59",
+        "cdb81b557948c9cc",
+        "991c2949280422d2",
+        "6cf75c553edcb419",
+        "3fa198005d4480de",
+        "9de7baaf72632f35",
+        "a0bd07d79fc1d34b",
+        "7f3428c591dbf496",
+        "8356e453079cfc7b",
+        "2fc1532a16af1da3",
+        "688729f624dfed66",
+        "d59185787c4041e8",
+        "8ccdfba39d199b48",
+        "1b6b479890f40c0e",
+        "ac91a33b713aecf4",
+        "f5cec003310cada5",
+        "55752395fff27542",
+        "0dacb5efac8447b6",
+        "b1a8ea35ac66b361",
+        "813b999deb82de60",
+        "da0df51187b61410",
+        "7f68f5b7766e0326",
+        "8b2b10438a101ed0"
+      ]
+    },
+    {
+      "cannabisType": "HYBRID",
+      "count": 77,
+      "productIds": [
+        "8ab298e7784c8d1c",
+        "539fc6e68f0859fa",
+        "f91a0a1ab29f127e",
+        "87d1d78f15f0aa20",
+        "4bd9b064da4663e0",
+        "d99da41639468477",
+        "ceff3021aa49e3dd",
+        "bf25d41973c991bd",
+        "08e38a5e2127df8a",
+        "d5ced029b8916cff",
+        "814692fd4dcab313",
+        "fe0ee9e02021c6ed",
+        "922cff0ac1853e7f",
+        "de89a9561def1124",
+        "a19a96283193af0c",
+        "d9f85e3f03cdc634",
+        "f98f51582d00867a",
+        "db479b959cc86e12",
+        "304894ba0670153e",
+        "217be491152f851e",
+        "efb626ed942546b3",
+        "d0d14ca3672f759c",
+        "b2e85346e8d15a8d",
+        "6dde200d0d005866",
+        "d4180ceba8f5b97d",
+        "d2b0cbcefd239582",
+        "8920ee41548ccfc6",
+        "a17e6f7a48b88452",
+        "03fa5668e50c8245",
+        "051ed5f6f9ead088",
+        "963cbe777d9cb5e5",
+        "8765e4df74b1a9e9",
+        "db10439b17cc25f0",
+        "dbf523d99a23cbb3",
+        "6dd2a09ba8af4a07",
+        "066ff2b1f338d636",
+        "bdb4b2805842f7a5",
+        "422f2bcdc8947cfa",
+        "80203e5966bf19b3",
+        "e4111feafa394144",
+        "100328b9ae81716a",
+        "39b16fa1cd5b3589",
+        "d5c788b951a878de",
+        "506a2b422a838de7",
+        "687249484feb5cef",
+        "ebc7eed5e438807f",
+        "a303493b1ac73ed4",
+        "dd79b094b0198bce",
+        "82eeb3e6c7d906cc",
+        "20c2d9db9be0870b",
+        "d6afa12151fe8ef9",
+        "10d8fe6f0d5e12dd",
+        "7b7c378429e7a1d9",
+        "a9b5fe6f8f5cf962",
+        "c75976b0345bcac5",
+        "5604bc53473a4364",
+        "92223c0724d2cf9b",
+        "5c890bdc3b7ff8db",
+        "f1d94d6d207439b8",
+        "21097a9532f770d6",
+        "b0647b1a03665da0",
+        "990864cffbfad518",
+        "7e58688fdee09bac",
+        "b52224341e6db752",
+        "90f85c84ea37ef91",
+        "36f599646a9693fc",
+        "502bd7904d5e013a",
+        "2da8d3c55cabca5c",
+        "dddc9d93abb6633a",
+        "a06333d3716a81fd",
+        "0fabcdb230fd13c4",
+        "a719ac52632a1e75",
+        "81ae02dd71cee0ac",
+        "7ea9408273a5dc11",
+        "4550198bcdcbe054",
+        "57d78bd255f7d2f3",
+        "585c3cd3c5314585"
+      ]
+    },
+    {
+      "cannabisType": "HYBRID_SATIVA",
+      "count": 3,
+      "productIds": [
+        "ffaa80caf33de8a3",
+        "7f3640e33a7c91f6",
+        "e9c088638f04b70e"
+      ]
+    },
+    {
+      "cannabisType": "HYBRID_INDICA",
+      "count": 6,
+      "productIds": [
+        "0799d70f561d7952",
+        "1e1977a58ad0bd02",
+        "b7a0e224e058a7b4",
+        "bab886ba7d68e321",
+        "671b6fe92480f714",
+        "7abb0d974d1b0308"
+      ]
+    },
+    {
+      "cannabisType": "SATIVA",
+      "count": 50,
+      "productIds": [
+        "1bb1874e24e267a9",
+        "6be594c3842a9368",
+        "bd9c97d74e92690e",
+        "c453721a41834b5e",
+        "7db59f1ee6d6d20e",
+        "cb72151cfdbf7d52",
+        "c0e71227a2b2521e",
+        "ceeaff4453f5467d",
+        "bc7e437551b88df0",
+        "65bfd7ef35da47cb",
+        "e4ee28c4df6a4090",
+        "4a44b2132b9a91a2",
+        "51d4d20d88c214ed",
+        "a31f90dbd4cd5e09",
+        "a91057e1a421c82a",
+        "2abb582d8c22bd4d",
+        "1ecbddbe52bb580f",
+        "3db0ce5bc0f57a47",
+        "2e83a4a9cde3c392",
+        "973c1283c503885e",
+        "0b34671f4c37c4ca",
+        "5b56c27e4faafea5",
+        "300f1acdb6721fa4",
+        "8668d538887899fb",
+        "db606dda7c19557c",
+        "307b796ba10a691c",
+        "e111a4b836b34070",
+        "9552af1357dd7f51",
+        "4f526723611825fc",
+        "d5068004e80e65fd",
+        "6c6e54e5251f6633",
+        "0a5b967e5c06c639",
+        "35582f20cf1ed4d7",
+        "1205347e346b7d43",
+        "76adb87b3cc3013c",
+        "eb092a3af2b77b3e",
+        "f87ce9ba5bc8ad06",
+        "a4f932f1704ad397",
+        "0d6578cbbce98a40",
+        "88f2d0aa4f4f5660",
+        "bcb152d78de9926e",
+        "534a172ed74523bd",
+        "5f0af00cd9aeacbd",
+        "df87113ac0eb7651",
+        "15bf05b4080f0a39",
+        "ef7ba3aa7f1dde9e",
+        "3889140ce1711066",
+        "195e1c3c8a5980a6",
+        "3fa19aa7fbc45443",
+        "63e9dd999cbe875c"
+      ]
+    }
+  ],
+  "discounted": []
+}

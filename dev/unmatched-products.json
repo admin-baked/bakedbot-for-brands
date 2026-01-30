@@ -1,0 +1,698 @@
+[
+  {
+    "id": "prod_0079f19cd4e5aa96fdef",
+    "name": "Gilden T-shirt - Blue - All sizes",
+    "category": "accessories",
+    "brandName": "Thrive T-shirt",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-flower.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_0274290b8dc259e35140",
+    "name": "Florist Farms - Flower - Runtz Mintz - 7g",
+    "category": "flower",
+    "brandName": "Florist Farms",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-vape.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_04d77ef1eb967fbafb2c",
+    "name": "Kushy Punch - Gummies - Sour Apple - 10pk - 100mg",
+    "category": "edibles",
+    "brandName": "Kushy Punch",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1758150553271-274630440-1937_Chem_X_Choc_3.5.jpg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_11fe259c78251329d95a",
+    "name": "Revert - Pre Roll 6pk - Variety - 3g",
+    "category": "other",
+    "brandName": "Revert",
+    "imageUrl": "https://dispense-images.imgix.net/default-accessories.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_17e484d222155dbbb675",
+    "name": "Smokies - Gummies - Tropical - 10pk - 100mg",
+    "category": "edibles",
+    "brandName": "Smokiez",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-flower.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_1b10f4f4cd4d758939a3",
+    "name": "Gift Card - $150",
+    "category": "other",
+    "brandName": "Unknown",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-concentrate.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_1b63043c000b2200787c",
+    "name": "Jaunty - Cartridge - Sour Diesel - 1g",
+    "category": "vapes",
+    "brandName": "Jaunty",
+    "imageUrl": "https://dispense-images.imgix.net/a27d1310-78f2-11f0-ac87-c335d7a7d42a.svg?ixlib=js-2.3.2&w=auto&quality=75&auto=format%2Ccompress&max-h=100",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_1ceac2c381be3cb49f85",
+    "name": "Space Buds - Infused Pre Roll - Grape Bubbly - 1.5g",
+    "category": "other",
+    "brandName": "Space Buds",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-preroll.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_1fd042bb413a9ecb8ca3",
+    "name": "1937 - Flower - Wedding Cake - 3.5g",
+    "category": "flower",
+    "brandName": "1937",
+    "imageUrl": "https://dispense-images.imgix.net/24a27ce0-78f3-11f0-82c0-8b85d8ceefae.svg?ixlib=js-2.3.2&h=60&w=60&dpr=2&quality=75&auto=format%2Ccompress&fit=max&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_221d9d487a2ad3c1f030",
+    "name": "NY Honey - AIO - Runtz - 1g",
+    "category": "vapes",
+    "brandName": "New York Honey",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-topicals.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_26fb6b5172624febb436",
+    "name": "Platinum Reserve - Pre Roll 5pk - Jack Herer - 2.5g",
+    "category": "other",
+    "brandName": "PLATINUM RESERVE",
+    "imageUrl": "https://dispense-images.imgix.net/default-accessories.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_28f4f5240ba4145f1e0c",
+    "name": "Kushy Punch - Gummies - Blue Raspberry - 10pk - 100mg",
+    "category": "edibles",
+    "brandName": "Kushy Punch",
+    "imageUrl": "https://dispense-images.imgix.net/default-accessories.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_2a19a84c69e990dc792c",
+    "name": "Bison - Flower - Nana Glue - 3.5g",
+    "category": "flower",
+    "brandName": "Bison",
+    "imageUrl": "https://dispense-images.imgix.net/default-flower.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_2cc7b69a3854cab9de9c",
+    "name": "Gift Card - $25",
+    "category": "other",
+    "brandName": "Unknown",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-edibles.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_36ea434e565d2c8ff475",
+    "name": "Revert - Flower - Purple Gorilla - 14g",
+    "category": "flower",
+    "brandName": "Revert",
+    "imageUrl": "https://dispense-images.imgix.net/24a27ce0-78f3-11f0-82c0-8b85d8ceefae.svg?ixlib=js-2.3.2&h=60&w=60&dpr=2&quality=75&auto=format%2Ccompress&fit=max&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_41ab5123ed0e9fdb6c3b",
+    "name": "Nanticoke - Coconut Cream - 14g",
+    "category": "flower",
+    "brandName": "Nanticoke",
+    "imageUrl": "https://dispense-images.imgix.net/default-accessories.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_4612b43f0fc45234a3d0",
+    "name": "Gift Card - $125",
+    "category": "other",
+    "brandName": "Unknown",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-vape.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_461c535a2c1bcdeb4535",
+    "name": "Wavy - Flower - Frank Rizzo - 3.5g",
+    "category": "flower",
+    "brandName": "Wavy",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-edibles.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_4b42cf04e4413a1e3e61",
+    "name": "Jaunty - Cartridge - White Widow - 1g",
+    "category": "vapes",
+    "brandName": "Jaunty",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1758151628645-151232327-1937_wedding_cake_7_g.jpg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_4de80509909c08f1b8ab",
+    "name": "Mfused - AIO 2pk - Maui Pineapple - 2g",
+    "category": "vapes",
+    "brandName": "Mfused",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1761867366835-841057967-images_(1).jpg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_57e1beb87be3b0c5bfd2",
+    "name": "The Plug Pack - Flower - Bomb Pop - 14g",
+    "category": "flower",
+    "brandName": "The Plug Pack",
+    "imageUrl": "https://dispense-images.imgix.net/default-flower.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_5d855d42644fd4f07070",
+    "name": "Hepworth - Pre Roll 5pk - Blue Dream x Purple Punch - 2.5g",
+    "category": "other",
+    "brandName": "Hepworth Sungrown",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1761867352059-496561197-images_(1).jpg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_5dbeb051e3cfd1793896",
+    "name": "The Plug Pack - Flower - Lychee Dream - 14g",
+    "category": "flower",
+    "brandName": "The Plug Pack",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1761866845609-675462376-images_(1).jpg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_6150d28126990a47e1e9",
+    "name": "Ayrloom - AIO - Cereal Milk - 1g",
+    "category": "vapes",
+    "brandName": "Ayrloom",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-topicals.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_617455c7b4f9f057ae6e",
+    "name": "Ayrloom - AIO - Blue Widow - .5g",
+    "category": "vapes",
+    "brandName": "Ayrloom",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-offers.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_6c7631c053037c3140f4",
+    "name": "NY Honey - AIO - Strawberry Cough - 1g",
+    "category": "vapes",
+    "brandName": "New York Honey",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-preroll.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_6f0487bf2bd89e7bd5c8",
+    "name": "Gift Card - $225",
+    "category": "other",
+    "brandName": "Unknown",
+    "imageUrl": "https://dispense-images.imgix.net/24a27ce0-78f3-11f0-82c0-8b85d8ceefae.svg?ixlib=js-2.3.2&h=60&w=60&dpr=2&quality=75&auto=format%2Ccompress&fit=max&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_726192311f4a82b05b32",
+    "name": "Gift Card - $200",
+    "category": "other",
+    "brandName": "Unknown",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1758660287480-94124890-136a21cb-8f89-4d8e-85be-2855223b051a.jpeg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_73a69d82b4a905bc553b",
+    "name": "Ayrloom - Beverage - 2:1 Pineapple Mango 10mg",
+    "category": "other",
+    "brandName": "Ayrloom",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-tinctures.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_7476d83999f8c7095ffd",
+    "name": "Off Hours - Gummies - Euphoric - 10pk - 100mg",
+    "category": "edibles",
+    "brandName": "Off Hours",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1768066457038-181412483-bisoncookies.avif?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_7620d657e8aa19c454d2",
+    "name": "Revert - Flower - Spritzer - 3.5g",
+    "category": "flower",
+    "brandName": "Revert",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-accessories.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_76b28a1f3d1a8a102e69",
+    "name": "Revert - Infused Pre Roll - Cherry Rush - 0.7g",
+    "category": "other",
+    "brandName": "Revert",
+    "imageUrl": "https://dispense-images.imgix.net/default-accessories.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_7730bb70407f88432e4e",
+    "name": "The Plug Pack - Flower - PB&J - 3.5g",
+    "category": "flower",
+    "brandName": "The Plug Pack",
+    "imageUrl": "https://dispense-images.imgix.net/default-accessories.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_78fa5a2b7cc86bb18ae0",
+    "name": "Find - Flower - Chemgurl - 28g",
+    "category": "flower",
+    "brandName": "Find",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-flower.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_79b9dcc52865d980a1ec",
+    "name": "TEST - Vape",
+    "category": "vapes",
+    "brandName": "Jaunty",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-concentrate.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_79f30ef1d717c63c29f5",
+    "name": "Hepworth - Funk Fruit - Sugar - 1g",
+    "category": "concentrates",
+    "brandName": "Hepworth Sungrown",
+    "imageUrl": "https://dispense-images.imgix.net/a27d1310-78f2-11f0-ac87-c335d7a7d42a.svg?ixlib=js-2.3.2&w=auto&quality=75&auto=format%2Ccompress&max-h=100",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_8084a26a760ff71c6e2e",
+    "name": "Dragonfly | 1.25g Infused Preroll | Strawberry Cream Cake",
+    "category": "other",
+    "brandName": "DragonFly",
+    "imageUrl": "https://dispense-images.imgix.net/default-accessories.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_815068c7c89e2c5084a4",
+    "name": "Dragonfly | 1g Preroll  | Secret Weapon",
+    "category": "other",
+    "brandName": "DragonFly",
+    "imageUrl": "https://dispense-images.imgix.net/24a27ce0-78f3-11f0-82c0-8b85d8ceefae.svg?ixlib=js-2.3.2&h=60&w=60&dpr=2&quality=75&auto=format%2Ccompress&fit=max&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_8155de9d6977c420b1f9",
+    "name": "Jaunty - Cartridge - Jack Herer - 1g",
+    "category": "vapes",
+    "brandName": "Jaunty",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-topicals.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_8c6adea5512f2ac2fba9",
+    "name": "Smokiez - Gummies - Blue Raspberry - 10pk - 100mg",
+    "category": "edibles",
+    "brandName": "Smokiez",
+    "imageUrl": "https://dispense-images.imgix.net/default-flower.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_8d4dc7ae36974b751492",
+    "name": "1937 - Flower - Blue Dream - 3.5g",
+    "category": "flower",
+    "brandName": "1937",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-flower.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_9156cdfb558aed593611",
+    "name": "Pura - Mimosa - Sugar - 1g",
+    "category": "concentrates",
+    "brandName": "Pura",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-preroll.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_93a53807c27ad201dbb2",
+    "name": "Thrive 3.5G Pre-Pack - Test",
+    "category": "other",
+    "brandName": "Unknown",
+    "imageUrl": "https://dispense-images.imgix.net/default-accessories.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_9632241bf6e3c1ad87a8",
+    "name": "Bonanza - Pink Mango - 2g",
+    "category": "vapes",
+    "brandName": "Bonanza",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-tinctures.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_97edcb7002fc5bb49d05",
+    "name": "Gift Card - $75",
+    "category": "other",
+    "brandName": "Unknown",
+    "imageUrl": "https://dispense-images.imgix.net/a27d1310-78f2-11f0-ac87-c335d7a7d42a.svg?ixlib=js-2.3.2&w=auto&quality=75&auto=format%2Ccompress&max-h=40",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_9b92a5c3c30437323765",
+    "name": "Jaunty - Gummies - 1:1:1 Dreamberry - 2pk - 20mg",
+    "category": "edibles",
+    "brandName": "Jaunty",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-merch.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_9d5ecac7ec7b023a46b0",
+    "name": "Off Hours - Gummies - Daydream - 10pk - 100mg",
+    "category": "edibles",
+    "brandName": "Off Hours",
+    "imageUrl": "https://dispense-images.imgix.net/default-accessories.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_a493d40169bfe2f1e0cb",
+    "name": "Wavy - Flower - Headband - 3.5g",
+    "category": "flower",
+    "brandName": "Wavy",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1761866845609-675462376-images_(1).jpg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_a5d52957dfaf2f9e4434",
+    "name": "Revert - Pre Roll - Sunset Sherbert - 0.5g",
+    "category": "other",
+    "brandName": "Revert",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-offers.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_a794a582df818f02f93c",
+    "name": "Ayrloom - Beverages - 2:1 Cran Apple - 10mg",
+    "category": "other",
+    "brandName": "Ayrloom",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1761867366835-841057967-images_(1).jpg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_ac18c025d777d51edde9",
+    "name": "NYCE - Rosin Jar - Ice cream Zundae - 1g",
+    "category": "concentrates",
+    "brandName": "NYCE",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1758151345972-621129492-1937_Biker_Kush_7g.jpg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_ae236951a744951bd3fc",
+    "name": "DragonFly - Infused Pre roll - Blueberry Banana Waffles - 1.25g",
+    "category": "other",
+    "brandName": "DragonFly",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1755377290273-157531916-brass_knuckles_battery.webp?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_b2d81d9633ec8a21ff36",
+    "name": "Monarchy - Skywalker - 1g - Infused Pre roll",
+    "category": "other",
+    "brandName": "Monarchy",
+    "imageUrl": "https://dispense-images.imgix.net/default-flower.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_b484883be54fe8d5aeb1",
+    "name": "Revert - Infused Pre Roll - Lemon Warhead - 0.7g",
+    "category": "other",
+    "brandName": "Revert",
+    "imageUrl": "https://dispense-images.imgix.net/default-accessories.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_b556890947fb64d0555f",
+    "name": "B Noble - Flower - Mimosa Kush Mints - 3.5g",
+    "category": "flower",
+    "brandName": "B Noble",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-edibles.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_b65a05ba1f1f70dba12b",
+    "name": "Ayrloom - beverage - 2:1 Vanilla Cola 10mg",
+    "category": "other",
+    "brandName": "Ayrloom",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-preroll.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_ba606c2210bc3c3c28c8",
+    "name": "Nanticoke - Sour Diesel - 0.5 - pre roll",
+    "category": "other",
+    "brandName": "Nanticoke",
+    "imageUrl": "https://dispense-images.imgix.net/24a27ce0-78f3-11f0-82c0-8b85d8ceefae.svg?ixlib=js-2.3.2&h=60&w=60&dpr=2&quality=75&auto=format%2Ccompress&fit=max&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_bd57de65a42b78335a21",
+    "name": "Revert - Flower - Sunset Sherbert - 3.5g",
+    "category": "flower",
+    "brandName": "Revert",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1758660287480-94124890-136a21cb-8f89-4d8e-85be-2855223b051a.jpeg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_be5cbf1bc151113d007c",
+    "name": "Find - Flower - Agent Z - 28g",
+    "category": "flower",
+    "brandName": "Find",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1768066457038-181412483-bisoncookies.avif?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_c3584644f8770b240935",
+    "name": "Off Hours - Gummies - Limelight - 10pk - 100mg",
+    "category": "edibles",
+    "brandName": "Off Hours",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-vape.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_c493b9fe17a1c4953e30",
+    "name": "Mfused - Galactic Grape - 1g 2pk",
+    "category": "vapes",
+    "brandName": "Mfused",
+    "imageUrl": "https://dispense-images.imgix.net/a27d1310-78f2-11f0-ac87-c335d7a7d42a.svg?ixlib=js-2.3.2&w=auto&quality=75&auto=format%2Ccompress&max-h=100",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_c6f9d2afcf7b3ffc5e13",
+    "name": "Hepworth - Flower - Zkittlez x Oreoz - 3.5g",
+    "category": "flower",
+    "brandName": "Hepworth Sungrown",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1761866845609-675462376-images_(1).jpg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_c7e9280a7df40814119a",
+    "name": "Revert - Vape - Purple Thunder - 1g",
+    "category": "vapes",
+    "brandName": "Revert",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-topicals.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_c8cf0b1a66d6563cccab",
+    "name": "The Plug Pack - Flower - Cherry Pie - 14g",
+    "category": "flower",
+    "brandName": "The Plug Pack",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1761867366835-841057967-images_(1).jpg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_c9b44aa90bc6f4056794",
+    "name": "Revert - Flower - Pink Punch - 3.5g",
+    "category": "flower",
+    "brandName": "Revert",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-tinctures.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_ca0b833a83c42151bdff",
+    "name": "MFNY - Gummies - Blueberry x Blueberry Muffin - 10pk - 100mg - Live Rosin",
+    "category": "edibles",
+    "brandName": "MFNY",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1768066457038-181412483-bisoncookies.avif?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_cc75fccbac2c70ae0857",
+    "name": "Smokiez - Gummmies - Sour Jamberry THC:CBN - 10pk - 100mg",
+    "category": "edibles",
+    "brandName": "Smokiez",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-accessories.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_d243150e6a190a81d3f4",
+    "name": "Leal - Sharksbreath - 1 oz",
+    "category": "flower",
+    "brandName": "Leal",
+    "imageUrl": "https://dispense-images.imgix.net/default-flower.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_d38fd02617343ac04dd3",
+    "name": "Gift Card - $50",
+    "category": "other",
+    "brandName": "Unknown",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1758152514932-522896632-Bouket_blue_nerdz_4g.jpg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_d573b576fa3895d3d55e",
+    "name": "Jaunty - Cartridge - Forbidden Fruit - 1g",
+    "category": "vapes",
+    "brandName": "Jaunty",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-concentrate.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_de590c2252997ccddd5b",
+    "name": "Concentrate Ea-HSH-Wax-Budder-Indica-GG#4-WX75-1g",
+    "category": "concentrates",
+    "brandName": "CAM",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-topicals.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_e6e64996de7676e8e5a8",
+    "name": "Ayrloom - Gummies 10pk - 1:3 Dreamweaver - 100mg",
+    "category": "edibles",
+    "brandName": "Ayrloom",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-accessories.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_e9ba8d0ae4f709939e3f",
+    "name": "Revert - Flower - Strawberry Amnesia - 3.5g",
+    "category": "flower",
+    "brandName": "Revert",
+    "imageUrl": "https://dispense-images.imgix.net/default-accessories.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_eb60b6f3e755890fc3a1",
+    "name": "Hepworth - Durban Poison X Cherry Tart - Sugar - 3.5g",
+    "category": "concentrates",
+    "brandName": "Hepworth Sungrown",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1758152514932-522896632-Bouket_blue_nerdz_4g.jpg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_ed4b765599173e5d63ff",
+    "name": "Bonanza - Dream Berry - 2g",
+    "category": "vapes",
+    "brandName": "Bonanza",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-edibles.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_edc0ebdb3450f7726bfd",
+    "name": "Bonanza - Cranberry Kush  - 2g",
+    "category": "vapes",
+    "brandName": "Bonanza",
+    "imageUrl": "https://dispense-images.imgix.net/a27d1310-78f2-11f0-ac87-c335d7a7d42a.svg?ixlib=js-2.3.2&w=auto&quality=75&auto=format%2Ccompress&max-h=100",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_ef1aea17ae885631e1fb",
+    "name": "Off Hours - Gummies - Illuminate - 10pk - 100mg",
+    "category": "edibles",
+    "brandName": "Off Hours",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1758150553271-274630440-1937_Chem_X_Choc_3.5.jpg?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_efd3815ab0f7d6611598",
+    "name": "Gift Card - $250",
+    "category": "other",
+    "brandName": "Unknown",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-preroll.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_f3a0b8cee5bec1c83bd9",
+    "name": "The Plug Pack - Flower - Tequila Sunrise - 3.5g",
+    "category": "flower",
+    "brandName": "The Plug Pack",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-topicals.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_f3d4ea768c54d2233497",
+    "name": "The Plug Pack - Flower - Chopped Chesse - 28g",
+    "category": "flower",
+    "brandName": "The Plug Pack",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-offers.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_f942933876ee3deefd02",
+    "name": "Rove - AIO - Orange Crush - 1g - Live Resin Diamonds",
+    "category": "vapes",
+    "brandName": "ROVE",
+    "imageUrl": "https://dispense-images.imgix.net/13455748f2d363fd_1755377290273-157531916-brass_knuckles_battery.webp?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_fb66cb7eb7ef5fe6b6b3",
+    "name": "Generic AF - Gummies 20pk - Cherry - 100mg",
+    "category": "edibles",
+    "brandName": "Generic AF",
+    "imageUrl": "https://dispense-images.imgix.net/default-accessories.png?ixlib=js-2.3.2&fit=fill&h=300&w=300&quality=100&auto=format%2Ccompress&q=50&cs=tinysrgb",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_fd5d75a660214293652c",
+    "name": "Gift Card - $100",
+    "category": "other",
+    "brandName": "Unknown",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-flower.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_fde7c3134714800a3086",
+    "name": "Pot & Head - Pre Roll - Hypnotic - 1g",
+    "category": "other",
+    "brandName": "Pot & Head",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-vape.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_fdf3e8bb49c7fb6c011b",
+    "name": "Gift Card - $175",
+    "category": "other",
+    "brandName": "Unknown",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-concentrate.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_fe8e2af5498fa10f8e1c",
+    "name": "Concentrate Ea-HSH-Wax-Sugar-Sativa-Burnout Cookies-WX75-1g",
+    "category": "concentrates",
+    "brandName": "#Hash",
+    "imageUrl": "https://dispense-images.imgix.net/a27d1310-78f2-11f0-ac87-c335d7a7d42a.svg?ixlib=js-2.3.2&w=auto&quality=75&auto=format%2Ccompress&max-h=100",
+    "imageSource": "scraped_dispense_menu_pool"
+  },
+  {
+    "id": "prod_ffb9531e4860895ac23e",
+    "name": "Livwell - GG#4 - 28G",
+    "category": "flower",
+    "brandName": "LivWell",
+    "imageUrl": "https://imgix.dispenseapp.com/icon-cannabis-preroll.png",
+    "imageSource": "scraped_dispense_menu_pool"
+  }
+]

@@ -1,0 +1,252 @@
+[
+  {
+    "url": "https://imgix.dispenseapp.com/icon-offers.png",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "url": "https://imgix.dispenseapp.com/icon-cannabis-flower.png",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "url": "https://imgix.dispenseapp.com/icon-cannabis-preroll.png",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "url": "https://imgix.dispenseapp.com/icon-cannabis-vape.png",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "url": "https://imgix.dispenseapp.com/icon-cannabis-concentrate.png",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "url": "https://imgix.dispenseapp.com/icon-cannabis-edibles.png",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "url": "https://imgix.dispenseapp.com/icon-cannabis-tinctures.png",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "url": "https://imgix.dispenseapp.com/icon-cannabis-topicals.png",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "url": "https://imgix.dispenseapp.com/icon-cannabis-accessories.png",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "url": "https://imgix.dispenseapp.com/icon-cannabis-merch.png",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "url": "https://fonts.googleapis.com/css2?family=Manrope:wght@500..800&display=swap",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://menus-k72yh9f9z-dispense.vercel.app/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "url": "https://o1127219.ingest.us.sentry.io/api/4507019400249344/envelope/?sentry_key=4aeabc6c824936895d74fbb5f4ba1408&sentry_version=7&sentry_client=sentry.javascript.nextjs%2F8.15.0",
+    "method": "POST",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "content-type": "text/plain;charset=UTF-8",
+      "sec-ch-ua-mobile": "?0"
+    },
+    "postData": "{\"sent_at\":\"2026-01-30T02:27:53.810Z\",\"sdk\":{\"name\":\"sentry.javascript.nextjs\",\"version\":\"8.15.0\"}}\n{\"type\":\"session\"}\n{\"sid\":\"a43c080d6a124d9280cb51b1c1c67cd6\",\"init\":true,\"started\":\"2026-01-30T02:27:53.810Z\",\"timestamp\":\"2026-01-30T02:27:53.810Z\",\"status\":\"ok\",\"errors\":0,\"attrs\":{\"release\":\"8.36.0\",\"environment\":\"prod\",\"user_agent\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36\"}}"
+  },
+  {
+    "url": "https://api.dispenseapp.com/v1/organizations/b3f290dcc5b49240/banners?sort=order&limit=20&enable=true&venueId=13455748f2d363fd",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "x-pathname": "/v1/organizations/b3f290dcc5b49240/banners",
+      "x-prospect-token": "c1cf389d-8680-47f8-99c4-90ae3a77a8e5",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-url": "https://thrivesyracuse.com/menu",
+      "api-key": "49dac8e0-7743-11e9-8e3f-a5601eb2e936",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+    }
+  },
+  {
+    "url": "https://api.dispenseapp.com/v1/venues/13455748f2d363fd/product-categories/778d114c5cfe6f27/products?skip=0&limit=10&orderPickUpType=IN_STORE",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "x-pathname": "/v1/venues/13455748f2d363fd/product-categories/778d114c5cfe6f27/products",
+      "x-prospect-token": "c1cf389d-8680-47f8-99c4-90ae3a77a8e5",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-url": "https://thrivesyracuse.com/menu",
+      "api-key": "49dac8e0-7743-11e9-8e3f-a5601eb2e936",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+    }
+  },
+  {
+    "url": "https://api.dispenseapp.com/user/me?organizationId=b3f290dcc5b49240",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "x-pathname": "/user/me",
+      "x-prospect-token": "c1cf389d-8680-47f8-99c4-90ae3a77a8e5",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-url": "https://thrivesyracuse.com/menu",
+      "api-key": "49dac8e0-7743-11e9-8e3f-a5601eb2e936",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+    }
+  },
+  {
+    "url": "https://api.dispenseapp.com/v1/users/6fedddf861b5bd14/loyalty-profile?venueId=13455748f2d363fd",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "x-pathname": "/v1/users/6fedddf861b5bd14/loyalty-profile",
+      "x-prospect-token": "c1cf389d-8680-47f8-99c4-90ae3a77a8e5",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-url": "https://thrivesyracuse.com/menu",
+      "api-key": "49dac8e0-7743-11e9-8e3f-a5601eb2e936",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+    }
+  },
+  {
+    "url": "https://api.dispenseapp.com/v1/venues/13455748f2d363fd/product-filters",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "x-pathname": "/v1/venues/13455748f2d363fd/product-filters",
+      "x-prospect-token": "c1cf389d-8680-47f8-99c4-90ae3a77a8e5",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-url": "https://thrivesyracuse.com/menu",
+      "api-key": "49dac8e0-7743-11e9-8e3f-a5601eb2e936",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+    }
+  },
+  {
+    "url": "https://imgix.dispenseapp.com/052f5720-78f3-11f0-9fe0-4f343bed463b.svg",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0"
+    }
+  },
+  {
+    "url": "https://api.dispenseapp.com/v1/venues/13455748f2d363fd/product-categories/3ae9f7b0aba5fb70/products?skip=0&limit=10&orderPickUpType=IN_STORE",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "x-pathname": "/v1/venues/13455748f2d363fd/product-categories/3ae9f7b0aba5fb70/products",
+      "x-prospect-token": "c1cf389d-8680-47f8-99c4-90ae3a77a8e5",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-url": "https://thrivesyracuse.com/menu",
+      "api-key": "49dac8e0-7743-11e9-8e3f-a5601eb2e936",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+    }
+  },
+  {
+    "url": "https://api.dispenseapp.com/v1/venues/13455748f2d363fd/product-categories/25f7929bea65c3d6/products?skip=0&limit=10&orderPickUpType=IN_STORE",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua-platform": "\"Windows\"",
+      "referer": "https://thrivesyracuse.com/",
+      "x-pathname": "/v1/venues/13455748f2d363fd/product-categories/25f7929bea65c3d6/products",
+      "x-prospect-token": "c1cf389d-8680-47f8-99c4-90ae3a77a8e5",
+      "sec-ch-ua": "\"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0",
+      "x-url": "https://thrivesyracuse.com/menu",
+      "api-key": "49dac8e0-7743-11e9-8e3f-a5601eb2e936",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
+    }
+  }
+]
