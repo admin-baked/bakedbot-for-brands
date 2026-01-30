@@ -36,6 +36,14 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
     const [suggestions, setSuggestions] = useState<SegmentSuggestion[]>([]);
     const [showImportDialog, setShowImportDialog] = useState(false);
 
+    // Debug: Log customer count
+    useEffect(() => {
+        console.log('[CRM_DASHBOARD] Data received:', {
+            customersCount: data?.customers.length,
+            hasStats: !!data?.stats,
+        });
+    }, [data]);
+
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
@@ -104,6 +112,14 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
         }
         return true;
     }) || [];
+
+    // Debug: Log filter results
+    console.log('[CRM_DASHBOARD] Filter results:', {
+        totalCustomers: data?.customers.length,
+        filteredCount: filteredCustomers.length,
+        activeSegment,
+        searchTerm: search,
+    });
 
     if (loading) {
         return (

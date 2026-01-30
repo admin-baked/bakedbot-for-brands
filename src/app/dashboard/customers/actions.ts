@@ -116,7 +116,7 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
         });
 
         // Transform Alleaves customers to CustomerProfile format
-        const customers = alleavesCustomers.map((ac: any) => {
+        const customers = alleavesCustomers.map((ac: any, index: number) => {
             const email = ac.email?.toLowerCase() || `customer_${ac.id}@alleaves.local`;
             const firstName = ac.first_name || '';
             const lastName = ac.last_name || '';
@@ -132,8 +132,11 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
             // Infer preferences from Alleaves data
             const preferences = inferPreferencesFromAlleaves(ac);
 
+            // Generate truly unique ID: Use Alleaves ID if available, otherwise create unique ID
+            const customerId = ac.id ? `alleaves_${ac.id}` : `${orgId}_${email}_${index}`;
+
             const profile: CustomerProfile = {
-                id: ac.id?.toString() || email,
+                id: customerId,
                 orgId,
                 email,
                 phone: ac.phone || '',
@@ -245,6 +248,7 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
 
     // 3. Build customer profiles - start with POS customers if available
     const customerMap = new Map<string, CustomerProfile>();
+    const emailToIdMap = new Map<string, string>(); // Secondary lookup: email -> customer ID
 
     // Add POS customers first (primary source)
     if (posCustomers.length > 0) {
@@ -254,7 +258,18 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
         });
 
         posCustomers.forEach(customer => {
-            customerMap.set(customer.email.toLowerCase(), customer);
+            // Use customer ID as key (not email) to preserve all unique customers
+            // Many customers may share email addresses (families, etc.)
+            customerMap.set(customer.id, customer);
+
+            // Build secondary email lookup (for matching orders)
+            // Note: If multiple customers share an email, this will point to the last one
+            emailToIdMap.set(customer.email.toLowerCase(), customer.id);
+        });
+
+        logger.info('[CUSTOMERS] CustomerMap after adding POS customers', {
+            orgId,
+            mapSize: customerMap.size,
         });
     }
 
@@ -266,7 +281,9 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
         const orderDate = order.createdAt?.toDate?.() || new Date();
         const orderTotal = order.totals?.total || 0;
 
-        const existing = customerMap.get(email);
+        // Try to find existing customer by email
+        const customerId = emailToIdMap.get(email);
+        const existing = customerId ? customerMap.get(customerId) : undefined;
 
         if (existing) {
             existing.orderCount = (existing.orderCount || 0) + 1;
@@ -283,8 +300,9 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
             // Check if customer exists in CRM collection
             const crmData = crmCustomers.get(email);
 
-            customerMap.set(email, {
-                id: crmData?.id || email,
+            const newCustomerId = crmData?.id || email;
+            customerMap.set(newCustomerId, {
+                id: newCustomerId,
                 orgId: orgId,
                 email: email,
                 firstName: crmData?.firstName || order.customer?.name?.split(' ')[0],
@@ -316,8 +334,9 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
 
     // 5. Add CRM-only customers (no orders yet, not in POS)
     crmCustomers.forEach((crmData, email) => {
-        if (!customerMap.has(email)) {
-            customerMap.set(email, {
+        // Check if this customer already exists (by ID, not email)
+        if (!customerMap.has(crmData.id)) {
+            customerMap.set(crmData.id, {
                 id: crmData.id,
                 orgId: orgId,
                 email: email,
@@ -351,6 +370,11 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
         vip: 0, loyal: 0, new: 0, at_risk: 0, slipping: 0, churned: 0, high_value: 0, frequent: 0
     };
 
+    logger.info('[CUSTOMERS] Converting map to array', {
+        orgId,
+        mapSize: customerMap.size,
+    });
+
     const customers = Array.from(customerMap.values()).map(c => {
         // Calculate average order value
         if (c.orderCount > 0) {
@@ -380,6 +404,11 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
         return c;
     }).sort((a, b) => (b.lastOrderDate?.getTime() || 0) - (a.lastOrderDate?.getTime() || 0));
 
+    logger.info('[CUSTOMERS] After map and sort', {
+        orgId,
+        customersLength: customers.length,
+    });
+
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -396,7 +425,19 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
         segmentBreakdown,
     };
 
-    return { customers, stats };
+    // CRITICAL: Use aggressive serialization for React Server Components
+    // RSC cannot serialize Date objects, functions, or other non-JSON data
+    // Using JSON.parse(JSON.stringify()) ensures ALL data is serializable
+    const serializedCustomers = JSON.parse(JSON.stringify(customers)) as CustomerProfile[];
+
+    logger.info('[CUSTOMERS] Returning customers to client', {
+        orgId,
+        count: serializedCustomers.length,
+        beforeSerialization: customers.length,
+        serialized: true,
+    });
+
+    return { customers: serializedCustomers, stats };
 }
 
 // ==========================================
