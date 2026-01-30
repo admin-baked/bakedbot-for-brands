@@ -48,7 +48,11 @@ export interface ALLeavesInventoryItem {
     brand: string;
     category: string;                // Format: "Category > Subcategory" (e.g., "Category > Flower")
     price_retail: number;            // Retail price before tax
+    price_retail_adult_use?: number; // Adult-use retail price
+    price_retail_medical_use?: number; // Medical retail price
     price_otd: number;               // Out-the-door price (with tax)
+    price_otd_adult_use?: number;    // Adult-use OTD price (with tax)
+    price_otd_medical_use?: number;  // Medical OTD price (with tax)
     on_hand: number;                 // Total quantity on hand
     available: number;               // Available quantity for sale
     thc: number;                     // THC percentage
@@ -332,7 +336,13 @@ export class ALLeavesClient implements POSClient {
             }
 
             // Calculate retail price with fallback strategy
-            let price = item.price_otd || item.price_retail;
+            // Check all price fields: OTD prices first (includes tax), then retail
+            let price = item.price_otd_adult_use
+                || item.price_otd_medical_use
+                || item.price_otd
+                || item.price_retail_adult_use
+                || item.price_retail_medical_use
+                || item.price_retail;
 
             // If no retail price, apply category-based markup to cost
             if (price === 0 && item.cost_of_good && item.cost_of_good > 0) {
