@@ -143,8 +143,9 @@ async function getOrdersFromAlleaves(orgId: string, firestore: FirebaseFirestore
         }
 
         // Get location with Alleaves POS config
+        // Note: orgId parameter is actually the brandId from the user
         const locationsSnap = await firestore.collection('locations')
-            .where('orgId', '==', orgId)
+            .where('brandId', '==', orgId)
             .limit(1)
             .get();
 

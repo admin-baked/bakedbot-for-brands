@@ -9,7 +9,8 @@ export const metadata = {
 
 export default async function CustomersPage() {
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
-    const brandId = user.brandId || user.uid;
+    // Ensure brandId is always a valid string
+    const brandId = String((user as any).brandId || user.uid);
 
     // Pre-fetch customer data for SSR
     let initialData;

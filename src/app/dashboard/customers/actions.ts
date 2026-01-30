@@ -46,6 +46,13 @@ export interface GetCustomersParams {
  */
 async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirestore.Firestore): Promise<CustomerProfile[]> {
     try {
+        // Debug: Log what we received
+        logger.info('[CUSTOMERS] getCustomersFromAlleaves called', {
+            orgId,
+            orgIdType: typeof orgId,
+            orgIdValue: String(orgId),
+        });
+
         // Check cache first
         const cacheKey = cacheKeys.customers(orgId);
         const cached = posCache.get<CustomerProfile[]>(cacheKey);
@@ -59,10 +66,17 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
         }
 
         // Get location with Alleaves POS config
+        // Note: orgId parameter is actually the brandId from the user
         const locationsSnap = await firestore.collection('locations')
-            .where('orgId', '==', orgId)
+            .where('brandId', '==', orgId)
             .limit(1)
             .get();
+
+        logger.info('[CUSTOMERS] Location query result', {
+            orgId,
+            empty: locationsSnap.empty,
+            size: locationsSnap.size,
+        });
 
         if (locationsSnap.empty) {
             logger.info('[CUSTOMERS] No location found for org', { orgId });
@@ -172,7 +186,17 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
  */
 export async function getCustomers(brandId: string): Promise<CustomersData> {
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
-    const orgId = user.brandId || user.uid;
+
+    // Use the brandId parameter passed from the page (already validated)
+    // instead of recalculating from user object
+    const orgId = brandId;
+
+    logger.info('[CUSTOMERS] getCustomers called', {
+        brandId,
+        brandIdType: typeof brandId,
+        userRole: user.role,
+        userEmail: user.email,
+    });
 
     // For brand users, ensure they access their own data
     if (user.role === 'brand' && user.brandId !== brandId) {
