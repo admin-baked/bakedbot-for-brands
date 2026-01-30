@@ -22,7 +22,7 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
     const { brand: brandParam } = await params;
 
     // Fetch real data
-    const { brand, products, retailers } = await fetchBrandPageData(brandParam);
+    const { brand, products, retailers, featuredBrands = [] } = await fetchBrandPageData(brandParam);
 
     // If brand not found, show helpful page or demo
     if (!brand) {
@@ -102,6 +102,7 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
                     retailers={retailers}
                     brandSlug={brandParam}
                     bundles={bundles}
+                    featuredBrands={featuredBrands}
                 />
             </main>
         </MenuWithAgeGate>
