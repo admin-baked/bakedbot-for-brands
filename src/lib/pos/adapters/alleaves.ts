@@ -58,7 +58,8 @@ export interface ALLeavesInventoryItem {
     is_adult_use: boolean;
     is_medical_use?: boolean;
     is_cannabis: boolean;
-    batch_cost_of_good?: number;
+    cost_of_good?: number;           // Item cost of goods sold
+    batch_cost_of_good?: number;     // Batch cost of goods sold
 }
 
 /**
@@ -330,12 +331,31 @@ export class ALLeavesClient implements POSClient {
                 category = category.replace('Category > ', '');
             }
 
+            // Calculate retail price with fallback strategy
+            let price = item.price_otd || item.price_retail;
+
+            // If no retail price, apply category-based markup to cost
+            if (price === 0 && item.cost_of_good && item.cost_of_good > 0) {
+                const categoryLower = category.toLowerCase();
+                let markup = 2.2; // Default 120% markup
+
+                // Category-specific markups (industry standard)
+                if (categoryLower.includes('flower')) markup = 2.2;
+                else if (categoryLower.includes('vape') || categoryLower.includes('concentrate')) markup = 2.0;
+                else if (categoryLower.includes('edible')) markup = 2.3;
+                else if (categoryLower.includes('pre roll')) markup = 2.1;
+                else if (categoryLower.includes('beverage')) markup = 2.4;
+                else if (categoryLower.includes('tincture') || categoryLower.includes('topical')) markup = 2.3;
+
+                price = Math.round(item.cost_of_good * markup * 100) / 100; // Round to cents
+            }
+
             return {
                 externalId: item.id_item.toString(),
                 name: item.item,
                 brand: item.brand || 'Unknown',
                 category,
-                price: item.price_otd || item.price_retail, // Use out-the-door price (includes tax) if available
+                price,                                       // Use retail price or calculated from cost
                 stock: item.available,                       // Use available (not on_hand) for accurate stock
                 thcPercent: item.thc || undefined,
                 cbdPercent: item.cbd || undefined,
