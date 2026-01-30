@@ -1,0 +1,55 @@
+# POS Sync Cron Job
+#
+# Automatically syncs customer and order data from POS systems (Alleaves)
+# Runs every 30 minutes to keep dashboard data fresh
+#
+# Requires CRON_SECRET to be set in GitHub Secrets
+
+name: POS Sync Cron
+
+on:
+  schedule:
+    # Run every 30 minutes
+    - cron: '*/30 * * * *'
+
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      orgId:
+        description: 'Specific org ID to sync (optional)'
+        required: false
+        type: string
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Sync POS Data
+        run: |
+          if [ -n "${{ inputs.orgId }}" ]; then
+            echo "Syncing specific org: ${{ inputs.orgId }}"
+            ENDPOINT="https://bakedbot.ai/api/cron/pos-sync?orgId=${{ inputs.orgId }}"
+          else
+            echo "Syncing all orgs"
+            ENDPOINT="https://bakedbot.ai/api/cron/pos-sync"
+          fi
+
+          curl -X POST "$ENDPOINT" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --fail \
+            --silent \
+            --show-error \
+            --output response.json
+
+          cat response.json | jq '.'
+
+      - name: Upload Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: sync-results
+          path: response.json
+          retention-days: 7

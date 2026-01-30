@@ -5,12 +5,14 @@
 import { z } from 'zod';
 import { createServerClient } from '@/firebase/server-client';
 import { revalidatePath } from 'next/cache';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import type { OrderStatus, OrderDoc, Retailer } from '@/types/domain';
 import { sendOrderEmail } from '@/lib/email/send-order-email';
 import { retailerConverter } from '@/firebase/converters';
 import { requireUser } from '@/server/auth/auth';
 import type { ServerOrderPayload } from '@/app/checkout/actions/submitOrder';
+import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
+import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
 
 import { logger } from '@/lib/logger';
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -124,13 +126,145 @@ export async function updateOrderStatus(
 }
 
 /**
+ * Get orders from Alleaves POS if configured
+ */
+async function getOrdersFromAlleaves(orgId: string, firestore: FirebaseFirestore.Firestore): Promise<OrderDoc[]> {
+    try {
+        // Check cache first
+        const cacheKey = cacheKeys.orders(orgId);
+        const cached = posCache.get<OrderDoc[]>(cacheKey);
+
+        if (cached) {
+            logger.info('[ORDERS] Using cached Alleaves orders', {
+                orgId,
+                count: cached.length,
+            });
+            return cached;
+        }
+
+        // Get location with Alleaves POS config
+        const locationsSnap = await firestore.collection('locations')
+            .where('orgId', '==', orgId)
+            .limit(1)
+            .get();
+
+        if (locationsSnap.empty) {
+            logger.info('[ORDERS] No location found for org', { orgId });
+            return [];
+        }
+
+        const locationData = locationsSnap.docs[0].data();
+        const posConfig = locationData?.posConfig;
+
+        if (!posConfig || posConfig.provider !== 'alleaves' || posConfig.status !== 'active') {
+            logger.info('[ORDERS] No active Alleaves POS config found', { orgId });
+            return [];
+        }
+
+        // Initialize Alleaves client
+        const alleavesConfig: ALLeavesConfig = {
+            apiKey: posConfig.apiKey,
+            username: posConfig.username || process.env.ALLEAVES_USERNAME,
+            password: posConfig.password || process.env.ALLEAVES_PASSWORD,
+            pin: posConfig.pin || process.env.ALLEAVES_PIN,
+            storeId: posConfig.storeId,
+            locationId: posConfig.locationId || posConfig.storeId,
+            partnerId: posConfig.partnerId,
+            environment: posConfig.environment || 'production',
+        };
+
+        const client = new ALLeavesClient(alleavesConfig);
+
+        // Fetch recent orders from Alleaves
+        const alleavesOrders = await client.getAllOrders(100);
+
+        logger.info('[ORDERS] Fetched orders from Alleaves', {
+            orgId,
+            count: alleavesOrders.length,
+        });
+
+        // Transform Alleaves orders to OrderDoc format
+        const orders = alleavesOrders.map((ao: any) => {
+            const orderDate = ao.created_at ? new Date(ao.created_at) : new Date();
+            const updatedDate = ao.updated_at ? new Date(ao.updated_at) : orderDate;
+
+            const orderDoc: OrderDoc = {
+                id: ao.id?.toString() || `alleaves_${ao.order_number || Date.now()}`,
+                brandId: orgId,
+                retailerId: posConfig.locationId,
+                userId: ao.customer?.id?.toString() || 'alleaves_customer',
+                status: mapAlleavesStatus(ao.status),
+                customer: {
+                    name: ao.customer?.name || `${ao.customer?.first_name || ''} ${ao.customer?.last_name || ''}`.trim() || 'Unknown',
+                    email: ao.customer?.email || 'no-email@alleaves.local',
+                    phone: ao.customer?.phone || '',
+                },
+                items: (ao.items || []).map((item: any) => ({
+                    productId: item.id_item?.toString() || item.product_id?.toString() || 'unknown',
+                    name: item.item || item.product_name || 'Unknown Item',
+                    qty: parseInt(item.quantity || 1),
+                    price: parseFloat(item.price || item.unit_price || 0),
+                    category: item.category || 'other',
+                })),
+                totals: {
+                    subtotal: parseFloat(ao.subtotal || 0),
+                    tax: parseFloat(ao.tax || 0),
+                    discount: parseFloat(ao.discount || 0),
+                    total: parseFloat(ao.total || ao.amount || 0),
+                },
+                mode: 'live',
+                createdAt: Timestamp.fromDate(orderDate) as any,
+                updatedAt: Timestamp.fromDate(updatedDate) as any,
+            };
+
+            return orderDoc;
+        });
+
+        // Cache the result (3 minute TTL - orders change more frequently)
+        posCache.set(cacheKey, orders, 3 * 60 * 1000);
+
+        return orders;
+    } catch (error: any) {
+        logger.error('[ORDERS] Failed to fetch from Alleaves', {
+            orgId,
+            error: error.message,
+        });
+        return [];
+    }
+}
+
+/**
+ * Map Alleaves order status to BakedBot OrderStatus
+ */
+function mapAlleavesStatus(alleavesStatus: string): OrderStatus {
+    const statusMap: Record<string, OrderStatus> = {
+        'pending': 'pending',
+        'submitted': 'submitted',
+        'confirmed': 'confirmed',
+        'preparing': 'preparing',
+        'ready': 'ready',
+        'completed': 'completed',
+        'cancelled': 'cancelled',
+        'processing': 'preparing',
+        'delivered': 'completed',
+    };
+
+    return statusMap[alleavesStatus?.toLowerCase()] || 'pending';
+}
+
+/**
  * Fetch orders for a brand or dispensary
+ * Integrates with POS systems (Alleaves) when configured
  */
 export async function getOrders(orgId: string): Promise<OrderDoc[]> {
     try {
         const { firestore } = await createServerClient();
         const user = await requireUser();
 
+        // 1. Try to get orders from POS (Alleaves) if configured
+        const posOrders = await getOrdersFromAlleaves(orgId, firestore);
+
+        // 2. Get orders from BakedBot collection (fallback or supplement)
         let query = firestore.collection('orders') as FirebaseFirestore.Query;
 
         if (user.role === 'customer') {
@@ -157,10 +291,39 @@ export async function getOrders(orgId: string): Promise<OrderDoc[]> {
 
         const snap = await query.orderBy('createdAt', 'desc').limit(100).get();
 
-        return snap.docs.map(doc => ({
+        const bakedBotOrders = snap.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         })) as OrderDoc[];
+
+        // 3. Merge POS orders with BakedBot orders
+        let allOrders = [...posOrders, ...bakedBotOrders];
+
+        // 4. If POS orders exist, prioritize them
+        if (posOrders.length > 0) {
+            logger.info('[ORDERS] Using POS orders as primary source', {
+                orgId,
+                posOrdersCount: posOrders.length,
+                bakedBotOrdersCount: bakedBotOrders.length,
+            });
+        }
+
+        // 5. Remove duplicates (prefer POS version if exists)
+        const orderMap = new Map<string, OrderDoc>();
+        allOrders.forEach(order => {
+            const existingOrder = orderMap.get(order.id);
+            if (!existingOrder || order.id.startsWith('alleaves_')) {
+                // Prefer Alleaves orders or add if new
+                orderMap.set(order.id, order);
+            }
+        });
+
+        // 6. Sort by createdAt descending
+        return Array.from(orderMap.values()).sort((a, b) => {
+            const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+            const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+            return dateB - dateA;
+        });
     } catch (error) {
         logger.error('[ORDERS_ACTION] Failed to fetch orders', { error });
         return [];

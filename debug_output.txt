@@ -1,0 +1,18 @@
+[2026-01-30T15:44:57.231Z] Starting Alleaves pricing debug...
+[2026-01-30T15:44:57.624Z] Fetching Thrive Syracuse location config...
+[2026-01-30T15:44:58.889Z] Found POS Config:
+{
+  "provider": "alleaves",
+  "storeId": "1000",
+  "username": "(present)",
+  "apiKey": "(missing)"
+}
+[2026-01-30T15:44:58.890Z] Attempting manual authentication check...
+[2026-01-30T15:44:58.891Z] Auth URL:
+"https://app.alleaves.com/api/auth"
+[2026-01-30T15:44:58.892Z] Auth Payload (masked):
+{
+  "username": "bakedbotai@thrivesyracuse.com"
+}
+[2026-01-30T15:44:58.892Z] Using Username/Password auth path...
+[2026-01-30T15:44:59.163Z] AUTH FAILED: 401 {"message":"Missing Authorization Header"}

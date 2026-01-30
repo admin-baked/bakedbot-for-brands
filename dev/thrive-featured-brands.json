@@ -1,0 +1,82 @@
+[
+  {
+    "name": "Ayrloom",
+    "productCount": 41,
+    "avgPrice": 34.58,
+    "categories": [
+      "vapes",
+      "topicals",
+      "edibles",
+      "other",
+      "tinctures"
+    ]
+  },
+  {
+    "name": "Nanticoke",
+    "productCount": 16,
+    "avgPrice": 41.67,
+    "categories": [
+      "other",
+      "flower",
+      "vapes"
+    ]
+  },
+  {
+    "name": "Revert",
+    "productCount": 16,
+    "avgPrice": 32.49,
+    "categories": [
+      "other",
+      "vapes",
+      "flower"
+    ]
+  },
+  {
+    "name": "MFNY",
+    "productCount": 13,
+    "avgPrice": 40.07,
+    "categories": [
+      "vapes",
+      "concentrates",
+      "other",
+      "edibles",
+      "tinctures"
+    ]
+  },
+  {
+    "name": "Jaunty",
+    "productCount": 10,
+    "avgPrice": 42.38,
+    "categories": [
+      "vapes",
+      "edibles"
+    ]
+  },
+  {
+    "name": "Kushy Punch",
+    "productCount": 8,
+    "avgPrice": 28.53,
+    "categories": [
+      "edibles",
+      "vapes"
+    ]
+  },
+  {
+    "name": "Wyld",
+    "productCount": 8,
+    "avgPrice": 27.69,
+    "categories": [
+      "edibles"
+    ]
+  },
+  {
+    "name": "DragonFly",
+    "productCount": 8,
+    "avgPrice": 16.53,
+    "categories": [
+      "other",
+      "vapes",
+      "flower"
+    ]
+  }
+]

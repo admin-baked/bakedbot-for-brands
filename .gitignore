@@ -72,4 +72,7 @@ service-account-base64-oneline.txt
 secrets_iam.json
 
 # Claude Code settings - NEVER COMMIT
-.claude/settings.local.jsonfirebase-service-account.json
+.claude/settings.local.json
+
+# Sensitive credentials
+firebase-service-account.json

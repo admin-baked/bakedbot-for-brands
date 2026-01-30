@@ -546,6 +546,64 @@ export class ALLeavesClient implements POSClient {
     }
 
     /**
+     * Get all customers with pagination support
+     *
+     * @param page - Page number (1-based)
+     * @param pageSize - Number of customers per page (default: 100)
+     * @returns Array of customers with full profile data
+     */
+    async getAllCustomers(page: number = 1, pageSize: number = 100): Promise<any[]> {
+        const data = await this.request<any>('/customer/search', {
+            method: 'POST',
+            body: JSON.stringify({ page, pageSize }),
+        });
+
+        return data.customers || data.data || data || [];
+    }
+
+    /**
+     * Get all customers across all pages
+     *
+     * @param maxPages - Maximum number of pages to fetch (default: 100)
+     * @returns Array of all customers
+     */
+    async getAllCustomersPaginated(maxPages: number = 100): Promise<any[]> {
+        const allCustomers: any[] = [];
+        const pageSize = 100;
+
+        for (let page = 1; page <= maxPages; page++) {
+            const customers = await this.getAllCustomers(page, pageSize);
+
+            if (!customers || customers.length === 0) {
+                break; // No more customers
+            }
+
+            allCustomers.push(...customers);
+
+            if (customers.length < pageSize) {
+                break; // Last page
+            }
+        }
+
+        return allCustomers;
+    }
+
+    /**
+     * Get recent orders
+     *
+     * @param limit - Number of orders to fetch (default: 100, max per request)
+     * @returns Array of orders with full details
+     */
+    async getAllOrders(limit: number = 100): Promise<any[]> {
+        const data = await this.request<any>('/order', {
+            method: 'GET',
+        });
+
+        const orders = data.orders || data.data || data || [];
+        return orders.slice(0, limit);
+    }
+
+    /**
      * Get configuration info for debugging
      */
     getConfigInfo(): Record<string, unknown> {

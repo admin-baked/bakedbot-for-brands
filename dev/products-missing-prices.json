@@ -1,0 +1,1167 @@
+[
+  {
+    "id": "prod_0002646d73aebd7aa13a",
+    "name": "Matter - Larry Burger - Pre Rolls - 1.75g",
+    "brand": "Matter",
+    "category": "other"
+  },
+  {
+    "id": "prod_0274290b8dc259e35140",
+    "name": "Florist Farms - Flower - Runtz Mintz - 7g",
+    "brand": "Florist Farms",
+    "category": "flower"
+  },
+  {
+    "id": "prod_0302b62b184bd5a83b64",
+    "name": "Gentlemen Smugglers - Cherry Pie - 1g",
+    "brand": "Nanticoke",
+    "category": "other"
+  },
+  {
+    "id": "prod_04d77ef1eb967fbafb2c",
+    "name": "Kushy Punch - Gummies - Sour Apple - 10pk - 100mg",
+    "brand": "Kushy Punch",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_05a5bad15b4675a8ff13",
+    "name": "Ayrloom - AIO - Rest - 1g",
+    "brand": "Ayrloom",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_0a68de9532efb90bcaff",
+    "name": "Ayrloom - Balm - Rescue - 1000mg",
+    "brand": "Ayrloom",
+    "category": "topicals"
+  },
+  {
+    "id": "prod_0a7f0ead65ba8003408a",
+    "name": "Flowerhouse - Flower - Mango Haze - 3.5g",
+    "brand": "Flowerhouse",
+    "category": "flower"
+  },
+  {
+    "id": "prod_0b689b7b5bfb32282880",
+    "name": "Ayrloom - AIO - Cran Haze - 1g",
+    "brand": "Ayrloom",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_0bbf6bc33c166575469a",
+    "name": "Ayrloom - Gummies 10pk - 1:1 Island Time - 50mg",
+    "brand": "Ayrloom",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_0c239d11f8e5186f5683",
+    "name": "Ready 2 Roll - Sativa - Pre ground - 7g",
+    "brand": "Ready 2 Roll",
+    "category": "flower"
+  },
+  {
+    "id": "prod_0e8cf2217ae9d3c9bef9",
+    "name": "Magnitude - Ghost Memory OG - 1G",
+    "brand": "Magnitude",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_0eded8dd4270bf3ed606",
+    "name": "Jaunty - Cartridge - Wedding Cake - 1g",
+    "brand": "Jaunty",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_0f87f01adcc06862e31b",
+    "name": "Select ACE Terpologist - Brazzy Kush - 2g",
+    "brand": "Grassroots",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_105fc6f1748c8a8acd5e",
+    "name": "Ready 2 Roll - Hybrid - Pre ground - 7g",
+    "brand": "Nanticoke",
+    "category": "flower"
+  },
+  {
+    "id": "prod_1101abc2f80cb6b19853",
+    "name": "Bison - Cookies and Cream - 7g",
+    "brand": "Bison",
+    "category": "flower"
+  },
+  {
+    "id": "prod_174c97bd4b78361b4b6e",
+    "name": "Grassroots - Infused Pre Roll 2pk - GMO - 2g",
+    "brand": "Grassroots",
+    "category": "other"
+  },
+  {
+    "id": "prod_1ae1c6935175d4467523",
+    "name": "Kushy Punch - Cartridge - Apple Fritter - 1g",
+    "brand": "Kushy Punch",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_1b63043c000b2200787c",
+    "name": "Jaunty - Cartridge - Sour Diesel - 1g",
+    "brand": "Jaunty",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_1bbe29ae2b5517d9d0f2",
+    "name": "Revert - Pre Roll - Pink Punch - 0.5g",
+    "brand": "Revert",
+    "category": "other"
+  },
+  {
+    "id": "prod_1f6607fc5e9b414d1993",
+    "name": "Revert - Vape - Pineapple Haze - 1g",
+    "brand": "Revert",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_1fd042bb413a9ecb8ca3",
+    "name": "1937 - Flower - Wedding Cake - 3.5g",
+    "brand": "1937",
+    "category": "flower"
+  },
+  {
+    "id": "prod_2225ef2c0a458089f50b",
+    "name": "Ayrloom - Gummies 10pk - 2:1 Sol Burst - 100mg",
+    "brand": "Ayrloom",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_22a88d66f9da62430abb",
+    "name": "Dank - Infused Pre Roll - Mango Haze - 1.1g",
+    "brand": "DANK",
+    "category": "other"
+  },
+  {
+    "id": "prod_243d54df29d5884c7f9f",
+    "name": "Mfused - Pink Drank - 1g 2pk",
+    "brand": "Mfused",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_26f68bb8019650f57359",
+    "name": "Nanticoke - Coconut Cream - 3.5g",
+    "brand": "Nanticoke",
+    "category": "flower"
+  },
+  {
+    "id": "prod_29c42eb0fc7cb8dfb687",
+    "name": "Grassroots - Delphi Diesel  - 3.5g",
+    "brand": "Grassroots",
+    "category": "flower"
+  },
+  {
+    "id": "prod_2ae27256f57b9e76cd36",
+    "name": "5Boro - Blue Hawaiian - Dime",
+    "brand": "5-BORO",
+    "category": "flower"
+  },
+  {
+    "id": "prod_2ba46531da23a8bae109",
+    "name": "Jaunty - AIO - Blackberry Kush - 1.5g",
+    "brand": "Jaunty",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_2c1307ed9c805e18f200",
+    "name": "Nanticoke - Larry Burger - Live Resin",
+    "brand": "Nanticoke",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_2c9d1ef1c820aeca2687",
+    "name": "Ayrloom - AIO - Lychee Dream - 0.5g",
+    "brand": "Ayrloom",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_2eabbe3bf8924e38a74a",
+    "name": "Kushy Punch - Gummies - Kiwi Breeze - 10pk - 100mg",
+    "brand": "Kushy Punch",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_2f3f26e95c70b0b9e3ab",
+    "name": "Kushy Punch - Gummies - Strawberry - 10pk - 100mg",
+    "brand": "Kushy Punch",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_304d4c30b1da99f9ff78",
+    "name": "Matter - Scotties Cake - 3.5g",
+    "brand": "Matter",
+    "category": "flower"
+  },
+  {
+    "id": "prod_30c8a35d16d3653d92a0",
+    "name": "Jaunty - AIO - Blue Dream - 1.5g",
+    "brand": "Jaunty",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_3225ee86dc7984b74b67",
+    "name": "Nanticoke - Blue Dream  - 3.5g",
+    "brand": "Nanticoke",
+    "category": "flower"
+  },
+  {
+    "id": "prod_36ea434e565d2c8ff475",
+    "name": "Revert - Flower - Purple Gorilla - 14g",
+    "brand": "Revert",
+    "category": "flower"
+  },
+  {
+    "id": "prod_3bb1edac72b7305b6c07",
+    "name": "MFNY - Cartridge 2pk - Honey Banana - 1g - Live Resin",
+    "brand": "MFNY",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_3c689752578b182d0d7d",
+    "name": "Revert - Flower - Space Cake - 3.5g",
+    "brand": "Revert",
+    "category": "flower"
+  },
+  {
+    "id": "prod_3ec27cbc88e10dc9aebc",
+    "name": "Kushy Punch - Cartridge - Trop Diesel - 1g",
+    "brand": "Kushy Punch",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_41ab5123ed0e9fdb6c3b",
+    "name": "Nanticoke - Coconut Cream - 14g",
+    "brand": "Nanticoke",
+    "category": "flower"
+  },
+  {
+    "id": "prod_4298da922ff82290580a",
+    "name": "MFNY - Cartridge 2pk - Hash Burger - 1g - Live Resin",
+    "brand": "MFNY",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_44724c1cb3de29139712",
+    "name": "1937 - Flower - Grease Bucket - 3.5g",
+    "brand": "1937",
+    "category": "flower"
+  },
+  {
+    "id": "prod_450993111885dca92ccd",
+    "name": "Kushy Punch - Cartridge - Strawnana Rozay - 1g",
+    "brand": "Kushy Punch",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_4696f23baa13ec584b09",
+    "name": "1937 - Small Bud - Wedding Cake - 7g",
+    "brand": "1937",
+    "category": "flower"
+  },
+  {
+    "id": "prod_47141555d40974703761",
+    "name": "1937 - Flower - Chem x Chocolate - 3.5g",
+    "brand": "1937",
+    "category": "flower"
+  },
+  {
+    "id": "prod_4b1f46aaf51a5f492e1b",
+    "name": "Flowerhouse - Flower - Dolato - 3.5g",
+    "brand": "Flowerhouse",
+    "category": "flower"
+  },
+  {
+    "id": "prod_4b42cf04e4413a1e3e61",
+    "name": "Jaunty - Cartridge - White Widow - 1g",
+    "brand": "Jaunty",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_4b54d3ac0b224c03e4a5",
+    "name": "Ayrloom - AIO - Calm - 1g",
+    "brand": "Ayrloom",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_4c87e33c1d19d7619e1f",
+    "name": "Matter - Orange Cookies - 3.5g",
+    "brand": "Matter",
+    "category": "flower"
+  },
+  {
+    "id": "prod_4d55141891fec395c51e",
+    "name": "5Boro - Fuel Pump - Dime",
+    "brand": "5-BORO",
+    "category": "flower"
+  },
+  {
+    "id": "prod_4e090b4a00f58c8cde19",
+    "name": "Fernway - Cartridge - Elderflower - 1g",
+    "brand": "Fernway",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_510abfd7a9b32ff9e6e6",
+    "name": "Kushy Punch - Cartridge - Kushy OG - 1g",
+    "brand": "Kushy Punch",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_54ec125d34ba2f4162b0",
+    "name": "Florist Farms - Flower - Gluttony - 3.5g",
+    "brand": "Florist Farms",
+    "category": "flower"
+  },
+  {
+    "id": "prod_590ddc0b4e5ba55b5781",
+    "name": "Ayrloom - AIO - Energy - 1g",
+    "brand": "Ayrloom",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_5914b8f7564c10a134aa",
+    "name": "Ayrloom - Infused Pre Roll 5pk - Cereal Milk - 3g",
+    "brand": "Ayrloom",
+    "category": "other"
+  },
+  {
+    "id": "prod_5a49a6038d5629c5184a",
+    "name": "Brass Knuckles - AIO - The Truth - 1g - Live Liquid Diamonds",
+    "brand": "Brass Kunckles",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_5af2d911b70567e01d84",
+    "name": "MFNY - Cartridge - Rainbow Beltz 2.0 - 0.5g - Live Resin",
+    "brand": "MFNY",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_5c3434e39667b13b5080",
+    "name": "Find - Flower - Shocks Mints - 3.5g",
+    "brand": "Find",
+    "category": "flower"
+  },
+  {
+    "id": "prod_5cf1fad77943939696b9",
+    "name": "Ayrloom - Balm - Revive - 1000mg",
+    "brand": "Ayrloom",
+    "category": "topicals"
+  },
+  {
+    "id": "prod_5d1711dd2624e107fcd0",
+    "name": "Nanticoke - Chemdog - Live Resin",
+    "brand": "Nanticoke",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_5d855d42644fd4f07070",
+    "name": "Hepworth - Pre Roll 5pk - Blue Dream x Purple Punch - 2.5g",
+    "brand": "Hepworth Sungrown",
+    "category": "other"
+  },
+  {
+    "id": "prod_5e954cb303eb73ac8822",
+    "name": "Matter - Garlicane - Pre Rolls - 1.75g",
+    "brand": "Matter",
+    "category": "other"
+  },
+  {
+    "id": "prod_611d8246aad7650f3b9b",
+    "name": "Head & Heal - Tincture - Focus Blend - 150mg",
+    "brand": "Head and Heal",
+    "category": "tinctures"
+  },
+  {
+    "id": "prod_6150d28126990a47e1e9",
+    "name": "Ayrloom - AIO - Cereal Milk - 1g",
+    "brand": "Ayrloom",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_617455c7b4f9f057ae6e",
+    "name": "Ayrloom - AIO - Blue Widow - .5g",
+    "brand": "Ayrloom",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_617a833f01e2f63f1a98",
+    "name": "1937 - Small Bud - Biker Kush - 7g",
+    "brand": "1937",
+    "category": "flower"
+  },
+  {
+    "id": "prod_6190b2dc970340ecc87d",
+    "name": "Pura - Terp Poison - Live Resin - 1g",
+    "brand": "Pura",
+    "category": "concentrates"
+  },
+  {
+    "id": "prod_6416bdabdeed91a3c9a2",
+    "name": "Ayrloom - Beverages - 2:1 Lemonade - 10mg",
+    "brand": "Ayrloom",
+    "category": "other"
+  },
+  {
+    "id": "prod_64551380bdaa08f5d563",
+    "name": "Alibi - Caramel Cream - Infused Pre roll",
+    "brand": "Alibi",
+    "category": "other"
+  },
+  {
+    "id": "prod_66603335a2cb753759ac",
+    "name": "ATC - Chocolate - Milk Chocolate Bar - 100mg",
+    "brand": "ATC",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_66c91d0e667494fdfa98",
+    "name": "B Noble - Pre Roll 2pk - Mimosa Kush Mints - 2g",
+    "brand": "B Noble",
+    "category": "other"
+  },
+  {
+    "id": "prod_66c9e8b281c2b7555b9b",
+    "name": "Ayrloom - Beverages - 2:1 Root Beer - 10mg",
+    "brand": "Ayrloom",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_6779e57b7209410be5f2",
+    "name": "MFNY - Concentrate - Live Resin Badder - The Belefonte - 1g",
+    "brand": "MFNY",
+    "category": "concentrates"
+  },
+  {
+    "id": "prod_691c4631576300d44e1e",
+    "name": "5Boro - Cereal Milk - Dime",
+    "brand": "5-BORO",
+    "category": "flower"
+  },
+  {
+    "id": "prod_6a36300d6ec426a76631",
+    "name": "Cannabals - AIO - Apple Burst - 2g - Liquid Diamonds",
+    "brand": "Cannabols",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_6abbed806df4723e3ff7",
+    "name": "MFNY - Cartridge - The Belafonte - 0.5g - Live Resin",
+    "brand": "MFNY",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_6aee7c975684d3777719",
+    "name": "Monarchy - Green Crack - 1g - Infused Pre roll",
+    "brand": "Monarchy",
+    "category": "other"
+  },
+  {
+    "id": "prod_6b951bfeb9f8813e8ebe",
+    "name": "Ayrloom - AIO - 2:1 Honeycrisp - 0.5g",
+    "brand": "Ayrloom",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_6c1cf0d7a9076086375f",
+    "name": "Nanticoke - Blue Dream  - Live Resin Disposable",
+    "brand": "Nanticoke",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_6cb3ddee24d9cbcad976",
+    "name": "Mfused - Apple Ambush - 2g 2pk",
+    "brand": "Mfused",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_6dd05f45c0a13150fe2d",
+    "name": "Florist Farms - Flower - Green Crack - 7g",
+    "brand": "Florist Farms",
+    "category": "flower"
+  },
+  {
+    "id": "prod_7010e4cae0367a97ba51",
+    "name": "Livwell - WOmac - 14g",
+    "brand": "LivWell",
+    "category": "flower"
+  },
+  {
+    "id": "prod_737d8f8f67dc7d69d503",
+    "name": "E29Labs - Cartridge - White Runtz - 1g",
+    "brand": "E29 labs",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_74c64ee4ab7aca1f9e1e",
+    "name": "MFNY - Infused Pre Roll - Electric Lime - 0.75g",
+    "brand": "MFNY",
+    "category": "other"
+  },
+  {
+    "id": "prod_759bade360a94f557882",
+    "name": "Flowerhouse - Flower - Kush Pop Rocks - 3.5g",
+    "brand": "Flowerhouse",
+    "category": "flower"
+  },
+  {
+    "id": "prod_7620d657e8aa19c454d2",
+    "name": "Revert - Flower - Spritzer - 3.5g",
+    "brand": "Revert",
+    "category": "flower"
+  },
+  {
+    "id": "prod_77ee8c8777913b412017",
+    "name": "MFNY - Concentrate - Live Resin Badder - Hash Burger - 1g",
+    "brand": "MFNY",
+    "category": "concentrates"
+  },
+  {
+    "id": "prod_78360bb1002c83fc1830",
+    "name": "Select ACE Terpologist - Pappy Posion - 2g",
+    "brand": "Grassroots",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_7867745ec9adfb0e3ee8",
+    "name": "Fernway - AIO - Sour Diesel - 1g",
+    "brand": "Fernway",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_78ec1db272ac0a81e7c5",
+    "name": "Revert - Pre Roll - Pineapple Haze - 0.5g",
+    "brand": "Revert",
+    "category": "other"
+  },
+  {
+    "id": "prod_78fa5a2b7cc86bb18ae0",
+    "name": "Find - Flower - Chemgurl - 28g",
+    "brand": "Find",
+    "category": "flower"
+  },
+  {
+    "id": "prod_79b9dcc52865d980a1ec",
+    "name": "TEST - Vape",
+    "brand": "Jaunty",
+    "category": "vapes",
+    "thc": 70
+  },
+  {
+    "id": "prod_79f30ef1d717c63c29f5",
+    "name": "Hepworth - Funk Fruit - Sugar - 1g",
+    "brand": "Hepworth Sungrown",
+    "category": "concentrates"
+  },
+  {
+    "id": "prod_7dd4b6f6eeb7f32bbc69",
+    "name": "Ayrloom - Gummies 10pk - 1:1  Pillow Talk - 50mg",
+    "brand": "Ayrloom",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_7ed9b75fbf3822d2b12b",
+    "name": "Revert - Pre Roll - Spritzer - 0.5g",
+    "brand": "Revert",
+    "category": "other"
+  },
+  {
+    "id": "prod_80a9cc6072bfcb814b6b",
+    "name": "E29Labs - AIO - Bruce Banner - 1g",
+    "brand": "E29 labs",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_8155de9d6977c420b1f9",
+    "name": "Jaunty - Cartridge - Jack Herer - 1g",
+    "brand": "Jaunty",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_820c75f9f0075b1eb493",
+    "name": "Ayrloom - Gummies 10pk - 2:1 Orchard Sunrise - 100mg",
+    "brand": "Ayrloom",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_8380a15f371db8019101",
+    "name": "NYCE - Rosin Jar - JetFuel Gelato - 1g",
+    "brand": "NYCE",
+    "category": "concentrates"
+  },
+  {
+    "id": "prod_8a17c05dc111de9d3899",
+    "name": "E29Labs - AIO - Lemon Cherry Gelato - 1g",
+    "brand": "E29 labs",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_8a7379489c1ed5052815",
+    "name": "Fernway - AIO - White Widow - 2g",
+    "brand": "Fernway",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_8ade2cd8682ada198747",
+    "name": "Head & Heal - Tincture - Sleep Blend - 300mg",
+    "brand": "Head and Heal",
+    "category": "tinctures"
+  },
+  {
+    "id": "prod_8b5d5942801e8364c98e",
+    "name": "Fernway - Cartridge - Red Headed Stranger - 1g",
+    "brand": "Fernway",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_8b7ec55777f3ab36c70e",
+    "name": "Dank - Flower - Sharpie - 3.5g",
+    "brand": "DANK",
+    "category": "flower"
+  },
+  {
+    "id": "prod_8c92cc831c2e86ab6a29",
+    "name": "Nanticoke -Maui Waui - 7g",
+    "brand": "Nanticoke",
+    "category": "flower"
+  },
+  {
+    "id": "prod_8d4dc7ae36974b751492",
+    "name": "1937 - Flower - Blue Dream - 3.5g",
+    "brand": "1937",
+    "category": "flower"
+  },
+  {
+    "id": "prod_8ec51b09117ec390ac4d",
+    "name": "Mfused - High Biscus  - 2g 2pk",
+    "brand": "Mfused",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_8ffcb4c4ac7a422bc258",
+    "name": "E29Labs - Cartridge 2pk - Cannalope Haze / Lemon Cherry Gelato - 1g",
+    "brand": "E29 labs",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_912e4bd5b8a029dfcb55",
+    "name": "1906 - Tablet 2pk - Pouch Sleep Drops - 10mg",
+    "brand": "1906",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_91423a2d75132dae3d4f",
+    "name": "Cannabals - AIO - 4:1 Lemon Berry \"Bounce\" - 1g",
+    "brand": "Cannabols",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_9156cdfb558aed593611",
+    "name": "Pura - Mimosa - Sugar - 1g",
+    "brand": "Pura",
+    "category": "concentrates"
+  },
+  {
+    "id": "prod_919dd493a535587e2664",
+    "name": "KOA - Infused Pre roll - 2pk - Trop Cherry - 0.7g",
+    "brand": "KOA",
+    "category": "other"
+  },
+  {
+    "id": "prod_93d95c5e951ce503f041",
+    "name": "Ayrloom - Tincture - Beverage Enhancer - 300mg",
+    "brand": "Ayrloom",
+    "category": "tinctures"
+  },
+  {
+    "id": "prod_93fcc30e42a7f377f72b",
+    "name": "Select ACE Terpologist - Durban Fizz - 2g",
+    "brand": "Grassroots",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_950aaccfb195c35b2bb0",
+    "name": "Grassroots - Foreign Kush Mints  - 3.5g",
+    "brand": "Grassroots",
+    "category": "flower"
+  },
+  {
+    "id": "prod_953f1d65bc6ac958618d",
+    "name": "Nanticoke - Acapulco Gold - 7g",
+    "brand": "Nanticoke",
+    "category": "flower"
+  },
+  {
+    "id": "prod_955747859f6bc1240d6d",
+    "name": "Mfused - Lychee lyfe - 1g 2pk",
+    "brand": "Mfused",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_9632241bf6e3c1ad87a8",
+    "name": "Bonanza - Pink Mango - 2g",
+    "brand": "Bonanza",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_99ccf62cf74fe3f37f81",
+    "name": "MFNY - AIO - Strawpaya - 0.5g - Live Resin",
+    "brand": "MFNY",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_9c3c0b1e959f7a049bd6",
+    "name": "Livwell - Memory Loss OG  - 28G",
+    "brand": "LivWell",
+    "category": "flower"
+  },
+  {
+    "id": "prod_9f7145f58bab70760979",
+    "name": "NYCE - Rosin Jar - PGMO - 1g",
+    "brand": "NYCE",
+    "category": "concentrates"
+  },
+  {
+    "id": "prod_9f74cdfd65fce7542381",
+    "name": "Cannabals - AIO - 4:1 Blueberry Dream \"Get Sleepy\" - 1g",
+    "brand": "Cannabols",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_9fb79d760b624a4d2077",
+    "name": "Monarchy - Runtz - 1g - Infused Pre roll",
+    "brand": "Monarchy",
+    "category": "other"
+  },
+  {
+    "id": "prod_a38eb0a1c866e0ee80df",
+    "name": "Ayrloom - Beverages - 2:1 Black Cherry - 10mg",
+    "brand": "Ayrloom",
+    "category": "other"
+  },
+  {
+    "id": "prod_a51ddfc7df6e39990641",
+    "name": "Ayrloom - Balm - Restore - 1000mg",
+    "brand": "Ayrloom",
+    "category": "topicals"
+  },
+  {
+    "id": "prod_a554771b4080f8f481f1",
+    "name": "Ayrloom - Gummies 10pk - 2:1 Sunny Days - 100mg",
+    "brand": "Ayrloom",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_a794a582df818f02f93c",
+    "name": "Ayrloom - Beverages - 2:1 Cran Apple - 10mg",
+    "brand": "Ayrloom",
+    "category": "other"
+  },
+  {
+    "id": "prod_a933060266d7f8d5b2a9",
+    "name": "Ayrloom - AIO - ATF - 1g",
+    "brand": "Ayrloom",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_ac18c025d777d51edde9",
+    "name": "NYCE - Rosin Jar - Ice cream Zundae - 1g",
+    "brand": "NYCE",
+    "category": "concentrates"
+  },
+  {
+    "id": "prod_ac65364917b7b05d8888",
+    "name": "Ayrloom - Beverages - 2:1 Yuzu Citrus - 10mg",
+    "brand": "Ayrloom",
+    "category": "other"
+  },
+  {
+    "id": "prod_adca0bb2c43bb6122095",
+    "name": "Ayrloom - Tincture - 1:3 Everyday Drops - 150mg",
+    "brand": "Ayrloom",
+    "category": "tinctures"
+  },
+  {
+    "id": "prod_af1b4f94c75c25a6c13f",
+    "name": "MFNY - Gummies - Pink Lemonade x Lemon Cane - 10pk - 100mg - Live Resin",
+    "brand": "MFNY",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_b0a10c5b092e55f8c07e",
+    "name": "Ayrloom - AIO - Lime Haze - 1g",
+    "brand": "Ayrloom",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_b2d81d9633ec8a21ff36",
+    "name": "Monarchy - Skywalker - 1g - Infused Pre roll",
+    "brand": "Monarchy",
+    "category": "other"
+  },
+  {
+    "id": "prod_b4359ca03cce8fd465d0",
+    "name": "Nanticoke - Lilac Diesel - 3.5g",
+    "brand": "Nanticoke",
+    "category": "flower"
+  },
+  {
+    "id": "prod_b54ae3a9750bc8ff9ec9",
+    "name": "Revert - Flower - Super Diesel - 14g",
+    "brand": "Revert",
+    "category": "flower"
+  },
+  {
+    "id": "prod_b556890947fb64d0555f",
+    "name": "B Noble - Flower - Mimosa Kush Mints - 3.5g",
+    "brand": "B Noble",
+    "category": "flower"
+  },
+  {
+    "id": "prod_b5dde58d72743bdecee6",
+    "name": "Holiday - AIO - STAYME7O Garden Grape - 1g",
+    "brand": "Holiday",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_b65a05ba1f1f70dba12b",
+    "name": "Ayrloom - beverage - 2:1 Vanilla Cola 10mg",
+    "brand": "Ayrloom",
+    "category": "other"
+  },
+  {
+    "id": "prod_b776a4e786761cbb3c6c",
+    "name": "Magnitude - Sour Diesel - 1G",
+    "brand": "Magnitude",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_b8a344177a1bd733e9ae",
+    "name": "Alibi - Dreamstar - Infused Pre roll",
+    "brand": "Alibi",
+    "category": "other"
+  },
+  {
+    "id": "prod_ba606c2210bc3c3c28c8",
+    "name": "Nanticoke - Sour Diesel - 0.5 - pre roll",
+    "brand": "Nanticoke",
+    "category": "other"
+  },
+  {
+    "id": "prod_bb2954becfea54004d43",
+    "name": "NYCE - Rosin Jar - Poddy Mouth  - 1g",
+    "brand": "NYCE",
+    "category": "concentrates"
+  },
+  {
+    "id": "prod_bd57de65a42b78335a21",
+    "name": "Revert - Flower - Sunset Sherbert - 3.5g",
+    "brand": "Revert",
+    "category": "flower"
+  },
+  {
+    "id": "prod_be5cbf1bc151113d007c",
+    "name": "Find - Flower - Agent Z - 28g",
+    "brand": "Find",
+    "category": "flower"
+  },
+  {
+    "id": "prod_be5d082e325777700452",
+    "name": "Ayrloom - Beverages - 2:1 Rose - 10mg",
+    "brand": "Ayrloom",
+    "category": "other"
+  },
+  {
+    "id": "prod_bf6afbb21678261a308c",
+    "name": "Cannabals - AIO - Blue Dream - 2g - Liquid Diamonds",
+    "brand": "Cannabols",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_c02298c5d3e11b1b9634",
+    "name": "Ayrloom - AIO - Cereal Milk - 0.5g",
+    "brand": "Ayrloom",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_c0bd9ce803d6d636025d",
+    "name": "Hepworth - Pre Roll 5pk - Mimosa - 2.5g",
+    "brand": "Hepworth Sungrown",
+    "category": "other"
+  },
+  {
+    "id": "prod_c13e06b65ecdcca1f3eb",
+    "name": "Ayrloom - AIO - ATF - 0.5g",
+    "brand": "Ayrloom",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_c17dc7a8361d117be366",
+    "name": "Ayrloom - Gummies 10pk - 2:1 Island Time - 100mg",
+    "brand": "Ayrloom",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_c43d803a2e7c430485d6",
+    "name": "Monarchy - Sour Diesel  - 1g - Infused Pre roll",
+    "brand": "Monarchy",
+    "category": "other"
+  },
+  {
+    "id": "prod_c45862dc52effd5d8efb",
+    "name": "Matter - Scotties Cake - 14G",
+    "brand": "Matter",
+    "category": "flower"
+  },
+  {
+    "id": "prod_c493b9fe17a1c4953e30",
+    "name": "Mfused - Galactic Grape - 1g 2pk",
+    "brand": "Mfused",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_c73b66fca2c8ba8b0bdb",
+    "name": "MFNY - Infused Pre Roll - Electric Lime x Candy Apple Driver - 0.75g",
+    "brand": "MFNY",
+    "category": "other"
+  },
+  {
+    "id": "prod_c7a7cc31093205c6ac04",
+    "name": "Alibi - Cherry Diesel - Infused Pre roll",
+    "brand": "Alibi",
+    "category": "other"
+  },
+  {
+    "id": "prod_c7b4e8dea6e6ecfdf0f2",
+    "name": "Livwell - Strawberry OG Cookies  - 14G",
+    "brand": "LivWell",
+    "category": "flower"
+  },
+  {
+    "id": "prod_c7e9280a7df40814119a",
+    "name": "Revert - Vape - Purple Thunder - 1g",
+    "brand": "Revert",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_c7f872b7558bf155effb",
+    "name": "Ayrloom - AIO - Bliss - 1g",
+    "brand": "Ayrloom",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_c9b44aa90bc6f4056794",
+    "name": "Revert - Flower - Pink Punch - 3.5g",
+    "brand": "Revert",
+    "category": "flower"
+  },
+  {
+    "id": "prod_ca0b833a83c42151bdff",
+    "name": "MFNY - Gummies - Blueberry x Blueberry Muffin - 10pk - 100mg - Live Rosin",
+    "brand": "MFNY",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_ca782646bf240899fa72",
+    "name": "Matter - Jelly Cake - 14g",
+    "brand": "Matter",
+    "category": "flower"
+  },
+  {
+    "id": "prod_cf762f2cbe6d2835b0da",
+    "name": "Bouket - Flower - Blue Nerdz - 4g",
+    "brand": "Bouket",
+    "category": "flower"
+  },
+  {
+    "id": "prod_d1c9079a9ab0335e7796",
+    "name": "Cannabals - AIO - Blackberry Brain - 2g - Liquid Diamonds",
+    "brand": "Cannabols",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_d243150e6a190a81d3f4",
+    "name": "Leal - Sharksbreath - 1 oz",
+    "brand": "Leal",
+    "category": "flower"
+  },
+  {
+    "id": "prod_d3f8dcfdaf4565094880",
+    "name": "Fernway - AIO - Red Headed Stranger - 2g",
+    "brand": "Fernway",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_d429c9d842ad38d5b9bf",
+    "name": "MFNY - Infused Pre Roll - Rainbow Beltz 2.0 - 0.75g",
+    "brand": "MFNY",
+    "category": "other"
+  },
+  {
+    "id": "prod_d573b576fa3895d3d55e",
+    "name": "Jaunty - Cartridge - Forbidden Fruit - 1g",
+    "brand": "Jaunty",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_d5a5de9d5996dda04e44",
+    "name": "Dank - Pre Roll - Runtz Ether - 0.5g",
+    "brand": "DANK",
+    "category": "other"
+  },
+  {
+    "id": "prod_d678c109e5e1b0084a10",
+    "name": "Mfused - Rainer Cherries - 1g 2pk",
+    "brand": "Mfused",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_d777b859778ba027195c",
+    "name": "Anthem - Pre Roll 10pk - Indica Blend - 3.5g",
+    "brand": "Anthem",
+    "category": "other"
+  },
+  {
+    "id": "prod_dbdc72361e4dd5a3caa7",
+    "name": "Ayrloom - Infused Pre Roll 5pk - Pink Rozay - 3g",
+    "brand": "Ayrloom",
+    "category": "other"
+  },
+  {
+    "id": "prod_e2cf080ac7a588860fc9",
+    "name": "ATC - Chocolate - Dark Chocolate W/ Lions Mane Mushroom - 50mg",
+    "brand": "ATC",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_e45f89fe9d598c2e6c47",
+    "name": "Nanticoke - Blue Dream  - 14g",
+    "brand": "Nanticoke",
+    "category": "flower"
+  },
+  {
+    "id": "prod_e6e64996de7676e8e5a8",
+    "name": "Ayrloom - Gummies 10pk - 1:3 Dreamweaver - 100mg",
+    "brand": "Ayrloom",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_ea35e8cdadb6e08a916a",
+    "name": "Fernway - Cartidge - Space Queen  - 1g",
+    "brand": "Fernway",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_eb60b6f3e755890fc3a1",
+    "name": "Hepworth - Durban Poison X Cherry Tart - Sugar - 3.5g",
+    "brand": "Hepworth Sungrown",
+    "category": "concentrates"
+  },
+  {
+    "id": "prod_eba59bb3ee53121c76f5",
+    "name": "1906 - Tablet 2pk - Pouch Chill Drops - 10mg",
+    "brand": "1906",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_ebb6b273d3786204d264",
+    "name": "MFNY - Tincture - Honey Banana - Live Resin - 15mL",
+    "brand": "MFNY",
+    "category": "tinctures"
+  },
+  {
+    "id": "prod_ed4b765599173e5d63ff",
+    "name": "Bonanza - Dream Berry - 2g",
+    "brand": "Bonanza",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_edc0ebdb3450f7726bfd",
+    "name": "Bonanza - Cranberry Kush  - 2g",
+    "brand": "Bonanza",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_f15aebe426620b93ec28",
+    "name": "Ayrloom - Beverages - 1:1 Black Cherry - 5mg",
+    "brand": "Ayrloom",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_f2f49109884a48743ecc",
+    "name": "Brass Knuckles - Cartridge - The Truth - 1g - Live Liquid Diamonds",
+    "brand": "Brass Kunckles",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_f5d462091df2a6ec8cb6",
+    "name": "Nanticoke - Lemon Grab - 0.5 - pre roll",
+    "brand": "Nanticoke",
+    "category": "other"
+  },
+  {
+    "id": "prod_f69432325f525dccbeb7",
+    "name": "Ayrloom - AIO - Pineapple Express - 0.5g",
+    "brand": "Ayrloom",
+    "category": "vapes"
+  },
+  {
+    "id": "prod_f7167c3bff222ac0ec1e",
+    "name": "Ayrloom - Beverages - 2:1 Half & Half - 10mg",
+    "brand": "Ayrloom",
+    "category": "other"
+  },
+  {
+    "id": "prod_f98dd90c750f5e1e0c7d",
+    "name": "Ready 2 Roll - Indica  - Pre ground - 7g",
+    "brand": "Nanticoke",
+    "category": "flower"
+  },
+  {
+    "id": "prod_fbf34b32d534e137e971",
+    "name": "Dank - Pre Roll - Afghani - 1g",
+    "brand": "DANK",
+    "category": "other"
+  },
+  {
+    "id": "prod_fca91f0c974e7530d5ce",
+    "name": "1906 - Tablet 4pk - Pouch Genius Drops - 10mg",
+    "brand": "1906",
+    "category": "edibles"
+  },
+  {
+    "id": "prod_fd1593ad0d0df6d6464b",
+    "name": "Ayrloom - Tincture - Pillow Talk - 300mg",
+    "brand": "Ayrloom",
+    "category": "tinctures"
+  },
+  {
+    "id": "prod_fd32a549273bafbd7353",
+    "name": "Grassroots - Lemon Berry Candy OG - 3.5g",
+    "brand": "Grassroots",
+    "category": "flower"
+  },
+  {
+    "id": "prod_fdf11e5a8bfddba4f1c2",
+    "name": "Nanticoke - Coconut Cream - 0.5 - pre roll",
+    "brand": "Nanticoke",
+    "category": "other"
+  },
+  {
+    "id": "prod_ffb9531e4860895ac23e",
+    "name": "Livwell - GG#4 - 28G",
+    "brand": "LivWell",
+    "category": "flower"
+  },
+  {
+    "id": "prod_ffbeab257a7568af6013",
+    "name": "Head & Heal - Tincture - Relief Blend - 300mg",
+    "brand": "Head and Heal",
+    "category": "tinctures"
+  }
+]

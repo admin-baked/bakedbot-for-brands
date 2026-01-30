@@ -240,7 +240,8 @@
       "Bash(Get-ChildItem \".agent/skills\" -Directory)",
       "Bash(Select-Object Name)",
       "Bash(powershell.exe -ExecutionPolicy Bypass -File .agent/skills/skills/restart-dev/scripts/restart-dev.ps1)",
-      "WebFetch(domain:app.alleaves.com)"
+      "WebFetch(domain:app.alleaves.com)",
+      "WebFetch(domain:thrivesyracuse.com)"
     ],
     "deny": [],
     "ask": []

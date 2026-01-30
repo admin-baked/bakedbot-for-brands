@@ -5,6 +5,9 @@ import { orderConverter, type OrderDoc } from '@/firebase/converters';
 import { requireUser } from '@/server/auth/auth';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
+import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
+import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
+import { inferPreferencesFromAlleaves } from '@/lib/analytics/customer-preferences';
 import {
     CustomerProfile,
     CustomerSegment,
@@ -35,12 +38,137 @@ export interface GetCustomersParams {
 }
 
 // ==========================================
+// POS Integration Helpers
+// ==========================================
+
+/**
+ * Get customers from Alleaves POS if configured
+ */
+async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirestore.Firestore): Promise<CustomerProfile[]> {
+    try {
+        // Check cache first
+        const cacheKey = cacheKeys.customers(orgId);
+        const cached = posCache.get<CustomerProfile[]>(cacheKey);
+
+        if (cached) {
+            logger.info('[CUSTOMERS] Using cached Alleaves customers', {
+                orgId,
+                count: cached.length,
+            });
+            return cached;
+        }
+
+        // Get location with Alleaves POS config
+        const locationsSnap = await firestore.collection('locations')
+            .where('orgId', '==', orgId)
+            .limit(1)
+            .get();
+
+        if (locationsSnap.empty) {
+            logger.info('[CUSTOMERS] No location found for org', { orgId });
+            return [];
+        }
+
+        const locationData = locationsSnap.docs[0].data();
+        const posConfig = locationData?.posConfig;
+
+        if (!posConfig || posConfig.provider !== 'alleaves' || posConfig.status !== 'active') {
+            logger.info('[CUSTOMERS] No active Alleaves POS config found', { orgId });
+            return [];
+        }
+
+        // Initialize Alleaves client
+        const alleavesConfig: ALLeavesConfig = {
+            apiKey: posConfig.apiKey,
+            username: posConfig.username || process.env.ALLEAVES_USERNAME,
+            password: posConfig.password || process.env.ALLEAVES_PASSWORD,
+            pin: posConfig.pin || process.env.ALLEAVES_PIN,
+            storeId: posConfig.storeId,
+            locationId: posConfig.locationId || posConfig.storeId,
+            partnerId: posConfig.partnerId,
+            environment: posConfig.environment || 'production',
+        };
+
+        const client = new ALLeavesClient(alleavesConfig);
+
+        // Fetch all customers from Alleaves
+        const alleavesCustomers = await client.getAllCustomersPaginated(30); // Max 30 pages = 3000 customers
+
+        logger.info('[CUSTOMERS] Fetched customers from Alleaves', {
+            orgId,
+            count: alleavesCustomers.length,
+        });
+
+        // Transform Alleaves customers to CustomerProfile format
+        const customers = alleavesCustomers.map((ac: any) => {
+            const email = ac.email?.toLowerCase() || `customer_${ac.id}@alleaves.local`;
+            const firstName = ac.first_name || '';
+            const lastName = ac.last_name || '';
+            const displayName = [firstName, lastName].filter(Boolean).join(' ') || email;
+
+            const totalSpent = parseFloat(ac.total_spent || 0);
+            const orderCount = parseInt(ac.total_orders || 0);
+            const avgOrderValue = orderCount > 0 ? totalSpent / orderCount : 0;
+
+            const lastOrderDate = ac.last_order_date ? new Date(ac.last_order_date) : undefined;
+            const firstOrderDate = ac.created_at ? new Date(ac.created_at) : undefined;
+
+            // Infer preferences from Alleaves data
+            const preferences = inferPreferencesFromAlleaves(ac);
+
+            const profile: CustomerProfile = {
+                id: ac.id?.toString() || email,
+                orgId,
+                email,
+                phone: ac.phone || '',
+                firstName,
+                lastName,
+                displayName,
+                totalSpent,
+                orderCount,
+                avgOrderValue,
+                lastOrderDate,
+                firstOrderDate,
+                daysSinceLastOrder: lastOrderDate
+                    ? Math.floor((Date.now() - lastOrderDate.getTime()) / (1000 * 60 * 60 * 24))
+                    : undefined,
+                preferredCategories: preferences.preferredCategories || [],
+                preferredProducts: preferences.preferredProducts || [],
+                priceRange: preferences.priceRange || 'mid',
+                segment: 'new', // Will be calculated later
+                tier: 'bronze', // Will be calculated later
+                points: parseInt(ac.loyalty_points || 0),
+                lifetimeValue: totalSpent,
+                customTags: [],
+                birthDate: ac.birth_date,
+                source: 'pos_dutchie', // Alleaves integration treated as POS source
+                createdAt: firstOrderDate || new Date(),
+                updatedAt: new Date(),
+            };
+
+            return profile;
+        });
+
+        // Cache the result (5 minute TTL)
+        posCache.set(cacheKey, customers, 5 * 60 * 1000);
+
+        return customers;
+    } catch (error: any) {
+        logger.error('[CUSTOMERS] Failed to fetch from Alleaves', {
+            orgId,
+            error: error.message,
+        });
+        return [];
+    }
+}
+
+// ==========================================
 // Main Customer Retrieval (from Orders)
 // ==========================================
 
 /**
  * Get customers derived from orders data
- * This is the primary data source before POS integration
+ * Integrates with POS systems (Alleaves) when configured
  */
 export async function getCustomers(brandId: string): Promise<CustomersData> {
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
@@ -54,7 +182,10 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
     const { firestore } = await createServerClient();
     const locationId = user.locationId;
 
-    // 1. Get customers from orders
+    // 1. Try to get customers from POS (Alleaves) if configured
+    const posCustomers = await getCustomersFromAlleaves(orgId, firestore);
+
+    // 2. Get customers from BakedBot orders (fallback or supplement)
     let ordersQuery = firestore.collection('orders') as FirebaseFirestore.Query;
     
     if (locationId) {
@@ -75,7 +206,7 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
         };
     });
 
-    // 2. Also get any manually added customers from CRM collection
+    // 3. Get any manually added customers from CRM collection
     const crmSnap = await firestore.collection('customers')
         .where('orgId', '==', orgId)
         .get();
@@ -86,9 +217,22 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
         crmCustomers.set(data.email?.toLowerCase(), { id: doc.id, ...data });
     });
 
-    // 3. Build customer profiles from orders
+    // 3. Build customer profiles - start with POS customers if available
     const customerMap = new Map<string, CustomerProfile>();
 
+    // Add POS customers first (primary source)
+    if (posCustomers.length > 0) {
+        logger.info('[CUSTOMERS] Using POS customers as primary source', {
+            orgId,
+            count: posCustomers.length,
+        });
+
+        posCustomers.forEach(customer => {
+            customerMap.set(customer.email.toLowerCase(), customer);
+        });
+    }
+
+    // 4. Merge/supplement with BakedBot orders
     orders.forEach(order => {
         const email = order.customer?.email?.toLowerCase();
         if (!email) return;
@@ -144,7 +288,7 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
         }
     });
 
-    // 4. Add CRM-only customers (no orders yet)
+    // 5. Add CRM-only customers (no orders yet, not in POS)
     crmCustomers.forEach((crmData, email) => {
         if (!customerMap.has(email)) {
             customerMap.set(email, {
@@ -176,7 +320,7 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
         }
     });
 
-    // 5. Calculate segments and stats
+    // 6. Calculate segments and stats
     const segmentBreakdown: Record<CustomerSegment, number> = {
         vip: 0, loyal: 0, new: 0, at_risk: 0, slipping: 0, churned: 0, high_value: 0, frequent: 0
     };
