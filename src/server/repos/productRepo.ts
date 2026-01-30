@@ -59,9 +59,63 @@ export function makeProductRepo(db: Firestore) {
     /**
      * Retrieves all products for a given brandId.
      * This is a comprehensive fetch of the entire catalog for a brand.
+     *
+     * For POS-integrated brands (like Thrive Syracuse), fetches from tenant publicViews.
+     * Otherwise, fetches from the legacy products collection.
      */
     async getAllByBrand(brandId: string): Promise<Product[]> {
       const effectiveBrandId = brandId && brandId.trim() !== '' ? brandId : DEMO_BRAND_ID;
+
+      // Check if brand has orgId (for dispensary/POS integrated brands)
+      try {
+        const brandSnapshot = await db.collection('brands')
+          .where('id', '==', effectiveBrandId)
+          .limit(1)
+          .get();
+
+        if (!brandSnapshot.empty) {
+          const brand = brandSnapshot.docs[0].data();
+          const orgId = brand.orgId;
+
+          // If brand has orgId, fetch from tenant publicViews
+          if (orgId) {
+            logger.info(`Fetching products from tenant catalog for brand: ${effectiveBrandId}, org: ${orgId}`);
+            const tenantProductsSnapshot = await db
+              .collection('tenants')
+              .doc(orgId)
+              .collection('publicViews')
+              .doc('products')
+              .collection('items')
+              .get();
+
+            if (!tenantProductsSnapshot.empty) {
+              // Map tenant products to Product type
+              return tenantProductsSnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                  id: doc.id,
+                  brandId: effectiveBrandId,
+                  name: data.name,
+                  description: data.description,
+                  price: data.price,
+                  imageUrl: data.imageUrl,
+                  category: data.category,
+                  thcPercent: data.thcPercent,
+                  cbdPercent: data.cbdPercent,
+                  strainType: data.strainType,
+                } as Product;
+              });
+            }
+          }
+        }
+      } catch (error) {
+        logger.error(`Error fetching brand configuration for ${effectiveBrandId}:`, {
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // Fall through to legacy collection
+      }
+
+      // Fallback to legacy products collection
       const snapshot = await productCollection.where('brandId', '==', effectiveBrandId).get();
       if (snapshot.empty) {
         logger.info(`No products found for brandId: ${effectiveBrandId}`);
