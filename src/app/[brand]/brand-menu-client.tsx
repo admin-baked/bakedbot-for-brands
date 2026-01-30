@@ -32,6 +32,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
 import type { Product, Retailer, Brand } from '@/types/domain';
 import type { BundleDeal } from '@/types/bundles';
+import type { FeaturedBrand } from '@/server/actions/featured-brands';
 
 // Brand Menu Components
 import { BrandMenuHeader } from '@/components/demo/brand-menu-header';
@@ -59,6 +60,7 @@ interface BrandMenuClientProps {
   retailers: Retailer[];
   brandSlug: string;
   bundles?: BundleDeal[];
+  featuredBrands?: FeaturedBrand[];
 }
 
 // Category order for display
@@ -83,7 +85,7 @@ const DEFAULT_PRIMARY_COLOR = '#16a34a';
 
 type BrandView = 'shop' | 'locator' | 'checkout' | 'shipping-checkout';
 
-export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [] }: BrandMenuClientProps) {
+export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [], featuredBrands = [] }: BrandMenuClientProps) {
   // View state
   const [brandView, setBrandView] = useState<BrandView>('shop');
 
@@ -458,6 +460,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           {/* Featured Brands */}
           <FeaturedBrandsCarousel
             title="Featured Brands"
+            brands={featuredBrands}
             primaryColor={primaryColor}
           />
 

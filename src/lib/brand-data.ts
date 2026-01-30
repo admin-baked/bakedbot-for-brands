@@ -2,6 +2,7 @@ import { createServerClient } from '@/firebase/server-client';
 import type { Brand, Product, Retailer } from '@/types/domain';
 import { CannMenusService } from '@/server/services/cannmenus';
 import { RetailerDoc } from '@/types/cannmenus';
+import { getFeaturedBrands, type FeaturedBrand } from '@/server/actions/featured-brands';
 
 /**
  * Sanitize Firestore data for Server->Client Component serialization.
@@ -213,12 +214,24 @@ export async function fetchBrandPageData(brandParam: string) {
             // Fail gracefully, retailers will be empty - page still loads
         }
 
+        // 5. Fetch featured brands for dispensary menus
+        let featuredBrands: FeaturedBrand[] = [];
+        if (tenantId && (brand as any).menuDesign === 'dispensary') {
+            try {
+                featuredBrands = await getFeaturedBrands(tenantId);
+            } catch (error) {
+                console.error('Failed to fetch featured brands:', error);
+                // Fail gracefully - menu still loads
+            }
+        }
+
         // Sanitize all data for Server->Client Component serialization
         // This converts Firestore Timestamps and Date objects to ISO strings
         return {
             brand: sanitizeForSerialization<Brand>(brand),
             products: sanitizeForSerialization<Product[]>(products),
-            retailers: sanitizeForSerialization<Retailer[]>(retailers)
+            retailers: sanitizeForSerialization<Retailer[]>(retailers),
+            featuredBrands: sanitizeForSerialization<FeaturedBrand[]>(featuredBrands)
         };
     } catch (error: any) {
         if (error?.code === 16 || error?.message?.includes('UNAUTHENTICATED')) {
