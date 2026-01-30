@@ -696,6 +696,7 @@ export const ai = new Proxy({} as Genkit, {
 | **File operations without validation** | Use `validateFilePathSafety()` for both read AND write |
 | **Shell injection bypasses** | Block `$(...)`, backticks, ANSI-C quoting, flag reordering |
 | **Using `console.log`** | Use `logger` from `@/lib/logger` instead |
+| **Hardcoded credentials** | **NEVER** hardcode credentials in scripts/code. Use `process.env` or external secrets. |
 | **Error message leak** | Return generic error messages, log details server-side |
 
 **Authentication Patterns:**
