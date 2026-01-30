@@ -180,6 +180,19 @@ env:
     secret: LETTA_API_KEY@1
     availability:
       - RUNTIME
+  # Alleaves POS (Thrive Syracuse) - JWT Authentication
+  - variable: ALLEAVES_USERNAME
+    secret: ALLEAVES_USERNAME
+    availability:
+      - RUNTIME
+  - variable: ALLEAVES_PASSWORD
+    secret: ALLEAVES_PASSWORD
+    availability:
+      - RUNTIME
+  - variable: ALLEAVES_PIN
+    secret: ALLEAVES_PIN
+    availability:
+      - RUNTIME
 
 
 runConfig:

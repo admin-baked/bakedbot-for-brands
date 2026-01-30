@@ -14,14 +14,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ArrowUpDown, Check, MoreHorizontal, PackageCheck, ThumbsUp, Truck, X } from 'lucide-react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { updateOrderStatus } from '../actions';
-import { useEffect, useTransition } from 'react';
+import { useEffect, useTransition, useActionState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 function StatusUpdateButton({ orderId, newStatus, label, icon: Icon, variant }: { orderId: string, newStatus: string, label: string, icon: React.ElementType, variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | null }) {
   const [isPending, startTransition] = useTransition();
-  const [state, formAction] = useFormState(updateOrderStatus, { message: '', error: false });
+  const [state, formAction] = useActionState(updateOrderStatus, { message: '', error: false });
   const { toast } = useToast();
 
   useEffect(() => {

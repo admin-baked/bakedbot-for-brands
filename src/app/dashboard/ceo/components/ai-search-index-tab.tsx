@@ -1,5 +1,5 @@
-import { useRef, useState, useEffect } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useRef, useState, useEffect, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { initializeAllEmbeddings, getRagIndexStats, type EmbeddingActionResult } from '../actions';
@@ -39,7 +39,7 @@ function GenerateButton({ onClick }: { onClick: () => void }) {
 }
 
 export default function AISearchIndexTab() {
-  const [state, formAction] = useFormState(initializeAllEmbeddings, initialState);
+  const [state, formAction] = useActionState(initializeAllEmbeddings, initialState);
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useFormState } from 'react-dom';
+import { useActionState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +25,7 @@ export default function CouponManagerTab() {
 
   const { toast } = useToast();
   const { isMock } = useMockData();
-  const [formState, formAction] = useFormState(createCoupon, initialState);
+  const [formState, formAction] = useActionState(createCoupon, initialState);
 
   // Fetch coupons via Server Action to avoid Permission Denied
   const [coupons, setCoupons] = useState<Coupon[]>([]);

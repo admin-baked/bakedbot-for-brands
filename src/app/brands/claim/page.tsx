@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useActionState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +15,7 @@ const initialState: SubmitClaimState = {};
 
 function BrandClaimForm() {
     const searchParams = useSearchParams();
-    const [state, formAction] = useFormState(submitBrandClaim, initialState);
+    const [state, formAction] = useActionState(submitBrandClaim, initialState);
 
     const type = searchParams?.get('type') || 'brand'; // 'brand' or 'dispensary'
     const isDispensary = type === 'dispensary';

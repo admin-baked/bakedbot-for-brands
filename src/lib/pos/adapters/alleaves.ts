@@ -2,23 +2,69 @@ import type { POSClient, POSConfig, POSProduct } from '../types';
 import { logger } from '@/lib/logger';
 
 /**
- * ALLeaves POS Adapter
+ * ALLeaves POS Adapter with JWT Authentication
  *
  * ALLeaves is a cannabis POS system used by dispensaries.
  * This adapter integrates with their API for menu sync, inventory, and orders.
  *
- * API Documentation: https://alleaves.com/api/docs (requires partner access)
+ * Authentication: JWT-based (login with username/password/pin)
+ * API Base: https://app.alleaves.com/api
+ * Login Endpoint: POST /api/auth
  */
 
-const ALLEAVES_API_BASE = 'https://api.alleaves.com/v1';
+const ALLEAVES_API_BASE = 'https://app.alleaves.com/api';
 
 export interface ALLeavesConfig extends POSConfig {
-    apiKey: string;           // ALLeaves API key
+    // JWT Authentication credentials
+    username: string;         // ALLeaves username (email)
+    password: string;         // ALLeaves password
+    pin?: string;             // ALLeaves PIN (may be required)
     locationId: string;       // ALLeaves location ID (maps to storeId)
     partnerId?: string;       // Partner ID for multi-location setups
     webhookSecret?: string;   // Secret for validating webhooks
 }
 
+interface ALLeavesAuthResponse {
+    id_user: number;
+    name_first: string;
+    name_last: string;
+    username: string;
+    id_company: number;
+    company: string;
+    token: string;            // JWT token
+}
+
+/**
+ * ALLeaves Inventory Item (from POST /inventory/search)
+ * This is the actual structure returned by the Alleaves API
+ */
+export interface ALLeavesInventoryItem {
+    id_item: number;
+    id_batch: number;
+    id_item_group: number;
+    id_location: number;
+    item: string;                    // Product name
+    sku: string;
+    brand: string;
+    category: string;                // Format: "Category > Subcategory" (e.g., "Category > Flower")
+    price_retail: number;            // Retail price before tax
+    price_otd: number;               // Out-the-door price (with tax)
+    on_hand: number;                 // Total quantity on hand
+    available: number;               // Available quantity for sale
+    thc: number;                     // THC percentage
+    cbd: number;                     // CBD percentage
+    strain: string;
+    uom: string;                     // Unit of measure
+    is_adult_use: boolean;
+    is_medical_use?: boolean;
+    is_cannabis: boolean;
+    batch_cost_of_good?: number;
+}
+
+/**
+ * Legacy interface for backwards compatibility
+ * @deprecated Use ALLeavesInventoryItem for actual API responses
+ */
 export interface ALLeavesProduct {
     id: string;
     sku: string;
@@ -85,6 +131,8 @@ export interface ALLeavesCustomer {
 
 export class ALLeavesClient implements POSClient {
     private config: ALLeavesConfig;
+    private token: string | null = null;
+    private tokenExpiry: number | null = null;
 
     constructor(config: ALLeavesConfig) {
         this.config = {
@@ -94,15 +142,81 @@ export class ALLeavesClient implements POSClient {
     }
 
     /**
-     * Build authorization headers for ALLeaves API
+     * Authenticate with Alleaves API and get JWT token
      */
-    private getAuthHeaders(): Record<string, string> {
-        return {
+    private async authenticate(): Promise<string> {
+        // Return cached token if still valid (with 5 min buffer)
+        if (this.token && this.tokenExpiry && Date.now() < (this.tokenExpiry - 5 * 60 * 1000)) {
+            logger.debug('[POS_ALLEAVES] Using cached token');
+            return this.token;
+        }
+
+        logger.info('[POS_ALLEAVES] Authenticating with Alleaves API', {
+            username: this.config.username,
+            hasPin: !!this.config.pin,
+        });
+
+        const response = await fetch(`${ALLEAVES_API_BASE}/auth`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                username: this.config.username,
+                password: this.config.password,
+                pin: this.config.pin,
+            }),
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`Alleaves authentication failed: ${response.status} - ${text}`);
+        }
+
+        const data: ALLeavesAuthResponse = await response.json();
+
+        if (!data.token) {
+            throw new Error('No token received from Alleaves auth endpoint');
+        }
+
+        // Store token and decode expiry from JWT
+        this.token = data.token;
+
+        // Decode JWT to get expiry (without full JWT library)
+        try {
+            const payload = JSON.parse(Buffer.from(data.token.split('.')[1], 'base64').toString());
+            this.tokenExpiry = payload.exp * 1000; // Convert to milliseconds
+            logger.info('[POS_ALLEAVES] Authentication successful', {
+                userId: data.id_user,
+                company: data.company,
+                expiresAt: new Date(this.tokenExpiry).toISOString(),
+            });
+        } catch (error) {
+            // If we can't decode, assume 24 hour expiry
+            this.tokenExpiry = Date.now() + (24 * 60 * 60 * 1000);
+            logger.warn('[POS_ALLEAVES] Could not decode JWT expiry, using 24h default');
+        }
+
+        return this.token;
+    }
+
+    /**
+     * Build authorization headers for ALLeaves API with JWT token
+     */
+    private async getAuthHeaders(): Promise<Record<string, string>> {
+        const token = await this.authenticate();
+
+        const headers: Record<string, string> = {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.config.apiKey}`,
-            'X-Location-ID': this.config.locationId,
-            ...(this.config.partnerId && { 'X-Partner-ID': this.config.partnerId }),
+            'Authorization': `Bearer ${token}`,
         };
+
+        // Add optional headers
+        if (this.config.partnerId) {
+            headers['X-Partner-ID'] = this.config.partnerId;
+        }
+
+        return headers;
     }
 
     /**
@@ -113,11 +227,12 @@ export class ALLeavesClient implements POSClient {
         options: RequestInit = {}
     ): Promise<T> {
         const url = `${ALLEAVES_API_BASE}${endpoint}`;
+        const headers = await this.getAuthHeaders();
 
         const response = await fetch(url, {
             ...options,
             headers: {
-                ...this.getAuthHeaders(),
+                ...headers,
                 ...(options.headers || {}),
             },
         });
@@ -130,7 +245,7 @@ export class ALLeavesClient implements POSClient {
                 const errorJson = JSON.parse(text);
                 errorMessage = errorJson.message || errorJson.error || errorMessage;
             } catch {
-                errorMessage = `${errorMessage} - ${text}`;
+                errorMessage = `${errorMessage} - ${text.substring(0, 200)}`;
             }
 
             throw new Error(errorMessage);
@@ -145,23 +260,30 @@ export class ALLeavesClient implements POSClient {
     async validateConnection(): Promise<boolean> {
         logger.info('[POS_ALLEAVES] Validating connection', {
             locationId: this.config.locationId,
-            hasApiKey: !!this.config.apiKey,
+            username: this.config.username,
         });
 
         try {
             // Try to fetch location info to validate credentials
-            const result = await this.request<{ location: { id: string; name: string } }>(
-                `/locations/${this.config.locationId}`
+            const locations = await this.request<Array<{ id_location: number; reference: string; active: boolean }>>(
+                `/location`
             );
 
-            if (result.location?.id) {
+            const location = locations.find(loc => loc.id_location.toString() === this.config.locationId);
+
+            if (location) {
                 logger.info('[POS_ALLEAVES] Connection validated', {
-                    locationId: result.location.id,
-                    locationName: result.location.name,
+                    locationId: location.id_location,
+                    reference: location.reference,
+                    active: location.active,
                 });
                 return true;
             }
 
+            logger.warn('[POS_ALLEAVES] Location not found in user locations', {
+                requestedLocationId: this.config.locationId,
+                availableLocations: locations.map(l => l.id_location),
+            });
             return false;
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : String(error);
@@ -172,19 +294,24 @@ export class ALLeavesClient implements POSClient {
 
     /**
      * Fetch full menu from ALLeaves
+     * Uses POST /inventory/search with empty query to get all items
      */
     async fetchMenu(): Promise<POSProduct[]> {
         logger.info('[POS_ALLEAVES] Fetching menu', { locationId: this.config.locationId });
 
         try {
-            const result = await this.request<{ products: ALLeavesProduct[]; total: number }>(
-                `/locations/${this.config.locationId}/products?limit=1000&active=true`
+            // Use inventory search endpoint with empty query to get all items
+            const items = await this.request<ALLeavesInventoryItem[]>(
+                `/inventory/search`,
+                {
+                    method: 'POST',
+                    body: JSON.stringify({ query: '' }),
+                }
             );
 
-            const products = result.products || [];
-            logger.info(`[POS_ALLEAVES] Fetched ${products.length} products`);
+            logger.info(`[POS_ALLEAVES] Fetched ${items.length} inventory items`);
 
-            return this.mapProducts(products);
+            return this.mapInventoryItems(items);
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             logger.error('[POS_ALLEAVES] Menu fetch failed', { error: errorMessage });
@@ -193,7 +320,34 @@ export class ALLeavesClient implements POSClient {
     }
 
     /**
-     * Map ALLeaves products to standard POS format
+     * Map ALLeaves inventory items to standard POS format
+     */
+    private mapInventoryItems(items: ALLeavesInventoryItem[]): POSProduct[] {
+        return items.map((item) => {
+            // Strip "Category > " prefix from category if present
+            let category = item.category || 'Other';
+            if (category.startsWith('Category > ')) {
+                category = category.replace('Category > ', '');
+            }
+
+            return {
+                externalId: item.id_item.toString(),
+                name: item.item,
+                brand: item.brand || 'Unknown',
+                category,
+                price: item.price_otd || item.price_retail, // Use out-the-door price (includes tax) if available
+                stock: item.available,                       // Use available (not on_hand) for accurate stock
+                thcPercent: item.thc || undefined,
+                cbdPercent: item.cbd || undefined,
+                imageUrl: undefined,                         // Not provided by inventory endpoint
+                rawData: item,
+            };
+        });
+    }
+
+    /**
+     * Map ALLeaves products to standard POS format (legacy)
+     * @deprecated Use mapInventoryItems for actual API data
      */
     private mapProducts(products: ALLeavesProduct[]): POSProduct[] {
         return products.map((p) => ({
@@ -367,7 +521,12 @@ export class ALLeavesClient implements POSClient {
         return {
             locationId: this.config.locationId,
             storeId: this.config.storeId,
-            hasApiKey: !!this.config.apiKey,
+            authMethod: 'jwt',
+            hasUsername: !!this.config.username,
+            hasPassword: !!this.config.password,
+            hasPin: !!this.config.pin,
+            hasToken: !!this.token,
+            tokenExpiry: this.tokenExpiry ? new Date(this.tokenExpiry).toISOString() : null,
             hasPartnerId: !!this.config.partnerId,
             hasWebhookSecret: !!this.config.webhookSecret,
             environment: this.config.environment || 'production',

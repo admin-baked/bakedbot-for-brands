@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { useFormState } from 'react-dom';
+import { useState, useActionState } from 'react';
 import { generateSEOAction, type SEOFormState } from '@/app/dashboard/content/actions';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -21,7 +20,7 @@ interface SeoOptimizerProps {
 }
 
 export default function SeoOptimizer({ products, areProductsLoading }: SeoOptimizerProps) {
-    const [state, formAction] = useFormState(generateSEOAction, initialSEOState);
+    const [state, formAction] = useActionState(generateSEOAction, initialSEOState);
     const [selectedProduct, setSelectedProduct] = useState<string>('');
     const [inputValue, setInputValue] = useState({ name: '', description: '' });
     const { toast } = useToast();
