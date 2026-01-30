@@ -130,6 +130,21 @@ async function verifyIntegration(): Promise<VerificationResults> {
 
         console.log(`✅ Fetched ${customers.length} customers\n`);
 
+        // Show sample customer data structure
+        if (customers.length > 0) {
+            console.log('📋 Sample Customer Data (first customer):\n');
+            const sample = customers[0];
+            const sampleKeys = Object.keys(sample).slice(0, 20);
+            sampleKeys.forEach(key => {
+                const value = sample[key];
+                const displayValue = typeof value === 'string' && value.length > 50
+                    ? value.substring(0, 50) + '...'
+                    : value;
+                console.log(`   ${key}: ${displayValue}`);
+            });
+            console.log(`   ... (${Object.keys(sample).length} total fields)\n`);
+        }
+
         // Analyze customer data
         let totalSpent = 0;
         let topSpender = { name: '', amount: 0 };
@@ -208,6 +223,23 @@ async function verifyIntegration(): Promise<VerificationResults> {
         results.orders.fetched = orders.length;
 
         console.log(`✅ Fetched ${orders.length} orders\n`);
+
+        // Show sample order data structure
+        if (orders.length > 0) {
+            console.log('📋 Sample Order Data (first order):\n');
+            const sample = orders[0];
+            const sampleKeys = Object.keys(sample).slice(0, 20);
+            sampleKeys.forEach(key => {
+                const value = sample[key];
+                const displayValue = typeof value === 'object'
+                    ? JSON.stringify(value).substring(0, 80) + '...'
+                    : typeof value === 'string' && value.length > 50
+                    ? value.substring(0, 50) + '...'
+                    : value;
+                console.log(`   ${key}: ${displayValue}`);
+            });
+            console.log(`   ... (${Object.keys(sample).length} total fields)\n`);
+        }
 
         // Analyze order data
         let totalRevenue = 0;
