@@ -606,18 +606,46 @@ export class ALLeavesClient implements POSClient {
     }
 
     /**
-     * Get recent orders
+     * Get orders with pagination
      *
-     * @param limit - Number of orders to fetch (default: 100, max per request)
+     * @param maxOrders - Maximum number of orders to fetch (default: 100)
      * @returns Array of orders with full details
      */
-    async getAllOrders(limit: number = 100): Promise<any[]> {
-        const data = await this.request<any>('/order', {
-            method: 'GET',
-        });
+    async getAllOrders(maxOrders: number = 100): Promise<any[]> {
+        const pageSize = 100; // Alleaves API page size
+        const maxPages = Math.ceil(maxOrders / pageSize);
+        const allOrders: any[] = [];
 
-        const orders = data.orders || data.data || data || [];
-        return orders.slice(0, limit);
+        for (let page = 1; page <= maxPages; page++) {
+            // Use GET with query parameters (not POST)
+            const data = await this.request<any>(`/order?page=${page}&pageSize=${pageSize}`, {
+                method: 'GET',
+            });
+
+            // Response is a direct array, not wrapped in { orders: [] }
+            const orders = Array.isArray(data) ? data : (data.orders || data.data || []);
+
+            if (orders.length > 0) {
+                allOrders.push(...orders);
+
+                // Stop if we got fewer than pageSize (last page)
+                if (orders.length < pageSize) {
+                    console.log(`[ALLEAVES] Reached last page ${page}: ${orders.length} orders`);
+                    break;
+                }
+            } else {
+                console.log(`[ALLEAVES] No orders on page ${page}, stopping pagination`);
+                break;
+            }
+
+            // Stop if we've reached the desired limit
+            if (allOrders.length >= maxOrders) {
+                break;
+            }
+        }
+
+        console.log(`[ALLEAVES] Total orders fetched: ${allOrders.length} across ${Math.ceil(allOrders.length / pageSize)} pages`);
+        return allOrders.slice(0, maxOrders);
     }
 
     /**
