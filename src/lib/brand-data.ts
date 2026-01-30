@@ -127,20 +127,24 @@ export async function fetchBrandPageData(brandParam: string) {
         }
 
         // 3. Fetch products
-        if (isTenant) {
-            // Fetch from Tenant's Public View
+        // Check if brand has orgId (for dispensary/POS integrated brands like Thrive)
+        const brandData = brand as any;
+        const tenantId = isTenant ? brand.id : (brandData.orgId || null);
+
+        if (tenantId) {
+            // Fetch from Tenant's Public View (for dispensaries or POS-integrated brands)
             try {
                 const productsSnapshot = await firestore
                     .collection('tenants')
-                    .doc(brand.id)
+                    .doc(tenantId)
                     .collection('publicViews')
                     .doc('products')
                     .collection('items')
-                    .limit(50)
-                    .get();
+                    .get(); // Get all products, not just 50
 
                 if (!productsSnapshot.empty) {
                     products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+                    console.log(`[fetchBrandPageData] Loaded ${products.length} products from tenant catalog for ${brand.id}`);
                 }
             } catch (e) {
                 console.error('Failed to fetch tenant products:', e);

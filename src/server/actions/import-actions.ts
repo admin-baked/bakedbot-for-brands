@@ -225,6 +225,8 @@ async function runImportPipeline(
 
     // Track created products for view building
     const createdProducts: CatalogProduct[] = [];
+    // Track prices from staging (since CatalogProduct doesn't have price field)
+    const productPrices = new Map<string, number>();
 
     for (const staging of parseResult.stagingDocs) {
         const mappingKey = `${sourceType}:${staging.externalId}`;
@@ -233,6 +235,11 @@ async function runImportPipeline(
         // Create catalog product
         const productId = existingMapping?.productId || generateProductId(tenantId, staging.externalId);
         const catalogProduct = createCatalogProductFromStaging(staging, productId, tenantId, sourceType);
+
+        // Preserve price from staging for public view
+        if (staging.price !== undefined && staging.price > 0) {
+            productPrices.set(productId, staging.price);
+        }
 
         const productRef = firestore
             .collection('tenants')
@@ -309,6 +316,7 @@ async function runImportPipeline(
             cbdPercent: product.potency?.cbd?.unit === 'percent' ? product.potency.cbd.value : undefined,
             imageUrl: product.images?.[0]?.url,
             imageUrls: product.images?.map(i => i.url),
+            price: productPrices.get(product.id),
             currency: 'USD',
             viewBuiltAt: new Date() as any,
             sourceProductUpdatedAt: product.updatedAt
