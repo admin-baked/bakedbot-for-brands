@@ -106,11 +106,13 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
         const client = new ALLeavesClient(alleavesConfig);
 
         // Fetch all customers from Alleaves
+        logger.info('[CUSTOMERS] Starting customer fetch from Alleaves', { orgId });
         const alleavesCustomers = await client.getAllCustomersPaginated(30); // Max 30 pages = 3000 customers
 
         logger.info('[CUSTOMERS] Fetched customers from Alleaves', {
             orgId,
             count: alleavesCustomers.length,
+            expected: '2527',
         });
 
         // Transform Alleaves customers to CustomerProfile format

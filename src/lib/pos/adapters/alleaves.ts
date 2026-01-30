@@ -558,6 +558,18 @@ export class ALLeavesClient implements POSClient {
             body: JSON.stringify({ page, pageSize }),
         });
 
+        // Debug: Log response structure on first page
+        if (page === 1) {
+            console.log('[ALLEAVES] Customer API response keys:', Object.keys(data));
+            console.log('[ALLEAVES] Response structure:', {
+                hasCustomers: !!data.customers,
+                hasData: !!data.data,
+                hasMeta: !!data.meta,
+                hasPagination: !!data.pagination,
+                customersCount: data.customers?.length,
+            });
+        }
+
         return data.customers || data.data || data || [];
     }
 
@@ -574,17 +586,22 @@ export class ALLeavesClient implements POSClient {
         for (let page = 1; page <= maxPages; page++) {
             const customers = await this.getAllCustomers(page, pageSize);
 
+            console.log(`[ALLEAVES] Page ${page}: fetched ${customers?.length || 0} customers`);
+
             if (!customers || customers.length === 0) {
+                console.log(`[ALLEAVES] Stopping at page ${page}: no more customers`);
                 break; // No more customers
             }
 
             allCustomers.push(...customers);
 
             if (customers.length < pageSize) {
+                console.log(`[ALLEAVES] Stopping at page ${page}: last page (${customers.length} < ${pageSize})`);
                 break; // Last page
             }
         }
 
+        console.log(`[ALLEAVES] Total customers fetched: ${allCustomers.length} across ${Math.ceil(allCustomers.length / pageSize)} pages`);
         return allCustomers;
     }
 
