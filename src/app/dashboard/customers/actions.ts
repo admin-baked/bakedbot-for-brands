@@ -115,28 +115,40 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
             expected: '2527',
         });
 
+        // Fetch customer spending data from orders
+        logger.info('[CUSTOMERS] Fetching customer spending data', { orgId });
+        const customerSpending = await client.getCustomerSpending();
+        logger.info('[CUSTOMERS] Customer spending calculated', {
+            orgId,
+            customersWithSpending: customerSpending.size,
+        });
+
         // Transform Alleaves customers to CustomerProfile format
         const customers = alleavesCustomers.map((ac: any, index: number) => {
-            const email = ac.email?.toLowerCase() || `customer_${ac.id}@alleaves.local`;
-            const firstName = ac.first_name || '';
-            const lastName = ac.last_name || '';
-            const displayName = [firstName, lastName].filter(Boolean).join(' ') || email;
+            const email = ac.email?.toLowerCase() || `customer_${ac.id_customer || ac.id}@alleaves.local`;
+            const firstName = ac.name_first || '';
+            const lastName = ac.name_last || '';
+            const displayName = [firstName, lastName].filter(Boolean).join(' ') || ac.customer_name || email;
 
-            const totalSpent = parseFloat(ac.total_spent || 0);
-            const orderCount = parseInt(ac.total_orders || 0);
+            // Get spending data from orders
+            const customerId = ac.id_customer || ac.id;
+            const spending = customerSpending.get(customerId);
+            const totalSpent = spending?.totalSpent || 0;
+            const orderCount = spending?.orderCount || 0;
             const avgOrderValue = orderCount > 0 ? totalSpent / orderCount : 0;
 
-            const lastOrderDate = ac.last_order_date ? new Date(ac.last_order_date) : undefined;
-            const firstOrderDate = ac.created_at ? new Date(ac.created_at) : undefined;
+            const lastOrderDate = spending?.lastOrderDate;
+            const firstOrderDate = spending?.firstOrderDate || (ac.date_created ? new Date(ac.date_created) : undefined);
 
             // Infer preferences from Alleaves data
             const preferences = inferPreferencesFromAlleaves(ac);
 
             // Generate truly unique ID: Use Alleaves ID if available, otherwise create unique ID
-            const customerId = ac.id ? `alleaves_${ac.id}` : `${orgId}_${email}_${index}`;
+            const alleavesCustId = ac.id_customer || ac.id;
+            const uniqueCustomerId = alleavesCustId ? `alleaves_${alleavesCustId}` : `${orgId}_${email}_${index}`;
 
             const profile: CustomerProfile = {
-                id: customerId,
+                id: uniqueCustomerId,
                 orgId,
                 email,
                 phone: ac.phone || '',
@@ -159,7 +171,7 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
                 points: parseInt(ac.loyalty_points || 0),
                 lifetimeValue: totalSpent,
                 customTags: [],
-                birthDate: ac.birth_date,
+                birthDate: ac.date_of_birth,
                 source: 'pos_dutchie', // Alleaves integration treated as POS source
                 createdAt: firstOrderDate || new Date(),
                 updatedAt: new Date(),
@@ -408,6 +420,28 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
         orgId,
         customersLength: customers.length,
     });
+
+    // Debug: Log spending distribution
+    const spendingStats = {
+        totalWithSpending: customers.filter(c => c.totalSpent > 0).length,
+        totalWithOrders: customers.filter(c => c.orderCount > 0).length,
+        maxSpending: Math.max(...customers.map(c => c.totalSpent)),
+        avgSpending: customers.reduce((sum, c) => sum + c.totalSpent, 0) / customers.length,
+        top10Customers: customers.slice(0, 10).map(c => ({
+            displayName: c.displayName,
+            totalSpent: c.totalSpent,
+            orderCount: c.orderCount,
+            avgOrderValue: c.avgOrderValue,
+            daysSinceLastOrder: c.daysSinceLastOrder,
+            lastOrderDate: c.lastOrderDate,
+            lifetimeValue: c.lifetimeValue,
+            segment: c.segment,
+        })),
+        customersWithNoOrders: customers.filter(c => c.orderCount === 0).length,
+        customersWithOrders: customers.filter(c => c.orderCount > 0).length,
+    };
+    logger.info('[CUSTOMERS] Spending distribution', spendingStats);
+    logger.info('[CUSTOMERS] Segment breakdown', { segmentBreakdown });
 
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);

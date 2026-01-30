@@ -621,6 +621,52 @@ export class ALLeavesClient implements POSClient {
     }
 
     /**
+     * Calculate customer spending from orders
+     * Aggregates order data to get total spent and order count per customer
+     *
+     * @returns Map of customer ID to { totalSpent, orderCount, lastOrderDate, firstOrderDate }
+     */
+    async getCustomerSpending(): Promise<Map<number, { totalSpent: number; orderCount: number; lastOrderDate: Date; firstOrderDate: Date }>> {
+        console.log('[ALLEAVES] Fetching all orders to calculate customer spending...');
+
+        const orders = await this.getAllOrders(10000); // Get recent 10k orders
+        console.log(`[ALLEAVES] Analyzing ${orders.length} orders for customer spending`);
+
+        const customerSpending = new Map<number, { totalSpent: number; orderCount: number; lastOrderDate: Date; firstOrderDate: Date }>();
+
+        orders.forEach((order: any) => {
+            const customerId = order.id_customer;
+            const total = parseFloat(order.total || 0);
+            const orderDate = order.date_created ? new Date(order.date_created) : new Date();
+
+            if (!customerId || customerId <= 0) return; // Skip invalid customer IDs
+
+            const existing = customerSpending.get(customerId);
+
+            if (existing) {
+                existing.totalSpent += total;
+                existing.orderCount += 1;
+                if (orderDate > existing.lastOrderDate) {
+                    existing.lastOrderDate = orderDate;
+                }
+                if (orderDate < existing.firstOrderDate) {
+                    existing.firstOrderDate = orderDate;
+                }
+            } else {
+                customerSpending.set(customerId, {
+                    totalSpent: total,
+                    orderCount: 1,
+                    lastOrderDate: orderDate,
+                    firstOrderDate: orderDate,
+                });
+            }
+        });
+
+        console.log(`[ALLEAVES] Calculated spending for ${customerSpending.size} customers`);
+        return customerSpending;
+    }
+
+    /**
      * Get configuration info for debugging
      */
     getConfigInfo(): Record<string, unknown> {
