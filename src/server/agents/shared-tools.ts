@@ -41,6 +41,31 @@ export const contextOsToolDefs = [
 ];
 
 // ============================================================================
+// USER MANAGEMENT TOOL DEFINITIONS
+// Tools for inviting and managing users
+// ============================================================================
+
+export const userManagementToolDefs = [
+    {
+        name: "inviteUser",
+        description: "Create a user account and send an invitation email via Mailjet. Use this to invite new team members, brand admins, dispensary staff, or customers to the platform.",
+        schema: z.object({
+            email: z.string().email().describe("Email address of the user to invite"),
+            role: z.enum([
+                'super_user', 'super_admin',
+                'brand_admin', 'brand_member', 'brand',
+                'dispensary_admin', 'dispensary_staff', 'dispensary', 'budtender',
+                'customer'
+            ]).describe("User role (brand_admin, dispensary_staff, customer, etc.)"),
+            businessName: z.string().optional().describe("Name of the brand or dispensary (required for business roles)"),
+            firstName: z.string().optional().describe("User's first name (optional but recommended)"),
+            lastName: z.string().optional().describe("User's last name (optional but recommended)"),
+            sendEmail: z.boolean().optional().default(true).describe("Whether to send the invitation email via Mailjet (default: true)")
+        })
+    }
+];
+
+// ============================================================================
 // LETTA MEMORY TOOL DEFINITIONS
 // Standard Letta tools for all agents
 // ============================================================================
@@ -169,11 +194,15 @@ export interface IntuitionOsTools {
     intuitionLogOutcome(action: string, outcome: 'positive' | 'negative' | 'neutral', heuristicId?: string, metadata?: any): Promise<any>;
 }
 
+export interface UserManagementTools {
+    inviteUser(email: string, role: string, businessName?: string, firstName?: string, lastName?: string, sendEmail?: boolean): Promise<any>;
+}
+
 // ============================================================================
 // ALL SHARED TOOL DEFINITIONS
 // ============================================================================
 
-export const allSharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs, ...intuitionOsToolDefs, ...browserToolDefs];
+export const allSharedToolDefs = [...contextOsToolDefs, ...lettaToolDefs, ...intuitionOsToolDefs, ...browserToolDefs, ...userManagementToolDefs];
 
 // Extended interface with all tools
-export interface AllSharedTools extends SharedTools, IntuitionOsTools, BrowserTools {}
+export interface AllSharedTools extends SharedTools, IntuitionOsTools, BrowserTools, UserManagementTools {}

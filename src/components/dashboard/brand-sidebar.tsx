@@ -47,7 +47,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { InviteUserDialog } from "@/components/invitations/invite-user-dialog";
+import { InviteUserDialog } from "@/components/dashboard/admin/invite-user-dialog";
 import { useUserRole } from "@/hooks/use-user-role";
 import { AGENT_SQUAD } from '@/hooks/use-agentic-dashboard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -343,8 +343,7 @@ export function BrandSidebar() {
                                 </SidebarMenuItem>
                                 <SidebarMenuItem>
                                     <InviteUserDialog
-                                        orgId={orgId || undefined}
-                                        allowedRoles={['brand']}
+                                        defaultRole="brand_admin"
                                         trigger={
                                             <SidebarMenuButton className="text-primary hover:text-primary/90">
                                                 <UserPlus className="text-primary" />

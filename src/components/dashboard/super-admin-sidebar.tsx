@@ -49,7 +49,7 @@ import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { InviteUserDialog } from "@/components/invitations/invite-user-dialog";
+import { InviteUserDialog } from "@/components/dashboard/admin/invite-user-dialog";
 
 export function SuperAdminSidebar() {
     const searchParams = useSearchParams();
@@ -279,7 +279,7 @@ export function SuperAdminSidebar() {
                                 </SidebarMenuItem>
                                 <SidebarMenuItem>
                                     <InviteUserDialog
-                                        allowedRoles={['super_admin']}
+                                        defaultRole="super_user"
                                         trigger={
                                             <SidebarMenuButton className="text-primary hover:text-primary/90">
                                                 <Users className="text-primary" />

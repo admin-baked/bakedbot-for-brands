@@ -315,9 +315,13 @@ export async function registerBuiltInTools(): Promise<void> {
 
     // Import and register tools
     const { getEmailTool } = await import('./email-tool');
+    const { getInviteUserTool } = await import('./invite-user-tool');
 
     // Register email tool
     registry.register(getEmailTool());
+
+    // Register invite user tool
+    registry.register(getInviteUserTool());
 
     // Register web discovery tool
     const { getWebDiscoveryTool } = await import('./web-discovery');
