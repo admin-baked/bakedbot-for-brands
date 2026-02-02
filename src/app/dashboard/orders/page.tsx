@@ -9,14 +9,15 @@ export const metadata = {
 };
 
 export default async function OrdersPage() {
-    const user = await requireUser(['brand', 'dispensary', 'super_user']);
+    const user = await requireUser(['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
     // Ensure orgId is always a valid string
     const orgId = String((user as any).brandId || user.uid);
 
     // Pre-fetch digital orders for SSR
     let initialOrders: OrderDoc[] = [];
     try {
-        initialOrders = await getOrders(orgId);
+        const result = await getOrders({ orgId });
+        initialOrders = result.success ? result.data || [] : [];
     } catch (error) {
         console.error('Failed to load initial orders:', error);
     }
