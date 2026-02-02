@@ -29,6 +29,9 @@ export interface CustomersData {
 }
 
 export interface GetCustomersParams {
+    orgId?: string;
+    brandId?: string;
+    locationId?: string;
     segment?: CustomerSegment;
     search?: string;
     sortBy?: 'displayName' | 'totalSpent' | 'lastOrderDate' | 'createdAt';
@@ -200,28 +203,58 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
 /**
  * Get customers derived from orders data
  * Integrates with POS systems (Alleaves) when configured
+ *
+ * @param params - Optional parameters for filtering and pagination
+ * @param params.orgId - Organization ID (for dispensaries)
+ * @param params.brandId - Brand ID (for brands) - backward compatibility
+ * @param params.limit - Max customers to return
  */
-export async function getCustomers(brandId: string): Promise<CustomersData> {
-    const user = await requireUser(['brand', 'dispensary', 'super_user']);
+export async function getCustomers(params: GetCustomersParams | string = {}): Promise<CustomersData> {
+    const user = await requireUser(['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
 
-    // Use the brandId parameter passed from the page (already validated)
-    // instead of recalculating from user object
-    const orgId = brandId;
+    // Handle legacy brandId string parameter for backward compatibility
+    const options: GetCustomersParams = typeof params === 'string'
+        ? { brandId: params }
+        : params;
+
+    // Determine orgId from params or user context
+    let orgId = options.orgId || options.brandId;
+    let locationId = options.locationId || user.locationId;
+
+    // For brand users, use their brandId
+    if (!orgId && (user.role === 'brand' || user.role === 'brand_admin' || user.role === 'brand_member')) {
+        orgId = user.brandId || undefined;
+    }
+
+    // For dispensary users, use their currentOrgId or locationId
+    if (!orgId && (user.role === 'dispensary' || user.role === 'dispensary_admin' || user.role === 'dispensary_staff' || user.role === 'budtender')) {
+        orgId = user.currentOrgId || user.locationId || undefined;
+    }
+
+    if (!orgId) {
+        throw new Error('Organization ID not found');
+    }
 
     logger.info('[CUSTOMERS] getCustomers called', {
-        brandId,
-        brandIdType: typeof brandId,
+        orgId,
         userRole: user.role,
         userEmail: user.email,
     });
 
     // For brand users, ensure they access their own data
-    if (user.role === 'brand' && user.brandId !== brandId) {
-        throw new Error('Forbidden');
+    if ((user.role === 'brand' || user.role === 'brand_admin' || user.role === 'brand_member') && user.brandId !== orgId) {
+        throw new Error('Forbidden: Cannot access another brand\'s customers');
+    }
+
+    // For dispensary users, ensure they access their own data
+    if ((user.role === 'dispensary' || user.role === 'dispensary_admin' || user.role === 'dispensary_staff' || user.role === 'budtender')) {
+        const userOrgId = user.currentOrgId || user.locationId;
+        if (userOrgId !== orgId) {
+            throw new Error('Forbidden: Cannot access another dispensary\'s customers');
+        }
     }
 
     const { firestore } = await createServerClient();
-    const locationId = user.locationId;
 
     // 1. Try to get customers from POS (Alleaves) if configured
     const posCustomers = await getCustomersFromAlleaves(orgId, firestore);
@@ -232,7 +265,7 @@ export async function getCustomers(brandId: string): Promise<CustomersData> {
     if (locationId) {
         ordersQuery = ordersQuery.where('retailerId', '==', locationId);
     } else {
-        ordersQuery = ordersQuery.where('brandId', '==', brandId);
+        ordersQuery = ordersQuery.where('brandId', '==', orgId);
     }
 
     const ordersSnap = await ordersQuery.get();

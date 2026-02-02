@@ -42,7 +42,7 @@ export async function updateOrderStatus(
 
   let user;
   try {
-    user = await requireUser(['dispensary', 'super_user']);
+    user = await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'super_user']);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
     return { error: true, message: errorMessage };
@@ -257,40 +257,77 @@ function mapAlleavesStatus(alleavesStatus: string): OrderStatus {
  * Fetch orders for a brand or dispensary
  * Integrates with POS systems (Alleaves) when configured
  */
-export async function getOrders(orgId: string): Promise<OrderDoc[]> {
+export interface GetOrdersParams {
+    orgId?: string;
+    brandId?: string;
+    locationId?: string;
+    limit?: number;
+}
+
+export async function getOrders(params: GetOrdersParams | string = {}): Promise<{
+    success: boolean;
+    data?: OrderDoc[];
+    error?: string;
+}> {
     try {
         const { firestore } = await createServerClient();
         const user = await requireUser();
 
+        // Handle legacy string parameter for backward compatibility
+        const options: GetOrdersParams = typeof params === 'string'
+            ? { orgId: params }
+            : params;
+
+        const limit = options.limit || 100;
+
+        // Determine orgId from params or user context
+        let orgId = options.orgId || options.brandId;
+        let locationId = options.locationId || user.locationId;
+
+        // For brand users, use their brandId
+        if (!orgId && (user.role === 'brand' || user.role === 'brand_admin' || user.role === 'brand_member')) {
+            orgId = user.brandId || undefined;
+        }
+
+        // For dispensary users, use their currentOrgId or locationId
+        if (!orgId && (user.role === 'dispensary' || user.role === 'dispensary_admin' || user.role === 'dispensary_staff' || user.role === 'budtender')) {
+            orgId = user.currentOrgId || user.locationId || undefined;
+        }
+
         // 1. Try to get orders from POS (Alleaves) if configured
-        const posOrders = await getOrdersFromAlleaves(orgId, firestore);
+        const posOrders = orgId ? await getOrdersFromAlleaves(orgId, firestore) : [];
 
         // 2. Get orders from BakedBot collection (fallback or supplement)
         let query = firestore.collection('orders') as FirebaseFirestore.Query;
 
         if (user.role === 'customer') {
             // Customers can ONLY see their own orders
-            query = query.where('customer.email', '==', user.email || 'unknown_email_guard'); 
-            // Note: Order doc uses 'customer.email' or 'userId'? 
-            // Checking createOrder: it saves userId?
-            // OrderDoc type has 'userId' usually. Let's check type definition or use email if consistent.
-            // Let's rely on userId if present, otherwise email.
-            // Actually, checking previous line 144: ...doc.data()
-            // Let's look at submitOrder.ts to see what fields are saved.
-            // For safety, let's assume userId is reliable if authenticated.
-            // BUT wait, submitOrder often runs as guest?
-            // If user is logged in, userId is saved.
-            // Let's use user.uid match on userId field.
             query = query.where('userId', '==', user.uid);
             // Optional: Filter by brand context if provided
             if (orgId) query = query.where('brandId', '==', orgId);
-        } else if (user.role === 'dispensary' || user.locationId) {
-            query = query.where('retailerId', '==', user.locationId || orgId);
-        } else {
+        } else if (user.role === 'dispensary' || user.role === 'dispensary_admin' || user.role === 'dispensary_staff' || user.role === 'budtender') {
+            // Dispensary roles see orders for their location
+            const dispensaryId = locationId || orgId;
+            if (!dispensaryId) {
+                return { success: false, error: 'Dispensary ID not found' };
+            }
+            query = query.where('retailerId', '==', dispensaryId);
+        } else if (user.role === 'brand' || user.role === 'brand_admin' || user.role === 'brand_member') {
+            // Brand roles see orders for their brand
+            if (!orgId) {
+                return { success: false, error: 'Brand ID not found' };
+            }
             query = query.where('brandId', '==', orgId);
+        } else if (user.role === 'super_user' || user.role === 'super_admin') {
+            // Super users can see all orders (optionally filtered by orgId)
+            if (orgId) {
+                query = query.where('brandId', '==', orgId);
+            }
+        } else {
+            return { success: false, error: 'Unauthorized' };
         }
 
-        const snap = await query.orderBy('createdAt', 'desc').limit(100).get();
+        const snap = await query.orderBy('createdAt', 'desc').limit(limit).get();
 
         const bakedBotOrders = snap.docs.map(doc => ({
             id: doc.id,
@@ -320,13 +357,15 @@ export async function getOrders(orgId: string): Promise<OrderDoc[]> {
         });
 
         // 6. Sort by createdAt descending
-        return Array.from(orderMap.values()).sort((a, b) => {
+        const sortedOrders = Array.from(orderMap.values()).sort((a, b) => {
             const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
             const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
             return dateB - dateA;
         });
+
+        return { success: true, data: sortedOrders };
     } catch (error) {
         logger.error('[ORDERS_ACTION] Failed to fetch orders', { error });
-        return [];
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }

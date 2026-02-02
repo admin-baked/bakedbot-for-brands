@@ -20,12 +20,44 @@ service cloud.firestore {
       return request.auth.token.role == role;
     }
 
-    function isBrandManager(brandId) {
-      return isRole('brand') && request.auth.token.brandId == brandId;
+    function isSuperUser() {
+      return isRole('super_user') || isRole('super_admin') || isRole('owner');
     }
-    
+
+    // Brand role helpers
+    function isBrandManager(brandId) {
+      return (isRole('brand') || isRole('brand_admin')) && request.auth.token.brandId == brandId;
+    }
+
+    function isBrandMember(brandId) {
+      return (isRole('brand') || isRole('brand_admin') || isRole('brand_member'))
+             && request.auth.token.brandId == brandId;
+    }
+
+    // Dispensary role helpers
+    function isDispensaryAdmin(locationId) {
+      return (isRole('dispensary') || isRole('dispensary_admin'))
+             && request.auth.token.locationId == locationId;
+    }
+
+    function isDispensaryStaff(locationId) {
+      return (isRole('dispensary') || isRole('dispensary_admin') || isRole('dispensary_staff'))
+             && request.auth.token.locationId == locationId;
+    }
+
+    function isBudtender(locationId) {
+      return isRole('budtender') && request.auth.token.locationId == locationId;
+    }
+
+    function isDispensaryRole(locationId) {
+      return isDispensaryAdmin(locationId) ||
+             isDispensaryStaff(locationId) ||
+             isBudtender(locationId);
+    }
+
+    // Legacy compatibility
     function isDispensaryManager(locationId) {
-      return isRole('dispensary') && request.auth.token.locationId == locationId;
+      return isDispensaryAdmin(locationId);
     }
 
     // --- Public Collections (Read-Only) ---
@@ -112,12 +144,20 @@ service cloud.firestore {
       allow read, update: if
           // The customer who placed the order.
           isOwner(resource.data.userId) ||
-          // The dispensary manager fulfilling the order.
-          isDispensaryManager(resource.data.retailerId) ||
+          // Dispensary staff can view/update orders for their location
+          isDispensaryStaff(resource.data.retailerId) ||
+          // Budtenders can read orders (but not update - enforced by staff check)
+          isBudtender(resource.data.retailerId) ||
           // Brand managers can view orders containing their products.
+          isBrandMember(resource.data.brandId) ||
+          // Super users can access all orders
+          isSuperUser();
+
+      // Only staff and admin can update orders (not budtenders)
+      allow update: if
+          isDispensaryStaff(resource.data.retailerId) ||
           isBrandManager(resource.data.brandId) ||
-          // A global owner/admin.
-          isRole('owner');
+          isSuperUser();
     }
 
     // --- Brands Collection ---
@@ -137,14 +177,26 @@ service cloud.firestore {
       // Customers can read/update their own profile.
       allow read, update: if isOwner(customerId);
 
-      // Owner can access all customer profiles.
-      allow read: if isRole('owner');
+      // Super users can access all customer profiles
+      allow read, update: if isSuperUser();
+
+      // Brand roles can access customers for their brand
+      allow read: if isBrandMember(resource.data.brandId);
+      allow update: if isBrandManager(resource.data.brandId);
+
+      // Dispensary admin/staff can read/update customers for their location
+      allow read, update: if isDispensaryStaff(resource.data.locationId) ||
+                            isDispensaryStaff(resource.data.orgId);
+
+      // Budtenders can read customer info (for service)
+      allow read: if isBudtender(resource.data.locationId) ||
+                     isBudtender(resource.data.orgId);
 
       // Creation happens via server actions during onboarding.
       allow create: if request.auth.uid == customerId;
 
-      // Deletion restricted to owner or user themselves.
-      allow delete: if isOwner(customerId) || isRole('owner');
+      // Deletion restricted to super users or user themselves
+      allow delete: if isOwner(customerId) || isSuperUser();
     }
 
     // --- Analytics Events Collection ---
@@ -401,14 +453,29 @@ service cloud.firestore {
       return request.auth != null && (
         request.auth.token.tenantId == tenantId ||
         request.auth.token.brandId == tenantId ||
-        request.auth.token.locationId == tenantId
+        request.auth.token.locationId == tenantId ||
+        request.auth.token.currentOrgId == tenantId
       );
     }
 
     // Helper: Check if user is tenant admin
     function isTenantAdmin(tenantId) {
-      return isTenantMember(tenantId) && 
-             (request.auth.token.role == 'brand' || request.auth.token.role == 'dispensary');
+      return isTenantMember(tenantId) &&
+             (request.auth.token.role == 'brand' ||
+              request.auth.token.role == 'brand_admin' ||
+              request.auth.token.role == 'dispensary' ||
+              request.auth.token.role == 'dispensary_admin');
+    }
+
+    // Helper: Check if user is tenant staff (can read/write operational data)
+    function isTenantStaff(tenantId) {
+      return isTenantMember(tenantId) &&
+             (request.auth.token.role == 'brand' ||
+              request.auth.token.role == 'brand_admin' ||
+              request.auth.token.role == 'brand_member' ||
+              request.auth.token.role == 'dispensary' ||
+              request.auth.token.role == 'dispensary_admin' ||
+              request.auth.token.role == 'dispensary_staff');
     }
 
     // Tenant Root Document
@@ -446,13 +513,16 @@ service cloud.firestore {
 
     // Tenant Catalog Products
     match /tenants/{tenantId}/catalog/products/{productId} {
-      allow read: if isTenantMember(tenantId) || isRole('owner');
-      allow write: if isTenantAdmin(tenantId) || isRole('owner');
-      
-      // Subcollections
-      match /{subcollection}/{docId} {
-        allow read: if isTenantMember(tenantId) || isRole('owner');
-        allow write: if isTenantAdmin(tenantId) || isRole('owner');
+      allow read: if isTenantMember(tenantId) || isSuperUser();
+      // Admin can create/update/delete, staff can update (inventory)
+      allow create, delete: if isTenantAdmin(tenantId) || isSuperUser();
+      allow update: if isTenantStaff(tenantId) || isSuperUser();
+
+      // Subcollections (items)
+      match /items/{itemId} {
+        allow read: if isTenantMember(tenantId) || isSuperUser();
+        allow create, delete: if isTenantAdmin(tenantId) || isSuperUser();
+        allow update: if isTenantStaff(tenantId) || isSuperUser();
       }
     }
 

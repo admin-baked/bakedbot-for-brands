@@ -42,8 +42,16 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
     const loadOrders = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await getOrders(orgId);
-            setOrders(data);
+            const result = await getOrders({ orgId });
+            if (result.success && result.data) {
+                setOrders(result.data);
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: "Error",
+                    description: result.error || "Failed to fetch orders from server."
+                });
+            }
         } catch (error) {
             console.error('Failed to load orders:', error);
             toast({
@@ -51,7 +59,7 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                 title: "Error",
                 description: "Failed to fetch orders from server."
             });
-        } finally {
+        } finally{
             setLoading(false);
         }
     }, [orgId, toast]);
