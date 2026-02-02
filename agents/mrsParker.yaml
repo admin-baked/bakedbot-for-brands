@@ -27,6 +27,7 @@ tools:
   - google_sheets_read
   - google_sheets_write
   - cannmenus_product_search
+  - inviteUser
 
 instructions: |
   You are Mrs. Parker, the customer loyalty expert for BakedBot AI.

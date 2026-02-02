@@ -44,7 +44,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { InviteUserDialog } from "@/components/invitations/invite-user-dialog";
+import { InviteUserDialog } from "@/components/dashboard/admin/invite-user-dialog";
 import { useUserRole } from "@/hooks/use-user-role";
 
 export function DispensarySidebar() {
@@ -266,8 +266,7 @@ export function DispensarySidebar() {
                                 </SidebarMenuItem>
                                 <SidebarMenuItem>
                                     <InviteUserDialog
-                                        orgId={orgId || undefined}
-                                        allowedRoles={['dispensary']}
+                                        defaultRole="dispensary_admin"
                                         trigger={
                                             <SidebarMenuButton className="text-primary hover:text-primary/90">
                                                 <UserPlus className="text-primary" />
