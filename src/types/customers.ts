@@ -60,6 +60,15 @@ export interface CustomerProfile {
     lifetimeValue: number;
     customTags: string[];
 
+    // Loyalty sync (hybrid system)
+    pointsFromOrders?: number;         // Calculated from Alleaves order history
+    pointsFromAlpine?: number;         // Synced from Alpine IQ (source of truth)
+    pointsLastCalculated?: Date;       // Last sync timestamp
+    tierSource?: 'calculated' | 'alpine_iq';  // Source of tier assignment
+    loyaltyReconciled?: boolean;       // Are calculated and Alpine in sync?
+    loyaltyDiscrepancy?: number;       // Difference between sources
+    alpineUserId?: string;             // Alpine IQ user code from Alleaves
+
     // Personalization data
     birthDate?: string;
     preferences?: CustomerPreferences;
