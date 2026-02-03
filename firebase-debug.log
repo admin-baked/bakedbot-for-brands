@@ -1,0 +1,80 @@
+[debug] [2026-02-03T01:05:51.678Z] ----------------------------------------------------------------------
+[debug] [2026-02-03T01:05:51.689Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\admin\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js apphosting:secrets:set ALLEAVES_WEBHOOK_SECRET
+[debug] [2026-02-03T01:05:51.690Z] CLI Version:   15.4.0
+[debug] [2026-02-03T01:05:51.691Z] Platform:      win32
+[debug] [2026-02-03T01:05:51.691Z] Node Version:  v25.2.1
+[debug] [2026-02-03T01:05:51.691Z] Time:          Mon Feb 02 2026 19:05:51 GMT-0600 (Central Standard Time)
+[debug] [2026-02-03T01:05:51.691Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-02-03T01:05:52.214Z] Field "/storage" in "firebase.json" is possibly invalid: must be object
+[debug] [2026-02-03T01:05:52.214Z] Object "/storage/0" in "firebase.json" is missing required property: {"missingProperty":"bucket"}
+[debug] [2026-02-03T01:05:52.214Z] Field "/storage" in "firebase.json" is possibly invalid: must match a schema in anyOf
+[debug] [2026-02-03T01:05:52.221Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-02-03T01:05:52.222Z] > authorizing via signed-in user (martez@bakedbot.ai)
+[debug] [2026-02-03T01:05:52.223Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-02-03T01:05:52.229Z] > authorizing via signed-in user (martez@bakedbot.ai)
+[debug] [2026-02-03T01:05:52.229Z] [iam] checking project studio-567050101-bc6e8 for permissions ["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.getIamPolicy","secretmanager.secrets.setIamPolicy","secretmanager.secrets.update","secretmanager.versions.add"]
+[debug] [2026-02-03T01:05:52.230Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:05:52.230Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:05:52.232Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions [none]
+[debug] [2026-02-03T01:05:52.232Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions x-goog-quota-user=projects/studio-567050101-bc6e8
+[debug] [2026-02-03T01:05:52.232Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions {"permissions":["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.getIamPolicy","secretmanager.secrets.setIamPolicy","secretmanager.secrets.update","secretmanager.versions.add"]}
+[debug] [2026-02-03T01:05:52.480Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions 200
+[debug] [2026-02-03T01:05:52.480Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8:testIamPermissions {"permissions":["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.getIamPolicy","secretmanager.secrets.setIamPolicy","secretmanager.secrets.update","secretmanager.versions.add"]}
+[debug] [2026-02-03T01:05:52.481Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:05:52.482Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:05:52.482Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8 [none]
+[debug] [2026-02-03T01:05:52.571Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8 200
+[debug] [2026-02-03T01:05:52.571Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/studio-567050101-bc6e8 {"projectNumber":"1016399212569","projectId":"studio-567050101-bc6e8","lifecycleState":"ACTIVE","name":"AI Agent Budtender Live","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-11-05T20:32:53.231927Z","parent":{"type":"organization","id":"1055711355086"}}
+[debug] [2026-02-03T01:05:52.571Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:05:52.572Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:05:52.572Z] >>> [apiv2][query] GET https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET [none]
+[debug] [2026-02-03T01:05:52.843Z] <<< [apiv2][status] GET https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET 404
+[debug] [2026-02-03T01:05:52.843Z] <<< [apiv2][body] GET https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET {"error":{"code":404,"message":"Secret [projects/1016399212569/secrets/ALLEAVES_WEBHOOK_SECRET] not found.","status":"NOT_FOUND"}}
+[debug] [2026-02-03T01:05:52.844Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:05:52.844Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:05:52.845Z] >>> [apiv2][query] POST https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets secretId=ALLEAVES_WEBHOOK_SECRET
+[debug] [2026-02-03T01:05:52.845Z] >>> [apiv2][body] POST https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets {"name":"ALLEAVES_WEBHOOK_SECRET","replication":{"automatic":{}},"labels":{"firebase-managed":"apphosting"}}
+[debug] [2026-02-03T01:05:53.171Z] <<< [apiv2][status] POST https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets 200
+[debug] [2026-02-03T01:05:53.171Z] <<< [apiv2][body] POST https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets {"name":"projects/1016399212569/secrets/ALLEAVES_WEBHOOK_SECRET","replication":{"automatic":{}},"createTime":"2026-02-03T01:05:55.025895Z","labels":{"firebase-managed":"apphosting"},"etag":"\"1649e10aa3d574\""}
+[info] +  Created new secret projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET 
+[debug] [2026-02-03T01:06:10.760Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:06:10.760Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:06:10.761Z] >>> [apiv2][query] POST https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET:addVersion [none]
+[debug] [2026-02-03T01:06:10.761Z] >>> [apiv2][body] POST https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET:addVersion {"payload":{"data":"OWI1NWVjMmEyOWM3OWE4MTQwZjQyMWM2NDhmZjk4NjBiYzE3MGMxMzQ1NWIyMWI5NTgzMzYwNzA4ZWNlZTk0MQ=="}}
+[debug] [2026-02-03T01:06:11.489Z] <<< [apiv2][status] POST https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET:addVersion 200
+[debug] [2026-02-03T01:06:11.489Z] <<< [apiv2][body] POST https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET:addVersion {"name":"projects/1016399212569/secrets/ALLEAVES_WEBHOOK_SECRET/versions/1","createTime":"2026-02-03T01:06:13.420248Z","state":"ENABLED","replicationStatus":{"automatic":{}},"etag":"\"1649e10bb934d8\""}
+[info] +  Created new secret version projects/1016399212569/secrets/ALLEAVES_WEBHOOK_SECRET/versions/1 
+[info] i  You can access the contents of the secret's latest value with firebase apphosting:secrets:access ALLEAVES_WEBHOOK_SECRET
+ 
+[debug] [2026-02-03T01:06:20.757Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:06:20.758Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:06:20.758Z] >>> [apiv2][query] GET https://firebaseapphosting.googleapis.com/v1beta/projects/studio-567050101-bc6e8/locations/-/backends 
+[debug] [2026-02-03T01:06:21.166Z] <<< [apiv2][status] GET https://firebaseapphosting.googleapis.com/v1beta/projects/studio-567050101-bc6e8/locations/-/backends 200
+[debug] [2026-02-03T01:06:21.167Z] <<< [apiv2][body] GET https://firebaseapphosting.googleapis.com/v1beta/projects/studio-567050101-bc6e8/locations/-/backends {"backends":[{"name":"projects/studio-567050101-bc6e8/locations/us-central1/backends/bakedbot-prod","createTime":"2025-12-20T19:03:38.047592769Z","updateTime":"2026-02-02T22:51:28.950552Z","labels":{"deployment-tool":"cli-firebase"},"uri":"bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app","managedResources":[{"runService":{"service":"projects/1016399212569/locations/us-central1/services/bakedbot-prod"}}],"codebase":{"repository":"projects/studio-567050101-bc6e8/locations/us-central1/connections/apphosting-github-conn-izgqmtq/gitRepositoryLinks/admin-baked-bakedbot-for-brands","rootDirectory":"/"},"uid":"cf8fc05b-c18e-416d-96b0-d1bfe5827b9d","etag":"c7Zi5Z72wdmRIphvY3PwDfAjwNDSqidDCTHmH5YeWoY","reconciling":false,"servingLocality":"GLOBAL_ACCESS","serviceAccount":"firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com","appId":"1:1016399212569:web:d9c43842ea4d824e13ba88"}]}
+[debug] [2026-02-03T01:06:30.747Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:06:30.747Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:06:30.748Z] >>> [apiv2][query] GET https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET:getIamPolicy [none]
+[debug] [2026-02-03T01:06:31.345Z] <<< [apiv2][status] GET https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET:getIamPolicy 200
+[debug] [2026-02-03T01:06:31.346Z] <<< [apiv2][body] GET https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET:getIamPolicy {"etag":"ACAB"}
+[debug] [2026-02-03T01:06:31.346Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:06:31.346Z] Checked if tokens are valid: true, expires at: 1770084318851
+[debug] [2026-02-03T01:06:31.346Z] >>> [apiv2][query] POST https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET:setIamPolicy [none]
+[debug] [2026-02-03T01:06:31.346Z] >>> [apiv2][body] POST https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET:setIamPolicy {"policy":{"bindings":[{"role":"roles/secretmanager.secretAccessor","members":["serviceAccount:firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com"]},{"role":"roles/secretmanager.viewer","members":["serviceAccount:firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com"]},{"role":"roles/secretmanager.secretVersionManager","members":["serviceAccount:service-1016399212569@gcp-sa-firebaseapphosting.iam.gserviceaccount.com"]}]},"updateMask":"bindings"}
+[debug] [2026-02-03T01:06:31.606Z] <<< [apiv2][status] POST https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET:setIamPolicy 200
+[debug] [2026-02-03T01:06:31.607Z] <<< [apiv2][body] POST https://secretmanager.googleapis.com/v1/projects/studio-567050101-bc6e8/secrets/ALLEAVES_WEBHOOK_SECRET:setIamPolicy {"version":1,"etag":"BwZJ4Qzua1U=","bindings":[{"role":"roles/secretmanager.secretAccessor","members":["serviceAccount:firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com"]},{"role":"roles/secretmanager.secretVersionManager","members":["serviceAccount:service-1016399212569@gcp-sa-firebaseapphosting.iam.gserviceaccount.com"]},{"role":"roles/secretmanager.viewer","members":["serviceAccount:firebase-app-hosting-compute@studio-567050101-bc6e8.iam.gserviceaccount.com"]}]}
+[info] +  Successfully set IAM bindings on secret ALLEAVES_WEBHOOK_SECRET.
+ 
+[debug] [2026-02-03T01:07:06.828Z] ExitPromptError: User force closed the prompt with SIGINT
+    at Interface.sigint (C:\Users\admin\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\@inquirer\core\dist\commonjs\lib\create-prompt.js:101:37)
+    at Interface.emit (node:events:508:28)
+    at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1327:18)
+    at ReadStream.onkeypress (node:internal/readline/interface:284:20)
+    at ReadStream.emit (node:events:520:35)
+    at emitKeys (node:internal/readline/utils:371:14)
+    at emitKeys.next (<anonymous>)
+    at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
+    at ReadStream.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:559:12)
+[error] 
+[error] Error: An unexpected error has occurred.
