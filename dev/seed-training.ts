@@ -10,7 +10,62 @@
  *   npx tsx dev/seed-training.ts
  */
 
-import { getAdminFirestore } from '../src/firebase/admin';
+import { getApps, initializeApp, cert, applicationDefault } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Local implementation to avoid 'server-only' import issue in scripts
+function getLocalServiceAccount() {
+    let serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+    if (!serviceAccountKey) {
+        try {
+            const localSaPath = path.resolve(process.cwd(), 'service-account.json');
+            if (fs.existsSync(localSaPath)) {
+                serviceAccountKey = fs.readFileSync(localSaPath, 'utf-8');
+                console.log('[Script] Loading key from local service-account.json');
+            }
+        } catch (err) {
+            console.warn('[Script] Failed to read local service-account.json', err);
+        }
+    }
+
+    if (!serviceAccountKey) {
+        return null;
+    }
+
+    let serviceAccount;
+    try {
+        serviceAccount = JSON.parse(serviceAccountKey);
+    } catch (e) {
+        try {
+            const json = Buffer.from(serviceAccountKey, "base64").toString("utf8");
+            serviceAccount = JSON.parse(json);
+        } catch (decodeError) {
+            console.error("Failed to parse key", decodeError);
+            return null;
+        }
+    }
+
+    return serviceAccount;
+}
+
+function getAdminFirestore() {
+    if (getApps().length === 0) {
+        const serviceAccount = getLocalServiceAccount();
+        if (serviceAccount) {
+            initializeApp({ credential: cert(serviceAccount) });
+        } else {
+            console.log('[Script] Using default credentials');
+            initializeApp({
+                credential: applicationDefault(),
+                projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8'
+            });
+        }
+    }
+    return getFirestore();
+}
 import { Timestamp } from '@google-cloud/firestore';
 import { TRAINING_PROGRAM, WEEK_1_CHALLENGES, WEEK_2_CHALLENGES } from '../src/lib/training/curriculum';
 import { WEEK_3_CHALLENGES, WEEK_4_CHALLENGES } from '../src/lib/training/weeks-3-4';

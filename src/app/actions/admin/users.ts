@@ -10,7 +10,7 @@ import { ROLES, isBrandRole, isDispensaryRole } from '@/types/roles';
 const InviteUserSchema = z.object({
     email: z.string().email(),
     role: z.enum(ROLES),
-    businessName: z.string().min(2, "Business name is required").optional(),
+    businessName: z.string().min(2, "Business name is required").or(z.literal('')).optional(),
     firstName: z.string().optional(),
     lastName: z.string().optional(),
     sendEmail: z.boolean().default(true),
