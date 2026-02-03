@@ -116,7 +116,7 @@ env:
     value: "https://bakedbot-code-runner-lo74oftdza-uc.a.run.app"
     availability:
       - RUNTIME
-  - variable: LEAFBUYER_API_URL
+  # - variable: LEAFBUYER_API_URL
   #   secret: LEAFBUYER_API_URL
   #   availability:
   #     - RUNTIME
@@ -126,11 +126,17 @@ env:
   #     - RUNTIME
   - variable: BLACKLEAF_BASE_URL
     value: "https://api.blackleaf.io"
+    availability:
+      - RUNTIME
   # CanPay
   - variable: CANPAY_MODE
     value: "sandbox"
+    availability:
+      - RUNTIME
   - variable: CANPAY_ENVIRONMENT
     value: "sandbox"
+    availability:
+      - RUNTIME
   # - variable: CANPAY_APP_KEY
   #   secret: CANPAY_APP_KEY
   #   availability:
@@ -145,6 +151,8 @@ env:
   #     - RUNTIME
   - variable: CANPAY_INTERNAL_VERSION
     value: "1.4.0"
+    availability:
+      - RUNTIME
   # Stripe
   # - variable: STRIPE_SECRET_KEY
   #   secret: STRIPE_SECRET_KEY
@@ -166,15 +174,25 @@ env:
   # Dev/Security
   - variable: NEXT_PUBLIC_DEV_AUTH_BYPASS
     value: "false"
+    availability:
+      - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
     value: "https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app"
+    availability:
+      - RUNTIME
   # Treasury
   - variable: TREASURY_ENABLE_REAL_TRADING
     value: "false"
+    availability:
+      - RUNTIME
   - variable: TREASURY_USE_FIRESTORE
     value: "true"
+    availability:
+      - RUNTIME
   - variable: FIRECRAWL_API_KEY
     secret: FIRECRAWL_API_KEY
+    availability:
+      - RUNTIME
   # RTRVR - Browser Automation
   - variable: RTRVR_API_KEY
     secret: RTRVR_API_KEY
