@@ -3,9 +3,9 @@ steps:
     args:
       - 'build'
       - '-t'
-      - 'us-central1-docker.pkg.dev/bakedbot-ai/cloud-run/bakedbot-code-runner'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run/bakedbot-code-runner'
       - '-f'
       - 'Dockerfile'
       - '.'
 images:
-  - 'us-central1-docker.pkg.dev/bakedbot-ai/cloud-run/bakedbot-code-runner'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run/bakedbot-code-runner'
