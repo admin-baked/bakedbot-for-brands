@@ -112,7 +112,11 @@ env:
   #   secret: LEAFBUYER_API_SECRET
   #   availability:
   #     - RUNTIME
-  # - variable: LEAFBUYER_API_URL
+  - variable: CODE_RUNNER_URL
+    value: "https://bakedbot-code-runner-lo74oftdza-uc.a.run.app"
+    availability:
+      - RUNTIME
+  - variable: LEAFBUYER_API_URL
   #   secret: LEAFBUYER_API_URL
   #   availability:
   #     - RUNTIME

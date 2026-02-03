@@ -18,7 +18,16 @@ export default async function TrainingAdminPage() {
 
     // Fetch all cohorts
     const cohortsSnapshot = await db.collection('trainingCohorts').orderBy('startDate', 'desc').get();
-    const cohorts = cohortsSnapshot.docs.map((doc) => doc.data() as TrainingCohort);
+    const cohorts = cohortsSnapshot.docs.map((doc) => {
+        const data = doc.data() as TrainingCohort;
+        return {
+            ...data,
+            startDate: data.startDate.toDate().toISOString(),
+            endDate: data.endDate.toDate().toISOString(),
+            createdAt: data.createdAt.toDate().toISOString(),
+            updatedAt: data.updatedAt.toDate().toISOString(),
+        } as any;
+    });
 
     // Fetch recent submissions (last 50)
     const submissionsSnapshot = await db
@@ -26,7 +35,14 @@ export default async function TrainingAdminPage() {
         .orderBy('submittedAt', 'desc')
         .limit(50)
         .get();
-    const recentSubmissions = submissionsSnapshot.docs.map((doc) => doc.data() as TrainingSubmission);
+    const recentSubmissions = submissionsSnapshot.docs.map((doc) => {
+        const data = doc.data() as TrainingSubmission;
+        return {
+            ...data,
+            submittedAt: data.submittedAt.toDate().toISOString(),
+            reviewedAt: data.reviewedAt?.toDate().toISOString(),
+        } as any;
+    });
 
     // Fetch all active participants
     const usersSnapshot = await db.collectionGroup('training').where('status', '==', 'active').get();
