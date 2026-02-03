@@ -60,7 +60,7 @@ app.post('/execute', async (req, res) => {
             });
         }
 
-        const request: ExecutionRequest = validation.data;
+        const request: ExecutionRequest = validation.data!;
 
         // Execute code
         const result: ExecutionResult = await executeCode(request);
