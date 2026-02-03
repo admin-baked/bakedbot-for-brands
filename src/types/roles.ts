@@ -19,27 +19,33 @@
  * 
  * Consumer Level:
  * - customer: End consumers
+ *
+ * Training:
+ * - intern: Training program participants
  */
 
 // Base role type including legacy roles for backward compatibility
-export type UserRole = 
+export type UserRole =
     // Platform level
-    | 'super_user' 
+    | 'super_user'
     | 'super_admin'      // Legacy, treated as super_user
-    
+
     // Brand level (new hierarchy)
     | 'brand_admin'      // NEW: Brand owner/manager
     | 'brand_member'     // NEW: Brand team member
     | 'brand'            // Legacy, treated as brand_admin
-    
+
     // Dispensary level (new hierarchy)
     | 'dispensary_admin' // NEW: Dispensary owner
     | 'dispensary_staff' // NEW: Dispensary employee
     | 'dispensary'       // Legacy, treated as dispensary_admin
     | 'budtender'        // Front-line staff
-    
+
     // Consumer level
-    | 'customer';
+    | 'customer'
+
+    // Training
+    | 'intern';          // Training program participants
 
 /**
  * Role groups for permission checks
@@ -49,6 +55,7 @@ export const BRAND_ADMIN_ROLES: UserRole[] = ['brand_admin', 'brand']; // brand 
 export const BRAND_ALL_ROLES: UserRole[] = ['brand_admin', 'brand_member', 'brand'];
 export const DISPENSARY_ADMIN_ROLES: UserRole[] = ['dispensary_admin', 'dispensary'];
 export const DISPENSARY_ALL_ROLES: UserRole[] = ['dispensary_admin', 'dispensary_staff', 'dispensary', 'budtender'];
+export const INTERN_ROLES: UserRole[] = ['intern'];
 
 // Export as tuple for Zod schemas
 export const ROLES = [
@@ -61,7 +68,8 @@ export const ROLES = [
     'dispensary_staff',
     'dispensary',
     'budtender',
-    'customer'
+    'customer',
+    'intern'
 ] as const;
 
 export const ALL_ROLES: UserRole[] = [...ROLES];
@@ -75,7 +83,8 @@ export const DASHBOARD_ROLES: UserRole[] = [
     'dispensary_admin',
     'dispensary_staff',
     'dispensary',
-    'budtender'
+    'budtender',
+    'intern'
 ];
 
 /**

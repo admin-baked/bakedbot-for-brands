@@ -248,6 +248,13 @@ export function useDashboardConfig() {
         roles: ['super_user'],
       },
       {
+        label: 'Training',
+        href: '/dashboard/training',
+        icon: 'GraduationCap',
+        description: 'Learn BakedBot development through hands-on challenges.',
+        roles: ['intern', 'super_user'],
+      },
+      {
         label: 'Deep Research',
         href: '/dashboard/research',
         icon: 'Globe',
