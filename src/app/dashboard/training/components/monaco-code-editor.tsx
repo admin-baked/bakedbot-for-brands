@@ -11,6 +11,7 @@ import { useEffect, useRef } from 'react';
 import Editor, { Monaco } from '@monaco-editor/react';
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+// @ts-ignore - Monaco types not installed (optional enhancement)
 import type { editor } from 'monaco-editor';
 
 interface MonacoCodeEditorProps {
