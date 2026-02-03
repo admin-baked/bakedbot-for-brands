@@ -41,7 +41,8 @@ import {
     Compass,
     Chrome,
     Rocket,
-    Inbox
+    Inbox,
+    GraduationCap
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
@@ -305,6 +306,16 @@ export function SuperAdminSidebar() {
                                         <Link href="/dashboard/ceo?tab=ground-truth">
                                             <BookOpen />
                                             <span>Ground Truth</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+
+                                {/* Training Admin Section */}
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/training/admin')}>
+                                        <Link href="/dashboard/training/admin">
+                                            <GraduationCap />
+                                            <span>Training Admin</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
