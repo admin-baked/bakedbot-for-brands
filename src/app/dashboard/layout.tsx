@@ -13,11 +13,13 @@ function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
       <DashboardSidebar />
-      <SidebarInset>
-        <div className="flex-1 p-4 md:p-6">
+      <SidebarInset className="h-svh overflow-hidden">
+        <div className="flex flex-col h-full p-4 md:p-6">
           <DashboardHeader />
           <ErrorBoundary>
-            {children}
+            <div className="flex-1 min-h-0 overflow-auto">
+              {children}
+            </div>
           </ErrorBoundary>
         </div>
       </SidebarInset>

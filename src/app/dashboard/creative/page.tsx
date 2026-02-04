@@ -717,7 +717,7 @@ export default function CreativeCommandCenter() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] bg-background text-foreground font-sans overflow-hidden rounded-lg border border-border">
+    <div className="flex h-full bg-background text-foreground font-sans overflow-hidden rounded-lg border border-border">
       <main className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Header */}
         <header className="h-16 border-b border-border bg-muted/50 backdrop-blur-md flex items-center justify-between px-6 shrink-0 z-20">
