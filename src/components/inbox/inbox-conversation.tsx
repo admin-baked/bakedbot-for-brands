@@ -46,6 +46,7 @@ import { InboxCarouselCard } from './artifacts/carousel-card';
 import { InboxBundleCard } from './artifacts/bundle-card';
 import { InboxCreativeCard } from './artifacts/creative-card';
 import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
+import { QRCodeGeneratorInline } from './qr-code-generator-inline';
 import { formatDistanceToNow } from 'date-fns';
 import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inbox';
 import { useJobPoller } from '@/hooks/use-job-poller';
@@ -516,7 +517,29 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             {/* Messages */}
             <ScrollArea ref={scrollRef} className="flex-1 px-4">
                 <div className="max-w-3xl mx-auto py-4">
-                    {thread.messages.length === 0 ? (
+                    {/* QR Code Generator - shown inline for qr_code thread type */}
+                    {thread.type === 'qr_code' && (
+                        <QRCodeGeneratorInline
+                            onComplete={(qrData) => {
+                                // Add a message to the thread with the QR code info
+                                const message: ChatMessage = {
+                                    id: `msg-${Date.now()}`,
+                                    type: 'user',
+                                    content: `Created QR code for: ${qrData.url}${qrData.campaignName ? ` (Campaign: ${qrData.campaignName})` : ''}`,
+                                    timestamp: new Date(),
+                                };
+                                addMessageToThread(thread.id, message);
+                                addMessageToInboxThread(thread.id, message);
+                                toast({
+                                    title: 'QR Code Created',
+                                    description: 'Your QR code has been generated successfully.',
+                                });
+                            }}
+                            className="mb-6"
+                        />
+                    )}
+
+                    {thread.messages.length === 0 && thread.type !== 'qr_code' ? (
                         <div className="text-center py-12">
                             <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                             <h3 className="font-medium text-lg mb-2">Start the conversation</h3>
@@ -524,7 +547,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                 Describe what you'd like to create and {AGENT_NAMES[thread.primaryAgent]?.name || 'your assistant'} will help you build it.
                             </p>
                         </div>
-                    ) : (
+                    ) : thread.messages.length > 0 ? (
                         thread.messages.map((message) => (
                             <MessageBubble
                                 key={message.id}
@@ -533,7 +556,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                 artifacts={artifacts}
                             />
                         ))
-                    )}
+                    ) : null}
 
                     {/* TaskFeed with Agent Pulse - shown while agent is thinking */}
                     <AnimatePresence>
