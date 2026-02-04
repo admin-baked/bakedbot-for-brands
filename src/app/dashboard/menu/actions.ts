@@ -290,6 +290,20 @@ export async function getMenuData(): Promise<MenuData> {
             }
         }
 
+        // 2b. For dispensaries, try getAllByBrand with orgId (checks tenant catalog)
+        if (orgId) {
+            logger.info('[MENU] Trying getAllByBrand with orgId for dispensary', { orgId });
+            const orgProducts = await productRepo.getAllByBrand(orgId);
+            if (orgProducts.length > 0) {
+                logger.info('[MENU] Found products via getAllByBrand', { count: orgProducts.length });
+                return {
+                    products: orgProducts,
+                    source: 'pos',
+                    lastSyncedAt: locationData?.posConfig?.syncedAt?.toDate?.()?.toISOString() || new Date().toISOString()
+                };
+            }
+        }
+
         // 3. Last Resort Fallback: Fetch live from CannMenus if IDs are available
         if (locationId && locationId.startsWith('cm_')) {
             const cms = new CannMenusService();
