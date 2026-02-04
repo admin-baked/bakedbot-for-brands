@@ -6,7 +6,7 @@
  * Left sidebar with quick actions, thread filters, and thread list.
  */
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import {
     Plus,
     Search,
@@ -22,6 +22,7 @@ import {
     Filter,
     Archive,
     Inbox as InboxIcon,
+    Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,7 @@ import type {
 } from '@/types/inbox';
 import { getThreadTypeIcon, getThreadTypeLabel } from '@/types/inbox';
 import { formatDistanceToNow } from 'date-fns';
+import { createInboxThread } from '@/server/actions/inbox';
 
 // ============ Icon Mapping ============
 
@@ -73,15 +75,44 @@ interface InboxSidebarProps {
 // ============ Quick Action Button ============
 
 function QuickActionButton({ action, collapsed }: { action: InboxQuickAction; collapsed?: boolean }) {
-    const { createThread, setQuickActionMode } = useInboxStore();
+    const { createThread, updateThreadId, currentOrgId } = useInboxStore();
+    const [isCreating, setIsCreating] = useState(false);
     const Icon = getIcon(action.icon);
 
-    const handleClick = () => {
-        const thread = createThread(action.threadType, {
-            title: action.label,
-            primaryAgent: action.defaultAgent,
-        });
-        // Could also pre-populate with promptTemplate
+    const handleClick = async () => {
+        if (isCreating) return;
+        setIsCreating(true);
+
+        try {
+            // Create thread locally first for instant UI feedback
+            const localThread = createThread(action.threadType, {
+                title: action.label,
+                primaryAgent: action.defaultAgent,
+            });
+
+            // Persist to Firestore
+            const result = await createInboxThread({
+                type: action.threadType,
+                title: action.label,
+                primaryAgent: action.defaultAgent,
+                brandId: currentOrgId || undefined,
+                dispensaryId: currentOrgId || undefined,
+            });
+
+            if (result.success && result.thread) {
+                // Update local thread ID to match server
+                if (result.thread.id !== localThread.id) {
+                    updateThreadId(localThread.id, result.thread.id);
+                }
+            } else {
+                console.error('[QuickActionButton] Failed to persist thread:', result.error);
+                // Thread still exists locally, user can retry sending messages
+            }
+        } catch (error) {
+            console.error('[QuickActionButton] Error creating thread:', error);
+        } finally {
+            setIsCreating(false);
+        }
     };
 
     if (collapsed) {
@@ -92,8 +123,9 @@ function QuickActionButton({ action, collapsed }: { action: InboxQuickAction; co
                 className="w-10 h-10"
                 onClick={handleClick}
                 title={action.label}
+                disabled={isCreating}
             >
-                <Icon className="h-4 w-4" />
+                {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
             </Button>
         );
     }
@@ -104,8 +136,9 @@ function QuickActionButton({ action, collapsed }: { action: InboxQuickAction; co
             size="sm"
             className="justify-start gap-2 h-9 text-sm font-normal"
             onClick={handleClick}
+            disabled={isCreating}
         >
-            <Icon className="h-4 w-4 text-primary" />
+            {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4 text-primary" />}
             {action.label}
         </Button>
     );
