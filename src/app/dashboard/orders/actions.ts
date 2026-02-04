@@ -289,9 +289,10 @@ export async function getOrders(params: GetOrdersParams | string = {}): Promise<
             orgId = user.brandId || undefined;
         }
 
-        // For dispensary users, use their currentOrgId or locationId
+        // For dispensary users, use their orgId, currentOrgId, or locationId
+        // Note: Claims may use either 'orgId' or 'currentOrgId' depending on setup
         if (!orgId && (user.role === 'dispensary' || user.role === 'dispensary_admin' || user.role === 'dispensary_staff' || user.role === 'budtender')) {
-            orgId = user.currentOrgId || user.locationId || undefined;
+            orgId = (user as any).orgId || user.currentOrgId || user.locationId || undefined;
         }
 
         // 1. Try to get orders from POS (Alleaves) if configured

@@ -234,9 +234,10 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
         orgId = user.brandId || undefined;
     }
 
-    // For dispensary users, use their currentOrgId or locationId
+    // For dispensary users, use their orgId, currentOrgId, or locationId
+    // Note: Claims may use either 'orgId' or 'currentOrgId' depending on setup
     if (!orgId && (user.role === 'dispensary' || user.role === 'dispensary_admin' || user.role === 'dispensary_staff' || user.role === 'budtender')) {
-        orgId = user.currentOrgId || user.locationId || undefined;
+        orgId = (user as any).orgId || user.currentOrgId || user.locationId || undefined;
     }
 
     if (!orgId) {
@@ -256,7 +257,7 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
 
     // For dispensary users, ensure they access their own data
     if ((user.role === 'dispensary' || user.role === 'dispensary_admin' || user.role === 'dispensary_staff' || user.role === 'budtender')) {
-        const userOrgId = user.currentOrgId || user.locationId;
+        const userOrgId = (user as any).orgId || user.currentOrgId || user.locationId;
         if (userOrgId !== orgId) {
             throw new Error('Forbidden: Cannot access another dispensary\'s customers');
         }

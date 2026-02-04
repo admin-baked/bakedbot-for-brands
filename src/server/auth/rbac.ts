@@ -440,9 +440,10 @@ export function getUserOrgId(user: DomainUserProfile | null): string | null {
         return user.brandId || null;
     }
 
-    // Dispensary users use currentOrgId or locationId
+    // Dispensary users use orgId, currentOrgId, or locationId
+    // Note: Claims may use either 'orgId' or 'currentOrgId' depending on setup
     if (isDispensaryRole(userRole)) {
-        return user.currentOrgId || user.locationId || null;
+        return (user as any).orgId || user.currentOrgId || user.locationId || null;
     }
 
     return null;
