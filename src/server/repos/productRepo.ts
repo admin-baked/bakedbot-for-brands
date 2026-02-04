@@ -190,14 +190,62 @@ export function makeProductRepo(db: Firestore) {
 
     /**
      * Retrieves all products for a given locationId (Dispensary).
+     *
+     * Checks multiple sources:
+     * 1. Legacy products collection (where dispensaryId == locationId)
+     * 2. Tenant catalog (tenants/{locationId}/publicViews/products/items)
      */
     async getAllByLocation(locationId: string): Promise<Product[]> {
+      // 1. Try legacy products collection first
       const snapshot = await productCollection.where('dispensaryId', '==', locationId).get();
-      if (snapshot.empty) {
-        logger.info(`No products found for locationId: ${locationId}`);
-        return [];
+      if (!snapshot.empty) {
+        logger.info(`Found ${snapshot.size} products in legacy collection for locationId: ${locationId}`);
+        return snapshot.docs.map(doc => doc.data() as Product);
       }
-      return snapshot.docs.map(doc => doc.data() as Product);
+
+      // 2. Try tenant catalog (for POS-integrated dispensaries)
+      try {
+        const tenantProductsSnapshot = await db
+          .collection('tenants')
+          .doc(locationId)
+          .collection('publicViews')
+          .doc('products')
+          .collection('items')
+          .get();
+
+        if (!tenantProductsSnapshot.empty) {
+          logger.info(`Found ${tenantProductsSnapshot.size} products in tenant catalog for locationId: ${locationId}`);
+          return tenantProductsSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              dispensaryId: locationId,
+              brandId: data.brandId || '',
+              brandName: data.brandName || data.brand || '',
+              name: data.name,
+              description: data.description || '',
+              price: data.price,
+              originalPrice: data.originalPrice || data.price,
+              imageUrl: data.imageUrl || '',
+              category: data.category,
+              thcPercent: data.thcPercent,
+              cbdPercent: data.cbdPercent,
+              strainType: data.strainType,
+              inStock: data.inStock ?? (data.stock > 0),
+              stockCount: data.stockCount ?? data.stock ?? 0,
+              source: 'pos',
+              externalId: data.externalId,
+            } as Product;
+          });
+        }
+      } catch (error) {
+        logger.error(`Error fetching tenant catalog for ${locationId}:`, {
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+
+      logger.info(`No products found for locationId: ${locationId}`);
+      return [];
     },
 
     /**

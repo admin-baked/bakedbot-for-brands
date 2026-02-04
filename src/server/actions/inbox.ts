@@ -137,20 +137,40 @@ export async function createInboxThread(input: {
             ],
             artifactIds: [],
             messages: input.initialMessage ? [input.initialMessage] : [],
-            projectId: input.projectId,
-            brandId: input.brandId,
-            dispensaryId: input.dispensaryId,
             createdAt: new Date(),
             updatedAt: new Date(),
             lastActivityAt: new Date(),
         };
 
-        await db.collection(INBOX_THREADS_COLLECTION).doc(threadId).set({
-            ...thread,
+        // Only add optional fields if they have values (Firestore rejects undefined)
+        if (input.projectId) thread.projectId = input.projectId;
+        if (input.brandId) thread.brandId = input.brandId;
+        if (input.dispensaryId) thread.dispensaryId = input.dispensaryId;
+
+        // Build Firestore data - filter out any undefined values to avoid Firestore errors
+        const firestoreData: Record<string, unknown> = {
+            id: thread.id,
+            orgId: thread.orgId,
+            userId: thread.userId,
+            type: thread.type,
+            status: thread.status,
+            title: thread.title,
+            preview: thread.preview,
+            primaryAgent: thread.primaryAgent,
+            assignedAgents: thread.assignedAgents,
+            artifactIds: thread.artifactIds,
+            messages: thread.messages,
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
             lastActivityAt: FieldValue.serverTimestamp(),
-        });
+        };
+
+        // Add optional fields only if defined
+        if (thread.projectId) firestoreData.projectId = thread.projectId;
+        if (thread.brandId) firestoreData.brandId = thread.brandId;
+        if (thread.dispensaryId) firestoreData.dispensaryId = thread.dispensaryId;
+
+        await db.collection(INBOX_THREADS_COLLECTION).doc(threadId).set(firestoreData);
 
         logger.info('Created inbox thread', { threadId, type: input.type, userId: user.uid });
 
