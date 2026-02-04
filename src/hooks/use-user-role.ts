@@ -161,9 +161,11 @@ export function useUserRole() {
 
     // Organization IDs from claims
     const brandId = useMemo(() => (user as any)?.brandId || null, [user]);
-    const dispensaryId = useMemo(() => (user as any)?.dispensaryId || null, [user]);
+    // Dispensary users have locationId claim, not dispensaryId
+    const locationId = useMemo(() => (user as any)?.locationId || null, [user]);
+    const dispensaryId = useMemo(() => locationId || (user as any)?.dispensaryId || null, [user, locationId]);
     const currentOrgId = useMemo(() => (user as any)?.currentOrgId || null, [user]);
-    const orgId = useMemo(() => currentOrgId || brandId || dispensaryId || null, [currentOrgId, brandId, dispensaryId]);
+    const orgId = useMemo(() => currentOrgId || brandId || locationId || dispensaryId || null, [currentOrgId, brandId, locationId, dispensaryId]);
 
     return {
         role,
@@ -180,6 +182,7 @@ export function useUserRole() {
         // Organization IDs for invitations and scoped actions
         brandId,
         dispensaryId,
+        locationId,
         orgId,
         // Helper checks
         isBrandRole: role ? isBrandRole(role) : false,

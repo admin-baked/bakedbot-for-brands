@@ -6,12 +6,13 @@
  * Shown when no thread is selected in the inbox.
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Inbox, Images, PackagePlus, Palette, Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useInboxStore } from '@/lib/store/inbox-store';
 import type { InboxQuickAction } from '@/types/inbox';
+import { createInboxThread } from '@/server/actions/inbox';
 
 // ============ Props ============
 
@@ -31,24 +32,57 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 // ============ Quick Start Card ============
 
 function QuickStartCard({ action }: { action: InboxQuickAction }) {
-    const { createThread } = useInboxStore();
+    const { createThread, updateThreadId, currentOrgId } = useInboxStore();
+    const [isCreating, setIsCreating] = useState(false);
     const Icon = ICON_MAP[action.icon] || Inbox;
 
-    const handleClick = () => {
-        createThread(action.threadType, {
-            title: action.label,
-            primaryAgent: action.defaultAgent,
-        });
+    const handleClick = async () => {
+        if (isCreating) return;
+        setIsCreating(true);
+
+        try {
+            // Create thread locally first for instant UI feedback
+            const localThread = createThread(action.threadType, {
+                title: action.label,
+                primaryAgent: action.defaultAgent,
+            });
+
+            // Persist to Firestore
+            const result = await createInboxThread({
+                type: action.threadType,
+                title: action.label,
+                primaryAgent: action.defaultAgent,
+                brandId: currentOrgId || undefined,
+                dispensaryId: currentOrgId || undefined,
+            });
+
+            if (result.success && result.thread) {
+                // Update local thread ID to match server
+                if (result.thread.id !== localThread.id) {
+                    updateThreadId(localThread.id, result.thread.id);
+                }
+            } else {
+                console.error('[QuickStartCard] Failed to persist thread:', result.error);
+            }
+        } catch (error) {
+            console.error('[QuickStartCard] Error creating thread:', error);
+        } finally {
+            setIsCreating(false);
+        }
     };
 
     return (
         <button
             onClick={handleClick}
-            className="group p-6 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left"
+            disabled={isCreating}
+            className={cn(
+                "group p-6 rounded-xl border bg-card hover:bg-muted/50 transition-colors text-left",
+                isCreating && "opacity-70 cursor-not-allowed"
+            )}
         >
             <div className="flex items-center gap-4">
                 <div className="p-3 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                    <Icon className="h-6 w-6" />
+                    {isCreating ? <Loader2 className="h-6 w-6 animate-spin" /> : <Icon className="h-6 w-6" />}
                 </div>
                 <div>
                     <h3 className="font-semibold">{action.label}</h3>
