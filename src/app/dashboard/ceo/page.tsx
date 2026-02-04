@@ -39,6 +39,7 @@ const PilotSetupTab = dynamic(() => import("./components/pilot-setup-tab"), { lo
 const GroundTruthTab = dynamic(() => import("./components/ground-truth-tab"), { loading: TabLoader, ssr: false });
 const UnifiedAdminConsole = dynamic(() => import("./components/unified-admin-console"), { loading: TabLoader, ssr: false });
 const LeadsTab = dynamic(() => import("./components/leads-tab"), { loading: TabLoader });
+const WhatsAppTab = dynamic(() => import("./components/whatsapp-tab"), { loading: TabLoader, ssr: false });
 
 
 import { useSuperAdmin } from '@/hooks/use-super-admin';
@@ -186,6 +187,7 @@ function CeoDashboardContent() {
             case 'talk-tracks': return <TalkTracksTab />;
             case 'ground-truth': return <GroundTruthTab />;
             case 'leads': return <LeadsTab />;
+            case 'whatsapp': return <WhatsAppTab />;
             default: return <SuperAdminPlaybooksTab />;
         }
     };
