@@ -47,8 +47,9 @@ function QuickStartCard({ action }: { action: InboxQuickAction }) {
                 primaryAgent: action.defaultAgent,
             });
 
-            // Persist to Firestore
+            // Persist to Firestore - pass local ID to avoid race conditions
             const result = await createInboxThread({
+                id: localThread.id, // Use the same ID as local thread
                 type: action.threadType,
                 title: action.label,
                 primaryAgent: action.defaultAgent,
@@ -56,12 +57,7 @@ function QuickStartCard({ action }: { action: InboxQuickAction }) {
                 dispensaryId: currentOrgId || undefined,
             });
 
-            if (result.success && result.thread) {
-                // Update local thread ID to match server
-                if (result.thread.id !== localThread.id) {
-                    updateThreadId(localThread.id, result.thread.id);
-                }
-            } else {
+            if (!result.success) {
                 console.error('[QuickStartCard] Failed to persist thread:', result.error);
             }
         } catch (error) {
