@@ -70,6 +70,7 @@ export function makeProductRepo(db: Firestore) {
       try {
         // First, try to get brand document directly by ID
         let brandDoc = await db.collection('brands').doc(effectiveBrandId).get();
+        let orgId: string | undefined;
 
         // If not found, try querying by slug
         if (!brandDoc.exists) {
@@ -83,9 +84,25 @@ export function makeProductRepo(db: Firestore) {
           }
         }
 
+        // If still not found, try querying by orgId field
+        // This handles cases where effectiveBrandId is actually an orgId (e.g., 'org_thrive_syracuse')
+        if (!brandDoc.exists) {
+          const orgIdQuery = await db.collection('brands')
+            .where('orgId', '==', effectiveBrandId)
+            .limit(1)
+            .get();
+
+          if (!orgIdQuery.empty) {
+            brandDoc = orgIdQuery.docs[0];
+            // We found brand by orgId, so we already know the orgId
+            orgId = effectiveBrandId;
+          }
+        }
+
+        // If brand found and it has orgId (or we found it via orgId), fetch from tenant
         if (brandDoc.exists) {
           const brand = brandDoc.data()!;
-          const orgId = brand.orgId;
+          orgId = orgId || brand.orgId;
 
           // If brand has orgId, fetch from tenant publicViews
           if (orgId) {
@@ -125,7 +142,44 @@ export function makeProductRepo(db: Firestore) {
         // Fall through to legacy collection
       }
 
-      // Fallback to legacy products collection
+      // Fallback: If brandId looks like an orgId, try tenant directly
+      if (effectiveBrandId.startsWith('org_')) {
+        logger.info(`Trying direct tenant lookup for orgId: ${effectiveBrandId}`);
+        try {
+          const tenantProductsSnapshot = await db
+            .collection('tenants')
+            .doc(effectiveBrandId)
+            .collection('publicViews')
+            .doc('products')
+            .collection('items')
+            .get();
+
+          if (!tenantProductsSnapshot.empty) {
+            logger.info(`Found ${tenantProductsSnapshot.size} products in tenant catalog`);
+            return tenantProductsSnapshot.docs.map(doc => {
+              const data = doc.data();
+              return {
+                id: doc.id,
+                brandId: effectiveBrandId,
+                name: data.name,
+                description: data.description,
+                price: data.price,
+                imageUrl: data.imageUrl,
+                category: data.category,
+                thcPercent: data.thcPercent,
+                cbdPercent: data.cbdPercent,
+                strainType: data.strainType,
+              } as Product;
+            });
+          }
+        } catch (err) {
+          logger.error(`Direct tenant lookup failed for ${effectiveBrandId}:`, {
+            error: err instanceof Error ? err.message : String(err)
+          });
+        }
+      }
+
+      // Final fallback to legacy products collection
       const snapshot = await productCollection.where('brandId', '==', effectiveBrandId).get();
       if (snapshot.empty) {
         logger.info(`No products found for brandId: ${effectiveBrandId}`);
