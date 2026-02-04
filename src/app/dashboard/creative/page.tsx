@@ -55,10 +55,14 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { getMenuData } from "@/app/dashboard/menu/actions";
 import { approveAtLevel, rejectAtLevel } from "@/server/actions/creative-content";
-import { BarChart3, TrendingUp, QrCode } from "lucide-react";
+import { BarChart3, TrendingUp, QrCode, ShieldOff } from "lucide-react";
 import { EngagementAnalytics } from "@/components/creative/engagement-analytics";
 import { ApprovalChain } from "@/components/creative/approval-chain";
 import { useUser } from "@/firebase/auth/use-user";
+
+// Feature flag: Gauntlet compliance verification system
+// Set to true when Gauntlet is re-enabled in agent-runner.ts
+const GAUNTLET_ENABLED = false;
 
 // --- Types & Mock Data ---
 
@@ -1085,6 +1089,8 @@ export default function CreativeCommandCenter() {
                 <h3 className="font-semibold text-lg">Deebo Compliance Shield</h3>
                  <Card className="bg-card border-border shadow-none flex-1 flex flex-col">
                     <CardContent className="p-6 flex-1 flex flex-col items-center justify-center space-y-6">
+                      {GAUNTLET_ENABLED ? (
+                        <>
                         <div className="relative">
                             <Avatar className="w-16 h-16 border-2 border-border z-10 relative">
                                 <AvatarImage src="/avatars/deebo.png" />
@@ -1115,10 +1121,10 @@ export default function CreativeCommandCenter() {
                                 <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-sm space-y-3">
                                     <div className="flex items-center justify-between mb-1">
                                         <span className="font-medium text-primary flex items-center gap-1.5">
-                                            <CheckCircle2 className="w-4 h-4"/> Deebo's Safe Version
+                                            <CheckCircle2 className="w-4 h-4"/> Deebo&apos;s Safe Version
                                         </span>
                                     </div>
-                                    <p className="text-foreground">"May help with relaxation."</p>
+                                    <p className="text-foreground">&quot;May help with relaxation.&quot;</p>
                                     <Button
                                       size="sm"
                                       onClick={handleAcceptSafeVersion}
@@ -1144,7 +1150,30 @@ export default function CreativeCommandCenter() {
                               </div>
                             )}
                         </div>
-
+                        </>
+                      ) : (
+                        <>
+                        <div className="relative">
+                            <Avatar className="w-16 h-16 border-2 border-muted z-10 relative opacity-50">
+                                <AvatarFallback className="bg-muted text-muted-foreground">DB</AvatarFallback>
+                            </Avatar>
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-muted rounded-lg flex items-center justify-center z-0">
+                                <ShieldOff className="w-8 h-8 text-muted-foreground/40" />
+                            </div>
+                        </div>
+                        <div className="w-full text-center space-y-2">
+                            <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm">
+                                <div className="flex items-center justify-center gap-2">
+                                    <ShieldOff className="w-4 h-4 text-muted-foreground"/>
+                                    <span className="font-medium text-muted-foreground">System Paused</span>
+                                </div>
+                                <p className="text-muted-foreground text-xs mt-2">
+                                    Compliance verification is currently in maintenance. Content will be reviewed manually.
+                                </p>
+                            </div>
+                        </div>
+                        </>
+                      )}
                     </CardContent>
                 </Card>
               </motion.div>
@@ -1358,18 +1387,14 @@ export default function CreativeCommandCenter() {
                         onReject={handleApprovalChainReject}
                       />
                     ) : (
-                      <Card className="bg-card border-border shadow-none p-4 space-y-2">
-                        <div className="bg-background border border-border rounded-md p-3 text-sm font-medium text-center text-muted-foreground">
-                            Pending
-                        </div>
-                        <div className="flex justify-center text-muted-foreground"><ChevronDown className="w-4 h-4"/></div>
-                         <div className="bg-background border border-border rounded-md p-3 text-sm font-medium text-center text-muted-foreground">
-                            Under Revision
-                        </div>
-                         <div className="flex justify-center text-muted-foreground"><ChevronDown className="w-4 h-4"/></div>
-                        <div className="bg-primary/10 border border-primary/30 rounded-md p-3 text-sm font-medium flex items-center justify-between text-primary">
-                            <span>Approved by [User]</span>
-                            <CheckCircle2 className="w-4 h-4 fill-primary text-primary-foreground"/>
+                      <Card className="bg-card border-border shadow-none p-4">
+                        <div className="text-center py-6 space-y-3">
+                            <div className="flex justify-center">
+                                <CheckCircle2 className="w-8 h-8 text-muted-foreground/30" />
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                Generate content to begin the approval workflow
+                            </p>
                         </div>
                       </Card>
                     )}
@@ -1749,6 +1774,8 @@ export default function CreativeCommandCenter() {
                 <h3 className="font-semibold text-lg">Deebo Compliance Shield</h3>
                  <Card className="bg-card border-border shadow-none flex-1 flex flex-col">
                     <CardContent className="p-6 flex-1 flex flex-col items-center justify-center space-y-6">
+                      {GAUNTLET_ENABLED ? (
+                        <>
                         <div className="relative">
                             <Avatar className="w-16 h-16 border-2 border-border z-10 relative">
                                 <AvatarImage src="/avatars/deebo.png" />
@@ -1779,10 +1806,10 @@ export default function CreativeCommandCenter() {
                                 <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-sm space-y-3">
                                     <div className="flex items-center justify-between mb-1">
                                         <span className="font-medium text-primary flex items-center gap-1.5">
-                                            <CheckCircle2 className="w-4 h-4"/> Deebo's Safe Version
+                                            <CheckCircle2 className="w-4 h-4"/> Deebo&apos;s Safe Version
                                         </span>
                                     </div>
-                                    <p className="text-foreground">"May help with relaxation."</p>
+                                    <p className="text-foreground">&quot;May help with relaxation.&quot;</p>
                                     <Button
                                       size="sm"
                                       onClick={handleAcceptSafeVersion}
@@ -1808,7 +1835,30 @@ export default function CreativeCommandCenter() {
                               </div>
                             )}
                         </div>
-
+                        </>
+                      ) : (
+                        <>
+                        <div className="relative">
+                            <Avatar className="w-16 h-16 border-2 border-muted z-10 relative opacity-50">
+                                <AvatarFallback className="bg-muted text-muted-foreground">DB</AvatarFallback>
+                            </Avatar>
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-muted rounded-lg flex items-center justify-center z-0">
+                                <ShieldOff className="w-8 h-8 text-muted-foreground/40" />
+                            </div>
+                        </div>
+                        <div className="w-full text-center space-y-2">
+                            <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm">
+                                <div className="flex items-center justify-center gap-2">
+                                    <ShieldOff className="w-4 h-4 text-muted-foreground"/>
+                                    <span className="font-medium text-muted-foreground">System Paused</span>
+                                </div>
+                                <p className="text-muted-foreground text-xs mt-2">
+                                    Compliance verification is currently in maintenance. Content will be reviewed manually.
+                                </p>
+                            </div>
+                        </div>
+                        </>
+                      )}
                     </CardContent>
                 </Card>
               </motion.div>
@@ -2022,18 +2072,14 @@ export default function CreativeCommandCenter() {
                         onReject={handleApprovalChainReject}
                       />
                     ) : (
-                      <Card className="bg-card border-border shadow-none p-4 space-y-2">
-                        <div className="bg-background border border-border rounded-md p-3 text-sm font-medium text-center text-muted-foreground">
-                            Pending
-                        </div>
-                        <div className="flex justify-center text-muted-foreground"><ChevronDown className="w-4 h-4"/></div>
-                         <div className="bg-background border border-border rounded-md p-3 text-sm font-medium text-center text-muted-foreground">
-                            Under Revision
-                        </div>
-                         <div className="flex justify-center text-muted-foreground"><ChevronDown className="w-4 h-4"/></div>
-                        <div className="bg-primary/10 border border-primary/30 rounded-md p-3 text-sm font-medium flex items-center justify-between text-primary">
-                            <span>Approved by [User]</span>
-                            <CheckCircle2 className="w-4 h-4 fill-primary text-primary-foreground"/>
+                      <Card className="bg-card border-border shadow-none p-4">
+                        <div className="text-center py-6 space-y-3">
+                            <div className="flex justify-center">
+                                <CheckCircle2 className="w-8 h-8 text-muted-foreground/30" />
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                Generate content to begin the approval workflow
+                            </p>
                         </div>
                       </Card>
                     )}

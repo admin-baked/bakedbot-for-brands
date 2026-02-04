@@ -16,6 +16,15 @@ import type { POSProvider } from '@/lib/pos/types';
 // App definitions for the App Store
 const APPS = [
     {
+        id: 'alleaves',
+        name: 'Alleaves',
+        category: 'POS',
+        description: 'Sync inventory and orders from Alleaves POS.',
+        icon: '🌿',
+        status: 'available',
+        featured: true,
+    },
+    {
         id: 'dutchie',
         name: 'Dutchie',
         category: 'POS',
@@ -298,6 +307,7 @@ export default function AppStorePage() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="alleaves">Alleaves</SelectItem>
                                         <SelectItem value="dutchie">Dutchie</SelectItem>
                                         <SelectItem value="jane">iHeartJane</SelectItem>
                                         <SelectItem value="treez">Treez</SelectItem>

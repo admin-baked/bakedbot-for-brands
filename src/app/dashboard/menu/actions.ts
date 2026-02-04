@@ -63,6 +63,36 @@ async function resolveLocation(
 }
 
 /**
+ * Resolve the user's orgId from claims, falling back to their Firestore profile.
+ * Claims can be stale if they weren't refreshed after an admin update.
+ */
+async function resolveOrgId(
+    firestore: FirebaseFirestore.Firestore,
+    user: { uid: string; locationId?: string; [key: string]: any }
+): Promise<string | undefined> {
+    // 1. Try claims first
+    const fromClaims = user.orgId || user.currentOrgId || user.locationId;
+    if (fromClaims) return fromClaims;
+
+    // 2. Fallback: check Firestore user profile
+    try {
+        const userDoc = await firestore.collection('users').doc(user.uid).get();
+        if (userDoc.exists) {
+            const data = userDoc.data();
+            const fromProfile = data?.orgId || data?.currentOrgId || data?.locationId || data?.dispensaryId;
+            if (fromProfile) {
+                logger.info('[RESOLVE_ORG] Found orgId from user profile', { uid: user.uid, orgId: fromProfile });
+                return fromProfile;
+            }
+        }
+    } catch (e) {
+        logger.warn('[RESOLVE_ORG] Failed to read user profile', { uid: user.uid });
+    }
+
+    return undefined;
+}
+
+/**
  * Get POS configuration info for the current user's location
  */
 export async function getPosConfig(): Promise<PosConfigInfo> {
@@ -70,7 +100,7 @@ export async function getPosConfig(): Promise<PosConfigInfo> {
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
 
-        const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
+        const orgId = await resolveOrgId(firestore, user as any);
         logger.info('[GET_POS_CONFIG] Called', { locationId: user.locationId, orgId, role: user.role });
 
         const { locationId, locationData } = await resolveLocation(firestore, user.locationId, orgId, 'GET_POS_CONFIG');
@@ -119,7 +149,7 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
 
-        const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
+        const orgId = await resolveOrgId(firestore, user as any);
 
         // 1. Resolve Location with proper fallback
         const { locationId, locationData } = await resolveLocation(firestore, user.locationId, orgId, 'SYNC_MENU');
@@ -244,7 +274,7 @@ export async function getMenuData(): Promise<MenuData> {
 
         const brandId = user.brandId; // For Brands
         const role = user.role;
-        const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
+        const orgId = await resolveOrgId(firestore, user as any);
 
         logger.info('[MENU] getMenuData called', { locationId: user.locationId, brandId, role, orgId });
 
