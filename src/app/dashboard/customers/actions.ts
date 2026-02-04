@@ -123,16 +123,13 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
         logger.info('[CUSTOMERS] Fetched customers from Alleaves', {
             orgId,
             count: alleavesCustomers.length,
-            expected: '2527',
         });
 
-        // Fetch customer spending data from orders
-        logger.info('[CUSTOMERS] Fetching customer spending data', { orgId });
-        const customerSpending = await client.getCustomerSpending();
-        logger.info('[CUSTOMERS] Customer spending calculated', {
-            orgId,
-            customersWithSpending: customerSpending.size,
-        });
+        // Skip spending data on initial load to prevent timeout
+        // Spending data fetches 100k+ orders which causes server crashes
+        // TODO: Load spending data asynchronously via separate endpoint
+        const customerSpending = new Map<number, { totalSpent: number; orderCount: number; lastOrderDate: Date; firstOrderDate: Date }>();
+        logger.info('[CUSTOMERS] Skipping spending data fetch for performance', { orgId });
 
         // Transform Alleaves customers to CustomerProfile format
         const customers = alleavesCustomers.map((ac: any, index: number) => {
