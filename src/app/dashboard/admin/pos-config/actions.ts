@@ -344,3 +344,38 @@ export async function disablePOSConfig(locationId: string): Promise<{
         return { success: false, message: error.message || 'Failed to disable' };
     }
 }
+
+/**
+ * Delete a location document (for removing duplicates).
+ * SECURITY: Requires Super User privileges.
+ * WARNING: This permanently deletes the location.
+ */
+export async function deleteLocation(locationId: string): Promise<{
+    success: boolean;
+    message: string;
+}> {
+    await requireSuperUser();
+
+    logger.info('[POSConfig] Deleting location', { locationId });
+
+    try {
+        const { firestore } = await createServerClient();
+
+        // Verify location exists
+        const locDoc = await firestore.collection('locations').doc(locationId).get();
+        if (!locDoc.exists) {
+            return { success: false, message: 'Location not found' };
+        }
+
+        const locationName = locDoc.data()?.name || locationId;
+
+        // Delete the location
+        await firestore.collection('locations').doc(locationId).delete();
+
+        logger.info('[POSConfig] Location deleted', { locationId, locationName });
+        return { success: true, message: `Location "${locationName}" deleted successfully` };
+    } catch (error: any) {
+        logger.error('[POSConfig] Failed to delete location', { locationId, error: error.message });
+        return { success: false, message: error.message || 'Failed to delete location' };
+    }
+}
