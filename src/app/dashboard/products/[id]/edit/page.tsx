@@ -25,14 +25,15 @@ function serializeProduct(product: Product): Product {
 export default async function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   let user;
   try {
-    user = await requireUser(['brand', 'super_user']);
+    user = await requireUser(['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'super_user']);
   } catch {
-    redirect('/brand-login');
+    redirect('/login');
   }
 
-  const brandId = user.brandId;
-  if (!brandId && user.role !== 'super_user') {
-    // Should not happen if role is brand, but a good safeguard.
+  // Get org ID - for brands use brandId, for dispensaries use orgId/locationId
+  const orgId = user.brandId || (user as any).orgId || (user as any).currentOrgId || user.locationId;
+  if (!orgId && user.role !== 'super_user') {
+    // No org context found
     redirect('/dashboard');
   }
 
@@ -43,8 +44,11 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const productRepo = makeProductRepo(firestore);
   const product = await productRepo.getById(id);
 
-  // Security check: ensure the user is editing a product that belongs to their brand
-  if (!product || (user.role !== 'super_user' && product.brandId !== brandId)) {
+  // Security check: ensure the user is editing a product that belongs to their org
+  const hasAccess = user.role === 'super_user' ||
+    product.brandId === orgId ||
+    (product as any).dispensaryId === orgId;
+  if (!product || !hasAccess) {
     return (
         <div className="mx-auto max-w-2xl">
             <h1 className="text-2xl font-bold">Product not found</h1>
