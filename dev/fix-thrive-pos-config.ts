@@ -59,9 +59,11 @@ async function fixPOSConfig() {
         console.log(`📍 Found location: ${doc.id}`);
         console.log('   Current Config:', JSON.stringify(currentData.posConfig, null, 2));
 
-        // Prepare update
+        // Prepare update - ensure provider is set for getPosConfig to find it
         const updatedConfig = {
             ...currentData.posConfig,
+            provider: 'alleaves',  // CRITICAL: This enables the Sync button
+            status: 'active',
             username: CORRECT_USERNAME,
             password: CORRECT_PASSWORD,
             pin: CORRECT_PIN,
@@ -77,9 +79,12 @@ async function fixPOSConfig() {
         });
 
         console.log('\n✅ Configuration updated successfully!');
-        console.log('   New PIN:', updatedConfig.pin);
-        console.log('   New Location ID:', updatedConfig.locationId);
-        console.log('   New Store ID:', updatedConfig.storeId);
+        console.log('   Provider:', updatedConfig.provider);
+        console.log('   Status:', updatedConfig.status);
+        console.log('   PIN:', updatedConfig.pin);
+        console.log('   Location ID:', updatedConfig.locationId);
+        console.log('   Store ID:', updatedConfig.storeId);
+        console.log('\n🎯 The "Sync with Alleaves" button should now be enabled on /dashboard/menu');
 
     } catch (error: any) {
         console.error('❌ Failed to update configuration:', error.message);
