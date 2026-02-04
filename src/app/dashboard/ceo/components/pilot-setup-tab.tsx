@@ -78,6 +78,9 @@ export default function PilotSetupTab() {
         storeId: '',
         locationId: '',
         environment: 'production',
+        username: '',
+        password: '',
+        pin: '',
     });
 
     // Email Marketing Configuration
@@ -850,14 +853,43 @@ export default function PilotSetupTab() {
                                 />
                             </div>
                             {posConfig.provider === 'alleaves' && (
-                                <div className="space-y-2">
-                                    <Label>Location ID</Label>
-                                    <Input
-                                        value={posConfig.locationId || ''}
-                                        onChange={(e) => setPosConfig({ ...posConfig, locationId: e.target.value })}
-                                        placeholder="ALLeaves location ID"
-                                    />
-                                </div>
+                                <>
+                                    <div className="space-y-2">
+                                        <Label>Location ID</Label>
+                                        <Input
+                                            value={posConfig.locationId || ''}
+                                            onChange={(e) => setPosConfig({ ...posConfig, locationId: e.target.value })}
+                                            placeholder="ALLeaves location ID"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Username (Email) *</Label>
+                                        <Input
+                                            value={posConfig.username || ''}
+                                            onChange={(e) => setPosConfig({ ...posConfig, username: e.target.value })}
+                                            placeholder="ALLeaves login email"
+                                            type="email"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Password *</Label>
+                                        <Input
+                                            value={posConfig.password || ''}
+                                            onChange={(e) => setPosConfig({ ...posConfig, password: e.target.value })}
+                                            placeholder="ALLeaves password"
+                                            type="password"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>PIN</Label>
+                                        <Input
+                                            value={posConfig.pin || ''}
+                                            onChange={(e) => setPosConfig({ ...posConfig, pin: e.target.value })}
+                                            placeholder="ALLeaves PIN (if required)"
+                                            type="password"
+                                        />
+                                    </div>
+                                </>
                             )}
                         </div>
 
@@ -875,7 +907,7 @@ export default function PilotSetupTab() {
                     <CardFooter>
                         <Button
                             onClick={handleConfigurePOS}
-                            disabled={isGeneratingData || !posConfig.storeId || testDataStatus.pos?.configured}
+                            disabled={isGeneratingData || !posConfig.storeId || testDataStatus.pos?.configured || (posConfig.provider === 'alleaves' && (!posConfig.username || !posConfig.password))}
                             className="w-full"
                         >
                             {isGeneratingData ? (

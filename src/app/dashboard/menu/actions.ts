@@ -12,19 +12,74 @@ export interface MenuData {
     lastSyncedAt: string | null;
 }
 
+export interface PosConfigInfo {
+    provider: string | null;
+    status: string | null;
+    displayName: string;
+}
+
 /**
- * Triggers a sync with the connected POS (Dutchie).
- * Upserts products into the 'products' collection.
+ * Get POS configuration info for the current user's location
  */
-export async function syncMenu(): Promise<{ success: boolean; count?: number; error?: string }> {
+export async function getPosConfig(): Promise<PosConfigInfo> {
     try {
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'super_user']);
-        // Use DutchieClient adapter directly for robust GraphQL support
-        const { DutchieClient } = await import('@/lib/pos/adapters/dutchie');
 
         let locationId = user.locationId;
-        const orgId = (user as any).orgId || (user.customClaims?.orgId); 
+        const orgId = (user as any).orgId || (user.customClaims?.orgId);
+
+        if (!locationId && orgId) {
+            const locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
+            if (!locSnap.empty) {
+                locationId = locSnap.docs[0].id;
+            }
+        }
+
+        if (!locationId) {
+            return { provider: null, status: null, displayName: 'POS' };
+        }
+
+        const locDoc = await firestore.collection('locations').doc(locationId).get();
+        if (!locDoc.exists) {
+            return { provider: null, status: null, displayName: 'POS' };
+        }
+
+        const posConfig = locDoc.data()?.posConfig;
+        if (!posConfig) {
+            return { provider: null, status: null, displayName: 'POS' };
+        }
+
+        // Map provider to display name
+        const displayNames: Record<string, string> = {
+            'dutchie': 'Dutchie',
+            'alleaves': 'Alleaves',
+            'treez': 'Treez',
+            'jane': 'Jane',
+        };
+
+        return {
+            provider: posConfig.provider || null,
+            status: posConfig.status || null,
+            displayName: displayNames[posConfig.provider] || posConfig.provider || 'POS',
+        };
+    } catch (error) {
+        logger.error('[GET_POS_CONFIG] Failed:', error instanceof Error ? error : new Error(String(error)));
+        return { provider: null, status: null, displayName: 'POS' };
+    }
+}
+
+/**
+ * Triggers a sync with the connected POS (Dutchie or Alleaves).
+ * Upserts products into the 'products' collection.
+ */
+export async function syncMenu(): Promise<{ success: boolean; count?: number; error?: string; provider?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'super_user']);
+
+        let locationId = user.locationId;
+        const orgId = (user as any).orgId || (user.customClaims?.orgId);
 
         // 1. Resolve Location if missing from claim
         if (!locationId && orgId) {
@@ -43,23 +98,45 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
         if (!locDoc.exists) {
             return { success: false, error: 'Location document not found.' };
         }
-        
+
         const posConfig = locDoc.data()?.posConfig;
-        if (!posConfig || posConfig.provider !== 'dutchie') {
-             return { success: false, error: 'Dutchie integration is not configured for this location.' };
+        if (!posConfig || !posConfig.provider) {
+            return { success: false, error: 'No POS integration configured for this location.' };
         }
 
-        // 3. Fetch from Dutchie
-        const client = new DutchieClient(posConfig);
+        const provider = posConfig.provider;
         let items;
-        try {
-            items = await client.fetchMenu();
-        } catch (e: any) {
-            return { success: false, error: `Dutchie Sync Failed: ${e.message}` };
+
+        // 3. Fetch from appropriate POS based on provider
+        if (provider === 'dutchie') {
+            const { DutchieClient } = await import('@/lib/pos/adapters/dutchie');
+            const client = new DutchieClient(posConfig);
+            try {
+                items = await client.fetchMenu();
+            } catch (e: any) {
+                return { success: false, error: `Dutchie Sync Failed: ${e.message}`, provider };
+            }
+        } else if (provider === 'alleaves') {
+            const { ALLeavesClient } = await import('@/lib/pos/adapters/alleaves');
+            const alleavesConfig = {
+                ...posConfig,
+                username: posConfig.username || process.env.ALLEAVES_USERNAME,
+                password: posConfig.password || process.env.ALLEAVES_PASSWORD,
+                pin: posConfig.pin || process.env.ALLEAVES_PIN,
+                locationId: posConfig.locationId || posConfig.storeId,
+            };
+            const client = new ALLeavesClient(alleavesConfig);
+            try {
+                items = await client.fetchMenu();
+            } catch (e: any) {
+                return { success: false, error: `Alleaves Sync Failed: ${e.message}`, provider };
+            }
+        } else {
+            return { success: false, error: `Unsupported POS provider: ${provider}` };
         }
 
         if (!items || items.length === 0) {
-            return { success: true, count: 0 };
+            return { success: true, count: 0, provider };
         }
 
         // 4. Map & Upsert
@@ -70,7 +147,7 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
         let count = 0;
 
         for (const item of items) {
-             // Create a deterministic ID: locationId_dutchieId
+             // Create a deterministic ID: locationId_externalId
              const docId = `${locationId}_${item.externalId}`;
              const ref = productRepo.getRef(docId); 
 
@@ -119,7 +196,7 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
         const { revalidatePath } = await import('next/cache');
         revalidatePath('/dashboard/menu');
 
-        return { success: true, count };
+        return { success: true, count, provider };
 
     } catch (e: any) {
         logger.error('[SYNC_MENU] Failed:', e);

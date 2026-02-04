@@ -12,9 +12,7 @@ import Image from 'next/image';
 
 import { logger } from '@/lib/logger';
 // Product type is now dynamic or imported from actions/domain if needed
-
-// Product type is now dynamic or imported from actions/domain if needed
-import { getMenuData, syncMenu } from './actions';
+import { getMenuData, syncMenu, getPosConfig, type PosConfigInfo } from './actions';
 import { RefreshCw } from 'lucide-react'; // Import icon
 import { useToast } from '@/hooks/use-toast'; 
 
@@ -26,6 +24,7 @@ export default function MenuPage() {
     const [source, setSource] = useState<string>('none');
     const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [posConfig, setPosConfig] = useState<PosConfigInfo>({ provider: null, status: null, displayName: 'POS' });
     const { toast } = useToast();
 
     const handleSync = async () => {
@@ -33,9 +32,10 @@ export default function MenuPage() {
         try {
             const result = await syncMenu();
             if (result.success) {
+                const providerName = posConfig.displayName || 'POS';
                 toast({
                     title: "Sync Complete",
-                    description: `Synced ${result.count} products from Dutchie POS.`,
+                    description: `Synced ${result.count} products from ${providerName}.`,
                 });
                 await loadProducts(); // Reload local data
             } else {
@@ -47,7 +47,7 @@ export default function MenuPage() {
             }
         } catch (e) {
             toast({
-                title: "Error", 
+                title: "Error",
                 description: "An unexpected error occurred.",
                 variant: "destructive"
             });
@@ -59,8 +59,14 @@ export default function MenuPage() {
     const loadProducts = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await getMenuData();
-            
+            // Load POS config and menu data in parallel
+            const [data, config] = await Promise.all([
+                getMenuData(),
+                getPosConfig()
+            ]);
+
+            setPosConfig(config);
+
             // Normalize product format if needed
             const normalized = data.products.map(p => ({
                 id: p.id || p.cann_sku_id,
@@ -114,14 +120,14 @@ export default function MenuPage() {
                     <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
                         SOT: POS &gt; CannMenus &gt; Discovery
                     </div>
-                    <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleSync} 
-                        disabled={isSyncing}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSync}
+                        disabled={isSyncing || !posConfig.provider}
                     >
                         <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                        {isSyncing ? 'Syncing...' : 'Sync with Dutchie'}
+                        {isSyncing ? 'Syncing...' : `Sync with ${posConfig.displayName}`}
                     </Button>
                 </div>
             </div>
