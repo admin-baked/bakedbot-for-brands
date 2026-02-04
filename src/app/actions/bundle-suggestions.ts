@@ -66,32 +66,14 @@ export interface InventoryInsights {
 
 /**
  * Fetch products for an organization (works for both brands and dispensaries)
+ * Checks both legacy products collection and tenant catalog
  */
 async function fetchOrgProducts(orgId: string): Promise<ProductWithInventory[]> {
     const db = getAdminFirestore();
-
-    // Try brandId first
-    let snapshot = await db.collection('products')
-        .where('brandId', '==', orgId)
-        .limit(200)
-        .get();
-
-    // If no results, try dispensaryId
-    if (snapshot.empty) {
-        snapshot = await db.collection('products')
-            .where('dispensaryId', '==', orgId)
-            .limit(200)
-            .get();
-    }
-
-    if (snapshot.empty) {
-        return [];
-    }
-
     const now = new Date();
 
-    return snapshot.docs.map(doc => {
-        const data = doc.data();
+    // Helper to map product data to ProductWithInventory
+    const mapProductData = (id: string, data: FirebaseFirestore.DocumentData): ProductWithInventory => {
         const expirationDate = data.expirationDate?.toDate?.() || data.expirationDate;
         let daysUntilExpiration: number | undefined;
 
@@ -100,19 +82,69 @@ async function fetchOrgProducts(orgId: string): Promise<ProductWithInventory[]> 
         }
 
         return {
-            id: doc.id,
+            id,
             name: data.name || 'Unknown',
             category: data.category || 'Other',
             price: data.price || 0,
             cost: data.cost,
-            stock: data.stock,
+            stock: data.stock ?? data.quantity,
             expirationDate,
             daysUntilExpiration,
             strainType: data.strainType,
             thcPercent: data.thcPercent,
             effects: data.effects || [],
         };
-    });
+    };
+
+    // 1. Try brandId in legacy products collection
+    let snapshot = await db.collection('products')
+        .where('brandId', '==', orgId)
+        .limit(200)
+        .get();
+
+    if (!snapshot.empty) {
+        return snapshot.docs.map(doc => mapProductData(doc.id, doc.data()));
+    }
+
+    // 2. Try dispensaryId in legacy products collection
+    snapshot = await db.collection('products')
+        .where('dispensaryId', '==', orgId)
+        .limit(200)
+        .get();
+
+    if (!snapshot.empty) {
+        return snapshot.docs.map(doc => mapProductData(doc.id, doc.data()));
+    }
+
+    // 3. Try tenant catalog (tenants/{orgId}/publicViews/products/items)
+    // This is where Alleaves-synced products are stored for dispensaries like Thrive Syracuse
+    const tenantCatalog = await db.collection(`tenants/${orgId}/publicViews/products/items`)
+        .limit(200)
+        .get();
+
+    if (!tenantCatalog.empty) {
+        logger.info(`[fetchOrgProducts] Found ${tenantCatalog.size} products in tenant catalog for ${orgId}`);
+        return tenantCatalog.docs.map(doc => mapProductData(doc.id, doc.data()));
+    }
+
+    // 4. If orgId might be a brand doc ID, try to find the brand and get its orgId
+    if (!orgId.startsWith('org_')) {
+        const brandDoc = await db.collection('brands').doc(orgId).get();
+        if (brandDoc.exists) {
+            const brandOrgId = brandDoc.data()?.orgId;
+            if (brandOrgId && brandOrgId !== orgId) {
+                const brandTenantCatalog = await db.collection(`tenants/${brandOrgId}/publicViews/products/items`)
+                    .limit(200)
+                    .get();
+                if (!brandTenantCatalog.empty) {
+                    logger.info(`[fetchOrgProducts] Found ${brandTenantCatalog.size} products via brand orgId ${brandOrgId}`);
+                    return brandTenantCatalog.docs.map(doc => mapProductData(doc.id, doc.data()));
+                }
+            }
+        }
+    }
+
+    return [];
 }
 
 /**
