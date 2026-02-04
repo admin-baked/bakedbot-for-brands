@@ -569,6 +569,10 @@ export interface PilotPOSConfig {
     locationId?: string;  // For ALLeaves
     partnerId?: string;   // For ALLeaves
     environment?: 'sandbox' | 'production';
+    // ALLeaves JWT authentication fields
+    username?: string;    // ALLeaves username (email)
+    password?: string;    // ALLeaves password
+    pin?: string;         // ALLeaves PIN (may be required)
 }
 
 /**
@@ -1214,25 +1218,69 @@ export async function configurePilotPOS(
     try {
         const { firestore } = await createServerClient();
 
-        // Store POS configuration
+        // Build posConfig data based on provider
+        const posConfigData: Record<string, unknown> = {
+            provider: posConfig.provider,
+            storeId: posConfig.storeId,
+            locationId: posConfig.locationId || posConfig.storeId,
+            partnerId: posConfig.partnerId || null,
+            environment: posConfig.environment || 'production',
+            status: 'active',
+            updatedAt: new Date(),
+        };
+
+        // Add Alleaves-specific JWT credentials
+        if (posConfig.provider === 'alleaves') {
+            posConfigData.username = posConfig.username || process.env.ALLEAVES_USERNAME || null;
+            posConfigData.password = posConfig.password || process.env.ALLEAVES_PASSWORD || null;
+            posConfigData.pin = posConfig.pin || process.env.ALLEAVES_PIN || null;
+        }
+
+        // Add API key for Dutchie/other providers
+        if (posConfig.apiKey) {
+            posConfigData.apiKey = posConfig.apiKey;
+        }
+
+        // Store POS configuration in integrations collection (legacy)
         await firestore.collection('integrations').doc(`pos_${orgId}`).set({
             orgId: orgId,
             brandId: brandId,
             type: 'pos',
             provider: posConfig.provider,
-            config: {
-                storeId: posConfig.storeId,
-                locationId: posConfig.locationId || posConfig.storeId,
-                partnerId: posConfig.partnerId,
-                environment: posConfig.environment || 'production',
-                // Don't store API key in plain text - reference secret
-                apiKeyRef: posConfig.apiKey ? `pos_${posConfig.provider}_api_key` : null,
-            },
+            config: posConfigData,
             status: 'configured',
             lastSyncAt: null,
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
         }, { merge: true });
+
+        // IMPORTANT: Also update the location's posConfig (source of truth for menu sync)
+        const locationsSnap = await firestore.collection('locations')
+            .where('orgId', '==', orgId)
+            .limit(1)
+            .get();
+
+        if (!locationsSnap.empty) {
+            const locationDoc = locationsSnap.docs[0];
+            await locationDoc.ref.update({
+                posConfig: posConfigData,
+                updatedAt: FieldValue.serverTimestamp(),
+            });
+            logger.info(`[PILOT] Updated location posConfig: ${locationDoc.id}`);
+        } else {
+            // Create location if it doesn't exist (for dispensary pilots)
+            const locationId = `loc_${brandId.replace('dispensary_', '').replace('brand_', '')}`;
+            await firestore.collection('locations').doc(locationId).set({
+                id: locationId,
+                orgId: orgId,
+                brandId: brandId,
+                name: 'Main Location',
+                posConfig: posConfigData,
+                createdAt: FieldValue.serverTimestamp(),
+                updatedAt: FieldValue.serverTimestamp(),
+            }, { merge: true });
+            logger.info(`[PILOT] Created location with posConfig: ${locationId}`);
+        }
 
         // Update brand with POS info
         await firestore.collection('brands').doc(brandId).update({
