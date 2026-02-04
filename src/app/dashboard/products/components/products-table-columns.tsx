@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { ArrowUpDown, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { calculateProductScore, getScoreColor } from '@/lib/scoring';
 import { Button } from '@/components/ui/button';
+import { getPriceTier, TIER_CONFIG } from '@/lib/product-tiers';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -117,6 +118,26 @@ export const columns: ColumnDef<Product>[] = [
   {
     accessorKey: 'category',
     header: 'Category',
+  },
+  {
+    id: 'tier',
+    header: 'Tier',
+    cell: ({ row }) => {
+      const price = row.original.price || 0;
+      const tier = getPriceTier(price);
+      const config = TIER_CONFIG[tier];
+      return (
+        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${config.bgClass} ${config.textClass}`}>
+          {config.label}
+        </span>
+      );
+    },
+    filterFn: (row, id, filterValue) => {
+      if (!filterValue || filterValue === 'all') return true;
+      const price = row.original.price || 0;
+      const tier = getPriceTier(price);
+      return tier === filterValue;
+    }
   },
   {
     accessorKey: 'source',
