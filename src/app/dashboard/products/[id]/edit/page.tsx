@@ -44,15 +44,25 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const productRepo = makeProductRepo(firestore);
   const product = await productRepo.getById(id);
 
+  // Check if product exists first
+  if (!product) {
+    return (
+        <div className="mx-auto max-w-2xl">
+            <h1 className="text-2xl font-bold">Product not found</h1>
+            <p className="text-muted-foreground">This product does not exist.</p>
+        </div>
+    );
+  }
+
   // Security check: ensure the user is editing a product that belongs to their org
   const hasAccess = user.role === 'super_user' ||
     product.brandId === orgId ||
     (product as any).dispensaryId === orgId;
-  if (!product || !hasAccess) {
+  if (!hasAccess) {
     return (
         <div className="mx-auto max-w-2xl">
-            <h1 className="text-2xl font-bold">Product not found</h1>
-            <p className="text-muted-foreground">This product does not exist or you do not have permission to edit it.</p>
+            <h1 className="text-2xl font-bold">Access Denied</h1>
+            <p className="text-muted-foreground">You do not have permission to edit this product.</p>
         </div>
     );
   }

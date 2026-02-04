@@ -42,7 +42,8 @@ import {
     Chrome,
     Rocket,
     Inbox,
-    GraduationCap
+    GraduationCap,
+    Plug
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
@@ -326,6 +327,16 @@ export function SuperAdminSidebar() {
                                         <Link href="/dashboard/ceo?tab=admin&section=integrations">
                                             <Factory />
                                             <span>Integrations</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+
+                                {/* POS Config Section */}
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/admin/pos-config')}>
+                                        <Link href="/dashboard/admin/pos-config">
+                                            <Plug />
+                                            <span>POS Config</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
