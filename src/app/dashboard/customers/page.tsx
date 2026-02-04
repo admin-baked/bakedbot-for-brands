@@ -1,12 +1,14 @@
 import { requireUser } from '@/server/auth/auth';
 import { isBrandRole, isDispensaryRole } from '@/types/roles';
-import { getCustomers } from './actions';
 import CRMDashboard from './page-client';
 
 export const metadata = {
     title: 'Customer CRM | BakedBot',
     description: 'Build personalized customer profiles and drive targeted marketing',
 };
+
+// Skip SSR for customers - load client-side to avoid server timeout with large datasets
+export const dynamic = 'force-dynamic';
 
 export default async function CustomersPage() {
     const user = await requireUser(['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
@@ -28,13 +30,7 @@ export default async function CustomersPage() {
     // Fallback to uid if no org ID found
     orgId = orgId || user.uid;
 
-    // Pre-fetch customer data for SSR
-    let initialData;
-    try {
-        initialData = await getCustomers({ orgId });
-    } catch (error) {
-        console.error('Failed to load initial customers:', error);
-    }
-
-    return <CRMDashboard initialData={initialData} brandId={orgId} />;
+    // Don't pre-fetch customer data - let client component load it
+    // This prevents server timeout with large datasets (2500+ customers from Alleaves)
+    return <CRMDashboard initialData={undefined} brandId={orgId} />;
 }
