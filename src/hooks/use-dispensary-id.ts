@@ -21,9 +21,15 @@ export function useDispensaryId() {
                 return;
             }
 
-            // 1. Check Custom Claims
-            if ((user as any).dispensaryId) {
-                setDispensaryId((user as any).dispensaryId);
+            // 1. Check Custom Claims (multiple possible field names)
+            // Dispensary users may have orgId, currentOrgId, locationId, or dispensaryId
+            const claimId = (user as any).dispensaryId
+                || (user as any).orgId
+                || (user as any).currentOrgId
+                || (user as any).locationId;
+
+            if (claimId) {
+                setDispensaryId(claimId);
                 setLoading(false);
                 return;
             }
@@ -39,7 +45,15 @@ export function useDispensaryId() {
                     if (!snapshot.empty) {
                         setDispensaryId(snapshot.docs[0].id);
                     } else {
-                        // Logic if no dispensary found?
+                        // Try locations collection as fallback
+                        const locationsRef = collection(firebase.firestore, 'locations');
+                        const locQ = query(locationsRef, where('ownerId', '==', user.uid), limit(1));
+                        const locSnapshot = await getDocs(locQ);
+
+                        if (!locSnapshot.empty) {
+                            const locData = locSnapshot.docs[0].data();
+                            setDispensaryId(locData.orgId || locSnapshot.docs[0].id);
+                        }
                     }
                 } catch (error) {
                     console.error('Error fetching dispensary ID:', error);
