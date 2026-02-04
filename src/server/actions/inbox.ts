@@ -97,6 +97,7 @@ function serializeArtifact(artifact: InboxArtifact): InboxArtifact {
  * Create a new inbox thread
  */
 export async function createInboxThread(input: {
+    id?: string; // Optional: pass client-generated ID to avoid race conditions
     type: InboxThreadType;
     title?: string;
     primaryAgent?: InboxAgentPersona;
@@ -118,7 +119,8 @@ export async function createInboxThread(input: {
         }
 
         const db = getDb();
-        const threadId = createInboxThreadId();
+        // Use client-provided ID if available, otherwise generate new one
+        const threadId = input.id || createInboxThreadId();
 
         const thread: InboxThread = {
             id: threadId,
