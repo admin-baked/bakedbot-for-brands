@@ -74,8 +74,8 @@ export function useCreativeContent(
     const [isApproving, setIsApproving] = useState<string | null>(null);
     const [refreshKey, setRefreshKey] = useState(0);
 
-    // Get tenant ID from user claims
-    const tenantId = (user as any)?.tenantId || (user as any)?.brandId || brandId;
+    // Get tenant ID from user claims (supports brand and dispensary roles)
+    const tenantId = (user as any)?.tenantId || (user as any)?.brandId || (user as any)?.locationId || brandId;
 
     // Fetch content (with optional real-time updates)
     useEffect(() => {
