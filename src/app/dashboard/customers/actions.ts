@@ -489,10 +489,25 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
+    // Helper to safely convert any date-like value to Date
+    const toDate = (d: any): Date | null => {
+        if (!d) return null;
+        if (d instanceof Date) return d;
+        if (d.toDate) return d.toDate(); // Firestore Timestamp
+        if (typeof d === 'string' || typeof d === 'number') return new Date(d);
+        return null;
+    };
+
     const stats: CRMStats = {
         totalCustomers: customers.length,
-        newThisWeek: customers.filter(c => c.createdAt && c.createdAt >= weekAgo).length,
-        newThisMonth: customers.filter(c => c.createdAt && c.createdAt >= monthAgo).length,
+        newThisWeek: customers.filter(c => {
+            const created = toDate(c.createdAt);
+            return created && created >= weekAgo;
+        }).length,
+        newThisMonth: customers.filter(c => {
+            const created = toDate(c.createdAt);
+            return created && created >= monthAgo;
+        }).length,
         atRiskCount: segmentBreakdown.at_risk + segmentBreakdown.slipping,
         vipCount: segmentBreakdown.vip,
         avgLifetimeValue: customers.length > 0

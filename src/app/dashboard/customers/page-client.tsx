@@ -47,7 +47,7 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
     const loadData = useCallback(async () => {
         setLoading(true);
         try {
-            const result = await getCustomers(brandId);
+            const result = await getCustomers({ orgId: brandId });
             setData(result);
 
             // Load AI suggestions
