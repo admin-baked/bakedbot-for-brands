@@ -909,6 +909,89 @@ export async function runInboxAgentChat(
             agentResult.content
         );
 
+        // FALLBACK: Also check tool call results for carousel/bundle/creative artifacts
+        // This ensures artifacts are created even if the agent doesn't include the marker in the response
+        if (agentResult.toolCalls && agentResult.toolCalls.length > 0) {
+            for (const toolCall of agentResult.toolCalls) {
+                if (toolCall.name === 'createCarouselArtifact' && toolCall.status === 'success') {
+                    try {
+                        const toolResult = typeof toolCall.result === 'string'
+                            ? JSON.parse(toolCall.result)
+                            : toolCall.result;
+                        if (toolResult?.success && toolResult?.carousel) {
+                            // Check if we already parsed this from content
+                            const alreadyParsed = parsedArtifacts.some(
+                                p => p.type === 'carousel' && p.title === toolResult.carousel.title
+                            );
+                            if (!alreadyParsed) {
+                                parsedArtifacts.push({
+                                    type: 'carousel',
+                                    title: toolResult.carousel.title,
+                                    content: JSON.stringify(toolResult.carousel),
+                                    metadata: {
+                                        inboxData: {
+                                            rationale: toolResult.rationale,
+                                            carousel: {
+                                                productIds: toolResult.carousel.productIds || [],
+                                                displayOrder: toolResult.carousel.displayOrder || 0,
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        logger.warn('[INBOX] Failed to parse carousel from tool result', { error: e });
+                    }
+                }
+                // Similar patterns for bundle and creative artifacts
+                if (toolCall.name === 'createBundleArtifact' && toolCall.status === 'success') {
+                    try {
+                        const toolResult = typeof toolCall.result === 'string'
+                            ? JSON.parse(toolCall.result)
+                            : toolCall.result;
+                        if (toolResult?.success && toolResult?.bundle) {
+                            const alreadyParsed = parsedArtifacts.some(
+                                p => p.type === 'bundle' && p.title === toolResult.bundle.name
+                            );
+                            if (!alreadyParsed) {
+                                parsedArtifacts.push({
+                                    type: 'bundle',
+                                    title: toolResult.bundle.name,
+                                    content: JSON.stringify(toolResult.bundle),
+                                    metadata: { inboxData: { rationale: toolResult.rationale } }
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        logger.warn('[INBOX] Failed to parse bundle from tool result', { error: e });
+                    }
+                }
+                if (toolCall.name === 'createCreativeArtifact' && toolCall.status === 'success') {
+                    try {
+                        const toolResult = typeof toolCall.result === 'string'
+                            ? JSON.parse(toolCall.result)
+                            : toolCall.result;
+                        if (toolResult?.success && toolResult?.content) {
+                            const alreadyParsed = parsedArtifacts.some(
+                                p => p.type === 'creative_post' && p.title?.includes(toolResult.content.platform)
+                            );
+                            if (!alreadyParsed) {
+                                parsedArtifacts.push({
+                                    type: 'creative_post',
+                                    title: `${toolResult.content.platform} Post`,
+                                    content: JSON.stringify(toolResult.content),
+                                    metadata: { inboxData: { rationale: toolResult.rationale } }
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        logger.warn('[INBOX] Failed to parse creative from tool result', { error: e });
+                    }
+                }
+            }
+        }
+
         // Create inbox artifacts for any parsed artifacts
         const createdArtifacts: InboxArtifact[] = [];
         for (const parsed of parsedArtifacts) {
@@ -974,7 +1057,11 @@ function buildThreadContext(thread: InboxThread): string {
     const typeContexts: Record<InboxThreadType, string> = {
         carousel: `You are helping create a product carousel for a dispensary.
 Use the createCarouselArtifact tool to generate carousel suggestions with product selections.
-Return structured artifacts using the :::artifact:carousel:Title format.`,
+CRITICAL: When the tool returns, you MUST include its marker output in your response.
+The marker format is: :::artifact:carousel:Title
+{json data}
+:::
+Include this marker block in your final response so the system can create the artifact.`,
 
         bundle: `You are helping create bundle deals for a dispensary.
 Use the createBundleArtifact tool to generate bundle suggestions with pricing and margin analysis.
