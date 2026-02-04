@@ -143,11 +143,19 @@ async function getOrdersFromAlleaves(orgId: string, firestore: FirebaseFirestore
         }
 
         // Get location with Alleaves POS config
-        // Note: orgId parameter is actually the brandId from the user
-        const locationsSnap = await firestore.collection('locations')
-            .where('brandId', '==', orgId)
+        // Query by orgId (primary) or brandId (fallback) since both may be used
+        let locationsSnap = await firestore.collection('locations')
+            .where('orgId', '==', orgId)
             .limit(1)
             .get();
+
+        // Fallback: try brandId if orgId query returns empty
+        if (locationsSnap.empty) {
+            locationsSnap = await firestore.collection('locations')
+                .where('brandId', '==', orgId)
+                .limit(1)
+                .get();
+        }
 
         if (locationsSnap.empty) {
             logger.info('[ORDERS] No location found for org', { orgId });
@@ -328,12 +336,39 @@ export async function getOrders(params: GetOrdersParams | string = {}): Promise<
             return { success: false, error: 'Unauthorized' };
         }
 
-        const snap = await query.orderBy('createdAt', 'desc').limit(limit).get();
+        // Try query with orderBy first, fall back to simple query if index missing
+        let snap: FirebaseFirestore.QuerySnapshot;
+        let needsClientSort = false;
+        try {
+            snap = await query.orderBy('createdAt', 'desc').limit(limit).get();
+        } catch (indexError: any) {
+            // FAILED_PRECONDITION (9) = missing composite index
+            if (indexError?.code === 9 || indexError?.message?.includes('FAILED_PRECONDITION')) {
+                logger.warn('[ORDERS] Missing Firestore index, falling back to client-side sort', {
+                    orgId,
+                    error: indexError.message,
+                });
+                // Fall back to query without orderBy
+                snap = await query.limit(limit).get();
+                needsClientSort = true;
+            } else {
+                throw indexError;
+            }
+        }
 
-        const bakedBotOrders = snap.docs.map(doc => ({
+        let bakedBotOrders = snap.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
         })) as OrderDoc[];
+
+        // Sort client-side if we couldn't use Firestore orderBy
+        if (needsClientSort) {
+            bakedBotOrders.sort((a, b) => {
+                const dateA = a.createdAt?.toDate?.() ?? a.createdAt ?? new Date(0);
+                const dateB = b.createdAt?.toDate?.() ?? b.createdAt ?? new Date(0);
+                return new Date(dateB).getTime() - new Date(dateA).getTime();
+            });
+        }
 
         // 3. Merge POS orders with BakedBot orders
         let allOrders = [...posOrders, ...bakedBotOrders];
