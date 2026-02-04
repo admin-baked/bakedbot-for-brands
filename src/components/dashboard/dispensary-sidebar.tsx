@@ -204,7 +204,7 @@ export function DispensarySidebar() {
 
             {/* Intelligence - Competitive & Research */}
             <SidebarGroup>
-                <Collapsible defaultOpen={false} className="group/intel">
+                <Collapsible defaultOpen className="group/intel">
                     <SidebarGroupLabel asChild>
                         <CollapsibleTrigger className="flex w-full items-center">
                             Intelligence
