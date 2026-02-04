@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, CheckCircle, XCircle, RefreshCw, Settings2, Plug, Unplug } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, RefreshCw, Settings2, Plug, Unplug, Trash2 } from 'lucide-react';
 import {
     type LocationWithPOS,
     type POSConfigFormData,
@@ -17,6 +17,7 @@ import {
     savePOSConfig,
     triggerMenuSync,
     disablePOSConfig,
+    deleteLocation,
 } from './actions';
 
 interface POSConfigClientProps {
@@ -26,10 +27,12 @@ interface POSConfigClientProps {
 export function POSConfigClient({ initialLocations }: POSConfigClientProps) {
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
+    const [locations, setLocations] = useState<LocationWithPOS[]>(initialLocations);
     const [selectedLocationId, setSelectedLocationId] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
     const [isTesting, setIsTesting] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
     // Form state
@@ -42,7 +45,7 @@ export function POSConfigClient({ initialLocations }: POSConfigClientProps) {
         storeId: '',
     });
 
-    const selectedLocation = initialLocations.find(l => l.id === selectedLocationId);
+    const selectedLocation = locations.find(l => l.id === selectedLocationId);
 
     const handleLocationChange = async (locationId: string) => {
         setSelectedLocationId(locationId);
@@ -168,6 +171,42 @@ export function POSConfigClient({ initialLocations }: POSConfigClientProps) {
         });
     };
 
+    const handleDelete = async (locationId: string, e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent selecting the location
+
+        if (!confirm('Are you sure you want to delete this location? This action cannot be undone.')) {
+            return;
+        }
+
+        setIsDeleting(locationId);
+        try {
+            const result = await deleteLocation(locationId);
+            if (result.success) {
+                toast({ title: 'Deleted', description: result.message });
+                // Remove from local state
+                setLocations(prev => prev.filter(l => l.id !== locationId));
+                // Clear selection if deleted location was selected
+                if (selectedLocationId === locationId) {
+                    setSelectedLocationId('');
+                    setFormData({
+                        locationId: '',
+                        provider: 'alleaves',
+                        username: '',
+                        password: '',
+                        pin: '',
+                        storeId: '',
+                    });
+                }
+            } else {
+                toast({ title: 'Error', description: result.message, variant: 'destructive' });
+            }
+        } catch (error: any) {
+            toast({ title: 'Error', description: error.message || 'Failed to delete', variant: 'destructive' });
+        } finally {
+            setIsDeleting(null);
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Location Selector */}
@@ -187,7 +226,7 @@ export function POSConfigClient({ initialLocations }: POSConfigClientProps) {
                             <SelectValue placeholder="Select a location..." />
                         </SelectTrigger>
                         <SelectContent>
-                            {initialLocations.map(location => (
+                            {locations.map(location => (
                                 <SelectItem key={location.id} value={location.id}>
                                     <div className="flex items-center gap-2">
                                         <span>{location.name}</span>
@@ -388,7 +427,7 @@ export function POSConfigClient({ initialLocations }: POSConfigClientProps) {
                 </CardHeader>
                 <CardContent>
                     <div className="divide-y">
-                        {initialLocations.map(location => (
+                        {locations.map(location => (
                             <div
                                 key={location.id}
                                 className="flex items-center justify-between py-3 cursor-pointer hover:bg-muted/50 px-2 -mx-2 rounded"
@@ -415,10 +454,23 @@ export function POSConfigClient({ initialLocations }: POSConfigClientProps) {
                                     ) : (
                                         <Badge variant="outline">No POS</Badge>
                                     )}
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                        onClick={(e) => handleDelete(location.id, e)}
+                                        disabled={isDeleting === location.id}
+                                    >
+                                        {isDeleting === location.id ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Trash2 className="h-4 w-4" />
+                                        )}
+                                    </Button>
                                 </div>
                             </div>
                         ))}
-                        {initialLocations.length === 0 && (
+                        {locations.length === 0 && (
                             <div className="text-center py-8 text-muted-foreground">
                                 No locations found. Create locations first.
                             </div>
