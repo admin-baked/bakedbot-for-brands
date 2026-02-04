@@ -21,7 +21,6 @@ import {
     Sparkles,
     RefreshCw,
 } from 'lucide-react';
-import { MessageBubble as SharedMessageBubble } from '@/components/dashboard/agentic/message-bubble';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
@@ -43,14 +42,10 @@ import { getThreadTypeLabel, getThreadTypeIcon } from '@/types/inbox';
 import { InboxCarouselCard } from './artifacts/carousel-card';
 import { InboxBundleCard } from './artifacts/bundle-card';
 import { InboxCreativeCard } from './artifacts/creative-card';
-import { InboxQRCodeCard } from './artifacts/qr-code-card';
 import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
-import { AgentHandoffNotification } from './agent-handoff-notification';
 import { formatDistanceToNow } from 'date-fns';
-import { runInboxAgentChat, addMessageToInboxThread, createInboxThread } from '@/server/actions/inbox';
-import { QRCodeGeneratorInline } from './qr-code-generator-inline';
+import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inbox';
 import { useJobPoller } from '@/hooks/use-job-poller';
-import { generateQRCode } from '@/server/actions/qr-code';
 
 // ============ Agent Name Mapping ============
 
@@ -110,16 +105,45 @@ function MessageBubble({
     );
 
     return (
-        <SharedMessageBubble
-            isUser={isUser}
-            name={isUser ? 'You' : agent.name}
-            role={!isUser ? agentPersona : undefined} // Or mapped role if available
-            avatarSrc={undefined} // No src for emojis in this current setup, or could use agent.avatar if image
-            avatarFallback={isUser ? <User className="h-4 w-4" /> : <span className="text-base">{agent.avatar}</span>} // Handling custom fallback for emojis
-            timestamp={formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
-            className={isUser ? 'flex-row-reverse' : ''}
-            content={
-                <>
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn('flex gap-3 py-4', isUser && 'flex-row-reverse')}
+        >
+            {/* Avatar with colored ring */}
+            <div
+                className={cn(
+                    'flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-sm',
+                    'ring-2 ring-offset-2 ring-offset-background transition-all duration-200',
+                    isUser
+                        ? 'bg-primary text-primary-foreground ring-primary/50'
+                        : cn(agent.bgColor, agent.ringColor)
+                )}
+            >
+                {isUser ? <User className="h-4 w-4" /> : <span className="text-base">{agent.avatar}</span>}
+            </div>
+
+            {/* Content */}
+            <div className={cn('flex-1 max-w-[80%]', isUser && 'text-right')}>
+                {/* Header */}
+                <div className={cn('flex items-center gap-2 mb-1', isUser && 'flex-row-reverse')}>
+                    <span className={cn('text-sm font-medium', !isUser && agent.color)}>
+                        {isUser ? 'You' : agent.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(message.timestamp), { addSuffix: true })}
+                    </span>
+                </div>
+
+                {/* Message Content */}
+                <div
+                    className={cn(
+                        'rounded-lg px-4 py-3',
+                        isUser
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted'
+                    )}
+                >
                     {message.thinking?.isThinking ? (
                         <div className="flex items-center gap-2 text-sm">
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -132,17 +156,18 @@ function MessageBubble({
                             </ReactMarkdown>
                         </div>
                     )}
-                    {/* Inline Artifact Cards */}
-                    {messageArtifacts.length > 0 && (
-                        <div className="mt-3 space-y-2">
-                            {messageArtifacts.map((artifact) => (
-                                <ArtifactPreviewCard key={artifact.id} artifact={artifact} />
-                            ))}
-                        </div>
-                    )}
-                </>
-            }
-        />
+                </div>
+
+                {/* Inline Artifact Cards */}
+                {messageArtifacts.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                        {messageArtifacts.map((artifact) => (
+                            <ArtifactPreviewCard key={artifact.id} artifact={artifact} />
+                        ))}
+                    </div>
+                )}
+            </div>
+        </motion.div>
     );
 }
 
@@ -156,8 +181,6 @@ function ArtifactPreviewCard({ artifact }: { artifact: InboxArtifact }) {
             return <InboxBundleCard artifact={artifact} />;
         case 'creative_content':
             return <InboxCreativeCard artifact={artifact} />;
-        case 'qr_code':
-            return <InboxQRCodeCard artifact={artifact} />;
         default:
             return null;
     }
@@ -203,7 +226,7 @@ function ThreadHeader({ thread }: { thread: InboxThread }) {
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => {/* TODO: Edit title */ }}>
+                    <DropdownMenuItem onClick={() => {/* TODO: Edit title */}}>
                         <Edit2 className="h-4 w-4 mr-2" />
                         Edit Title
                     </DropdownMenuItem>
@@ -231,13 +254,13 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [input, setInput] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-    const [showQRGenerator, setShowQRGenerator] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const pollingRef = useRef<NodeJS.Timeout | null>(null);
-    const hasAutoShownQR = useRef<boolean>(false);
 
-    const { addMessageToThread, addArtifacts, updateThreadId } = useInboxStore();
+    const { addMessageToThread, addArtifacts } = useInboxStore();
+
+    // Use Firestore real-time job polling instead of broken HTTP polling
+    const { job, isComplete, error: jobError } = useJobPoller(currentJobId ?? undefined);
 
     // Auto-scroll to bottom on new messages
     useEffect(() => {
@@ -254,144 +277,51 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [input]);
 
-    // Reset state when thread changes
+    // Handle job completion via Firestore real-time listener (useJobPoller)
     useEffect(() => {
-        console.log('[InboxConversation] Thread changed - resetting state:', {
-            threadId: thread.id,
-            threadType: thread.type,
-        });
+        if (!currentJobId || !isComplete || !job) return;
 
-        // Clear any ongoing jobs and submission state
+        // Job completed - add response message
         setCurrentJobId(null);
         setIsSubmitting(false);
 
-        // Clear polling interval
-        if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-        }
-    }, [thread.id]);
-
-    // Auto-open QR generator for qr_code threads
-    useEffect(() => {
-        console.log('[InboxConversation] QR generator check:', {
-            threadId: thread.id,
-            threadType: thread.type,
-            showQRGenerator,
-            hasAutoShownQR: hasAutoShownQR.current,
-        });
-
-        if (thread.type === 'qr_code') {
-            // For QR code threads, always ensure generator is shown
-            if (!showQRGenerator) {
-                console.log('[InboxConversation] QR code thread detected - auto-showing inline generator');
-                setShowQRGenerator(true);
-            }
-            hasAutoShownQR.current = true;
-        } else {
-            // Reset when switching away from QR code thread
-            if (showQRGenerator) {
-                setShowQRGenerator(false);
-            }
-            hasAutoShownQR.current = false;
-        }
-    }, [thread.id, thread.type, showQRGenerator]);
-
-    // Poll for job completion
-    useEffect(() => {
-        if (!currentJobId) return;
-
-        // Use a flag to prevent multiple completions from the same poll
-        let hasCompleted = false;
-
-        const pollJob = async () => {
-            if (hasCompleted) return; // Prevent duplicate processing
-
-            try {
-                const response = await fetch(`/api/jobs/${currentJobId}`);
-                if (!response.ok) return;
-
-                const job = await response.json();
-
-                if (job.status === 'completed' || job.status === 'failed') {
-                    if (hasCompleted) return; // Double-check before processing
-                    hasCompleted = true; // Mark as completed
-
-                    console.log('[InboxConversation] Job finished with status:', job.status);
-
-                    // Stop polling
-                    if (pollingRef.current) {
-                        clearInterval(pollingRef.current);
-                        pollingRef.current = null;
-                    }
-                    setCurrentJobId(null);
-                    setIsSubmitting(false);
-
-                    if (job.status === 'completed' && job.result?.content) {
-                        console.log('[InboxConversation] Adding agent message to thread');
-                        const agentMessage: ChatMessage = {
-                            id: `msg-${Date.now()}`,
-                            type: 'agent',
-                            content: job.result.content,
-                            timestamp: new Date(),
-                        };
-                        addMessageToThread(thread.id, agentMessage);
-                    } else if (job.status === 'failed') {
-                        const errorMessage: ChatMessage = {
-                            id: `msg-${Date.now()}`,
-                            type: 'agent',
-                            content: `I encountered an error: ${job.error || 'Unknown error'}. Please try again.`,
-                            timestamp: new Date(),
-                        };
-                        addMessageToThread(thread.id, errorMessage);
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to poll job status:', error);
-            }
-        };
-
-        // Start polling
-        pollingRef.current = setInterval(pollJob, 1500);
-
-        return () => {
-            if (pollingRef.current) {
-                clearInterval(pollingRef.current);
-                pollingRef.current = null;
-            }
-        };
-    }, [currentJobId, thread.id, addMessageToThread]);
-
-    const handleSubmit = async () => {
-        if (!input.trim() || isSubmitting) {
-            console.log('[InboxConversation] Submit blocked - isSubmitting:', isSubmitting, 'input:', input.trim());
-            return;
-        }
-
-        // Detect QR code creation intent
-        const lowerInput = input.toLowerCase().trim();
-        const qrCodeKeywords = ['create qr', 'qr code', 'generate qr', 'make qr', 'new qr'];
-        const isQRCodeRequest = qrCodeKeywords.some(keyword => lowerInput.includes(keyword));
-
-        if (isQRCodeRequest && thread.primaryAgent === 'craig') {
-            console.log('[InboxConversation] QR code request detected - showing inline generator');
-
-            // Add user message
-            const userMessage: ChatMessage = {
+        if (job.status === 'completed' && job.result?.content) {
+            const agentMessage: ChatMessage = {
                 id: `msg-${Date.now()}`,
-                type: 'user',
-                content: input.trim(),
+                type: 'agent',
+                content: job.result.content,
                 timestamp: new Date(),
             };
-            addMessageToThread(thread.id, userMessage);
-
-            // Show QR generator inline
-            setShowQRGenerator(true);
-            setInput('');
-            return;
+            addMessageToThread(thread.id, agentMessage);
+        } else if (job.status === 'failed') {
+            const errorMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'agent',
+                content: `I encountered an error: ${job.error || 'Unknown error'}. Please try again.`,
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, errorMessage);
         }
+    }, [currentJobId, isComplete, job, thread.id, addMessageToThread]);
 
-        console.log('[InboxConversation] Starting submission');
+    // Handle job polling errors
+    useEffect(() => {
+        if (jobError && currentJobId) {
+            console.error('[InboxConversation] Job polling error:', jobError);
+            setCurrentJobId(null);
+            setIsSubmitting(false);
+            const errorMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'agent',
+                content: 'Sorry, I lost connection while processing your request. Please try again.',
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, errorMessage);
+        }
+    }, [jobError, currentJobId, thread.id, addMessageToThread]);
+
+    const handleSubmit = async () => {
+        if (!input.trim() || isSubmitting) return;
 
         const userMessage: ChatMessage = {
             id: `msg-${Date.now()}`,
@@ -400,59 +330,19 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             timestamp: new Date(),
         };
 
+        // Add user message to local state
+        addMessageToThread(thread.id, userMessage);
+
+        // Persist user message to server
+        await addMessageToInboxThread(thread.id, userMessage);
+
         const messageContent = input.trim();
         setInput('');
         setIsSubmitting(true);
 
         try {
-            // Check if this is the first message (thread doesn't exist in Firestore yet)
-            const isFirstMessage = thread.messages.length === 0;
-            let firestoreThreadId = thread.id;
-
-            if (isFirstMessage) {
-                // Create thread in Firestore first
-                const createResult = await createInboxThread({
-                    type: thread.type,
-                    title: thread.title,
-                    primaryAgent: thread.primaryAgent,
-                    projectId: thread.projectId,
-                    brandId: thread.brandId,
-                    dispensaryId: thread.dispensaryId,
-                    initialMessage: userMessage,
-                });
-
-                if (!createResult.success || !createResult.thread) {
-                    const errorMessage: ChatMessage = {
-                        id: `msg-${Date.now()}`,
-                        type: 'agent',
-                        content: `Failed to create conversation: ${createResult.error || 'Unknown error'}. Please try again.`,
-                        timestamp: new Date(),
-                    };
-                    addMessageToThread(thread.id, errorMessage);
-                    setIsSubmitting(false);
-                    return;
-                }
-
-                // Use the Firestore thread ID for all subsequent calls
-                firestoreThreadId = createResult.thread.id;
-
-                // Sync the local thread ID with the Firestore thread ID
-                updateThreadId(thread.id, firestoreThreadId);
-
-                // Add user message to local state (using the NEW thread ID)
-                addMessageToThread(firestoreThreadId, userMessage);
-            } else {
-                // Add user message to local state
-                addMessageToThread(thread.id, userMessage);
-
-                // Persist user message to server
-                await addMessageToInboxThread(thread.id, userMessage);
-            }
-
-            // Call the inbox agent chat with the correct Firestore thread ID
-            console.log('[InboxConversation] Calling runInboxAgentChat with threadId:', firestoreThreadId);
-            const result = await runInboxAgentChat(firestoreThreadId, messageContent);
-            console.log('[InboxConversation] runInboxAgentChat result:', result);
+            // Call the inbox agent chat
+            const result = await runInboxAgentChat(thread.id, messageContent);
 
             if (!result.success) {
                 const errorMessage: ChatMessage = {
@@ -468,7 +358,6 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
 
             // If we got a job ID, start polling
             if (result.jobId) {
-                console.log('[InboxConversation] Starting polling for jobId:', result.jobId);
                 setCurrentJobId(result.jobId);
                 return;
             }
@@ -497,54 +386,6 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     };
 
-    const handleCompleteQRCode = async (qrCodeData: {
-        url: string;
-        campaignName: string;
-        foregroundColor: string;
-        backgroundColor: string;
-        imageDataUrl: string;
-    }) => {
-        console.log('[InboxConversation] QR code completed:', qrCodeData);
-
-        // Hide the generator
-        setShowQRGenerator(false);
-
-        // Save QR code to database with tracking enabled
-        const result = await generateQRCode({
-            type: 'custom',
-            title: qrCodeData.campaignName || 'QR Code',
-            description: `QR code for ${qrCodeData.url}`,
-            targetUrl: qrCodeData.url,
-            style: 'branded',
-            primaryColor: qrCodeData.foregroundColor,
-            backgroundColor: qrCodeData.backgroundColor,
-            campaign: qrCodeData.campaignName,
-            tags: ['inbox', 'craig'],
-        });
-
-        console.log('[InboxConversation] generateQRCode result:', result);
-
-        if (result.success && result.qrCode) {
-            // Add success message with tracking URL
-            const confirmationMessage: ChatMessage = {
-                id: `msg-${Date.now()}`,
-                type: 'agent',
-                content: `✅ QR Code created successfully with tracking enabled!\n\n**Campaign:** ${result.qrCode.title}\n**Target URL:** ${result.qrCode.targetUrl}\n**Tracking URL:** \`${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/qr/${result.qrCode.shortCode}\`\n\nYour QR code has been saved and will track:\n• Total scans\n• Unique visitors\n• Device types\n• Geographic location\n\nView analytics in your dashboard!`,
-                timestamp: new Date(),
-            };
-            addMessageToThread(thread.id, confirmationMessage);
-        } else {
-            // Fallback message if save failed
-            const confirmationMessage: ChatMessage = {
-                id: `msg-${Date.now()}`,
-                type: 'agent',
-                content: `✅ QR Code created!\n\n**Campaign:** ${qrCodeData.campaignName || 'QR Code'}\n**Target URL:** ${qrCodeData.url}\n\nYour QR code has been downloaded. You can use it in your marketing materials!`,
-                timestamp: new Date(),
-            };
-            addMessageToThread(thread.id, confirmationMessage);
-        }
-    };
-
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -557,89 +398,44 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             {/* Header */}
             <ThreadHeader thread={thread} />
 
-            {/* Persistent Task Feed - Always visible when agent is processing */}
-            <AnimatePresence>
-                {isSubmitting && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="sticky top-0 z-10 px-4 pt-3 pb-2 bg-gradient-to-b from-background to-background/80 backdrop-blur-md border-b border-white/5"
-                    >
-                        <div className="max-w-3xl mx-auto">
-                            <InboxTaskFeed
-                                agentPersona={thread.primaryAgent}
-                                isRunning={isSubmitting}
-                            />
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
             {/* Messages */}
             <ScrollArea ref={scrollRef} className="flex-1 px-4">
                 <div className="max-w-3xl mx-auto py-4">
                     {thread.messages.length === 0 ? (
-                        <>
-                            {!showQRGenerator && (
-                                <div className="text-center py-12">
-                                    <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                                    <h3 className="font-medium text-lg mb-2">Start the conversation</h3>
-                                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                                        Describe what you'd like to create and {AGENT_NAMES[thread.primaryAgent]?.name || 'your assistant'} will help you build it.
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* Show QR Code Generator inline for empty QR threads */}
-                            {showQRGenerator && (
-                                <div className="mt-4">
-                                    <QRCodeGeneratorInline
-                                        onComplete={handleCompleteQRCode}
-                                    />
-                                </div>
-                            )}
-                        </>
+                        <div className="text-center py-12">
+                            <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                            <h3 className="font-medium text-lg mb-2">Start the conversation</h3>
+                            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                                Describe what you'd like to create and {AGENT_NAMES[thread.primaryAgent]?.name || 'your assistant'} will help you build it.
+                            </p>
+                        </div>
                     ) : (
-                        <>
-                            {thread.messages.map((message, index) => {
-                                // Check if there's a handoff before this message
-                                const handoffBefore = thread.handoffHistory?.find((handoff) => {
-                                    const handoffTime = new Date(handoff.timestamp).getTime();
-                                    const messageTime = new Date(message.timestamp).getTime();
-                                    const prevMessageTime = index > 0
-                                        ? new Date(thread.messages[index - 1].timestamp).getTime()
-                                        : 0;
-                                    return handoffTime > prevMessageTime && handoffTime <= messageTime;
-                                });
-
-                                return (
-                                    <React.Fragment key={message.id}>
-                                        {/* Show handoff notification if one occurred before this message */}
-                                        {handoffBefore && (
-                                            <div className="my-4">
-                                                <AgentHandoffNotification handoff={handoffBefore} />
-                                            </div>
-                                        )}
-                                        <MessageBubble
-                                            message={message}
-                                            agentPersona={thread.primaryAgent}
-                                            artifacts={artifacts}
-                                        />
-                                    </React.Fragment>
-                                );
-                            })}
-
-                            {/* Show QR Code Generator inline after messages */}
-                            {showQRGenerator && (
-                                <div className="mt-4">
-                                    <QRCodeGeneratorInline
-                                        onComplete={handleCompleteQRCode}
-                                    />
-                                </div>
-                            )}
-                        </>
+                        thread.messages.map((message) => (
+                            <MessageBubble
+                                key={message.id}
+                                message={message}
+                                agentPersona={thread.primaryAgent}
+                                artifacts={artifacts}
+                            />
+                        ))
                     )}
+
+                    {/* TaskFeed with Agent Pulse - shown while agent is thinking */}
+                    <AnimatePresence>
+                        {isSubmitting && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="py-4"
+                            >
+                                <InboxTaskFeed
+                                    agentPersona={thread.primaryAgent}
+                                    isRunning={isSubmitting}
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </ScrollArea>
 

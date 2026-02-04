@@ -21,9 +21,14 @@ export function useBrandId() {
                 return;
             }
 
-            // 1. Check Custom Claims
+            // 1. Check Custom Claims (brandId for brands, locationId for dispensaries)
             if ((user as any).brandId) {
                 setBrandId((user as any).brandId);
+                setLoading(false);
+                return;
+            }
+            if ((user as any).locationId) {
+                setBrandId((user as any).locationId);
                 setLoading(false);
                 return;
             }
