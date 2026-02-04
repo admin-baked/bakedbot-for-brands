@@ -14,12 +14,21 @@ export interface Location {
 
     // POS Configuration (Location Specific)
     posConfig?: {
-        provider: 'dutchie' | 'jane' | 'none';
+        provider: 'dutchie' | 'alleaves' | 'treez' | 'jane' | 'none';
         apiKey?: string;
-        id?: string; // Shop ID
+        storeId?: string;
+        id?: string; // Shop ID (legacy)
         sourceOfTruth: 'pos' | 'cannmenus';
         connectedAt?: string;
+        syncedAt?: Date;
+        lastSyncStatus?: 'success' | 'error';
         status: 'active' | 'inactive' | 'error';
+        environment?: 'sandbox' | 'production';
+        // Alleaves JWT Auth
+        username?: string;
+        password?: string;
+        pin?: string;
+        locationId?: string;
     };
 
     // CannMenus Mapping

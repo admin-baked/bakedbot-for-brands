@@ -69,11 +69,19 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
         }
 
         // Get location with Alleaves POS config
-        // Note: orgId parameter is actually the brandId from the user
-        const locationsSnap = await firestore.collection('locations')
-            .where('brandId', '==', orgId)
+        // Query by orgId (primary) or brandId (fallback) since both may be used
+        let locationsSnap = await firestore.collection('locations')
+            .where('orgId', '==', orgId)
             .limit(1)
             .get();
+
+        // Fallback: try brandId if orgId query returns empty
+        if (locationsSnap.empty) {
+            locationsSnap = await firestore.collection('locations')
+                .where('brandId', '==', orgId)
+                .limit(1)
+                .get();
+        }
 
         logger.info('[CUSTOMERS] Location query result', {
             orgId,
