@@ -257,7 +257,8 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const { addMessageToThread, addArtifacts } = useInboxStore();
+    const { addMessageToThread, addArtifacts, isThreadPending } = useInboxStore();
+    const isPending = isThreadPending(thread.id);
 
     // Use Firestore real-time job polling instead of broken HTTP polling
     const { job, isComplete, error: jobError } = useJobPoller(currentJobId ?? undefined);
@@ -321,7 +322,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     }, [jobError, currentJobId, thread.id, addMessageToThread]);
 
     const handleSubmit = async () => {
-        if (!input.trim() || isSubmitting) return;
+        if (!input.trim() || isSubmitting || isPending) return;
 
         const userMessage: ChatMessage = {
             id: `msg-${Date.now()}`,
@@ -449,19 +450,22 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
-                                placeholder={`Message ${AGENT_NAMES[thread.primaryAgent]?.name || 'assistant'}...`}
+                                placeholder={isPending
+                                    ? 'Setting up conversation...'
+                                    : `Message ${AGENT_NAMES[thread.primaryAgent]?.name || 'assistant'}...`
+                                }
                                 className="min-h-[44px] max-h-[200px] resize-none pr-12"
                                 rows={1}
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || isPending}
                             />
                         </div>
                         <Button
                             onClick={handleSubmit}
-                            disabled={!input.trim() || isSubmitting}
+                            disabled={!input.trim() || isSubmitting || isPending}
                             size="icon"
                             className="h-11 w-11"
                         >
-                            {isSubmitting ? (
+                            {isSubmitting || isPending ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                                 <Send className="h-4 w-4" />
@@ -469,7 +473,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2 text-center">
-                        Press Enter to send, Shift+Enter for new line
+                        {isPending ? 'Preparing your conversation...' : 'Press Enter to send, Shift+Enter for new line'}
                     </p>
                 </div>
             </div>

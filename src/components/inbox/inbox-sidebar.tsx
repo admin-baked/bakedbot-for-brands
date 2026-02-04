@@ -47,6 +47,7 @@ import type {
 import { getThreadTypeIcon, getThreadTypeLabel } from '@/types/inbox';
 import { formatDistanceToNow } from 'date-fns';
 import { createInboxThread } from '@/server/actions/inbox';
+import { useToast } from '@/hooks/use-toast';
 
 // ============ Icon Mapping ============
 
@@ -75,20 +76,25 @@ interface InboxSidebarProps {
 // ============ Quick Action Button ============
 
 function QuickActionButton({ action, collapsed }: { action: InboxQuickAction; collapsed?: boolean }) {
-    const { createThread, updateThreadId, currentOrgId } = useInboxStore();
+    const { createThread, deleteThread, markThreadPending, markThreadPersisted, currentOrgId } = useInboxStore();
     const [isCreating, setIsCreating] = useState(false);
+    const { toast } = useToast();
     const Icon = getIcon(action.icon);
 
     const handleClick = async () => {
         if (isCreating) return;
         setIsCreating(true);
 
+        let localThread = null;
         try {
             // Create thread locally first for instant UI feedback
-            const localThread = createThread(action.threadType, {
+            localThread = createThread(action.threadType, {
                 title: action.label,
                 primaryAgent: action.defaultAgent,
             });
+
+            // Mark thread as pending (not yet persisted to Firestore)
+            markThreadPending(localThread.id);
 
             // Persist to Firestore - pass local ID to avoid race conditions
             const result = await createInboxThread({
@@ -102,10 +108,29 @@ function QuickActionButton({ action, collapsed }: { action: InboxQuickAction; co
 
             if (!result.success) {
                 console.error('[QuickActionButton] Failed to persist thread:', result.error);
-                // Thread still exists locally, user can retry sending messages
+                // Delete local thread since server persistence failed
+                deleteThread(localThread.id);
+                toast({
+                    title: 'Failed to create conversation',
+                    description: result.error || 'Please try again',
+                    variant: 'destructive',
+                });
+                return;
             }
+
+            // Mark thread as persisted (safe to use now)
+            markThreadPersisted(localThread.id);
         } catch (error) {
             console.error('[QuickActionButton] Error creating thread:', error);
+            // Clean up local thread on error
+            if (localThread) {
+                deleteThread(localThread.id);
+            }
+            toast({
+                title: 'Failed to create conversation',
+                description: 'An unexpected error occurred. Please try again.',
+                variant: 'destructive',
+            });
         } finally {
             setIsCreating(false);
         }
