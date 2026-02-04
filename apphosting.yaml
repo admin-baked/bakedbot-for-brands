@@ -198,15 +198,15 @@ env:
     secret: RTRVR_API_KEY
     availability:
       - RUNTIME
-  # OpenClaw - WhatsApp Gateway
-  - variable: OPENCLAW_API_URL
-    secret: OPENCLAW_API_URL
-    availability:
-      - RUNTIME
-  - variable: OPENCLAW_API_KEY
-    secret: OPENCLAW_API_KEY
-    availability:
-      - RUNTIME
+  # OpenClaw - WhatsApp Gateway (commented out until secrets are created)
+  # - variable: OPENCLAW_API_URL
+  #   secret: OPENCLAW_API_URL
+  #   availability:
+  #     - RUNTIME
+  # - variable: OPENCLAW_API_KEY
+  #   secret: OPENCLAW_API_KEY
+  #   availability:
+  #     - RUNTIME
   - variable: LETTA_API_KEY
     secret: LETTA_API_KEY@1
     availability:
