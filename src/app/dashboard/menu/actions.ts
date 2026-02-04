@@ -24,13 +24,17 @@ export interface PosConfigInfo {
 export async function getPosConfig(): Promise<PosConfigInfo> {
     try {
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'super_user']);
+        const user = await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
 
         let locationId = user.locationId;
-        const orgId = (user as any).orgId || (user.customClaims?.orgId);
+        const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
 
         if (!locationId && orgId) {
-            const locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
+            // Try orgId first, then brandId as fallback
+            let locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
+            if (locSnap.empty) {
+                locSnap = await firestore.collection('locations').where('brandId', '==', orgId).limit(1).get();
+            }
             if (!locSnap.empty) {
                 locationId = locSnap.docs[0].id;
             }
@@ -76,14 +80,18 @@ export async function getPosConfig(): Promise<PosConfigInfo> {
 export async function syncMenu(): Promise<{ success: boolean; count?: number; error?: string; provider?: string }> {
     try {
         const { firestore } = await createServerClient();
-        const user = await requireUser(['dispensary', 'super_user']);
+        const user = await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
 
         let locationId = user.locationId;
-        const orgId = (user as any).orgId || (user.customClaims?.orgId);
+        const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
 
         // 1. Resolve Location if missing from claim
         if (!locationId && orgId) {
-            const locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
+            // Try orgId first, then brandId as fallback
+            let locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
+            if (locSnap.empty) {
+                locSnap = await firestore.collection('locations').where('brandId', '==', orgId).limit(1).get();
+            }
             if (!locSnap.empty) {
                 locationId = locSnap.docs[0].id;
             }
@@ -211,11 +219,23 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
 export async function getMenuData(): Promise<MenuData> {
     try {
         const { firestore } = await createServerClient();
-        const user = await requireUser(['brand', 'dispensary', 'super_user']);
-        
-        const locationId = user.locationId;
+        const user = await requireUser(['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
+
+        let locationId = user.locationId;
         const brandId = user.brandId; // For Brands
         const role = user.role;
+        const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
+
+        // Resolve locationId from orgId if not directly available
+        if (!locationId && orgId) {
+            let locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
+            if (locSnap.empty) {
+                locSnap = await firestore.collection('locations').where('brandId', '==', orgId).limit(1).get();
+            }
+            if (!locSnap.empty) {
+                locationId = locSnap.docs[0].id;
+            }
+        }
 
         const productRepo = makeProductRepo(firestore);
         
