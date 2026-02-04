@@ -432,18 +432,38 @@ export const defaultSmokeyTools = {
         try {
             const { firestore } = await createServerClient();
             const user = await requireUser();
-            
-            let locationId = user.locationId;
-             // Fallback logic similar to syncMenu
-             if (!locationId && (user as any).orgId) {
-                const locSnap = await firestore.collection('locations').where('orgId', '==', (user as any).orgId).limit(1).get();
-                if (!locSnap.empty) locationId = locSnap.docs[0].id;
-             }
 
-            if (!locationId) return { success: false, error: "No location linked." };
+            // Use orgId resolution: check orgId first, then currentOrgId, then locationId
+            const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
+            let locationId = user.locationId;
+
+            // Fallback logic similar to syncMenu - try orgId first, then brandId
+            if (!locationId && orgId) {
+                let locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
+                if (locSnap.empty) {
+                    locSnap = await firestore.collection('locations').where('brandId', '==', orgId).limit(1).get();
+                }
+                if (!locSnap.empty) locationId = locSnap.docs[0].id;
+            }
 
             const productRepo = makeProductRepo(firestore);
-            const products = await productRepo.getAllByLocation(locationId);
+
+            // Try getAllByLocation first
+            let products = locationId ? await productRepo.getAllByLocation(locationId) : [];
+
+            // If no products found with locationId, try orgId as dispensaryId
+            if (products.length === 0 && orgId && orgId !== locationId) {
+                products = await productRepo.getAllByLocation(orgId);
+            }
+
+            // If still no products, try getAllByBrand with orgId (handles tenant catalog)
+            if (products.length === 0 && orgId) {
+                products = await productRepo.getAllByBrand(orgId);
+            }
+
+            if (products.length === 0) {
+                return { success: false, error: "No products found. Menu may need to be synced." };
+            }
 
             // In-memory simplistic fuzzy search
             const lowerQ = query.toLowerCase();
