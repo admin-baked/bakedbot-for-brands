@@ -367,7 +367,7 @@ export async function getBrandStatus() {
 // POS Sync & AI Description Generation Actions
 // =============================================================================
 
-import { syncMenu, getPosConfig } from '@/app/dashboard/menu/actions';
+import { syncMenu, getPosConfig as _getPosConfig } from '@/app/dashboard/menu/actions';
 import { generateProductDescription as aiGenerateDescription } from '@/ai/flows/generate-product-description';
 import { getPriceTier, TIER_CONFIG, type PriceTier } from '@/lib/product-tiers';
 import { revalidatePath } from 'next/cache';
@@ -453,9 +453,11 @@ export async function syncProductsFromPos(): Promise<{ success: boolean; count?:
 }
 
 /**
- * Get POS configuration info (re-export)
+ * Get POS configuration info (wrapper for menu action)
  */
-export { getPosConfig } from '@/app/dashboard/menu/actions';
+export async function getPosConfig() {
+    return _getPosConfig();
+}
 
 /**
  * Generate SEO-optimized description for a single product
