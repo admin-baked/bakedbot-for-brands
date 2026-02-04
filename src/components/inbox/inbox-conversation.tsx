@@ -20,6 +20,9 @@ import {
     Edit2,
     Sparkles,
     RefreshCw,
+    Paperclip,
+    FileText,
+    X,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -46,6 +49,8 @@ import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
 import { formatDistanceToNow } from 'date-fns';
 import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inbox';
 import { useJobPoller } from '@/hooks/use-job-poller';
+import { AttachmentPreviewList, type AttachmentItem } from '@/components/ui/attachment-preview';
+import { useToast } from '@/hooks/use-toast';
 
 // ============ Agent Name Mapping ============
 
@@ -156,6 +161,28 @@ function MessageBubble({
                             </ReactMarkdown>
                         </div>
                     )}
+
+                    {/* Attachments */}
+                    {message.attachments && message.attachments.length > 0 && (
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                            {message.attachments.map((att) => (
+                                <div key={att.id} className="relative rounded-lg overflow-hidden border bg-background/50">
+                                    {att.type.startsWith('image/') ? (
+                                        <img
+                                            src={att.url || att.preview}
+                                            alt={att.name}
+                                            className="w-full h-24 object-cover"
+                                        />
+                                    ) : (
+                                        <div className="flex items-center gap-2 p-3">
+                                            <FileText className="h-5 w-5 text-muted-foreground" />
+                                            <span className="text-xs truncate">{att.name}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Inline Artifact Cards */}
@@ -250,15 +277,28 @@ function ThreadHeader({ thread }: { thread: InboxThread }) {
 
 // ============ Main Component ============
 
+// File upload constants
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_FILE_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'application/pdf',
+];
+
 export function InboxConversation({ thread, artifacts, className }: InboxConversationProps) {
     const [input, setInput] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+    const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const { addMessageToThread, addArtifacts, isThreadPending } = useInboxStore();
     const isPending = isThreadPending(thread.id);
+    const { toast } = useToast();
 
     // Use Firestore real-time job polling instead of broken HTTP polling
     const { job, isComplete, error: jobError } = useJobPoller(currentJobId ?? undefined);
@@ -277,6 +317,58 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
         }
     }, [input]);
+
+    // Handle file selection
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files) return;
+
+        for (const file of Array.from(files)) {
+            // Validate file size
+            if (file.size > MAX_FILE_SIZE) {
+                toast({
+                    title: 'File too large',
+                    description: `${file.name} exceeds 10MB limit`,
+                    variant: 'destructive',
+                });
+                continue;
+            }
+
+            // Validate file type
+            if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+                toast({
+                    title: 'Unsupported file type',
+                    description: `${file.type || 'Unknown type'} is not supported. Use images or PDFs.`,
+                    variant: 'destructive',
+                });
+                continue;
+            }
+
+            // Read file as data URL
+            const reader = new FileReader();
+            reader.onload = () => {
+                const dataUrl = reader.result as string;
+                const newAttachment: AttachmentItem = {
+                    id: `att-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                    file,
+                    type: file.type.startsWith('image/') ? 'image' : 'file',
+                    preview: file.type.startsWith('image/') ? dataUrl : undefined,
+                    content: !file.type.startsWith('image/') ? dataUrl : undefined,
+                    name: file.name,
+                };
+                setAttachments((prev) => [...prev, newAttachment]);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Reset input so same file can be selected again
+        e.target.value = '';
+    };
+
+    // Remove attachment
+    const handleRemoveAttachment = (id: string) => {
+        setAttachments((prev) => prev.filter((a) => a.id !== id));
+    };
 
     // Handle job completion via Firestore real-time listener (useJobPoller)
     useEffect(() => {
@@ -322,13 +414,23 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     }, [jobError, currentJobId, thread.id, addMessageToThread]);
 
     const handleSubmit = async () => {
-        if (!input.trim() || isSubmitting || isPending) return;
+        if ((!input.trim() && attachments.length === 0) || isSubmitting || isPending) return;
+
+        // Prepare attachments for the message
+        const messageAttachments = attachments.map((att) => ({
+            id: att.id,
+            name: att.file?.name || att.name || 'file',
+            type: att.file?.type || (att.type === 'image' ? 'image/jpeg' : 'application/octet-stream'),
+            url: att.preview || att.content || '',
+            preview: att.preview,
+        }));
 
         const userMessage: ChatMessage = {
             id: `msg-${Date.now()}`,
             type: 'user',
-            content: input.trim(),
+            content: input.trim() || (attachments.length > 0 ? `[Attached ${attachments.length} file(s)]` : ''),
             timestamp: new Date(),
+            attachments: messageAttachments.length > 0 ? messageAttachments : undefined,
         };
 
         // Add user message to local state
@@ -337,13 +439,25 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         // Persist user message to server
         await addMessageToInboxThread(thread.id, userMessage);
 
+        // Prepare attachments for agent (base64 format)
+        const agentAttachments = attachments.map((att) => ({
+            name: att.file?.name || att.name || 'file',
+            type: att.file?.type || (att.type === 'image' ? 'image/jpeg' : 'application/octet-stream'),
+            base64: att.preview || att.content || '',
+        }));
+
         const messageContent = input.trim();
         setInput('');
+        setAttachments([]); // Clear attachments after sending
         setIsSubmitting(true);
 
         try {
-            // Call the inbox agent chat
-            const result = await runInboxAgentChat(thread.id, messageContent);
+            // Call the inbox agent chat with attachments
+            const result = await runInboxAgentChat(
+                thread.id,
+                messageContent || 'Please analyze the attached file(s).',
+                agentAttachments.length > 0 ? agentAttachments : undefined
+            );
 
             if (!result.success) {
                 const errorMessage: ChatMessage = {
@@ -443,7 +557,39 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             {/* Input Area */}
             <div className="border-t p-4 bg-background">
                 <div className="max-w-3xl mx-auto">
+                    {/* Attachment Preview */}
+                    {attachments.length > 0 && (
+                        <div className="mb-3">
+                            <AttachmentPreviewList
+                                attachments={attachments}
+                                onRemove={handleRemoveAttachment}
+                            />
+                        </div>
+                    )}
+
                     <div className="flex items-end gap-2">
+                        {/* Hidden file input */}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                            multiple
+                            onChange={handleFileSelect}
+                            className="hidden"
+                        />
+
+                        {/* Attachment button */}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-11 w-11 shrink-0"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isSubmitting || isPending}
+                            title="Attach files (images, PDFs)"
+                        >
+                            <Paperclip className="h-4 w-4" />
+                        </Button>
+
                         <div className="flex-1 relative">
                             <Textarea
                                 ref={textareaRef}
@@ -454,14 +600,14 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     ? 'Setting up conversation...'
                                     : `Message ${AGENT_NAMES[thread.primaryAgent]?.name || 'assistant'}...`
                                 }
-                                className="min-h-[44px] max-h-[200px] resize-none pr-12"
+                                className="min-h-[44px] max-h-[200px] resize-none"
                                 rows={1}
                                 disabled={isSubmitting || isPending}
                             />
                         </div>
                         <Button
                             onClick={handleSubmit}
-                            disabled={!input.trim() || isSubmitting || isPending}
+                            disabled={(!input.trim() && attachments.length === 0) || isSubmitting || isPending}
                             size="icon"
                             className="h-11 w-11"
                         >
@@ -473,7 +619,11 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                         </Button>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2 text-center">
-                        {isPending ? 'Preparing your conversation...' : 'Press Enter to send, Shift+Enter for new line'}
+                        {isPending
+                            ? 'Preparing your conversation...'
+                            : attachments.length > 0
+                            ? `${attachments.length} file(s) attached. Press Enter to send.`
+                            : 'Press Enter to send, Shift+Enter for new line. Use 📎 to attach files.'}
                     </p>
                 </div>
             </div>

@@ -2,12 +2,21 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Artifact } from '@/types/artifact';
 
+export interface ChatMessageAttachment {
+    id: string;
+    name: string;
+    type: string;         // MIME type (e.g., 'image/jpeg', 'application/pdf')
+    url: string;          // data URL or download URL
+    preview?: string;     // For images - thumbnail data URL
+}
+
 export interface ChatMessage {
     id: string;
     type: 'user' | 'agent';
     content: string;
     timestamp: Date;
     artifacts?: Artifact[]; // Artifacts generated in this message
+    attachments?: ChatMessageAttachment[]; // File attachments (images, PDFs)
 
     thinking?: {
         isThinking: boolean;

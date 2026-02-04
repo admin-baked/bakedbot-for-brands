@@ -764,7 +764,8 @@ export interface InboxChatResult {
  */
 export async function runInboxAgentChat(
     threadId: string,
-    userMessage: string
+    userMessage: string,
+    attachments?: { name: string; type: string; base64: string }[]
 ): Promise<InboxChatResult> {
     try {
         const user = await getServerSessionUser();
@@ -890,6 +891,7 @@ export async function runInboxAgentChat(
             {
                 modelLevel: 'standard',
                 source: 'inbox',
+                attachments, // Pass file attachments for multimodal processing
                 context: {
                     threadId,
                     threadType: thread.type,
