@@ -50,27 +50,49 @@ export default async function DashboardProductsPage() {
         user = { role: 'brand', brandId: DEMO_BRAND_ID };
     } else {
         try {
-            user = await requireUser(['brand', 'super_user', 'dispensary']);
+            user = await requireUser(['brand', 'brand_admin', 'brand_member', 'super_user', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender']);
             // For brand users, use brandId from claims, fallback to uid
             const brandId = user.brandId || (user.role === 'brand' ? user.uid : null);
+            const role = (user as any).role || '';
 
             const { firestore } = await createServerClient();
             const productRepo = makeProductRepo(firestore);
 
-            if (user.role === 'dispensary') {
-                // Dispensary Logic
-                // 1. Fetch Products
-                // Dispensaries might store products with brandId=dispensaryId or handle differently.
-                // For now, assume products are linked to their UID if no brandId.
-                // Actually `brandId` on User for dispensary might be their Org ID.
-                // Let's rely on `productRepo.getAllByBrand` using their ID.
-                products = await productRepo.getAllByBrand(user.uid); // or brandId if set
+            // Check if dispensary role
+            const isDispensaryRole = ['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender'].includes(role);
 
-                // 2. Check POS Config
-                const dispDoc = await firestore.collection('dispensaries').doc(user.uid).get();
-                const posConfig = dispDoc.data()?.posConfig;
-                if (!posConfig || !posConfig.provider) {
-                    showPosAlert = true;
+            if (isDispensaryRole) {
+                // Dispensary Logic - resolve locationId/orgId
+                const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId || user.uid;
+
+                // Find location by orgId
+                let locationId = user.locationId;
+                if (!locationId && orgId) {
+                    let locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
+                    if (locSnap.empty) {
+                        locSnap = await firestore.collection('locations').where('brandId', '==', orgId).limit(1).get();
+                    }
+                    if (!locSnap.empty) {
+                        locationId = locSnap.docs[0].id;
+                        const locData = locSnap.docs[0].data();
+                        // Check POS config
+                        if (!locData?.posConfig?.provider) {
+                            showPosAlert = true;
+                        }
+                    }
+                }
+
+                // Fetch products by locationId (dispensaryId field)
+                if (locationId) {
+                    products = await productRepo.getAllByLocation(locationId);
+                }
+                // Fallback to orgId
+                if (products.length === 0 && orgId) {
+                    products = await productRepo.getAllByLocation(orgId);
+                }
+                // Final fallback to getAllByBrand
+                if (products.length === 0 && orgId) {
+                    products = await productRepo.getAllByBrand(orgId);
                 }
             } else if (user.role === 'super_user') {
                 // Owner sees all products

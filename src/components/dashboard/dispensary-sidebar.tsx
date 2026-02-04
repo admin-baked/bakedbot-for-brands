@@ -25,6 +25,7 @@ import {
     FolderKanban,
     BookOpen,
     Utensils,
+    Package,
     Images,
     PackagePlus,
     ShoppingCart,
@@ -103,6 +104,14 @@ export function DispensarySidebar() {
                                 <Link href="/dashboard/menu">
                                     <Utensils />
                                     <span>Menu</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/products')}>
+                                <Link href="/dashboard/products">
+                                    <Package />
+                                    <span>Products</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

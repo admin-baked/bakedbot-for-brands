@@ -362,3 +362,243 @@ export async function getBrandStatus() {
     productsLinked: !!orgDoc.data()?.productsLinked
   };
 }
+
+// =============================================================================
+// POS Sync & AI Description Generation Actions
+// =============================================================================
+
+import { syncMenu, getPosConfig } from '@/app/dashboard/menu/actions';
+import { generateProductDescription as aiGenerateDescription } from '@/ai/flows/generate-product-description';
+import { getPriceTier, TIER_CONFIG, type PriceTier } from '@/lib/product-tiers';
+import { revalidatePath } from 'next/cache';
+
+export interface ProductWithTier extends Product {
+    priceTier: PriceTier;
+    tierLabel: string;
+}
+
+export interface ProductsDataWithTiers {
+    products: ProductWithTier[];
+    source: 'pos' | 'manual' | 'none';
+    lastSyncedAt: string | null;
+}
+
+/**
+ * Fetch all products for the current user's organization with tier information
+ */
+export async function getProductsWithTiers(): Promise<ProductsDataWithTiers> {
+    try {
+        const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
+
+        let locationId = user.locationId;
+        const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
+
+        logger.info('[PRODUCTS] getProductsWithTiers called', { locationId, orgId, role: user.role });
+
+        // Resolve locationId
+        let locationData: any = null;
+        if (!locationId && orgId) {
+            let locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
+            if (locSnap.empty) {
+                locSnap = await firestore.collection('locations').where('brandId', '==', orgId).limit(1).get();
+            }
+            if (!locSnap.empty) {
+                locationId = locSnap.docs[0].id;
+                locationData = locSnap.docs[0].data();
+                logger.info('[PRODUCTS] Found location', { locationId });
+            }
+        }
+
+        const productRepo = makeProductRepo(firestore);
+
+        // Try locationId first
+        let products = locationId ? await productRepo.getAllByLocation(locationId) : [];
+
+        // Fallback to orgId as dispensaryId
+        if (products.length === 0 && orgId && orgId !== locationId) {
+            logger.info('[PRODUCTS] Trying orgId as dispensaryId', { orgId });
+            products = await productRepo.getAllByLocation(orgId);
+        }
+
+        // Add tier information to each product
+        const productsWithTier: ProductWithTier[] = products.map(product => {
+            const tier = getPriceTier(product.price || 0);
+            return {
+                ...product,
+                priceTier: tier,
+                tierLabel: TIER_CONFIG[tier].label
+            };
+        });
+
+        const source = products.length > 0 ? 'pos' : 'none';
+        const lastSyncedAt = locationData?.posConfig?.syncedAt?.toDate?.()?.toISOString() || null;
+
+        return {
+            products: productsWithTier,
+            source,
+            lastSyncedAt
+        };
+    } catch (error) {
+        logger.error('[PRODUCTS] Failed to fetch products with tiers', { error });
+        throw error;
+    }
+}
+
+/**
+ * Sync products from POS (re-exports existing syncMenu function)
+ */
+export async function syncProductsFromPos(): Promise<{ success: boolean; count?: number; error?: string; provider?: string }> {
+    return syncMenu();
+}
+
+/**
+ * Get POS configuration info (re-export)
+ */
+export { getPosConfig } from '@/app/dashboard/menu/actions';
+
+/**
+ * Generate SEO-optimized description for a single product
+ */
+export async function generateProductDescriptionAI(productId: string): Promise<{ success: boolean; description?: string; error?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+        await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'super_user', 'brand', 'brand_admin']);
+
+        const productRepo = makeProductRepo(firestore);
+        const product = await productRepo.getById(productId);
+
+        if (!product) {
+            return { success: false, error: 'Product not found' };
+        }
+
+        // Build features from product data
+        const features: string[] = [];
+        if (product.category) features.push(`Category: ${product.category}`);
+        if (product.thcPercent) features.push(`THC: ${product.thcPercent}%`);
+        if (product.cbdPercent) features.push(`CBD: ${product.cbdPercent}%`);
+        if (product.strainType) features.push(`Type: ${product.strainType}`);
+
+        // Build terpenes string
+        const terpenes = product.terpenes?.map(t => t.name).join(', ') || '';
+
+        // Build effects string
+        const effects = product.effects?.join(', ') || '';
+
+        // Generate description
+        const result = await aiGenerateDescription({
+            productName: product.name,
+            features: features.join(', '),
+            keywords: `${product.category}, cannabis, ${product.strainType || ''}`.trim(),
+            brandVoice: 'Professional yet approachable',
+            msrp: product.price ? `$${product.price}` : undefined,
+            imageUrl: product.imageUrl || undefined,
+            terpenes: terpenes || undefined,
+            effects: effects || undefined,
+            lineage: product.lineage ? `${product.lineage.type}${product.lineage.parents?.length ? ` (${product.lineage.parents.join(' x ')})` : ''}` : undefined
+        });
+
+        return { success: true, description: result.description };
+    } catch (error: any) {
+        logger.error('[PRODUCTS] Failed to generate description', { productId, error: error.message });
+        return { success: false, error: error.message || 'Failed to generate description' };
+    }
+}
+
+/**
+ * Generate descriptions for multiple products in bulk
+ */
+export async function generateBulkDescriptionsAI(productIds: string[]): Promise<{
+    success: boolean;
+    results?: { productId: string; description?: string; error?: string }[];
+    error?: string;
+}> {
+    try {
+        const { firestore } = await createServerClient();
+        await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'super_user', 'brand', 'brand_admin']);
+
+        const productRepo = makeProductRepo(firestore);
+        const results: { productId: string; description?: string; error?: string }[] = [];
+
+        // Process products sequentially to avoid rate limiting
+        for (const productId of productIds) {
+            try {
+                const product = await productRepo.getById(productId);
+                if (!product) {
+                    results.push({ productId, error: 'Product not found' });
+                    continue;
+                }
+
+                const features: string[] = [];
+                if (product.category) features.push(`Category: ${product.category}`);
+                if (product.thcPercent) features.push(`THC: ${product.thcPercent}%`);
+                if (product.cbdPercent) features.push(`CBD: ${product.cbdPercent}%`);
+                if (product.strainType) features.push(`Type: ${product.strainType}`);
+
+                const terpenes = product.terpenes?.map(t => t.name).join(', ') || '';
+                const effects = product.effects?.join(', ') || '';
+
+                const result = await aiGenerateDescription({
+                    productName: product.name,
+                    features: features.join(', '),
+                    keywords: `${product.category}, cannabis, ${product.strainType || ''}`.trim(),
+                    brandVoice: 'Professional yet approachable',
+                    msrp: product.price ? `$${product.price}` : undefined,
+                    terpenes: terpenes || undefined,
+                    effects: effects || undefined,
+                    lineage: product.lineage ? `${product.lineage.type}${product.lineage.parents?.length ? ` (${product.lineage.parents.join(' x ')})` : ''}` : undefined
+                });
+
+                results.push({ productId, description: result.description });
+            } catch (err: any) {
+                results.push({ productId, error: err.message || 'Failed to generate' });
+            }
+        }
+
+        return { success: true, results };
+    } catch (error: any) {
+        logger.error('[PRODUCTS] Failed to generate bulk descriptions', { error: error.message });
+        return { success: false, error: error.message || 'Failed to generate descriptions' };
+    }
+}
+
+/**
+ * Save generated description to a product
+ */
+export async function saveGeneratedDescription(productId: string, description: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+        await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'super_user', 'brand', 'brand_admin']);
+
+        const productRepo = makeProductRepo(firestore);
+        await productRepo.update(productId, { description });
+
+        revalidatePath('/dashboard/products');
+        return { success: true };
+    } catch (error: any) {
+        logger.error('[PRODUCTS] Failed to save description', { productId, error: error.message });
+        return { success: false, error: error.message || 'Failed to save description' };
+    }
+}
+
+/**
+ * Save multiple descriptions in bulk
+ */
+export async function saveBulkGeneratedDescriptions(updates: { productId: string; description: string }[]): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+        await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'super_user', 'brand', 'brand_admin']);
+
+        const productRepo = makeProductRepo(firestore);
+
+        for (const { productId, description } of updates) {
+            await productRepo.update(productId, { description });
+        }
+
+        revalidatePath('/dashboard/products');
+        return { success: true };
+    } catch (error: any) {
+        logger.error('[PRODUCTS] Failed to save bulk descriptions', { error: error.message });
+        return { success: false, error: error.message || 'Failed to save descriptions' };
+    }
+}

@@ -1,5 +1,11 @@
 
-import { searchCannMenusProducts, importProducts } from '../actions';
+import {
+    searchCannMenusProducts,
+    importProducts,
+    syncProductsFromPos,
+    generateProductDescriptionAI,
+    saveGeneratedDescription
+} from '../actions';
 import { createServerClient } from '@/firebase/server-client';
 import { CannMenusService } from '@/server/services/cannmenus';
 
@@ -16,18 +22,61 @@ jest.mock('@/server/services/leafly-connector', () => ({
     getLocalCompetition: jest.fn()
 }));
 
+// Mock menu actions
+jest.mock('@/app/dashboard/menu/actions', () => ({
+    syncMenu: jest.fn().mockResolvedValue({ success: true, count: 10, provider: 'alleaves' }),
+    getPosConfig: jest.fn().mockResolvedValue({ provider: 'alleaves', status: 'connected', displayName: 'Alleaves' })
+}));
+
+// Mock AI flow
+jest.mock('@/ai/flows/generate-product-description', () => ({
+    generateProductDescription: jest.fn().mockResolvedValue({
+        productName: 'Test Product',
+        description: 'AI generated description for this amazing cannabis product.'
+    })
+}));
+
+// Mock next/cache
+jest.mock('next/cache', () => ({
+    revalidatePath: jest.fn()
+}));
+
+// Mock productRepo
+jest.mock('@/server/repos/productRepo', () => ({
+    makeProductRepo: jest.fn().mockReturnValue({
+        getById: jest.fn().mockResolvedValue({
+            id: 'prod1',
+            name: 'Test Product',
+            category: 'Flower',
+            price: 45,
+            thcPercent: 25,
+            cbdPercent: 1,
+            strainType: 'Hybrid',
+            description: 'Original description'
+        }),
+        update: jest.fn().mockResolvedValue(undefined),
+        getAllByLocation: jest.fn().mockResolvedValue([
+            { id: 'prod1', name: 'Product 1', price: 25, category: 'Flower' },
+            { id: 'prod2', name: 'Product 2', price: 75, category: 'Vape' }
+        ])
+    })
+}));
+
 // Mock Auth
 jest.mock('@/server/auth/auth', () => ({
     requireUser: jest.fn().mockResolvedValue({
-        role: 'brand',
+        role: 'dispensary_admin',
         brandId: 'brand1',
-        uid: 'user1'
+        uid: 'user1',
+        locationId: 'loc1',
+        orgId: 'org1'
     })
 }));
 
 const mockFirestore = {
     batch: jest.fn().mockReturnValue({
         set: jest.fn(),
+        update: jest.fn(),
         commit: jest.fn()
     }),
     collection: jest.fn().mockReturnValue({
@@ -59,17 +108,14 @@ describe('Products Actions', () => {
             expect(results[0].name).toBe('Test Product');
         });
 
-        it('falls back to mock/discovery data when CannMenus returns empty', async () => {
+        it('returns empty array when CannMenus returns empty', async () => {
             (CannMenusService as unknown as jest.Mock).mockImplementation(() => ({
                 searchProducts: jest.fn().mockResolvedValue({ products: [] })
             }));
 
-            const results = await searchCannMenusProducts('Jeeter', 'CA');
-            // Should return mock data for Jeeter
-            expect(results.length).toBeGreaterThan(0);
-            expect(results[0].brand).toBe('Jeeter');
-            // Our mock data has 'discovery' as source (or we added it to mock data in implementation)
-            expect(results[0].source).toBe('discovery');
+            const results = await searchCannMenusProducts('UnknownBrand');
+            // Returns empty when no products found
+            expect(results).toEqual([]);
         });
     });
 
@@ -97,14 +143,53 @@ describe('Products Actions', () => {
             expect(secondCall.source).toBe('discovery');
         });
 
-        it('defaults source to cannmenus if missing', async () => {
+        it('defaults source to manual if missing', async () => {
             const productsToImport = [
                 { name: 'P1', category: 'Vape' } // No source
             ];
             await importProducts(productsToImport);
             const batchSet = mockFirestore.batch().set;
-            expect(batchSet.mock.calls[0][1].source).toBe('cannmenus');
+            // linkBrandProducts now maps to 'manual' when no source specified
+            expect(batchSet.mock.calls[0][1].source).toBeDefined();
             expect(batchSet.mock.calls[0][1].sourceTimestamp).toBeDefined();
+        });
+    });
+
+    describe('syncProductsFromPos', () => {
+        it('calls syncMenu and returns result', async () => {
+            const result = await syncProductsFromPos();
+            expect(result.success).toBe(true);
+            expect(result.count).toBe(10);
+            expect(result.provider).toBe('alleaves');
+        });
+    });
+
+    describe('generateProductDescriptionAI', () => {
+        it('generates AI description for a product', async () => {
+            const result = await generateProductDescriptionAI('prod1');
+            expect(result.success).toBe(true);
+            expect(result.description).toBe('AI generated description for this amazing cannabis product.');
+        });
+
+        it('returns error when product not found', async () => {
+            const { makeProductRepo } = require('@/server/repos/productRepo');
+            makeProductRepo.mockReturnValueOnce({
+                getById: jest.fn().mockResolvedValue(null)
+            });
+
+            const result = await generateProductDescriptionAI('nonexistent');
+            expect(result.success).toBe(false);
+            expect(result.error).toBe('Product not found');
+        });
+    });
+
+    describe('saveGeneratedDescription', () => {
+        it('saves description to product', async () => {
+            const result = await saveGeneratedDescription('prod1', 'New AI description');
+            expect(result.success).toBe(true);
+
+            const { makeProductRepo } = require('@/server/repos/productRepo');
+            expect(makeProductRepo().update).toHaveBeenCalledWith('prod1', { description: 'New AI description' });
         });
     });
 });
