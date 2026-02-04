@@ -149,15 +149,24 @@ export async function configureAlleavesForThriveSyracuse() {
         if (!locDoc.exists) {
             log(`Location ${locationId} not found. Searching by orgId...`);
 
-            // Try to find by orgId
-            const locSnap = await firestore.collection('locations')
-                .where('orgId', '==', 'dispensary_thrive_syracuse')
+            // Try to find by orgId (check both naming conventions)
+            let locSnap = await firestore.collection('locations')
+                .where('orgId', '==', 'org_thrive_syracuse')
                 .limit(1)
                 .get();
 
+            // Fallback to legacy naming convention
+            if (locSnap.empty) {
+                locSnap = await firestore.collection('locations')
+                    .where('orgId', '==', 'dispensary_thrive_syracuse')
+                    .limit(1)
+                    .get();
+            }
+
             if (!locSnap.empty) {
                 const foundLocId = locSnap.docs[0].id;
-                log(`Found location with orgId dispensary_thrive_syracuse: ${foundLocId}`);
+                const foundOrgId = locSnap.docs[0].data().orgId;
+                log(`Found location with orgId ${foundOrgId}: ${foundLocId}`);
 
                 // Use the found location ID
                 return configureAlleavesForLocation(foundLocId, {
