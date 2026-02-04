@@ -958,12 +958,14 @@ export const InboxArtifactStatusSchema = z.enum([
 ]);
 
 export const CreateInboxThreadSchema = z.object({
+    id: z.string().optional(), // Client-generated ID to avoid race conditions
     type: InboxThreadTypeSchema,
     title: z.string().min(1).max(200).optional(),
     primaryAgent: InboxAgentPersonaSchema.optional(),
     projectId: z.string().optional(),
     brandId: z.string().optional(),
     dispensaryId: z.string().optional(),
+    initialMessage: z.any().optional(), // ChatMessage object (optional)
 });
 
 export const UpdateInboxThreadSchema = z.object({
