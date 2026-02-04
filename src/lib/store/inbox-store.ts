@@ -46,6 +46,9 @@ interface InboxState {
     isSidebarCollapsed: boolean;
     isLoading: boolean;
 
+    // Thread persistence tracking
+    pendingThreadIds: Set<string>; // Threads being persisted to Firestore
+
     // User context
     currentRole: string | null;
     currentOrgId: string | null;
@@ -104,6 +107,11 @@ interface InboxState {
     // Add artifacts (append to existing)
     addArtifacts: (artifacts: InboxArtifact[]) => void;
 
+    // Thread persistence actions
+    markThreadPending: (threadId: string) => void;
+    markThreadPersisted: (threadId: string) => void;
+    isThreadPending: (threadId: string) => boolean;
+
     // Computed getters (as functions)
     getFilteredThreads: () => InboxThread[];
     getThreadById: (threadId: string) => InboxThread | undefined;
@@ -135,6 +143,7 @@ export const useInboxStore = create<InboxState>()(
             isArtifactPanelOpen: false,
             isSidebarCollapsed: false,
             isLoading: false,
+            pendingThreadIds: new Set<string>(),
             currentRole: null,
             currentOrgId: null,
 
@@ -448,6 +457,28 @@ export const useInboxStore = create<InboxState>()(
                 set((state) => ({
                     inboxArtifacts: [...state.inboxArtifacts, ...artifacts],
                 }));
+            },
+
+            // ============ Thread Persistence Actions ============
+
+            markThreadPending: (threadId) => {
+                set((state) => {
+                    const newPending = new Set(state.pendingThreadIds);
+                    newPending.add(threadId);
+                    return { pendingThreadIds: newPending };
+                });
+            },
+
+            markThreadPersisted: (threadId) => {
+                set((state) => {
+                    const newPending = new Set(state.pendingThreadIds);
+                    newPending.delete(threadId);
+                    return { pendingThreadIds: newPending };
+                });
+            },
+
+            isThreadPending: (threadId) => {
+                return get().pendingThreadIds.has(threadId);
             },
 
             // ============ Computed Getters ============

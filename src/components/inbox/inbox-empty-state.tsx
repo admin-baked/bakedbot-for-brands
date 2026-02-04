@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useInboxStore } from '@/lib/store/inbox-store';
 import type { InboxQuickAction } from '@/types/inbox';
 import { createInboxThread } from '@/server/actions/inbox';
+import { useToast } from '@/hooks/use-toast';
 
 // ============ Props ============
 
@@ -32,20 +33,25 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
 // ============ Quick Start Card ============
 
 function QuickStartCard({ action }: { action: InboxQuickAction }) {
-    const { createThread, updateThreadId, currentOrgId } = useInboxStore();
+    const { createThread, deleteThread, markThreadPending, markThreadPersisted, currentOrgId } = useInboxStore();
     const [isCreating, setIsCreating] = useState(false);
+    const { toast } = useToast();
     const Icon = ICON_MAP[action.icon] || Inbox;
 
     const handleClick = async () => {
         if (isCreating) return;
         setIsCreating(true);
 
+        let localThread = null;
         try {
             // Create thread locally first for instant UI feedback
-            const localThread = createThread(action.threadType, {
+            localThread = createThread(action.threadType, {
                 title: action.label,
                 primaryAgent: action.defaultAgent,
             });
+
+            // Mark thread as pending (not yet persisted to Firestore)
+            markThreadPending(localThread.id);
 
             // Persist to Firestore - pass local ID to avoid race conditions
             const result = await createInboxThread({
@@ -59,9 +65,29 @@ function QuickStartCard({ action }: { action: InboxQuickAction }) {
 
             if (!result.success) {
                 console.error('[QuickStartCard] Failed to persist thread:', result.error);
+                // Delete local thread since server persistence failed
+                deleteThread(localThread.id);
+                toast({
+                    title: 'Failed to create conversation',
+                    description: result.error || 'Please try again',
+                    variant: 'destructive',
+                });
+                return;
             }
+
+            // Mark thread as persisted (safe to use now)
+            markThreadPersisted(localThread.id);
         } catch (error) {
             console.error('[QuickStartCard] Error creating thread:', error);
+            // Clean up local thread on error
+            if (localThread) {
+                deleteThread(localThread.id);
+            }
+            toast({
+                title: 'Failed to create conversation',
+                description: 'An unexpected error occurred. Please try again.',
+                variant: 'destructive',
+            });
         } finally {
             setIsCreating(false);
         }
