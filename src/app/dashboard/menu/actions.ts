@@ -19,6 +19,50 @@ export interface PosConfigInfo {
 }
 
 /**
+ * Resolve the location document for a user, with proper fallback logic.
+ * Tries: locationId doc → orgId query → brandId query
+ */
+async function resolveLocation(
+    firestore: FirebaseFirestore.Firestore,
+    locationId: string | undefined,
+    orgId: string | undefined,
+    tag: string
+): Promise<{ locationId: string | undefined; locationData: any }> {
+    let resolvedLocationId = locationId;
+    let locationData: any = null;
+
+    // 1. Try locationId as document ID first
+    if (resolvedLocationId) {
+        const locDoc = await firestore.collection('locations').doc(resolvedLocationId).get();
+        if (locDoc.exists) {
+            locationData = locDoc.data();
+            logger.info(`[${tag}] Found location by ID`, { locationId: resolvedLocationId });
+            return { locationId: resolvedLocationId, locationData };
+        }
+        // Document doesn't exist - fall through to orgId query
+        logger.info(`[${tag}] Location ID not found as document, trying orgId`, { locationId: resolvedLocationId, orgId });
+    }
+
+    // 2. Query by orgId
+    if (orgId) {
+        let locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
+        if (locSnap.empty) {
+            locSnap = await firestore.collection('locations').where('brandId', '==', orgId).limit(1).get();
+        }
+        if (!locSnap.empty) {
+            resolvedLocationId = locSnap.docs[0].id;
+            locationData = locSnap.docs[0].data();
+            logger.info(`[${tag}] Found location by orgId`, { locationId: resolvedLocationId, orgId });
+            return { locationId: resolvedLocationId, locationData };
+        }
+    }
+
+    // 3. Nothing found
+    logger.info(`[${tag}] No location found`, { locationId, orgId });
+    return { locationId: resolvedLocationId, locationData: null };
+}
+
+/**
  * Get POS configuration info for the current user's location
  */
 export async function getPosConfig(): Promise<PosConfigInfo> {
@@ -26,32 +70,12 @@ export async function getPosConfig(): Promise<PosConfigInfo> {
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
 
-        let locationId = user.locationId;
         const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
-        let locationData: any = null;
+        logger.info('[GET_POS_CONFIG] Called', { locationId: user.locationId, orgId, role: user.role });
 
-        logger.info('[GET_POS_CONFIG] Called', { locationId, orgId, role: user.role });
-
-        // Find location document
-        if (!locationId && orgId) {
-            // Try orgId first, then brandId as fallback
-            let locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
-            if (locSnap.empty) {
-                locSnap = await firestore.collection('locations').where('brandId', '==', orgId).limit(1).get();
-            }
-            if (!locSnap.empty) {
-                locationId = locSnap.docs[0].id;
-                locationData = locSnap.docs[0].data();
-            }
-        } else if (locationId) {
-            const locDoc = await firestore.collection('locations').doc(locationId).get();
-            if (locDoc.exists) {
-                locationData = locDoc.data();
-            }
-        }
+        const { locationId, locationData } = await resolveLocation(firestore, user.locationId, orgId, 'GET_POS_CONFIG');
 
         if (!locationId || !locationData) {
-            logger.info('[GET_POS_CONFIG] No location found', { locationId, orgId });
             return { provider: null, status: null, displayName: 'POS' };
         }
 
@@ -95,32 +119,16 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
 
-        let locationId = user.locationId;
         const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
 
-        // 1. Resolve Location if missing from claim
-        if (!locationId && orgId) {
-            // Try orgId first, then brandId as fallback
-            let locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
-            if (locSnap.empty) {
-                locSnap = await firestore.collection('locations').where('brandId', '==', orgId).limit(1).get();
-            }
-            if (!locSnap.empty) {
-                locationId = locSnap.docs[0].id;
-            }
+        // 1. Resolve Location with proper fallback
+        const { locationId, locationData } = await resolveLocation(firestore, user.locationId, orgId, 'SYNC_MENU');
+
+        if (!locationId || !locationData) {
+            return { success: false, error: 'Location not found. User does not have a valid location linked.' };
         }
 
-        if (!locationId) {
-            return { success: false, error: 'User does not have a locationId linked.' };
-        }
-
-        // 2. Fetch POS Config from Location
-        const locDoc = await firestore.collection('locations').doc(locationId).get();
-        if (!locDoc.exists) {
-            return { success: false, error: 'Location document not found.' };
-        }
-
-        const posConfig = locDoc.data()?.posConfig;
+        const posConfig = locationData.posConfig;
         if (!posConfig || !posConfig.provider) {
             return { success: false, error: 'No POS integration configured for this location.' };
         }
@@ -234,26 +242,14 @@ export async function getMenuData(): Promise<MenuData> {
         const { firestore } = await createServerClient();
         const user = await requireUser(['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
 
-        let locationId = user.locationId;
         const brandId = user.brandId; // For Brands
         const role = user.role;
         const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
 
-        logger.info('[MENU] getMenuData called', { locationId, brandId, role, orgId });
+        logger.info('[MENU] getMenuData called', { locationId: user.locationId, brandId, role, orgId });
 
-        // Resolve locationId and get location data
-        let locationData: any = null;
-        if (!locationId && orgId) {
-            let locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
-            if (locSnap.empty) {
-                locSnap = await firestore.collection('locations').where('brandId', '==', orgId).limit(1).get();
-            }
-            if (!locSnap.empty) {
-                locationId = locSnap.docs[0].id;
-                locationData = locSnap.docs[0].data();
-                logger.info('[MENU] Found location', { locationId, hasPostConfig: !!locationData?.posConfig });
-            }
-        }
+        // Resolve locationId with proper fallback
+        const { locationId, locationData } = await resolveLocation(firestore, user.locationId, orgId, 'MENU');
 
         const productRepo = makeProductRepo(firestore);
 
