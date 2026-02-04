@@ -28,7 +28,11 @@ export async function getPosConfig(): Promise<PosConfigInfo> {
 
         let locationId = user.locationId;
         const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
+        let locationData: any = null;
 
+        logger.info('[GET_POS_CONFIG] Called', { locationId, orgId, role: user.role });
+
+        // Find location document
         if (!locationId && orgId) {
             // Try orgId first, then brandId as fallback
             let locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
@@ -37,19 +41,28 @@ export async function getPosConfig(): Promise<PosConfigInfo> {
             }
             if (!locSnap.empty) {
                 locationId = locSnap.docs[0].id;
+                locationData = locSnap.docs[0].data();
+            }
+        } else if (locationId) {
+            const locDoc = await firestore.collection('locations').doc(locationId).get();
+            if (locDoc.exists) {
+                locationData = locDoc.data();
             }
         }
 
-        if (!locationId) {
+        if (!locationId || !locationData) {
+            logger.info('[GET_POS_CONFIG] No location found', { locationId, orgId });
             return { provider: null, status: null, displayName: 'POS' };
         }
 
-        const locDoc = await firestore.collection('locations').doc(locationId).get();
-        if (!locDoc.exists) {
-            return { provider: null, status: null, displayName: 'POS' };
-        }
+        const posConfig = locationData.posConfig;
+        logger.info('[GET_POS_CONFIG] Location data', {
+            locationId,
+            hasPosConfig: !!posConfig,
+            provider: posConfig?.provider,
+            status: posConfig?.status
+        });
 
-        const posConfig = locDoc.data()?.posConfig;
         if (!posConfig) {
             return { provider: null, status: null, displayName: 'POS' };
         }
@@ -226,7 +239,10 @@ export async function getMenuData(): Promise<MenuData> {
         const role = user.role;
         const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
 
-        // Resolve locationId from orgId if not directly available
+        logger.info('[MENU] getMenuData called', { locationId, brandId, role, orgId });
+
+        // Resolve locationId and get location data
+        let locationData: any = null;
         if (!locationId && orgId) {
             let locSnap = await firestore.collection('locations').where('orgId', '==', orgId).limit(1).get();
             if (locSnap.empty) {
@@ -234,19 +250,30 @@ export async function getMenuData(): Promise<MenuData> {
             }
             if (!locSnap.empty) {
                 locationId = locSnap.docs[0].id;
+                locationData = locSnap.docs[0].data();
+                logger.info('[MENU] Found location', { locationId, hasPostConfig: !!locationData?.posConfig });
             }
         }
 
         const productRepo = makeProductRepo(firestore);
-        
-        // 1. Check for POS-synced products (Truth)
-        if (locationId) {
-            const localProducts = await productRepo.getAllByLocation(locationId);
+
+        // 1. Check for POS-synced products (Truth) - try multiple dispensaryId values
+        if (locationId || orgId) {
+            // Try locationId first
+            let localProducts = locationId ? await productRepo.getAllByLocation(locationId) : [];
+
+            // If no products with locationId, try orgId as dispensaryId
+            if (localProducts.length === 0 && orgId && orgId !== locationId) {
+                logger.info('[MENU] Trying orgId as dispensaryId', { orgId });
+                localProducts = await productRepo.getAllByLocation(orgId);
+            }
+
             if (localProducts.length > 0) {
+                logger.info('[MENU] Found local products', { count: localProducts.length });
                 return {
                     products: localProducts,
                     source: 'pos',
-                    lastSyncedAt: new Date().toISOString() // In reality, fetch from location.lastSyncAt
+                    lastSyncedAt: locationData?.posConfig?.syncedAt?.toDate?.()?.toISOString() || new Date().toISOString()
                 };
             }
         }
@@ -267,7 +294,7 @@ export async function getMenuData(): Promise<MenuData> {
         if (locationId && locationId.startsWith('cm_')) {
             const cms = new CannMenusService();
             // This is a slow path, ideally we sync in background
-            const cmProducts = await cms.getRetailerInventory(locationId); 
+            const cmProducts = await cms.getRetailerInventory(locationId);
             return {
                 products: cmProducts || [],
                 source: 'cannmenus',
