@@ -389,6 +389,45 @@ export const defaultSmokeyTools = {
         await commonMemoryTools.lettaSaveFact(`Ranked products for segment '${segmentId}'.`, 'product_ranking');
         return products;
     },
+    /**
+     * Create a carousel artifact for the inbox system.
+     * Returns the artifact marker format that parseArtifactsFromContent() can parse.
+     */
+    createCarouselArtifact: async (input: {
+        title: string;
+        description?: string;
+        productIds: string[];
+        displayOrder?: number;
+        rationale: string;
+    }) => {
+        const { title, description, productIds, displayOrder = 0, rationale } = input;
+
+        // Build the artifact data
+        const artifactData = {
+            title,
+            description: description || '',
+            productIds,
+            displayOrder,
+            rationale
+        };
+
+        // Return in artifact marker format for parseArtifactsFromContent()
+        // The :::artifact:carousel:Title format is parsed by the inbox system
+        const marker = `:::artifact:carousel:${title}\n${JSON.stringify(artifactData)}\n:::`;
+
+        return {
+            success: true,
+            artifactId: `carousel-${Date.now()}`,
+            marker,  // Include the marker for the agent to output
+            carousel: {
+                title,
+                description: description || '',
+                productIds,
+                displayOrder
+            },
+            rationale
+        };
+    },
     searchMenu: async (query: string) => {
         try {
             const { firestore } = await createServerClient();
