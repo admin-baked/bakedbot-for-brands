@@ -45,10 +45,12 @@ async function fixUserClaims() {
         console.log('\n📋 Current custom claims:', JSON.stringify(user.customClaims, null, 2));
 
         // Set correct claims
+        // Note: We set both orgId AND currentOrgId for compatibility with different code paths
         console.log('\n🔐 Setting custom claims...');
         await auth.setCustomUserClaims(user.uid, {
             role: 'dispensary',
             orgId: ORG_ID,
+            currentOrgId: ORG_ID, // Some code paths check currentOrgId
             brandId: BRAND_ID,
             locationId: LOCATION_ID,
             planId: 'empire',
@@ -66,6 +68,7 @@ async function fixUserClaims() {
         await db.collection('users').doc(user.uid).update({
             brandId: BRAND_ID,
             orgId: ORG_ID,
+            currentOrgId: ORG_ID, // For compatibility
             locationId: LOCATION_ID,
             role: 'dispensary',
             approvalStatus: 'approved',

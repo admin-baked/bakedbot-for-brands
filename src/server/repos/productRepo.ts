@@ -68,13 +68,23 @@ export function makeProductRepo(db: Firestore) {
 
       // Check if brand has orgId (for dispensary/POS integrated brands)
       try {
-        const brandSnapshot = await db.collection('brands')
-          .where('id', '==', effectiveBrandId)
-          .limit(1)
-          .get();
+        // First, try to get brand document directly by ID
+        let brandDoc = await db.collection('brands').doc(effectiveBrandId).get();
 
-        if (!brandSnapshot.empty) {
-          const brand = brandSnapshot.docs[0].data();
+        // If not found, try querying by slug
+        if (!brandDoc.exists) {
+          const slugQuery = await db.collection('brands')
+            .where('slug', '==', effectiveBrandId)
+            .limit(1)
+            .get();
+
+          if (!slugQuery.empty) {
+            brandDoc = slugQuery.docs[0];
+          }
+        }
+
+        if (brandDoc.exists) {
+          const brand = brandDoc.data()!;
           const orgId = brand.orgId;
 
           // If brand has orgId, fetch from tenant publicViews
