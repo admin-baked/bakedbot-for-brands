@@ -5,10 +5,12 @@ import { Sparkles, Globe, AlertCircle } from "lucide-react";
 import { researchService } from "@/server/services/research-service";
 import { requireUser } from "@/server/auth/auth";
 import { ResearchTaskList } from "./components/research-task-list";
+import { ResearchDialog } from "./components/research-dialog";
 import { ResearchTask } from "@/types/research";
 
 export default async function ResearchPage() {
   const user = await requireUser();
+  const brandId = user.brandId || user.uid;
   
   // Fetch tasks with error handling for missing Firestore index
   let tasks: ResearchTask[] = [];
@@ -33,10 +35,12 @@ export default async function ResearchPage() {
           <h1 className="text-2xl font-bold tracking-tight">Smokey Deep Research</h1>
           <p className="text-muted-foreground">Comprehensive web analysis and market intelligence reports.</p>
         </div>
-        <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700">
-          <Globe className="h-4 w-4" />
-          New Research Task
-        </Button>
+        <ResearchDialog userId={user.uid} brandId={brandId}>
+          <Button className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+            <Globe className="h-4 w-4" />
+            New Research Task
+          </Button>
+        </ResearchDialog>
       </div>
 
       {/* Error State */}
@@ -59,17 +63,19 @@ export default async function ResearchPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* New Task Card */}
-        <Card className="border-dashed border-2 bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer group">
-          <CardContent className="flex flex-col items-center justify-center h-[200px] text-center p-6">
-            <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Sparkles className="h-6 w-6 text-emerald-600" />
-            </div>
-            <h3 className="font-semibold text-lg mb-1">Start New Research</h3>
-            <p className="text-sm text-muted-foreground">
-              Task the AI with a complex query like "Analyze competitor pricing in Thailand"
-            </p>
-          </CardContent>
-        </Card>
+        <ResearchDialog userId={user.uid} brandId={brandId}>
+          <Card className="border-dashed border-2 bg-muted/20 hover:bg-muted/30 transition-colors cursor-pointer group">
+            <CardContent className="flex flex-col items-center justify-center h-[200px] text-center p-6">
+              <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Sparkles className="h-6 w-6 text-emerald-600" />
+              </div>
+              <h3 className="font-semibold text-lg mb-1">Start New Research</h3>
+              <p className="text-sm text-muted-foreground">
+                Task the AI with a complex query like &quot;Analyze competitor pricing in Thailand&quot;
+              </p>
+            </CardContent>
+          </Card>
+        </ResearchDialog>
 
         {/* Task List - Client Component to avoid hydration issues with dates */}
         {!error && <ResearchTaskList tasks={tasks} />}

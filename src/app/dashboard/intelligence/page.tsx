@@ -13,12 +13,17 @@ import { requireUser } from '@/server/auth/auth';
 import { redirect } from 'next/navigation';
 import { listCompetitors } from '@/server/services/ezal/competitor-manager';
 import { generateCompetitorReport } from '@/server/services/ezal/report-generator';
+import { getEzalLimits } from '@/lib/plan-limits';
 
 export default async function IntelligencePage() {
     let brandId = '';
+    let maxCompetitors = 5;
     try {
         const user = await requireUser();
         brandId = user.uid;
+        const planId = (user as any).planId as string || 'scout';
+        const ezalLimits = getEzalLimits(planId);
+        maxCompetitors = ezalLimits.maxCompetitors;
     } catch {
         redirect('/dashboard');
     }
@@ -43,7 +48,7 @@ export default async function IntelligencePage() {
                     <p className="text-muted-foreground">Market benchmarking and availability tracking.</p>
                 </div>
                 <div className="flex gap-2">
-                    <CompetitorSetupWizard hasCompetitors={competitors.length > 0} />
+                    <CompetitorSetupWizard hasCompetitors={competitors.length > 0} maxCompetitors={maxCompetitors} />
                     <Button variant="outline">
                         <Search className="mr-2 h-4 w-4" />
                         Deep Search

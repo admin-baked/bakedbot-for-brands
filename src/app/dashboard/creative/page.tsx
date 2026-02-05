@@ -62,7 +62,7 @@ import { useUser } from "@/firebase/auth/use-user";
 
 // Feature flag: Gauntlet compliance verification system
 // Set to true when Gauntlet is re-enabled in agent-runner.ts
-const GAUNTLET_ENABLED = false;
+const GAUNTLET_ENABLED = true;
 
 // --- Types & Mock Data ---
 
@@ -408,6 +408,8 @@ export default function CreativeCommandCenter() {
         setMenuItems(items);
       } catch (err) {
         console.error('[Creative] Failed to fetch menu items:', err);
+        setMenuItems([]);
+        toast.error("Failed to load menu items. Product suggestions may be limited.");
       } finally {
         setIsLoadingMenu(false);
       }
@@ -728,7 +730,7 @@ export default function CreativeCommandCenter() {
           <div>
             <h1 className="text-xl font-semibold">Creative Command Center</h1>
             <p className="text-sm text-muted-foreground">
-              Centralize your cannabis lifestyle, mannerstyle, and imponants.
+              Centralize your cannabis branding, marketing, and creative content.
             </p>
           </div>
           <div className="flex items-center gap-4">

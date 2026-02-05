@@ -14,9 +14,10 @@ import { useUserRole } from '@/hooks/use-user-role';
 interface CompetitorSetupWizardProps {
     hasCompetitors: boolean;
     overrideRole?: 'brand' | 'dispensary'; // Explicit role override
+    maxCompetitors?: number; // Plan-based competitor limit
 }
 
-export function CompetitorSetupWizard({ hasCompetitors, overrideRole }: CompetitorSetupWizardProps) {
+export function CompetitorSetupWizard({ hasCompetitors, overrideRole, maxCompetitors = 5 }: CompetitorSetupWizardProps) {
     const { role: userRole } = useUserRole();
     const searchType = overrideRole || (userRole === 'brand' ? 'brand' : 'dispensary');
     const [open, setOpen] = useState(!hasCompetitors);
@@ -64,8 +65,8 @@ export function CompetitorSetupWizard({ hasCompetitors, overrideRole }: Competit
         if (next.has(menuUrl)) {
             next.delete(menuUrl);
         } else {
-            if (next.size >= 5) { // Bumped to 5
-                toast({ title: "Limit Reached", description: "You can select up to 5 competitors." });
+            if (next.size >= maxCompetitors) {
+                toast({ title: "Limit Reached", description: `You can select up to ${maxCompetitors} competitors on your current plan.` });
                 return;
             }
             next.add(menuUrl);

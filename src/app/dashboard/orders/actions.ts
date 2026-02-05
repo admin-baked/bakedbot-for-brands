@@ -286,7 +286,7 @@ export async function getOrders(params: GetOrdersParams | string = {}): Promise<
             ? { orgId: params }
             : params;
 
-        const limit = options.limit || 100;
+        const limit = options.limit || 10000;
 
         // Determine orgId from params or user context
         let orgId = options.orgId || options.brandId;
