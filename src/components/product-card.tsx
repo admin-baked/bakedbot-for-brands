@@ -2,13 +2,16 @@
 'use client';
 
 import { useStore } from '@/hooks/use-store';
-import { ShoppingCart, Minus, Plus, Heart } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Heart, Zap } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 import { useToast } from '../hooks/use-toast';
 import { useMemo } from 'react';
 import { AddToCartButton } from '@/components/add-to-cart-button';
+import { useDynamicPrice } from '@/hooks/use-dynamic-price';
+import { useDispensaryId } from '@/hooks/use-dispensary-id';
 import type { Product } from '@/types/domain';
 import { cn } from '@/lib/utils';
 
@@ -36,14 +39,41 @@ export function ProductCard({
   const cartItem = cartItems.find(item => item.id === product.id);
   const quantity = cartItem ? cartItem.quantity : 0;
 
+  // Dynamic pricing hook
+  const { dispensaryId } = useDispensaryId();
+  const { dynamicPrice, hasDiscount } = useDynamicPrice({
+    productId: product.id,
+    orgId: product.brandId || dispensaryId || '',
+    enabled: true,
+  });
+
   const priceDisplay = useMemo(() => {
+    // Priority 1: Use dynamic price if available and discounted
+    if (dynamicPrice && hasDiscount) {
+      return {
+        current: `$${dynamicPrice.dynamicPrice.toFixed(2)}`,
+        original: `$${dynamicPrice.originalPrice.toFixed(2)}`,
+        discount: dynamicPrice.discountPercent.toFixed(0),
+        badge: dynamicPrice.badge,
+        reason: dynamicPrice.displayReason,
+      };
+    }
+
+    // Priority 2: Retailer-specific pricing
     const prices = product.prices ?? {};
     const hasPricing = Object.keys(prices).length > 0;
 
     if (selectedRetailerId && hasPricing && prices[selectedRetailerId]) {
-      return `$${prices[selectedRetailerId].toFixed(2)}`;
+      return {
+        current: `$${prices[selectedRetailerId].toFixed(2)}`,
+        original: null,
+        discount: null,
+        badge: null,
+        reason: null,
+      };
     }
 
+    // Priority 3: Price range if multiple retailers
     if (!selectedRetailerId && hasPricing) {
       const priceValues = Object.values(prices);
       if (priceValues.length > 0) {
@@ -51,14 +81,33 @@ export function ProductCard({
         const maxPrice = Math.max(...priceValues);
 
         if (minPrice === maxPrice) {
-          return `$${minPrice.toFixed(2)}`;
+          return {
+            current: `$${minPrice.toFixed(2)}`,
+            original: null,
+            discount: null,
+            badge: null,
+            reason: null,
+          };
         }
-        return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
+        return {
+          current: `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`,
+          original: null,
+          discount: null,
+          badge: null,
+          reason: null,
+        };
       }
     }
 
-    return `$${product.price.toFixed(2)}`;
-  }, [product, selectedRetailerId]);
+    // Priority 4: Fallback to standard price
+    return {
+      current: `$${product.price.toFixed(2)}`,
+      original: null,
+      discount: null,
+      badge: null,
+      reason: null,
+    };
+  }, [product, selectedRetailerId, dynamicPrice, hasDiscount]);
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (onClick) {
@@ -116,6 +165,19 @@ export function ProductCard({
           </div>
         )}
 
+        {/* Dynamic Pricing Badge */}
+        {hasDiscount && priceDisplay.badge && (
+          <Badge
+            className="absolute top-2 left-2 z-10 gap-1 font-bold"
+            style={{
+              backgroundColor: priceDisplay.badge.color === 'red' ? '#ef4444' : '#10b981',
+            }}
+          >
+            <Zap className="h-3 w-3" />
+            {priceDisplay.badge.text}
+          </Badge>
+        )}
+
         {/* Favorite button */}
         {onFavorite && (
           <Button
@@ -148,9 +210,36 @@ export function ProductCard({
         )}
 
         <div className="flex items-center justify-between mt-auto">
-          <span className={`${variant === 'large' ? 'text-2xl' : 'text-xl'} font-bold`}>
-            {priceDisplay}
-          </span>
+          <div className="flex flex-col">
+            {/* Strikethrough original price */}
+            {priceDisplay.original && (
+              <span className="text-sm text-muted-foreground line-through">
+                {priceDisplay.original}
+              </span>
+            )}
+
+            {/* Current price with dynamic indicator */}
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  variant === 'large' ? 'text-2xl' : 'text-xl',
+                  'font-bold',
+                  hasDiscount && 'text-green-600'
+                )}
+              >
+                {priceDisplay.current}
+              </span>
+              {hasDiscount && <Zap className="h-4 w-4 text-amber-500" />}
+            </div>
+
+            {/* Customer-facing reason */}
+            {priceDisplay.reason && (
+              <span className="text-xs text-muted-foreground mt-0.5">
+                {priceDisplay.reason}
+              </span>
+            )}
+          </div>
+
           {isClaimedPage && (
             <div onClick={(e) => e.stopPropagation()}>
               <AddToCartButton product={product} size="sm" />
