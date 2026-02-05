@@ -50,6 +50,7 @@ import { QRCodeGeneratorInline } from './qr-code-generator-inline';
 import { CarouselGeneratorInline } from './carousel-generator-inline';
 import { BundleGeneratorInline } from './bundle-generator-inline';
 import { SocialPostGeneratorInline } from './social-post-generator-inline';
+import { DynamicPricingGeneratorInline } from './dynamic-pricing-generator-inline';
 import { formatDistanceToNow } from 'date-fns';
 import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inbox';
 import { generateQRCode } from '@/server/actions/qr-code';
@@ -301,9 +302,11 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [showCarouselGenerator, setShowCarouselGenerator] = useState(false);
     const [showBundleGenerator, setShowBundleGenerator] = useState(false);
     const [showSocialPostGenerator, setShowSocialPostGenerator] = useState(false);
+    const [showPricingGenerator, setShowPricingGenerator] = useState(false);
     const [carouselInitialPrompt, setCarouselInitialPrompt] = useState('');
     const [bundleInitialPrompt, setBundleInitialPrompt] = useState('');
     const [socialPostInitialPrompt, setSocialPostInitialPrompt] = useState('');
+    const [pricingInitialPrompt, setPricingInitialPrompt] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -311,6 +314,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const hasAutoShownCarousel = useRef<boolean>(false);
     const hasAutoShownBundle = useRef<boolean>(false);
     const hasAutoShownSocialPost = useRef<boolean>(false);
+    const hasAutoShownPricing = useRef<boolean>(false);
 
     const { addMessageToThread, addArtifacts, isThreadPending } = useInboxStore();
     const isPending = isThreadPending(thread.id);
@@ -489,6 +493,21 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [thread.id, thread.type, showSocialPostGenerator]);
 
+    // Auto-open Dynamic Pricing generator for inventory_promo threads
+    useEffect(() => {
+        if (thread.type === 'inventory_promo') {
+            if (!showPricingGenerator) {
+                setShowPricingGenerator(true);
+            }
+            hasAutoShownPricing.current = true;
+        } else {
+            if (showPricingGenerator) {
+                setShowPricingGenerator(false);
+            }
+            hasAutoShownPricing.current = false;
+        }
+    }, [thread.id, thread.type, showPricingGenerator]);
+
     const handleSubmit = async () => {
         if ((!input.trim() && attachments.length === 0) || isSubmitting || isPending) return;
 
@@ -560,6 +579,24 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             addMessageToThread(thread.id, userMessage);
             setSocialPostInitialPrompt(input.trim());
             setShowSocialPostGenerator(true);
+            setInput('');
+            return;
+        }
+
+        // Detect Dynamic Pricing creation intent
+        const pricingKeywords = ['dynamic pricing', 'price optimization', 'pricing strategy', 'competitor pricing', 'clearance pricing', 'optimize prices', 'adjust prices', 'pricing rules'];
+        const isPricingRequest = pricingKeywords.some(keyword => lowerInput.includes(keyword));
+
+        if (isPricingRequest) {
+            const userMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'user',
+                content: input.trim(),
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, userMessage);
+            setPricingInitialPrompt(input.trim());
+            setShowPricingGenerator(true);
             setInput('');
             return;
         }
@@ -699,6 +736,19 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         setSocialPostInitialPrompt('');
     };
 
+    const handleCompletePricing = async (rule: any) => {
+        setShowPricingGenerator(false);
+
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `✅ **Dynamic Pricing Rule Activated!**\n\n"${rule.name}" is now optimizing prices based on:\n• ${rule.strategy.charAt(0).toUpperCase() + rule.strategy.slice(1)} strategy\n• ${rule.priceAdjustment.value * 100}% discount adjustment\n${rule.conditions.inventoryAge ? '• Inventory age monitoring\n' : ''}${rule.conditions.competitorPrice ? '• Competitor price tracking\n' : ''}${rule.conditions.timeRange ? '• Time-based pricing\n' : ''}${rule.conditions.customerTier ? '• Customer tier pricing\n' : ''}\n\nMonitor performance in your [Pricing Dashboard](/dashboard/pricing).`,
+            timestamp: new Date(),
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+        setPricingInitialPrompt('');
+    };
+
     const handleCompleteQRCode = async (qrCodeData: {
         url: string;
         campaignName: string;
@@ -755,7 +805,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 <div className="max-w-3xl mx-auto py-4">
                     {thread.messages.length === 0 ? (
                         <>
-                            {!showQRGenerator && !showCarouselGenerator && !showBundleGenerator && !showSocialPostGenerator && (
+                            {!showQRGenerator && !showCarouselGenerator && !showBundleGenerator && !showSocialPostGenerator && !showPricingGenerator && (
                                 <div className="text-center py-12">
                                     <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                                     <h3 className="font-medium text-lg mb-2">Start the conversation</h3>
@@ -800,6 +850,16 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     <SocialPostGeneratorInline
                                         onComplete={handleCompleteSocialPost}
                                         initialPrompt={socialPostInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Show Dynamic Pricing Generator inline for empty pricing threads */}
+                            {showPricingGenerator && (
+                                <div className="mt-4">
+                                    <DynamicPricingGeneratorInline
+                                        onComplete={handleCompletePricing}
+                                        initialPrompt={pricingInitialPrompt}
                                     />
                                 </div>
                             )}
@@ -850,6 +910,16 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     <SocialPostGeneratorInline
                                         onComplete={handleCompleteSocialPost}
                                         initialPrompt={socialPostInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Show Dynamic Pricing Generator inline after messages */}
+                            {showPricingGenerator && (
+                                <div className="mt-4">
+                                    <DynamicPricingGeneratorInline
+                                        onComplete={handleCompletePricing}
+                                        initialPrompt={pricingInitialPrompt}
                                     />
                                 </div>
                             )}
