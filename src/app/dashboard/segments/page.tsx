@@ -8,7 +8,7 @@ import SegmentsPageClient from './page-client';
  */
 export default async function SegmentsPage() {
     const user = await requireUser(['brand', 'dispensary', 'super_user']);
-    const brandId = user.brandId || user.uid;
+    const brandId = (user as any).orgId || user.brandId || (user as any).currentOrgId || user.uid;
 
     if (!brandId) {
         redirect('/dashboard');

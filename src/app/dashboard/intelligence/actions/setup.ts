@@ -8,6 +8,7 @@ import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/logger';
 
 import { searchEntities } from '@/server/actions/discovery-search';
+import { getEzalLimits } from '@/lib/plan-limits';
 
 export async function searchLocalCompetitors(zip: string) {
     await requireUser();
@@ -40,8 +41,10 @@ export async function searchLocalCompetitors(zip: string) {
 export async function finalizeCompetitorSetup(competitors: any[]) {
     const user = await requireUser();
     const tenantId = user.uid; // Brand ID
-    
-    // 1. Save Competitors
+    const planId = (user as any).planId as string || 'scout';
+    const ezalLimits = getEzalLimits(planId);
+
+    // 1. Save Competitors with plan-based frequency
     for (const comp of competitors) {
         await quickSetupCompetitor(tenantId, {
             name: comp.name,
@@ -50,8 +53,8 @@ export async function finalizeCompetitorSetup(competitors: any[]) {
             city: comp.city || '',
             zip: comp.zip || '',
             menuUrl: comp.menuUrl,
-            parserProfileId: 'cannmenus-default', // Default parser
-            frequencyMinutes: 1440 // Daily
+            parserProfileId: 'cannmenus-default',
+            frequencyMinutes: ezalLimits.frequencyMinutes
         });
     }
 

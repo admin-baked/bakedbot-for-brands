@@ -22,6 +22,7 @@ import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { useDispensaryId } from '@/hooks/use-dispensary-id';
 import { useToast } from '@/hooks/use-toast';
+import { createPricingRule } from '@/app/actions/dynamic-pricing';
 import type { DynamicPricingRule, PricingStrategy } from '@/types/dynamic-pricing';
 
 interface DynamicPricingGeneratorInlineProps {
@@ -153,13 +154,21 @@ export function DynamicPricingGeneratorInline({
             orgId: dispensaryId,
         };
 
-        // Simulate creation (replace with actual API call)
-        toast({
-            title: "Pricing Rule Created!",
-            description: `"${ruleName}" is now active and optimizing your prices.`,
-        });
+        const result = await createPricingRule(rule);
 
-        onComplete?.(rule as DynamicPricingRule);
+        if (result.success && result.data) {
+            toast({
+                title: "Pricing Rule Created!",
+                description: `"${ruleName}" is now active and optimizing your prices.`,
+            });
+            onComplete?.(result.data);
+        } else {
+            toast({
+                title: "Creation Failed",
+                description: result.error || "Failed to save pricing rule.",
+                variant: "destructive",
+            });
+        }
     };
 
     const STRATEGY_CONFIG = {
