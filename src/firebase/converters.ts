@@ -6,9 +6,10 @@ import {
   SnapshotOptions,
 } from "firebase/firestore";
 import type { Product, Retailer, OrderDoc, Review, UserInteraction, Location, Coupon, Playbook } from '@/types/domain';
+import type { DynamicPricingRule } from '@/types/dynamic-pricing';
 
 // Re-export the types so they can be imported from this module
-export type { Product, Retailer, OrderDoc, Review, UserInteraction, Location, Coupon, Playbook };
+export type { Product, Retailer, OrderDoc, Review, UserInteraction, Location, Coupon, Playbook, DynamicPricingRule };
 
 
 // ---- Generic helpers ----
@@ -30,6 +31,7 @@ export const reviewConverter = makeConverter<Review>();
 export const interactionConverter = makeConverter<UserInteraction>();
 export const couponConverter = makeConverter<Coupon>();
 export const playbookConverter = makeConverter<Playbook>();
+export const pricingRuleConverter = makeConverter<DynamicPricingRule>();
 
 export const retailerConverter: FirestoreDataConverter<Retailer> = {
   toFirestore(retailer: Retailer) {
