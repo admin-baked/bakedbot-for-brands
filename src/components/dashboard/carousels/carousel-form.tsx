@@ -21,11 +21,12 @@ import { Carousel } from '@/types/carousels';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { ProductPicker } from './product-picker';
 
 const formSchema = z.object({
     title: z.string().min(2, "Title is required"),
     description: z.string().optional(),
-    productIds: z.string(), // CSV string for form, converted to array for submit
+    productIds: z.array(z.string()).min(1, "Select at least one product"),
     displayOrder: z.coerce.number().min(0),
     active: z.boolean().default(true),
 });
@@ -46,7 +47,7 @@ export function CarouselForm({ initialData, orgId, onSuccess, onCancel }: Carous
         defaultValues: {
             title: initialData?.title || "",
             description: initialData?.description || "",
-            productIds: initialData?.productIds?.join(', ') || "",
+            productIds: initialData?.productIds || [],
             displayOrder: initialData?.displayOrder || 0,
             active: initialData?.active ?? true,
         },
@@ -55,11 +56,9 @@ export function CarouselForm({ initialData, orgId, onSuccess, onCancel }: Carous
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
         try {
-            const productIdsArray = values.productIds.split(',').map(s => s.trim()).filter(Boolean);
-
             const payload = {
                 ...values,
-                productIds: productIdsArray
+                productIds: values.productIds
             };
 
             let result;
@@ -125,12 +124,16 @@ export function CarouselForm({ initialData, orgId, onSuccess, onCancel }: Carous
                     name="productIds"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Product IDs</FormLabel>
+                            <FormLabel>Products</FormLabel>
                             <FormControl>
-                                <Textarea placeholder="Comma separated IDs: prod_123, prod_456" {...field} />
+                                <ProductPicker
+                                    orgId={orgId}
+                                    selectedProductIds={field.value}
+                                    onSelectionChange={field.onChange}
+                                />
                             </FormControl>
                             <FormDescription>
-                                Enter the IDs of products to include in this carousel.
+                                Select the products to include in this carousel.
                             </FormDescription>
                             <FormMessage />
                         </FormItem>

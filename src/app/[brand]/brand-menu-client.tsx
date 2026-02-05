@@ -33,6 +33,7 @@ import { useStore } from '@/hooks/use-store';
 import type { Product, Retailer, Brand } from '@/types/domain';
 import type { BundleDeal } from '@/types/bundles';
 import type { FeaturedBrand } from '@/server/actions/featured-brands';
+import type { Carousel } from '@/types/carousels';
 
 // Brand Menu Components
 import { BrandMenuHeader } from '@/components/demo/brand-menu-header';
@@ -61,6 +62,7 @@ interface BrandMenuClientProps {
   brandSlug: string;
   bundles?: BundleDeal[];
   featuredBrands?: FeaturedBrand[];
+  carousels?: Carousel[];
 }
 
 // Category order for display
@@ -85,7 +87,7 @@ const DEFAULT_PRIMARY_COLOR = '#16a34a';
 
 type BrandView = 'shop' | 'locator' | 'checkout' | 'shipping-checkout';
 
-export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [], featuredBrands = [] }: BrandMenuClientProps) {
+export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [], featuredBrands = [], carousels = [] }: BrandMenuClientProps) {
   // View state
   const [brandView, setBrandView] = useState<BrandView>('shop');
 
@@ -493,8 +495,31 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
             />
           )}
 
-          {/* Featured Products Section */}
-          {featuredProducts.length > 0 && (
+          {/* Dynamic Carousels from Dashboard */}
+          {carousels.map((carousel) => {
+            const carouselProducts = products.filter(p => carousel.productIds.includes(p.id));
+            if (carouselProducts.length === 0) return null;
+
+            return (
+              <ProductSection
+                key={carousel.id}
+                title={carousel.title}
+                subtitle={carousel.description || ''}
+                products={carouselProducts}
+                onAddToCart={handleAddToCart}
+                getCartQuantity={getCartItemQuantity}
+                primaryColor={primaryColor}
+                layout="carousel"
+                dealBadge={getDealBadge}
+                onProductClick={setSelectedProduct}
+                onFavorite={toggleFavorite}
+                favorites={favorites}
+              />
+            );
+          })}
+
+          {/* Featured Products Section (fallback if no carousels) */}
+          {carousels.length === 0 && featuredProducts.length > 0 && (
             <ProductSection
               title="Customer Favorites"
               subtitle="Our most loved products based on reviews and sales"
@@ -782,8 +807,31 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           />
         )}
 
-        {/* Featured Products Section */}
-        {featuredProducts.length > 0 && (
+        {/* Dynamic Carousels from Dashboard */}
+        {carousels.map((carousel) => {
+          const carouselProducts = products.filter(p => carousel.productIds.includes(p.id));
+          if (carouselProducts.length === 0) return null;
+
+          return (
+            <ProductSection
+              key={carousel.id}
+              title={carousel.title}
+              subtitle={carousel.description || ''}
+              products={carouselProducts}
+              onAddToCart={handleAddToCart}
+              getCartQuantity={getCartItemQuantity}
+              primaryColor={primaryColor}
+              layout="carousel"
+              dealBadge={getDealBadge}
+              onProductClick={setSelectedProduct}
+              onFavorite={toggleFavorite}
+              favorites={favorites}
+            />
+          );
+        })}
+
+        {/* Featured Products Section (fallback if no carousels) */}
+        {carousels.length === 0 && featuredProducts.length > 0 && (
           <ProductSection
             title="Featured Products"
             subtitle="Our most popular items"

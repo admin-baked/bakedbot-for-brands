@@ -3,6 +3,8 @@ import type { Brand, Product, Retailer } from '@/types/domain';
 import { CannMenusService } from '@/server/services/cannmenus';
 import { RetailerDoc } from '@/types/cannmenus';
 import { getFeaturedBrands, type FeaturedBrand } from '@/server/actions/featured-brands';
+import { getCarousels } from '@/app/actions/carousels';
+import type { Carousel } from '@/types/carousels';
 
 /**
  * Sanitize Firestore data for Server->Client Component serialization.
@@ -225,13 +227,29 @@ export async function fetchBrandPageData(brandParam: string) {
             }
         }
 
+        // 6. Fetch active carousels for the menu
+        let carousels: Carousel[] = [];
+        if (tenantId) {
+            try {
+                const carouselResult = await getCarousels(tenantId);
+                if (carouselResult.success && carouselResult.data) {
+                    // Only include active carousels, sorted by displayOrder
+                    carousels = carouselResult.data.filter(c => c.active);
+                }
+            } catch (error) {
+                console.error('Failed to fetch carousels:', error);
+                // Fail gracefully - menu still loads
+            }
+        }
+
         // Sanitize all data for Server->Client Component serialization
         // This converts Firestore Timestamps and Date objects to ISO strings
         return {
             brand: sanitizeForSerialization<Brand>(brand),
             products: sanitizeForSerialization<Product[]>(products),
             retailers: sanitizeForSerialization<Retailer[]>(retailers),
-            featuredBrands: sanitizeForSerialization<FeaturedBrand[]>(featuredBrands)
+            featuredBrands: sanitizeForSerialization<FeaturedBrand[]>(featuredBrands),
+            carousels: sanitizeForSerialization<Carousel[]>(carousels)
         };
     } catch (error: any) {
         if (error?.code === 16 || error?.message?.includes('UNAUTHENTICATED')) {
