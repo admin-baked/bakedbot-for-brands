@@ -49,6 +49,7 @@ import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
 import { QRCodeGeneratorInline } from './qr-code-generator-inline';
 import { CarouselGeneratorInline } from './carousel-generator-inline';
 import { BundleGeneratorInline } from './bundle-generator-inline';
+import { SocialPostGeneratorInline } from './social-post-generator-inline';
 import { formatDistanceToNow } from 'date-fns';
 import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inbox';
 import { generateQRCode } from '@/server/actions/qr-code';
@@ -299,14 +300,17 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [showQRGenerator, setShowQRGenerator] = useState(false);
     const [showCarouselGenerator, setShowCarouselGenerator] = useState(false);
     const [showBundleGenerator, setShowBundleGenerator] = useState(false);
+    const [showSocialPostGenerator, setShowSocialPostGenerator] = useState(false);
     const [carouselInitialPrompt, setCarouselInitialPrompt] = useState('');
     const [bundleInitialPrompt, setBundleInitialPrompt] = useState('');
+    const [socialPostInitialPrompt, setSocialPostInitialPrompt] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const hasAutoShownQR = useRef<boolean>(false);
     const hasAutoShownCarousel = useRef<boolean>(false);
     const hasAutoShownBundle = useRef<boolean>(false);
+    const hasAutoShownSocialPost = useRef<boolean>(false);
 
     const { addMessageToThread, addArtifacts, isThreadPending } = useInboxStore();
     const isPending = isThreadPending(thread.id);
@@ -470,6 +474,21 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [thread.id, thread.type, showBundleGenerator]);
 
+    // Auto-open Social Post generator for creative threads
+    useEffect(() => {
+        if (thread.type === 'creative') {
+            if (!showSocialPostGenerator) {
+                setShowSocialPostGenerator(true);
+            }
+            hasAutoShownSocialPost.current = true;
+        } else {
+            if (showSocialPostGenerator) {
+                setShowSocialPostGenerator(false);
+            }
+            hasAutoShownSocialPost.current = false;
+        }
+    }, [thread.id, thread.type, showSocialPostGenerator]);
+
     const handleSubmit = async () => {
         if ((!input.trim() && attachments.length === 0) || isSubmitting || isPending) return;
 
@@ -523,6 +542,24 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             addMessageToThread(thread.id, userMessage);
             setBundleInitialPrompt(input.trim());
             setShowBundleGenerator(true);
+            setInput('');
+            return;
+        }
+
+        // Detect Social Post creation intent
+        const socialPostKeywords = ['create post', 'social post', 'social media', 'instagram post', 'tiktok post', 'linkedin post', 'make post', 'new post', 'write post'];
+        const isSocialPostRequest = socialPostKeywords.some(keyword => lowerInput.includes(keyword));
+
+        if (isSocialPostRequest) {
+            const userMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'user',
+                content: input.trim(),
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, userMessage);
+            setSocialPostInitialPrompt(input.trim());
+            setShowSocialPostGenerator(true);
             setInput('');
             return;
         }
@@ -647,6 +684,21 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         setBundleInitialPrompt('');
     };
 
+    const handleCompleteSocialPost = async (posts: any) => {
+        setShowSocialPostGenerator(false);
+
+        const platformCount = Object.keys(posts).filter(k => ['instagram', 'tiktok', 'linkedin'].includes(k)).length;
+
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `✅ **Social Media Posts Ready!**\n\n${platformCount} platform-optimized posts have been generated:\n\n📸 **Instagram** - ${posts.instagram?.characterCount || 0} characters\n🎵 **TikTok** - ${posts.tiktok?.characterCount || 0} characters\n💼 **LinkedIn** - ${posts.linkedin?.characterCount || 0} characters\n\nYour posts are ready to copy and publish across your social channels!`,
+            timestamp: new Date(),
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+        setSocialPostInitialPrompt('');
+    };
+
     const handleCompleteQRCode = async (qrCodeData: {
         url: string;
         campaignName: string;
@@ -703,7 +755,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 <div className="max-w-3xl mx-auto py-4">
                     {thread.messages.length === 0 ? (
                         <>
-                            {!showQRGenerator && !showCarouselGenerator && !showBundleGenerator && (
+                            {!showQRGenerator && !showCarouselGenerator && !showBundleGenerator && !showSocialPostGenerator && (
                                 <div className="text-center py-12">
                                     <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                                     <h3 className="font-medium text-lg mb-2">Start the conversation</h3>
@@ -738,6 +790,16 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     <BundleGeneratorInline
                                         onComplete={handleCompleteBundle}
                                         initialPrompt={bundleInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Show Social Post Generator inline for empty social post threads */}
+                            {showSocialPostGenerator && (
+                                <div className="mt-4">
+                                    <SocialPostGeneratorInline
+                                        onComplete={handleCompleteSocialPost}
+                                        initialPrompt={socialPostInitialPrompt}
                                     />
                                 </div>
                             )}
@@ -778,6 +840,16 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     <BundleGeneratorInline
                                         onComplete={handleCompleteBundle}
                                         initialPrompt={bundleInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Show Social Post Generator inline after messages */}
+                            {showSocialPostGenerator && (
+                                <div className="mt-4">
+                                    <SocialPostGeneratorInline
+                                        onComplete={handleCompleteSocialPost}
+                                        initialPrompt={socialPostInitialPrompt}
                                     />
                                 </div>
                             )}
