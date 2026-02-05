@@ -48,6 +48,7 @@ import { InboxCreativeCard } from './artifacts/creative-card';
 import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
 import { QRCodeGeneratorInline } from './qr-code-generator-inline';
 import { CarouselGeneratorInline } from './carousel-generator-inline';
+import { BundleGeneratorInline } from './bundle-generator-inline';
 import { formatDistanceToNow } from 'date-fns';
 import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inbox';
 import { generateQRCode } from '@/server/actions/qr-code';
@@ -297,12 +298,15 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
     const [showQRGenerator, setShowQRGenerator] = useState(false);
     const [showCarouselGenerator, setShowCarouselGenerator] = useState(false);
+    const [showBundleGenerator, setShowBundleGenerator] = useState(false);
     const [carouselInitialPrompt, setCarouselInitialPrompt] = useState('');
+    const [bundleInitialPrompt, setBundleInitialPrompt] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const hasAutoShownQR = useRef<boolean>(false);
     const hasAutoShownCarousel = useRef<boolean>(false);
+    const hasAutoShownBundle = useRef<boolean>(false);
 
     const { addMessageToThread, addArtifacts, isThreadPending } = useInboxStore();
     const isPending = isThreadPending(thread.id);
@@ -451,6 +455,21 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [thread.id, thread.type, showCarouselGenerator]);
 
+    // Auto-open Bundle generator for bundle threads
+    useEffect(() => {
+        if (thread.type === 'bundle') {
+            if (!showBundleGenerator) {
+                setShowBundleGenerator(true);
+            }
+            hasAutoShownBundle.current = true;
+        } else {
+            if (showBundleGenerator) {
+                setShowBundleGenerator(false);
+            }
+            hasAutoShownBundle.current = false;
+        }
+    }, [thread.id, thread.type, showBundleGenerator]);
+
     const handleSubmit = async () => {
         if ((!input.trim() && attachments.length === 0) || isSubmitting || isPending) return;
 
@@ -486,6 +505,24 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             addMessageToThread(thread.id, userMessage);
             setCarouselInitialPrompt(input.trim());
             setShowCarouselGenerator(true);
+            setInput('');
+            return;
+        }
+
+        // Detect Bundle creation intent
+        const bundleKeywords = ['create bundle', 'bundle', 'bundle deal', 'bogo', 'mix and match', 'mix & match', 'promotional bundle', 'make bundle', 'new bundle'];
+        const isBundleRequest = bundleKeywords.some(keyword => lowerInput.includes(keyword));
+
+        if (isBundleRequest) {
+            const userMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'user',
+                content: input.trim(),
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, userMessage);
+            setBundleInitialPrompt(input.trim());
+            setShowBundleGenerator(true);
             setInput('');
             return;
         }
@@ -588,6 +625,28 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         setCarouselInitialPrompt('');
     };
 
+    const handleCompleteBundle = async (bundleData: any) => {
+        setShowBundleGenerator(false);
+
+        const bundleTypeLabelMap: Record<string, string> = {
+            bogo: 'BOGO',
+            mix_match: 'Mix & Match',
+            percentage: 'Percentage Off',
+            fixed_price: 'Fixed Price',
+            tiered: 'Tiered Discount'
+        };
+        const bundleTypeLabel = bundleTypeLabelMap[bundleData.type] || bundleData.type;
+
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `✅ **Bundle Created Successfully!**\n\n"${bundleData.name}" (${bundleTypeLabel}) is now live on your menu. Customers can now take advantage of this promotional deal. You can view and manage it in the [Bundle Dashboard](/dashboard/bundles).`,
+            timestamp: new Date(),
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+        setBundleInitialPrompt('');
+    };
+
     const handleCompleteQRCode = async (qrCodeData: {
         url: string;
         campaignName: string;
@@ -644,7 +703,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 <div className="max-w-3xl mx-auto py-4">
                     {thread.messages.length === 0 ? (
                         <>
-                            {!showQRGenerator && !showCarouselGenerator && (
+                            {!showQRGenerator && !showCarouselGenerator && !showBundleGenerator && (
                                 <div className="text-center py-12">
                                     <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                                     <h3 className="font-medium text-lg mb-2">Start the conversation</h3>
@@ -669,6 +728,16 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     <CarouselGeneratorInline
                                         onComplete={handleCompleteCarousel}
                                         initialPrompt={carouselInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Show Bundle Generator inline for empty bundle threads */}
+                            {showBundleGenerator && (
+                                <div className="mt-4">
+                                    <BundleGeneratorInline
+                                        onComplete={handleCompleteBundle}
+                                        initialPrompt={bundleInitialPrompt}
                                     />
                                 </div>
                             )}
@@ -699,6 +768,16 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     <CarouselGeneratorInline
                                         onComplete={handleCompleteCarousel}
                                         initialPrompt={carouselInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Show Bundle Generator inline after messages */}
+                            {showBundleGenerator && (
+                                <div className="mt-4">
+                                    <BundleGeneratorInline
+                                        onComplete={handleCompleteBundle}
+                                        initialPrompt={bundleInitialPrompt}
                                     />
                                 </div>
                             )}
