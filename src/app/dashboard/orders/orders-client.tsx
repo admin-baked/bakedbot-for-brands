@@ -53,7 +53,6 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                 });
             }
         } catch (error) {
-            console.error('Failed to load orders:', error);
             toast({
                 variant: 'destructive',
                 title: "Error",
