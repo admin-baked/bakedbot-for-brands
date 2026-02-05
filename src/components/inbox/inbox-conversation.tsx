@@ -47,8 +47,10 @@ import { InboxBundleCard } from './artifacts/bundle-card';
 import { InboxCreativeCard } from './artifacts/creative-card';
 import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
 import { QRCodeGeneratorInline } from './qr-code-generator-inline';
+import { CarouselGeneratorInline } from './carousel-generator-inline';
 import { formatDistanceToNow } from 'date-fns';
 import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inbox';
+import { generateQRCode } from '@/server/actions/qr-code';
 import { useJobPoller } from '@/hooks/use-job-poller';
 import { AttachmentPreviewList, type AttachmentItem } from '@/components/ui/attachment-preview';
 import { useToast } from '@/hooks/use-toast';
@@ -293,9 +295,14 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentJobId, setCurrentJobId] = useState<string | null>(null);
     const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
+    const [showQRGenerator, setShowQRGenerator] = useState(false);
+    const [showCarouselGenerator, setShowCarouselGenerator] = useState(false);
+    const [carouselInitialPrompt, setCarouselInitialPrompt] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const hasAutoShownQR = useRef<boolean>(false);
+    const hasAutoShownCarousel = useRef<boolean>(false);
 
     const { addMessageToThread, addArtifacts, isThreadPending } = useInboxStore();
     const isPending = isThreadPending(thread.id);
@@ -414,8 +421,74 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [jobError, currentJobId, thread.id, addMessageToThread]);
 
+    // Auto-open QR generator for qr_code threads
+    useEffect(() => {
+        if (thread.type === 'qr_code') {
+            if (!showQRGenerator) {
+                setShowQRGenerator(true);
+            }
+            hasAutoShownQR.current = true;
+        } else {
+            if (showQRGenerator) {
+                setShowQRGenerator(false);
+            }
+            hasAutoShownQR.current = false;
+        }
+    }, [thread.id, thread.type, showQRGenerator]);
+
+    // Auto-open Carousel generator for carousel threads
+    useEffect(() => {
+        if (thread.type === 'carousel') {
+            if (!showCarouselGenerator) {
+                setShowCarouselGenerator(true);
+            }
+            hasAutoShownCarousel.current = true;
+        } else {
+            if (showCarouselGenerator) {
+                setShowCarouselGenerator(false);
+            }
+            hasAutoShownCarousel.current = false;
+        }
+    }, [thread.id, thread.type, showCarouselGenerator]);
+
     const handleSubmit = async () => {
         if ((!input.trim() && attachments.length === 0) || isSubmitting || isPending) return;
+
+        // Detect QR code creation intent
+        const lowerInput = input.toLowerCase().trim();
+        const qrCodeKeywords = ['create qr', 'qr code', 'generate qr', 'make qr', 'new qr'];
+        const isQRCodeRequest = qrCodeKeywords.some(keyword => lowerInput.includes(keyword));
+
+        if (isQRCodeRequest && thread.primaryAgent === 'craig') {
+            const userMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'user',
+                content: input.trim(),
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, userMessage);
+            setShowQRGenerator(true);
+            setInput('');
+            return;
+        }
+
+        // Detect Carousel creation intent
+        const carouselKeywords = ['create carousel', 'carousel', 'featured products', 'product carousel', 'make carousel', 'new carousel'];
+        const isCarouselRequest = carouselKeywords.some(keyword => lowerInput.includes(keyword));
+
+        if (isCarouselRequest) {
+            const userMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'user',
+                content: input.trim(),
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, userMessage);
+            setCarouselInitialPrompt(input.trim());
+            setShowCarouselGenerator(true);
+            setInput('');
+            return;
+        }
 
         // Prepare attachments for the message
         const messageAttachments = attachments.map((att) => ({
@@ -502,6 +575,58 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     };
 
+    const handleCompleteCarousel = async (carouselData: any) => {
+        setShowCarouselGenerator(false);
+
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `✅ **Carousel Created Successfully!**\n\n"${carouselData.title}" has been added to your menu with ${carouselData.productIds.length} products. You can view and manage it in the [Carousel Dashboard](/dashboard/carousels).`,
+            timestamp: new Date(),
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+        setCarouselInitialPrompt('');
+    };
+
+    const handleCompleteQRCode = async (qrCodeData: {
+        url: string;
+        campaignName: string;
+        foregroundColor: string;
+        backgroundColor: string;
+        imageDataUrl: string;
+    }) => {
+        setShowQRGenerator(false);
+
+        const result = await generateQRCode({
+            type: 'custom',
+            title: qrCodeData.campaignName || 'QR Code',
+            description: `QR code for ${qrCodeData.url}`,
+            targetUrl: qrCodeData.url,
+            style: 'branded',
+            primaryColor: qrCodeData.foregroundColor,
+            backgroundColor: qrCodeData.backgroundColor,
+            campaign: qrCodeData.campaignName,
+            tags: ['inbox', 'craig'],
+        });
+
+        if (result.success && result.qrCode) {
+            const confirmationMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'agent',
+                content: `✅ QR Code created successfully with tracking enabled!\n\n**Campaign:** ${result.qrCode.title}\n**Target URL:** ${result.qrCode.targetUrl}\n**Tracking URL:** \`${process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai'}/qr/${result.qrCode.shortCode}\`\n\nYour QR code has been saved and will track:\n• Total scans\n• Unique visitors\n• Device types\n• Geographic location\n\nView analytics in your dashboard!`,
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, confirmationMessage);
+        } else {
+            const confirmationMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'agent',
+                content: `✅ QR Code created!\n\n**Campaign:** ${qrCodeData.campaignName || 'QR Code'}\n**Target URL:** ${qrCodeData.url}\n\nYour QR code has been downloaded. You can use it in your marketing materials!`,
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, confirmationMessage);
+        }
+    };
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -517,46 +642,68 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             {/* Messages */}
             <ScrollArea ref={scrollRef} className="flex-1 px-4">
                 <div className="max-w-3xl mx-auto py-4">
-                    {/* QR Code Generator - shown inline for qr_code thread type */}
-                    {thread.type === 'qr_code' && (
-                        <QRCodeGeneratorInline
-                            onComplete={(qrData) => {
-                                // Add a message to the thread with the QR code info
-                                const message: ChatMessage = {
-                                    id: `msg-${Date.now()}`,
-                                    type: 'user',
-                                    content: `Created QR code for: ${qrData.url}${qrData.campaignName ? ` (Campaign: ${qrData.campaignName})` : ''}`,
-                                    timestamp: new Date(),
-                                };
-                                addMessageToThread(thread.id, message);
-                                addMessageToInboxThread(thread.id, message);
-                                toast({
-                                    title: 'QR Code Created',
-                                    description: 'Your QR code has been generated successfully.',
-                                });
-                            }}
-                            className="mb-6"
-                        />
-                    )}
+                    {thread.messages.length === 0 ? (
+                        <>
+                            {!showQRGenerator && !showCarouselGenerator && (
+                                <div className="text-center py-12">
+                                    <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                                    <h3 className="font-medium text-lg mb-2">Start the conversation</h3>
+                                    <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                                        Describe what you'd like to create and {AGENT_NAMES[thread.primaryAgent]?.name || 'your assistant'} will help you build it.
+                                    </p>
+                                </div>
+                            )}
 
-                    {thread.messages.length === 0 && thread.type !== 'qr_code' ? (
-                        <div className="text-center py-12">
-                            <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                            <h3 className="font-medium text-lg mb-2">Start the conversation</h3>
-                            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                                Describe what you'd like to create and {AGENT_NAMES[thread.primaryAgent]?.name || 'your assistant'} will help you build it.
-                            </p>
-                        </div>
-                    ) : thread.messages.length > 0 ? (
-                        thread.messages.map((message) => (
-                            <MessageBubble
-                                key={message.id}
-                                message={message}
-                                agentPersona={thread.primaryAgent}
-                                artifacts={artifacts}
-                            />
-                        ))
-                    ) : null}
+                            {/* Show QR Code Generator inline for empty QR threads */}
+                            {showQRGenerator && (
+                                <div className="mt-4">
+                                    <QRCodeGeneratorInline
+                                        onComplete={handleCompleteQRCode}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Show Carousel Generator inline for empty carousel threads */}
+                            {showCarouselGenerator && (
+                                <div className="mt-4">
+                                    <CarouselGeneratorInline
+                                        onComplete={handleCompleteCarousel}
+                                        initialPrompt={carouselInitialPrompt}
+                                    />
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            {thread.messages.map((message) => (
+                                <MessageBubble
+                                    key={message.id}
+                                    message={message}
+                                    agentPersona={thread.primaryAgent}
+                                    artifacts={artifacts}
+                                />
+                            ))}
+
+                            {/* Show QR Code Generator inline after messages */}
+                            {showQRGenerator && (
+                                <div className="mt-4">
+                                    <QRCodeGeneratorInline
+                                        onComplete={handleCompleteQRCode}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Show Carousel Generator inline after messages */}
+                            {showCarouselGenerator && (
+                                <div className="mt-4">
+                                    <CarouselGeneratorInline
+                                        onComplete={handleCompleteCarousel}
+                                        initialPrompt={carouselInitialPrompt}
+                                    />
+                                </div>
+                            )}
+                        </>
+                    )}
 
                     {/* TaskFeed with Agent Pulse - shown while agent is thinking */}
                     <AnimatePresence>
