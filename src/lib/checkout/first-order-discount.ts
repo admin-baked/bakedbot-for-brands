@@ -119,8 +119,10 @@ export async function checkFirstOrderEligibility(
  * Generate personalized first-order discount code
  * Format: WELCOME-{PREFIX}{RANDOM}
  * Example: WELCOME-JOHN3F2A
+ *
+ * NOTE: Not exported because it's a sync utility in a 'use server' file
  */
-export function generateFirstOrderCode(email: string): string {
+function generateFirstOrderCode(email: string): string {
     try {
         // Extract prefix from email (first 4 chars before @)
         const emailPrefix = email.split('@')[0].toUpperCase();
