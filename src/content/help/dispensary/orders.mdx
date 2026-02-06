@@ -1,0 +1,414 @@
+# Managing Orders
+
+Efficiently manage customer orders from placement to fulfillment. Learn how to process orders, handle issues, and optimize your fulfillment workflow in BakedBot.
+
+## Order Lifecycle
+
+Understanding the order journey:
+
+```
+1. Order Placed (customer checkout)
+   ↓
+2. Order Received (appears in dashboard)
+   ↓
+3. Order Confirmed (you accept it)
+   ↓
+4. Order Prepared (picking + packing)
+   ↓
+5. Order Ready (for pickup/delivery)
+   ↓
+6. Order Completed (customer receives)
+```
+
+## Accessing Orders
+
+**Dashboard → Orders**
+
+View all orders with filters:
+- **Status**: New, Confirmed, Preparing, Ready, Completed, Cancelled
+- **Type**: Pickup, Delivery
+- **Date Range**: Today, This Week, This Month, Custom
+- **Customer**: Search by name, email, phone
+
+## Order Dashboard
+
+**Dashboard → Orders** shows real-time order feed:
+
+```
+New Orders (3)
+🔔 #10245 - Sarah M. - $67.50 - Delivery - 2 min ago
+🔔 #10244 - Michael T. - $85.00 - Pickup - 8 min ago
+🔔 #10243 - Jennifer L. - $42.00 - Delivery - 12 min ago
+
+Preparing (5)
+⏳ #10242 - David K. - $125.00 - Delivery - Est: 18 min
+⏳ #10241 - Lisa P. - $54.00 - Pickup - Est: 12 min
+...
+
+Ready for Pickup (2)
+✅ #10240 - Tom R. - $78.50 - Ready 5 min ago
+✅ #10239 - Amy C. - $91.00 - Ready 12 min ago
+
+Out for Delivery (4)
+🚗 #10238 - Carlos M. - $63.00 - Driver: John
+🚗 #10237 - Emma S. - $47.50 - Driver: Sarah
+...
+```
+
+## Processing Orders
+
+### Step 1: Receive New Order
+
+When order comes in:
+- **Sound notification** (if enabled)
+- **Desktop notification** (if permissions granted)
+- **SMS alert** (optional, for managers)
+
+**Order appears in "New Orders" section:**
+
+```
+Order #10245
+Customer: Sarah M.
+Total: $67.50
+Type: Delivery
+Address: 123 Main St, Syracuse, NY 13210
+Requested: ASAP (or specific time)
+
+Items:
+- Blue Dream 3.5g × 1 ($35.00)
+- Chill Gummies 10mg × 1 ($28.00)
+- Rolling Papers × 1 ($4.50)
+
+Subtotal: $67.50
+Tax: $0.00 (included)
+Delivery Fee: $0.00 (free over $50)
+Total: $67.50
+
+Payment: Card ending in 4532 (pre-authorized)
+```
+
+### Step 2: Review & Confirm Order
+
+**Check these before confirming:**
+- ✅ All items in stock
+- ✅ Delivery address in service area (if delivery)
+- ✅ ID verification (customer 21+)
+- ✅ Payment authorized
+
+**Actions:**
+- **Confirm Order** (accept and begin prep)
+- **Modify Order** (if customer requests changes)
+- **Cancel Order** (if issues, refund automatically)
+
+**Confirm Order:**
+- Click "Confirm" button
+- Enter estimated prep time (10-30 min typical)
+- Customer receives confirmation SMS/email
+
+**Example Confirmation Message:**
+```
+Order #10245 confirmed!
+Estimated ready time: 20 minutes
+
+We'll text you when it's ready for delivery.
+
+Track your order: bakedbot.ai/orders/10245
+```
+
+### Step 3: Prepare Order
+
+**Move order to "Preparing":**
+- Order appears on prep station screen
+- Print packing slip (if printer connected)
+- Assign to team member
+
+**Picking Products:**
+- Use packing slip or screen to gather items
+- Check product IDs match (barcodes if available)
+- Verify quantity and size
+
+**Quality Check:**
+- Inspect products for quality
+- Check expiration dates
+- Ensure packaging intact
+
+**Packing:**
+- Use child-resistant packaging (compliance)
+- Include receipt
+- Add any promotional materials
+- Seal package
+
+**For Delivery:**
+- Label with customer name + order number
+- Include delivery address
+- Mark "priority" if time-sensitive
+
+### Step 4: Mark Ready
+
+When order is packed:
+- Click "Mark Ready"
+- Customer receives notification
+
+**For Pickup:**
+```
+SMS: Your order #10245 is ready for pickup!
+
+Location: 456 Dispensary St, Syracuse
+Hours: 10am-8pm today
+
+Bring ID + confirmation #10245
+```
+
+**For Delivery:**
+```
+SMS: Your order #10245 is ready!
+
+We're heading your way now.
+Estimated delivery: 25 minutes
+
+Track driver: bakedbot.ai/track/10245
+```
+
+### Step 5: Fulfill Order
+
+**Pickup:**
+1. Customer arrives
+2. Verify ID (21+ check)
+3. Verify order number
+4. Hand over package
+5. Mark "Completed"
+
+**Delivery:**
+1. Assign to driver
+2. Driver receives address + package
+3. Driver delivers
+4. Driver verifies ID at door
+5. Driver marks "Completed"
+
+**Complete Order:**
+- Click "Complete" button
+- Capture payment (if not already charged)
+- Customer receives completion confirmation
+- Optional: Request review
+
+## Order Types
+
+### Pickup Orders
+
+**Pros:**
+- No delivery costs
+- Faster (customer controls timing)
+- Lower logistics complexity
+
+**Workflow:**
+1. Customer orders online
+2. You prepare
+3. Customer picks up in-store
+
+**Best Practices:**
+- Separate pickup counter (reduce wait times)
+- Text when ready (don't make them wait)
+- 15-20 min prep time standard
+
+### Delivery Orders
+
+**Pros:**
+- Convenience for customers
+- Higher average order values (+25%)
+- Captures customers who can't travel
+
+**Workflow:**
+1. Customer orders online
+2. You prepare
+3. Driver delivers to address
+
+**Requirements:**
+- Delivery driver(s)
+- Delivery vehicle
+- ID verification process at door
+- Delivery radius defined
+
+**Best Practices:**
+- Minimum order value ($30-50 typical)
+- Delivery fee or free over threshold
+- 45-60 min delivery window
+- Real-time tracking (if available)
+
+## Handling Common Issues
+
+### Out of Stock
+
+**Scenario:** Customer ordered item now out of stock
+
+**Actions:**
+1. **Call/text customer immediately**
+2. **Offer substitute** (similar product)
+3. **Refund difference** if substitute cheaper
+4. **Offer discount** (10%) for inconvenience
+
+**Example Message:**
+```
+Hi Sarah, we're preparing your order #10245.
+Unfortunately, Blue Dream 3.5g is out of stock.
+
+Similar alternatives:
+- Sour Diesel 3.5g (Sativa) $35
+- Green Crack 3.5g (Sativa) $32 (-$3)
+
+Reply 1 for Sour Diesel
+Reply 2 for Green Crack
+Reply 3 to cancel item + refund
+
+Sorry for the inconvenience!
+```
+
+### Delivery Address Out of Range
+
+**Scenario:** Address outside delivery zone
+
+**Actions:**
+1. **Notify customer immediately**
+2. **Offer pickup** (if they can travel)
+3. **Cancel + refund** if no solution
+4. **Update website** to check address at checkout
+
+### Payment Issues
+
+**Scenario:** Card declined, insufficient funds
+
+**Actions:**
+1. **Contact customer**
+2. **Request alternative payment**
+3. **Hold order** for 30 minutes
+4. **Cancel** if no response
+
+### Customer Not Home (Delivery)
+
+**Scenario:** Driver arrives, no one answers
+
+**Actions:**
+1. **Call customer** (driver attempts)
+2. **Wait 5 minutes**
+3. **Return to store** if no response
+4. **Reschedule delivery** or convert to pickup
+
+## Order Metrics & Analytics
+
+**Dashboard → Orders → Analytics**
+
+Track performance:
+
+```
+Order Performance (Last 30 Days)
+
+Total Orders: 1,247
+Avg Order Value: $67.50
+Total Revenue: $84,172
+
+By Type:
+- Pickup: 782 (63%) - Avg $58
+- Delivery: 465 (37%) - Avg $84
+
+By Status:
+- Completed: 1,198 (96%)
+- Cancelled: 49 (4%)
+
+Fulfillment Times:
+- Avg Prep Time: 18 min (target: 20 min)
+- Avg Delivery Time: 42 min (target: 45 min)
+- On-Time Rate: 94% (target: 95%+)
+
+Customer Satisfaction:
+- Order Rating: 4.7/5
+- Issues Reported: 23 (1.8%)
+- Resolution Rate: 100%
+```
+
+### Key Metrics to Monitor
+
+**Speed:**
+- Avg prep time (goal: <20 min)
+- Avg delivery time (goal: <45 min)
+- On-time completion rate (goal: 95%+)
+
+**Quality:**
+- Order accuracy (goal: 99%+)
+- Customer ratings (goal: 4.5+)
+- Issue rate (goal: <3%)
+
+**Volume:**
+- Orders per day/week/month
+- Peak hours (optimize staffing)
+- Growth trends
+
+## Peak Time Management
+
+**Busy periods require planning:**
+
+**Before Peak (Prep):**
+- Extra staff scheduled
+- Products pre-staged
+- Supplies stocked (bags, receipts)
+
+**During Peak (Execute):**
+- Batch orders (prepare multiple at once)
+- Dedicated roles (picker, packer, cashier)
+- Prioritize by promised time
+
+**After Peak (Review):**
+- Check unfulfilled orders
+- Address any issues
+- Restock for next peak
+
+**Common Peak Times:**
+- Lunch (12pm-2pm)
+- After work (5pm-7pm)
+- Weekends (all day)
+- 420 (all day April 20)
+- Holidays (varies)
+
+## Order Automation
+
+**Automate repetitive tasks:**
+
+### Auto-Confirmation
+- Orders auto-confirm if all items in stock
+- Saves manual review time
+- Customer gets instant confirmation
+
+### Smart Routing (Delivery)
+- Orders assigned to nearest available driver
+- Route optimization (multiple deliveries)
+- Real-time traffic consideration
+
+### Inventory Sync
+- Stock decrements on order confirmation
+- Low stock alerts triggered
+- Prevents overselling
+
+### Communication Automation
+- Order confirmed: Auto-SMS
+- Order ready: Auto-SMS
+- Order completed: Auto-SMS + review request
+
+## Multi-Location Order Management
+
+**For brands with multiple locations:**
+
+**Orders route to nearest location:**
+- Customer's zip code → Closest store
+- Each location manages their orders
+- Central dashboard sees all
+
+**Transfer Orders:**
+- If one location out of stock
+- Transfer to another location
+- Customer notified of location change
+
+## Next Steps
+
+- [Creating Product Bundles](/help/dispensary/bundles) - Bundle orders for higher AOV
+- [Menu Synchronization](/help/dispensary/menu-sync) - Keep menu up-to-date
+- [Loyalty Program Setup](/help/dispensary/loyalty-program) - Reward repeat orders
+
+<ArticleRating articleId="dispensary-orders" />

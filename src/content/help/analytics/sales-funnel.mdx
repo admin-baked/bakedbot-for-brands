@@ -1,0 +1,490 @@
+# Sales Funnel Analysis
+
+Understand your customer journey from first visit to purchase. Identify bottlenecks, optimize conversion rates, and increase revenue by analyzing your sales funnel.
+
+## What is a Sales Funnel?
+
+A sales funnel tracks the customer journey through stages:
+
+```
+1. Awareness (1,000 visitors)
+   ↓ 40% continue
+2. Interest (400 view products)
+   ↓ 30% continue
+3. Consideration (120 add to cart)
+   ↓ 50% continue
+4. Purchase (60 complete order)
+
+Overall Conversion: 6% (60/1,000)
+```
+
+**Each stage represents:**
+- How many customers enter
+- How many continue to next stage
+- Where customers drop off
+
+## Your Sales Funnel in BakedBot
+
+**Dashboard → Analytics → Sales Funnel**
+
+### Standard E-Commerce Funnel
+
+```
+BakedBot Sales Funnel (Last 30 Days)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Website Visits: 8,450
+   ↓ 24% continue
+
+2. Product Views: 2,028 (24%)
+   ↓ 35% continue
+
+3. Add to Cart: 710 (8.4%)
+   ↓ 48% continue
+
+4. Checkout Started: 341 (4.0%)
+   ↓ 88% complete
+
+5. Purchase Complete: 300 (3.6%)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Overall Conversion Rate: 3.6%
+Revenue: $22,500
+Avg Order Value: $75
+```
+
+### Cannabis-Specific Funnel Stages
+
+**1. Awareness → Interest**
+- **Website visit** (landing page, homepage)
+- **Browse menu** (category pages)
+- **Product discovery** (search, filters)
+
+**Drop-off causes:**
+- Poor first impression
+- Slow site speed
+- Unclear navigation
+- No appealing products
+
+**2. Interest → Consideration**
+- **Product page views** (detailed product info)
+- **Smokey chat** (ask questions)
+- **Compare products** (vs. alternatives)
+
+**Drop-off causes:**
+- Insufficient product info
+- No images or poor quality
+- Out of stock
+- Price too high
+
+**3. Consideration → Intent**
+- **Add to cart** (decision made)
+- **View cart** (review selection)
+- **Apply discount** (if available)
+
+**Drop-off causes:**
+- Cart abandonment
+- High shipping costs
+- No delivery option
+- Second thoughts
+
+**4. Intent → Purchase**
+- **Start checkout** (enter info)
+- **Payment** (submit order)
+- **Order confirmation** (success)
+
+**Drop-off causes:**
+- Complicated checkout
+- Payment issues
+- Delivery concerns
+- Age verification friction
+
+## Analyzing Your Funnel
+
+### Conversion Rate by Stage
+
+**Dashboard → Analytics → Funnel → Conversion Rates**
+
+```
+Stage-by-Stage Conversion Rates
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Visit → Product View: 24%
+(Industry avg: 20-30%, you're good ✅)
+
+Product View → Add to Cart: 35%
+(Industry avg: 30-40%, you're good ✅)
+
+Add to Cart → Checkout: 48%
+(Industry avg: 60-70%, ⚠️ needs improvement)
+
+Checkout → Purchase: 88%
+(Industry avg: 85-90%, you're good ✅)
+```
+
+**Focus areas:**
+- Stages below industry average
+- Biggest drop-offs
+- Recent changes in conversion
+
+### Abandoned Cart Analysis
+
+**Most critical funnel stage:**
+
+```
+Cart Abandonment (Last 30 Days)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Carts Created: 710
+Carts Abandoned: 369 (52%)
+Carts Completed: 341 (48%)
+
+Abandonment Reasons (surveyed):
+1. High delivery fee (28%)
+2. Decided to shop in-store (22%)
+3. Found better price (18%)
+4. Payment issues (12%)
+5. Just browsing (20%)
+
+Lost Revenue: ~$13,850
+Recovery Opportunity: ~$6,925 (50% recoverable)
+```
+
+**Abandoned cart tactics:**
+1. **Email recovery** (send after 2 hours)
+2. **SMS reminder** (send after 24 hours)
+3. **Discount offer** (10% off to complete)
+4. **Limited-time urgency** ("Cart expires in 48h")
+
+**Example Recovery Email:**
+```
+Subject: You left something behind 🌿
+
+Hi Sarah,
+
+You left these items in your cart:
+- Blue Dream 3.5g ($35)
+- Chill Gummies ($28)
+
+Complete your order now and save 10%!
+Use code: COMEBACK10
+
+[Complete Order]
+
+Cart saved for 48 hours.
+```
+
+### Time-Based Funnel Analysis
+
+**When do customers convert?**
+
+```
+Conversion by Day of Week
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Monday:    3.2%
+Tuesday:   3.4%
+Wednesday: 3.8%
+Thursday:  4.2% ← Highest
+Friday:    4.0%
+Saturday:  3.6%
+Sunday:    2.9% ← Lowest
+
+Insight: Thursday-Friday best conversion days
+```
+
+```
+Conversion by Hour
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+12am-6am:  1.8%
+6am-10am:  2.5%
+10am-2pm:  4.5% ← Highest (lunch)
+2pm-5pm:   3.8%
+5pm-8pm:   4.2% ← Second highest (after work)
+8pm-12am:  3.1%
+
+Insight: Peak conversion at lunch and after work
+```
+
+**Use insights for:**
+- Campaign timing (send emails Thursday 11am)
+- Staffing (more support during peak)
+- Inventory prep (restock before Thursday)
+
+## Improving Funnel Performance
+
+### Stage 1: Awareness → Interest (+10%)
+
+**Goal:** Get more visitors to view products
+
+**Tactics:**
+
+**1. Homepage Optimization**
+```
+Before:
+Generic "Welcome" message
+Static product grid
+No clear CTA
+
+After:
+Personalized greeting (based on location/time)
+Featured products with photos
+Clear CTA: "Shop Our Bestsellers"
+
+Result: +15% product page visits
+```
+
+**2. Menu Navigation**
+```
+Before:
+Long list of all products
+No categories visible
+Text-only menu
+
+After:
+Visual category tiles (Flower, Vapes, Edibles)
+Filter by effects (Sleep, Energy, Relax)
+Search bar prominent
+
+Result: +22% product discovery
+```
+
+**3. Site Speed**
+```
+Before: 4.2 second load time
+After: 1.8 second load time
+
+Impact: +12% product views
+```
+
+### Stage 2: Interest → Consideration (+15%)
+
+**Goal:** Get more product viewers to add to cart
+
+**Tactics:**
+
+**1. Product Page Enhancement**
+```
+Before:
+Basic info only
+No images
+Generic description
+
+After:
+Multiple high-quality images
+Detailed effects + flavors
+Customer reviews (⭐⭐⭐⭐⭐)
+"Similar products" recommendations
+
+Result: +28% add-to-cart rate
+```
+
+**2. Smokey Integration**
+```
+Add: "Ask Smokey" chat button on product pages
+
+Customer: "Will this help with sleep?"
+Smokey: "Yes! Blue Dream's Indica-dominant profile
+        promotes relaxation. Customers report great
+        sleep results. Want to try it?"
+
+Result: +18% conversion for products with Smokey interaction
+```
+
+**3. Social Proof**
+```
+Add to product pages:
+"127 customers bought this last week"
+"⭐⭐⭐⭐⭐ 4.8/5 (89 reviews)"
+"Best seller in Flower category"
+
+Result: +15% add-to-cart
+```
+
+### Stage 3: Consideration → Intent (+20%)
+
+**Goal:** Reduce cart abandonment
+
+**Tactics:**
+
+**1. Free Delivery Threshold**
+```
+Before:
+$5 delivery fee on all orders
+52% cart abandonment
+
+After:
+Free delivery on $50+
+"Add $12 more for free delivery!" (progress bar)
+42% cart abandonment (-10 points!)
+
+Result: +$8,500 monthly revenue
+```
+
+**2. Limited-Time Offers**
+```
+Add to cart page:
+"⏰ Flash Sale: 15% off this cart!
+Ends in 23:15 minutes"
+
+Urgency drives action
+Result: +12% checkout rate
+```
+
+**3. Guest Checkout**
+```
+Before:
+Forced account creation
+Long checkout form
+
+After:
+"Checkout as guest" option
+Minimal fields (name, address, payment)
+
+Result: +18% checkout completion
+```
+
+### Stage 4: Intent → Purchase (+5%)
+
+**Goal:** Complete more checkouts
+
+**Tactics:**
+
+**1. Payment Options**
+```
+Before:
+Debit only
+
+After:
+Debit, credit, Apple Pay, Google Pay
+Cash on delivery option
+
+Result: +8% completion rate
+```
+
+**2. Progress Indicator**
+```
+Show checkout steps:
+Step 1 → Step 2 → Step 3 ✓
+
+Reduces anxiety
+Shows finish line
+Result: +5% completion
+```
+
+**3. Trust Signals**
+```
+Add to checkout:
+- SSL badge (secure encryption)
+- "Your data is safe" message
+- Dispensary license # displayed
+
+Result: +3% completion
+```
+
+## Funnel Optimization Priorities
+
+**ROI-based prioritization:**
+
+```
+Optimization Opportunity Assessment
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Cart Abandonment Recovery 🔥
+   Current: 52% abandonment
+   Target: 40% (industry avg)
+   Impact: +$6,925/month
+   Effort: Low (email/SMS automation)
+   Priority: HIGH
+
+2. Product Page Enhancement 🔥
+   Current: 35% add-to-cart
+   Target: 45% (with reviews + images)
+   Impact: +$4,200/month
+   Effort: Medium (content creation)
+   Priority: HIGH
+
+3. Free Delivery Threshold
+   Current: $5 fee all orders
+   Target: Free over $50
+   Impact: +$8,500/month
+   Effort: Low (policy change)
+   Priority: HIGH
+
+4. Site Speed Optimization
+   Current: 4.2s load
+   Target: <2s load
+   Impact: +$3,100/month
+   Effort: High (technical work)
+   Priority: MEDIUM
+```
+
+**Start with high impact, low effort wins**
+
+## Advanced Funnel Analysis
+
+### Cohort Funnel Comparison
+
+**Compare funnels by customer type:**
+
+```
+Funnel Conversion by Segment
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+New Customers:
+Visit → Purchase: 2.1%
+(Need more education, slower to convert)
+
+Returning Customers:
+Visit → Purchase: 8.4%
+(Know what they want, convert faster)
+
+VIP Customers:
+Visit → Purchase: 14.2%
+(Highly engaged, strong conversion)
+
+Insight: Focus acquisition on repeat potential
+```
+
+### Device-Based Funnel
+
+**Mobile vs. Desktop:**
+
+```
+Conversion by Device
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Mobile (68% of traffic):
+Visit → Purchase: 2.8%
+
+Desktop (32% of traffic):
+Visit → Purchase: 5.2%
+
+Insight: Mobile users browse, desktop users buy
+Optimize mobile experience for conversion
+```
+
+### Traffic Source Funnel
+
+**Which channels convert best?**
+
+```
+Conversion by Traffic Source
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Organic Search: 4.2% (highest intent)
+Email: 7.8% (engaged subscribers)
+SMS: 12.4% (time-sensitive offers)
+Social: 1.8% (awareness, not buying)
+Direct: 5.1% (returning customers)
+
+Insight: SMS crushes for conversion
+Invest more in SMS campaigns
+```
+
+## Next Steps
+
+- [Understanding Your Dashboard](/help/analytics/understanding-dashboard) - Key metrics
+- [Pops - Data Analyst](/help/agents/pops) - Ask questions about your funnel
+- [Creating Marketing Campaigns](/help/marketing/campaigns) - Drive funnel traffic
+
+<ArticleRating articleId="analytics-sales-funnel" />

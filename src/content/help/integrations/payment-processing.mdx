@@ -1,0 +1,615 @@
+# Payment Processing Setup
+
+Accept payments securely and stay compliant. Connect cannabis-friendly payment processors to enable online orders, subscriptions, and seamless checkout.
+
+## Cannabis Payment Challenges
+
+**Why payment processing is complicated:**
+
+**Federal prohibition:**
+- Cannabis is Schedule I federally
+- Most banks/processors won't work with cannabis
+- Visa/Mastercard officially prohibited
+- PayPal, Venmo, Square ban cannabis
+
+**State-legal conflict:**
+- Legal in your state
+- Illegal federally
+- Banks follow federal law
+- Limited payment options
+
+<Callout type="warning">
+**Choose carefully:** Using non-cannabis-friendly processors risks account termination and frozen funds. Only use processors that explicitly allow cannabis businesses.
+</Callout>
+
+## Cannabis-Friendly Payment Processors
+
+### Recommended Processors
+
+| Processor | Type | Fee | Setup | Best For |
+|-----------|------|-----|-------|----------|
+| **Hypur** | Cannabis-specific | 3-5% | Medium | Dispensaries, delivery |
+| **CanPay** | Debit-only | 2.5-4% | Easy | Lower fees, debit focus |
+| **PayQwick** | Digital wallet | 3-4% | Medium | Multi-location brands |
+| **Aeropay** | Bank transfer | 1-2% | Hard | Lowest fees, tech-savvy customers |
+| **Dutchie Pay** | Integrated | 2.9-4% | Easy | If using Dutchie POS |
+
+### Processor Comparison
+
+**Hypur:**
+```
+✅ Pros:
+- Cannabis-specific (understands industry)
+- Integrates with most POS systems
+- Supports recurring payments
+- Good compliance tools
+
+❌ Cons:
+- Higher fees (3-5%)
+- Requires bank account verification
+- Some customers unfamiliar with platform
+
+Best for: Established dispensaries
+```
+
+**CanPay:**
+```
+✅ Pros:
+- Debit-only (lower fees)
+- Simple for customers
+- Fast setup
+- Good customer support
+
+❌ Cons:
+- Debit cards only (no credit)
+- Smaller merchant network
+- Limited to US customers
+
+Best for: Cost-conscious brands
+```
+
+**Aeropay:**
+```
+✅ Pros:
+- Lowest fees (1-2%)
+- Bank-to-bank transfer
+- Very secure
+- No card processing fees
+
+❌ Cons:
+- Requires customer bank account
+- Slower adoption (new to customers)
+- More complex setup
+
+Best for: High-volume, tech-forward brands
+```
+
+## Connecting Payment Processor
+
+### Step 1: Sign Up with Processor
+
+**Example: Hypur**
+
+**Go to:** hypur.com/merchants
+
+```
+Hypur Merchant Application
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Business Information:
+Company name: Green Leaf Farms
+License #: C11-0000123-LIC
+State: California
+Business type: [Dispensary ▼]
+
+Banking Information:
+Bank name: _________________
+Account #: _________________
+Routing #: _________________
+
+Contact:
+Name: _________________
+Email: _________________
+Phone: _________________
+
+[Submit Application]
+
+Approval time: 3-5 business days
+```
+
+**Required documents:**
+- Cannabis license (current)
+- Business license
+- EIN (Employer Identification Number)
+- Bank account verification (voided check)
+- Photo ID (owner)
+
+### Step 2: Get Approved
+
+**Approval process:**
+```
+Day 1: Application submitted
+  ↓
+Day 1-2: Document review
+  ↓
+Day 3: Bank verification
+  ↓
+Day 4: Compliance check
+  ↓
+Day 5: Approved! 🎉
+  ↓
+API credentials sent to email
+```
+
+**What processor checks:**
+- Valid cannabis license
+- Compliance history
+- Bank account legitimacy
+- Business legitimacy
+- Owner background
+
+### Step 3: Connect to BakedBot
+
+**Dashboard → Settings → Payments**
+
+```
+Payment Processors
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Select processor:
+☐ Hypur
+☐ CanPay
+☐ PayQwick
+☐ Aeropay
+☐ Dutchie Pay
+☐ Other
+
+[Connect Processor]
+```
+
+**Example: Hypur Connection**
+
+```
+Connect Hypur
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Step 1: Enter API credentials
+
+API Key: _______________________________
+(from Hypur dashboard → Settings → API)
+
+Secret Key: _______________________________
+(keep this secure, never share)
+
+Merchant ID: _______________________________
+
+Step 2: Test connection
+
+[Test Connection]
+
+✅ Connection successful!
+
+Step 3: Configure settings
+
+Accept payments: ☑ Online orders
+                 ☑ In-app purchases
+                 ☐ Subscriptions (coming soon)
+
+Payment methods: ☑ Debit cards
+                 ☑ Bank transfers
+                 ☐ Credit cards (not available)
+
+[Save & Activate]
+```
+
+### Step 4: Test Payment
+
+**Before going live:**
+
+```
+Test Mode
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Create test order:
+Product: Blue Dream 3.5g
+Price: $35.00
+Total: $35.00
+
+Use test card:
+Card: 4111 1111 1111 1111
+Exp: 12/26
+CVV: 123
+
+[Process Test Payment]
+
+✅ Payment successful!
+   Transaction ID: test_1234567890
+   Amount: $35.00
+   Status: Authorized
+
+Real payments are now enabled.
+
+[Switch to Live Mode]
+```
+
+## Payment Flow
+
+### Customer Checkout Experience
+
+**Step-by-step:**
+
+```
+1. Customer adds products to cart
+   Cart total: $75.00
+
+2. Proceeds to checkout
+   ↓
+
+3. Choose payment method
+   ☐ Hypur (debit/bank)
+   ☐ Cash on delivery
+   ☐ Cash at pickup
+
+4. If Hypur selected:
+   Enter phone number: (555) 123-4567
+   [Send Code]
+
+5. Verify via SMS:
+   Enter code sent to phone: [______]
+   [Verify]
+
+6. Authorize payment:
+   Amount: $75.00
+   From: Bank of America (...1234)
+   [Confirm Payment]
+
+7. Payment complete!
+   Order #12345 confirmed
+   Estimated delivery: Tomorrow 2-4pm
+
+8. Receipt emailed
+```
+
+**Customer experience:**
+- Simple, familiar
+- Secure (2-factor with phone)
+- No need to enter card details every time
+- Auto-saved for future purchases
+
+### Merchant Settlement
+
+**How you get paid:**
+
+```
+Daily Settlement
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Today's sales: $2,450
+Processing fees: -$98 (4%)
+Net: $2,352
+
+Deposited to:
+Bank of America (...1234)
+Est. arrival: 2 business days
+
+Transaction breakdown:
+24 orders
+Avg order: $102
+
+[View Details] [Download Report]
+```
+
+**Settlement schedule:**
+- **Daily**: Most processors
+- **Weekly**: Some processors
+- **Monthly**: Rare
+
+**Fees deducted automatically:**
+- Processor fee (2-5%)
+- Transaction fee (if applicable)
+- Monthly fee (if applicable)
+
+## Transaction Management
+
+**Dashboard → Payments → Transactions**
+
+```
+Recent Transactions
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ID         | Customer  | Amount | Status    | Date
+───────────────────────────────────────────────────
+TXN-001    | Sarah M.  | $75    | Completed | 2:14 PM
+TXN-002    | John D.   | $120   | Completed | 2:08 PM
+TXN-003    | Emma R.   | $45    | Pending   | 1:54 PM
+TXN-004    | Mike K.   | $95    | Failed    | 1:42 PM
+
+[Export] [Filter] [Search]
+```
+
+**Transaction statuses:**
+- **Completed**: Payment successful, funds settled
+- **Pending**: Authorized, waiting for settlement
+- **Failed**: Payment declined or error
+- **Refunded**: Money returned to customer
+- **Disputed**: Customer initiated chargeback
+
+### Handling Failed Payments
+
+**Common failure reasons:**
+
+```
+Transaction Failed: TXN-004
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Customer: Mike K.
+Amount: $95.00
+Reason: Insufficient funds
+
+Actions:
+[Retry Payment] - Ask customer to retry
+[Contact Customer] - Send email notification
+[Cancel Order] - Cancel and release inventory
+
+Customer notified via email:
+"Payment failed. Please update payment method
+or try again when funds available."
+```
+
+**Failure types:**
+- Insufficient funds → Customer needs to add funds
+- Expired card → Customer needs to update
+- Bank declined → Customer contact bank
+- Technical error → Retry or contact support
+
+### Processing Refunds
+
+**Dashboard → Payments → Refunds**
+
+```
+Issue Refund
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Original transaction: TXN-001
+Customer: Sarah M.
+Amount: $75.00
+Date: Feb 5, 2026
+
+Refund amount:
+☐ Full refund ($75.00)
+☑ Partial refund: $35.00
+
+Reason (required):
+[Dropdown: Product defect ▼]
+- Product defect
+- Wrong item shipped
+- Customer changed mind
+- Other
+
+Notes (optional):
+Customer received wrong strain, refunding
+half of order.
+
+[Process Refund]
+
+Refund time: 3-5 business days to customer
+```
+
+## Compliance & Security
+
+### PCI Compliance
+
+**Payment Card Industry standards:**
+
+**BakedBot handles:**
+✅ Secure payment forms (PCI-compliant)
+✅ Encrypted data transmission (SSL/TLS)
+✅ No card data stored on our servers
+✅ Tokenization (card numbers replaced with tokens)
+✅ Regular security audits
+
+**You handle:**
+☑ Secure admin access (strong passwords, 2FA)
+☑ Employee training (don't share passwords)
+☑ Physical security (secure devices)
+
+**You don't need:**
+❌ PCI certification (BakedBot is certified)
+❌ Special software (we handle it)
+❌ Security audits (we handle it)
+
+### Cannabis Compliance
+
+**Processors require:**
+
+**Valid license:**
+- Current cannabis license uploaded
+- Renewed before expiration
+- All locations licensed
+
+**Compliant operations:**
+- Age verification (21+)
+- Product limits (state maximums)
+- Delivery restrictions (if applicable)
+- Proper labeling & packaging
+
+**Regular reporting:**
+- Transaction reports to processor
+- Compliance audits (annual)
+- License renewals
+
+**Processor can terminate for:**
+- Expired license
+- Compliance violations
+- Suspicious activity
+- High chargeback rate (>1%)
+
+### Fraud Prevention
+
+**BakedBot protects you:**
+
+```
+Fraud Detection (Auto-Enabled)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Velocity checks (limits per customer/hour)
+✅ IP verification (location matching)
+✅ Device fingerprinting
+✅ Unusual order patterns
+✅ Blacklist known fraudsters
+
+If fraud suspected:
+→ Transaction flagged for review
+→ Customer verification required
+→ You can approve/deny manually
+
+[View Fraud Rules] [Configure]
+```
+
+**Red flags:**
+- 🚩 Multiple failed payment attempts
+- 🚩 Shipping address doesn't match billing
+- 🚩 Large order from new customer
+- 🚩 VPN/proxy detected
+- 🚩 Multiple orders in short time
+
+## Fees & Costs
+
+### Typical Fee Structure
+
+```
+Example: Hypur
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Per-transaction fee:
+- Debit card: 3.5% + $0.25
+- Bank transfer: 2.5% + $0.25
+
+Monthly fee:
+- $50/month (waived if > $5k volume)
+
+Other fees:
+- Chargeback: $25 per dispute
+- Refund: No fee
+- Setup: $0
+
+Example calculation:
+Order: $100
+Fee: $3.50 + $0.25 = $3.75
+You receive: $96.25
+```
+
+### Comparing Total Cost
+
+```
+Monthly volume: $50,000
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Processor  | Rate | Monthly Fee | Total Cost
+────────────────────────────────────────────
+Hypur      | 3.5% | $50        | $1,800
+CanPay     | 3.0% | $25        | $1,525
+Aeropay    | 1.5% | $100       | $850 ← Lowest
+
+For high volume, Aeropay saves $975/month
+```
+
+## Troubleshooting
+
+### Issue: Payments Not Processing
+
+**Symptoms:**
+- "Payment failed" at checkout
+- Customer can't complete order
+
+**Solutions:**
+
+**Check 1: Processor connection**
+```
+Settings → Payments → Hypur
+Status: ☑ Connected
+
+If disconnected:
+[Reconnect] → Re-enter API keys
+```
+
+**Check 2: Processor account**
+```
+Log into Hypur dashboard:
+- Account status: Active?
+- Balance positive?
+- License current?
+```
+
+**Check 3: Test transaction**
+```
+Create test order
+Use test card: 4111 1111 1111 1111
+If works → Issue is with customer
+If fails → Issue is with integration
+```
+
+### Issue: Settlement Delays
+
+**Symptoms:**
+- Funds not arriving in bank account
+
+**Causes & solutions:**
+
+**Cause 1: Normal delay (2-3 days)**
+- Solution: Wait, check processor dashboard
+
+**Cause 2: Bank holiday**
+- Solution: Deposits process next business day
+
+**Cause 3: Verification needed**
+- Solution: Check processor email for requests
+
+**Cause 4: Account issue**
+- Solution: Contact processor support
+
+### Issue: High Chargeback Rate
+
+**Symptoms:**
+- Multiple customer disputes
+- Processor warns about chargeback rate
+
+**Prevention:**
+
+```
+Chargeback Prevention
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Clear product descriptions
+✅ Accurate photos
+✅ Transparent pricing (no hidden fees)
+✅ Excellent customer service
+✅ Easy refund process
+✅ Delivery confirmation (signature)
+✅ Respond to customer issues quickly
+
+Target: <0.5% chargeback rate
+Warning: >1% may trigger account review
+```
+
+## Best Practices
+
+<Callout type="tip">
+**Test thoroughly:** Process test transactions before going live.
+
+**Monitor transactions:** Check daily for failed payments or disputes.
+
+**Respond quickly:** Address customer payment issues within 24 hours.
+
+**Keep license current:** Expired license = frozen payment account.
+
+**Train staff:** Ensure team knows how to help customers with payment issues.
+</Callout>
+
+## Next Steps
+
+- [Managing Orders](/help/dispensary/orders) - Order fulfillment workflow
+- [POS Integration](/help/integrations/pos-overview) - Sync payments with POS
+- [Customer Insights](/help/analytics/customer-insights) - Analyze payment patterns
+
+<ArticleRating articleId="integrations-payment-processing" />

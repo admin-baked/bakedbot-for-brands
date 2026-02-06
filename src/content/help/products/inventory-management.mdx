@@ -1,0 +1,508 @@
+# Inventory Management
+
+Keep accurate stock levels, prevent overselling, and optimize inventory turnover. Learn best practices for managing cannabis inventory in BakedBot.
+
+## Why Inventory Management Matters
+
+**Problems with poor inventory:**
+- ❌ **Overselling** (sell products you don't have)
+- ❌ **Stockouts** (lose sales on popular items)
+- ❌ **Dead inventory** (products sit unsold, lose value)
+- ❌ **Cash tied up** (money in slow-moving products)
+
+**Benefits of good inventory:**
+- ✅ **Never oversell** (accurate availability)
+- ✅ **Maximize sales** (always have best sellers)
+- ✅ **Optimize cash flow** (money in right products)
+- ✅ **Reduce waste** (move products before expiration)
+
+<Callout type="success">
+**Impact:** Dispensaries with optimized inventory see 23% higher revenue and 18% better margins vs. those with poor inventory management.
+</Callout>
+
+## Accessing Inventory
+
+**Dashboard → Products → Inventory**
+
+### Inventory Overview
+
+```
+Inventory Summary
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Total Products: 374
+In Stock: 342 (91%)
+Low Stock: 24 (6%) ⚠️
+Out of Stock: 8 (2%) 🚨
+
+Total Inventory Value: $142,580
+(at cost, not retail)
+
+Inventory Turnover: 9.2x per year
+(Cannabis avg: 8-12x, you're good ✅)
+```
+
+### Inventory Table
+
+```
+Product            Category  Stock  Status     Last Restock
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Blue Dream 3.5g    Flower    87     Good ✅     2 days ago
+Sour Diesel Cart   Vapes     8      Low ⚠️      12 days ago
+Chill Gummies      Edibles   0      Out 🚨      18 days ago
+...
+```
+
+**Filters:**
+- All products
+- In stock only
+- Low stock only
+- Out of stock only
+- By category
+
+**Sort by:**
+- Stock level (low to high)
+- Last restock date
+- Sales velocity
+- Days until out
+
+## Stock Status Indicators
+
+### Status Levels
+
+**🟢 Good (Green):**
+- Stock above low threshold
+- Example: 50+ units
+
+**🟡 Low (Yellow):**
+- Stock below threshold, but not zero
+- Example: 5-10 units
+- Action: Restock soon
+
+**🔴 Out (Red):**
+- Zero stock
+- Cannot sell
+- Action: Restock immediately
+
+### Setting Thresholds
+
+**Per-product thresholds:**
+
+**Dashboard → Products → [Product] → Inventory Settings**
+
+```
+Blue Dream 3.5g Inventory Settings
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Low Stock Threshold: 10 units
+(Alert when stock drops below this)
+
+Reorder Point: 15 units
+(Suggested reorder quantity)
+
+Reorder Quantity: 50 units
+(How many to restock)
+
+Lead Time: 7 days
+(Time from order to delivery)
+```
+
+**Calculation:**
+```
+Reorder Point = (Avg Daily Sales × Lead Time) + Safety Stock
+
+Example:
+Blue Dream sells 5 units/day
+Lead time: 7 days
+Safety stock: 10 units (buffer)
+
+Reorder Point: (5 × 7) + 10 = 45 units
+```
+
+## Inventory Sync Methods
+
+### 1. POS Integration (Automatic)
+
+**Best for:** Dispensaries with POS systems
+
+**How it works:**
+1. Products sold in POS
+2. Inventory decrements in POS
+3. **BakedBot syncs automatically** (every 15-60 min)
+4. Online inventory updated
+5. Out-of-stock products hidden
+
+**Supported POS:**
+- Alleaves (recommended for NY)
+- Dutchie
+- Jane
+- Flowhub
+- Treez
+
+**Setup:**
+```
+Settings → Integrations → POS
+1. Connect your POS
+2. Enable "Sync Inventory"
+3. Set sync frequency (15-60 min)
+4. Done! Inventory auto-updates
+```
+
+### 2. Manual Updates
+
+**Best for:** Brands without POS, small catalogs
+
+**How to update:**
+
+**Single product:**
+1. Dashboard → Products → [Product]
+2. Click "Edit"
+3. Update "Stock Quantity"
+4. Save
+
+**Bulk update:**
+1. Dashboard → Products → Inventory
+2. Click "Bulk Edit"
+3. Select products
+4. Update quantities
+5. Save all
+
+**CSV import:**
+1. Dashboard → Products → Import
+2. Download template
+3. Update quantities in spreadsheet
+4. Upload CSV
+5. Confirm changes
+
+### 3. Order-Based Deduction
+
+**Automatic inventory deduction:**
+
+**When customer orders:**
+1. Customer adds to cart
+2. Inventory **reserved** (not yet decremented)
+3. Customer completes checkout
+4. Inventory **decremented**
+5. Stock level updated
+
+**If order cancelled:**
+- Inventory **returned** to available
+- Customer can't hold stock indefinitely
+
+**Reserve duration:**
+- Cart: 30 minutes hold
+- Unpaid order: 24 hours hold
+- After expiration: Returns to available
+
+## Inventory Alerts
+
+### Low Stock Alerts
+
+**Automatic notifications:**
+
+**Email:**
+```
+Subject: ⚠️ Low Stock Alert: 12 Products
+
+12 products below reorder point:
+
+🚨 Critical (out within 3 days):
+- Sour Diesel Cart (8 units, sells 3/day)
+- Blue Dream Pre-Rolls (6 units, sells 2/day)
+
+⚠️ Warning (out within 7 days):
+- Chill Gummies (15 units, sells 2/day)
+- Wedding Cake (18 units, sells 3/day)
+...
+
+[View Full Report]
+```
+
+**SMS (optional):**
+```
+⚠️ Low Stock: Sour Diesel Cart (8 left)
+Reorder now: bakedbot.ai/inventory
+```
+
+**Dashboard banner:**
+```
+⚠️ 12 products need restocking
+[View Report] [Dismiss]
+```
+
+### Out-of-Stock Alerts
+
+**Immediate notification:**
+```
+🚨 URGENT: Blue Dream 3.5g is OUT OF STOCK
+
+This is your #1 bestseller!
+- Last 30 days: 287 units sold ($10,045)
+- Out of stock: 2 hours ago
+- Estimated lost sales: $350/day
+
+[Create Restock Order] [Find Substitute]
+```
+
+### Expiration Alerts
+
+**For perishable products:**
+```
+⏰ 8 products expiring within 30 days
+
+Mark down or move quickly:
+- Purple Punch (batch #1234) - Expires in 12 days (22 units)
+- Gorilla Glue (batch #5678) - Expires in 18 days (15 units)
+...
+
+Suggestion: Run flash sale to move inventory
+[Create Sale Campaign]
+```
+
+## Inventory Optimization
+
+### ABC Analysis
+
+**Categorize products by importance:**
+
+**A-Products (20% of items, 80% of revenue):**
+```
+Top 20% Products - Priority Stock
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Blue Dream 3.5g
+Sour Diesel Cart
+Chill Gummies
+...
+
+Action: Never let these run out
+- Monitor daily
+- Keep extra safety stock
+- Reorder proactively
+```
+
+**B-Products (30% of items, 15% of revenue):**
+```
+Mid-Tier Products - Standard Stock
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Wedding Cake
+Gorilla Glue Pre-Rolls
+CBD Tincture
+...
+
+Action: Monitor weekly
+- Standard reorder points
+- Normal safety stock
+```
+
+**C-Products (50% of items, 5% of revenue):**
+```
+Slow Movers - Minimal Stock
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Rare strains
+Specialty products
+Accessories
+...
+
+Action: Low stock acceptable
+- Order only when needed
+- Consider discontinuing
+```
+
+### Inventory Turnover
+
+**Measure how fast inventory sells:**
+
+**Formula:**
+```
+Inventory Turnover = Cost of Goods Sold / Average Inventory Value
+
+Example:
+COGS (annual): $480,000
+Avg Inventory Value: $52,000
+Turnover: 9.2x per year
+
+Days in Inventory: 365 / 9.2 = 40 days
+```
+
+**Cannabis industry standards:**
+- **Good**: 8-12x per year (30-45 days)
+- **Excellent**: 12-15x per year (24-30 days)
+- **Poor**: <6x per year (>60 days)
+
+**Improve turnover:**
+1. **Reduce slow movers** (discount or discontinue)
+2. **Stock more A-products** (high sellers)
+3. **Better forecasting** (match supply to demand)
+4. **Faster restocking** (reduce lead times)
+
+### Dead Stock Management
+
+**Identify slow-moving inventory:**
+
+**Dashboard → Products → Inventory → Dead Stock**
+
+```
+Slow-Moving Inventory (60+ days no sale)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Product               Last Sale  Stock  Value
+Purple Haze 3.5g      87 days    45     $1,575
+Strawberry Cart       102 days   12     $600
+CBD Bath Salts        134 days   8      $240
+...
+
+Total Dead Stock Value: $12,580 🚨
+```
+
+**Actions:**
+
+**1. Discount:**
+```
+Run flash sale:
+- 30% off slow movers
+- Bundle with bestsellers
+- "Last Chance" urgency
+```
+
+**2. Bundle:**
+```
+Create value bundles:
+- Bestseller + slow mover
+- Customer gets deal
+- You move inventory
+```
+
+**3. Donate:**
+```
+Tax write-off:
+- Donate to events
+- Medical patient programs
+- Charity auctions
+```
+
+**4. Discontinue:**
+```
+Stop restocking:
+- Sell remaining units
+- Remove from menu
+- Free up cash for better products
+```
+
+## Multi-Location Inventory
+
+**For brands with multiple locations:**
+
+### Location-Specific Stock
+
+**Each location tracks separately:**
+```
+Blue Dream 3.5g Inventory
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Location 1 (Downtown): 87 units
+Location 2 (Uptown): 45 units
+Location 3 (Westside): 62 units
+
+Total Available: 194 units
+```
+
+### Transfer Between Locations
+
+**Move inventory to where needed:**
+
+**Create transfer:**
+1. Dashboard → Inventory → Transfers
+2. Select product
+3. From: Downtown (87 units)
+4. To: Uptown (45 units)
+5. Quantity: 20 units
+6. Create transfer order
+
+**Transfer tracking:**
+- In transit status
+- ETA
+- Receipt confirmation
+- Inventory adjusts automatically
+
+### Centralized Ordering
+
+**Order for all locations at once:**
+```
+Create Purchase Order
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Product: Blue Dream 3.5g
+Total Quantity: 200 units
+
+Allocation:
+- Downtown: 80 units
+- Uptown: 60 units
+- Westside: 60 units
+
+Supplier: ABC Growers
+Expected: Feb 12, 2026
+```
+
+## Inventory Reports
+
+**Dashboard → Reports → Inventory**
+
+### Stock Levels Report
+
+```
+Current Stock Levels (All Products)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Product                Stock    Value     Status
+Blue Dream 3.5g        87       $1,566    Good
+Sour Diesel Cart       8        $240      Low
+...
+
+Total Inventory Value: $142,580
+```
+
+### Stock Movement Report
+
+```
+Stock Movement (Last 30 Days)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Product           Opening  Received  Sold  Closing
+Blue Dream 3.5g   45       100       58    87
+Sour Diesel Cart  30       0         22    8
+...
+```
+
+### Reorder Report
+
+```
+Products to Reorder
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Product              Current  Reorder Point  Qty to Order
+Sour Diesel Cart     8        15            50
+Chill Gummies        15       20            100
+...
+```
+
+## Best Practices
+
+<Callout type="tip">
+**Check inventory daily**: Make it part of your morning routine
+
+**Set realistic thresholds**: Account for lead times and sales velocity
+
+**Use ABC analysis**: Focus energy on high-value products
+
+**Sync with POS**: Eliminate manual updates (error-prone)
+
+**Review dead stock monthly**: Move slow inventory proactively
+</Callout>
+
+## Next Steps
+
+- [Menu Synchronization](/help/dispensary/menu-sync) - Auto-sync with POS
+- [Creating Product Bundles](/help/dispensary/bundles) - Move inventory faster
+- [Managing Orders](/help/dispensary/orders) - Order fulfillment
+
+<ArticleRating articleId="products-inventory-management" />

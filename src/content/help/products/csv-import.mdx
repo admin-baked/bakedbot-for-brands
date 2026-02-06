@@ -1,0 +1,510 @@
+# Importing Products from CSV
+
+Bulk upload your entire product catalog from a spreadsheet. Import hundreds of products in minutes instead of hours of manual entry.
+
+## Why Import from CSV?
+
+**Benefits:**
+- ⚡ **Fast** - Upload 500 products in 2 minutes vs. 5+ hours manually
+- 📊 **Bulk editing** - Update prices, descriptions in spreadsheet
+- 🔄 **Easy migration** - Export from old system, import to BakedBot
+- ✅ **Validation** - Check for errors before import
+- 📁 **Reusable** - Save template for future uploads
+
+<Callout type="success">
+**Time saved:** Average brand saves 8 hours by importing CSV vs. manual entry for initial catalog setup.
+</Callout>
+
+## CSV Import Process
+
+### Overview
+
+```
+Step 1: Download template
+   ↓
+Step 2: Fill in your products
+   ↓
+Step 3: Validate CSV
+   ↓
+Step 4: Upload to BakedBot
+   ↓
+Step 5: Review and confirm
+   ↓
+Done! Products live
+```
+
+**Total time:** 15-30 minutes for most catalogs
+
+## Step 1: Download CSV Template
+
+**Dashboard → Products → Import → Download Template**
+
+### Template Structure
+
+**Required columns:**
+```csv
+name,category,price,thc_percent,cbd_percent,description,brand,sku
+```
+
+**Full template (with all optional fields):**
+```csv
+name,category,subcategory,price,compare_at_price,thc_percent,cbd_percent,description,brand,sku,weight,unit,strain_type,inventory_quantity,inventory_policy,barcode,image_url,tags,vendor,published
+```
+
+### Column Definitions
+
+**Required:**
+
+| Column | Description | Example |
+|--------|-------------|---------|
+| `name` | Product name | Blue Dream 3.5g |
+| `category` | Product category | Flower |
+| `price` | Retail price (OTD) | 35.00 |
+| `thc_percent` | THC percentage | 24.5 |
+| `cbd_percent` | CBD percentage | 0.5 |
+
+**Recommended:**
+
+| Column | Description | Example |
+|--------|-------------|---------|
+| `description` | Product description | Award-winning Sativa-dominant hybrid |
+| `brand` | Brand name | Green Leaf Farms |
+| `sku` | Internal SKU | BD-3.5-001 |
+| `weight` | Product weight/size | 3.5 |
+| `unit` | Unit of measure | grams |
+
+**Optional:**
+
+| Column | Description | Example |
+|--------|-------------|---------|
+| `subcategory` | Subcategory | Sativa |
+| `compare_at_price` | Original price (for sale) | 45.00 |
+| `strain_type` | Indica/Sativa/Hybrid | Sativa |
+| `inventory_quantity` | Stock on hand | 48 |
+| `inventory_policy` | continue/deny when out | continue |
+| `barcode` | UPC/barcode | 123456789012 |
+| `image_url` | Product image URL | https://... |
+| `tags` | Comma-separated tags | energizing,creative,daytime |
+| `vendor` | Supplier name | ABC Cultivators |
+| `published` | TRUE/FALSE | TRUE |
+
+## Step 2: Fill in Your Products
+
+### Example CSV
+
+```csv
+name,category,price,thc_percent,cbd_percent,description,brand,sku,weight,unit,strain_type,inventory_quantity
+Blue Dream 3.5g,Flower,35.00,24.5,0.5,Award-winning Sativa-dominant hybrid known for balanced effects,Green Leaf Farms,BD-3.5-001,3.5,grams,Sativa,48
+Sour Diesel 3.5g,Flower,40.00,22.0,0.3,Classic Sativa with energizing effects and pungent aroma,Green Leaf Farms,SD-3.5-001,3.5,grams,Sativa,32
+OG Kush 3.5g,Flower,42.00,26.5,0.4,Legendary Hybrid strain with strong euphoric effects,Green Leaf Farms,OG-3.5-001,3.5,grams,Hybrid,24
+Purple Punch 3.5g,Flower,42.00,25.0,0.6,Indica-dominant hybrid with sweet grape and blueberry flavors,Green Leaf Farms,PP-3.5-001,3.5,grams,Indica,16
+Blue Dream Cart,Vapes,40.00,85.5,0.1,Smooth Sativa-dominant cartridge 0.5g,Green Leaf Farms,BD-CART-001,0.5,grams,Sativa,64
+Gummies 10pk,Edibles,25.00,10mg,0,Delicious fruit-flavored gummies 10mg THC each,Sweet Treats,GUM-10PK-001,10,pieces,N/A,120
+```
+
+### Best Practices
+
+**Product names:**
+- Include weight/size (Blue Dream 3.5g, not just Blue Dream)
+- Be specific (Sour Diesel Cart 0.5g, not Sour Diesel)
+- Consistent format (Blue Dream 3.5g, Sour Diesel 3.5g)
+
+**Categories:**
+Use exact category names:
+- Flower
+- Pre-Rolls
+- Vapes
+- Edibles
+- Concentrates
+- Tinctures
+- Topicals
+- CBD
+- Accessories
+
+**Prices:**
+- Enter as numbers only (35.00, not $35.00)
+- Use OTD (out-the-door) pricing with tax included
+- Decimals with 2 places (35.00, not 35)
+
+**THC/CBD:**
+- Enter as percentage (24.5, not 24.5%)
+- Use 0 if not applicable (edibles CBD: 0)
+- One decimal place is sufficient
+
+**Descriptions:**
+- 50-200 characters recommended
+- Focus on benefits and effects
+- Include flavors/aromas
+- Avoid health claims
+
+### Common Data Issues
+
+**Issue 1: Missing required fields**
+```csv
+❌ Blue Dream,,35.00,24.5,0.5
+✅ Blue Dream,Flower,35.00,24.5,0.5
+      Missing category
+```
+
+**Issue 2: Wrong category names**
+```csv
+❌ Blue Dream,Flowers,35.00
+✅ Blue Dream,Flower,35.00
+      "Flowers" should be "Flower"
+```
+
+**Issue 3: Price formatting**
+```csv
+❌ Blue Dream,Flower,$35,24.5,0.5
+✅ Blue Dream,Flower,35.00,24.5,0.5
+      Remove $ symbol, add decimals
+```
+
+**Issue 4: Special characters**
+```csv
+❌ Blue Dream "Premium",Flower,35.00
+✅ Blue Dream Premium,Flower,35.00
+      Avoid quotes in names
+```
+
+## Step 3: Validate CSV
+
+**Before uploading, check your CSV:**
+
+### Use BakedBot Validator
+
+**Dashboard → Products → Import → Validate**
+
+```
+Upload CSV for Validation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[Choose File] product-catalog.csv
+
+[Validate]
+
+Validation Results:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ 247 products valid
+⚠️ 3 warnings
+❌ 2 errors
+
+Errors (must fix):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Row 45: Missing category (Blue Dream)
+Row 102: Invalid price "$35" (should be 35.00)
+
+Warnings (review):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Row 12: Missing description (Sour Diesel)
+Row 89: THC > 100% (probably 95.5%, not 955%)
+Row 124: Very long name (>100 characters)
+
+[Download Error Report] [Fix and Re-Upload]
+```
+
+### Manual Validation Checklist
+
+```
+☐ All rows have required fields (name, category, price)
+☐ Categories match BakedBot categories exactly
+☐ Prices are numbers without $ symbol
+☐ THC/CBD are percentages (0-100)
+☐ No special characters in names (" ' , ;)
+☐ File saved as CSV (not Excel .xlsx)
+☐ UTF-8 encoding (for special characters)
+☐ Column headers match template exactly
+```
+
+## Step 4: Upload CSV
+
+**Dashboard → Products → Import**
+
+### Upload Interface
+
+```
+Import Products from CSV
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Step 1: Choose file
+[Choose File] product-catalog.csv ✅
+
+Step 2: Import options
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+☑ Create new products
+☐ Update existing products (match by SKU)
+☐ Delete products not in CSV
+
+If product exists:
+☐ Skip (keep existing)
+☑ Update (overwrite with CSV data)
+☐ Ask for each
+
+☑ Send confirmation email when complete
+☐ Publish products immediately
+☑ Keep products as draft (review first)
+
+[Start Import]
+```
+
+### Import Progress
+
+```
+Importing products...
+
+Progress: 124 / 250 (49%)
+
+[████████████░░░░░░░░░░░░]
+
+Imported: 124
+Errors: 2
+Warnings: 5
+
+[View Log] [Cancel Import]
+```
+
+**Import completes:**
+```
+✅ Import Complete!
+
+Results:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Total rows: 250
+Successfully imported: 247
+Errors: 2 (skipped)
+Warnings: 5 (imported with warnings)
+
+Time: 1 minute 42 seconds
+
+[View Products] [Download Error Log]
+```
+
+## Step 5: Review Imported Products
+
+**Dashboard → Products**
+
+### Review Interface
+
+```
+Products (247 new)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Filters:
+[Recently Imported] [Draft] [Published]
+
+Sort: [Newest First ▼]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[Image] Blue Dream 3.5g
+        Flower • $35.00 • 24.5% THC
+        Status: Draft
+        [Edit] [Publish] [Delete]
+
+[Image] Sour Diesel 3.5g
+        Flower • $40.00 • 22% THC
+        ⚠️ Missing description
+        [Edit] [Publish] [Delete]
+
+... 245 more products
+
+[Bulk Publish Selected] [Bulk Edit]
+```
+
+### Quick Review Checklist
+
+```
+☐ Product names correct
+☐ Categories accurate
+☐ Prices as expected
+☐ THC/CBD percentages reasonable
+☐ Images loaded (if included)
+☐ Descriptions present (or add later)
+☐ Inventory quantities correct
+
+If all looks good:
+[Select All] → [Bulk Publish]
+```
+
+## Updating Existing Products
+
+**To update prices, descriptions, inventory:**
+
+### Step 1: Export Current Products
+
+**Dashboard → Products → Export**
+
+```
+Export Products
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Format: [CSV ▼]
+
+Include:
+☑ All product data
+☑ Current prices
+☑ Inventory levels
+☑ Product IDs (for matching)
+
+[Export CSV]
+
+Downloads: products-2026-02-05.csv
+```
+
+### Step 2: Edit CSV
+
+**Update fields in spreadsheet:**
+- Change prices
+- Edit descriptions
+- Update inventory
+- Modify THC/CBD %
+
+**Keep product IDs or SKUs** (for matching existing products)
+
+### Step 3: Re-Import
+
+**Dashboard → Products → Import**
+
+```
+Import options:
+☑ Update existing products (match by SKU)
+☐ Create new products
+
+If product exists:
+☑ Update (overwrite with CSV)
+☐ Skip (keep existing)
+
+[Import]
+```
+
+**Result:**
+- Existing products updated
+- New products created
+- No duplicates
+
+## Advanced: Mapping Custom Fields
+
+**If your CSV has different column names:**
+
+### Field Mapping
+
+```
+Map Your CSV Columns
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Your CSV Column       →  BakedBot Field
+────────────────────────────────────────
+Product Name          →  [name ▼]
+Type                  →  [category ▼]
+Retail Price          →  [price ▼]
+THC %                 →  [thc_percent ▼]
+CBD %                 →  [cbd_percent ▼]
+Long Description      →  [description ▼]
+Manufacturer          →  [brand ▼]
+Item Code             →  [sku ▼]
+[Ignore]              →  [—]
+
+[Save Mapping] [Import with Mapping]
+```
+
+**Saved mappings:**
+- Reuse for future imports
+- Share with team
+- Export as template
+
+## Troubleshooting
+
+### Error: "Invalid CSV format"
+
+**Cause:** File not saved as CSV
+
+**Solution:**
+1. Open file in Excel/Google Sheets
+2. File → Save As
+3. Format: CSV (Comma delimited)
+4. Save and re-upload
+
+### Error: "Column headers don't match"
+
+**Cause:** Column names different from template
+
+**Solution:**
+- Download fresh template
+- Copy your data to template
+- Or use field mapping feature
+
+### Error: "Duplicate SKUs found"
+
+**Cause:** Same SKU used for multiple products
+
+**Solution:**
+- Make SKUs unique (BD-001, BD-002, etc.)
+- Or remove SKU column (auto-generated)
+
+### Warning: "Missing descriptions"
+
+**Not an error, but:**
+- Products import successfully
+- Can add descriptions later
+- Or bulk-generate with AI
+
+**To fix:**
+```
+Dashboard → Products → Bulk Actions
+☑ Select products with missing descriptions
+[Generate Descriptions with AI]
+```
+
+### Import stuck or slow?
+
+**Large imports (500+ products):**
+- May take 5-10 minutes
+- Don't close browser window
+- Check email for completion notice
+
+**If truly stuck:**
+1. Cancel import
+2. Split CSV into smaller files (100 products each)
+3. Import in batches
+
+## Sample CSVs
+
+### Flower Products
+
+```csv
+name,category,price,thc_percent,cbd_percent,description,brand,sku,weight,unit,strain_type
+Blue Dream 3.5g,Flower,35.00,24.5,0.5,Balanced Sativa-dominant hybrid,Green Leaf,BD-3.5,3.5,grams,Sativa
+Blue Dream 7g,Flower,65.00,24.5,0.5,Balanced Sativa-dominant hybrid,Green Leaf,BD-7,7,grams,Sativa
+Blue Dream 14g,Flower,120.00,24.5,0.5,Balanced Sativa-dominant hybrid,Green Leaf,BD-14,14,grams,Sativa
+```
+
+### Vape Products
+
+```csv
+name,category,price,thc_percent,cbd_percent,description,brand,sku,weight,unit
+Blue Dream Cart 0.5g,Vapes,40.00,85.5,0.1,Premium distillate cartridge,Green Leaf,BD-CART-05,0.5,grams
+Blue Dream Cart 1g,Vapes,70.00,85.5,0.1,Premium distillate cartridge,Green Leaf,BD-CART-1,1,grams
+Disposable Sativa,Vapes,35.00,80.0,0.1,Convenient disposable pen,Green Leaf,DISP-SAT,0.3,grams
+```
+
+### Edibles
+
+```csv
+name,category,price,thc_percent,cbd_percent,description,brand,sku,weight,unit
+Gummies 10pk (10mg each),Edibles,25.00,100mg,0,Fruit-flavored gummies,Sweet Treats,GUM-10,10,pieces
+Gummies 20pk (5mg each),Edibles,25.00,100mg,0,Low-dose fruit gummies,Sweet Treats,GUM-20,20,pieces
+Chocolate Bar 100mg,Edibles,20.00,100mg,0,Dark chocolate bar,Sweet Treats,CHOC-100,1,bar
+```
+
+## Next Steps
+
+- [Product Search Optimization](/help/products/product-optimization) - Optimize imported products
+- [Inventory Management](/help/products/inventory-management) - Manage stock levels
+- [POS Integration](/help/integrations/pos-overview) - Auto-sync instead of manual CSV
+
+<ArticleRating articleId="products-csv-import" />

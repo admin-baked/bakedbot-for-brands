@@ -1,0 +1,423 @@
+# Alleaves Integration
+
+Complete guide to integrating Alleaves POS with BakedBot for automatic menu sync, inventory management, and order processing.
+
+## What is Alleaves?
+
+Alleaves is a cannabis-specific point-of-sale (POS) and seed-to-sale compliance system popular in New York, New Jersey, and other medical/adult-use states.
+
+**Key Features:**
+- Full seed-to-sale tracking
+- State compliance (METRC integration)
+- Inventory management
+- Patient/customer management
+- Reporting and analytics
+
+## Prerequisites
+
+Before connecting Alleaves:
+- ✅ Active Alleaves account
+- ✅ Admin or manager role (API access)
+- ✅ Location ID (for multi-location)
+- ✅ Products set up in Alleaves
+- ✅ Prices configured (Adult-Use OTD recommended)
+
+## Connecting Alleaves
+
+### Step 1: Get Alleaves Credentials
+
+**In Alleaves:**
+1. Log into Alleaves admin portal
+2. Go to **Settings → API Access**
+3. Note your:
+   - Username (usually your email)
+   - Location ID (e.g., 12345)
+4. Have your password ready
+5. Note PIN if required
+
+**Finding Location ID:**
+```
+Alleaves Admin → Settings → Locations
+Your location will show: "Location #12345"
+Use: 12345
+```
+
+### Step 2: Connect in BakedBot
+
+**In BakedBot:**
+1. **Settings → Integrations → POS**
+2. Click **"Connect Alleaves"**
+3. Enter credentials:
+   ```
+   Username: your-email@domain.com
+   Password: ••••••••
+   PIN: 1234 (if required)
+   Location ID: 12345
+   ```
+4. Click **"Test Connection"**
+5. If successful, click **"Enable Sync"**
+
+**Test Connection Results:**
+```
+✅ Connection Successful!
+
+Location: Thrive Syracuse
+Products found: 374
+Categories: 8
+Last updated: 2 hours ago
+
+Ready to sync!
+```
+
+### Step 3: Configure Sync Settings
+
+**Sync Frequency:**
+- **Every 15 minutes** (Recommended for busy dispensaries)
+- Every 30 minutes
+- Every hour
+- Manual only
+
+**Price Type:**
+- **Adult-Use OTD** (Recommended - includes tax)
+- Adult-Use Retail (pre-tax)
+- Medical OTD
+- Medical Retail
+
+<Callout type="info">
+**Important:** Alleaves has multiple price columns. BakedBot syncs the price type you select. Most dispensaries use "Adult-Use OTD" which includes tax and is the final price customers pay.
+</Callout>
+
+**Sync Options:**
+```
+☑ Sync new products automatically
+☑ Update existing product prices
+☑ Update inventory levels
+☑ Hide out-of-stock products
+☐ Sync inactive products
+```
+
+### Step 4: Category Mapping
+
+Map Alleaves categories to BakedBot:
+
+```
+Alleaves Category → BakedBot Category
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FLOWER → Flower
+PRE-ROLL → Pre-Rolls (or Flower)
+VAPORIZER → Vapes
+EDIBLE → Edibles
+CONCENTRATE → Concentrates
+TINCTURE → Tinctures
+TOPICAL → Topicals
+ACCESSORIES → Accessories
+```
+
+**Custom mappings:**
+- Map multiple Alleaves categories to one BakedBot category
+- Example: "CARTRIDGE" + "DISPOSABLE" → "Vapes"
+
+### Step 5: Initial Sync
+
+Click **"Start Initial Sync"**
+
+**Progress:**
+```
+Syncing from Alleaves...
+
+374 / 374 products (100%)
+
+Successfully synced: 360
+Skipped (inactive): 14
+Errors: 0
+
+Completed in 4 minutes
+```
+
+## Alleaves-Specific Features
+
+### Price Configuration
+
+Alleaves has multiple price fields:
+
+**Price Columns in Alleaves:**
+1. **Adult-Use Retail** - Pre-tax price (adult customers)
+2. **Adult-Use OTD** - Out-the-door price (includes tax)
+3. **Medical-Use Retail** - Pre-tax (medical patients)
+4. **Medical-Use OTD** - Out-the-door (medical)
+5. **Generic Retail** - Fallback pricing
+6. **Generic OTD** - Fallback out-the-door
+
+**Which to sync:**
+- **Most dispensaries**: Adult-Use OTD (most common, includes tax)
+- **Medical-only**: Medical-Use OTD
+- **Both**: Sync Adult-Use OTD (medical patients see their pricing at checkout)
+
+**Setting prices in Alleaves:**
+```
+In Alleaves product editor:
+
+Product: Blue Dream 3.5g
+━━━━━━━━━━━━━━━━━━━━━━━━━
+Adult-Use Retail: $28.00
+Adult-Use OTD: $35.00 ← This syncs to BakedBot
+Medical Retail: $25.00
+Medical OTD: $31.25
+```
+
+### Inventory Management
+
+**How Alleaves tracks inventory:**
+- **On Hand**: Total inventory
+- **Available**: Sellable inventory (On Hand - Reserved)
+- **Reserved**: Held for pending orders
+
+**BakedBot syncs "Available":**
+- Only shows sellable inventory
+- Prevents overselling
+- Updates every sync interval
+
+**Reserve Stock:**
+Configure in BakedBot:
+```
+Reserve Stock for Walk-Ins: 5 units
+
+Example:
+Alleaves shows: 20 units available
+BakedBot shows: 15 units (20 - 5 reserve)
+```
+
+### Batch and LOT Tracking
+
+Alleaves tracks products by batch/LOT:
+
+**Scenario:**
+- Blue Dream Batch #1: 15 units, 22% THC
+- Blue Dream Batch #2: 10 units, 24% THC
+
+**BakedBot handling:**
+- Shows as single product: "Blue Dream 3.5g"
+- Total inventory: 25 units
+- THC%: Weighted average or most recent batch
+
+**For batch-specific display:**
+- Create separate products in Alleaves
+- Name: "Blue Dream 3.5g (Batch A)"
+
+## Troubleshooting Common Issues
+
+### Issue 1: Products Not Syncing
+
+**Symptoms:**
+- Products in Alleaves don't appear in BakedBot
+- New products not auto-added
+
+**Possible Causes & Fixes:**
+
+**Cause 1: Products Inactive**
+```
+In Alleaves: Check product status
+- Should be "Active" not "Inactive"
+- Inactive products skipped by default
+```
+
+**Cause 2: Category Not Mapped**
+```
+In BakedBot: Settings → POS → Category Mapping
+- Ensure all Alleaves categories mapped
+- Unmapped categories = products skipped
+```
+
+**Cause 3: Sync Disabled**
+```
+In BakedBot: Settings → POS
+- Verify "Enable Sync" toggled ON
+- Check last sync time
+```
+
+### Issue 2: Prices Showing $0
+
+**Symptoms:**
+- All products or some products showing $0 price
+
+**Cause: Wrong Price Column**
+
+**In Alleaves, check prices are set:**
+1. Go to product in Alleaves
+2. Check "Adult-Use OTD" column (or whichever you're syncing)
+3. If $0.00, set the price
+4. Re-sync in BakedBot
+
+**Common mistake:**
+- Prices set in "Generic OTD" but syncing "Adult-Use OTD"
+- Alleaves prioritizes: Adult > Medical > Generic
+- If Adult-Use OTD is $0, that's what syncs
+
+**Fix:**
+```
+In Alleaves product editor:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Product: Blue Dream 3.5g
+
+Adult-Use Retail: $28.00 (set this)
+Adult-Use OTD: $35.00 (and this)
+Medical Retail: $25.00
+Medical OTD: $31.25
+Generic Retail: $0.00 (don't leave OTD blank!)
+Generic OTD: $0.00
+```
+
+### Issue 3: Inventory Not Updating
+
+**Symptoms:**
+- Stock levels in BakedBot don't match Alleaves
+- Sales in Alleaves don't reflect in BakedBot
+
+**Cause 1: Inventory Sync Disabled**
+```
+BakedBot Settings → POS → Sync Options
+☑ Enable: "Update inventory levels"
+```
+
+**Cause 2: Wrong Location**
+```
+If multi-location:
+- Verify Location ID is correct
+- Each location needs separate sync setup
+```
+
+**Cause 3: Not Using "Available" Quantity**
+```
+Alleaves tracks:
+- On Hand: 25
+- Reserved: 5
+- Available: 20 ← This is what syncs
+
+If Available = 0 but On Hand > 0, check reservations
+```
+
+### Issue 4: Authentication Errors
+
+**Symptoms:**
+- "Invalid credentials" error
+- Sync fails with 401 error
+
+**Cause 1: Wrong Username/Password**
+```
+In BakedBot: Re-enter Alleaves credentials
+- Use email address (not username)
+- Check password (try logging into Alleaves separately)
+- Include PIN if required
+```
+
+**Cause 2: API Access Disabled**
+```
+In Alleaves: Settings → API Access
+- Verify API enabled for your account
+- May require admin role
+```
+
+**Cause 3: Location ID Incorrect**
+```
+Double-check Location ID in Alleaves
+Settings → Locations
+Use number only (not "Location #12345", just "12345")
+```
+
+## Advanced Configuration
+
+### Multi-Location Setup
+
+**For brands with multiple Alleaves locations:**
+
+**Each location needs:**
+1. Separate Alleaves Location ID
+2. Individual sync configuration
+3. Location-specific category mappings (if different)
+
+**Example:**
+```
+Location 1: Downtown Syracuse
+Location ID: 12345
+Sync Frequency: Every 15 minutes
+Products: 374
+
+Location 2: North Syracuse
+Location ID: 12346
+Sync Frequency: Every 30 minutes
+Products: 287
+```
+
+**Central inventory:**
+- BakedBot aggregates across locations
+- Customers see combined inventory
+- Orders route to nearest location with stock
+
+### Product Attribute Sync
+
+**What syncs from Alleaves:**
+- Product name
+- Category
+- Price (selected column)
+- Inventory quantity
+- THC percentage
+- CBD percentage
+- Brand name (if set)
+- Product description (if set)
+
+**What doesn't sync:**
+- Product images (add manually in BakedBot)
+- Extended descriptions
+- Effects/flavors (add in BakedBot)
+- Customer reviews
+
+**Enhancing synced products:**
+1. Sync brings basic data from Alleaves
+2. Edit in BakedBot to add:
+   - High-quality images
+   - Detailed descriptions
+   - Effects tags (Relaxing, Energizing, etc.)
+   - Flavors (Berry, Citrus, Earthy, etc.)
+   - Use cases (Sleep, Focus, Social, etc.)
+
+### Compliance & Reporting
+
+**Alleaves → METRC integration:**
+- Alleaves handles state compliance
+- METRC tracking automatic
+- Manifest generation
+- Transfer tracking
+
+**BakedBot → Alleaves:**
+- Online orders sync back to Alleaves
+- Sales recorded in Alleaves
+- Inventory decremented
+- Compliance maintained
+
+**Reporting:**
+- Alleaves: Compliance reports, manifests
+- BakedBot: Sales analytics, marketing metrics
+- Both systems complementary
+
+## Performance Optimization
+
+**For large catalogs (500+ products):**
+
+**Optimize sync speed:**
+1. **Selective sync**: Only active products
+2. **Category filtering**: Exclude accessories
+3. **Reduced frequency**: Every 30-60 min (vs. 15 min)
+4. **Off-peak sync**: Schedule heavy syncs during slow periods
+
+**Bandwidth considerations:**
+- Initial sync: Large data transfer
+- Incremental syncs: Only changes (fast)
+- Monitor sync duration in logs
+
+## Next Steps
+
+- [POS Systems Overview](/help/integrations/pos-overview) - Compare POS options
+- [Menu Synchronization](/help/dispensary/menu-sync) - General sync guide
+- [POS Sync Problems](/help/troubleshooting/pos-sync-problems) - Troubleshooting
+
+<ArticleRating articleId="integrations-alleaves" />

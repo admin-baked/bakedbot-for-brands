@@ -1,0 +1,184 @@
+# Adding Products to Your Catalog
+
+Learn how to add products to BakedBot using three different methods: manual entry, CSV import, or POS synchronization.
+
+## What You'll Learn
+
+- Add products manually one at a time
+- Import multiple products from a CSV file
+- Connect your POS system for automatic synchronization
+- Best practices for product data quality
+
+## Prerequisites
+
+- Brand admin or super user account
+- Product information ready (names, prices, categories, images)
+- (Optional) POS system credentials for automatic sync
+
+## Three Ways to Add Products
+
+<Tabs>
+  <Tab label="Manual Entry">
+    ### Manual Product Entry
+
+Best for adding individual products or when you have unique items not in your POS.
+
+**Steps:**
+1. Navigate to **Products** in the dashboard sidebar
+2. Click **"New Product"** button
+3. Fill in the product form:
+   - **Name**: Product name (e.g., "Blue Dream - 3.5g")
+   - **Category**: Select from dropdown (Flower, Vapes, Edibles, etc.)
+   - **Price**: Retail price in dollars
+   - **Description**: Product details (AI can help generate this!)
+   - **THC/CBD %**: Optional but recommended
+   - **Effects**: Select applicable effects (Relaxing, Energizing, etc.)
+   - **Images**: Upload product photos or enter image URL
+4. Click **"Save Product"**
+
+**Pro Tips:**
+- Use consistent naming conventions (Brand - Product - Size)
+- Add multiple product images for better presentation
+- Include strain type for flower products
+- Fill in terpene profiles if available for better recommendations
+  </Tab>
+
+  <Tab label="CSV Import">
+    ### CSV Import
+
+Best for adding many products at once from a spreadsheet.
+
+**Steps:**
+1. Navigate to **Products** → **Import from CSV**
+2. Download the **CSV template** (includes all required columns)
+3. Fill in your product data:
+   - Required: name, category, price
+   - Recommended: brand, imageUrl, description, thcPercent, cbdPercent
+   - Optional: effects, strainType, terpenes
+4. Save your CSV file
+5. Click **"Upload CSV"** and select your file
+6. Review the preview of products to import
+7. Click **"Import Products"**
+
+**CSV Template Example:**
+```csv
+name,category,price,brand,imageUrl,thcPercent,cbdPercent,effects
+Blue Dream 3.5g,Flower,35,Premium Cannabis,,22,0.5,"Relaxing,Happy"
+Lemon Haze Vape 1g,Vapes,45,Vape Co,https://...,85,0,"Energizing,Uplifting"
+```
+
+**Pro Tips:**
+- Keep the first row as headers (don't delete them)
+- Use commas to separate multiple effects
+- Prices should be numbers without $ symbol
+- Leave fields blank if you don't have data (don't use "N/A")
+  </Tab>
+
+  <Tab label="POS Sync">
+    ### POS System Sync
+
+Best for dispensaries with products already in a POS system.
+
+**Supported Systems:**
+- ✅ Alleaves
+- ✅ Dutchie (Plus & Order Ahead)
+- ✅ Jane
+- More coming soon!
+
+**Steps:**
+1. Navigate to **Settings** → **Integrations** → **POS Configuration**
+2. Select your POS system from the dropdown
+3. Enter your POS credentials:
+   - **Alleaves**: Username, Password, PIN, Location ID
+   - **Dutchie**: OAuth connection (click "Connect")
+   - **Jane**: API key from Jane admin panel
+4. Click **"Test Connection"** to verify
+5. Click **"Save & Sync Now"**
+6. Wait for sync to complete (usually 1-5 minutes)
+
+**What Gets Synced:**
+- ✅ Product names and categories
+- ✅ Current prices (retail & OTD)
+- ✅ Stock levels and availability
+- ✅ THC/CBD percentages
+- ✅ Brand information
+- ⚠️ Images (uses category placeholders if missing)
+
+**Auto-Sync Settings:**
+- Default: Every 4 hours
+- Can be configured in POS settings
+- Manual sync anytime with "Sync Now" button
+  </Tab>
+</Tabs>
+
+## Product Data Best Practices
+
+### Required Fields
+Always provide these for every product:
+- **Name**: Clear, descriptive product name
+- **Category**: Correct category for filtering
+- **Price**: Current retail price
+
+### Recommended Fields
+Include these for better search and recommendations:
+- **Description**: 2-3 sentences about the product
+- **Brand**: Brand name (important for brand pages)
+- **Image**: High-quality product photo
+- **THC/CBD**: Potency percentages
+
+### Optional But Helpful
+- **Effects**: Helps Smokey make better recommendations
+- **Strain Type**: Indica, Sativa, or Hybrid
+- **Terpenes**: For advanced product matching
+- **Flavors**: Taste profile descriptions
+
+## After Adding Products
+
+<Callout type="success">
+Once products are added, they're automatically available to:
+- **Smokey AI Budtender** for customer recommendations
+- **Your public menu** (if published)
+- **Craig** for creating marketing campaigns
+- **Ezal** for competitive analysis
+</Callout>
+
+## Troubleshooting
+
+<Callout type="warning">
+**Issue**: POS products not syncing
+
+**Solutions**:
+- Verify your POS credentials are correct
+- Check that products are marked "active" in your POS
+- Ensure products have valid categories
+- Try manual sync with "Sync Now" button
+- Check sync logs in Settings → Integrations
+</Callout>
+
+<Callout type="warning">
+**Issue**: Duplicate products appearing
+
+**Solution**:
+- BakedBot uses product names to detect duplicates
+- Use consistent naming across import methods
+- Delete duplicates from Products page
+- Check your POS for duplicate entries
+</Callout>
+
+<Callout type="warning">
+**Issue**: Products showing $0 price
+
+**Solution**:
+- Verify prices are set in your POS system
+- Check that POS API is returning price data
+- For Alleaves: Ensure adult-use or medical-use prices are set
+- Manual override: Edit product and add price
+</Callout>
+
+## Next Steps
+
+- [Product Search Optimization](/help/products/product-optimization) - Make products easy to find
+- [POS Integration Setup](/help/integrations/pos-systems-overview) - Detailed POS guides
+- [Managing Inventory](/help/products/managing-inventory) - Track stock levels
+
+<ArticleRating articleId="products-adding-products" />

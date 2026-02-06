@@ -1,0 +1,443 @@
+# Menu Synchronization
+
+Keep your online menu automatically synced with your POS system for accurate product information, pricing, and inventory. Real-time sync prevents overselling and improves customer experience.
+
+## Why Menu Sync Matters
+
+**Problems without sync:**
+- ❌ Customers order out-of-stock products
+- ❌ Prices outdated (lose money or upset customers)
+- ❌ Manual updates take hours daily
+- ❌ Mistakes and data entry errors
+
+**Benefits of auto-sync:**
+- ✅ Real-time inventory (no overselling)
+- ✅ Accurate pricing (always current)
+- ✅ Saves 2-4 hours daily (no manual updates)
+- ✅ Better customer experience (what they see is available)
+
+<Callout type="success">
+**Average impact:** Dispensaries using auto-sync see 87% fewer "out of stock" customer complaints and save 18 hours per week on manual menu updates.
+</Callout>
+
+## How Menu Sync Works
+
+```
+POS System (Source of Truth)
+    ↓
+[Sync every 15-60 minutes]
+    ↓
+BakedBot Database
+    ↓
+[Real-time]
+    ↓
+Your Website Menu + Brand Pages
+```
+
+**What syncs:**
+- Product names and descriptions
+- Categories (Flower, Vapes, Edibles, etc.)
+- Prices (retail, OTD, member pricing)
+- Inventory levels (in stock, low stock, out of stock)
+- THC/CBD percentages
+- Product images (if in POS)
+- Variants (sizes, quantities)
+
+## Setting Up Menu Sync
+
+### Step 1: Connect Your POS
+
+**Settings → Integrations → POS**
+
+**Supported POS Systems:**
+- Alleaves
+- Dutchie
+- Jane
+- Flowhub
+- Treez
+- BioTrack
+- Metrc (compliance only)
+
+**Connection Process:**
+1. Select your POS
+2. Enter credentials (API key, username, location ID)
+3. Test connection
+4. Map categories (POS → BakedBot standard categories)
+5. Enable sync
+
+**Example: Alleaves Setup**
+```
+POS System: Alleaves
+Username: your-email@domain.com
+Password: ••••••••
+PIN: 1234 (if required)
+Location ID: 12345
+
+Category Mapping:
+Alleaves → BakedBot
+"FLOWER" → Flower
+"VAPORIZERS" → Vapes
+"EDIBLE" → Edibles
+"CONCENTRATE" → Concentrates
+
+Sync Frequency: Every 15 minutes
+```
+
+### Step 2: Initial Sync
+
+First sync imports all products:
+- **Small catalogs** (< 100 products): 5-10 minutes
+- **Medium catalogs** (100-500 products): 10-30 minutes
+- **Large catalogs** (500+ products): 30-60 minutes
+
+**What to expect:**
+```
+Syncing Products from Alleaves...
+
+Progress: 287 / 374 products (77%)
+
+Successfully synced: 287
+Skipped (inactive): 42
+Errors: 0
+
+Estimated time remaining: 3 minutes
+```
+
+**After initial sync:**
+- Review products in BakedBot
+- Fix any missing data (descriptions, images)
+- Categorize properly
+- Subsequent syncs much faster (only changes)
+
+### Step 3: Configure Sync Settings
+
+**Settings → Integrations → POS → Sync Settings**
+
+**Sync Frequency:**
+- Every 15 minutes (recommended for busy dispensaries)
+- Every 30 minutes (moderate traffic)
+- Every hour (low traffic)
+- Manual only (not recommended)
+
+**Sync Options:**
+
+**Products:**
+- ✅ Sync new products (auto-add when added in POS)
+- ✅ Update existing products (prices, inventory)
+- ✅ Hide out-of-stock products (or show with "Out of Stock" label)
+- ✅ Sync inactive products (or skip them)
+
+**Pricing:**
+- Sync retail prices (pre-tax)
+- Sync OTD prices (out-the-door, includes tax) ← Recommended
+- Sync member prices (loyalty discounts)
+
+**Inventory:**
+- Sync available quantity
+- Low stock threshold (show "Low Stock" warning)
+- Reserve stock (hold X units for walk-ins)
+
+**Categories:**
+- Auto-categorize based on POS categories
+- Manual category mapping
+- Default category for uncategorized products
+
+## Monitoring Sync Status
+
+**Dashboard → Products → Sync Status**
+
+```
+Last Sync: 2 minutes ago
+Status: ✅ Successful
+Products synced: 374
+Time taken: 18 seconds
+
+Recent Syncs:
+✅ 2:15 PM - 374 products - 18s - Success
+✅ 2:00 PM - 374 products - 16s - Success
+✅ 1:45 PM - 374 products - 17s - Success
+⚠️ 1:30 PM - 0 products - 2s - API timeout (retried successfully)
+✅ 1:15 PM - 374 products - 19s - Success
+
+Sync Health: Excellent (99.2% success rate, 30 days)
+```
+
+**Sync Notifications:**
+- Email alerts for sync failures
+- SMS alerts for critical issues (optional)
+- Dashboard badge for errors
+
+## Handling Sync Issues
+
+### Common Issues
+
+#### Issue 1: Products Not Syncing
+
+**Symptoms:**
+- New products in POS don't appear in BakedBot
+- Products show old prices
+
+**Causes:**
+- Sync disabled
+- API credentials expired
+- Products marked "inactive" in POS
+- Category not mapped
+
+**Fixes:**
+1. Check sync is enabled
+2. Test POS connection
+3. Verify products are "active" in POS
+4. Check category mapping
+5. Manual sync to force refresh
+
+#### Issue 2: Price Mismatches
+
+**Symptoms:**
+- Prices in BakedBot don't match POS
+
+**Causes:**
+- Syncing wrong price type (retail vs. OTD)
+- Tax settings incorrect
+- Member pricing not configured
+- Price tiers not mapped
+
+**Fixes:**
+1. Verify price type setting (retail vs. OTD)
+2. Check tax calculation in POS
+3. Ensure member prices enabled if applicable
+4. Review price tier mapping
+
+#### Issue 3: Inventory Not Updating
+
+**Symptoms:**
+- Stock levels stay same despite sales
+
+**Causes:**
+- Inventory sync disabled
+- POS not tracking inventory
+- Wrong location selected (multi-location)
+- Stock reserved settings too high
+
+**Fixes:**
+1. Enable inventory sync
+2. Verify POS tracks inventory
+3. Check location ID correct
+4. Review reserve stock settings
+
+#### Issue 4: Sync Failures
+
+**Symptoms:**
+- Sync status shows errors
+- Products not updating
+
+**Causes:**
+- API rate limits exceeded
+- Network connectivity issues
+- POS maintenance/downtime
+- Invalid credentials
+
+**Fixes:**
+1. Reduce sync frequency if rate limited
+2. Check internet connection
+3. Wait if POS is down (auto-retry)
+4. Re-enter credentials if expired
+
+## Advanced Sync Features
+
+### Selective Sync
+
+Choose which products sync:
+
+**By Category:**
+- Sync flower only
+- Exclude accessories
+- Include edibles and vapes only
+
+**By Location:**
+- Multi-location brands
+- Sync different products per location
+- Location-specific pricing
+
+**By Status:**
+- Active products only
+- Include "Coming Soon" products
+- Exclude discontinued items
+
+### Custom Field Mapping
+
+Map POS fields to BakedBot:
+
+```
+POS Field → BakedBot Field
+"THC_PERCENTAGE" → thcPercentage
+"CBD_PCT" → cbdPercentage
+"BRAND_NAME" → brand
+"STRAIN_TYPE" → strainType (Indica/Sativa/Hybrid)
+"BATCH_ID" → batchNumber
+```
+
+### Sync Hooks
+
+Trigger actions on sync events:
+
+**On New Product:**
+- Send notification to admin
+- Auto-create marketing campaign
+- Add to featured products
+
+**On Price Change:**
+- Alert pricing team
+- Update dynamic pricing rules
+- Notify Money Mike agent
+
+**On Out of Stock:**
+- Alert inventory manager
+- Remove from promotions
+- Auto-create restock order
+
+### Sync Logs
+
+**Settings → Integrations → POS → Sync Logs**
+
+Detailed logs for troubleshooting:
+
+```
+Sync Log: 2026-02-05 2:15 PM
+
+Started: 2:15:03 PM
+Completed: 2:15:21 PM
+Duration: 18 seconds
+
+Products Processed: 374
+- New: 2 products added
+- Updated: 18 products modified
+- Unchanged: 354 products
+- Errors: 0
+
+Changes:
+[NEW] Blue Dream 3.5g - Added
+[NEW] Purple Punch 3.5g - Added
+[UPDATE] Sour Diesel Cart - Price: $48 → $50
+[UPDATE] Chill Gummies - Stock: 45 → 32
+... (16 more updates)
+
+API Calls: 8 requests
+Network Latency: 127ms avg
+POS Response Time: 1.2s avg
+```
+
+## Multi-Location Menu Sync
+
+**For dispensaries with multiple locations:**
+
+### Location-Specific Menus
+
+Each location can have different:
+- Product selection
+- Prices
+- Inventory levels
+- Hours
+- Delivery areas
+
+**Setup:**
+```
+Location 1: Downtown Syracuse
+POS: Alleaves Location #12345
+Menu: 324 products
+Delivery: 5-mile radius
+
+Location 2: North Syracuse
+POS: Alleaves Location #12346
+Menu: 287 products (different mix)
+Delivery: 7-mile radius
+```
+
+### Shared Inventory
+
+Multiple locations share inventory:
+- Central warehouse syncs to all locations
+- Stock decrements across all menus
+- Customers can order from any location
+
+### Cross-Location Transfers
+
+If one location out of stock:
+- Auto-suggest nearest location with stock
+- Offer transfer between locations
+- Customer chooses pickup location
+
+## POS-Specific Guides
+
+### Alleaves Sync
+
+**Special Considerations:**
+- Alleaves uses "Adult-Use" vs. "Medical" pricing
+- Sync "Adult-Use OTD" for most accurate prices
+- PIN may be required for API access
+- Location ID critical for multi-location
+
+**Best Practices:**
+- Set prices in "Adult-Use OTD" column
+- Use category codes (FLOWER, EDIBLE, etc.)
+- Keep products "Active" if selling
+
+[Full guide: [Alleaves Integration](/help/integrations/alleaves)]
+
+### Dutchie Sync
+
+**Special Considerations:**
+- OAuth authentication (re-auth every 90 days)
+- Dutchie Plus or Order Ahead required
+- Pricing includes tax by default
+
+**Best Practices:**
+- Ensure "Order Ahead" enabled
+- Set availability schedules
+- Use Dutchie categories
+
+[Full guide: [Dutchie Integration](/help/integrations/dutchie)]
+
+### Jane Sync
+
+**Special Considerations:**
+- API key expires periodically
+- Product images must be in Jane first
+- Requires "Read Products" permission
+
+**Best Practices:**
+- Regenerate API key quarterly
+- Upload product images to Jane
+- Verify API permissions
+
+## Testing Menu Sync
+
+**After setup, verify sync works:**
+
+**Test 1: New Product**
+1. Add product in POS
+2. Wait for sync interval (or trigger manual sync)
+3. Verify product appears in BakedBot
+4. Check all fields populated correctly
+
+**Test 2: Price Change**
+1. Change product price in POS
+2. Wait for sync
+3. Verify price updated in BakedBot
+
+**Test 3: Out of Stock**
+1. Set product quantity to 0 in POS
+2. Wait for sync
+3. Verify product hidden or marked "Out of Stock"
+
+**Test 4: Product Update**
+1. Update product description in POS
+2. Wait for sync
+3. Verify description updated in BakedBot
+
+## Next Steps
+
+- [POS Systems Overview](/help/integrations/pos-overview) - Compare POS options
+- [POS Sync Problems](/help/troubleshooting/pos-sync-problems) - Troubleshooting guide
+- [Managing Orders](/help/dispensary/orders) - Order fulfillment
+
+<ArticleRating articleId="dispensary-menu-sync" />

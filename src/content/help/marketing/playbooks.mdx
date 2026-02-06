@@ -1,0 +1,719 @@
+# Marketing Playbooks
+
+Automate complex marketing workflows with playbooks. Set up multi-step campaigns that run on autopilot, triggered by customer behavior or scheduled events.
+
+## What is a Marketing Playbook?
+
+**A playbook is an automated marketing workflow:**
+- Multi-step sequence of actions
+- Triggered by events or schedules
+- Combines email, SMS, and in-app messaging
+- Adapts based on customer behavior
+- Runs continuously without manual work
+
+**Example playbook:**
+```
+Trigger: New customer signup
+↓
+Day 0: Welcome email
+↓
+Day 1: Product recommendation SMS
+↓
+Day 3: Educational content email
+↓
+Day 7: First purchase discount
+↓
+If purchased → Thank you + loyalty signup
+If not purchased → Win-back offer
+```
+
+<Callout type="success">
+**Impact:** Brands using playbooks see 3x higher customer lifetime value vs. one-off campaigns, with 68% better retention rates.
+</Callout>
+
+## Why Use Playbooks?
+
+**Benefits:**
+- 🤖 **Set it and forget it** - Runs automatically
+- 🎯 **Behavior-triggered** - Right message, right time
+- 📈 **Higher conversion** - Multi-touch approach
+- ⏱️ **Save time** - No manual campaign management
+- 🔄 **Consistent experience** - Every customer gets same journey
+- 📊 **Better data** - Track entire customer journey
+
+## Types of Playbooks
+
+### 1. Welcome Series
+
+**New customer onboarding:**
+- Introduce your brand
+- Educate on products
+- Drive first purchase
+- Build relationship
+
+**Typical flow:**
+```
+Day 0: Welcome email (introduce brand)
+Day 1: Product guide email (education)
+Day 3: SMS with 15% off first order
+Day 7: Email: "Need help choosing?"
+Day 14: SMS: Last chance discount
+```
+
+**Conversion rate:** 42% make first purchase within 14 days
+
+### 2. Re-engagement Playbook
+
+**Win back inactive customers:**
+- Identify customers who haven't purchased in 60+ days
+- Send personalized win-back messages
+- Offer incentive to return
+- Track re-activation
+
+**Typical flow:**
+```
+Trigger: 60 days since last purchase
+
+Day 0: Email "We miss you!" + 20% off
+Day 3: SMS reminder about offer
+Day 7: Email: "Last chance" + free gift with purchase
+Day 10: Final reminder before expiration
+
+If returns → Move to retention playbook
+If doesn't return → Pause for 30 days, then repeat
+```
+
+**Win-back rate:** 28% of inactive customers return
+
+### 3. Product Launch Playbook
+
+**Introduce new products:**
+- Build anticipation
+- Drive early sales
+- Collect feedback
+- Create FOMO
+
+**Typical flow:**
+```
+T-7 days: Teaser email (VIP customers only)
+T-3 days: SMS: "Launching soon..."
+Launch day: Email to all + SMS to VIPs
+L+1 day: SMS: "Going fast!" (if selling well)
+L+3 days: Email: Customer reviews
+L+7 days: "Last chance" for launch discount
+```
+
+**Result:** 3.2x higher sales vs. single announcement
+
+### 4. Loyalty Progression
+
+**Move customers up loyalty tiers:**
+- Track points/spending
+- Celebrate milestones
+- Incentivize next tier
+- Reward loyalty
+
+**Typical flow:**
+```
+Trigger: Customer reaches 80% of next tier
+
+Email: "You're almost there!"
+- Show progress bar
+- Show tier benefits
+- Offer bonus points opportunity
+
+When tier reached:
+SMS: "Congratulations!"
+Email: Welcome to new tier + exclusive offer
+
+Monthly: Tier anniversary + bonus
+```
+
+**Result:** 58% reach next tier vs. 22% without prompts
+
+### 5. Event Promotion
+
+**Drive event attendance:**
+- Build awareness
+- Collect RSVPs
+- Send reminders
+- Follow up after event
+
+**Typical flow:**
+```
+T-21 days: Email announcement + RSVP link
+T-14 days: SMS reminder (non-RSVPs)
+T-7 days: Email: "Limited spots left!"
+T-3 days: SMS: RSVP confirmation
+T-1 day: Email: Event details + directions
+Day of: SMS: "See you tonight!"
+T+1 day: Email: Thank you + photos
+T+3 days: SMS: Exclusive post-event offer
+```
+
+**RSVP rate:** 34% vs. 12% with single announcement
+
+## Creating a Playbook
+
+**Dashboard → Marketing → Playbooks → Create Playbook**
+
+### Step 1: Choose Template or Start Fresh
+
+```
+Create New Playbook
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Templates:
+☐ Welcome Series (5 steps, 14 days)
+☐ Win-Back Campaign (4 steps, 10 days)
+☐ Product Launch (6 steps, 7 days)
+☐ Loyalty Progression (3 steps, ongoing)
+☐ Event Promotion (8 steps, 21 days)
+☐ Start from scratch
+
+Or import existing playbook
+```
+
+### Step 2: Set Trigger
+
+**What starts the playbook?**
+
+**Event-based triggers:**
+```
+Customer Events:
+- New signup
+- First purchase
+- Nth purchase (e.g., 3rd order)
+- Reached loyalty tier
+- Abandoned cart
+- 60 days inactive
+- Birthday
+- Anniversary (signup date)
+
+Product Events:
+- Product back in stock
+- Price drop
+- New product in favorite category
+```
+
+**Scheduled triggers:**
+```
+Time-based:
+- Specific date (product launch: Feb 15)
+- Recurring (every Monday at 10am)
+- Relative (7 days after signup)
+```
+
+**Example trigger setup:**
+```
+Trigger: Customer Inactive
+Condition: Last purchase > 60 days ago
+Check: Daily at 9am
+Audience: All customers (exclude one-time buyers)
+```
+
+### Step 3: Build Playbook Steps
+
+**Each step has:**
+1. Wait period (0 days, 1 day, 3 days, etc.)
+2. Action type (Email, SMS, or both)
+3. Content (message + creative)
+4. Conditions (optional)
+
+**Example step:**
+```
+Step 1: Welcome Email
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Wait: 0 days (immediately on trigger)
+
+Channel: Email
+Template: Welcome Email v2 [Edit]
+
+Subject: Welcome to [Brand Name]! 🌿
+
+Preview:
+"Thanks for joining! Here's what you need to know..."
+
+Conditions:
+☐ Only send if: Customer has not made purchase
+☐ Skip if: Customer unsubscribed from email
+
+[Preview Email] [Test Send]
+```
+
+**Example multi-channel step:**
+```
+Step 3: Discount Reminder
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Wait: 3 days after previous step
+
+Channels: Email + SMS (send both)
+
+Email:
+Subject: Your 15% off expires soon!
+Template: Discount Reminder [Edit]
+
+SMS (optional):
+"Hi [Name]! Your 15% off code expires tomorrow. Shop now: [Link]"
+Character count: 87 / 160
+
+Conditions:
+☑ Only send if: Customer has not made purchase in playbook
+☐ Skip if: Customer already used discount code
+
+A/B Test:
+☐ Test subject line (50/50 split)
+```
+
+### Step 4: Add Branching Logic
+
+**Create different paths based on behavior:**
+
+```
+Playbook Flow with Branching
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Day 0: Welcome Email
+  ↓
+Day 1: Product Guide
+  ↓
+Day 3: Discount Offer (15% off)
+  ↓
+  ├─→ IF: Made purchase
+  │     ↓
+  │   Day 4: Thank you email
+  │     ↓
+  │   Day 7: Loyalty signup
+  │     ↓
+  │   END (exit playbook)
+  │
+  └─→ IF: No purchase
+        ↓
+      Day 7: Reminder (discount expiring)
+        ↓
+      Day 10: Final reminder
+        ↓
+        END (exit playbook)
+```
+
+**Setting conditions:**
+```
+Branch Condition
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+After: Step 3 (Discount Offer)
+
+If customer meets condition:
+[Has made purchase in last 3 days]
+
+Then: Go to "Thank You" path
+Else: Continue to "Reminder" path
+```
+
+### Step 5: Set Playbook Settings
+
+```
+Playbook Settings
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Name: Welcome Series 2026
+Description: Onboard new customers, drive first purchase
+
+Active: ☑ Enable playbook
+Priority: Medium (vs. other playbooks)
+
+Timing:
+Send emails: 10am-8pm only
+Send SMS: 10am-7pm only
+Respect: Do Not Disturb preferences
+
+Limits:
+Max emails per customer per day: 2
+Max SMS per customer per week: 3
+
+Exit conditions:
+☑ Customer unsubscribes
+☑ Customer makes 3+ purchases (move to retention)
+☐ Manual exit only
+
+[Save Draft] [Activate Playbook]
+```
+
+## Craig's AI Assistance
+
+**Craig helps optimize playbooks:**
+
+```
+Craig's Suggestions for "Welcome Series"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 Recommendations:
+
+1. Add SMS on Day 1
+   Current: Email only
+   Why: SMS has 98% open rate vs. 22% for email
+   Expected lift: +18% conversion
+
+2. Shorten Day 7 wait
+   Current: 7 days between steps
+   Why: 52% of customers drop off after 5 days
+   Suggestion: Move to Day 5
+   Expected lift: +12% completion rate
+
+3. Add product recommendations
+   Current: Generic discount
+   Why: Personalized recommendations convert 3.2x better
+   Use: Customer's browsing history + popular items
+
+4. A/B test subject line
+   Current: "Welcome to [Brand]!"
+   Test: "Your exclusive 15% off is here!"
+   Expected lift: +8% open rate
+
+[Apply All] [Apply Selected] [Dismiss]
+```
+
+**Real-time optimization:**
+- Craig monitors playbook performance
+- Suggests improvements based on data
+- A/B tests messages automatically
+- Learns from customer responses
+
+## Playbook Templates
+
+### Template 1: Welcome Series (5 Steps, 14 Days)
+
+```
+Goal: Convert new signups to customers
+
+Day 0: Welcome email
+- Introduce brand story
+- Set expectations
+- Link to popular products
+
+Day 1: SMS introduction
+- Personal greeting
+- 15% off first order
+- Direct link to shop
+
+Day 3: Educational email
+- "How to choose cannabis products"
+- Product guide
+- Link to AI Budtender (Smokey)
+
+Day 7: Reminder email
+- "Still deciding?"
+- Customer testimonials
+- Discount reminder (expires soon)
+
+Day 14: Last chance SMS
+- "Your welcome offer expires tonight!"
+- Simple CTA
+
+Exit: Purchase or playbook completes
+```
+
+**Conversion rate:** 42% make first purchase
+
+### Template 2: Win-Back (4 Steps, 10 Days)
+
+```
+Goal: Re-activate inactive customers
+
+Trigger: 60 days since last purchase
+
+Day 0: "We miss you" email
+- Personalized based on past purchases
+- 20% off next order
+- New products since last visit
+
+Day 3: SMS reminder
+- Quick reminder about discount
+- One-click shop link
+
+Day 7: "Last chance" email
+- Increase urgency
+- Free gift with purchase
+- Show what they're missing (new products)
+
+Day 10: Final SMS
+- "Expires tonight!"
+- Direct link to cart with discount pre-applied
+
+Exit: Purchase or offer expires
+```
+
+**Win-back rate:** 28% return and purchase
+
+### Template 3: Product Launch (6 Steps, 7 Days)
+
+```
+Goal: Maximize new product sales
+
+T-7: VIP early access email
+- Segment: Top 20% customers
+- Exclusive pre-order
+- 10% off launch price
+
+T-3: Teaser email (all customers)
+- Product preview
+- Countdown to launch
+- "Sign up for launch alert"
+
+Launch Day: Announcement (email + SMS)
+- Product now available
+- Launch discount (24 hours only)
+- Link to product page
+
+L+1: Social proof email
+- Customer reviews
+- "Selling fast!" urgency
+- Restock alert signup
+
+L+3: Reminder SMS
+- "Launch discount ends tomorrow"
+- Direct purchase link
+
+L+7: Final email
+- Last chance for launch price
+- What's next (upcoming products)
+- Thank you
+
+Exit: Purchase or playbook completes
+```
+
+**Result:** 3.2x higher sales vs. single announcement
+
+## Testing Your Playbook
+
+**Before activating:**
+
+1. **Test emails:**
+   ```
+   Send test to your email
+   Check:
+   ☐ Subject line displays correctly
+   ☐ All links work
+   ☐ Images load
+   ☐ Personalization tokens populate
+   ☐ Renders on mobile
+   ```
+
+2. **Test SMS:**
+   ```
+   Send test to your phone
+   Check:
+   ☐ Under 160 characters (or split properly)
+   ☐ Link shortening works
+   ☐ Personalization works
+   ☐ Clear call-to-action
+   ```
+
+3. **Test flow:**
+   ```
+   Create test customer
+   Trigger playbook manually
+   Verify:
+   ☐ Timing is correct (wait periods)
+   ☐ Branching logic works
+   ☐ Exit conditions trigger
+   ☐ Analytics tracking works
+   ```
+
+## Monitoring Playbook Performance
+
+**Dashboard → Marketing → Playbooks → [Playbook] → Analytics**
+
+```
+Welcome Series - Performance (Last 30 Days)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Customers entered: 287
+Completed: 124 (43%)
+Exited early: 163 (57%)
+
+Conversion rate: 42% (made purchase)
+Avg time to purchase: 5.2 days
+Revenue generated: $18,450
+
+Step Performance:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Step 1: Welcome Email
+- Sent: 287
+- Opened: 189 (66%)
+- Clicked: 87 (30%)
+- Converted: 12 (4%)
+
+Step 2: SMS Introduction
+- Sent: 275 (12 unsubscribed)
+- Opened: 269 (98%)
+- Clicked: 124 (45%)
+- Converted: 54 (20%) ← Highest conversion!
+
+Step 3: Educational Email
+- Sent: 221 (54 exited after purchase)
+- Opened: 142 (64%)
+- Clicked: 68 (31%)
+- Converted: 31 (14%)
+
+Step 4: Reminder Email
+- Sent: 179
+- Opened: 98 (55%)
+- Clicked: 42 (23%)
+- Converted: 18 (10%)
+
+Step 5: Last Chance SMS
+- Sent: 148
+- Opened: 145 (98%)
+- Clicked: 67 (45%)
+- Converted: 9 (6%)
+```
+
+**Key metrics:**
+- Completion rate (how many finish playbook)
+- Conversion rate (how many take desired action)
+- Revenue per customer
+- Step performance (which steps work best)
+- Exit points (where do customers drop off)
+
+## Optimizing Playbooks
+
+### Low Open Rates?
+
+**Symptoms:**
+- Email open rate < 20%
+- SMS open rate < 90%
+
+**Solutions:**
+1. **Improve subject lines**
+   - Test A/B variants
+   - Use personalization (customer name)
+   - Create urgency
+   - Ask questions
+
+2. **Check send times**
+   - Email: 10am-12pm or 2pm-4pm (highest opens)
+   - SMS: 12pm-3pm (highest engagement)
+   - Avoid early morning (<9am) or late night (>8pm)
+
+3. **Segment better**
+   - Don't send to unengaged customers
+   - Personalize by preferences
+   - Respect Do Not Disturb
+
+### Low Click Rates?
+
+**Symptoms:**
+- Opens are good, but clicks are low
+- Email click rate < 10%
+- SMS click rate < 30%
+
+**Solutions:**
+1. **Stronger CTAs**
+   - Clear, action-oriented buttons
+   - Create urgency ("Shop Now - 24h Only")
+   - Single CTA per email (don't overwhelm)
+
+2. **Better content**
+   - Show product images
+   - Include prices
+   - Social proof (reviews, ratings)
+   - Benefits over features
+
+3. **Simplify**
+   - Remove distractions
+   - Shorter content
+   - Mobile-optimized
+
+### Low Conversion Rates?
+
+**Symptoms:**
+- Opens and clicks are good, but no purchases
+- Conversion rate < 10%
+
+**Solutions:**
+1. **Offer/incentive**
+   - Increase discount (10% → 15%)
+   - Add free gift
+   - Free delivery
+   - Limited time offer
+
+2. **Remove friction**
+   - Link directly to product (not homepage)
+   - Pre-apply discount code
+   - One-click checkout
+   - Guest checkout option
+
+3. **Build trust**
+   - Customer reviews
+   - Money-back guarantee
+   - Secure payment badges
+   - Contact information
+
+### High Exit Rates?
+
+**Symptoms:**
+- Customers exit playbook before completing
+
+**Solutions:**
+1. **Shorten playbook**
+   - 14 days → 7 days
+   - Reduce wait times between steps
+   - Get to offer faster
+
+2. **Better exit conditions**
+   - Exit after purchase (don't keep sending)
+   - Respect unsubscribes
+   - Move to different playbook (retention)
+
+3. **Increase engagement**
+   - More personalization
+   - Interactive content
+   - Ask for feedback
+
+## Common Mistakes
+
+**Mistake 1: Too Many Steps**
+❌ 10-step, 30-day playbook
+✅ 5-step, 7-day playbook (higher completion)
+
+**Mistake 2: No Branching**
+❌ Same path for everyone
+✅ Different paths based on behavior
+
+**Mistake 3: Generic Content**
+❌ "Hi customer, check out our products"
+✅ "Hi Sarah, based on your love of Sativas..."
+
+**Mistake 4: Ignoring Data**
+❌ Set it and forget it forever
+✅ Review monthly, optimize based on data
+
+**Mistake 5: No Exit Strategy**
+❌ Keep sending even after purchase
+✅ Exit playbook after goal achieved
+
+## Best Practices
+
+<Callout type="tip">
+**Start simple:** First playbook should be 3-5 steps max. Learn what works, then expand.
+
+**Test everything:** A/B test subject lines, send times, offers. Data beats assumptions.
+
+**Personalize:** Use customer name, past purchases, browsing history. Generic = ignored.
+
+**Respect preferences:** Honor unsubscribes, Do Not Disturb, frequency caps. Trust > sales.
+
+**Monitor closely:** First 2 weeks are critical. Watch data daily, optimize quickly.
+</Callout>
+
+## Next Steps
+
+- [Creating Marketing Campaigns](/help/marketing/campaigns) - One-off campaigns vs. playbooks
+- [Craig - Marketing Automation](/help/agents/craig) - AI-powered campaign optimization
+- [Customer Insights](/help/analytics/customer-insights) - Segment for personalization
+
+<ArticleRating articleId="marketing-playbooks" />

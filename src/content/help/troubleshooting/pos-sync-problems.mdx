@@ -1,0 +1,305 @@
+# POS Sync Problems
+
+Detailed troubleshooting for POS integration issues. Most problems can be fixed in under 10 minutes!
+
+## Quick Diagnostic
+
+**Before troubleshooting**, check these basics:
+1. ✅ Is your POS system online and working?
+2. ✅ Can you log into your POS admin panel?
+3. ✅ Are credentials entered correctly in BakedBot?
+4. ✅ Does your POS account have API access enabled?
+
+If all yes, continue to specific issues below.
+
+## Sync Status Meanings
+
+| Status | What It Means | Action Needed |
+|--------|---------------|---------------|
+| ✅ Synced | Working perfectly | None |
+| 🔄 Syncing | Currently updating | Wait 2-5 minutes |
+| ⚠️ Stale | Last sync > 24 hours ago | Click "Sync Now" |
+| ❌ Failed | Last sync attempt failed | See troubleshooting below |
+
+## Authentication Errors
+
+### "Invalid Credentials" or "Unauthorized"
+
+**For Alleaves:**
+1. Verify you're using correct username (usually email)
+2. Check password (try logging into Alleaves admin separately)
+3. **Include PIN** if your location requires it
+4. Verify Location ID is correct (found in Alleaves settings)
+5. Try resetting password in Alleaves, then update in BakedBot
+
+**For Dutchie:**
+1. Disconnect and reconnect OAuth
+2. Ensure you're authorizing the correct location
+3. Check that Dutchie Plus or Order Ahead is active
+4. Verify API access is enabled in Dutchie admin
+
+**For Jane:**
+1. Generate new API key in Jane admin
+2. Copy FULL key (don't truncate)
+3. Paste into BakedBot without extra spaces
+4. Verify API permissions include "Read Products"
+
+### "API Access Denied"
+
+**Solutions:**
+1. Contact your POS support to enable API access
+2. Some POS systems require paid tier for API
+3. Verify your account role has API permissions (may need admin)
+4. Check if IP whitelisting is required (let us know if so)
+
+## Products Not Syncing
+
+### Zero Products Imported
+
+**Checklist:**
+1. ✅ At least one product exists in POS marked "active"
+2. ✅ Products have valid categories
+3. ✅ Location ID is correct (for multi-location)
+4. ✅ POS account has permission to view products
+5. ✅ API endpoint is responding (check sync logs)
+
+**Try:**
+- Sync one location at a time if multi-location
+- Check if POS has quantity limits on API calls
+- Review error logs in Settings → Integrations → Logs
+- Contact support with error message
+
+### Only Some Products Syncing
+
+**Common causes:**
+1. **Inactive products**: Only "active" products sync
+2. **Category exclusions**: Some categories may be filtered (e.g., "supplies")
+3. **Missing data**: Products without names or categories skip
+4. **Duplicate detection**: May skip if similar product exists
+
+**Solutions:**
+1. In POS, mark missing products as "active"
+2. Check BakedBot category mappings in POS settings
+3. Ensure all products have name + category in POS
+4. Review "Skipped Products" list in sync logs
+
+### Products Syncing But Disappearing
+
+**Causes:**
+1. Product marked inactive in POS after sync
+2. Out of stock + "Hide sold out" enabled
+3. Price dropped to $0 + "Hide free items" enabled
+4. Category filter excluding product
+
+**Solutions:**
+1. Check product status in POS
+2. Adjust "Hide sold out" setting
+3. Review product filters in BakedBot settings
+4. Check sync logs for deletion events
+
+## Price Issues
+
+### All Prices Showing $0
+
+**For Alleaves** (Most Common):
+1. In Alleaves admin, check if prices are set under:
+   - **Adult-Use Retail** / **Adult-Use OTD** ← Usually here
+   - Medical-Use Retail / Medical-Use OTD
+   - Generic Retail / Generic OTD ← Often $0
+2. Alleaves prioritizes adult-use prices, then medical, then generic
+3. If all are $0, prices aren't set in Alleaves
+4. Set prices in Alleaves, then re-sync
+
+**For Other POS Systems:**
+1. Verify retail prices are set (not just wholesale/cost)
+2. Check if "active pricing" is enabled
+3. Ensure product isn't marked "call for price"
+4. Review if tax is included (some POS separate tax)
+
+### Some Prices $0, Others Correct
+
+**Causes:**
+1. Those products don't have adult-use OR medical prices set
+2. Product type doesn't match expected category
+3. Regional pricing not configured
+4. Price tier mismatch
+
+**Solution:**
+1. Find affected products in POS
+2. Set adult-use retail and OTD prices
+3. Save in POS
+4. Re-sync in BakedBot
+5. Verify prices appear
+
+### Prices Syncing But Wrong Amounts
+
+**Check:**
+1. Are you syncing "Retail" or "OTD" (out-the-door) prices?
+   - BakedBot defaults to OTD (includes tax)
+   - Configure in POS settings which to use
+2. Is tax calculated separately in POS?
+3. Are there regional price variations?
+4. Membership/loyalty discounts affecting base price?
+
+## Inventory/Stock Issues
+
+### Stock Levels Not Updating
+
+**Solutions:**
+1. Verify "Sync Inventory" is enabled in POS settings
+2. Check sync frequency (hourly vs daily)
+3. In POS, ensure using "available" quantity (not "on hand")
+   - "On hand" = total inventory
+   - "Available" = sellable inventory
+4. Some POS systems separate reserves from available
+5. Try manual sync to force refresh
+
+### Stock Shows Negative Numbers
+
+**Causes:**
+1. Overselling in POS (sold more than had)
+2. Inventory adjustment not synced
+3. Multi-location stock aggregation issue
+
+**Solutions:**
+1. Correct inventory in POS
+2. Re-sync from BakedBot
+3. If multi-location, sync each separately
+4. Contact POS support if persists
+
+### Out of Stock Products Still Showing
+
+**Settings to check:**
+1. "Hide sold out products" in BakedBot settings
+2. "Low stock threshold" may be set too low
+3. Sync frequency (might not have synced recently)
+4. Manual sync to get latest stock
+
+## Sync Frequency Issues
+
+### Sync Running Too Often
+
+**Problem**: Hitting POS API rate limits
+
+**Solutions:**
+1. Reduce sync frequency (hourly → every 4 hours)
+2. Only sync during business hours
+3. Upgrade POS API tier if available
+4. Use manual sync only during peak
+
+### Sync Not Running Automatically
+
+**Checklist:**
+1. ✅ Auto-sync is enabled in POS settings
+2. ✅ Sync schedule is configured
+3. ✅ No recent authentication errors
+4. ✅ POS system has been synced at least once manually
+
+**Try:**
+- Toggle auto-sync off, then back on
+- Manually sync once to "restart" scheduler
+- Check if API limits were exceeded (wait a few hours)
+
+## Performance Issues
+
+### Sync Takes Forever (>30 minutes)
+
+**For large catalogs (500+ products):**
+1. First sync always takes longest (10-30 min is normal)
+2. Subsequent syncs are incremental (much faster)
+3. Reduce sync frequency if hitting timeouts
+4. Consider syncing during off-hours
+
+**To speed up:**
+1. Exclude categories you don't sell online
+2. Sync one location at a time (if multi-location)
+3. Filter out inactive/archived products
+4. Contact support for bulk import tools
+
+## Data Quality Issues
+
+### Product Names Look Wrong
+
+**Examples:**
+- "FLW-BD-3.5" instead of "Blue Dream 3.5g"
+- ALL CAPS names
+- Missing brand names
+
+**Solutions:**
+1. Fix in POS (BakedBot syncs exactly what POS provides)
+2. Use "Product Name Format" rules in BakedBot
+3. Bulk rename in Products → Bulk Edit
+4. Set naming standards in POS going forward
+
+### Categories Mapping Incorrectly
+
+**Example**: "Cartridge" syncing as "Vapes" or "Accessories"
+
+**Solution:**
+1. Go to Settings → POS → Category Mapping
+2. Map POS categories to BakedBot standard categories:
+   - Flower
+   - Vapes (includes carts, disposables, pods)
+   - Edibles
+   - Concentrates
+   - Tinctures
+   - Topicals
+   - Accessories
+3. Save and re-sync
+
+### Missing Product Images
+
+**POS systems rarely include images**
+
+**Solutions:**
+1. BakedBot uses category placeholder images
+2. Manually upload product photos
+3. Use AI image generation (coming soon)
+4. Link to brand-provided product images
+
+## Advanced Troubleshooting
+
+### Check Sync Logs
+1. Go to **Settings → Integrations → POS → Sync Logs**
+2. Look for specific error messages
+3. Note which products failed
+4. Copy error to support ticket if unclear
+
+### Test API Connection
+1. Settings → POS → Test Connection
+2. Should return "Success" with location info
+3. If fails, shows specific error
+4. Use this to verify credentials before syncing
+
+### Force Full Re-Sync
+1. Go to Products → "Clear POS Products"
+2. Confirm (this removes all POS-synced products)
+3. Go to POS Settings → "Full Re-Sync"
+4. Wait 10-30 minutes for complete rebuild
+5. Use this as last resort for corrupted data
+
+## Getting Help
+
+If none of these solutions work:
+
+<Callout type="info">
+**Collect this info before contacting support:**
+- POS system name and version
+- Specific error messages from sync logs
+- Number of products in POS vs. synced to BakedBot
+- Screenshots of POS settings
+- Timeline (when did it stop working?)
+
+**Contact:**
+- 📧 support@bakedbot.ai
+- 💬 Live chat in dashboard
+- Include: account email + info above
+</Callout>
+
+## Related Articles
+
+- [POS Systems Overview](/help/integrations/pos-overview) - Which POS to use
+- [Alleaves Integration](/help/integrations/alleaves) - Alleaves-specific setup
+- [Adding Products Manually](/help/products/adding-products) - Alternative to POS sync
+
+<ArticleRating articleId="troubleshooting-pos-sync-problems" />
