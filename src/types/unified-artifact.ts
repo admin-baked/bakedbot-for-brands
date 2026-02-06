@@ -20,6 +20,7 @@ export type UnifiedArtifactType =
   | 'bundle'
   | 'creative_content'
   | 'campaign'
+  | 'hero_banner'
   | 'sell_sheet'
   | 'report'
   | 'outreach_draft'
@@ -181,6 +182,37 @@ export interface CampaignArtifactData {
 }
 
 /**
+ * Hero banner artifact data (menu page headers)
+ */
+export interface HeroBannerArtifactData {
+  brandName: string;
+  brandLogo?: string;
+  tagline: string;
+  description?: string;
+  heroImage?: string;
+  primaryColor: string;
+  style: 'default' | 'minimal' | 'bold' | 'professional';
+  purchaseModel: 'online_only' | 'local_pickup' | 'hybrid';
+  shipsNationwide?: boolean;
+  stats?: {
+    products?: number;
+    retailers?: number;
+    rating?: number;
+  };
+  primaryCta: {
+    label: string;
+    action: 'find_near_me' | 'shop_now' | 'custom';
+    url?: string;
+  };
+  secondaryCta?: {
+    label: string;
+    action: 'find_near_me' | 'shop_now' | 'custom';
+    url?: string;
+  };
+  verified?: boolean;
+}
+
+/**
  * Generic artifact data for other types
  */
 export interface GenericArtifactData {
@@ -197,6 +229,7 @@ export type UnifiedArtifactData =
   | BundleArtifactData
   | CreativeContentArtifactData
   | CampaignArtifactData
+  | HeroBannerArtifactData
   | GenericArtifactData;
 
 // ============================================================================
@@ -311,6 +344,15 @@ export function isCampaignArtifact(
 }
 
 /**
+ * Type guard to check if artifact is a hero banner
+ */
+export function isHeroBannerArtifact(
+  artifact: UnifiedArtifact
+): artifact is UnifiedArtifact & { data: HeroBannerArtifactData } {
+  return artifact.type === 'hero_banner';
+}
+
+/**
  * Get display title for artifact type
  */
 export function getArtifactTypeLabel(type: UnifiedArtifactType): string {
@@ -320,6 +362,7 @@ export function getArtifactTypeLabel(type: UnifiedArtifactType): string {
     bundle: 'Bundle Deal',
     creative_content: 'Social Post',
     campaign: 'Campaign',
+    hero_banner: 'Hero Banner',
     sell_sheet: 'Sell Sheet',
     report: 'Report',
     outreach_draft: 'Outreach Draft',
