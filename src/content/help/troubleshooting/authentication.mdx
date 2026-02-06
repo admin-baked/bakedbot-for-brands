@@ -1,0 +1,568 @@
+# Authentication & Login Issues
+
+Troubleshoot login problems, password resets, and account access issues. Get back into your BakedBot account quickly.
+
+## Common Login Problems
+
+### Issue 1: Forgot Password
+
+**Symptoms:**
+- Can't remember password
+- Password doesn't work
+- Need to reset
+
+**Solution:**
+
+**Step 1: Request password reset**
+```
+Login page → "Forgot Password?"
+
+Enter your email:
+your.email@example.com
+
+[Send Reset Link]
+
+✅ Check your email for reset link
+```
+
+**Step 2: Check email**
+```
+Subject: Reset Your BakedBot Password
+
+Click the link below to reset your password:
+[Reset Password]
+
+Link expires in 1 hour.
+
+Didn't request this? Ignore this email.
+```
+
+**Step 3: Create new password**
+```
+Create New Password
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+New password: ••••••••••
+Confirm: ••••••••••
+
+Requirements:
+☑ At least 8 characters
+☑ One uppercase letter
+☑ One number
+☐ One special character (optional)
+
+[Reset Password]
+
+✅ Password updated! Redirecting to login...
+```
+
+**If email doesn't arrive:**
+1. Check spam/junk folder
+2. Wait 5 minutes (may be delayed)
+3. Verify email address is correct
+4. Try resending reset link
+5. Contact support if still no email
+
+### Issue 2: "Invalid Credentials" Error
+
+**Symptoms:**
+```
+❌ Invalid email or password
+Please try again.
+```
+
+**Common causes:**
+
+**Cause 1: Typo in password**
+- Solution: Retype carefully
+- Check caps lock is OFF
+- Try copy-paste from password manager
+
+**Cause 2: Wrong email**
+- Solution: Try alternate email addresses
+- Check if you used Google/SSO sign-in
+- Verify email with your team admin
+
+**Cause 3: Account doesn't exist**
+- Solution: Click "Sign Up" to create account
+- Check if invited by team (check email for invite)
+
+**Cause 4: Password recently changed**
+- Solution: Use new password
+- Request reset if forgot new password
+
+### Issue 3: Account Locked
+
+**Symptoms:**
+```
+🔒 Account Temporarily Locked
+
+Too many failed login attempts.
+Try again in 30 minutes.
+
+Or reset your password to unlock immediately.
+
+[Reset Password]
+```
+
+**Why this happens:**
+- 5+ failed login attempts in 15 minutes
+- Security measure against brute-force attacks
+
+**Solutions:**
+
+**Option A: Wait**
+- Account unlocks after 30 minutes automatically
+- No action needed
+
+**Option B: Reset password**
+- Click "Reset Password"
+- Follow email link
+- Creates new password AND unlocks account
+- Can log in immediately
+
+### Issue 4: "Email Already Exists"
+
+**Symptoms:**
+```
+Signing up → ❌ Email already registered
+
+This email is already associated with an account.
+Please sign in or use a different email.
+
+[Sign In Instead]
+```
+
+**Cause:**
+- You already have an account with this email
+- Possibly forgot you signed up
+
+**Solutions:**
+
+**Option A: Sign in**
+- Click "Sign In Instead"
+- Use existing password
+- Or click "Forgot Password?" to reset
+
+**Option B: Different email**
+- Use alternate email address
+- Create new account
+
+**Option C: Check for team account**
+- Your company may have added you already
+- Check email for team invitation
+- Click invitation link to set password
+
+### Issue 5: Two-Factor Authentication (2FA) Issues
+
+**Symptom: Lost 2FA device/app**
+
+**Solution:**
+
+**Option A: Use backup codes**
+```
+Enter 2FA code:
+[Use Backup Code Instead]
+
+Enter one of your saved backup codes:
+[________________]
+
+[Verify]
+
+✅ 2FA bypassed with backup code
+```
+
+**Option B: Contact support**
+```
+If you lost access to 2FA device AND backup codes:
+
+1. Contact support@bakedbot.ai
+2. Provide:
+   - Email address
+   - Last successful login date
+   - Recent activity proof (campaign names, etc.)
+3. Support will verify identity and disable 2FA
+```
+
+**Symptom: 2FA code doesn't work**
+
+**Solutions:**
+1. **Check time sync** - Device time must be accurate
+2. **Wait for new code** - Codes expire every 30 seconds
+3. **Try backup codes** - Use saved codes
+4. **Check authenticator app** - Ensure it's the right account
+
+### Issue 6: Google/SSO Sign-In Not Working
+
+**Symptoms:**
+- "Continue with Google" button doesn't work
+- Redirects to error page
+- "Authorization failed"
+
+**Solutions:**
+
+**Cause 1: Pop-up blocked**
+```
+Error: Pop-up blocked
+
+Your browser blocked the Google sign-in window.
+
+Solution:
+1. Allow pop-ups for app.bakedbot.ai
+2. Try signing in again
+```
+
+**Cause 2: Cookies disabled**
+```
+Error: Third-party cookies required
+
+Solution:
+1. Enable third-party cookies
+2. Or use email/password sign-in instead
+```
+
+**Cause 3: Google account issue**
+```
+Error: Google account not verified
+
+Solution:
+1. Verify your Google account email
+2. Or use email/password sign-in
+```
+
+**Cause 4: Wrong Google account**
+```
+Wrong account signed in to Google?
+
+Solution:
+1. Sign out of all Google accounts
+2. Sign in to correct Google account
+3. Try BakedBot sign-in again
+```
+
+## Account Access Issues
+
+### Issue 7: Session Expired
+
+**Symptoms:**
+```
+Working in BakedBot → suddenly logged out
+
+⚠️ Your session has expired.
+Please sign in again.
+
+[Sign In]
+```
+
+**Why this happens:**
+- Inactive for 8+ hours
+- Security timeout for protection
+- Browser cleared cookies
+
+**Solutions:**
+- Sign in again (same password)
+- Enable "Remember Me" for longer sessions
+- Use password manager for quick re-login
+
+### Issue 8: Permission Denied
+
+**Symptoms:**
+```
+Trying to access page → ❌ Access Denied
+
+You don't have permission to view this page.
+Contact your admin for access.
+```
+
+**Causes:**
+- Wrong user role (e.g., View Only trying to edit)
+- Not a member of this organization
+- Invited but haven't accepted yet
+
+**Solutions:**
+
+**If wrong role:**
+```
+Contact your team admin:
+
+"Hi [Admin], I need access to [feature].
+Can you update my user role?"
+
+Admin can change your role in:
+Settings → Team → [Your Name] → Edit Role
+```
+
+**If not a member:**
+```
+You may have multiple BakedBot accounts.
+
+Solution:
+1. Sign out
+2. Sign in with correct email
+3. Or ask admin to invite this email
+```
+
+**If pending invitation:**
+```
+Check email for invitation link:
+
+Subject: You've been invited to [Company]
+
+Click to accept: [Accept Invitation]
+
+If not in inbox, check spam folder.
+```
+
+### Issue 9: Can't Access Organization
+
+**Symptoms:**
+- Logged in but dashboard empty
+- "No organizations found"
+- Can't see your company's data
+
+**Causes:**
+- Not added to organization yet
+- Invitation not accepted
+- Logged in with wrong email
+- Organization deactivated
+
+**Solutions:**
+
+**Check your email for invitation:**
+```
+Subject: Invited to join [Company] on BakedBot
+
+You've been invited to join [Company Name].
+
+[Accept Invitation]
+
+After accepting, you'll see organization data.
+```
+
+**Verify correct email:**
+```
+Top right → Profile → Check email address
+
+If wrong email:
+1. Sign out
+2. Sign in with work email
+3. Accept invitation from that account
+```
+
+**Contact admin:**
+```
+Ask your admin:
+"Can you check if I'm added to [Org Name]?
+My email is: your.email@company.com"
+
+Admin checks: Settings → Team
+```
+
+### Issue 10: Browser Compatibility Issues
+
+**Symptoms:**
+- Buttons don't work
+- Page doesn't load properly
+- Features missing
+
+**Supported browsers:**
+```
+✅ Chrome (latest 2 versions)
+✅ Firefox (latest 2 versions)
+✅ Safari (latest 2 versions)
+✅ Edge (latest 2 versions)
+
+❌ Internet Explorer (not supported)
+❌ Very old browsers
+```
+
+**Solutions:**
+
+**Update your browser:**
+1. Check browser version (Settings → About)
+2. Update to latest version
+3. Restart browser
+4. Try BakedBot again
+
+**Clear cache & cookies:**
+```
+Chrome:
+Settings → Privacy → Clear browsing data
+☑ Cookies
+☑ Cached images
+☐ Passwords (keep)
+
+[Clear Data]
+
+Then refresh BakedBot
+```
+
+**Try incognito/private mode:**
+- Tests if extension is causing issue
+- Chrome: Ctrl+Shift+N (Cmd+Shift+N on Mac)
+- Firefox: Ctrl+Shift+P
+- Safari: File → New Private Window
+
+## Security Alerts
+
+### "Unusual Login Detected"
+
+**Email received:**
+```
+Subject: Unusual Login Activity
+
+We detected a login from an unrecognized device:
+
+Location: Los Angeles, CA
+Device: iPhone 13
+IP: 192.168.1.1
+Time: 2:45 PM PST
+
+Was this you?
+[Yes, This Was Me] [No, Secure My Account]
+```
+
+**If it was you:**
+- Click "Yes, This Was Me"
+- Device will be remembered
+
+**If it wasn't you:**
+1. Click "No, Secure My Account"
+2. Password will be reset immediately
+3. All devices logged out
+4. You'll receive new password reset email
+5. Check account activity log
+
+### Compromised Account
+
+**Signs your account may be compromised:**
+- Emails sent you didn't send
+- Campaigns created you don't recognize
+- Password changed without your action
+- Unrecognized team members added
+
+**Immediate actions:**
+1. **Change password immediately**
+2. **Sign out all devices** (Settings → Security)
+3. **Review activity log** (Settings → Activity)
+4. **Contact support** (support@bakedbot.ai)
+5. **Enable 2FA** (Settings → Security → Two-Factor)
+
+## Getting Help
+
+### Self-Service Resources
+
+**Help Center:**
+```
+app.bakedbot.ai/help
+
+Search for:
+- "How to reset password"
+- "Can't log in"
+- "Account locked"
+```
+
+**In-App Chat:**
+```
+Bottom right corner: 💬 Chat icon
+
+"I can't log into my account"
+
+Support will respond in < 5 minutes
+```
+
+### Contact Support
+
+**Email:** support@bakedbot.ai
+
+**Include in your message:**
+```
+Subject: Login Issue - [Your Name]
+
+Email address attempting to sign in:
+your.email@example.com
+
+Issue description:
+[Describe what's happening]
+
+Steps already tried:
+- Reset password (no email received)
+- Tried alternate email
+- Cleared cache
+
+Screenshots: [Attach if helpful]
+```
+
+**Response time:** < 4 hours (business hours)
+
+### Emergency Access
+
+**Urgent account lockout during business-critical time:**
+
+**Call:** (555) 123-4567 (Premium support only)
+
+**Hours:** Mon-Fri, 6am-6pm PT
+
+**Provide:**
+- Company name
+- Email address
+- Brief description
+
+## Prevention Tips
+
+**Prevent future login issues:**
+
+**Use password manager:**
+- 1Password, LastPass, Bitwarden
+- Store secure passwords
+- Never forget again
+
+**Enable 2FA:**
+```
+Settings → Security → Two-Factor Authentication
+
+1. Download authenticator app (Google Authenticator)
+2. Scan QR code
+3. Enter 6-digit code
+4. Save backup codes
+
+[Enable 2FA]
+```
+
+**Save backup codes:**
+```
+After enabling 2FA:
+
+Your backup codes (save securely):
+1234-5678
+9012-3456
+...
+
+[Download] [Print]
+
+Use if you lose 2FA device
+```
+
+**Keep email updated:**
+```
+Settings → Profile → Email
+
+Current: old@company.com
+Updated: new@company.com
+
+[Update Email]
+
+Verification email sent to new address
+```
+
+**Bookmark login page:**
+- Bookmark: app.bakedbot.ai/login
+- Avoid phishing by always using bookmark
+
+## Next Steps
+
+- [Your First Login](/help/getting-started/first-login) - What happens after signing in
+- [Understanding User Roles](/help/getting-started/user-roles) - Permission levels
+- [Contact Support](/help/troubleshooting/contact-support) - Get personalized help
+
+<ArticleRating articleId="troubleshooting-authentication" />

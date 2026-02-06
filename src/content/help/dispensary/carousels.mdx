@@ -1,0 +1,618 @@
+# Creating Product Carousels
+
+Showcase products dynamically with carousels. Create curated collections that rotate on your homepage, category pages, or marketing campaigns to drive discovery and sales.
+
+## What is a Product Carousel?
+
+**A carousel is a rotating product showcase:**
+- Multiple products displayed in a scrollable row
+- Auto-rotates or manual swipe/click
+- Curated collections (featured products, new arrivals, bestsellers)
+- Dynamic or static (updates automatically or manually)
+- Used on homepage, category pages, emails, social media
+
+**Example carousel:**
+```
+┌──────────────────────────────────────────────┐
+│ ← [Featured Products]                      → │
+├──────────────────────────────────────────────┤
+│  [Product 1]  [Product 2]  [Product 3]  ... │
+│  Blue Dream   Sour Diesel  Wedding Cake      │
+│  $35          $40          $38               │
+│  ★★★★★        ★★★★☆        ★★★★★             │
+└──────────────────────────────────────────────┘
+```
+
+<Callout type="success">
+**Impact:** Brands using carousels see 32% higher product discovery and 18% higher average order value vs. static product grids.
+</Callout>
+
+## Why Use Carousels?
+
+**Benefits:**
+- 🎯 **Highlight products** - Feature top sellers, new arrivals, promotions
+- 📈 **Increase discovery** - Customers see more products
+- 🛒 **Boost AOV** - Showcase complementary products, bundles
+- ⏱️ **Save space** - Display many products in small area
+- 🔄 **Stay fresh** - Rotate products automatically
+- 📱 **Mobile-friendly** - Swipeable interface
+
+## Types of Carousels
+
+### 1. Featured Products
+
+**Handpicked products to promote:**
+- New strains
+- Premium products
+- Seasonal items
+- Brand partnerships
+
+**Example:**
+```
+Featured This Week
+────────────────────
+[Purple Punch]  [Gelato]  [Zkittlez]
+   $42           $45        $40
+   NEW!          LIMITED    BACK!
+```
+
+**Best for:** Homepage hero section
+
+### 2. Bestsellers
+
+**Top-selling products (automatic):**
+- Most units sold (last 7/30 days)
+- Highest revenue
+- Trending upward
+- Updated daily/weekly
+
+**Example:**
+```
+Customer Favorites
+──────────────────
+[Blue Dream]  [Sour Diesel]  [OG Kush]
+   $35           $40            $42
+   ★★★★★         ★★★★★          ★★★★☆
+   120 sold      95 sold        87 sold
+```
+
+**Best for:** Homepage, category pages
+
+### 3. New Arrivals
+
+**Recently added products (automatic):**
+- Added in last 7/14/30 days
+- Sorted by newest first
+- Shows "NEW" badge
+- Updates automatically
+
+**Example:**
+```
+Just Landed
+───────────
+[Purple Punch]  [Tropicana]  [Mac1]
+   Feb 1           Jan 30       Jan 28
+   NEW             NEW          NEW
+```
+
+**Best for:** Homepage, "What's New" page
+
+### 4. Personalized Recommendations
+
+**AI-powered suggestions per customer:**
+- Based on past purchases
+- Similar products
+- "Customers also bought"
+- Real-time personalization
+
+**Example for customer who bought Sativas:**
+```
+Recommended for You
+───────────────────
+[Durban Poison]  [Jack Herer]  [Green Crack]
+   Based on your love of Sativas!
+```
+
+**Best for:** Product pages, cart, homepage (logged in)
+
+### 5. Category-Specific
+
+**Products from one category:**
+- Flower carousel on homepage
+- Vapes carousel in vapes section
+- Edibles carousel in edibles section
+- Filters by availability, price
+
+**Example:**
+```
+Popular Vapes
+─────────────
+[Cart 1]  [Cart 2]  [Disposable 1]
+   $40       $38         $35
+```
+
+**Best for:** Category pages, cross-sell
+
+### 6. Promotional
+
+**Products on sale or special offer:**
+- Discounted products
+- BOGO deals
+- Flash sales
+- Limited time offers
+
+**Example:**
+```
+Flash Sale - 24 Hours Only!
+───────────────────────────
+[Product 1]  [Product 2]  [Product 3]
+   $35         $40          $38
+   -20%        -15%         -10%
+```
+
+**Best for:** Homepage, sale pages, emails
+
+## Creating a Carousel
+
+**Dashboard → Dispensary → Carousels → Create Carousel**
+
+### Step 1: Choose Carousel Type
+
+```
+Create New Carousel
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Type: [Select ▼]
+☐ Featured Products (manual selection)
+☐ Bestsellers (automatic, top sellers)
+☐ New Arrivals (automatic, recent products)
+☐ Personalized (AI recommendations)
+☐ Category-Specific (filter by category)
+☐ Promotional (sale/discount products)
+☐ Custom (manual + filters)
+
+[Next]
+```
+
+### Step 2: Configure Settings
+
+**Example: Featured Products Carousel**
+
+```
+Featured Products Carousel Settings
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Name: Featured This Week
+(internal reference, not shown to customers)
+
+Display Title: Featured This Week
+(shown to customers)
+
+Description (optional):
+"Handpicked by our team"
+
+Products: Manual Selection
+[Select Products...]
+
+Selected (8):
+1. Purple Punch 3.5g ($42)
+2. Gelato 3.5g ($45)
+3. Zkittlez 3.5g ($40)
+4. Wedding Cake 3.5g ($38)
+5. Blue Dream 3.5g ($35)
+6. Sour Diesel Cart ($40)
+7. Gummies 10pk ($25)
+8. Live Resin Badder ($60)
+
+[Add Product] [Remove] [Reorder]
+
+Display Settings:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Products visible at once:
+Mobile: 1-2 products
+Tablet: 3 products
+Desktop: 4 products
+
+Auto-rotate: ☑ Enabled
+Rotation speed: 5 seconds
+
+Show navigation arrows: ☑ Yes
+Show pagination dots: ☑ Yes
+Enable touch/swipe: ☑ Yes
+
+Product Card Display:
+☑ Show image
+☑ Show title
+☑ Show price
+☑ Show rating
+☑ Show "Add to Cart" button
+☐ Show description
+☐ Show THC/CBD %
+
+[Save Draft] [Publish]
+```
+
+**Example: Bestsellers Carousel (Automatic)**
+
+```
+Bestsellers Carousel Settings
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Name: Customer Favorites
+Display Title: Customer Favorites
+Description: "Most-loved products this month"
+
+Products: Automatic (Bestsellers)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Sort by: Units sold (last 30 days)
+Minimum sales: 20 units
+Maximum products: 12
+
+Filters:
+☑ In stock only
+☑ Active products only
+☐ Specific categories: [All]
+☐ Specific brands: [All]
+☐ Price range: [All]
+
+Update frequency: Daily at 3am
+
+Current top products (preview):
+1. Blue Dream 3.5g (120 sold)
+2. Sour Diesel Cart (95 sold)
+3. OG Kush 3.5g (87 sold)
+...
+
+Display Settings:
+(same as above)
+
+[Save & Publish]
+```
+
+### Step 3: Place Carousel
+
+**Choose where carousel appears:**
+
+```
+Carousel Placement
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Where should this carousel appear?
+
+☑ Homepage (above fold)
+☐ Homepage (below fold)
+☐ Category pages: [Select categories ▼]
+☐ Product pages (cross-sell)
+☐ Cart page (upsell)
+☐ Checkout page
+☐ Account dashboard
+
+Display Rules:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Show to: All visitors
+☐ Logged in users only
+☐ New customers only
+☐ VIP customers only
+
+Date range:
+Start: Feb 5, 2026
+End: No end date (ongoing)
+
+Active: ☑ Enable carousel
+
+[Publish Carousel]
+```
+
+## Carousel Best Practices
+
+### Product Selection
+
+**Featured carousel (manual):**
+- 6-12 products (not too many)
+- Mix of categories (flower, vapes, edibles)
+- Include best sellers + new products
+- Balance price points
+- Refresh weekly
+
+**Bestsellers (automatic):**
+- 8-15 products
+- Last 30 days (not too short, not too old)
+- Minimum 10-20 sales (don't show slow movers)
+- Update daily
+
+**New arrivals (automatic):**
+- Last 14-30 days
+- Maximum 12 products (don't overwhelm)
+- Remove after 30 days (no longer "new")
+
+### Design & Layout
+
+**Mobile-first:**
+- 1-2 products visible on mobile
+- Easy swipe navigation
+- Large tap targets for buttons
+- Fast loading
+
+**Desktop:**
+- 4-5 products visible
+- Arrow navigation + dots
+- Hover effects (zoom, quick view)
+
+**Product cards:**
+- High-quality images (800x800px min)
+- Clear pricing (OTD)
+- Star ratings (social proof)
+- "Add to Cart" button
+- Stock status (if low)
+
+### Auto-Rotation
+
+**Settings:**
+- Speed: 5-7 seconds per product
+- Pause on hover (desktop)
+- Pause on tap (mobile)
+- Manual navigation always available
+- Resume after 3 seconds of inactivity
+
+**Don't:**
+- Rotate too fast (< 3 seconds)
+- Prevent manual navigation
+- Auto-rotate on product pages (distracting)
+
+### Performance
+
+**Optimize loading:**
+- Lazy load images (load as visible)
+- Compress images (< 100KB each)
+- Limit products (12 max per carousel)
+- Cache carousel data (1 hour)
+
+**Measure:**
+- Click-through rate (CTR)
+- Products viewed
+- Add-to-cart rate
+- Revenue per carousel
+
+## Using Carousels in Marketing
+
+### Email Campaigns
+
+**Embed carousel in emails:**
+
+```
+Newsletter Example
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Subject: This Week's Featured Products 🌿
+
+Body:
+We've curated our top picks for you this week!
+
+[Carousel: 6 products, manual swipe]
+
+Each product card links to product page.
+
+Mobile-friendly scrolling.
+```
+
+**Best for:**
+- Weekly newsletters
+- New arrival announcements
+- Sale promotions
+
+### Social Media
+
+**Share carousel as post:**
+
+**Instagram/Facebook carousel:**
+- Export carousel as multi-image post
+- Each product = 1 slide
+- Swipe through products
+- Link in bio to shop
+
+**Example post:**
+```
+This week's favorites! 💚
+
+Swipe to see all →
+
+1️⃣ Purple Punch - $42
+2️⃣ Gelato - $45
+3️⃣ Zkittlez - $40
+
+Link in bio to shop!
+```
+
+### Homepage Strategy
+
+**Typical homepage layout:**
+
+```
+Homepage
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Hero Banner (static)
+   ↓
+Carousel 1: Featured This Week (8 products)
+   ↓
+USPs (fast delivery, quality, etc.)
+   ↓
+Carousel 2: Bestsellers (12 products)
+   ↓
+Categories (Flower, Vapes, Edibles)
+   ↓
+Carousel 3: New Arrivals (8 products)
+   ↓
+Testimonials
+   ↓
+Carousel 4: On Sale (6 products)
+   ↓
+Footer
+```
+
+**Max 3-4 carousels per page** (don't overwhelm)
+
+## Managing Carousels
+
+**Dashboard → Dispensary → Carousels**
+
+### Carousel List
+
+```
+Your Carousels (8 active)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Name                Type           Status    CTR     Views
+────────────────────────────────────────────────────────
+Featured This Week  Manual         Active    4.2%    2,847
+Customer Favorites  Bestsellers    Active    3.8%    1,924
+Just Landed         New Arrivals   Active    2.9%    1,456
+Flash Sale          Promotional    Active    5.7%    987
+Flower Picks        Category       Active    3.1%    742
+Vape Selection      Category       Active    2.8%    634
+You Might Like      Personalized   Active    6.2%    3,124
+Bundle Deals        Manual         Draft     -       -
+
+[Create New] [Edit] [Analytics]
+```
+
+### Carousel Analytics
+
+**Dashboard → Dispensary → Carousels → [Carousel] → Analytics**
+
+```
+Featured This Week - Performance (Last 30 Days)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Overview:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Views: 2,847
+Clicks: 120
+Click-through rate (CTR): 4.2%
+Add-to-cart rate: 2.1%
+Conversion rate: 0.8%
+Revenue attributed: $3,450
+
+Product Performance:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Product              Views   Clicks   CTR    Sales   Revenue
+──────────────────────────────────────────────────────────
+1. Purple Punch      487     28       5.7%   12      $504
+2. Gelato            456     24       5.3%   10      $450
+3. Zkittlez          398     18       4.5%   8       $320
+4. Wedding Cake      372     15       4.0%   7       $266
+5. Blue Dream        345     12       3.5%   6       $210
+6. Sour Diesel Cart  289     9        3.1%   4       $160
+7. Gummies           267     8        3.0%   5       $125
+8. Live Resin        233     6        2.6%   3       $180
+
+Insights:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ Purple Punch performing best (5.7% CTR)
+⚠️ Live Resin underperforming (2.6% CTR)
+   Consider: Replace with better-selling product
+
+🔄 Average position viewed: 2.3 products
+   (customers scroll through ~2 products on average)
+
+📱 Mobile: 68% of views, 4.8% CTR
+💻 Desktop: 32% of views, 3.1% CTR
+   Mobile performs better!
+```
+
+### A/B Testing
+
+**Test carousel variations:**
+
+```
+A/B Test: Featured Carousel
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Test: Title variation
+Duration: 7 days
+Traffic split: 50/50
+
+Variant A:
+Title: "Featured This Week"
+CTR: 4.2%
+Conversions: 24
+
+Variant B:
+Title: "Staff Picks - Limited Time!"
+CTR: 5.7% (+35.7% vs. A) 🎉
+Conversions: 31 (+29.2% vs. A)
+
+Winner: Variant B
+
+[Make Winner Live] [Run Another Test]
+```
+
+## Common Mistakes
+
+**Mistake 1: Too Many Products**
+❌ 20+ products in one carousel
+✅ 6-12 products (digestible)
+
+**Mistake 2: Auto-Rotate Too Fast**
+❌ 2 seconds per product (can't read)
+✅ 5-7 seconds (comfortable)
+
+**Mistake 3: Stale Content**
+❌ Same products for months
+✅ Refresh weekly (manual) or daily (automatic)
+
+**Mistake 4: No Mobile Optimization**
+❌ 4 products on mobile (too small)
+✅ 1-2 products on mobile (clear view)
+
+**Mistake 5: Too Many Carousels**
+❌ 6 carousels on homepage (overwhelming)
+✅ 3-4 max per page
+
+## Advanced: Dynamic Carousels
+
+**Personalized per customer:**
+
+```
+Customer: Sarah M.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Past purchases:
+- Blue Dream (Sativa)
+- Sour Diesel (Sativa)
+- Jack Herer (Sativa)
+
+Pattern: Loves Sativas!
+
+Dynamic Carousel:
+Title: "Sarah, You'll Love These Sativas"
+Products:
+1. Durban Poison (Sativa, similar effects)
+2. Green Crack (Sativa, high energy)
+3. Super Lemon Haze (Sativa, popular)
+4. Sativa Sampler Bundle (upsell)
+
+Result: 8.4% CTR (vs. 4.2% generic)
+        2.8x higher conversion
+```
+
+**AI-powered (with Smokey):**
+- Analyzes browsing behavior
+- Considers time of day (morning = energizing, evening = relaxing)
+- Factors in past purchases
+- Learns from clicks and purchases
+- Updates in real-time
+
+## Next Steps
+
+- [Creating Product Bundles](/help/dispensary/bundles) - Bundle products together
+- [Menu Synchronization](/help/dispensary/menu-sync) - Keep products updated
+- [Smokey - AI Budtender](/help/agents/smokey) - Personalized recommendations
+
+<ArticleRating articleId="dispensary-carousels" />

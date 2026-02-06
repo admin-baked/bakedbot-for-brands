@@ -1,0 +1,298 @@
+# Common Issues & Solutions
+
+Quick fixes for the most common problems in BakedBot. Most issues can be resolved in minutes!
+
+## Authentication & Login Issues
+
+### Can't Log In
+
+**Problem**: Login page says "Invalid credentials" or "User not found"
+
+**Solutions**:
+1. **Reset your password**
+   - Click "Forgot Password" on login page
+   - Check your email for reset link
+   - Create new password and try again
+
+2. **Check your email**
+   - Make sure you're using the email you signed up with
+   - Check for typos in email address
+   - Try both personal and work emails if you have multiple
+
+3. **Clear browser cache**
+   - Press `Ctrl+Shift+Delete` (Windows) or `Cmd+Shift+Delete` (Mac)
+   - Select "Cached images and files"
+   - Clear and try logging in again
+
+4. **Try incognito/private mode**
+   - This rules out browser extension conflicts
+   - If it works, disable browser extensions one by one to find the culprit
+
+### Stuck on Login Page
+
+**Problem**: Page keeps redirecting back to login even after successful login
+
+**Solutions**:
+1. **Enable cookies**
+   - BakedBot requires cookies for authentication
+   - Check browser settings → Privacy → Allow cookies
+
+2. **Check if third-party cookies are blocked**
+   - Some browsers block them by default
+   - Add `bakedbot.ai` to allowed sites
+
+3. **Disable VPN temporarily**
+   - Some VPNs interfere with session cookies
+   - Try disabling and logging in again
+
+## Product & Catalog Issues
+
+### Products Not Showing Up
+
+**Problem**: Added products but they don't appear on menu or in Smokey
+
+**Solutions**:
+1. **Check product status**
+   - Go to **Dashboard → Products**
+   - Verify products are marked "Active"
+   - Inactive products won't show publicly
+
+2. **Publish your menu**
+   - Go to **Dashboard → Brand Page**
+   - Click "Publish Menu"
+   - Menu must be published for products to be visible
+
+3. **Wait for sync**
+   - If using POS sync, products may take 1-5 minutes to appear
+   - Check "Last Sync" timestamp in POS settings
+   - Try manual "Sync Now" if it's been > 10 minutes
+
+### Products Showing $0 Price
+
+**Problem**: Products display but show $0.00 or "Price not available"
+
+**Solutions**:
+1. **For POS-synced products**:
+   - Check that prices are set in your POS system
+   - For Alleaves: Verify adult-use OR medical-use prices are set (generic prices often $0)
+   - Re-sync: Go to Settings → POS → "Sync Now"
+
+2. **For manual products**:
+   - Edit the product
+   - Add a price in the "Price" field
+   - Save changes
+
+3. **For imported products**:
+   - Check your CSV or import source included prices
+   - Re-import with correct price data
+
+### Duplicate Products
+
+**Problem**: Same product appearing multiple times in catalog
+
+**Solutions**:
+1. **Delete duplicates manually**
+   - Go to **Dashboard → Products**
+   - Find duplicate products
+   - Click ⋯ menu → Delete for extras
+   - Keep the one with best data (images, description, etc.)
+
+2. **Check import sources**
+   - If using both POS sync AND manual imports, you may create duplicates
+   - Pick one source of truth for each product
+   - Disable auto-import if managing manually
+
+3. **Use product matching**
+   - Go to **Products → Dedupe Tool**
+   - Review suggested matches
+   - Merge or keep separate as needed
+
+## POS Integration Issues
+
+### POS Sync Failing
+
+**Problem**: "Sync failed" error or products not updating from POS
+
+**Solutions**:
+1. **Verify credentials**
+   - Go to **Settings → Integrations → POS**
+   - Click "Test Connection"
+   - If fails, re-enter username/password/API key
+   - For Alleaves: Include PIN if required
+
+2. **Check POS system status**
+   - Is your POS system online and working?
+   - Try logging into POS admin panel separately
+   - Contact POS support if their system is down
+
+3. **Review error logs**
+   - Go to **Settings → Integrations → POS → Sync Logs**
+   - Look for specific error messages
+   - Common errors and fixes:
+     - "Unauthorized": Re-enter credentials
+     - "Location not found": Verify Location ID is correct
+     - "Timeout": POS system may be slow, try again in 5 minutes
+
+### Products Syncing But Stock is Wrong
+
+**Problem**: Products show in BakedBot but quantities don't match POS
+
+**Solutions**:
+1. **Check sync settings**
+   - Verify "Sync Inventory" is enabled
+   - Check sync frequency (default: every 4 hours)
+   - Try manual "Sync Now"
+
+2. **Verify POS has correct stock**
+   - Log into your POS admin
+   - Check "available" inventory (not just "on hand")
+   - Some POS systems separate "total" from "sellable" inventory
+
+3. **Clear and re-sync**
+   - Go to Products → "Clear All POS Products"
+   - Go to POS Settings → "Full Re-Sync"
+   - This rebuilds from scratch (takes 5-10 min)
+
+## Chatbot (Smokey) Issues
+
+### Smokey Not Responding
+
+**Problem**: Chatbot widget appears but Smokey doesn't respond to messages
+
+**Solutions**:
+1. **Check chatbot is enabled**
+   - Go to **Settings → Chatbot**
+   - Verify "Enable Chatbot" is toggled ON
+   - Save if you made changes
+
+2. **Refresh the page**
+   - Hard refresh: `Ctrl+Shift+R` (Windows) or `Cmd+Shift+R` (Mac)
+   - This clears chatbot cache
+
+3. **Check agent status**
+   - Go to **Dashboard → Agents → Smokey**
+   - Verify status is "Online" (not Training or Paused)
+   - If paused, click "Resume"
+
+### Smokey Giving Wrong Recommendations
+
+**Problem**: Chatbot recommends products that don't match customer needs
+
+**Solutions**:
+1. **Improve product data**
+   - Add effects tags (Relaxing, Energizing, etc.)
+   - Include strain types (Indica, Sativa, Hybrid)
+   - Add THC/CBD percentages
+   - Write descriptions mentioning use cases
+
+2. **Update featured products**
+   - Mark your best products as "Featured"
+   - Smokey prioritizes these in recommendations
+   - Go to Products → Edit → Check "Featured"
+
+3. **Review chatbot training**
+   - Go to **Settings → Chatbot → Training**
+   - Add examples of good recommendations
+   - Smokey learns from these patterns
+
+## Performance & Loading Issues
+
+### Dashboard Loading Slowly
+
+**Problem**: Dashboard takes >10 seconds to load or times out
+
+**Solutions**:
+1. **Check internet connection**
+   - Run a speed test
+   - Need at least 5 Mbps for smooth experience
+   - Try different network if possible
+
+2. **Clear browser cache**
+   - Old cached files can slow things down
+   - Clear cache and reload
+
+3. **Reduce data range**
+   - If viewing analytics, shorten date range
+   - Try "Last 7 Days" instead of "All Time"
+   - Large datasets take longer to load
+
+### Images Not Loading
+
+**Problem**: Product images or brand logos not displaying
+
+**Solutions**:
+1. **Check image URLs**
+   - Go to product/brand edit page
+   - Verify image URL is valid
+   - Try opening URL in new tab - does it load?
+
+2. **Re-upload images**
+   - If using uploaded images, try uploading again
+   - Use JPG or PNG (not HEIC or other formats)
+   - Keep files under 5MB
+
+3. **Use image hosting**
+   - If self-hosting images, ensure your server allows hotlinking
+   - Consider using image CDN (Cloudinary, Imgix)
+   - BakedBot can host images for you
+
+## Payment & Billing Issues
+
+### Can't Update Payment Method
+
+**Problem**: Card declined or payment method won't save
+
+**Solutions**:
+1. **Verify card details**
+   - Check expiration date is in future
+   - Verify CVV is correct
+   - Ensure billing address matches card
+
+2. **Try different card**
+   - Some banks block online payments
+   - Try debit card if credit fails (or vice versa)
+   - Contact your bank to authorize the charge
+
+3. **Check billing email**
+   - Look for failed payment notifications
+   - May have additional verification steps
+
+### Subscription Issues
+
+**Problem**: Plan shows as expired or features locked
+
+**Solutions**:
+1. **Check payment status**
+   - Go to **Settings → Billing**
+   - See if recent payment failed
+   - Update payment method if needed
+
+2. **Contact support**
+   - Email: support@bakedbot.ai
+   - Include account email
+   - We can manually restore access while resolving payment
+
+## Still Need Help?
+
+If none of these solutions work:
+
+<Callout type="info">
+**Contact Support:**
+- 📧 Email: support@bakedbot.ai
+- 💬 Live chat: Available in dashboard (bottom-right)
+- 📱 Text: Check your account email for support number
+
+**Include in your message:**
+- Description of the problem
+- Steps you've already tried
+- Screenshots if relevant
+- Your account email
+- Browser and operating system
+</Callout>
+
+## Next Steps
+
+- [POS Sync Problems](/help/troubleshooting/pos-sync-problems) - Detailed POS troubleshooting
+- [Contact Support](/help/getting-started/welcome) - How to reach us
+
+<ArticleRating articleId="troubleshooting-common-issues" />

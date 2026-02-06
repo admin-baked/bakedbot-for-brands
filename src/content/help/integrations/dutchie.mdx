@@ -1,0 +1,519 @@
+# Dutchie Integration
+
+Connect your Dutchie account to BakedBot for seamless menu sync, order management, and customer data synchronization. Complete setup guide for Dutchie Plus and Order Ahead.
+
+## What is Dutchie?
+
+Dutchie is a leading cannabis e-commerce platform providing:
+- Online ordering (pickup & delivery)
+- Menu management
+- Customer checkout
+- Dispensary operations
+- POS integrations
+
+**Dutchie Requirements for BakedBot:**
+- Dutchie Plus or Dutchie Order Ahead subscription
+- Admin access to Dutchie dashboard
+- API access enabled
+
+## Connecting Dutchie
+
+### Step 1: Enable API Access in Dutchie
+
+**In Dutchie dashboard:**
+1. Log into admin.dutchie.com
+2. Go to **Settings → Integrations**
+3. Enable **"API Access"**
+4. Generate API credentials (if not already generated)
+
+### Step 2: Connect in BakedBot
+
+**In BakedBot:**
+1. **Settings → Integrations → POS**
+2. Click **"Connect Dutchie"**
+3. Click **"Authorize with Dutchie"** (OAuth flow)
+4. Log into Dutchie (if not already logged in)
+5. **Authorize BakedBot** to access your account
+6. Select location (if multi-location)
+7. **Grant permissions:**
+   - Read products
+   - Read orders
+   - Read customers
+   - Update inventory
+8. Click **"Authorize"**
+
+**Authorization successful:**
+```
+✅ Connected to Dutchie!
+
+Location: Your Dispensary Name
+Menu Items: 287
+Orders (last 30 days): 1,247
+
+Ready to sync!
+```
+
+### Step 3: Configure Sync Settings
+
+**Sync Frequency:**
+- Every 15 minutes (recommended)
+- Every 30 minutes
+- Every hour
+- Manual only
+
+**What to Sync:**
+```
+☑ Products (menu items)
+☑ Inventory levels
+☑ Pricing
+☑ Orders (from Dutchie to BakedBot)
+☐ Customers (optional, privacy considerations)
+```
+
+**Sync Options:**
+```
+☑ Auto-add new products
+☑ Update existing products
+☑ Hide out-of-stock products
+☐ Sync archived products
+```
+
+### Step 4: Initial Sync
+
+Click **"Start Initial Sync"**
+
+```
+Syncing from Dutchie...
+
+287 / 287 products (100%)
+
+Successfully synced: 281
+Skipped (inactive): 6
+Errors: 0
+
+Completed in 3 minutes
+```
+
+## Dutchie-Specific Features
+
+### OAuth Authentication
+
+**Dutchie uses OAuth (secure token-based auth):**
+- More secure than username/password
+- Auto-refresh tokens (no manual re-auth)
+- Expires after 90 days (re-authorize when prompted)
+
+**Re-authorization:**
+```
+⚠️ Dutchie connection expired
+Please re-authorize to continue syncing.
+
+[Re-authorize Now]
+```
+
+**Why it expires:**
+- Security best practice
+- Dutchie policy
+- Simple re-auth (one click)
+
+### Menu Management
+
+**Dutchie menu structure:**
+```
+Categories:
+- Flower
+- Pre-Rolls
+- Vapes
+- Edibles
+- Concentrates
+- Topicals
+- Tinctures & Sublinguals
+- Accessories
+
+Each product:
+- Name
+- Category
+- Brand
+- THC/CBD percentages
+- Price (with tax)
+- Images
+- Description
+- Inventory count
+```
+
+**BakedBot imports:**
+- All active products
+- Current pricing (including tax)
+- Inventory levels
+- Product images (if available)
+- Categories (mapped to BakedBot standard)
+
+### Order Sync
+
+**How orders flow:**
+
+**Orders placed on Dutchie:**
+1. Customer orders via Dutchie website
+2. Order appears in Dutchie dashboard
+3. **Order syncs to BakedBot** (every 15 min or real-time)
+4. You fulfill via BakedBot or Dutchie (your choice)
+5. Inventory decrements automatically
+
+**Orders placed on BakedBot:**
+1. Customer orders via your BakedBot site
+2. Order appears in BakedBot dashboard
+3. **Order syncs to Dutchie** (if enabled)
+4. Dutchie inventory decrements
+5. You fulfill via BakedBot
+
+**Benefits:**
+- Unified order management
+- Single inventory source
+- No double-entry
+- Real-time sync
+
+### Pricing & Tax
+
+**Dutchie pricing:**
+- Prices include tax by default
+- "Out-the-door" (OTD) pricing
+- No separate tax calculation needed
+
+**BakedBot displays:**
+- Same prices as Dutchie
+- Tax included (OTD)
+- Consistent customer experience
+
+**Price updates:**
+- Change prices in Dutchie
+- Syncs to BakedBot automatically
+- No manual updates needed
+
+### Inventory Management
+
+**Dutchie tracks:**
+- Available inventory (sellable quantity)
+- Reserved inventory (pending orders)
+- On-hold inventory (compliance holds)
+
+**BakedBot syncs "Available":**
+- Only shows sellable inventory
+- Prevents overselling
+- Updates every sync interval
+
+**Low stock alerts:**
+- Set thresholds in BakedBot
+- Alerts when products run low
+- Restock before out-of-stock
+
+### Customer Data
+
+**Customer info from Dutchie (optional):**
+- Name
+- Email
+- Phone
+- Order history
+- Preferences
+
+**Privacy considerations:**
+- Customers opt-in to data sharing
+- Compliance with privacy laws (CCPA, etc.)
+- Secure data handling
+
+**Uses:**
+- Personalized marketing
+- Customer retention campaigns
+- Loyalty program enrollment
+
+## Dutchie Plus vs. Order Ahead
+
+### Dutchie Plus
+
+**Full e-commerce platform:**
+- Complete website
+- Online ordering
+- Payment processing
+- Customer management
+- Full POS integration
+
+**BakedBot integration:**
+- Syncs all products
+- Syncs all orders
+- Full inventory sync
+- Customer data sync
+
+### Dutchie Order Ahead
+
+**Lightweight ordering:**
+- Add-on to existing website
+- Online ordering widget
+- Basic inventory sync
+- Limited POS features
+
+**BakedBot integration:**
+- Syncs products
+- Syncs orders
+- Basic inventory sync
+- No customer data sync
+
+**Recommendation:** Dutchie Plus for full integration
+
+## Troubleshooting Common Issues
+
+### Issue 1: Connection Expired
+
+**Symptoms:**
+- Products not syncing
+- "Authorization expired" error
+
+**Cause:**
+- OAuth token expired (90-day limit)
+
+**Fix:**
+1. Go to **Settings → Integrations → POS**
+2. Click **"Re-authorize Dutchie"**
+3. Grant permissions again
+4. Sync resumes automatically
+
+### Issue 2: Products Not Syncing
+
+**Symptoms:**
+- New products in Dutchie don't appear in BakedBot
+
+**Causes & Fixes:**
+
+**Cause 1: Products inactive in Dutchie**
+```
+In Dutchie: Check product status
+- Active products sync
+- Archived products don't (unless enabled)
+```
+
+**Cause 2: Sync disabled**
+```
+In BakedBot: Settings → POS
+- Verify "Enable Sync" toggled ON
+- Check last sync time
+```
+
+**Cause 3: API permissions**
+```
+In Dutchie: Settings → Integrations → API
+- Verify "Read Products" permission enabled
+- Re-authorize if permissions changed
+```
+
+### Issue 3: Inventory Mismatches
+
+**Symptoms:**
+- Stock levels in BakedBot don't match Dutchie
+
+**Causes & Fixes:**
+
+**Cause 1: Orders placed outside sync window**
+```
+If sync every 30 min:
+- Order placed at 2:05pm
+- Next sync at 2:30pm
+- 25-minute lag normal
+
+Solution: Reduce sync frequency to 15 min
+```
+
+**Cause 2: Reserved inventory**
+```
+Dutchie shows:
+- Total: 25 units
+- Available: 20 units (5 reserved for pending orders)
+
+BakedBot syncs: 20 units (available only)
+
+This is correct behavior
+```
+
+**Cause 3: Multiple sales channels**
+```
+If selling on:
+- Dutchie website
+- Your website (BakedBot)
+- Third-party (Weedmaps, etc.)
+
+Inventory may lag briefly between channels
+Syncs catch up within sync interval
+```
+
+### Issue 4: Orders Not Appearing
+
+**Symptoms:**
+- Orders placed on Dutchie don't show in BakedBot
+
+**Causes & Fixes:**
+
+**Cause 1: Order sync disabled**
+```
+BakedBot: Settings → POS → Sync Options
+☑ Enable: "Sync orders from Dutchie"
+```
+
+**Cause 2: Order status**
+```
+Only "confirmed" orders sync
+- Pending orders don't sync
+- Cancelled orders don't sync
+```
+
+**Cause 3: Sync lag**
+```
+Orders sync every 15-30 minutes
+Check last sync time
+Wait for next sync or trigger manual sync
+```
+
+## Advanced Configuration
+
+### Multi-Location Setup
+
+**For multiple Dutchie locations:**
+
+**Each location:**
+1. Separate Dutchie location
+2. Individual OAuth authorization
+3. Location-specific menu
+4. Independent inventory
+
+**Example:**
+```
+Location 1: Downtown
+Dutchie Location ID: abc123
+Products: 287
+Sync: Every 15 min
+
+Location 2: Uptown
+Dutchie Location ID: def456
+Products: 245
+Sync: Every 15 min
+```
+
+**Unified customer experience:**
+- Customers see combined inventory
+- Orders route to nearest location
+- Central management in BakedBot
+
+### Product Enhancement
+
+**Dutchie provides:**
+- Basic product info
+- Pricing
+- Inventory
+- Images (if uploaded)
+
+**Enhance in BakedBot:**
+- Detailed descriptions
+- Effects tags (Relaxing, Energizing, etc.)
+- Flavor profiles (Berry, Citrus, etc.)
+- Customer reviews
+- Related products
+- Bundles
+
+### Category Mapping
+
+**Dutchie → BakedBot category mapping:**
+
+```
+Dutchie Category          → BakedBot Category
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Flower                    → Flower
+Pre-Rolls                 → Pre-Rolls (or Flower)
+Vapes                     → Vapes
+Edibles                   → Edibles
+Concentrates              → Concentrates
+Topicals                  → Topicals
+Tinctures & Sublinguals   → Tinctures
+Accessories               → Accessories
+```
+
+**Custom mappings:**
+- Combine categories (Pre-Rolls → Flower)
+- Split categories (Vapes → Cartridges + Disposables)
+- Create sub-categories
+
+### Webhooks (Real-Time Sync)
+
+**For instant order sync:**
+
+**Enable Dutchie webhooks:**
+1. Dutchie: Settings → Webhooks
+2. Add webhook URL: `https://api.bakedbot.ai/webhooks/dutchie`
+3. Select events:
+   - Order created
+   - Order updated
+   - Product updated
+   - Inventory updated
+4. Save
+
+**Benefits:**
+- Instant order notifications
+- Real-time inventory updates
+- No 15-minute sync lag
+- Better customer experience
+
+## Dutchie + BakedBot Best Practices
+
+**1. Use Dutchie for:**
+- Menu management (master menu)
+- Order processing (if preferred)
+- POS integration
+- Compliance tracking
+
+**2. Use BakedBot for:**
+- Enhanced product pages
+- Marketing campaigns
+- Customer analytics
+- AI agent interactions
+- Multi-channel management
+
+**3. Keep both in sync:**
+- Update products in Dutchie (syncs to BakedBot)
+- Prices changed in Dutchie (updates BakedBot)
+- Single source of truth (Dutchie) for inventory
+
+**4. Leverage best of both:**
+- Dutchie's POS integration
+- BakedBot's marketing automation
+- Unified customer data
+- Comprehensive analytics
+
+## Performance Optimization
+
+**For large menus (500+ products):**
+
+**Optimize sync:**
+1. Reduce sync frequency (every 30-60 min)
+2. Sync only active products
+3. Filter out accessories (if not selling online)
+4. Schedule heavy syncs during off-peak
+
+**Monitor performance:**
+- Check sync duration (should be <1 min)
+- Review error logs
+- Test after Dutchie updates
+
+## Getting Help
+
+**Dutchie Support:**
+- support@dutchie.com
+- help.dutchie.com
+- Phone: (303) 953-4920
+
+**BakedBot Support:**
+- support@bakedbot.ai
+- In-app chat
+- Help Center (you're here!)
+
+## Next Steps
+
+- [POS Systems Overview](/help/integrations/pos-overview) - Compare POS options
+- [Menu Synchronization](/help/dispensary/menu-sync) - General sync guide
+- [Managing Orders](/help/dispensary/orders) - Order fulfillment
+
+<ArticleRating articleId="integrations-dutchie" />

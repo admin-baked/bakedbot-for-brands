@@ -1,0 +1,537 @@
+# Jane Integration
+
+Connect your Jane account to BakedBot for automatic menu sync, inventory updates, and streamlined operations. Complete setup guide for Jane POS integration.
+
+## What is Jane?
+
+Jane is a cannabis technology platform providing:
+- Point-of-sale (POS) system
+- Online ordering (pickup & delivery)
+- Compliance tracking
+- Customer management
+- Analytics and reporting
+
+**Jane Requirements for BakedBot:**
+- Active Jane account
+- Admin access to Jane dashboard
+- API access enabled
+- "Read Products" permission granted
+
+## Connecting Jane
+
+### Step 1: Generate API Key in Jane
+
+**In Jane dashboard:**
+1. Log into app.iheartjane.com
+2. Go to **Settings → Integrations → API Keys**
+3. Click **"Create New API Key"**
+4. Name: "BakedBot Integration"
+5. Permissions: Select **"Read Products"**
+6. **Copy the API key** (long alphanumeric string)
+   - ⚠️ You can only see this once!
+   - Save it securely
+
+**Example API key:**
+```
+jane_api_2a8f9e4b7c1d6a3f5e9b8d2c4a7f1e6b9a3d5c8e2f7b4a1d9c6e3f8a2b5d1c4e7f
+```
+
+### Step 2: Connect in BakedBot
+
+**In BakedBot:**
+1. **Settings → Integrations → POS**
+2. Click **"Connect Jane"**
+3. Enter credentials:
+   ```
+   API Key: [Paste the long key from Jane]
+   Store ID: [Your store ID, e.g., "12345"]
+   ```
+4. Click **"Test Connection"**
+5. If successful, click **"Enable Sync"**
+
+**Connection successful:**
+```
+✅ Connected to Jane!
+
+Store: Your Dispensary Name
+Products found: 342
+Categories: 7
+Last updated: 1 hour ago
+
+Ready to sync!
+```
+
+### Step 3: Configure Sync Settings
+
+**Sync Frequency:**
+- Every 15 minutes (recommended)
+- Every 30 minutes
+- Every hour
+- Manual only
+
+**What to Sync:**
+```
+☑ Products (menu items)
+☑ Inventory levels
+☑ Pricing (with tax)
+☑ Product images (if available in Jane)
+☐ Customer data (optional, privacy considerations)
+```
+
+**Sync Options:**
+```
+☑ Auto-add new products
+☑ Update existing products
+☑ Hide out-of-stock products
+☐ Sync archived products
+```
+
+### Step 4: Initial Sync
+
+Click **"Start Initial Sync"**
+
+```
+Syncing from Jane...
+
+342 / 342 products (100%)
+
+Successfully synced: 334
+Skipped (inactive): 8
+Errors: 0
+
+Completed in 4 minutes
+```
+
+## Jane-Specific Features
+
+### API Key Authentication
+
+**Jane uses API keys (not OAuth):**
+- Simpler setup than OAuth
+- No periodic re-authorization
+- Key doesn't expire (unless regenerated)
+
+**Security:**
+- Keep API key secret
+- Don't share publicly
+- Regenerate if compromised
+
+**Regenerating API key:**
+```
+If key compromised:
+1. Jane: Settings → API Keys
+2. Delete old key
+3. Create new key
+4. Update in BakedBot
+```
+
+### Menu Structure
+
+**Jane menu organization:**
+```
+Categories:
+- Flower
+- Pre-Rolls
+- Vapes & Cartridges
+- Edibles
+- Concentrates & Extracts
+- Tinctures
+- Topicals
+- CBD Products
+- Accessories
+
+Each product:
+- Name
+- Brand
+- Category
+- Subcategory (strain type, product type)
+- THC/CBD percentages
+- Price (with tax included)
+- Weight/size
+- Images (if uploaded)
+- Description
+- Inventory count
+```
+
+**BakedBot imports:**
+- All active products
+- Current pricing (OTD)
+- Inventory levels
+- Product images
+- Brand information
+- Categories (mapped to BakedBot)
+
+### Product Images
+
+**Jane advantage: Built-in images**
+
+Jane has a product catalog with images:
+- Many products have pre-loaded images
+- Brand-provided photos
+- Stock images for common strains
+
+**BakedBot syncs images automatically:**
+- If product has image in Jane → syncs to BakedBot
+- If no image → uses BakedBot category placeholder
+- You can override with custom images in BakedBot
+
+### Pricing & Tax
+
+**Jane pricing:**
+- Prices include tax by default
+- "Out-the-door" (OTD) pricing
+- What customer pays
+
+**BakedBot displays:**
+- Same prices as Jane
+- Tax included (OTD)
+- Consistent experience
+
+**Price updates:**
+- Change prices in Jane
+- Syncs to BakedBot automatically
+- No manual updates needed
+
+### Inventory Management
+
+**Jane tracks:**
+- Available inventory (sellable)
+- On-hand inventory (total)
+- Reserved inventory (pending orders)
+
+**BakedBot syncs "Available":**
+- Only shows sellable quantity
+- Prevents overselling
+- Updates every sync interval
+
+**Low stock alerts:**
+- Set thresholds in BakedBot
+- Alerts when products run low
+- Restock before out-of-stock
+
+### Order Integration
+
+**Orders flow:**
+
+**Orders placed on Jane:**
+1. Customer orders via Jane marketplace
+2. Order appears in Jane dashboard
+3. **Order syncs to BakedBot** (if enabled)
+4. Inventory decrements
+5. Fulfill via Jane or BakedBot
+
+**Orders placed on BakedBot:**
+1. Customer orders via your BakedBot site
+2. Order appears in BakedBot dashboard
+3. **Order syncs to Jane** (if enabled)
+4. Jane inventory decrements
+5. Fulfill via BakedBot
+
+## Troubleshooting Common Issues
+
+### Issue 1: Invalid API Key
+
+**Symptoms:**
+- "Authentication failed" error
+- Products not syncing
+
+**Causes & Fixes:**
+
+**Cause 1: Typo in API key**
+```
+API keys are long and complex
+Common mistakes:
+- Missing characters
+- Extra spaces
+- Incomplete copy/paste
+
+Fix: Copy entire key from Jane, paste carefully
+```
+
+**Cause 2: Wrong permissions**
+```
+In Jane: Settings → API Keys
+Verify permissions include "Read Products"
+
+If missing:
+- Delete old key
+- Create new key with correct permissions
+```
+
+**Cause 3: Key regenerated**
+```
+If you regenerated key in Jane:
+- Old key no longer works
+- Update in BakedBot with new key
+```
+
+### Issue 2: Products Not Syncing
+
+**Symptoms:**
+- New products in Jane don't appear in BakedBot
+
+**Causes & Fixes:**
+
+**Cause 1: Products inactive**
+```
+In Jane: Check product status
+- Active products sync
+- Archived products don't (unless enabled)
+```
+
+**Cause 2: Sync disabled**
+```
+BakedBot: Settings → POS
+- Verify "Enable Sync" toggled ON
+- Check last sync time
+```
+
+**Cause 3: Wrong Store ID**
+```
+If multi-store:
+- Verify Store ID is correct
+- Each store has unique ID
+```
+
+### Issue 3: Images Not Syncing
+
+**Symptoms:**
+- Products sync but no images
+
+**Causes & Fixes:**
+
+**Cause 1: No images in Jane**
+```
+Not all products have images in Jane
+- Check if image exists in Jane
+- If not, add manually in BakedBot
+```
+
+**Cause 2: Image sync disabled**
+```
+BakedBot: Settings → POS → Sync Options
+☑ Enable: "Sync product images"
+```
+
+**Cause 3: Image format issue**
+```
+Jane uses various image formats
+BakedBot converts automatically
+If issue persists, contact support
+```
+
+### Issue 4: Inventory Mismatches
+
+**Symptoms:**
+- Stock levels in BakedBot don't match Jane
+
+**Causes & Fixes:**
+
+**Cause 1: Sync lag**
+```
+If sync every 30 min:
+- Order placed at 2:05pm
+- Next sync at 2:30pm
+- 25-minute lag is normal
+
+Solution: Reduce sync frequency to 15 min
+```
+
+**Cause 2: Reserved inventory**
+```
+Jane shows:
+- On Hand: 30 units
+- Available: 25 units (5 reserved)
+
+BakedBot syncs: 25 units (available only)
+
+This is correct behavior
+```
+
+**Cause 3: Multiple sales channels**
+```
+If selling on:
+- Jane marketplace
+- Your website (BakedBot)
+- Third-party (Weedmaps, etc.)
+
+Inventory may lag between channels
+Syncs catch up within sync interval
+```
+
+## Advanced Configuration
+
+### Multi-Store Setup
+
+**For multiple Jane stores:**
+
+**Each store:**
+1. Separate Jane Store ID
+2. Individual API key (or same key with multi-store permission)
+3. Store-specific menu
+4. Independent inventory
+
+**Example:**
+```
+Store 1: Downtown
+Jane Store ID: 12345
+API Key: jane_api_abc123...
+Products: 342
+
+Store 2: Uptown
+Jane Store ID: 67890
+API Key: jane_api_def456...
+Products: 298
+```
+
+**Unified customer experience:**
+- Customers see combined inventory
+- Orders route to nearest store
+- Central management in BakedBot
+
+### Category Mapping
+
+**Jane → BakedBot category mapping:**
+
+```
+Jane Category               → BakedBot Category
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Flower                      → Flower
+Pre-Rolls                   → Pre-Rolls (or Flower)
+Vapes & Cartridges          → Vapes
+Edibles                     → Edibles
+Concentrates & Extracts     → Concentrates
+Tinctures                   → Tinctures
+Topicals                    → Topicals
+CBD Products                → CBD (or merge with categories)
+Accessories                 → Accessories
+```
+
+**Custom mappings:**
+- Combine categories (Pre-Rolls → Flower)
+- Split categories (Vapes → Cartridges + Disposables)
+- Create sub-categories
+
+### Product Enhancement
+
+**Jane provides:**
+- Basic product info
+- Pricing
+- Inventory
+- Some images
+- Brand names
+
+**Enhance in BakedBot:**
+- Detailed descriptions
+- Effects tags (Relaxing, Energizing, etc.)
+- Flavor profiles (Berry, Citrus, Earthy, etc.)
+- Customer reviews
+- Related products
+- Bundles
+
+### Selective Sync
+
+**Choose what syncs:**
+
+**By Category:**
+```
+☑ Sync flower
+☑ Sync vapes
+☑ Sync edibles
+☐ Exclude accessories
+```
+
+**By Brand:**
+```
+☑ Sync your brand only
+☐ Sync partner brands
+```
+
+**By Location:**
+```
+For multi-store:
+- Sync different products per location
+- Location-specific pricing
+```
+
+## Jane + BakedBot Best Practices
+
+**1. Use Jane for:**
+- POS transactions (in-store sales)
+- Inventory management (master inventory)
+- Compliance tracking
+- Marketplace listing (Jane marketplace)
+
+**2. Use BakedBot for:**
+- Your branded website
+- Marketing campaigns
+- Customer analytics
+- AI agent interactions
+- Multi-channel management
+
+**3. Keep both in sync:**
+- Update products in Jane (syncs to BakedBot)
+- Prices changed in Jane (updates BakedBot)
+- Single source of truth (Jane) for inventory
+
+**4. Leverage best of both:**
+- Jane's marketplace reach
+- BakedBot's marketing automation
+- Unified customer data
+- Comprehensive analytics
+
+## Performance Optimization
+
+**For large menus (500+ products):**
+
+**Optimize sync:**
+1. Reduce sync frequency (every 30-60 min)
+2. Sync only active products
+3. Filter out accessories (if not selling online)
+4. Schedule heavy syncs during off-peak
+
+**Monitor performance:**
+- Check sync duration (should be <2 min)
+- Review error logs
+- Test after Jane updates
+
+## Jane Marketplace Integration
+
+**Optional: List on Jane marketplace**
+
+**Benefits:**
+- Reach Jane's customer base
+- Increased visibility
+- Additional sales channel
+
+**How it works:**
+1. Enable marketplace listing in Jane
+2. Products appear on iheartjane.com
+3. Customers order via Jane
+4. Orders route to your store
+5. You fulfill
+
+**BakedBot coordination:**
+- Jane marketplace orders sync to BakedBot
+- Unified order management
+- Single inventory source
+
+## Getting Help
+
+**Jane Support:**
+- support@iheartjane.com
+- help.iheartjane.com
+- Phone: (855) 665-5263
+
+**BakedBot Support:**
+- support@bakedbot.ai
+- In-app chat
+- Help Center (you're here!)
+
+## Next Steps
+
+- [POS Systems Overview](/help/integrations/pos-overview) - Compare POS options
+- [Menu Synchronization](/help/dispensary/menu-sync) - General sync guide
+- [Managing Orders](/help/dispensary/orders) - Order fulfillment
+
+<ArticleRating articleId="integrations-jane" />

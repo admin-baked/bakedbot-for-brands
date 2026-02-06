@@ -1,0 +1,208 @@
+# POS Systems Overview
+
+BakedBot integrates with major cannabis POS systems to automatically sync your products, prices, and inventory. No more manual data entry!
+
+## Supported POS Systems
+
+### Alleaves
+**Best for**: Dispensaries, Vertically integrated brands
+- ✅ Product sync (names, categories, prices)
+- ✅ Inventory levels
+- ✅ Real-time stock updates
+- ✅ Adult-use and medical-use pricing
+- ⚙️ **Setup**: Username, Password, PIN, Location ID
+- 📘 [Alleaves Integration Guide](/help/integrations/alleaves)
+
+### Dutchie
+**Best for**: Dispensaries using Dutchie Plus or Order Ahead
+- ✅ Product catalog sync
+- ✅ Menu updates
+- ✅ Order management
+- ✅ Customer data (with permissions)
+- ⚙️ **Setup**: OAuth connection (one-click)
+- 📘 [Dutchie Integration Guide](/help/integrations/dutchie)
+
+### Jane
+**Best for**: Multi-location dispensaries
+- ✅ Product and pricing sync
+- ✅ Multi-location support
+- ✅ Inventory tracking
+- ⚙️ **Setup**: API key from Jane admin
+- 📘 [Jane Integration Guide](/help/integrations/jane)
+
+### Coming Soon
+- Treez
+- Flowhub
+- BioTrack
+- Metrc (for compliance tracking)
+
+## Why Integrate Your POS?
+
+### Automatic Product Sync
+- **Before**: Manually add 100+ products to BakedBot
+- **After**: One-click sync, all products imported
+
+### Real-Time Pricing
+- **Before**: Update prices in POS, then manually in BakedBot
+- **After**: Price changes sync automatically
+
+### Accurate Inventory
+- **Before**: Show products that are out of stock (bad UX)
+- **After**: Real-time stock levels, hide sold-out items
+
+### Time Savings
+- **Before**: 2-4 hours/week maintaining product data
+- **After**: 5 minutes initial setup, then automatic
+
+## How POS Integration Works
+
+### Initial Setup (One-Time)
+1. Go to **Dashboard → Settings → Integrations → POS**
+2. Select your POS system
+3. Enter credentials or connect via OAuth
+4. Choose sync settings:
+   - Sync frequency (hourly, every 4 hours, daily)
+   - What to sync (products, prices, inventory, all)
+   - Which locations (if multi-location)
+5. Click **"Save & Sync Now"**
+6. Wait 2-10 minutes for first sync
+
+### Ongoing Sync
+BakedBot automatically syncs on your schedule:
+- **Every hour**: Keep inventory very current
+- **Every 4 hours**: Balance freshness with API limits (recommended)
+- **Daily**: For menus that don't change often
+- **Manual only**: You control when to sync
+
+### Data Mapping
+BakedBot maps POS data to standard format:
+
+| POS Field | BakedBot Field |
+|-----------|----------------|
+| Product Name | name |
+| Category/Type | category (standardized) |
+| Retail Price / OTD Price | price |
+| Available Quantity | stock |
+| THC % | thcPercent |
+| CBD % | cbdPercent |
+| Brand | brand |
+| Strain Type | strainType |
+
+## Sync Settings
+
+### What to Sync
+
+**Products & Pricing** (Recommended)
+- Product names, categories, descriptions
+- Retail and OTD prices
+- THC/CBD percentages
+- Brand information
+
+**Inventory Levels** (Optional)
+- Current stock quantities
+- Low stock warnings
+- Out-of-stock status
+
+**Customer Data** (If Available)
+- Purchase history
+- Preferences
+- Loyalty points
+- Requires customer consent
+
+### Sync Frequency
+
+**Hourly** (Most Current)
+- Best for: High-volume dispensaries
+- Pros: Always up-to-date
+- Cons: More API calls (may hit limits)
+
+**Every 4 Hours** (Recommended)
+- Best for: Most businesses
+- Pros: Good balance of freshness and efficiency
+- Cons: Up to 4-hour delay
+
+**Daily** (Low Change)
+- Best for: Stable catalogs
+- Pros: Minimal API usage
+- Cons: Could show stale data
+
+**Manual Only**
+- Best for: Brands managing products manually
+- Pros: Full control
+- Cons: Have to remember to sync
+
+## Troubleshooting Common Issues
+
+<Callout type="warning">
+**Issue**: Sync failing with "Authentication error"
+
+**Solutions**:
+1. Re-enter POS credentials
+2. Verify account has API access permissions
+3. Check if password changed recently
+4. For Alleaves: Include PIN if required
+5. Contact POS support to verify API access
+</Callout>
+
+<Callout type="warning">
+**Issue**: Products syncing but prices are $0
+
+**Solutions**:
+1. Check prices are set in POS system
+2. For Alleaves: Verify adult-use OR medical-use prices (not just generic)
+3. Check if product is marked "active" in POS
+4. Review sync logs for specific errors
+5. Try manual sync to force refresh
+</Callout>
+
+<Callout type="warning">
+**Issue**: Some products not syncing
+
+**Solutions**:
+1. Verify products are marked "active" in POS
+2. Check category mappings (some categories may be excluded)
+3. Review sync logs for which products failed
+4. Check if POS has product quantity limits
+5. Try syncing one location at a time if multi-location
+</Callout>
+
+## POS Integration FAQs
+
+**Q: Will this slow down my POS?**
+A: No. BakedBot reads data via API, doesn't interact with your POS terminal.
+
+**Q: Can I still manually add products?**
+A: Yes! POS-synced and manual products coexist. Just avoid duplicates.
+
+**Q: What if I switch POS systems?**
+A: Disconnect old POS, connect new one. Products will sync from new system.
+
+**Q: Do customers need POS accounts?**
+A: No. BakedBot creates its own customer records. POS sync is just for products.
+
+**Q: Is my POS data secure?**
+A: Yes. Credentials are encrypted. We only read data, never write to your POS.
+
+**Q: Can I sync multiple locations?**
+A: Yes! Empire tier supports unlimited locations. Scout tier: 1 location.
+
+## Manual vs. POS Sync
+
+| Feature | Manual Entry | POS Integration |
+|---------|--------------|-----------------|
+| Setup time | None | 15 minutes |
+| Product entry | 2-5 min per product | Automatic |
+| Price updates | Manual | Automatic |
+| Inventory accuracy | Manual updates | Real-time |
+| Maintenance | 2-4 hours/week | 5 minutes/week |
+| Best for | Brands without POS | Dispensaries with POS |
+
+## Next Steps
+
+Choose your POS system to get started:
+- [Alleaves Integration](/help/integrations/alleaves) - Setup guide
+- [Dutchie Integration](/help/integrations/dutchie) - OAuth connection
+- [Jane Integration](/help/integrations/jane) - API key setup
+- [Adding Products Manually](/help/products/adding-products) - If no POS
+
+<ArticleRating articleId="integrations-pos-overview" />

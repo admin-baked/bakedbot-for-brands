@@ -1,0 +1,379 @@
+# Understanding User Roles
+
+Learn about different user roles in BakedBot, their permissions, and how to manage team access securely.
+
+## User Role Types
+
+### 1. Super Admin
+
+**Highest level access - full control**
+
+**Permissions:**
+- ✅ All features and settings
+- ✅ User management (add/remove users)
+- ✅ Billing and subscription
+- ✅ Integrations and API keys
+- ✅ Delete organization data
+- ✅ View all analytics and reports
+
+**Best for:**
+- Business owners
+- C-level executives
+- IT administrators
+
+**Typical users:** 1-2 per organization
+
+### 2. Brand Admin
+
+**Full operational access, limited administrative functions**
+
+**Permissions:**
+- ✅ Product management (add, edit, delete)
+- ✅ Order management
+- ✅ Marketing campaigns
+- ✅ Analytics and reports
+- ✅ Customer data
+- ✅ Agent interactions
+- ❌ User management (cannot add/remove users)
+- ❌ Billing changes
+- ❌ Critical settings
+
+**Best for:**
+- Brand managers
+- Marketing directors
+- Operations managers
+
+**Typical users:** 2-5 per organization
+
+### 3. Dispensary Admin
+
+**Location-specific management**
+
+**Permissions:**
+- ✅ Location-specific products
+- ✅ Local inventory management
+- ✅ Location orders
+- ✅ Location analytics
+- ✅ Staff management (for their location)
+- ❌ Other locations' data
+- ❌ Org-wide settings
+- ❌ Billing
+
+**Best for:**
+- Dispensary managers
+- Location directors
+
+**Typical users:** 1-2 per location
+
+### 4. Dispensary Staff
+
+**Day-to-day operations, limited access**
+
+**Permissions:**
+- ✅ View/confirm orders
+- ✅ Update order status
+- ✅ View product information
+- ✅ Basic customer lookup
+- ❌ Edit products
+- ❌ View analytics
+- ❌ Marketing campaigns
+- ❌ Settings
+
+**Best for:**
+- Budtenders
+- Fulfillment staff
+- Front desk staff
+
+**Typical users:** 3-10 per location
+
+### 5. Marketing Manager
+
+**Marketing-focused access**
+
+**Permissions:**
+- ✅ Create/edit campaigns
+- ✅ Email/SMS marketing
+- ✅ Social media posts
+- ✅ Marketing analytics
+- ✅ Customer segments
+- ✅ Agent interactions (Craig, Ezal)
+- ❌ Product management
+- ❌ Orders
+- ❌ Settings
+
+**Best for:**
+- Marketing specialists
+- Social media managers
+- Content creators
+
+**Typical users:** 1-3 per organization
+
+### 6. Read-Only / Analyst
+
+**View access, no editing**
+
+**Permissions:**
+- ✅ View all dashboards
+- ✅ View reports and analytics
+- ✅ Export data
+- ❌ Edit anything
+- ❌ Create campaigns
+- ❌ Manage orders
+
+**Best for:**
+- Data analysts
+- Accountants
+- Consultants
+- Investors
+
+**Typical users:** 1-5 per organization
+
+## Managing Users
+
+### Adding Users
+
+**Settings → Team → Add User**
+
+```
+Add New User
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Email: newuser@yourbrand.com
+First Name: John
+Last Name: Smith
+
+Role: [Select role ▼]
+- Super Admin
+- Brand Admin
+- Dispensary Admin
+- Dispensary Staff
+- Marketing Manager
+- Read-Only
+
+Location (if Dispensary role):
+[Select location ▼]
+
+[Send Invitation]
+```
+
+**User receives:**
+```
+Email: You've been invited to BakedBot!
+
+John, you've been invited to join Your Brand on BakedBot.
+
+Role: Brand Admin
+Invited by: admin@yourbrand.com
+
+[Accept Invitation & Set Password]
+
+This invitation expires in 7 days.
+```
+
+### Editing User Permissions
+
+**Settings → Team → [User] → Edit**
+
+**Can change:**
+- Role
+- Location assignment
+- Active/inactive status
+
+**Cannot change:**
+- Email (must delete and re-add)
+
+### Removing Users
+
+**Settings → Team → [User] → Remove**
+
+**Options:**
+1. **Deactivate**: User cannot log in, but data preserved
+2. **Delete**: Permanently remove user and their activity logs
+
+**Warning:**
+```
+⚠️ Are you sure you want to remove John Smith?
+
+This will:
+- Revoke all access immediately
+- Remove from all team lists
+- Preserve audit logs (for compliance)
+
+[Cancel] [Confirm Removal]
+```
+
+## Role Permission Matrix
+
+| Feature | Super Admin | Brand Admin | Dispensary Admin | Dispensary Staff | Marketing Manager | Read-Only |
+|---------|-------------|-------------|------------------|------------------|-------------------|-----------|
+| View Dashboard | ✅ | ✅ | ✅ (location) | ✅ (location) | ✅ | ✅ |
+| Manage Products | ✅ | ✅ | ✅ (location) | ❌ | ❌ | ❌ |
+| Manage Orders | ✅ | ✅ | ✅ (location) | ✅ (location) | ❌ | ❌ |
+| View Customers | ✅ | ✅ | ✅ (location) | ✅ (basic) | ✅ | ✅ |
+| Marketing Campaigns | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ |
+| Analytics | ✅ | ✅ | ✅ (location) | ❌ | ✅ | ✅ |
+| Manage Team | ✅ | ❌ | ✅ (location staff) | ❌ | ❌ | ❌ |
+| Billing | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Integrations | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Settings | ✅ | ⚠️ (limited) | ⚠️ (location) | ❌ | ⚠️ (marketing) | ❌ |
+
+## Security Best Practices
+
+<Callout type="warning">
+**Follow these security practices:**
+
+1. **Minimum necessary access**: Give users only the permissions they need
+2. **Regular audits**: Review user list quarterly, remove inactive users
+3. **Strong passwords**: Enforce password requirements
+4. **Two-factor authentication**: Enable 2FA for admins
+5. **Offboarding**: Remove access immediately when employee leaves
+</Callout>
+
+### Password Requirements
+
+**BakedBot requires:**
+- Minimum 12 characters
+- At least one uppercase letter
+- At least one number
+- At least one special character
+- Cannot reuse last 5 passwords
+
+### Two-Factor Authentication (2FA)
+
+**Enable 2FA:**
+
+**Settings → Security → Two-Factor Authentication**
+
+**Setup:**
+1. Download authenticator app (Google Authenticator, Authy)
+2. Scan QR code
+3. Enter 6-digit code
+4. Save backup codes
+
+**Result:**
+- Login requires password + 6-digit code
+- More secure against account compromise
+
+**Recommendation:** Require 2FA for all Super Admins and Brand Admins
+
+## Multi-Location User Management
+
+**For brands with multiple dispensaries:**
+
+### Location-Specific Access
+
+**Scenario: 3 locations**
+
+```
+Downtown Syracuse (Location A):
+- Sarah (Dispensary Admin) - sees only Location A
+- Mike (Dispensary Staff) - sees only Location A
+- Jennifer (Dispensary Staff) - sees only Location A
+
+North Syracuse (Location B):
+- Tom (Dispensary Admin) - sees only Location B
+- Lisa (Dispensary Staff) - sees only Location B
+
+Westside Syracuse (Location C):
+- Carlos (Dispensary Admin) - sees only Location C
+- Emma (Dispensary Staff) - sees only Location C
+
+Org-Wide:
+- You (Super Admin) - sees all locations
+- Amy (Brand Admin) - sees all locations
+- David (Marketing Manager) - sees all locations (campaigns)
+```
+
+### Cross-Location Users
+
+**Some users need access to multiple locations:**
+
+**Settings → Team → [User] → Locations**
+
+```
+User: Tom Smith
+Role: Dispensary Admin
+
+Locations:
+☑ Downtown Syracuse
+☑ North Syracuse
+☐ Westside Syracuse
+
+Tom can now manage 2 locations.
+```
+
+## Audit Logs
+
+**Track user activity:**
+
+**Settings → Team → Activity Logs**
+
+```
+User Activity Log (Last 30 Days)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Feb 5, 2026 2:15 PM
+Sarah M. (Dispensary Admin) updated product "Blue Dream 3.5g" price $35 → $32
+
+Feb 5, 2026 1:42 PM
+Mike T. (Dispensary Staff) marked order #10245 as completed
+
+Feb 5, 2026 10:28 AM
+Amy C. (Brand Admin) created campaign "Weekend Sale"
+
+Feb 4, 2026 3:15 PM
+admin@yourbrand.com (Super Admin) added user john@yourbrand.com
+...
+```
+
+**Use for:**
+- Security audits
+- Compliance reporting
+- Troubleshooting issues
+- Training/accountability
+
+## Common Scenarios
+
+### Scenario 1: New Employee
+
+**Best practice:**
+1. Create account with appropriate role
+2. Set temporary password
+3. User sets permanent password on first login
+4. Enable 2FA (if admin role)
+5. Provide training on their role permissions
+
+### Scenario 2: Employee Promotion
+
+**Example: Budtender → Manager**
+
+1. Settings → Team → [User]
+2. Change role: Dispensary Staff → Dispensary Admin
+3. User immediately gains admin permissions
+4. No need to create new account
+
+### Scenario 3: Employee Leaves
+
+**Offboarding checklist:**
+```
+☐ Remove user from BakedBot immediately
+☐ Revoke POS system access
+☐ Disable email account
+☐ Reset any shared passwords
+☐ Review recent activity logs
+☐ Document in HR system
+```
+
+### Scenario 4: Temporary Contractor
+
+**Best practice:**
+- Use Read-Only role (analysts, consultants)
+- Set calendar reminder to remove access
+- Review activity logs after engagement
+
+## Next Steps
+
+- [Dashboard Overview](/help/getting-started/dashboard-overview) - Learn the interface
+- [Welcome to BakedBot](/help/getting-started/welcome) - Getting started guide
+
+<ArticleRating articleId="getting-started-user-roles" />
