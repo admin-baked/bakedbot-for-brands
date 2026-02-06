@@ -301,6 +301,30 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // --- Dynamic Pricing Rules Collection ---
+    match /pricingRules/{ruleId} {
+      // Brand managers and dispensary admins can read pricing rules for their org
+      allow read: if request.auth != null && (
+        isSuperUser() ||
+        (resource.data.orgId == request.auth.token.brandId && (isRole('brand') || isRole('brand_admin') || isRole('brand_member'))) ||
+        (resource.data.orgId == request.auth.token.locationId && (isRole('dispensary') || isRole('dispensary_admin')))
+      );
+
+      // Brand managers and dispensary admins can create rules for their org
+      allow create: if request.auth != null && (
+        isSuperUser() ||
+        (request.resource.data.orgId == request.auth.token.brandId && (isRole('brand') || isRole('brand_admin'))) ||
+        (request.resource.data.orgId == request.auth.token.locationId && (isRole('dispensary') || isRole('dispensary_admin')))
+      );
+
+      // Brand managers and dispensary admins can update/delete their own rules
+      allow update, delete: if request.auth != null && (
+        isSuperUser() ||
+        (resource.data.orgId == request.auth.token.brandId && (isRole('brand') || isRole('brand_admin'))) ||
+        (resource.data.orgId == request.auth.token.locationId && (isRole('dispensary') || isRole('dispensary_admin')))
+      );
+    }
+
     // --- Retailers Collection (CannMenus sync) ---
     match /retailers/{retailerId} {
       // Anyone can read retailer info (for public locator).
