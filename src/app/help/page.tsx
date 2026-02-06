@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import { getCategories, articles } from '@/content/help/_index';
+import HelpSearchEnhanced from '@/components/help/help-search-enhanced';
+import { cookies } from 'next/headers';
+import { verifySessionCookie } from '@/lib/auth-helpers';
 
 export const metadata = {
   title: 'Help Center | BakedBot',
@@ -15,6 +18,21 @@ export default async function HelpHomePage({
   const categories = getCategories();
   const selectedCategory = searchParams.category;
 
+  // Get user role for search filtering
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('__session')?.value;
+  let userRole: string | undefined;
+
+  if (sessionCookie) {
+    try {
+      const decodedClaims = await verifySessionCookie(sessionCookie);
+      userRole = decodedClaims?.role;
+    } catch (error) {
+      // Not authenticated or session expired
+      userRole = undefined;
+    }
+  }
+
   // Get articles for selected category or all articles
   const displayArticles = Object.values(articles).filter(
     (article) =>
@@ -24,7 +42,7 @@ export default async function HelpHomePage({
   return (
     <div>
       {/* Hero Section */}
-      <div className="text-center mb-12">
+      <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-4">
           {selectedCategory
             ? `${
@@ -39,6 +57,11 @@ export default async function HelpHomePage({
               } articles and guides`
             : 'Browse our help articles, watch tutorials, and learn how to get the most out of BakedBot'}
         </p>
+      </div>
+
+      {/* Enhanced Search */}
+      <div className="max-w-4xl mx-auto mb-12">
+        <HelpSearchEnhanced userRole={userRole} />
       </div>
 
       {/* Quick Links - Show only on home, not when category selected */}
