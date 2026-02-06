@@ -11,7 +11,7 @@ import ArticleRating from '@/components/help/article-rating';
 import RelatedArticles from '@/components/help/related-articles';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
-import 'highlight.js/styles/github-dark.css';
+import 'highlight.js/styles/atom-one-dark.css';
 
 export async function generateMetadata({
   params,
