@@ -223,3 +223,66 @@ export async function executeToolsOnce(
 export function isClaudeAvailable(): boolean {
     return !!process.env.CLAUDE_API_KEY;
 }
+
+/**
+ * Simple text-based Claude API call without tools.
+ * Use this for straightforward text generation tasks.
+ */
+export interface ClaudeCallOptions {
+    systemPrompt?: string;
+    userMessage: string;
+    temperature?: number;
+    maxTokens?: number;
+    model?: string;
+    imageUrl?: string; // For vision capabilities
+}
+
+export async function callClaude(options: ClaudeCallOptions): Promise<string> {
+    const client = getClient();
+
+    const {
+        systemPrompt,
+        userMessage,
+        temperature = 1.0,
+        maxTokens = 4096,
+        model = CLAUDE_TOOL_MODEL,
+        imageUrl
+    } = options;
+
+    // Build message content
+    const messageContent: Array<{ type: string; text?: string; source?: { type: string; url: string; media_type: string } }> = [];
+
+    if (imageUrl) {
+        // Add image for vision analysis
+        messageContent.push({
+            type: 'image',
+            source: {
+                type: 'url',
+                url: imageUrl,
+                media_type: 'image/jpeg' // Assume JPEG, adjust if needed
+            }
+        });
+    }
+
+    messageContent.push({
+        type: 'text',
+        text: userMessage
+    });
+
+    const response = await client.messages.create({
+        model,
+        max_tokens: maxTokens,
+        temperature,
+        system: systemPrompt,
+        messages: [{
+            role: 'user',
+            content: messageContent as any // Type assertion for flexibility
+        }]
+    });
+
+    // Extract text from response
+    const textBlocks = response.content.filter(block => block.type === 'text');
+    return textBlocks
+        .map(b => (b as { type: 'text'; text: string }).text)
+        .join('\n');
+}
