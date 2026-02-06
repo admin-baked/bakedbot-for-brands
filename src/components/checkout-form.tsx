@@ -14,15 +14,18 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useStore } from '@/hooks/use-store';
 import { useUser } from '@/firebase/auth/use-user';
 import { submitOrder, type ClientOrderInput } from '@/app/checkout/actions/submitOrder';
-import { useTransition, useEffect } from 'react';
-import { Loader2, Send } from 'lucide-react';
+import { useTransition, useEffect, useState } from 'react';
+import { Loader2, Send, Sparkles, Copy, Check } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import type { Retailer } from '@/firebase/converters';
 import { useToast } from '@/hooks/use-toast';
 import { DEMO_BRAND_ID } from '@/lib/config';
+import { checkFirstOrderEligibility } from '@/lib/checkout/first-order-discount';
+import { createFirstOrderCoupon } from '@/app/actions/first-order-coupon';
 
 import { logger } from '@/lib/logger';
 const phoneRegex = new RegExp(
@@ -33,17 +36,8 @@ const checkoutSchema = z.object({
   customerName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   customerEmail: z.string().email({ message: 'Please enter a valid email.' }),
   customerPhone: z.string().regex(phoneRegex, 'Invalid phone number'),
-  customerBirthDate: z.string().refine((date) => {
-    if (!date) return false;
-    const today = new Date();
-    const birthDate = new Date(date);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age >= 21;
-  }, { message: 'You must be at least 21 years old.' }),
+  emailOptIn: z.boolean().optional(),
+  smsOptIn: z.boolean().optional(),
 });
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
@@ -59,6 +53,12 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
   const { cartItems, clearCart } = useStore();
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const [firstOrderDiscount, setFirstOrderDiscount] = useState<{
+    code: string;
+    percent: number;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [checkingEligibility, setCheckingEligibility] = useState(false);
 
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
@@ -66,7 +66,8 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
       customerName: '',
       customerEmail: '',
       customerPhone: '',
-      customerBirthDate: '',
+      emailOptIn: false,
+      smsOptIn: false,
     },
   });
 
@@ -76,10 +77,51 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
         customerName: user.displayName || '',
         customerEmail: user.email || '',
         customerPhone: user.phoneNumber || '',
-        customerBirthDate: '',
+        emailOptIn: false,
+        smsOptIn: false,
       });
     }
   }, [user, form]);
+
+  // Check first-order discount eligibility on email blur
+  const handleEmailBlur = async () => {
+    const email = form.getValues('customerEmail');
+    if (!email || checkingEligibility || firstOrderDiscount) return;
+
+    const orgId = cartItems[0]?.brandId || DEMO_BRAND_ID;
+    setCheckingEligibility(true);
+
+    try {
+      const eligibility = await checkFirstOrderEligibility(email, orgId);
+      if (eligibility.eligible && eligibility.discountCode) {
+        // Create the coupon
+        await createFirstOrderCoupon(eligibility.discountCode, orgId);
+
+        setFirstOrderDiscount({
+          code: eligibility.discountCode,
+          percent: eligibility.discountPercent
+        });
+
+        toast({
+          title: "🎉 First Order Discount Applied!",
+          description: `${eligibility.discountPercent}% off! Code: ${eligibility.discountCode}`
+        });
+      }
+    } catch (error) {
+      logger.error('[CheckoutForm] Error checking discount eligibility', { error });
+    } finally {
+      setCheckingEligibility(false);
+    }
+  };
+
+  const handleCopyCode = () => {
+    if (firstOrderDiscount?.code) {
+      navigator.clipboard.writeText(firstOrderDiscount.code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({ title: "Code copied!", description: "Paste it at checkout if needed" });
+    }
+  };
 
 
   const onSubmit = (data: CheckoutFormValues) => {
@@ -101,7 +143,7 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
         },
         retailerId: selectedRetailer.id,
         organizationId: organizationId,
-        couponCode: couponCode || undefined,
+        couponCode: firstOrderDiscount?.code || couponCode || undefined,
       };
 
       try {
@@ -150,7 +192,15 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
                   <FormItem>
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="jane.doe@example.com" {...field} />
+                      <Input
+                        type="email"
+                        placeholder="jane.doe@example.com"
+                        {...field}
+                        onBlur={() => {
+                          field.onBlur();
+                          handleEmailBlur();
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -170,19 +220,86 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
                 )}
               />
             </div>
-            <FormField
-              control={form.control}
-              name="customerBirthDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date of Birth</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
+            {/* First-Order Discount Display */}
+            {firstOrderDiscount && (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg space-y-3">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-emerald-600" />
+                  <p className="font-semibold text-emerald-800">Welcome Discount Applied!</p>
+                </div>
+                <p className="text-sm text-emerald-700">
+                  You're getting {firstOrderDiscount.percent}% off your first order
+                </p>
+                <div className="flex items-center justify-between bg-white p-3 rounded-md">
+                  <code className="font-mono font-bold text-lg">{firstOrderDiscount.code}</code>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCopyCode}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-4 w-4 mr-1" />
+                        Copied
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy Code
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Marketing Opt-in Checkboxes */}
+            <div className="space-y-3 border-t pt-4">
+              <p className="text-sm font-medium text-muted-foreground">Stay in the loop (optional)</p>
+              <FormField
+                control={form.control}
+                name="emailOptIn"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-normal cursor-pointer">
+                        Email me about exclusive deals and new products
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="smsOptIn"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-normal cursor-pointer">
+                        Text me about flash sales and special events
+                      </FormLabel>
+                      <p className="text-xs text-muted-foreground">
+                        Message & data rates may apply. Reply STOP to opt out.
+                      </p>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
 
           </CardContent>
           <CardFooter>
