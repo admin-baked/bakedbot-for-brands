@@ -11,6 +11,7 @@ BakedBot integrates with numerous external services for messaging, payments, dat
 |---------|---------------|----------|----------|--------|
 | **Blackleaf** | Craig | `blackleaf-service.ts` | Messaging | Default SMS |
 | **Mailjet** | Craig | `mailjet-service.ts` | Messaging | Default Email |
+| **WhatsApp** | Craig | `openclaw/gateway.ts` | Messaging | Production |
 | **Alpine IQ** | Mrs. Parker | `alpine-iq.ts` | Loyalty | Live |
 | **CannMenus** | Ezal | `cannmenus.ts` | Data | Live |
 | **Headset** | Ezal | `headset.ts` | Data | Mock |
@@ -94,6 +95,120 @@ await mailjet.sendEmail({
 | **Purpose** | Backup SMS provider |
 | **Status** | Available (not default) |
 | **Env Vars** | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` |
+
+---
+
+### WhatsApp Gateway
+**Files**:
+- `src/server/services/openclaw/` - Client & gateway service
+- `src/server/actions/whatsapp.ts` - Server actions
+- `cloud-run/openclaw-service/` - Cloud Run microservice
+
+**Agent**: Craig
+**Deployment**: Cloud Run (separate service)
+
+| Attribute | Value |
+|-----------|-------|
+| **Purpose** | WhatsApp messaging for customer support & campaigns |
+| **Status** | Production (Super Admin only) |
+| **Env Vars** | `OPENCLAW_API_URL`, `OPENCLAW_API_KEY` |
+| **Architecture** | Microservice (Cloud Run) + REST API |
+
+**Architecture:**
+```
+BakedBot Main App (Firebase App Hosting)
+    ↓ (REST API)
+WhatsApp Gateway (Cloud Run)
+    ├── whatsapp-web.js + Puppeteer
+    ├── LocalAuth + Session Manager
+    └── Firebase Cloud Storage (session persistence)
+```
+
+**Key Features:**
+- Real QR code generation (scan once, persistent session)
+- Session persistence via Cloud Storage (~100MB Chromium profiles)
+- Auto-reconnect on container restart (no re-scan needed)
+- Scales to zero (Min instances: 0)
+- Individual & bulk messaging
+- Message history
+- Media support (images, videos)
+
+**Server Actions:**
+```typescript
+import {
+  getWhatsAppSessionAction,
+  generateWhatsAppQRAction,
+  sendWhatsAppMessageAction,
+  sendWhatsAppCampaignAction,
+  getWhatsAppHistoryAction,
+  disconnectWhatsAppAction
+} from '@/server/actions/whatsapp';
+
+// Check connection status
+const status = await getWhatsAppSessionAction();
+
+// Generate QR code for initial connection
+const qr = await generateWhatsAppQRAction();
+// Returns: { qrCode: "data:image/png;base64,..." }
+
+// Send individual message
+await sendWhatsAppMessageAction({
+  to: '+15555551234',
+  message: 'Your order is ready for pickup!',
+  mediaUrl: 'https://...' // optional
+});
+
+// Send campaign (bulk)
+await sendWhatsAppCampaignAction({
+  recipients: ['+15555551234', '+15555555678'],
+  message: 'Flash sale this weekend!',
+  delayMs: 1000 // rate limiting
+});
+```
+
+**UI Access:**
+- **Super Admin only**: `/dashboard/ceo?tab=whatsapp`
+- **Features**: QR code connection, message composer, history viewer
+
+**Cloud Run Service:**
+- **Service**: `whatsapp-gateway`
+- **Region**: `us-central1`
+- **Resources**: 2 CPU, 2 GiB RAM
+- **Timeout**: 300s
+- **Scaling**: 0-1 instances
+- **Cost**: ~$5-10/month
+
+**Session Persistence:**
+```
+Container Start
+    ↓
+Check Firebase Storage for whatsapp-session.zip
+    ↓ (if exists)
+Download & Extract → ./whatsapp-sessions/
+    ↓
+Initialize whatsapp-web.js with LocalAuth
+    ↓
+Auto-connect (no QR scan!)
+    ↓ (on ready)
+Backup to Storage every 5 minutes
+```
+
+**Deployment:**
+- Location: `cloud-run/openclaw-service/`
+- Build: Dockerfile with Chromium
+- Deploy: Cloud Build or Console
+- Docs: `cloud-run/openclaw-service/DEPLOYMENT.md`
+
+**API Key:**
+- Generate: `node -e "console.log('whatsapp-' + require('crypto').randomBytes(32).toString('hex'))"`
+- Store in: Firebase Secret Manager (`OPENCLAW_API_KEY`)
+- Used for: Bearer token authentication on all endpoints
+
+**Limitations:**
+- WhatsApp Web rate limits apply (don't spam)
+- Phone must remain connected & charged
+- One active session per phone number
+- Session expires if phone is offline >14 days
 
 ---
 
@@ -374,6 +489,8 @@ MAILJET_API_KEY=xxx
 MAILJET_SECRET_KEY=xxx
 TWILIO_ACCOUNT_SID=xxx
 TWILIO_AUTH_TOKEN=xxx
+OPENCLAW_API_URL=https://whatsapp-gateway-xxxxx-uc.a.run.app
+OPENCLAW_API_KEY=whatsapp-xxxxxxxxxxxx
 
 # Payments
 AUTHORIZE_NET_LOGIN_ID=xxx

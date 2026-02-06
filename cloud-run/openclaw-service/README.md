@@ -72,11 +72,19 @@ Authorization: Bearer <OPENCLAW_API_KEY>
    ```
 3. Navigate to `/dashboard/ceo?tab=whatsapp`
 
-## Notes
+## Production Features
 
-- **QR Code Generation**: Currently returns placeholder. Full implementation requires capturing OpenClaw gateway QR output.
-- **Message History**: Requires parsing OpenClaw session JSON files.
-- **Session Management**: Currently simplified - production version would track actual OpenClaw gateway state.
+- ✅ **QR Code Generation**: Real QR codes generated via whatsapp-web.js
+- ✅ **Session Persistence**: Uses Firestore RemoteAuth - sessions survive container restarts
+- ✅ **Message History**: Full message history from WhatsApp chats
+- ✅ **Auto-reconnect**: Automatically restores session from Firestore on cold starts
+
+## Session Storage
+
+WhatsApp session data is stored in Firestore collection `whatsapp-sessions`:
+- **Persistent across container restarts** (no QR scan needed after initial auth)
+- **Automatic backups** every 60 seconds
+- **Cloud-native** session management
 
 ## Production Deployment
 
