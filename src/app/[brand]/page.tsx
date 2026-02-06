@@ -19,6 +19,23 @@ export const revalidate = 0;
 export default async function BrandPage({ params }: { params: Promise<{ brand: string }> }) {
     const { brand: brandParam } = await params;
 
+    // Reserved paths that should not be treated as brand slugs
+    const RESERVED_PATHS = [
+        'help',
+        'dashboard',
+        'api',
+        'login',
+        'signup',
+        'auth',
+        '_next',
+        'favicon.ico',
+    ];
+
+    // If this is a reserved path, let Next.js handle it with the proper route
+    if (RESERVED_PATHS.includes(brandParam)) {
+        notFound();
+    }
+
     // Fetch real data
     const { brand, products, retailers, featuredBrands = [], carousels = [] } = await fetchBrandPageData(brandParam);
 
