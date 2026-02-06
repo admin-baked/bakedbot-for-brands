@@ -1,27 +1,40 @@
 /**
- * OpenClaw REST API Wrapper
+ * WhatsApp REST API Service
  *
- * Provides REST endpoints that wrap OpenClaw CLI commands
- * for WhatsApp gateway integration.
+ * Production-ready WhatsApp gateway using whatsapp-web.js
+ * Uses LocalAuth with Firebase Storage backup for persistence.
  */
 
 const express = require('express');
 const cors = require('cors');
-const { exec } = require('child_process');
-const { promisify } = require('util');
-const http = require('http');
+const qrcode = require('qrcode');
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const admin = require('firebase-admin');
+const SessionManager = require('./session-manager');
 
-const execAsync = promisify(exec);
+// Initialize Firebase Admin (uses Default Credentials)
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const API_KEY = process.env.OPENCLAW_API_KEY || 'dev-key-12345';
+const STORAGE_BUCKET = process.env.STORAGE_BUCKET; // Optional: Override default bucket
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// API Key authentication middleware
+// State
+let whatsappClient = null;
+let currentQRCode = null;
+let clientReady = false;
+let clientInfo = null;
+let sessionManager = new SessionManager(STORAGE_BUCKET);
+let backupInterval = null;
+
+// Auth Middleware
 function requireAuth(req, res, next) {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -36,205 +49,142 @@ function requireAuth(req, res, next) {
     next();
 }
 
-// Helper function to check if OpenClaw gateway is reachable
-async function checkGatewayHealth() {
-    return new Promise((resolve) => {
-        const req = http.get('http://127.0.0.1:18789/', (res) => {
-            resolve({ reachable: res.statusCode === 200 || res.statusCode === 404 || res.statusCode === 301 });
-        });
+async function startWhatsApp() {
+    console.log('[WhatsApp] Starting service...');
 
-        req.on('error', () => {
-            resolve({ reachable: false });
-        });
+    // 1. Restore session from Storage (if exists)
+    await sessionManager.restore();
 
-        req.setTimeout(5000, () => {
-            req.destroy();
-            resolve({ reachable: false });
-        });
+    // 2. Initialize Client
+    whatsappClient = new Client({
+        authStrategy: new LocalAuth({
+            dataPath: './whatsapp-sessions'
+        }),
+        puppeteer: {
+            headless: true,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process',
+                '--disable-gpu'
+            ]
+        }
+    });
+
+    // Event Handlers
+    whatsappClient.on('qr', async (qr) => {
+        console.log('[WhatsApp] QR Code generated');
+        try {
+            currentQRCode = await qrcode.toDataURL(qr);
+            clientReady = false;
+        } catch (error) {
+            console.error('[WhatsApp] QR Code generation failed:', error);
+        }
+    });
+
+    whatsappClient.on('ready', async () => {
+        console.log('[WhatsApp] Client is ready!');
+        clientReady = true;
+        currentQRCode = null;
+        try {
+            clientInfo = whatsappClient.info;
+            console.log('[WhatsApp] Connected as:', clientInfo.wid.user);
+
+            // Backup immediately on ready
+            await sessionManager.backup();
+
+            // Start periodic backups (every 5 minutes)
+            if (backupInterval) clearInterval(backupInterval);
+            backupInterval = setInterval(() => {
+                sessionManager.backup();
+            }, 5 * 60 * 1000);
+
+        } catch (error) {
+            console.error('[WhatsApp] Failed to get client info:', error);
+        }
+    });
+
+    whatsappClient.on('disconnected', (reason) => {
+        console.log('[WhatsApp] Disconnected:', reason);
+        clientReady = false;
+        clientInfo = null;
+        if (backupInterval) clearInterval(backupInterval);
+    });
+
+    whatsappClient.initialize().catch(err => {
+        console.error('[WhatsApp] Init failed:', err);
     });
 }
 
-// Helper function to execute OpenClaw CLI commands
-async function runOpenClawCommand(command, args = []) {
-    try {
-        const argsString = args.map(arg => {
-            // Escape quotes in arguments
-            const escaped = arg.replace(/"/g, '\\"');
-            return `"${escaped}"`;
-        }).join(' ');
-
-        const fullCommand = `openclaw ${command} ${argsString}`;
-        console.log('[OpenClaw CLI]', fullCommand);
-
-        const { stdout, stderr } = await execAsync(fullCommand, {
-            timeout: 30000, // 30 second timeout
-            maxBuffer: 1024 * 1024 * 10, // 10MB buffer
-        });
-
-        if (stderr && !stderr.includes('DeprecationWarning')) {
-            console.warn('[OpenClaw STDERR]', stderr);
-        }
-
-        return { success: true, output: stdout };
-    } catch (error) {
-        console.error('[OpenClaw Error]', error.message);
-        return {
-            success: false,
-            error: error.message,
-            stderr: error.stderr,
-        };
-    }
-}
-
-// Health check endpoint
+// Routes
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', service: 'openclaw-rest-wrapper', version: '1.0.0' });
+    res.json({
+        status: 'ok',
+        service: 'whatsapp-gateway',
+        version: '2.0.0',
+        whatsappReady: clientReady
+    });
 });
 
-// Get WhatsApp session status
-app.get('/whatsapp/session/status', requireAuth, async (req, res) => {
-    try {
-        // Check if OpenClaw gateway is reachable on port 18789
-        const health = await checkGatewayHealth();
-
-        if (health.reachable) {
-            // Gateway is running
-            // TODO: Parse session files or query gateway API to get real WhatsApp status
-            res.json({
-                connected: false, // Change to true once WhatsApp is configured
-                phoneNumber: null, // Would parse from session files
-                lastConnected: null,
-                qrRequired: true, // User needs to run: openclaw channels login
-            });
-        } else {
-            // Gateway not running
-            res.json({
-                connected: false,
-                phoneNumber: null,
-                lastConnected: null,
-                qrRequired: true,
-            });
-        }
-    } catch (error) {
-        console.error('[Status Error]', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Generate QR code for WhatsApp authentication
 app.post('/whatsapp/session/qr', requireAuth, async (req, res) => {
-    try {
-        // OpenClaw generates QR code when you start the gateway
-        // This is a simplified version - in production, you'd need to
-        // capture the QR code output from the gateway startup
-
-        res.json({
-            qrCode: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCI+PHRleHQgeD0iNTAiIHk9IjEwMCI+UVIgQ29kZSBQbGFjZWhvbGRlcjwvdGV4dD48L3N2Zz4=',
-            message: 'Note: QR code generation requires gateway restart. Use: openclaw gateway --port 18789',
-        });
-    } catch (error) {
-        console.error('[QR Error]', error);
-        res.status(500).json({ error: error.message });
+    if (!whatsappClient) {
+        await startWhatsApp();
+        // Wait for QR
+        await new Promise(r => setTimeout(r, 4000));
     }
+
+    if (clientReady) {
+        return res.json({ connected: true, message: 'Already connected' });
+    }
+
+    if (currentQRCode) {
+        return res.json({ qrCode: currentQRCode, connected: false });
+    }
+
+    res.json({ connected: false, message: 'Generating QR...' });
 });
 
-// Disconnect WhatsApp session
-app.post('/whatsapp/session/disconnect', requireAuth, async (req, res) => {
-    try {
-        // In OpenClaw, you'd typically stop the gateway to disconnect
-        res.json({
-            message: 'To disconnect, stop the OpenClaw gateway service',
-            success: true,
-        });
-    } catch (error) {
-        console.error('[Disconnect Error]', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Send WhatsApp message
 app.post('/whatsapp/message/send', requireAuth, async (req, res) => {
+    if (!clientReady) return res.status(503).json({ error: 'Not connected' });
+
+    const { to, message, mediaUrl } = req.body;
+    if (!to || !message) return res.status(400).json({ error: 'Missing to/message' });
+
     try {
-        const { to, message, mediaUrl } = req.body;
-
-        if (!to || !message) {
-            return res.status(400).json({ error: 'Missing required fields: to, message' });
-        }
-
-        // Build OpenClaw message send command
-        const args = [
-            'send',
-            '--channel', 'whatsapp',
-            '--target', to,
-            '--message', message,
-        ];
-
+        const chatId = to.replace(/[^0-9]/g, '') + '@c.us';
+        let sent;
         if (mediaUrl) {
-            args.push('--media', mediaUrl);
-        }
-
-        const result = await runOpenClawCommand('message', args);
-
-        if (result.success) {
-            res.json({
-                messageId: `msg_${Date.now()}`,
-                status: 'sent',
-                timestamp: new Date().toISOString(),
-            });
+            const { MessageMedia } = require('whatsapp-web.js');
+            const media = await MessageMedia.fromUrl(mediaUrl);
+            sent = await whatsappClient.sendMessage(chatId, media, { caption: message });
         } else {
-            res.status(500).json({
-                error: result.error || 'Failed to send message',
-                details: result.stderr,
-            });
+            sent = await whatsappClient.sendMessage(chatId, message);
         }
-    } catch (error) {
-        console.error('[Send Error]', error);
-        res.status(500).json({ error: error.message });
+        res.json({ id: sent.id.id, status: 'sent' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
     }
 });
 
-// Get message history
-app.post('/whatsapp/message/history', requireAuth, async (req, res) => {
-    try {
-        const { phoneNumber, limit = 50, offset = 0 } = req.body;
-
-        // OpenClaw stores messages in session files
-        // This would require parsing the session JSON files
-        // For now, return empty array
-
-        res.json({
-            messages: [],
-            total: 0,
-            note: 'Message history requires parsing OpenClaw session files',
-        });
-    } catch (error) {
-        console.error('[History Error]', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Error handler
-app.use((err, req, res, next) => {
-    console.error('[Server Error]', err);
-    res.status(500).json({ error: 'Internal server error', message: err.message });
-});
-
-// Start server
+// Start Server
 app.listen(PORT, () => {
-    console.log(`🦞 OpenClaw REST Wrapper running on http://localhost:${PORT}`);
-    console.log(`API Key: ${API_KEY}`);
-    console.log(`\nEndpoints:`);
-    console.log(`  GET  /health`);
-    console.log(`  GET  /whatsapp/session/status`);
-    console.log(`  POST /whatsapp/session/qr`);
-    console.log(`  POST /whatsapp/session/disconnect`);
-    console.log(`  POST /whatsapp/message/send`);
-    console.log(`  POST /whatsapp/message/history`);
-    console.log(`\nAuthentication: Bearer ${API_KEY}`);
+    console.log(`WhatsApp Gateway listening on ${PORT}`);
 });
 
-// Graceful shutdown
-process.on('SIGINT', () => {
-    console.log('\n\nShutting down OpenClaw REST Wrapper...');
+// Shutdown Hook
+const shutdown = async () => {
+    console.log('Shutting down...');
+    if (clientReady) {
+        await sessionManager.backup();
+    }
+    if (whatsappClient) await whatsappClient.destroy();
     process.exit(0);
-});
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

@@ -23,9 +23,62 @@ npm run check:types
 
 ---
 
-## 🆕 Recent Updates (2026-01-29)
+## 🆕 Recent Updates
 
-### Linus Development Mode Enabled
+### WhatsApp Gateway Integration (2026-02-06)
+**Status:** ✅ Production-ready with persistent sessions
+
+Production-grade WhatsApp messaging gateway deployed to Cloud Run with Firebase Cloud Storage session persistence.
+
+**Architecture:**
+```
+BakedBot Main → REST API → WhatsApp Gateway (Cloud Run)
+                              ├── whatsapp-web.js + Puppeteer
+                              ├── LocalAuth + Session Manager
+                              └── Cloud Storage (session backup)
+```
+
+**Key Features:**
+- **Real QR Code Generation**: Generates actual scannable QR codes (no placeholders)
+- **Session Persistence**: Sessions survive container restarts via Cloud Storage
+- **Auto-reconnect**: No QR re-scan after initial connection
+- **Scalable**: Scales to zero (Min instances: 0) for cost efficiency
+- **Large Session Support**: Handles 100MB+ Chromium profiles (Storage vs Firestore's 1MB limit)
+
+**Implementation Files:**
+- `cloud-run/openclaw-service/server.js` - Main service (LocalAuth + SessionManager)
+- `cloud-run/openclaw-service/session-manager.js` - Backup/restore utility
+- `cloud-run/openclaw-service/Dockerfile` - Production container with Chromium
+- `src/server/services/openclaw/` - Client & gateway integration
+- `src/server/actions/whatsapp.ts` - Server actions for BakedBot
+- `src/app/dashboard/ceo/components/whatsapp-tab.tsx` - Super Admin UI
+
+**Session Flow:**
+1. **Startup**: Check Storage for `whatsapp-session.zip` → Download & Extract
+2. **First Connection**: Generate QR → Scan → Auto-backup to Storage
+3. **Runtime**: Backup every 5 minutes + on shutdown (SIGTERM)
+4. **Container Restart**: Restore from Storage → Auto-connect (no QR!)
+
+**Deployment:**
+- **Service**: `whatsapp-gateway` (Cloud Run, us-central1)
+- **Resources**: 2 CPU, 2 GiB RAM, 300s timeout
+- **Scaling**: 0-1 instances
+- **Cost**: ~$5-10/month
+- **Guide**: `cloud-run/openclaw-service/DEPLOYMENT.md`
+
+**Access:**
+- **UI**: `/dashboard/ceo?tab=whatsapp` (Super Admin only)
+- **Secrets**: `OPENCLAW_API_URL`, `OPENCLAW_API_KEY`
+- **API Key Format**: `whatsapp-<64-hex-chars>`
+
+**Technical Decisions:**
+- **Cloud Storage over Firestore**: WhatsApp sessions are 50-200 MB (Chromium profiles), exceeding Firestore's 1MB document limit
+- **LocalAuth over RemoteAuth**: More stable and battle-tested than experimental RemoteAuth
+- **Separate Cloud Run Service**: Isolates Puppeteer/Chromium from main app, independent scaling
+
+---
+
+### Linus Development Mode Enabled (2026-01-29)
 **Status:** ✅ Active in both development and production
 
 The error boundary now auto-reports errors to Linus (AI CTO) in both development and production environments. Previously, Linus only received notifications in production.
