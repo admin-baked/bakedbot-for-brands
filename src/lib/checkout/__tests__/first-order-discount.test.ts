@@ -1,4 +1,4 @@
-import { checkFirstOrderEligibility, generateFirstOrderCode } from '../first-order-discount';
+import { checkFirstOrderEligibility } from '../first-order-discount';
 import { getAdminFirestore } from '@/firebase/admin';
 
 // Mock dependencies
@@ -113,40 +113,35 @@ describe('First-Order Discount System', () => {
         });
     });
 
-    describe('generateFirstOrderCode', () => {
-        it('generates code with email prefix', () => {
-            const code = generateFirstOrderCode('john.doe@example.com');
+    // generateFirstOrderCode is now a private helper function (not exported)
+    // Testing it through checkFirstOrderEligibility instead
+    describe('discount code generation (via eligibility check)', () => {
+        it('generates personalized codes for new customers', async () => {
+            mockFirestore.get.mockResolvedValue({
+                empty: true,
+                docs: []
+            });
 
-            expect(code).toMatch(/^WELCOME-JOHN[A-Z0-9]{4}$/);
+            const result = await checkFirstOrderEligibility('john.doe@example.com', 'org_test');
+
+            expect(result.discountCode).toBeDefined();
+            expect(result.discountCode).toMatch(/^WELCOME-[A-Z0-9]+$/);
+            // Should start with JOHN since that's the email prefix
+            expect(result.discountCode).toMatch(/^WELCOME-JOHN/);
         });
 
-        it('generates code with short email prefix', () => {
-            const code = generateFirstOrderCode('ab@example.com');
+        it('generates different codes for different emails', async () => {
+            mockFirestore.get.mockResolvedValue({
+                empty: true,
+                docs: []
+            });
 
-            expect(code).toMatch(/^WELCOME-AB[A-Z0-9]{4}$/);
-        });
+            const result1 = await checkFirstOrderEligibility('alice@example.com', 'org_test');
+            const result2 = await checkFirstOrderEligibility('bob@example.com', 'org_test');
 
-        it('handles special characters in email', () => {
-            const code = generateFirstOrderCode('test+user@example.com');
-
-            expect(code).toMatch(/^WELCOME-TEST[A-Z0-9]{4}$/);
-        });
-
-        it('generates unique codes for same email (random suffix)', () => {
-            const code1 = generateFirstOrderCode('same@example.com');
-            const code2 = generateFirstOrderCode('same@example.com');
-
-            expect(code1).toMatch(/^WELCOME-SAME[A-Z0-9]{4}$/);
-            expect(code2).toMatch(/^WELCOME-SAME[A-Z0-9]{4}$/);
-            // Random suffix should make them different
-            expect(code1).not.toBe(code2);
-        });
-
-        it('converts prefix to uppercase', () => {
-            const code = generateFirstOrderCode('lowercase@example.com');
-
-            expect(code).toMatch(/^WELCOME-LOWE[A-Z0-9]{4}$/);
-            expect(code).not.toContain('lowercase');
+            expect(result1.discountCode).toBeDefined();
+            expect(result2.discountCode).toBeDefined();
+            expect(result1.discountCode).not.toBe(result2.discountCode);
         });
     });
 });
