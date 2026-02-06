@@ -23,6 +23,7 @@ export interface CaptureEmailLeadRequest {
     source: string; // 'menu', 'demo-shop', 'homepage', 'chatbot', etc.
     ageVerified?: boolean;
     dateOfBirth?: string;
+    firstOrderDiscountCode?: string;
 }
 
 export interface EmailLead {
@@ -38,6 +39,7 @@ export interface EmailLead {
     source: string;
     ageVerified: boolean;
     dateOfBirth?: string;
+    firstOrderDiscountCode?: string;
     capturedAt: number;
     lastUpdated: number;
     welcomeEmailSent?: boolean;
@@ -80,6 +82,7 @@ export async function captureEmailLead(request: CaptureEmailLeadRequest): Promis
             source: request.source,
             ageVerified: request.ageVerified || false,
             dateOfBirth: request.dateOfBirth,
+            firstOrderDiscountCode: request.firstOrderDiscountCode,
             capturedAt: now,
             lastUpdated: now,
             tags: [
@@ -87,7 +90,8 @@ export async function captureEmailLead(request: CaptureEmailLeadRequest): Promis
                 request.ageVerified ? 'age-verified' : 'not-verified',
                 request.emailConsent ? 'email-opt-in' : 'email-opt-out',
                 request.smsConsent ? 'sms-opt-in' : 'sms-opt-out',
-            ],
+                request.firstOrderDiscountCode ? 'first-order-discount' : null,
+            ].filter(Boolean) as string[],
         };
 
         // Check if lead already exists (by email or phone)

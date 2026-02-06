@@ -1,14 +1,21 @@
 /**
  * Age-Gated Menu Page
- * Wraps menu with age verification
+ * Wraps menu with simplified age verification + email capture
  */
 
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AgeGate, isAgeVerified } from '@/components/compliance/age-gate';
+import { AgeGateSimpleWithEmail, isAgeVerified } from '@/components/compliance/age-gate-simple-with-email';
 
-export function AgeGatedMenu({ children }: { children: React.ReactNode }) {
+interface AgeGatedMenuProps {
+    children: React.ReactNode;
+    brandId?: string;
+    dispensaryId?: string;
+    source?: string;
+}
+
+export function AgeGatedMenu({ children, brandId, dispensaryId, source = 'menu' }: AgeGatedMenuProps) {
     const [verified, setVerified] = useState(false);
     const [loading, setLoading] = useState(true);
 
@@ -22,7 +29,14 @@ export function AgeGatedMenu({ children }: { children: React.ReactNode }) {
     }
 
     if (!verified) {
-        return <AgeGate onVerified={() => setVerified(true)} />;
+        return (
+            <AgeGateSimpleWithEmail
+                onVerified={() => setVerified(true)}
+                brandId={brandId}
+                dispensaryId={dispensaryId}
+                source={source}
+            />
+        );
     }
 
     return <>{children}</>;

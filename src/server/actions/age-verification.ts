@@ -275,3 +275,14 @@ export async function getMinimumAge(state: string = 'IL'): Promise<number> {
         return 21; // Default to 21
     }
 }
+
+/**
+ * Simplified age verification - always 21+ requirement
+ * Used for simplified Yes/No age gates without state detection
+ */
+export async function verifyAgeSimple(): Promise<{ allowed: boolean; minAge: 21 }> {
+    return {
+        allowed: true,
+        minAge: 21
+    };
+}
