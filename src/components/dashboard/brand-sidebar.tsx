@@ -31,6 +31,7 @@ import {
     Package,
     Utensils,
     ShoppingCart,
+    TrendingUp,
     Users,
     PieChart,
     UserPlus,
@@ -149,6 +150,14 @@ export function BrandSidebar() {
                                 <Link href="/dashboard/orders">
                                     <ShoppingCart />
                                     <span>Orders</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/pricing')}>
+                                <Link href="/dashboard/pricing">
+                                    <TrendingUp />
+                                    <span>Pricing</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
