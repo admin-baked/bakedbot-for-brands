@@ -34,6 +34,7 @@ import {
     deleteContent,
     updateCaption
 } from '@/server/actions/creative-content';
+import { logger } from '@/lib/logger';
 
 interface UseCreativeContentOptions {
     platform?: SocialPlatform;
@@ -125,21 +126,21 @@ export function useCreativeContent(
                                     setLoading(false);
                                 } catch (mapError) {
                                     // Handle errors during data mapping
-                                    console.error('[useCreativeContent] Error mapping snapshot:', mapError);
+                                    logger.error('[useCreativeContent] Error mapping snapshot', { error: String(mapError) });
                                     fetchViaServerAction();
                                 }
                             },
                             (err) => {
                                 // Fall back to server action on any Firestore errors
                                 // This includes permission errors and SDK assertion failures
-                                console.warn('[useCreativeContent] Firestore listener error, falling back to server action:', err.message);
+                                logger.warn('[useCreativeContent] Firestore listener error, falling back to server action', { error: err.message });
                                 fetchViaServerAction();
                             }
                         );
                     } catch (listenerError) {
                         // Catch synchronous errors from onSnapshot setup
                         // This can happen with Firestore SDK assertion failures
-                        console.error('[useCreativeContent] Failed to setup Firestore listener:', listenerError);
+                        logger.error('[useCreativeContent] Failed to setup Firestore listener', { error: String(listenerError) });
                         await fetchViaServerAction();
                     }
                 } else {
@@ -148,7 +149,7 @@ export function useCreativeContent(
                 }
             } catch (err: unknown) {
                 // Final fallback - try server action if anything fails
-                console.error('[useCreativeContent] Error in fetchContent:', err);
+                logger.error('[useCreativeContent] Error in fetchContent', { error: String(err) });
                 try {
                     await fetchViaServerAction();
                 } catch (serverErr) {
@@ -184,7 +185,7 @@ export function useCreativeContent(
                 } catch (cleanupError) {
                     // Silently ignore cleanup errors - these can occur if the
                     // Firestore SDK is in an invalid state (e.g., due to network issues)
-                    console.warn('[useCreativeContent] Error during listener cleanup:', cleanupError);
+                    logger.warn('[useCreativeContent] Error during listener cleanup', { error: String(cleanupError) });
                 }
             }
         };
