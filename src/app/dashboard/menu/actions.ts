@@ -283,15 +283,30 @@ export async function getMenuData(): Promise<MenuData> {
 
         const productRepo = makeProductRepo(firestore);
 
-        // 1. Check for POS-synced products (Truth) - try multiple dispensaryId values
-        if (locationId || orgId) {
-            // Try locationId first
-            let localProducts = locationId ? await productRepo.getAllByLocation(locationId) : [];
+        // 1. Check for POS-synced products (Truth)
+        // Priority: orgId tenant catalog > locationId tenant catalog > legacy products
+        if (orgId || locationId) {
+            let localProducts: any[] = [];
 
-            // If no products with locationId, try orgId as dispensaryId
-            if (localProducts.length === 0 && orgId && orgId !== locationId) {
-                logger.info('[MENU] Trying orgId as dispensaryId', { orgId });
-                localProducts = await productRepo.getAllByLocation(orgId);
+            // Try orgId first (tenant catalog at tenants/{orgId}/publicViews/products/items)
+            if (orgId) {
+                try {
+                    logger.info('[MENU] Trying tenant catalog with orgId', { orgId });
+                    localProducts = await productRepo.getAllByLocation(orgId);
+                    logger.info('[MENU] Tenant catalog result', { orgId, count: localProducts.length });
+                } catch (err) {
+                    logger.error('[MENU] Error fetching from tenant catalog', { orgId, error: err instanceof Error ? err.message : String(err) });
+                }
+            }
+
+            // Fallback: try locationId if different from orgId
+            if (localProducts.length === 0 && locationId && locationId !== orgId) {
+                try {
+                    logger.info('[MENU] Trying locationId as fallback', { locationId });
+                    localProducts = await productRepo.getAllByLocation(locationId);
+                } catch (err) {
+                    logger.error('[MENU] Error fetching by locationId', { locationId, error: err instanceof Error ? err.message : String(err) });
+                }
             }
 
             if (localProducts.length > 0) {
