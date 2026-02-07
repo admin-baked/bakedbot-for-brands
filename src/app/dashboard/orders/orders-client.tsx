@@ -23,10 +23,17 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
-import { Loader2, Package, RefreshCw, MoreVertical, CheckCircle, Clock, XCircle, Truck, Search, Download, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Loader2, Package, RefreshCw, MoreVertical, CheckCircle, Clock, XCircle, Truck, Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, AlertTriangle, Crown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getOrders, updateOrderStatus, type FormState } from './actions';
+import { getOrders, updateOrderStatus, analyzeOrderWithAI, type FormState } from './actions';
 import type { OrderDoc, OrderStatus } from '@/types/orders';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 interface OrdersPageClientProps {
     orgId: string;
@@ -57,6 +64,8 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
     const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
     const [sortField, setSortField] = useState<SortField | null>(null);
     const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+    const [aiInsights, setAiInsights] = useState<{ orderId: string; insights: string } | null>(null);
+    const [analyzingOrderId, setAnalyzingOrderId] = useState<string | null>(null);
 
     const loadOrders = useCallback(async () => {
         setLoading(true);
@@ -235,6 +244,71 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
         });
     };
 
+    const handleAIInsights = async (orderId: string) => {
+        setAnalyzingOrderId(orderId);
+        try {
+            const result = await analyzeOrderWithAI(orderId);
+            if (result.success && result.insights) {
+                setAiInsights({ orderId, insights: result.insights });
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: "Analysis Failed",
+                    description: result.error || "Could not analyze order"
+                });
+            }
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: "Error",
+                description: "Failed to analyze order with AI"
+            });
+        } finally {
+            setAnalyzingOrderId(null);
+        }
+    };
+
+    // Detect potential fraud
+    const detectFraud = (order: OrderDoc): { isSuspicious: boolean; reason: string } => {
+        // High-value first order
+        if (order.totals.total > 500 && order.customer.email.includes('no-email')) {
+            return { isSuspicious: true, reason: 'High-value order without email' };
+        }
+
+        // Unusually large quantity
+        const totalItems = order.items.reduce((sum, item) => sum + item.qty, 0);
+        if (totalItems > 20) {
+            return { isSuspicious: true, reason: 'Unusually large quantity' };
+        }
+
+        // Very high order value
+        if (order.totals.total > 1000) {
+            return { isSuspicious: true, reason: 'High-value transaction' };
+        }
+
+        return { isSuspicious: false, reason: '' };
+    };
+
+    // Detect VIP customers based on order history
+    const detectVIP = (order: OrderDoc): { isVIP: boolean; reason: string } => {
+        const customerOrders = orders.filter(o => o.customer.email === order.customer.email);
+        const totalSpent = customerOrders.reduce((sum, o) => sum + o.totals.total, 0);
+        const avgOrderValue = totalSpent / customerOrders.length;
+
+        // VIP criteria
+        if (customerOrders.length >= 10) {
+            return { isVIP: true, reason: `${customerOrders.length} orders` };
+        }
+        if (totalSpent > 2000) {
+            return { isVIP: true, reason: `$${totalSpent.toFixed(0)} lifetime value` };
+        }
+        if (avgOrderValue > 200) {
+            return { isVIP: true, reason: `$${avgOrderValue.toFixed(0)} avg order` };
+        }
+
+        return { isVIP: false, reason: '' };
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -401,15 +475,31 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                                                 #{order.id.slice(-6).toUpperCase()}
                                             </TableCell>
                                             <TableCell>
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium text-sm">{order.customer.name}</span>
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-medium text-sm">{order.customer.name}</span>
+                                                        {detectVIP(order).isVIP && (
+                                                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+                                                                <Crown className="h-3 w-3 mr-1" />
+                                                                VIP
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                     <span className="text-xs text-muted-foreground">{order.customer.email}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="outline" className={`capitalize ${STATUS_COLORS[order.status] || ''}`}>
-                                                    {order.status}
-                                                </Badge>
+                                                <div className="flex flex-col gap-1">
+                                                    <Badge variant="outline" className={`capitalize ${STATUS_COLORS[order.status] || ''}`}>
+                                                        {order.status}
+                                                    </Badge>
+                                                    {detectFraud(order).isSuspicious && (
+                                                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300 text-xs">
+                                                            <AlertTriangle className="h-3 w-3 mr-1" />
+                                                            Review
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell className="font-medium">
                                                 ${order.totals.total.toFixed(2)}
@@ -431,6 +521,17 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end" className="w-48">
+                                                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem onClick={() => handleAIInsights(order.id)} disabled={analyzingOrderId === order.id}>
+                                                            {analyzingOrderId === order.id ? (
+                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <Sparkles className="mr-2 h-4 w-4 text-purple-500" />
+                                                            )}
+                                                            AI Insights
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
                                                         <DropdownMenuLabel>Change Status</DropdownMenuLabel>
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem onClick={() => handleStatusUpdate(order.id, 'confirmed')}>
@@ -478,6 +579,29 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                     )}
                 </CardContent>
             </Card>
+
+            {/* AI Insights Dialog */}
+            <Dialog open={!!aiInsights} onOpenChange={(open) => !open && setAiInsights(null)}>
+                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-purple-500" />
+                            AI Order Insights
+                        </DialogTitle>
+                        <DialogDescription>
+                            AI-powered analysis for order #{aiInsights?.orderId.slice(-6).toUpperCase()}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="prose prose-sm max-w-none">
+                        <div
+                            className="whitespace-pre-wrap"
+                            dangerouslySetInnerHTML={{
+                                __html: aiInsights?.insights.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') || ''
+                            }}
+                        />
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

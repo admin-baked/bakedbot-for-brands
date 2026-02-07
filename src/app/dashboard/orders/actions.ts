@@ -13,6 +13,7 @@ import { requireUser } from '@/server/auth/auth';
 import type { ServerOrderPayload } from '@/app/checkout/actions/submitOrder';
 import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
+import { callClaude } from '@/ai/claude';
 
 import { logger } from '@/lib/logger';
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
@@ -402,6 +403,76 @@ export async function getOrders(params: GetOrdersParams | string = {}): Promise<
         return { success: true, data: sortedOrders };
     } catch (error) {
         logger.error('[ORDERS_ACTION] Failed to fetch orders', { error });
+        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+/**
+ * AI Order Insights - Analyze an order using Claude AI
+ */
+export async function analyzeOrderWithAI(orderId: string): Promise<{
+    success: boolean;
+    insights?: string;
+    error?: string;
+}> {
+    try {
+        await requireUser();
+        const { firestore } = await createServerClient();
+
+        // Get the order
+        const orderDoc = await firestore.collection('orders').doc(orderId).get();
+        if (!orderDoc.exists) {
+            return { success: false, error: 'Order not found' };
+        }
+
+        const order = orderDoc.data() as OrderDoc;
+
+        // Get customer's order history for context
+        const customerOrders = await firestore
+            .collection('orders')
+            .where('customer.email', '==', order.customer.email)
+            .orderBy('createdAt', 'desc')
+            .limit(10)
+            .get();
+
+        const orderHistory = customerOrders.docs.map(doc => doc.data() as OrderDoc);
+
+        // Prepare context for AI
+        const prompt = `Analyze this cannabis order and provide actionable insights:
+
+**Current Order:**
+- Order ID: ${order.id}
+- Customer: ${order.customer.name} (${order.customer.email})
+- Total: $${order.totals.total.toFixed(2)}
+- Items: ${order.items.length}
+- Status: ${order.status}
+- Products: ${order.items.map(i => `${i.name} (${i.qty}x $${i.price})`).join(', ')}
+
+**Customer History:**
+- Total Orders: ${orderHistory.length}
+- Average Order Value: $${(orderHistory.reduce((sum, o) => sum + o.totals.total, 0) / orderHistory.length).toFixed(2)}
+- First Order Date: ${orderHistory[orderHistory.length - 1]?.createdAt ? new Date(orderHistory[orderHistory.length - 1].createdAt as any).toLocaleDateString() : 'N/A'}
+
+Provide:
+1. **Customer Segment** (New/Regular/VIP)
+2. **Fraud Risk** (Low/Medium/High) and why
+3. **Fulfillment Priority** (Standard/Rush/VIP)
+4. **Upsell Opportunities** (specific product suggestions)
+5. **Notes** (any anomalies or special considerations)
+
+Be concise but actionable. Format as markdown.`;
+
+        const insights = await callClaude({
+            userMessage: prompt,
+            temperature: 0.3,
+            maxTokens: 1000,
+        });
+
+        logger.info('[AI_INSIGHTS] Order analyzed', { orderId, customerEmail: order.customer.email });
+
+        return { success: true, insights };
+    } catch (error) {
+        logger.error('[AI_INSIGHTS] Failed to analyze order', { error, orderId });
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
 }
