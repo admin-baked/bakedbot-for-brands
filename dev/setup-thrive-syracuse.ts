@@ -175,6 +175,7 @@ async function main() {
         verificationStatus: 'verified',
         claimStatus: 'claimed',
         ownerId: UID,
+        orgId: ORG_ID, // Link brand to organization for carousel/hero loading
 
         // Brand colors
         theme: THEME,
