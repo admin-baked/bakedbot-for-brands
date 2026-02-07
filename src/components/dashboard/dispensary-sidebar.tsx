@@ -27,6 +27,7 @@ import {
     Utensils,
     Package,
     Images,
+    Monitor,
     PackagePlus,
     ShoppingCart,
     TrendingUp,
@@ -121,6 +122,14 @@ export function DispensarySidebar() {
                                 <Link href="/dashboard/carousels">
                                     <Images />
                                     <span>Carousels</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/heroes')}>
+                                <Link href="/dashboard/heroes">
+                                    <Monitor />
+                                    <span>Hero Banners</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
