@@ -77,6 +77,13 @@ interface InboxState {
     // Filter actions
     setThreadFilter: (filter: Partial<InboxFilter>) => void;
     clearThreadFilter: () => void;
+    setSearchQuery: (query: string) => void;
+
+    // Organization actions
+    togglePinThread: (threadId: string) => void;
+    addTagToThread: (threadId: string, tag: string) => void;
+    removeTagFromThread: (threadId: string, tag: string) => void;
+    setThreadTags: (threadId: string, tags: string[]) => void;
 
     // Quick action
     setQuickActionMode: (mode: InboxThreadType | null) => void;
@@ -157,7 +164,10 @@ export const useInboxStore = create<InboxState>()(
                     projectId,
                     brandId,
                     dispensaryId,
-                } = options;
+                    tags,
+                    color,
+                    isPinned,
+                } = options as typeof options & { tags?: string[]; color?: string; isPinned?: boolean };
 
                 const { currentOrgId } = get();
 
@@ -179,6 +189,9 @@ export const useInboxStore = create<InboxState>()(
                     projectId,
                     brandId,
                     dispensaryId,
+                    tags,
+                    color,
+                    isPinned,
                     createdAt: new Date(),
                     updatedAt: new Date(),
                     lastActivityAt: new Date(),
@@ -286,6 +299,62 @@ export const useInboxStore = create<InboxState>()(
 
             clearThreadFilter: () => {
                 set({ threadFilter: DEFAULT_FILTER });
+            },
+
+            setSearchQuery: (query) => {
+                set((state) => ({
+                    threadFilter: { ...state.threadFilter, searchQuery: query },
+                }));
+            },
+
+            // ============ Organization Actions ============
+
+            togglePinThread: (threadId) => {
+                set((state) => ({
+                    threads: state.threads.map((thread) =>
+                        thread.id === threadId
+                            ? { ...thread, isPinned: !thread.isPinned, updatedAt: new Date() }
+                            : thread
+                    ),
+                }));
+            },
+
+            addTagToThread: (threadId, tag) => {
+                set((state) => ({
+                    threads: state.threads.map((thread) =>
+                        thread.id === threadId
+                            ? {
+                                ...thread,
+                                tags: [...(thread.tags || []), tag].filter((t, i, arr) => arr.indexOf(t) === i), // Unique tags
+                                updatedAt: new Date(),
+                            }
+                            : thread
+                    ),
+                }));
+            },
+
+            removeTagFromThread: (threadId, tag) => {
+                set((state) => ({
+                    threads: state.threads.map((thread) =>
+                        thread.id === threadId
+                            ? {
+                                ...thread,
+                                tags: (thread.tags || []).filter((t) => t !== tag),
+                                updatedAt: new Date(),
+                            }
+                            : thread
+                    ),
+                }));
+            },
+
+            setThreadTags: (threadId, tags) => {
+                set((state) => ({
+                    threads: state.threads.map((thread) =>
+                        thread.id === threadId
+                            ? { ...thread, tags, updatedAt: new Date() }
+                            : thread
+                    ),
+                }));
             },
 
             // ============ Quick Action ============
@@ -486,7 +555,7 @@ export const useInboxStore = create<InboxState>()(
             getFilteredThreads: () => {
                 const { threads, threadFilter } = get();
 
-                return threads.filter((thread) => {
+                let filtered = threads.filter((thread) => {
                     // Filter by type
                     if (threadFilter.type !== 'all' && thread.type !== threadFilter.type) {
                         return false;
@@ -502,6 +571,44 @@ export const useInboxStore = create<InboxState>()(
                         return false;
                     }
 
+                    // Filter by project
+                    if (threadFilter.projectId && threadFilter.projectId !== 'all') {
+                        if (thread.projectId !== threadFilter.projectId) {
+                            return false;
+                        }
+                    }
+
+                    // Filter by pinned status (normalize undefined to false)
+                    if (threadFilter.isPinned !== undefined) {
+                        const threadIsPinned = thread.isPinned ?? false;
+                        if (threadIsPinned !== threadFilter.isPinned) {
+                            return false;
+                        }
+                    }
+
+                    // Filter by tags
+                    if (threadFilter.tags && threadFilter.tags.length > 0) {
+                        const threadTags = thread.tags || [];
+                        const hasAllTags = threadFilter.tags.every(tag => threadTags.includes(tag));
+                        if (!hasAllTags) {
+                            return false;
+                        }
+                    }
+
+                    // Filter by search query (search in title, preview, and messages)
+                    if (threadFilter.searchQuery && threadFilter.searchQuery.trim()) {
+                        const query = threadFilter.searchQuery.toLowerCase().trim();
+                        const titleMatch = thread.title.toLowerCase().includes(query);
+                        const previewMatch = thread.preview.toLowerCase().includes(query);
+                        const messageMatch = thread.messages.some(msg =>
+                            msg.content.toLowerCase().includes(query)
+                        );
+
+                        if (!titleMatch && !previewMatch && !messageMatch) {
+                            return false;
+                        }
+                    }
+
                     // Filter by date range
                     if (threadFilter.dateRange) {
                         const threadDate = new Date(thread.createdAt);
@@ -515,6 +622,20 @@ export const useInboxStore = create<InboxState>()(
 
                     return true;
                 });
+
+                // Sort: pinned threads first, then by lastActivityAt
+                filtered.sort((a, b) => {
+                    // Pinned threads always come first
+                    if (a.isPinned && !b.isPinned) return -1;
+                    if (!a.isPinned && b.isPinned) return 1;
+
+                    // Otherwise sort by lastActivityAt (most recent first)
+                    const aTime = new Date(a.lastActivityAt).getTime();
+                    const bTime = new Date(b.lastActivityAt).getTime();
+                    return bTime - aTime;
+                });
+
+                return filtered;
             },
 
             getThreadById: (threadId) => {

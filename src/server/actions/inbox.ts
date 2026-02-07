@@ -104,6 +104,9 @@ export async function createInboxThread(input: {
     projectId?: string;
     brandId?: string;
     dispensaryId?: string;
+    tags?: string[];
+    color?: string;
+    isPinned?: boolean;
     initialMessage?: ChatMessage;
 }): Promise<{ success: boolean; thread?: InboxThread; error?: string }> {
     try {
@@ -146,6 +149,9 @@ export async function createInboxThread(input: {
         if (input.projectId) thread.projectId = input.projectId;
         if (input.brandId) thread.brandId = input.brandId;
         if (input.dispensaryId) thread.dispensaryId = input.dispensaryId;
+        if (input.tags && input.tags.length > 0) thread.tags = input.tags;
+        if (input.color) thread.color = input.color;
+        if (input.isPinned !== undefined) thread.isPinned = input.isPinned;
 
         // Build Firestore data - filter out any undefined values to avoid Firestore errors
         const firestoreData: Record<string, unknown> = {
@@ -169,6 +175,9 @@ export async function createInboxThread(input: {
         if (thread.projectId) firestoreData.projectId = thread.projectId;
         if (thread.brandId) firestoreData.brandId = thread.brandId;
         if (thread.dispensaryId) firestoreData.dispensaryId = thread.dispensaryId;
+        if (thread.tags && thread.tags.length > 0) firestoreData.tags = thread.tags;
+        if (thread.color) firestoreData.color = thread.color;
+        if (thread.isPinned !== undefined) firestoreData.isPinned = thread.isPinned;
 
         await db.collection(INBOX_THREADS_COLLECTION).doc(threadId).set(firestoreData);
 
@@ -841,7 +850,7 @@ export async function runInboxAgentChat(
         const personaId = personaMap[thread.primaryAgent] || 'puff';
 
         // Build context for the agent based on thread type
-        const threadContext = buildThreadContext(thread);
+        const threadContext = await buildThreadContext(thread);
 
         // === REMOTE SIDECAR ROUTING ===
         // Route heavy research agents to remote Python sidecar if available
@@ -1077,7 +1086,21 @@ export async function runInboxAgentChat(
 /**
  * Build context string for the agent based on thread type
  */
-function buildThreadContext(thread: InboxThread): string {
+async function buildThreadContext(thread: InboxThread): Promise<string> {
+    // Load project context if available
+    let projectContext = '';
+    if (thread.projectId) {
+        try {
+            const { getProject } = await import('@/server/actions/projects');
+            const project = await getProject(thread.projectId);
+            if (project) {
+                projectContext = `\n\nProject Context: "${project.name}"${project.description ? `\nDescription: ${project.description}` : ''}${project.systemInstructions ? `\n\nProject Instructions:\n${project.systemInstructions}` : ''}`;
+            }
+        } catch (error) {
+            logger.warn('Failed to load project context', { projectId: thread.projectId, error });
+        }
+    }
+
     const typeContexts: Record<InboxThreadType, string> = {
         carousel: `You are helping create a product carousel for a dispensary.
 Use the createCarouselArtifact tool to generate carousel suggestions with product selections.
@@ -1282,7 +1305,7 @@ Generate market analysis and research brief artifacts.`,
     };
 
     return `Thread Context: ${thread.title}
-Thread Type: ${thread.type}
+Thread Type: ${thread.type}${projectContext}
 
 ${typeContexts[thread.type]}
 

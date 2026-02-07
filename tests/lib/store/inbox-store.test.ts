@@ -103,6 +103,34 @@ jest.mock('@/types/inbox', () => ({
         }
         return [];
     },
+    getQuickActionsForRoleAsync: async (role: string) => {
+        if (role === 'brand' || role === 'dispensary') {
+            return [
+                { id: 'new-carousel', label: 'New Carousel', threadType: 'carousel' },
+                { id: 'new-bundle', label: 'New Bundle', threadType: 'bundle' },
+                { id: 'new-creative', label: 'Create Post', threadType: 'creative' },
+                { id: 'new-campaign', label: 'Plan Campaign', threadType: 'campaign' },
+                { id: 'product-launch', label: 'Product Launch', threadType: 'launch' },
+                { id: 'review-performance', label: 'Review Performance', threadType: 'performance' },
+                { id: 'customer-blast', label: 'Customer Blast', threadType: 'outreach' },
+                { id: 'move-inventory', label: 'Move Inventory', threadType: 'inventory_promo' },
+                { id: 'plan-event', label: 'Plan Event', threadType: 'event' },
+            ];
+        }
+        if (role === 'super_user') {
+            return [
+                { id: 'growth-review', label: 'Growth Review', threadType: 'growth_review' },
+                { id: 'churn-analysis', label: 'Churn Analysis', threadType: 'churn_risk' },
+                { id: 'revenue-forecast', label: 'Revenue Forecast', threadType: 'revenue_forecast' },
+                { id: 'pipeline-review', label: 'Pipeline Review', threadType: 'pipeline' },
+                { id: 'customer-health', label: 'Customer Health', threadType: 'customer_health' },
+                { id: 'market-intel', label: 'Market Intel', threadType: 'market_intel' },
+                { id: 'bizdev-outreach', label: 'BizDev', threadType: 'bizdev' },
+                { id: 'growth-experiment', label: 'Experiment', threadType: 'experiment' },
+            ];
+        }
+        return [];
+    },
 }));
 
 // Import after mocks
@@ -123,6 +151,7 @@ describe('Inbox Store', () => {
             activeThreadId: null,
             threadFilter: { type: 'all', status: 'all', agent: 'all' },
             quickActionMode: null,
+            quickActions: [],
             inboxArtifacts: [],
             selectedArtifactId: null,
             isArtifactPanelOpen: false,
@@ -765,9 +794,12 @@ describe('Inbox Store', () => {
         });
 
         describe('getQuickActions', () => {
-            it('should return quick actions based on role', () => {
+            it('should return quick actions based on role', async () => {
                 const store = useInboxStore.getState();
                 store.setCurrentRole('brand');
+
+                // Load quick actions asynchronously
+                await store.loadQuickActions();
 
                 const actions = store.getQuickActions();
 
@@ -872,6 +904,370 @@ describe('Inbox Store', () => {
                 const found = store.getThreadById('non-existent');
 
                 expect(found).toBeUndefined();
+            });
+        });
+    });
+
+    describe('Organization Features (New)', () => {
+        describe('togglePinThread', () => {
+            it('should pin an unpinned thread', () => {
+                const store = useInboxStore.getState();
+                const thread = store.createThread('carousel');
+                expect(thread.isPinned).toBeUndefined();
+
+                store.togglePinThread(thread.id);
+
+                const updated = useInboxStore.getState().threads.find(t => t.id === thread.id);
+                expect(updated?.isPinned).toBe(true);
+            });
+
+            it('should unpin a pinned thread', () => {
+                const store = useInboxStore.getState();
+                const thread = store.createThread('carousel');
+                store.togglePinThread(thread.id); // Pin it first
+
+                store.togglePinThread(thread.id); // Unpin it
+
+                const updated = useInboxStore.getState().threads.find(t => t.id === thread.id);
+                expect(updated?.isPinned).toBe(false);
+            });
+
+            it('should update updatedAt when toggling pin', async () => {
+                const store = useInboxStore.getState();
+                const thread = store.createThread('carousel');
+                const originalUpdatedAt = thread.updatedAt.getTime();
+
+                // Wait a bit to ensure timestamp difference
+                await new Promise(resolve => setTimeout(resolve, 10));
+
+                store.togglePinThread(thread.id);
+
+                const updated = useInboxStore.getState().threads.find(t => t.id === thread.id);
+                expect(updated?.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt);
+            });
+        });
+
+        describe('addTagToThread', () => {
+            it('should add tag to thread', () => {
+                const store = useInboxStore.getState();
+                const thread = store.createThread('carousel');
+
+                store.addTagToThread(thread.id, 'urgent');
+
+                const updated = useInboxStore.getState().threads.find(t => t.id === thread.id);
+                expect(updated?.tags).toContain('urgent');
+            });
+
+            it('should not add duplicate tags', () => {
+                const store = useInboxStore.getState();
+                const thread = store.createThread('carousel');
+
+                store.addTagToThread(thread.id, 'urgent');
+                store.addTagToThread(thread.id, 'urgent');
+
+                const updated = useInboxStore.getState().threads.find(t => t.id === thread.id);
+                expect(updated?.tags).toEqual(['urgent']);
+            });
+
+            it('should allow multiple different tags', () => {
+                const store = useInboxStore.getState();
+                const thread = store.createThread('carousel');
+
+                store.addTagToThread(thread.id, 'urgent');
+                store.addTagToThread(thread.id, 'thrive-syracuse');
+                store.addTagToThread(thread.id, 'q1-launch');
+
+                const updated = useInboxStore.getState().threads.find(t => t.id === thread.id);
+                expect(updated?.tags).toHaveLength(3);
+                expect(updated?.tags).toContain('urgent');
+                expect(updated?.tags).toContain('thrive-syracuse');
+                expect(updated?.tags).toContain('q1-launch');
+            });
+        });
+
+        describe('removeTagFromThread', () => {
+            it('should remove tag from thread', () => {
+                const store = useInboxStore.getState();
+                const thread = store.createThread('carousel');
+                store.addTagToThread(thread.id, 'urgent');
+                store.addTagToThread(thread.id, 'testing');
+
+                store.removeTagFromThread(thread.id, 'urgent');
+
+                const updated = useInboxStore.getState().threads.find(t => t.id === thread.id);
+                expect(updated?.tags).toEqual(['testing']);
+            });
+
+            it('should not error when removing non-existent tag', () => {
+                const store = useInboxStore.getState();
+                const thread = store.createThread('carousel');
+
+                expect(() => {
+                    store.removeTagFromThread(thread.id, 'non-existent');
+                }).not.toThrow();
+            });
+        });
+
+        describe('setThreadTags', () => {
+            it('should replace all tags', () => {
+                const store = useInboxStore.getState();
+                const thread = store.createThread('carousel');
+                store.addTagToThread(thread.id, 'old1');
+                store.addTagToThread(thread.id, 'old2');
+
+                store.setThreadTags(thread.id, ['new1', 'new2', 'new3']);
+
+                const updated = useInboxStore.getState().threads.find(t => t.id === thread.id);
+                expect(updated?.tags).toEqual(['new1', 'new2', 'new3']);
+            });
+
+            it('should clear all tags when given empty array', () => {
+                const store = useInboxStore.getState();
+                const thread = store.createThread('carousel');
+                store.addTagToThread(thread.id, 'tag1');
+
+                store.setThreadTags(thread.id, []);
+
+                const updated = useInboxStore.getState().threads.find(t => t.id === thread.id);
+                expect(updated?.tags).toEqual([]);
+            });
+        });
+
+        describe('setSearchQuery', () => {
+            it('should update search query in filter', () => {
+                const store = useInboxStore.getState();
+
+                store.setSearchQuery('winter launch');
+
+                expect(useInboxStore.getState().threadFilter.searchQuery).toBe('winter launch');
+            });
+
+            it('should preserve other filter values', () => {
+                const store = useInboxStore.getState();
+                store.setThreadFilter({ type: 'carousel', status: 'active' });
+
+                store.setSearchQuery('test');
+
+                const filter = useInboxStore.getState().threadFilter;
+                expect(filter.type).toBe('carousel');
+                expect(filter.status).toBe('active');
+                expect(filter.searchQuery).toBe('test');
+            });
+        });
+    });
+
+    describe('Advanced Filtering (New)', () => {
+        beforeEach(() => {
+            const store = useInboxStore.getState();
+            // Create test threads with various properties
+            store.createThread('carousel', {
+                title: 'Winter Product Launch',
+                projectId: 'project-1',
+                tags: ['urgent', 'q1-launch']
+            });
+            store.createThread('bundle', {
+                title: 'Summer Bundle Deal',
+                projectId: 'project-2',
+                tags: ['seasonal']
+            });
+            store.createThread('creative', {
+                title: 'Social Media Content',
+                projectId: 'project-1'
+            });
+
+            // Pin one thread
+            const threads = useInboxStore.getState().threads;
+            store.togglePinThread(threads[1].id); // Pin the bundle thread
+        });
+
+        describe('filter by projectId', () => {
+            it('should filter threads by project', () => {
+                const store = useInboxStore.getState();
+                store.setThreadFilter({ projectId: 'project-1' });
+
+                const filtered = store.getFilteredThreads();
+
+                expect(filtered).toHaveLength(2);
+                expect(filtered.every(t => t.projectId === 'project-1')).toBe(true);
+            });
+
+            it('should show all threads when projectId is "all"', () => {
+                const store = useInboxStore.getState();
+                store.setThreadFilter({ projectId: 'all' });
+
+                const filtered = store.getFilteredThreads();
+
+                expect(filtered).toHaveLength(3);
+            });
+        });
+
+        describe('filter by tags', () => {
+            it('should filter threads by single tag', () => {
+                const store = useInboxStore.getState();
+                store.setThreadFilter({ tags: ['urgent'] });
+
+                const filtered = store.getFilteredThreads();
+
+                expect(filtered).toHaveLength(1);
+                expect(filtered[0].tags).toContain('urgent');
+            });
+
+            it('should filter threads by multiple tags (AND logic)', () => {
+                const store = useInboxStore.getState();
+                store.setThreadFilter({ tags: ['urgent', 'q1-launch'] });
+
+                const filtered = store.getFilteredThreads();
+
+                expect(filtered).toHaveLength(1);
+                expect(filtered[0].tags).toContain('urgent');
+                expect(filtered[0].tags).toContain('q1-launch');
+            });
+
+            it('should return empty when no threads match all tags', () => {
+                const store = useInboxStore.getState();
+                store.setThreadFilter({ tags: ['urgent', 'non-existent'] });
+
+                const filtered = store.getFilteredThreads();
+
+                expect(filtered).toHaveLength(0);
+            });
+        });
+
+        describe('filter by isPinned', () => {
+            it('should show only pinned threads', () => {
+                const store = useInboxStore.getState();
+                store.setThreadFilter({ isPinned: true });
+
+                const filtered = store.getFilteredThreads();
+
+                expect(filtered).toHaveLength(1);
+                expect(filtered[0].isPinned).toBe(true);
+            });
+
+            it('should show only unpinned threads', () => {
+                const store = useInboxStore.getState();
+                store.setThreadFilter({ isPinned: false });
+
+                const filtered = store.getFilteredThreads();
+
+                expect(filtered).toHaveLength(2);
+                expect(filtered.every(t => !t.isPinned)).toBe(true);
+            });
+        });
+
+        describe('filter by search query', () => {
+            it('should search in thread title', () => {
+                const store = useInboxStore.getState();
+                store.setSearchQuery('winter');
+
+                const filtered = store.getFilteredThreads();
+
+                expect(filtered).toHaveLength(1);
+                expect(filtered[0].title).toContain('Winter');
+            });
+
+            it('should search in thread preview', () => {
+                const store = useInboxStore.getState();
+                const thread = store.threads[0];
+                store.addMessageToThread(thread.id, {
+                    id: 'msg-1',
+                    type: 'user',
+                    content: 'Create a carousel for our new cannabis products',
+                    timestamp: new Date(),
+                });
+
+                store.setSearchQuery('cannabis');
+
+                const filtered = store.getFilteredThreads();
+
+                expect(filtered.length).toBeGreaterThan(0);
+            });
+
+            it('should search in thread messages', () => {
+                const store = useInboxStore.getState();
+                const thread = store.threads[0];
+                store.addMessageToThread(thread.id, {
+                    id: 'msg-1',
+                    type: 'agent',
+                    content: 'Here is your carousel with featured indica strains',
+                    timestamp: new Date(),
+                });
+
+                store.setSearchQuery('indica');
+
+                const filtered = store.getFilteredThreads();
+
+                expect(filtered).toHaveLength(1);
+            });
+
+            it('should be case-insensitive', () => {
+                const store = useInboxStore.getState();
+                store.setSearchQuery('WINTER');
+
+                const filtered = store.getFilteredThreads();
+
+                expect(filtered).toHaveLength(1);
+            });
+
+            it('should return all threads when search query is empty', () => {
+                const store = useInboxStore.getState();
+                store.setSearchQuery('');
+
+                const filtered = store.getFilteredThreads();
+
+                expect(filtered).toHaveLength(3);
+            });
+        });
+
+        describe('sorting with pinned threads', () => {
+            it('should sort pinned threads first', () => {
+                const store = useInboxStore.getState();
+                const filtered = store.getFilteredThreads();
+
+                // First thread should be pinned
+                expect(filtered[0].isPinned).toBe(true);
+            });
+
+            it('should sort unpinned threads by lastActivityAt', async () => {
+                const store = useInboxStore.getState();
+                const threads = store.threads;
+                const threadToUpdate = threads[2].id;
+
+                // Wait a bit to ensure timestamp difference
+                await new Promise(resolve => setTimeout(resolve, 10));
+
+                // Add message to third thread to update lastActivityAt
+                store.addMessageToThread(threadToUpdate, {
+                    id: 'msg-1',
+                    type: 'user',
+                    content: 'Latest message',
+                    timestamp: new Date(),
+                });
+
+                const filtered = store.getFilteredThreads();
+
+                // First should be pinned
+                expect(filtered[0].isPinned).toBe(true);
+                // Second should be the most recently active unpinned thread
+                expect(filtered[1].id).toBe(threadToUpdate);
+            });
+        });
+
+        describe('combined filters', () => {
+            it('should apply multiple filters together', () => {
+                const store = useInboxStore.getState();
+                store.setThreadFilter({
+                    projectId: 'project-1',
+                    type: 'carousel',
+                    tags: ['urgent'],
+                });
+
+                const filtered = store.getFilteredThreads();
+
+                expect(filtered).toHaveLength(1);
+                expect(filtered[0].type).toBe('carousel');
+                expect(filtered[0].projectId).toBe('project-1');
+                expect(filtered[0].tags).toContain('urgent');
             });
         });
     });

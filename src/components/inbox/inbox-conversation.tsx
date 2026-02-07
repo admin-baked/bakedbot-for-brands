@@ -23,6 +23,9 @@ import {
     Paperclip,
     FileText,
     X,
+    Pin,
+    Tag as TagIcon,
+    FolderKanban,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -222,12 +225,12 @@ function ArtifactPreviewCard({ artifact }: { artifact: InboxArtifact }) {
 // ============ Thread Header ============
 
 function ThreadHeader({ thread }: { thread: InboxThread }) {
-    const { archiveThread, deleteThread, updateThread } = useInboxStore();
+    const { archiveThread, deleteThread, updateThread, togglePinThread } = useInboxStore();
     const agent = AGENT_NAMES[thread.primaryAgent] || AGENT_NAMES.auto;
 
     return (
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
                 {/* Agent Avatar with colored ring */}
                 <div className={cn(
                     'p-2 rounded-xl ring-2 ring-offset-2 ring-offset-background',
@@ -236,47 +239,80 @@ function ThreadHeader({ thread }: { thread: InboxThread }) {
                 )}>
                     <span className="text-xl">{agent.avatar}</span>
                 </div>
-                <div>
-                    <h2 className="font-semibold">{thread.title}</h2>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                        {thread.isPinned && <Pin className="h-4 w-4 text-primary shrink-0" />}
+                        <h2 className="font-semibold truncate">{thread.title}</h2>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                         <Badge variant="outline" className="h-5 px-1.5 border-white/10">
                             {getThreadTypeLabel(thread.type)}
                         </Badge>
                         <span>with <span className={agent.color}>{agent.name}</span></span>
+                        {thread.projectId && (
+                            <Badge variant="outline" className="h-5 px-1.5 bg-primary/10 text-primary border-primary/20">
+                                <FolderKanban className="h-3 w-3 mr-1" />
+                                Project
+                            </Badge>
+                        )}
                         {thread.status === 'draft' && (
                             <Badge variant="secondary" className="h-5 px-1.5 bg-amber-500/10 text-amber-500 border-amber-500/20">
                                 Has Drafts
+                            </Badge>
+                        )}
+                        {thread.tags && thread.tags.length > 0 && (
+                            <Badge variant="outline" className="h-5 px-1.5">
+                                <TagIcon className="h-3 w-3 mr-1" />
+                                {thread.tags.length}
                             </Badge>
                         )}
                     </div>
                 </div>
             </div>
 
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => {/* TODO: Edit title */}}>
-                        <Edit2 className="h-4 w-4 mr-2" />
-                        Edit Title
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => archiveThread(thread.id)}>
-                        <Archive className="h-4 w-4 mr-2" />
-                        Archive Thread
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                        onClick={() => deleteThread(thread.id)}
-                        className="text-destructive"
-                    >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Thread
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-1">
+                {/* Pin Toggle Button */}
+                <Button
+                    variant={thread.isPinned ? "secondary" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => togglePinThread(thread.id)}
+                    title={thread.isPinned ? "Unpin thread" : "Pin thread"}
+                >
+                    <Pin className={cn("h-4 w-4", thread.isPinned && "fill-current")} />
+                </Button>
+
+                {/* More Options */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => {/* TODO: Edit title */}}>
+                            <Edit2 className="h-4 w-4 mr-2" />
+                            Edit Title
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {/* TODO: Manage tags */}}>
+                            <TagIcon className="h-4 w-4 mr-2" />
+                            Manage Tags
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => archiveThread(thread.id)}>
+                            <Archive className="h-4 w-4 mr-2" />
+                            Archive Thread
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={() => deleteThread(thread.id)}
+                            className="text-destructive"
+                        >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Thread
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
         </div>
     );
 }
