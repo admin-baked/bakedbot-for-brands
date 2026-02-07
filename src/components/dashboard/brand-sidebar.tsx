@@ -28,6 +28,7 @@ import {
     BookOpen,
     Palette,
     QrCode,
+    Monitor,
     Package,
     Utensils,
     ShoppingCart,
@@ -109,6 +110,14 @@ export function BrandSidebar() {
                                 <Link href="/dashboard/brand/creative">
                                     <Palette />
                                     <span>Creative Center</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/heroes')}>
+                                <Link href="/dashboard/heroes">
+                                    <Monitor />
+                                    <span>Hero Banners</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
