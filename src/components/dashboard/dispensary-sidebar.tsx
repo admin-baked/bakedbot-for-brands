@@ -9,7 +9,7 @@
  * - Customers: Customers, Segments, Loyalty
  * - Marketing: Creative Center, Campaigns (future)
  * - Intelligence: Competitive Intel, Deep Research
- * - Admin: CannSchemas, App Store, Settings
+ * - Admin: App Store, Settings
  */
 
 import {
@@ -38,7 +38,6 @@ import {
     Megaphone,
     Target,
     Globe,
-    Database,
     LayoutGrid,
     Settings,
     ChevronRight,
@@ -267,14 +266,6 @@ export function DispensarySidebar() {
                     <CollapsibleContent>
                         <SidebarGroupContent>
                             <SidebarMenu>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton asChild isActive={isActive('/dashboard/menu-sync')}>
-                                        <Link href="/dashboard/menu-sync">
-                                            <Database />
-                                            <span>CannSchemas</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isActive('/dashboard/apps')}>
                                         <Link href="/dashboard/apps">

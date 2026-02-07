@@ -27,6 +27,8 @@ export interface ResearchTask {
 export interface ResearchReport {
   id: string;
   taskId: string;
+  brandId: string;
+  userId: string;
   title: string;
   summary: string;
   content: string; // Markdown content

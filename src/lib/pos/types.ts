@@ -17,6 +17,7 @@ export interface POSProduct {
     thcPercent?: number;
     cbdPercent?: number;
     imageUrl?: string;
+    expirationDate?: Date; // Product/batch expiration date for clearance bundles
     rawData?: any; // Store original payload for debugging
 }
 
