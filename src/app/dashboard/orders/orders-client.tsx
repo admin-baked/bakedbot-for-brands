@@ -1,18 +1,26 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-    DropdownMenu, 
-    DropdownMenuContent, 
-    DropdownMenuItem, 
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
     DropdownMenuTrigger,
     DropdownMenuLabel,
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Pagination } from '@/components/ui/pagination';
 import { Loader2, Package, RefreshCw, MoreVertical, CheckCircle, Clock, XCircle, Truck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getOrders, updateOrderStatus, type FormState } from './actions';
@@ -38,6 +46,8 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
     const [orders, setOrders] = useState<OrderDoc[]>(initialOrders || []);
     const [loading, setLoading] = useState(!initialOrders);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
 
     const loadOrders = useCallback(async () => {
         setLoading(true);
@@ -69,9 +79,22 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
         }
     }, [initialOrders, loadOrders]);
 
+    // Calculate pagination
+    const totalPages = useMemo(() => Math.ceil(orders.length / pageSize), [orders.length, pageSize]);
+    const paginatedOrders = useMemo(() => {
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        return orders.slice(startIndex, endIndex);
+    }, [orders, currentPage, pageSize]);
+
+    // Reset to page 1 when page size changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [pageSize]);
+
     const handleStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
         setUpdatingId(orderId);
-        
+
         const formData = new FormData();
         formData.append('orderId', orderId);
         formData.append('newStatus', newStatus);
@@ -111,10 +134,28 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Recent Orders</CardTitle>
-                    <CardDescription>
-                        {orders.length} orders found.
-                    </CardDescription>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <CardTitle>Recent Orders</CardTitle>
+                            <CardDescription>
+                                Showing {paginatedOrders.length > 0 ? ((currentPage - 1) * pageSize) + 1 : 0} to {Math.min(currentPage * pageSize, orders.length)} of {orders.length} orders
+                            </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">Orders per page:</span>
+                            <Select value={pageSize.toString()} onValueChange={(value) => setPageSize(Number(value))}>
+                                <SelectTrigger className="w-[100px]">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="10">10</SelectItem>
+                                    <SelectItem value="25">25</SelectItem>
+                                    <SelectItem value="50">50</SelectItem>
+                                    <SelectItem value="100">100</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     {loading && orders.length === 0 ? (
@@ -144,7 +185,7 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {orders.map((order) => (
+                                    {paginatedOrders.map((order) => (
                                         <TableRow key={order.id}>
                                             <TableCell className="font-mono text-xs">
                                                 #{order.id.slice(-6).toUpperCase()}
@@ -210,6 +251,19 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                                     ))}
                                 </TableBody>
                             </Table>
+
+                            {/* Pagination Controls */}
+                            {totalPages > 1 && (
+                                <div className="py-4 border-t">
+                                    <Pagination
+                                        currentPage={currentPage}
+                                        totalPages={totalPages}
+                                        onPageChange={setCurrentPage}
+                                        itemsPerPage={pageSize}
+                                        totalItems={orders.length}
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
                 </CardContent>
