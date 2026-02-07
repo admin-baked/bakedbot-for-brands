@@ -15,6 +15,10 @@ export { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
 export { ArtifactPipelineBar, ArtifactPipelineCompact } from './artifact-pipeline-bar';
 export { InboxCTABanner, InboxCTAInline } from './inbox-cta-banner';
 
+// Insight Cards
+export { InsightCard } from './insight-card';
+export { InsightCardsGrid } from './insight-cards-grid';
+
 // Artifact Cards
 export { InboxCarouselCard } from './artifacts/carousel-card';
 export { InboxBundleCard } from './artifacts/bundle-card';
