@@ -50,10 +50,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useCreativeContent } from "@/hooks/use-creative-content";
 import { toast } from "sonner";
-import type { SocialPlatform } from "@/types/creative-content";
+import type { SocialPlatform, GenerateContentRequest } from "@/types/creative-content";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { getMenuData } from "@/app/dashboard/menu/actions";
+import { logger } from "@/lib/logger";
+
+// Type for menu products (minimal fields needed)
+interface MenuProduct {
+  id: string;
+  name: string;
+  brandName?: string;
+  brand?: string;
+}
+
+// Valid creative style types (non-optional since we always have a default)
+type CreativeStyle = NonNullable<GenerateContentRequest['style']>;
 import { approveAtLevel, rejectAtLevel } from "@/server/actions/creative-content";
 import { BarChart3, TrendingUp, QrCode, ShieldOff } from "lucide-react";
 import { EngagementAnalytics } from "@/components/creative/engagement-analytics";
@@ -64,104 +76,7 @@ import { useUser } from "@/firebase/auth/use-user";
 // Set to true when Gauntlet is re-enabled in agent-runner.ts
 const GAUNTLET_ENABLED = true;
 
-// --- Types & Mock Data ---
-
-interface GhostPost {
-  id: string;
-  imageUrl: string;
-  brandName: string;
-  avatarUrl: string;
-}
-
-const mockGhostPosts: GhostPost[] = [
-  {
-    id: "1",
-    imageUrl: "https://source.unsplash.com/random/400x500/?cannabis,bud",
-    brandName: "Your Brand",
-    avatarUrl: "https://github.com/shadcn.png",
-  },
-  {
-    id: "2",
-    imageUrl: "https://source.unsplash.com/random/400x500/?cannabis,lifestyle",
-    brandName: "Your Brand",
-    avatarUrl: "https://github.com/shadcn.png",
-  },
-  {
-    id: "3",
-    imageUrl: "https://source.unsplash.com/random/400x500/?cannabis,plant",
-    brandName: "Your Brand",
-    avatarUrl: "https://github.com/shadcn.png",
-  },
-];
-
-interface ChatMessage {
-  id: string;
-  sender: {
-    name: string;
-    avatarUrl: string;
-    role: string;
-  };
-  content: React.ReactNode;
-  timestamp: string;
-  type: "text" | "image_generation";
-}
-
-const mockChatHistory: ChatMessage[] = [
-  {
-    id: "1",
-    sender: {
-      name: "Craig",
-      avatarUrl: "/avatars/craig.png",
-      role: "The Marketer",
-    },
-    content: (
-      <div className="space-y-3">
-        <p>
-          Here&apos;s a draft for your campaign. How does this sound?
-        </p>
-        <div className="bg-background p-3 rounded-md border border-border text-sm">
-          "Weekend unwind with Sunset Sherbet, focusing on citrus terpenes."
-        </div>
-        <Textarea
-          placeholder="Revision request..."
-          className="bg-background border-border resize-none h-20 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
-        />
-      </div>
-    ),
-    timestamp: "2h",
-    type: "text",
-  },
-  {
-    id: "2",
-    sender: {
-      name: "Pinky",
-      avatarUrl: "/avatars/pinky.png",
-      role: "The Visual Artist",
-    },
-    content: (
-      <div className="space-y-3">
-        <p>Generated 4K images</p>
-        <div className="grid grid-cols-2 gap-2">
-          <img
-            src="https://source.unsplash.com/random/300x300/?cannabis,flower,macro"
-            alt="Generated 1"
-            className="rounded-md object-cover aspect-square border border-border"
-          />
-          <img
-            src="https://source.unsplash.com/random/300x300/?cannabis,terpenes"
-            alt="Generated 2"
-            className="rounded-md object-cover aspect-square border border-border"
-          />
-        </div>
-        <Button variant="outline" className="w-full border-border text-muted-foreground hover:text-white hover:bg-muted">
-          Generate More
-        </Button>
-      </div>
-    ),
-    timestamp: "",
-    type: "image_generation",
-  },
-];
+// --- Types ---
 
 // --- Components ---
 
@@ -298,7 +213,7 @@ export default function CreativeCommandCenter() {
   // Form state
   const [campaignPrompt, setCampaignPrompt] = useState("");
   const [contentType, setContentType] = useState("social-post");
-  const [tone, setTone] = useState("professional");
+  const [tone, setTone] = useState<CreativeStyle>("professional");
   const [menuItem, setMenuItem] = useState("");
   const [revisionNote, setRevisionNote] = useState("");
 
@@ -400,14 +315,14 @@ export default function CreativeCommandCenter() {
       setIsLoadingMenu(true);
       try {
         const menuData = await getMenuData();
-        const items = menuData.products.map((p: any) => ({
+        const items = menuData.products.map((p: MenuProduct) => ({
           id: p.id,
           name: p.name,
           brandName: p.brandName || p.brand,
         }));
         setMenuItems(items);
       } catch (err) {
-        console.error('[Creative] Failed to fetch menu items:', err);
+        logger.error('[Creative] Failed to fetch menu items', { error: String(err) });
         setMenuItems([]);
         toast.error("Failed to load menu items. Product suggestions may be limited.");
       } finally {
@@ -453,7 +368,7 @@ export default function CreativeCommandCenter() {
       const result = await generate({
         platform: selectedPlatform,
         prompt: enhancedPrompt,
-        style: tone as any,
+        style: tone,
         includeHashtags: true,
         productName: menuItem || undefined,
         tier: "free",
@@ -653,7 +568,7 @@ export default function CreativeCommandCenter() {
         generate({
           platform,
           prompt: campaignPrompt,
-          style: tone as any,
+          style: tone,
           includeHashtags: true,
           productName: menuItem || undefined,
           tier: "free",
@@ -891,7 +806,7 @@ export default function CreativeCommandCenter() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-muted-foreground">Tone</label>
-                      <Select value={tone} onValueChange={setTone}>
+                      <Select value={tone} onValueChange={(v) => setTone(v as CreativeStyle)}>
                         <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
                           <SelectValue placeholder="Select Tone" />
                         </SelectTrigger>
@@ -1576,7 +1491,7 @@ export default function CreativeCommandCenter() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-muted-foreground">Tone</label>
-                      <Select value={tone} onValueChange={setTone}>
+                      <Select value={tone} onValueChange={(v) => setTone(v as CreativeStyle)}>
                         <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
                           <SelectValue placeholder="Select Tone" />
                         </SelectTrigger>
@@ -2261,7 +2176,7 @@ export default function CreativeCommandCenter() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-muted-foreground">Tone</label>
-                      <Select value={tone} onValueChange={setTone}>
+                      <Select value={tone} onValueChange={(v) => setTone(v as CreativeStyle)}>
                         <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
                           <SelectValue placeholder="Select Tone" />
                         </SelectTrigger>
