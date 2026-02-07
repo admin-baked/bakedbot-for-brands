@@ -326,6 +326,11 @@ export function useDashboardConfig() {
     // Filter links based on user's role
     const normalizedRole = role ? role.toLowerCase() as Role : null;
 
+    // Debug logging
+    if (typeof window !== 'undefined') {
+      console.log('[Dashboard Config] User role:', role, '| Normalized:', normalizedRole);
+    }
+
     const filteredLinks = allLinks.filter(link => {
       // Always show links with no role requirements
       if (!link.roles || link.roles.length === 0) return true;
@@ -334,19 +339,34 @@ export function useDashboardConfig() {
       if (!normalizedRole) return false;
 
       // Direct match
-      if (link.roles.includes(normalizedRole)) return true;
+      if (link.roles.includes(normalizedRole)) {
+        if (link.label === 'Brand Guide' && typeof window !== 'undefined') {
+          console.log('[Dashboard Config] Brand Guide - Direct match:', normalizedRole);
+        }
+        return true;
+      }
 
       // Role hierarchy matching:
       // If link requires 'brand', allow brand_admin and brand_member
       if (link.roles.includes('brand' as Role) &&
         ['brand_admin', 'brand_member'].includes(normalizedRole)) {
+        if (link.label === 'Brand Guide' && typeof window !== 'undefined') {
+          console.log('[Dashboard Config] Brand Guide - Brand hierarchy match:', normalizedRole);
+        }
         return true;
       }
 
       // If link requires 'dispensary', allow dispensary_admin and dispensary_staff
       if (link.roles.includes('dispensary' as Role) &&
         ['dispensary_admin', 'dispensary_staff'].includes(normalizedRole)) {
+        if (link.label === 'Brand Guide' && typeof window !== 'undefined') {
+          console.log('[Dashboard Config] Brand Guide - Dispensary hierarchy match:', normalizedRole);
+        }
         return true;
+      }
+
+      if (link.label === 'Brand Guide' && typeof window !== 'undefined') {
+        console.log('[Dashboard Config] Brand Guide - NO MATCH. Role:', normalizedRole, 'Required:', link.roles);
       }
 
       return false;
