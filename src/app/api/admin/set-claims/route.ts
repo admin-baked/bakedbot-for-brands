@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { getAdminApp } from '@/firebase/admin';
+import { getAdminAuth } from '@/firebase/admin';
 
 /**
  * Admin API: Set Custom Claims
@@ -20,8 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get Firebase Admin Auth
-    const app = getAdminApp();
-    const auth = getAuth(app);
+    const auth = getAdminAuth();
 
     // Get user by email
     const user = await auth.getUserByEmail(email);
