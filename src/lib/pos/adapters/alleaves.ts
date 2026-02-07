@@ -620,10 +620,17 @@ export class ALLeavesClient implements POSClient {
         const allOrders: any[] = [];
 
         for (let page = 1; page <= maxPages; page++) {
-            // Use GET with query parameters (not POST)
-            const data = await this.request<any>(`/order?page=${page}&pageSize=${pageSize}`, {
-                method: 'GET',
-            });
+            // Use GET with query parameters - add date range to get ALL orders
+            // Set start date far in the past to ensure we get all historical orders
+            const startDate = '2020-01-01'; // Get orders from 2020 onwards
+            const endDate = new Date().toISOString().split('T')[0]; // Today
+
+            const data = await this.request<any>(
+                `/order?page=${page}&pageSize=${pageSize}&startDate=${startDate}&endDate=${endDate}`,
+                {
+                    method: 'GET',
+                }
+            );
 
             // Response is a direct array, not wrapped in { orders: [] }
             const orders = Array.isArray(data) ? data : (data.orders || data.data || []);
