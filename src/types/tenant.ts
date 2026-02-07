@@ -559,6 +559,13 @@ export interface PublicProductView {
     originalPrice?: number;
     currency?: string;
 
+    // Sale/Discount (populated by syncDiscounts)
+    isOnSale?: boolean;           // True if product has active discount
+    salePrice?: number;           // Discounted price (same as price when on sale)
+    saleBadgeText?: string;       // Display text (e.g., "20% OFF", "BOGO")
+    discountId?: string;          // ID of applied discount rule
+    saleEndsAt?: Timestamp;       // When the sale expires (for countdown timers)
+
     // Availability
     isInStock?: boolean;
     availableLocations?: number;
