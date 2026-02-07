@@ -27,11 +27,26 @@ export default async function BrandGuideSettingsPage() {
     redirect('/login');
   }
 
-  // Check role
-  const allowedRoles = ['brand', 'dispensary', 'ceo'];
-  if (!session.role || !allowedRoles.includes(session.role)) {
-    redirect('/dashboard');
+  // Check role - support all brand and dispensary role variations
+  const allowedRoles = [
+    'brand',
+    'brand_admin',
+    'brand_member',
+    'dispensary',
+    'dispensary_admin',
+    'dispensary_staff',
+    'super_user',
+    'ceo'
+  ];
+
+  const userRole = session.role?.toLowerCase();
+
+  if (!userRole || !allowedRoles.includes(userRole)) {
+    console.log('[Brand Guide] Access denied - Role:', userRole, 'Allowed:', allowedRoles);
+    redirect('/dashboard/inbox');
   }
+
+  console.log('[Brand Guide] Access granted - Role:', userRole, 'Session:', session);
 
   // Get orgId/brandId
   const brandId = session.orgId || session.uid;
