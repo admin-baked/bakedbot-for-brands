@@ -35,6 +35,14 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from '@/components/ui/sheet';
+import { Eye, DollarSign, ShoppingCart, TrendingUp } from 'lucide-react';
 
 interface OrdersPageClientProps {
     orgId: string;
@@ -69,6 +77,8 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
     const [analyzingOrderId, setAnalyzingOrderId] = useState<string | null>(null);
     const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
     const [bulkUpdating, setBulkUpdating] = useState(false);
+    const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<OrderDoc | null>(null);
+    const [autoRefresh, setAutoRefresh] = useState(false);
 
     const loadOrders = useCallback(async () => {
         setLoading(true);
@@ -170,6 +180,41 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
     useEffect(() => {
         setCurrentPage(1);
     }, [pageSize, searchQuery, statusFilter]);
+
+    // Auto-refresh orders
+    useEffect(() => {
+        if (!autoRefresh) return;
+
+        const interval = setInterval(() => {
+            loadOrders();
+        }, 30000); // Refresh every 30 seconds
+
+        return () => clearInterval(interval);
+    }, [autoRefresh, loadOrders]);
+
+    // Calculate revenue metrics
+    const metrics = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const todayOrders = orders.filter(o => {
+            const orderDate = o.createdAt instanceof Date ? o.createdAt : new Date(0);
+            return orderDate >= today;
+        });
+
+        const totalRevenue = orders.reduce((sum, o) => sum + o.totals.total, 0);
+        const todayRevenue = todayOrders.reduce((sum, o) => sum + o.totals.total, 0);
+        const avgOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
+        const pendingCount = orders.filter(o => o.status === 'pending' || o.status === 'submitted').length;
+
+        return {
+            totalRevenue,
+            todayRevenue,
+            avgOrderValue,
+            pendingCount,
+            totalOrders: orders.length
+        };
+    }, [orders]);
 
     const handleStatusUpdate = async (orderId: string, newStatus: OrderStatus) => {
         setUpdatingId(orderId);
@@ -392,6 +437,14 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                     <p className="text-muted-foreground">Manage and track customer orders in real-time.</p>
                 </div>
                 <div className="flex gap-2">
+                    <Button
+                        variant={autoRefresh ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setAutoRefresh(!autoRefresh)}
+                    >
+                        <RefreshCw className={`mr-2 h-4 w-4 ${autoRefresh ? 'animate-spin' : ''}`} />
+                        {autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
+                    </Button>
                     <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={filteredOrders.length === 0}>
                         <Download className="mr-2 h-4 w-4" />
                         Export CSV
@@ -401,6 +454,58 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                         Refresh
                     </Button>
                 </div>
+            </div>
+
+            {/* Revenue Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">${metrics.totalRevenue.toFixed(2)}</div>
+                        <p className="text-xs text-muted-foreground">
+                            From {metrics.totalOrders} orders
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Today's Revenue</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">${metrics.todayRevenue.toFixed(2)}</div>
+                        <p className="text-xs text-muted-foreground">
+                            {((metrics.todayRevenue / metrics.totalRevenue) * 100).toFixed(1)}% of total
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
+                        <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">${metrics.avgOrderValue.toFixed(2)}</div>
+                        <p className="text-xs text-muted-foreground">
+                            Across all orders
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{metrics.pendingCount}</div>
+                        <p className="text-xs text-muted-foreground">
+                            Need attention
+                        </p>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Bulk Actions Toolbar */}
@@ -676,6 +781,10 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                                                     <DropdownMenuContent align="end" className="w-48">
                                                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                         <DropdownMenuSeparator />
+                                                        <DropdownMenuItem onClick={() => setSelectedOrderForDetails(order)}>
+                                                            <Eye className="mr-2 h-4 w-4 text-gray-500" />
+                                                            View Details
+                                                        </DropdownMenuItem>
                                                         <DropdownMenuItem onClick={() => handleAIInsights(order.id)} disabled={analyzingOrderId === order.id}>
                                                             {analyzingOrderId === order.id ? (
                                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -755,6 +864,129 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Order Details Sheet */}
+            <Sheet open={!!selectedOrderForDetails} onOpenChange={(open) => !open && setSelectedOrderForDetails(null)}>
+                <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+                    {selectedOrderForDetails && (
+                        <>
+                            <SheetHeader>
+                                <SheetTitle className="flex items-center gap-2">
+                                    <Package className="h-5 w-5" />
+                                    Order #{selectedOrderForDetails.id.slice(-6).toUpperCase()}
+                                </SheetTitle>
+                                <SheetDescription>
+                                    Order details and history
+                                </SheetDescription>
+                            </SheetHeader>
+
+                            <div className="mt-6 space-y-6">
+                                {/* Status Badge */}
+                                <div>
+                                    <Badge variant="outline" className={`capitalize ${STATUS_COLORS[selectedOrderForDetails.status] || ''}`}>
+                                        {selectedOrderForDetails.status}
+                                    </Badge>
+                                </div>
+
+                                {/* Customer Information */}
+                                <div className="space-y-2">
+                                    <h3 className="font-semibold text-sm text-muted-foreground">Customer</h3>
+                                    <div className="space-y-1">
+                                        <p className="font-medium">{selectedOrderForDetails.customer.name}</p>
+                                        <p className="text-sm text-muted-foreground">{selectedOrderForDetails.customer.email}</p>
+                                        {selectedOrderForDetails.customer.phone && (
+                                            <p className="text-sm text-muted-foreground">{selectedOrderForDetails.customer.phone}</p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Order Items */}
+                                <div className="space-y-2">
+                                    <h3 className="font-semibold text-sm text-muted-foreground">Items ({selectedOrderForDetails.items.length})</h3>
+                                    <div className="space-y-3">
+                                        {selectedOrderForDetails.items.map((item, index) => (
+                                            <div key={index} className="flex justify-between items-start p-3 bg-muted/50 rounded-lg">
+                                                <div className="flex-1">
+                                                    <p className="font-medium text-sm">{item.name}</p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Quantity: {item.qty} × ${item.price.toFixed(2)}
+                                                    </p>
+                                                </div>
+                                                <p className="font-medium">${(item.qty * item.price).toFixed(2)}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Order Totals */}
+                                <div className="space-y-2">
+                                    <h3 className="font-semibold text-sm text-muted-foreground">Order Summary</h3>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Subtotal</span>
+                                            <span>${selectedOrderForDetails.totals.subtotal.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Tax</span>
+                                            <span>${selectedOrderForDetails.totals.tax.toFixed(2)}</span>
+                                        </div>
+                                        {selectedOrderForDetails.totals.discount && selectedOrderForDetails.totals.discount > 0 && (
+                                            <div className="flex justify-between text-green-600">
+                                                <span>Discount</span>
+                                                <span>-${selectedOrderForDetails.totals.discount.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between font-bold text-base pt-2 border-t">
+                                            <span>Total</span>
+                                            <span>${selectedOrderForDetails.totals.total.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Order Metadata */}
+                                <div className="space-y-2">
+                                    <h3 className="font-semibold text-sm text-muted-foreground">Order Information</h3>
+                                    <div className="space-y-1 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Order ID</span>
+                                            <span className="font-mono">{selectedOrderForDetails.id}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Created</span>
+                                            <span>
+                                                {selectedOrderForDetails.createdAt instanceof Date
+                                                    ? selectedOrderForDetails.createdAt.toLocaleString()
+                                                    : new Date(selectedOrderForDetails.createdAt as any).toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Mode</span>
+                                            <Badge variant="outline" className="capitalize">
+                                                {selectedOrderForDetails.mode}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Quick Actions */}
+                                <div className="space-y-2 pt-4 border-t">
+                                    <h3 className="font-semibold text-sm text-muted-foreground">Quick Actions</h3>
+                                    <div className="flex flex-col gap-2">
+                                        <Button variant="outline" onClick={() => handleAIInsights(selectedOrderForDetails.id)} className="w-full justify-start">
+                                            <Sparkles className="mr-2 h-4 w-4" />
+                                            AI Insights
+                                        </Button>
+                                        <Button variant="outline" onClick={() => window.location.href = `mailto:${selectedOrderForDetails.customer.email}`} className="w-full justify-start">
+                                            <Mail className="mr-2 h-4 w-4" />
+                                            Email Customer
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }
