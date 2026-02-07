@@ -6,10 +6,24 @@
  */
 
 const admin = require('firebase-admin');
+const fs = require('fs');
+const path = require('path');
 
-// Initialize Firebase Admin
+// Initialize Firebase Admin with service account (same pattern as src/firebase/admin.ts)
 if (!admin.apps.length) {
-  admin.initializeApp();
+  const serviceAccountPath = path.resolve(__dirname, '../service-account.json');
+
+  if (fs.existsSync(serviceAccountPath)) {
+    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf-8'));
+    console.log('✅ Using service account credentials from service-account.json');
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  } else {
+    console.error('❌ service-account.json not found at:', serviceAccountPath);
+    console.error('Please ensure service-account.json exists in the project root.');
+    process.exit(1);
+  }
 }
 
 async function setThriveClaims() {
@@ -20,10 +34,10 @@ async function setThriveClaims() {
     const user = await admin.auth().getUserByEmail(email);
     console.log('Found user:', user.uid);
 
-    // Set custom claims for Thrive Syracuse (Empire tier pilot customer)
+    // Set custom claims for Thrive Syracuse (Empire tier pilot customer - dispensary)
     const customClaims = {
-      role: 'brand_admin',
-      brandId: 'org_thrive_syracuse',
+      role: 'dispensary_admin',
+      locationId: 'org_thrive_syracuse',
       orgId: 'org_thrive_syracuse',
       planId: 'empire',
       email: email,

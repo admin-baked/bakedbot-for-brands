@@ -1,0 +1,50 @@
+build:
+  images:
+  - $_AR_HOSTNAME/$_DEPLOY_REGION/bakedbot-for-brands
+  options:
+    logging: CLOUD_LOGGING_ONLY
+  source:
+    repoSource:
+      branchName: main
+      projectId: bakedbot-agents
+      repoName: bakedbot-for-brands
+  steps:
+  - args:
+    - build
+    - -t
+    - $_AR_HOSTNAME/$_DEPLOY_REGION/bakedbot-for-brands
+    - -f
+    - cloud-run/openclaw-service/Dockerfile
+    - cloud-run/openclaw-service
+    name: gcr.io/cloud-builders/docker
+  - args:
+    - push
+    - $_AR_HOSTNAME/$_DEPLOY_REGION/bakedbot-for-brands
+    name: gcr.io/cloud-builders/docker
+  - args:
+    - run
+    - services
+    - update
+    - bakedbot-for-brands
+    - --platform=managed
+    - --image=$_AR_HOSTNAME/$_DEPLOY_REGION/bakedbot-for-brands
+    - --region=$_DEPLOY_REGION
+    - --quiet
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+  tags:
+  - gcp-cloud-build-deploy-cloud-run
+  - gcp-cloud-build-deploy-cloud-run-managed
+  - bakedbot-for-brands
+description: Build and deploy to Cloud Run service bakedbot-for-brands on push to "^main$"
+filename: cloud-run/openclaw-service/Dockerfile
+github:
+  name: bakedbot-for-brands
+  owner: admin-baked
+  push:
+    branch: ^main$
+name: bakedbot-for-brands-trigger
+substitutions:
+  _AR_HOSTNAME: us-central1-docker.pkg.dev
+  _DEPLOY_REGION: us-central1
+  _PLATFORM: managed
+  _SERVICE_NAME: bakedbot-for-brands
