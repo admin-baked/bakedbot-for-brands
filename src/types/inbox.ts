@@ -144,10 +144,15 @@ export interface InboxThread {
     // Conversation messages
     messages: ChatMessage[];
 
-    // Project/context reference (optional)
-    projectId?: string;
+    // Project/context reference
+    projectId?: string;          // Claude Projects-style context
     brandId?: string;
     dispensaryId?: string;
+
+    // Organization features
+    isPinned?: boolean;          // Pin to top of list
+    tags?: string[];             // Custom tags for filtering
+    color?: string;              // Thread color (inherited from project or custom)
 
     // Timestamps
     createdAt: Date;
@@ -660,6 +665,10 @@ export interface InboxFilter {
     type: InboxThreadType | 'all';
     status: InboxThreadStatus | 'all';
     agent: InboxAgentPersona | 'all';
+    projectId?: string | 'all';     // Filter by project
+    tags?: string[];                 // Filter by tags
+    isPinned?: boolean;              // Show only pinned
+    searchQuery?: string;            // Search in title/messages
     dateRange?: {
         start: Date;
         end: Date;
@@ -965,6 +974,8 @@ export const CreateInboxThreadSchema = z.object({
     projectId: z.string().optional(),
     brandId: z.string().optional(),
     dispensaryId: z.string().optional(),
+    tags: z.array(z.string()).optional(),
+    color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
     initialMessage: z.any().optional(), // ChatMessage object (optional)
 });
 
@@ -972,6 +983,9 @@ export const UpdateInboxThreadSchema = z.object({
     title: z.string().min(1).max(200).optional(),
     status: InboxThreadStatusSchema.optional(),
     primaryAgent: InboxAgentPersonaSchema.optional(),
+    isPinned: z.boolean().optional(),
+    tags: z.array(z.string()).optional(),
+    color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
 });
 
 // ============ Helper Functions ============
