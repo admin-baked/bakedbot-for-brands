@@ -317,10 +317,12 @@ export async function getOrders(params: GetOrdersParams | string = {}): Promise<
             if (orgId) query = query.where('brandId', '==', orgId);
         } else if (user.role === 'dispensary' || user.role === 'dispensary_admin' || user.role === 'dispensary_staff' || user.role === 'budtender') {
             // Dispensary roles see orders for their location
-            const dispensaryId = locationId || orgId;
+            // Priority: orgId (tenant-level) > locationId (legacy)
+            const dispensaryId = orgId || locationId;
             if (!dispensaryId) {
                 return { success: false, error: 'Dispensary ID not found' };
             }
+            logger.info('[ORDERS] Querying orders for dispensary', { dispensaryId, orgId, locationId });
             query = query.where('retailerId', '==', dispensaryId);
         } else if (user.role === 'brand' || user.role === 'brand_admin' || user.role === 'brand_member') {
             // Brand roles see orders for their brand
