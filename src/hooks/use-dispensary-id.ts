@@ -44,16 +44,40 @@ export function useDispensaryId() {
 
                     if (!snapshot.empty) {
                         setDispensaryId(snapshot.docs[0].id);
-                    } else {
-                        // Try locations collection as fallback
-                        const locationsRef = collection(firebase.firestore, 'locations');
-                        const locQ = query(locationsRef, where('ownerId', '==', user.uid), limit(1));
-                        const locSnapshot = await getDocs(locQ);
+                        setLoading(false);
+                        return;
+                    }
 
-                        if (!locSnapshot.empty) {
-                            const locData = locSnapshot.docs[0].data();
-                            setDispensaryId(locData.orgId || locSnapshot.docs[0].id);
-                        }
+                    // Try locations collection as fallback
+                    const locationsRef = collection(firebase.firestore, 'locations');
+                    const locQ = query(locationsRef, where('ownerId', '==', user.uid), limit(1));
+                    const locSnapshot = await getDocs(locQ);
+
+                    if (!locSnapshot.empty) {
+                        const locData = locSnapshot.docs[0].data();
+                        setDispensaryId(locData.orgId || locSnapshot.docs[0].id);
+                        setLoading(false);
+                        return;
+                    }
+
+                    // Try organizations collection as fallback
+                    const orgsRef = collection(firebase.firestore, 'organizations');
+                    const orgQ = query(orgsRef, where('ownerId', '==', user.uid), limit(1));
+                    const orgSnapshot = await getDocs(orgQ);
+
+                    if (!orgSnapshot.empty) {
+                        setDispensaryId(orgSnapshot.docs[0].id);
+                        setLoading(false);
+                        return;
+                    }
+
+                    // Try tenants collection as final fallback
+                    const tenantsRef = collection(firebase.firestore, 'tenants');
+                    const tenantQ = query(tenantsRef, where('ownerId', '==', user.uid), limit(1));
+                    const tenantSnapshot = await getDocs(tenantQ);
+
+                    if (!tenantSnapshot.empty) {
+                        setDispensaryId(tenantSnapshot.docs[0].id);
                     }
                 } catch (error) {
                     console.error('Error fetching dispensary ID:', error);

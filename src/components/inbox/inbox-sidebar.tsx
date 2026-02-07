@@ -50,7 +50,7 @@ import type {
     InboxQuickAction,
 } from '@/types/inbox';
 import { getThreadTypeIcon, getThreadTypeLabel } from '@/types/inbox';
-import { formatDistanceToNow } from 'date-fns';
+import { formatSmartTime } from '@/lib/utils/format-time';
 import { createInboxThread } from '@/server/actions/inbox';
 import { useToast } from '@/hooks/use-toast';
 import { ProjectSelector } from '@/components/dashboard/project-selector';
@@ -208,11 +208,7 @@ function ThreadListItem({
     const Icon = getIcon(getThreadTypeIcon(thread.type));
 
     const timeAgo = useMemo(() => {
-        try {
-            return formatDistanceToNow(new Date(thread.lastActivityAt), { addSuffix: true });
-        } catch {
-            return '';
-        }
+        return formatSmartTime(thread.lastActivityAt, { abbreviated: true });
     }, [thread.lastActivityAt]);
 
     if (collapsed) {
@@ -262,7 +258,7 @@ function ThreadListItem({
                                 {thread.title}
                             </span>
                         </div>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0 min-w-[32px] text-right">
                             {timeAgo}
                         </span>
                     </div>

@@ -271,8 +271,9 @@ export default function BrandSetupTab() {
                             Ezal Auto-Discovery
                         </h4>
                         <p className="text-xs text-blue-800/70">
-                            By clicking "Save & Discover", our AI will automatically pull in the top 3 competitors
-                            dominating your primary ZIP code and set up your performance tracking indexes.
+                            {role === 'dispensary'
+                                ? 'By clicking "Save & Discover", our AI will automatically find nearby dispensaries in your market and set up competitive pricing intelligence.'
+                                : 'By clicking "Save & Discover", our AI will automatically pull in the top 3 competitors dominating your primary ZIP code and set up your performance tracking indexes.'}
                         </p>
                     </div>
 

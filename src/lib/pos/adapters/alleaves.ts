@@ -65,6 +65,8 @@ export interface ALLeavesInventoryItem {
     is_cannabis: boolean;
     cost_of_good?: number;           // Item cost of goods sold
     batch_cost_of_good?: number;     // Batch cost of goods sold
+    expiration_date?: string;        // Batch expiration date (ISO string)
+    package_date?: string;           // Package/harvest date
 }
 
 /**
@@ -361,6 +363,15 @@ export class ALLeavesClient implements POSClient {
                 price = Math.round(item.cost_of_good * markup * 100) / 100; // Round to cents
             }
 
+            // Parse expiration date if available
+            let expirationDate: Date | undefined;
+            if (item.expiration_date) {
+                const parsed = new Date(item.expiration_date);
+                if (!isNaN(parsed.getTime())) {
+                    expirationDate = parsed;
+                }
+            }
+
             return {
                 externalId: item.id_item.toString(),
                 name: item.item,
@@ -371,6 +382,7 @@ export class ALLeavesClient implements POSClient {
                 thcPercent: item.thc || undefined,
                 cbdPercent: item.cbd || undefined,
                 imageUrl: getPlaceholderImageForCategory(category), // Use category-based placeholder
+                expirationDate,                              // Batch expiration for clearance bundles
                 rawData: item,
             };
         });

@@ -139,6 +139,29 @@ export async function autoDiscoverCompetitors(orgId: string, forceRefresh = fals
             }
         }
 
+        // Fallback: check locations collection for dispensary users
+        if (!state) {
+            const locationsSnap = await firestore.collection('locations')
+                .where('orgId', '==', orgId)
+                .limit(1)
+                .get();
+            if (!locationsSnap.empty) {
+                const locationData = locationsSnap.docs[0].data();
+                state = locationData?.state;
+                city = locationData?.city;
+            }
+        }
+
+        // Fallback: check tenants collection
+        if (!state) {
+            const tenantDoc = await firestore.collection('tenants').doc(orgId).get();
+            if (tenantDoc.exists) {
+                const tenantData = tenantDoc.data();
+                state = tenantData?.state;
+                city = tenantData?.city;
+            }
+        }
+
         if (!state) {
             logger.warn('No market state set for competitor discovery', { orgId });
             return { discovered: 0 };

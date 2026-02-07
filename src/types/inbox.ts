@@ -317,6 +317,26 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         promptTemplate: 'Help me create a trackable QR code',
         roles: ALL_BUSINESS_ROLES,
     },
+    {
+        id: 'create-image',
+        label: 'Create Image',
+        description: 'Generate AI product or lifestyle images for marketing',
+        icon: 'ImagePlus',
+        threadType: 'creative',
+        defaultAgent: 'craig',
+        promptTemplate: 'Help me create marketing images. I need product photography or lifestyle imagery for my dispensary.',
+        roles: ALL_BUSINESS_ROLES,
+    },
+    {
+        id: 'create-video',
+        label: 'Create Video',
+        description: 'Generate short-form video content for social media',
+        icon: 'Video',
+        threadType: 'creative',
+        defaultAgent: 'craig',
+        promptTemplate: 'Help me create video content for social media. I need engaging short-form videos for TikTok or Instagram Reels.',
+        roles: ALL_BUSINESS_ROLES,
+    },
 
     // ============ Product Launch (Brand + Dispensary) ============
     {
