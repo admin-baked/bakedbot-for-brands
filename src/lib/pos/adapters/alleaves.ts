@@ -560,8 +560,8 @@ export class ALLeavesClient implements POSClient {
 
         // Debug: Log response structure on first page
         if (page === 1) {
-            console.log('[ALLEAVES] Customer API response keys:', Object.keys(data));
-            console.log('[ALLEAVES] Response structure:', {
+            logger.debug('[ALLEAVES] Customer API response', {
+                keys: Object.keys(data),
                 hasCustomers: !!data.customers,
                 hasData: !!data.data,
                 hasMeta: !!data.meta,
@@ -586,22 +586,25 @@ export class ALLeavesClient implements POSClient {
         for (let page = 1; page <= maxPages; page++) {
             const customers = await this.getAllCustomers(page, pageSize);
 
-            console.log(`[ALLEAVES] Page ${page}: fetched ${customers?.length || 0} customers`);
+            logger.debug('[ALLEAVES] Fetched customers page', { page, count: customers?.length || 0 });
 
             if (!customers || customers.length === 0) {
-                console.log(`[ALLEAVES] Stopping at page ${page}: no more customers`);
+                logger.info('[ALLEAVES] No more customers, stopping pagination', { page });
                 break; // No more customers
             }
 
             allCustomers.push(...customers);
 
             if (customers.length < pageSize) {
-                console.log(`[ALLEAVES] Stopping at page ${page}: last page (${customers.length} < ${pageSize})`);
+                logger.info('[ALLEAVES] Last page of customers', { page, count: customers.length, pageSize });
                 break; // Last page
             }
         }
 
-        console.log(`[ALLEAVES] Total customers fetched: ${allCustomers.length} across ${Math.ceil(allCustomers.length / pageSize)} pages`);
+        logger.info('[ALLEAVES] Total customers fetched', {
+            totalCustomers: allCustomers.length,
+            pages: Math.ceil(allCustomers.length / pageSize)
+        });
         return allCustomers;
     }
 
@@ -630,11 +633,11 @@ export class ALLeavesClient implements POSClient {
 
                 // Stop if we got fewer than pageSize (last page)
                 if (orders.length < pageSize) {
-                    console.log(`[ALLEAVES] Reached last page ${page}: ${orders.length} orders`);
+                    logger.info('[ALLEAVES] Reached last page', { page, orderCount: orders.length });
                     break;
                 }
             } else {
-                console.log(`[ALLEAVES] No orders on page ${page}, stopping pagination`);
+                logger.info('[ALLEAVES] No orders on page, stopping pagination', { page });
                 break;
             }
 
@@ -644,7 +647,10 @@ export class ALLeavesClient implements POSClient {
             }
         }
 
-        console.log(`[ALLEAVES] Total orders fetched: ${allOrders.length} across ${Math.ceil(allOrders.length / pageSize)} pages`);
+        logger.info('[ALLEAVES] Total orders fetched', {
+            totalOrders: allOrders.length,
+            pages: Math.ceil(allOrders.length / pageSize)
+        });
         return allOrders.slice(0, maxOrders);
     }
 
@@ -655,10 +661,10 @@ export class ALLeavesClient implements POSClient {
      * @returns Map of customer ID to { totalSpent, orderCount, lastOrderDate, firstOrderDate }
      */
     async getCustomerSpending(): Promise<Map<number, { totalSpent: number; orderCount: number; lastOrderDate: Date; firstOrderDate: Date }>> {
-        console.log('[ALLEAVES] Fetching all orders to calculate customer spending...');
+        logger.info('[ALLEAVES] Fetching all orders to calculate customer spending');
 
         const orders = await this.getAllOrders(100000); // Get up to 100k orders for complete history
-        console.log(`[ALLEAVES] Analyzing ${orders.length} orders for customer spending`);
+        logger.info('[ALLEAVES] Analyzing orders for customer spending', { orderCount: orders.length });
 
         const customerSpending = new Map<number, { totalSpent: number; orderCount: number; lastOrderDate: Date; firstOrderDate: Date }>();
 
@@ -690,7 +696,7 @@ export class ALLeavesClient implements POSClient {
             }
         });
 
-        console.log(`[ALLEAVES] Calculated spending for ${customerSpending.size} customers`);
+        logger.info('[ALLEAVES] Calculated spending for customers', { customerCount: customerSpending.size });
         return customerSpending;
     }
 
