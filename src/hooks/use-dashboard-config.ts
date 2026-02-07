@@ -89,6 +89,13 @@ export function useDashboardConfig() {
         roles: ['brand', 'super_user'],
       },
       {
+        label: 'Brand Guide',
+        href: '/dashboard/settings/brand-guide',
+        icon: 'BookOpenCheck',
+        description: 'Manage brand identity, voice, and visual guidelines.',
+        roles: ['brand', 'dispensary', 'super_user'],
+      },
+      {
         label: 'Creative Center',
         href: '/dashboard/brand/creative',
         icon: 'Palette',
