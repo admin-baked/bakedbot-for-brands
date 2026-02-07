@@ -184,8 +184,8 @@ async function getOrdersFromAlleaves(orgId: string, firestore: FirebaseFirestore
 
         const client = new ALLeavesClient(alleavesConfig);
 
-        // Fetch recent orders from Alleaves
-        const alleavesOrders = await client.getAllOrders(100);
+        // Fetch recent orders from Alleaves (increased limit to match Firestore)
+        const alleavesOrders = await client.getAllOrders(10000);
 
         logger.info('[ORDERS] Fetched orders from Alleaves', {
             orgId,
