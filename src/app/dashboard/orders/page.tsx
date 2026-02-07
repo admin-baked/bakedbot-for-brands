@@ -22,8 +22,8 @@ function serializeOrders(orders: OrderDoc[]) {
 
 export default async function OrdersPage() {
     const user = await requireUser(['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
-    // Ensure orgId is always a valid string
-    const orgId = String((user as any).brandId || user.uid);
+    // Ensure orgId is always a valid string - check orgId first (for dispensaries), then brandId, then uid
+    const orgId = String((user as any).orgId || (user as any).currentOrgId || (user as any).brandId || (user as any).locationId || user.uid);
 
     // Pre-fetch digital orders for SSR
     let initialOrders: OrderDoc[] = [];
