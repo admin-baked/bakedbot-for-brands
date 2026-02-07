@@ -35,6 +35,7 @@ import { useUserRole } from '@/hooks/use-user-role';
 import type { InboxQuickAction } from '@/types/inbox';
 import { createInboxThread } from '@/server/actions/inbox';
 import { useToast } from '@/hooks/use-toast';
+import { InsightCardsGrid } from './insight-cards-grid';
 
 // ============ Props ============
 
@@ -251,7 +252,10 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
 
     return (
         <div className={cn('flex items-center justify-center h-full p-8', className)}>
-            <div className="max-w-2xl w-full space-y-8">
+            <div className="max-w-4xl w-full space-y-8">
+                {/* Daily Briefing - Insight Cards */}
+                <InsightCardsGrid maxCards={5} />
+
                 {/* Welcome Header with Contextual Greeting */}
                 <div className="text-center">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
