@@ -446,7 +446,7 @@ describe('Priority Descriptions', () => {
 
 describe('Ground Truth v1.0 - Version', () => {
     it('should export version constant', () => {
-        expect(GROUND_TRUTH_VERSION).toBe('1.0');
+        expect(GROUND_TRUTH_VERSION).toBe('2.0');
     });
 });
 
