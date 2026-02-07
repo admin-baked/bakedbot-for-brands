@@ -23,7 +23,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
-import { Loader2, Package, RefreshCw, MoreVertical, CheckCircle, Clock, XCircle, Truck, Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, AlertTriangle, Crown } from 'lucide-react';
+import { Loader2, Package, RefreshCw, MoreVertical, CheckCircle, Clock, XCircle, Truck, Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, AlertTriangle, Crown, Mail, Trash2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { getOrders, updateOrderStatus, analyzeOrderWithAI, type FormState } from './actions';
 import type { OrderDoc, OrderStatus } from '@/types/orders';
@@ -66,6 +67,8 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
     const [sortDirection, setSortDirection] = useState<SortDirection>(null);
     const [aiInsights, setAiInsights] = useState<{ orderId: string; insights: string } | null>(null);
     const [analyzingOrderId, setAnalyzingOrderId] = useState<string | null>(null);
+    const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
+    const [bulkUpdating, setBulkUpdating] = useState(false);
 
     const loadOrders = useCallback(async () => {
         setLoading(true);
@@ -309,6 +312,78 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
         return { isVIP: false, reason: '' };
     };
 
+    // Bulk selection handlers
+    const handleSelectAll = () => {
+        if (selectedOrders.size === paginatedOrders.length) {
+            setSelectedOrders(new Set());
+        } else {
+            setSelectedOrders(new Set(paginatedOrders.map(o => o.id)));
+        }
+    };
+
+    const handleSelectOrder = (orderId: string) => {
+        const newSelected = new Set(selectedOrders);
+        if (newSelected.has(orderId)) {
+            newSelected.delete(orderId);
+        } else {
+            newSelected.add(orderId);
+        }
+        setSelectedOrders(newSelected);
+    };
+
+    const handleBulkStatusUpdate = async (newStatus: OrderStatus) => {
+        if (selectedOrders.size === 0) return;
+
+        setBulkUpdating(true);
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const orderId of selectedOrders) {
+            const formData = new FormData();
+            formData.append('orderId', orderId);
+            formData.append('newStatus', newStatus);
+
+            const prevState: FormState = { message: '', error: false };
+            const result = await updateOrderStatus(prevState, formData);
+
+            if (!result.error) {
+                successCount++;
+                // Update local state
+                setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
+            } else {
+                failCount++;
+            }
+        }
+
+        setBulkUpdating(false);
+        setSelectedOrders(new Set());
+
+        toast({
+            title: successCount > 0 ? "Bulk Update Complete" : "Bulk Update Failed",
+            description: `${successCount} orders updated${failCount > 0 ? `, ${failCount} failed` : ''}`,
+            variant: failCount > 0 ? 'destructive' : 'default'
+        });
+    };
+
+    const handleBulkEmail = () => {
+        if (selectedOrders.size === 0) return;
+
+        const selectedOrdersList = paginatedOrders.filter(o => selectedOrders.has(o.id));
+        const emails = selectedOrdersList.map(o => o.customer.email).join(',');
+
+        // Open email client with pre-filled recipients
+        window.location.href = `mailto:${emails}?subject=Order Update&body=Hello,`;
+
+        toast({
+            title: "Email Client Opened",
+            description: `${selectedOrders.size} customer emails loaded`
+        });
+    };
+
+    const handleClearSelection = () => {
+        setSelectedOrders(new Set());
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -327,6 +402,70 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                     </Button>
                 </div>
             </div>
+
+            {/* Bulk Actions Toolbar */}
+            {selectedOrders.size > 0 && (
+                <Card className="p-4 border-primary">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                            <Checkbox
+                                checked={true}
+                                onCheckedChange={handleClearSelection}
+                            />
+                            <span className="font-medium text-sm">
+                                {selectedOrders.size} order{selectedOrders.size > 1 ? 's' : ''} selected
+                            </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm" disabled={bulkUpdating}>
+                                        {bulkUpdating ? (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <CheckCircle className="mr-2 h-4 w-4" />
+                                        )}
+                                        Update Status
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>Change Status for {selectedOrders.size} orders</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleBulkStatusUpdate('confirmed')}>
+                                        <CheckCircle className="mr-2 h-4 w-4 text-blue-500" />
+                                        Mark as Confirmed
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleBulkStatusUpdate('preparing')}>
+                                        <Clock className="mr-2 h-4 w-4 text-purple-500" />
+                                        Mark as Preparing
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleBulkStatusUpdate('ready')}>
+                                        <Package className="mr-2 h-4 w-4 text-indigo-500" />
+                                        Mark as Ready
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleBulkStatusUpdate('completed')}>
+                                        <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                                        Mark as Completed
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => handleBulkStatusUpdate('cancelled')} className="text-destructive">
+                                        <XCircle className="mr-2 h-4 w-4" />
+                                        Cancel Orders
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                            <Button variant="outline" size="sm" onClick={handleBulkEmail}>
+                                <Mail className="mr-2 h-4 w-4" />
+                                Email Customers
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={handleClearSelection}>
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Clear Selection
+                            </Button>
+                        </div>
+                    </div>
+                </Card>
+            )}
 
             {/* Search and Filters */}
             <Card className="p-4">
@@ -400,6 +539,13 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                             <Table>
                                 <TableHeader>
                                     <TableRow>
+                                        <TableHead className="w-12">
+                                            <Checkbox
+                                                checked={paginatedOrders.length > 0 && selectedOrders.size === paginatedOrders.length}
+                                                onCheckedChange={handleSelectAll}
+                                                aria-label="Select all"
+                                            />
+                                        </TableHead>
                                         <TableHead>
                                             <Button
                                                 variant="ghost"
@@ -470,7 +616,14 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                                 </TableHeader>
                                 <TableBody>
                                     {paginatedOrders.map((order) => (
-                                        <TableRow key={order.id}>
+                                        <TableRow key={order.id} className={selectedOrders.has(order.id) ? 'bg-muted/50' : ''}>
+                                            <TableCell className="w-12">
+                                                <Checkbox
+                                                    checked={selectedOrders.has(order.id)}
+                                                    onCheckedChange={() => handleSelectOrder(order.id)}
+                                                    aria-label={`Select order ${order.id}`}
+                                                />
+                                            </TableCell>
                                             <TableCell className="font-mono text-xs">
                                                 #{order.id.slice(-6).toUpperCase()}
                                             </TableCell>
