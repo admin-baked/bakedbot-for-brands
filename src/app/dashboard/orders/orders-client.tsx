@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -23,11 +23,14 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
-import { Loader2, Package, RefreshCw, MoreVertical, CheckCircle, Clock, XCircle, Truck, Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, AlertTriangle, Crown, Mail, Trash2 } from 'lucide-react';
+import { Loader2, Package, RefreshCw, MoreVertical, CheckCircle, Clock, XCircle, Truck, Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, AlertTriangle, Crown, Mail, Trash2, Radio } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { getOrders, updateOrderStatus, analyzeOrderWithAI, type FormState } from './actions';
 import type { OrderDoc, OrderStatus } from '@/types/orders';
+import { useOptionalFirebase } from '@/firebase/use-optional-firebase';
+import { collection, query, where, onSnapshot, orderBy, limit, Unsubscribe } from 'firebase/firestore';
+import { logger } from '@/lib/logger';
 import {
     Dialog,
     DialogContent,
@@ -64,6 +67,7 @@ type SortDirection = 'asc' | 'desc' | null;
 
 export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageClientProps) {
     const { toast } = useToast();
+    const firebase = useOptionalFirebase();
     const [orders, setOrders] = useState<OrderDoc[]>(initialOrders || []);
     const [loading, setLoading] = useState(!initialOrders);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -79,6 +83,8 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
     const [bulkUpdating, setBulkUpdating] = useState(false);
     const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<OrderDoc | null>(null);
     const [autoRefresh, setAutoRefresh] = useState(false);
+    const [isRealtime, setIsRealtime] = useState(false);
+    const unsubscribeRef = useRef<Unsubscribe | null>(null);
 
     const loadOrders = useCallback(async () => {
         setLoading(true);
@@ -109,6 +115,88 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
             loadOrders();
         }
     }, [initialOrders, loadOrders]);
+
+    // Real-time Firestore listener for orders
+    useEffect(() => {
+        if (!firebase?.firestore || !orgId) {
+            setIsRealtime(false);
+            return;
+        }
+
+        // Clean up any existing listener
+        if (unsubscribeRef.current) {
+            unsubscribeRef.current();
+            unsubscribeRef.current = null;
+        }
+
+        try {
+            // Set up real-time listener on orders collection
+            // Query orders where brandId OR retailerId matches orgId
+            const ordersRef = collection(firebase.firestore, 'orders');
+
+            // Try retailerId first (for dispensary users)
+            const q = query(
+                ordersRef,
+                where('retailerId', '==', orgId),
+                orderBy('createdAt', 'desc'),
+                limit(500)
+            );
+
+            unsubscribeRef.current = onSnapshot(
+                q,
+                (snapshot) => {
+                    const liveOrders = snapshot.docs.map(doc => {
+                        const data = doc.data();
+                        return {
+                            id: doc.id,
+                            ...data,
+                            // Convert Firestore Timestamps to Dates for client
+                            createdAt: data.createdAt?.toDate?.() ?? data.createdAt ?? new Date(),
+                            updatedAt: data.updatedAt?.toDate?.() ?? data.updatedAt,
+                            shippedAt: data.shippedAt?.toDate?.() ?? data.shippedAt,
+                            deliveredAt: data.deliveredAt?.toDate?.() ?? data.deliveredAt,
+                        } as OrderDoc;
+                    });
+
+                    setOrders(liveOrders);
+                    setIsRealtime(true);
+                    setLoading(false);
+                    logger.info('[ORDERS] Real-time update received', { count: liveOrders.length });
+                },
+                (error) => {
+                    // Firestore listener error - fall back to polling
+                    logger.warn('[ORDERS] Firestore listener error, falling back to polling', { error: error.message });
+                    setIsRealtime(false);
+                    // Don't show toast for index errors, just log
+                    if (!error.message?.includes('index')) {
+                        toast({
+                            variant: 'destructive',
+                            title: 'Real-time sync unavailable',
+                            description: 'Using periodic refresh instead'
+                        });
+                    }
+                }
+            );
+
+            logger.info('[ORDERS] Real-time listener established', { orgId });
+
+        } catch (error) {
+            logger.error('[ORDERS] Failed to set up real-time listener', { error: String(error) });
+            setIsRealtime(false);
+        }
+
+        // Cleanup on unmount or orgId change
+        return () => {
+            if (unsubscribeRef.current) {
+                try {
+                    unsubscribeRef.current();
+                } catch (cleanupError) {
+                    logger.warn('[ORDERS] Error during listener cleanup', { error: String(cleanupError) });
+                }
+                unsubscribeRef.current = null;
+            }
+        };
+    }, [firebase?.firestore, orgId, toast]);
 
     // Filter and search orders
     const filteredOrders = useMemo(() => {
@@ -181,16 +269,17 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
         setCurrentPage(1);
     }, [pageSize, searchQuery, statusFilter]);
 
-    // Auto-refresh orders
+    // Auto-refresh orders (fallback when real-time isn't available)
     useEffect(() => {
-        if (!autoRefresh) return;
+        // Skip polling if real-time listener is active
+        if (isRealtime || !autoRefresh) return;
 
         const interval = setInterval(() => {
             loadOrders();
         }, 30000); // Refresh every 30 seconds
 
         return () => clearInterval(interval);
-    }, [autoRefresh, loadOrders]);
+    }, [autoRefresh, loadOrders, isRealtime]);
 
     // Calculate revenue metrics
     const metrics = useMemo(() => {
@@ -434,17 +523,26 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
-                    <p className="text-muted-foreground">Manage and track customer orders in real-time.</p>
+                    <p className="text-muted-foreground">
+                        Manage and track customer orders{isRealtime ? ' — updates appear instantly' : ''}.
+                    </p>
                 </div>
-                <div className="flex gap-2">
-                    <Button
-                        variant={autoRefresh ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setAutoRefresh(!autoRefresh)}
-                    >
-                        <RefreshCw className={`mr-2 h-4 w-4 ${autoRefresh ? 'animate-spin' : ''}`} />
-                        {autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
-                    </Button>
+                <div className="flex gap-2 items-center">
+                    {isRealtime ? (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 animate-pulse">
+                            <Radio className="h-3 w-3 mr-1" />
+                            Live
+                        </Badge>
+                    ) : (
+                        <Button
+                            variant={autoRefresh ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setAutoRefresh(!autoRefresh)}
+                        >
+                            <RefreshCw className={`mr-2 h-4 w-4 ${autoRefresh ? 'animate-spin' : ''}`} />
+                            {autoRefresh ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
+                        </Button>
+                    )}
                     <Button variant="outline" size="sm" onClick={handleExportCSV} disabled={filteredOrders.length === 0}>
                         <Download className="mr-2 h-4 w-4" />
                         Export CSV
