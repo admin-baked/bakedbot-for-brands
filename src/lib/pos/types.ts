@@ -18,7 +18,15 @@ export interface POSProduct {
     cbdPercent?: number;
     imageUrl?: string;
     expirationDate?: Date; // Product/batch expiration date for clearance bundles
-    rawData?: any; // Store original payload for debugging
+    rawData?: Record<string, unknown>; // Store original payload for debugging
+
+    // Sale/Discount fields (populated by fetchMenuWithDiscounts)
+    isOnSale?: boolean;           // True if product has active discount
+    originalPrice?: number;       // Original price before discount
+    salePrice?: number;           // Discounted price
+    saleBadgeText?: string;       // Display text (e.g., "20% OFF", "BOGO")
+    discountId?: string;          // ID of applied discount rule
+    discountName?: string;        // Name of discount for reference
 }
 
 export interface POSClient {

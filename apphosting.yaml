@@ -224,6 +224,10 @@ env:
     secret: ALLEAVES_PIN
     availability:
       - RUNTIME
+  - variable: ALLEAVES_LOCATION_ID
+    secret: ALLEAVES_LOCATION_ID
+    availability:
+      - RUNTIME
 
 
 runConfig:
