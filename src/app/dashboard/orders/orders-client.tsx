@@ -84,6 +84,7 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
     const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<OrderDoc | null>(null);
     const [autoRefresh, setAutoRefresh] = useState(false);
     const [isRealtime, setIsRealtime] = useState(false);
+    const [isPOSSource, setIsPOSSource] = useState(false);
     const unsubscribeRef = useRef<Unsubscribe | null>(null);
 
     const loadOrders = useCallback(async () => {
@@ -92,6 +93,11 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
             const result = await getOrders({ orgId });
             if (result.success && result.data) {
                 setOrders(result.data);
+                // Detect if orders are from POS (they have IDs starting with alleaves_ or numeric IDs)
+                const hasPOSOrders = result.data.some(o =>
+                    o.id.startsWith('alleaves_') || /^\d+$/.test(o.id)
+                );
+                setIsPOSSource(hasPOSOrders);
             } else {
                 toast({
                     variant: 'destructive',
@@ -117,6 +123,8 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
     }, [initialOrders, loadOrders]);
 
     // Real-time Firestore listener for orders
+    // Note: For POS-integrated orgs (like Alleaves), orders come from POS API, not Firestore
+    // The real-time listener supplements but doesn't replace POS orders
     useEffect(() => {
         if (!firebase?.firestore || !orgId) {
             setIsRealtime(false);
@@ -131,10 +139,9 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
 
         try {
             // Set up real-time listener on orders collection
-            // Query orders where brandId OR retailerId matches orgId
             const ordersRef = collection(firebase.firestore, 'orders');
 
-            // Try retailerId first (for dispensary users)
+            // Query orders where retailerId matches orgId
             const q = query(
                 ordersRef,
                 where('retailerId', '==', orgId),
@@ -158,23 +165,24 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                         } as OrderDoc;
                     });
 
-                    setOrders(liveOrders);
-                    setIsRealtime(true);
-                    setLoading(false);
-                    logger.info('[ORDERS] Real-time update received', { count: liveOrders.length });
+                    // Only use real-time if we actually have Firestore orders
+                    // If empty, orders are likely from POS API (fetched server-side)
+                    if (liveOrders.length > 0) {
+                        setOrders(liveOrders);
+                        setIsRealtime(true);
+                        setLoading(false);
+                        logger.info('[ORDERS] Real-time Firestore update', { count: liveOrders.length });
+                    } else {
+                        // No Firestore orders - orders come from POS API
+                        // Don't overwrite existing orders, just mark as not real-time
+                        setIsRealtime(false);
+                        logger.info('[ORDERS] No Firestore orders (POS-synced org)');
+                    }
                 },
                 (error) => {
-                    // Firestore listener error - fall back to polling
-                    logger.warn('[ORDERS] Firestore listener error, falling back to polling', { error: error.message });
+                    // Firestore listener error - fall back to server fetch
+                    logger.warn('[ORDERS] Firestore listener error', { error: error.message });
                     setIsRealtime(false);
-                    // Don't show toast for index errors, just log
-                    if (!error.message?.includes('index')) {
-                        toast({
-                            variant: 'destructive',
-                            title: 'Real-time sync unavailable',
-                            description: 'Using periodic refresh instead'
-                        });
-                    }
                 }
             );
 
@@ -196,7 +204,7 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                 unsubscribeRef.current = null;
             }
         };
-    }, [firebase?.firestore, orgId, toast]);
+    }, [firebase?.firestore, orgId]);
 
     // Filter and search orders
     const filteredOrders = useMemo(() => {
@@ -524,10 +532,16 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
                     <p className="text-muted-foreground">
-                        Manage and track customer orders{isRealtime ? ' — updates appear instantly' : ''}.
+                        Manage and track customer orders{isRealtime ? ' — updates appear instantly' : isPOSSource ? ' — synced from POS' : ''}.
                     </p>
                 </div>
                 <div className="flex gap-2 items-center">
+                    {isPOSSource && (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                            <Truck className="h-3 w-3 mr-1" />
+                            POS Synced
+                        </Badge>
+                    )}
                     {isRealtime ? (
                         <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 animate-pulse">
                             <Radio className="h-3 w-3 mr-1" />
