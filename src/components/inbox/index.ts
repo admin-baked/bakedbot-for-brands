@@ -9,6 +9,7 @@ export { InboxSidebar } from './inbox-sidebar';
 export { InboxConversation } from './inbox-conversation';
 export { InboxArtifactPanel } from './inbox-artifact-panel';
 export { InboxEmptyState } from './inbox-empty-state';
+export { InboxViewToggle } from './inbox-view-toggle';
 
 // New modernized components
 export { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
