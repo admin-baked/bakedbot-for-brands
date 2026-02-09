@@ -11,6 +11,7 @@ import { logger } from '@/lib/logger';
 import { callClaude } from '@/ai/claude';
 import { v4 as uuidv4 } from 'uuid';
 import type { PublicVibe } from './actions';
+import AdmZip from 'adm-zip';
 
 /**
  * Fetch and analyze a website URL to extract design elements
@@ -330,6 +331,175 @@ Generate complete VibeConfig objects with all required fields.`,
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Failed to generate vibe from CSS',
+        };
+    }
+}
+
+/**
+ * Extract and analyze WordPress theme from .zip file
+ */
+export async function analyzeWordPressTheme(
+    zipBuffer: Buffer
+): Promise<{
+    success: boolean;
+    themeName?: string;
+    analysis?: {
+        colors: string[];
+        fonts: string[];
+        spacing: string;
+        borders: string;
+        description?: string;
+    };
+    error?: string;
+}> {
+    try {
+        logger.info('[VIBE-CLONE] Analyzing WordPress theme zip');
+
+        // Extract zip file
+        const zip = new AdmZip(zipBuffer);
+        const zipEntries = zip.getEntries();
+
+        // Find style.css (usually in theme-name/style.css)
+        let styleCss: string | null = null;
+        let themeName = 'WordPress Theme';
+
+        for (const entry of zipEntries) {
+            if (entry.entryName.endsWith('style.css') && !entry.isDirectory) {
+                styleCss = entry.getData().toString('utf8');
+
+                // Extract theme name from directory
+                const parts = entry.entryName.split('/');
+                if (parts.length > 1) {
+                    themeName = parts[0];
+                }
+
+                // Try to extract theme name from CSS header
+                const themeNameMatch = styleCss.match(/Theme Name:\s*(.+)/i);
+                if (themeNameMatch) {
+                    themeName = themeNameMatch[1].trim();
+                }
+
+                break;
+            }
+        }
+
+        if (!styleCss) {
+            return {
+                success: false,
+                error: 'No style.css found in theme. Make sure you uploaded a valid WordPress theme.',
+            };
+        }
+
+        logger.info('[VIBE-CLONE] Found style.css', { themeName, size: styleCss.length });
+
+        // Analyze the CSS
+        const cssAnalysis = await analyzeThemeCSS(styleCss);
+
+        if (!cssAnalysis.success || !cssAnalysis.analysis) {
+            return {
+                success: false,
+                error: cssAnalysis.error || 'Failed to analyze theme CSS',
+            };
+        }
+
+        return {
+            success: true,
+            themeName,
+            analysis: cssAnalysis.analysis,
+        };
+    } catch (error) {
+        logger.error('[VIBE-CLONE] Error analyzing WordPress theme', error instanceof Error ? error : new Error(String(error)));
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to analyze WordPress theme',
+        };
+    }
+}
+
+/**
+ * Generate vibe from WordPress theme .zip file
+ */
+export async function generateVibeFromWordPressTheme(
+    zipBuffer: Buffer
+): Promise<{ success: boolean; data?: PublicVibe; error?: string }> {
+    try {
+        const themeAnalysis = await analyzeWordPressTheme(zipBuffer);
+
+        if (!themeAnalysis.success || !themeAnalysis.analysis) {
+            return {
+                success: false,
+                error: themeAnalysis.error || 'Failed to analyze WordPress theme',
+            };
+        }
+
+        const themeName = themeAnalysis.themeName || 'WordPress Theme';
+
+        logger.info('[VIBE-CLONE] WordPress theme analyzed', {
+            name: themeName,
+            colors: themeAnalysis.analysis.colors,
+        });
+
+        // Generate vibe using the same logic as CSS import
+        const vibePrompt = `Create a cannabis dispensary menu theme from this WordPress theme:
+
+Theme Name: ${themeName}
+
+Design Tokens:
+- Colors: ${themeAnalysis.analysis.colors.join(', ')}
+- Fonts: ${themeAnalysis.analysis.fonts.join(', ')}
+- Spacing: ${themeAnalysis.analysis.spacing}
+- Borders: ${themeAnalysis.analysis.borders}
+${themeAnalysis.analysis.description ? `- Description: ${themeAnalysis.analysis.description}` : ''}
+
+Generate a VibeConfig that captures this WordPress theme's design system for a cannabis menu.
+Return a complete VibeConfig JSON object.`;
+
+        const claudeResponse = await callClaude({
+            systemPrompt: `You are an expert web designer creating cannabis dispensary menu themes.
+Generate complete VibeConfig objects with all required fields.`,
+            userMessage: vibePrompt,
+            temperature: 0.7,
+        });
+
+        const configMatch = claudeResponse.match(/\{[\s\S]*\}/);
+        if (!configMatch) {
+            return { success: false, error: 'Failed to generate vibe config' };
+        }
+
+        const config = JSON.parse(configMatch[0]);
+
+        const vibeId = `vibe_${uuidv4()}`;
+        const now = new Date().toISOString();
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+        const vibe: PublicVibe = {
+            id: vibeId,
+            config: {
+                ...config,
+                name: config.name || `${themeName} Theme`,
+                description: config.description || `Imported from WordPress theme: ${themeName}`,
+            },
+            prompt: `Imported WordPress theme: ${themeName}`,
+            reasoning: `Analyzed WordPress theme "${themeName}". Colors: ${themeAnalysis.analysis.colors.join(', ')}`,
+            suggestions: [
+                'Customize colors for cannabis branding',
+                'Adjust typography for readability',
+                'Test with real dispensary products',
+            ],
+            previewUrl: `/vibe/${vibeId}`,
+            createdAt: now,
+            expiresAt,
+            views: 0,
+            shares: 0,
+            type: 'web',
+        };
+
+        return { success: true, data: vibe };
+    } catch (error) {
+        logger.error('[VIBE-CLONE] Error generating vibe from WordPress theme', error instanceof Error ? error : new Error(String(error)));
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to generate vibe from WordPress theme',
         };
     }
 }
