@@ -25,6 +25,69 @@ npm run check:types
 
 ## 🆕 Recent Updates
 
+### Cannabis Marketing AI Academy (2026-02-09)
+**Status:** ✅ Production-ready with email automation and video tracking
+
+Full-featured Academy platform serving as BakedBot's lead generation engine and thought leadership vehicle.
+
+**Architecture:**
+```
+Public Landing (/academy) → Email Gate → Lead Capture → Email Nurture
+                                ↓
+Protected Dashboard (/dashboard/academy) → Progress Tracking → Certificates
+```
+
+**Key Features:**
+- **Public Landing**: `/academy` - No auth required, email gate after 3 video views
+- **12-Episode Curriculum**: 7+ hours across 7 agent tracks (Smokey, Craig, Ezal, etc.)
+- **Resource Library**: 15+ templates, checklists, and guides (PDF/Excel)
+- **Video Progress Tracking**: YouTube Player API with milestone detection (25%, 50%, 75%, 100%)
+- **Email Nurture Sequence**: Welcome → Value (Day 3) → Demo (Day 7) via Cloud Scheduler
+- **Email Tracking**: Open pixels + UTM parameters for attribution
+- **Social Sharing**: Twitter, LinkedIn, Email with UTM tracking
+- **Protected Dashboard**: `/dashboard/academy` for authenticated users
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/app/academy/page.tsx` | Public landing page with email gate |
+| `src/lib/academy/curriculum.ts` | Episode and resource content (12 episodes) |
+| `src/lib/academy/usage-tracker.ts` | Client-side view tracking (localStorage) |
+| `src/types/academy.ts` | Type definitions (AcademyEpisode, AcademyResource, etc.) |
+| `src/server/actions/academy.ts` | Lead capture and analytics |
+| `src/server/actions/video-progress.ts` | Video milestone tracking |
+| `src/server/services/academy-welcome.ts` | Email templates with tracking pixels |
+| `src/app/api/cron/scheduled-emails/route.ts` | Cron job for email automation |
+| `src/components/academy/youtube-embed.tsx` | Video player with progress tracking |
+| `src/components/academy/social-share-buttons.tsx` | Social sharing with UTM |
+
+**Email Automation (Cloud Scheduler):**
+```bash
+# Runs hourly to process scheduled emails
+gcloud scheduler jobs create http academy-email-cron \
+  --schedule="0 * * * *" \
+  --uri="https://bakedbot.ai/api/cron/scheduled-emails" \
+  --http-method=GET \
+  --headers="Authorization=Bearer $CRON_SECRET" \
+  --location=us-central1
+```
+
+**Firestore Collections:**
+- `academy_leads` - Email captures with intent signals and lead scoring
+- `academy_views` - View tracking per video/resource
+- `scheduled_emails` - Email queue for automation
+- `users/{userId}/academy/progress` - User progress tracking
+
+**Unit Tests (61 tests):**
+- `src/server/actions/__tests__/video-progress.test.ts` (9 tests)
+- `src/app/api/cron/scheduled-emails/__tests__/route.test.ts` (11 tests)
+- `src/components/academy/__tests__/social-share-buttons.test.tsx` (21 tests)
+- `src/server/services/__tests__/academy-welcome.test.ts` (20 tests)
+
+**Reserved Path:** Added 'academy' to `RESERVED_PATHS` in `src/app/[brand]/page.tsx`
+
+---
+
 ### WhatsApp Gateway Integration (2026-02-06)
 **Status:** ✅ Production-ready with persistent sessions
 
