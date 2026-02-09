@@ -88,6 +88,122 @@ gcloud scheduler jobs create http academy-email-cron \
 
 ---
 
+### Vibe Studio - Menu Theme Generator (2026-02-09)
+**Status:** ✅ Production-ready lead magnet with clone features
+
+Public-facing AI theme generator for cannabis menu experiences. Primary lead generation tool that entices sign-ups through visual appeal and premium features.
+
+**Architecture:**
+```
+Public Landing (/vibe) → Free Vibes (3 web) → Email Gate → +3 Vibes → Upgrade CTA
+                            ↓
+                  Live Preview Component → Visual Appeal → Conversion
+                            ↓
+               Clone Features (URL/WordPress) → Advanced Value
+```
+
+**Key Features:**
+- **Live Preview**: Real-time menu mockups with sample products (web browser + mobile device mockups)
+- **Clone from URL**: Analyze any website design and extract colors, fonts, layout patterns
+- **WordPress Import**: Upload .css files or .zip themes to clone existing designs
+- **Dual Platform**: Separate web (desktop/tablet) and mobile (iOS/Android) theme generation
+- **Usage Limits**: 3 free web vibes → email gate → +3 more (6 total); mobile requires email immediately
+- **Lead Capture**: Tracks intent signals (multiple_vibes, heavy_refinement, mobile_interest)
+- **Social Sharing**: Twitter, LinkedIn, Email with pre-filled vibe links
+
+**Access Points:**
+- **Public**: `/vibe` - No login required (lead magnet)
+- **Dashboard**: `/dashboard/vibe-studio` - Unlimited for logged-in users
+- **Help Center**: `/help/marketing/vibe-studio` - Comprehensive documentation
+
+**Web Presets:**
+- Modern Clean - Minimalist, wellness-focused
+- Dark Luxury - Premium, high-contrast
+- Cyberpunk - Neon, futuristic, bold
+- Organic Natural - Earth tones, soft
+- Bold Street - Vibrant, energetic
+
+**Mobile Presets:**
+- Native Clean - Platform-native, minimalist
+- Bold Branded - High brand visibility
+- Minimal Fast - Performance-optimized
+- Luxury Immersive - Premium, full-screen
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/app/vibe/page.tsx` | Public landing page with dual platform tabs |
+| `src/app/vibe/actions.ts` | Server actions for vibe generation (web/mobile) |
+| `src/app/vibe/clone-actions.ts` | URL/CSS/WordPress theme cloning (506 lines) |
+| `src/app/vibe/vibe-preview.tsx` | Live preview component (399 lines) |
+| `src/lib/vibe-usage-tracker.ts` | Client-side usage tracking (localStorage) |
+| `src/server/actions/leads.ts` | Lead capture and intent signal tracking |
+| `src/server/services/vibe-generator.ts` | AI generation service (Claude) |
+| `src/content/help/marketing/vibe-studio.mdx` | 400+ line help documentation |
+
+**Clone Features (New):**
+```typescript
+// URL Analysis
+analyzeWebsiteDesign(url: string) → {colors, fonts, layout, style}
+generateVibeFromURL(url: string) → PublicVibe
+
+// CSS Import
+analyzeThemeCSS(cssContent: string) → {colors, fonts, spacing, borders}
+generateVibeFromCSS(cssContent: string, themeName?: string) → PublicVibe
+
+// WordPress Theme
+analyzeWordPressTheme(zipBuffer: Buffer) → {themeName, analysis}
+generateVibeFromWordPressTheme(zipBuffer: Buffer) → PublicVibe
+```
+
+**Preview Component Architecture:**
+```typescript
+<VibePreview vibe={vibe} onViewFullPreview={...}>
+  {/* Web: Browser mockup with chrome + product grid */}
+  {/* Mobile: iPhone/Android device mockup + app UI */}
+
+  // CSS Variables for theme application
+  const previewStyle = {
+    '--preview-primary': colors?.primary,
+    '--preview-secondary': colors?.secondary,
+    '--preview-accent': colors?.accent,
+    // ... applied to sample products
+  }
+</VibePreview>
+```
+
+**Firestore Collections:**
+- `public_vibes` - Web theme saves (7-day expiration)
+- `public_mobile_vibes` - Mobile theme saves (7-day expiration)
+- `vibe_leads` - Email captures with UTM and intent signals
+- `tenants/{orgId}/vibes/` - Org-specific vibe library (logged-in users)
+
+**Lead Scoring Signals:**
+- `multiple_vibes`: Generated 3+ vibes (high engagement)
+- `heavy_refinement`: Refined 5+ times (serious interest)
+- `mobile_interest`: Generated mobile vibe (premium intent)
+
+**Technical Patterns:**
+- **Type Guards**: Safe theme property access for web vs mobile union types
+- **File Detection**: Route `.css` vs `.zip` uploads without separate controls
+- **WordPress Parsing**: Extract theme name from CSS headers (`Theme Name: ...`)
+- **Zip Extraction**: adm-zip library for theme package handling
+- **AI Analysis**: Claude extracts design tokens from HTML/CSS (colors, fonts, spacing)
+
+**Dependencies Added:**
+- `adm-zip` - WordPress .zip theme extraction
+- `@types/adm-zip` - TypeScript definitions
+
+**Reserved Path:** Added 'vibe' to `RESERVED_PATHS` in `src/app/[brand]/page.tsx`
+
+**Conversion Optimization:**
+- Visual mockups (browser chrome, mobile device) increase perceived value
+- Sample products show real-world application
+- Email gate positioned after value demonstration (3 free vibes)
+- CTA buttons: "Apply This Vibe to Your Menu" → signup funnel
+
+---
+
 ### WhatsApp Gateway Integration (2026-02-06)
 **Status:** ✅ Production-ready with persistent sessions
 
