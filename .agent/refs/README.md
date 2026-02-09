@@ -64,6 +64,12 @@ Detailed documentation for AI agents working in this codebase.
 | `pages-location.md` | Location/discovery pages |
 | `pilot-setup.md` | Quick provisioning for pilots |
 
+### Lead Generation
+| File | What's Inside |
+|------|---------------|
+| `academy.md` | Cannabis Marketing AI Academy - curriculum, email automation, video tracking |
+| (see prime.md) | Vibe Studio lead magnet documentation |
+
 ### Development
 | File | What's Inside |
 |------|---------------|
