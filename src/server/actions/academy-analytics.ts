@@ -200,15 +200,28 @@ export async function getAcademyAnalytics(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
+    logger.error('[ACADEMY_ANALYTICS] Failed to fetch analytics', {
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
     // Check if it's an auth error
-    if (errorMessage.includes('Forbidden') || errorMessage.includes('Unauthorized')) {
-      return { success: false, error: 'Unauthorized' };
+    if (
+      errorMessage.includes('Forbidden') ||
+      errorMessage.includes('Unauthorized') ||
+      errorMessage.includes('No session')
+    ) {
+      return { success: false, error: 'Unauthorized - Please refresh and try again' };
     }
 
-    logger.error('[ACADEMY_ANALYTICS] Failed to fetch analytics', { error });
+    // Check for Firestore index errors
+    if (errorMessage.includes('index')) {
+      return { success: false, error: 'Database index required - Contact support' };
+    }
+
     return {
       success: false,
-      error: 'Failed to fetch analytics data',
+      error: `Failed to fetch analytics: ${errorMessage}`,
     };
   }
 }
