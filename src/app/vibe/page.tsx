@@ -70,7 +70,7 @@ import {
 } from './actions';
 
 import { VibePreview } from './vibe-preview';
-import { generateVibeFromURL, generateVibeFromCSS } from './clone-actions';
+import { generateVibeFromURL, generateVibeFromCSS, generateVibeFromWordPressTheme } from './clone-actions';
 
 import {
     getUsageData,
@@ -356,7 +356,7 @@ export default function PublicVibePage() {
         if (!uploadedFile) {
             toast({
                 title: 'Select a file',
-                description: 'Upload a CSS file (style.css from WordPress theme)',
+                description: 'Upload a CSS file or WordPress theme .zip',
                 variant: 'destructive',
             });
             return;
@@ -375,8 +375,26 @@ export default function PublicVibePage() {
 
         setUploadingFile(true);
         try {
-            const cssContent = await uploadedFile.text();
-            const result = await generateVibeFromCSS(cssContent, uploadedFile.name);
+            let result;
+
+            // Check file type
+            if (uploadedFile.name.endsWith('.zip')) {
+                // WordPress theme .zip file
+                const arrayBuffer = await uploadedFile.arrayBuffer();
+                const buffer = Buffer.from(arrayBuffer);
+                result = await generateVibeFromWordPressTheme(buffer);
+            } else if (uploadedFile.name.endsWith('.css')) {
+                // CSS file
+                const cssContent = await uploadedFile.text();
+                result = await generateVibeFromCSS(cssContent, uploadedFile.name);
+            } else {
+                toast({
+                    title: 'Invalid file type',
+                    description: 'Please upload a .css or .zip file',
+                    variant: 'destructive',
+                });
+                return;
+            }
 
             if (result.success && result.data) {
                 setCurrentVibe(result.data);
@@ -847,10 +865,10 @@ export default function PublicVibePage() {
                                 <CardContent className="p-6 space-y-4">
                                     <div className="flex items-center gap-2">
                                         <FileCode className="h-5 w-5 text-primary" />
-                                        <h3 className="font-semibold">Upload Theme CSS</h3>
+                                        <h3 className="font-semibold">Upload WordPress Theme</h3>
                                     </div>
                                     <p className="text-sm text-muted-foreground">
-                                        Upload a CSS file (like style.css from a WordPress theme) to extract its design system.
+                                        Upload a WordPress theme .zip file or style.css to extract its design system and colors.
                                     </p>
                                     <div className="space-y-2">
                                         <label className="flex items-center justify-center w-full px-4 py-8 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
@@ -866,11 +884,11 @@ export default function PublicVibePage() {
                                                         </>
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-muted-foreground">CSS files only</p>
+                                                <p className="text-xs text-muted-foreground">.zip or .css files</p>
                                             </div>
                                             <input
                                                 type="file"
-                                                accept=".css"
+                                                accept=".css,.zip"
                                                 onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
                                                 className="sr-only"
                                             />
