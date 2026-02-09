@@ -311,6 +311,24 @@ export function SuperAdminSidebar() {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
 
+                                {/* Academy Sections */}
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/academy' || pathname?.startsWith('/dashboard/academy/presenter')}>
+                                        <Link href="/dashboard/academy">
+                                            <GraduationCap />
+                                            <span>Academy</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/academy-analytics')}>
+                                        <Link href="/dashboard/academy-analytics">
+                                            <BarChart3 />
+                                            <span>Academy Analytics</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+
                                 {/* Training Sections */}
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={pathname === '/dashboard/training' && !pathname.startsWith('/dashboard/training/admin')}>
