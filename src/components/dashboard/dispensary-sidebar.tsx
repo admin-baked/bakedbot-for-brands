@@ -43,6 +43,7 @@ import {
     Settings,
     ChevronRight,
     UserPlus,
+    GraduationCap,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -89,6 +90,14 @@ export function DispensarySidebar() {
                                 <Link href="/dashboard/playbooks">
                                     <BookOpen />
                                     <span>Playbooks</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/academy')}>
+                                <Link href="/dashboard/academy">
+                                    <GraduationCap />
+                                    <span>Academy</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
