@@ -22,6 +22,7 @@ import {
   Clock,
   ArrowRight,
   Play,
+  Presentation,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -159,11 +160,19 @@ export default function AcademyDashboardPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">My Academy Progress</h1>
-        <p className="text-muted-foreground">
-          Track your learning journey through the Cannabis Marketing AI Academy
-        </p>
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">My Academy Progress</h1>
+          <p className="text-muted-foreground">
+            Track your learning journey through the Cannabis Marketing AI Academy
+          </p>
+        </div>
+        <Button asChild variant="outline" className="gap-2">
+          <Link href="/dashboard/academy/presenter">
+            <Presentation className="h-4 w-4" />
+            Presenter Mode
+          </Link>
+        </Button>
       </div>
 
       {/* Overall Progress */}
