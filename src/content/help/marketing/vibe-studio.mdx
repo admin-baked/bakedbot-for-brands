@@ -1,0 +1,385 @@
+# Vibe Studio - Menu Theme Generator
+
+Generate AI-powered web and mobile menu themes in seconds. Vibe Studio is our public-facing lead magnet tool that lets anyone create beautiful, on-brand menu experiences for cannabis dispensaries.
+
+## What is Vibe Studio?
+
+Vibe Studio uses AI (Claude Sonnet 4.5) to generate complete menu theme configurations for both web and mobile platforms. Instead of manually configuring colors, fonts, layouts, and animations, describe your desired aesthetic and let AI do the heavy lifting.
+
+**Perfect for:**
+- Dispensaries wanting a quick brand refresh
+- Brands testing different visual directions
+- Designers exploring theme concepts
+- Anyone needing menu inspiration
+
+<Callout type="tip">
+**Two Ways to Access:**
+- **Public**: Visit [bakedbot.ai/vibe](https://bakedbot.ai/vibe) - no login required
+- **Dashboard**: Go to **Dashboard → Marketing → Vibe Studio** (logged-in users)
+</Callout>
+
+## Getting Started
+
+### Public Access (No Login Required)
+
+Visit **bakedbot.ai/vibe** to start generating themes immediately.
+
+**Free tier includes:**
+- ✅ 3 free web vibes (no email required)
+- ✅ Email gate after 3rd vibe
+- ✅ +3 more vibes after email capture (6 total)
+- ✅ Mobile vibes (requires email)
+- ✅ Save and share vibes
+
+**Why the email gate?**
+We're building a community of cannabis retailers and brands. Capturing your email lets us:
+- Send you your saved vibes
+- Share new presets and features
+- Offer early access to pro features
+- Connect you with our sales team for full platform access
+
+### Dashboard Access (Logged-In Users)
+
+Navigate to **Dashboard → Marketing → Vibe Studio**
+
+**Benefits:**
+- ✅ Unlimited vibe generation
+- ✅ No email gates
+- ✅ Direct integration with your menu
+- ✅ Save to your org's vibe library
+- ✅ Apply vibes to live menus
+
+## Vibe Types: Web vs Mobile
+
+### Web Vibes
+
+Generate themes for desktop/tablet menu experiences.
+
+**Configuration includes:**
+- Primary, secondary, accent colors
+- Typography (headings, body, mono)
+- Layout style (grid, masonry, list)
+- Border radius, shadows
+- Product card style
+- Animations
+
+**Web Presets:**
+| Preset | Style | Best For |
+|--------|-------|----------|
+| **Modern Clean** | Minimalist, light, airy | Wellness-focused dispensaries |
+| **Dark Luxury** | High-contrast, premium | Premium/luxury brands |
+| **Cyberpunk** | Neon, futuristic, bold | Younger demographic, urban locations |
+| **Organic Natural** | Earth tones, soft | Organic/natural products |
+| **Bold Street** | Vibrant, energetic | Street culture, hip brands |
+
+### Mobile Vibes
+
+Generate themes specifically for iOS and Android native apps.
+
+**Configuration includes:**
+- Platform-specific design systems
+- iOS: Human Interface Guidelines compliance
+- Android: Material Design 3 compliance
+- Navigation patterns
+- Touch targets and spacing
+- Platform-specific animations
+
+**Mobile Presets:**
+| Preset | Platform | Style |
+|--------|----------|-------|
+| **Native Clean** | Both | Platform-native, minimalist |
+| **Bold Branded** | Both | High brand visibility |
+| **Minimal Fast** | Both | Performance-optimized |
+| **Luxury Immersive** | Both | Premium, full-screen |
+
+<Callout type="warning">
+**Mobile vibes require email capture** - this is a premium feature. Email required immediately (no 3 free vibes).
+</Callout>
+
+## Generating Your First Vibe
+
+### Method 1: Start from Preset
+
+1. **Choose your vibe type** (Web or Mobile)
+2. **Browse preset cards** - Click any preset to see preview
+3. **Generate from preset** - Click "Generate" on preset card
+4. **AI customizes** - Claude adapts preset to your prompt
+
+**Example:**
+- Preset: "Cyberpunk"
+- Your input: "Make it more purple, less neon"
+- Result: Cyberpunk aesthetic with purple accents, toned-down neon
+
+### Method 2: Describe from Scratch
+
+1. **Choose your vibe type** (Web or Mobile)
+2. **Click "Custom Vibe"**
+3. **Describe your vision** in natural language
+4. **AI generates** - Claude creates theme from scratch
+
+**Good prompts:**
+```
+"Earthy tones with lots of green, organic vibes,
+think farmers market meets dispensary"
+
+"Luxury cannabis experience, gold accents, dark
+background, premium feel like a high-end hotel"
+
+"Fun and playful, bright colors, friendly and
+approachable for first-time cannabis buyers"
+```
+
+**Bad prompts:**
+```
+"Make it look good" (too vague)
+"Blue" (not enough context)
+"Like Apple" (too generic)
+```
+
+<Callout type="tip">
+**Best prompt structure:**
+1. Overall mood/aesthetic
+2. Color preferences
+3. Target audience or brand comparison
+4. Any specific elements you want
+</Callout>
+
+## Refining Your Vibe
+
+After generation, you can refine the result:
+
+1. **Click "Refine Vibe"** (web vibes only)
+2. **Describe changes** - "Make it darker," "Use more blue," "Softer fonts"
+3. **AI adjusts** - Claude updates the theme based on your feedback
+4. **Iterate** - Keep refining until perfect
+
+**Refinement examples:**
+- "Make the primary color lighter"
+- "Change fonts to something more modern"
+- "Increase border radius for rounder look"
+- "Add more contrast between sections"
+
+<Callout type="info">
+**Refinement counts as engagement** - we track this as a high-intent signal. If you're refining vibes, we know you're serious about using BakedBot!
+</Callout>
+
+## Saving & Sharing
+
+### Save Vibe
+
+**Public users:**
+- First save requires email capture
+- Vibe saved to Firestore: `public_vibes` or `public_mobile_vibes`
+- Email sent with link to your vibe
+
+**Logged-in users:**
+- Saved to org's vibe library
+- Access anytime from dashboard
+- Can apply directly to live menus
+
+### Share Vibe
+
+After generating, share your creation:
+
+**Share options:**
+- **Twitter**: Pre-filled tweet with vibe name and link
+- **LinkedIn**: Professional post for B2B sharing
+- **Email**: Send to colleague or client
+- **Copy Link**: Direct link to vibe preview
+
+**Example share text:**
+```
+Just generated a sick "Cyberpunk" menu theme with
+@BakedBotAI's Vibe Studio! 🎨🤖
+
+Check it out: bakedbot.ai/vibe/abc123
+
+Perfect for modern dispensaries. #Cannabis #AI
+```
+
+## Usage Tracking
+
+### For Public Users
+
+**Your usage is tracked locally** (browser localStorage):
+
+- Vibes generated: web + mobile count
+- Refinements made
+- Email captured status
+- Session info (first/last visit)
+- UTM parameters (if referred)
+
+**Usage limits:**
+- 3 free web vibes → Email gate → +3 more (6 total)
+- Mobile vibes: Email required immediately
+
+**Check your remaining vibes:**
+- Counter shown in top-right of page
+- Updates in real-time after each generation
+- Resets after email capture
+
+### Intent Signals (Lead Scoring)
+
+We track these signals to identify high-intent leads:
+
+- **multiple_vibes**: Generated 3+ vibes
+- **heavy_refinement**: Refined vibes 5+ times
+- **mobile_interest**: Generated mobile vibe
+
+**Why we track:**
+- Better follow-up from sales team
+- Prioritize engaged leads
+- Understand what features users want
+- Improve product based on usage patterns
+
+## Best Practices
+
+### Creating Effective Vibes
+
+**Do:**
+- ✅ Start with a preset, then customize
+- ✅ Use descriptive prompts with context
+- ✅ Think about your target customer
+- ✅ Consider your brand colors/identity
+- ✅ Test both light and dark variations
+
+**Don't:**
+- ❌ Use vague prompts ("make it cool")
+- ❌ Copy competitors exactly
+- ❌ Ignore accessibility (contrast, readability)
+- ❌ Overuse refinements (know when to start fresh)
+- ❌ Forget mobile experience (test responsive)
+
+### Brand Consistency
+
+If you're a brand/dispensary, maintain consistency:
+
+**Colors:**
+- Use your existing brand colors as starting point
+- Maintain 4.5:1 contrast ratio (WCAG AA)
+- Test colors with actual product photos
+
+**Typography:**
+- Match your brand's font style (modern, classic, playful)
+- Ensure readability at all sizes
+- Consider mobile font sizes (16px+ for body)
+
+**Voice:**
+- Prompts should reflect your brand personality
+- Formal? Casual? Playful? Professional?
+
+## Advanced Features
+
+### Mobile Platform Selection
+
+When generating mobile vibes, choose platform:
+
+**Both Platforms (Recommended)**
+- AI generates unified design that works on iOS and Android
+- Platform-specific adjustments for each
+- Consistent experience across devices
+
+**iOS Only**
+- Optimized for Human Interface Guidelines
+- iOS-specific navigation patterns
+- SF Pro fonts, iOS animations
+
+**Android Only**
+- Material Design 3 compliance
+- Android-specific components
+- Roboto fonts, Material motion
+
+### Vibe Templates
+
+**Coming soon**: Save your favorite vibes as templates for your team.
+
+### Direct Menu Integration
+
+**Logged-in users**: Apply generated vibes directly to live menus.
+
+1. Generate vibe in Vibe Studio
+2. Click "Apply to Menu"
+3. Preview changes
+4. Publish to live site
+
+## Troubleshooting
+
+### "Usage Limit Reached"
+
+**Problem**: Can't generate more vibes, email gate shown.
+
+**Solution**:
+1. Enter your email to unlock +3 vibes
+2. Check spam folder for confirmation
+3. Or log in to BakedBot for unlimited access
+
+### "Email Already Captured"
+
+**Problem**: Entered email but still can't generate.
+
+**Solution**:
+1. Check if you already have 6 vibes generated (including after email)
+2. Log in to BakedBot for unlimited access
+3. Contact support if issue persists
+
+### Generated Vibe Doesn't Match
+
+**Problem**: AI generated something unexpected.
+
+**Solutions**:
+- ✅ Refine the vibe with more specific feedback
+- ✅ Start fresh with a clearer, more detailed prompt
+- ✅ Try a different preset as starting point
+- ✅ Include visual references in your prompt
+
+### Mobile Vibe Looks Off
+
+**Problem**: Mobile vibe doesn't feel native.
+
+**Solutions**:
+- ✅ Specify platform in prompt ("iOS-style navigation")
+- ✅ Generate platform-specific vibe (not "Both")
+- ✅ Refine with platform-specific feedback
+
+## Getting Help
+
+### Resources
+
+- **Vibe Studio**: [bakedbot.ai/vibe](https://bakedbot.ai/vibe)
+- **Dashboard**: Dashboard → Marketing → Vibe Studio
+- **Support**: [support@bakedbot.ai](mailto:support@bakedbot.ai)
+- **Sales**: Ready for full platform? Contact sales
+
+### FAQ
+
+**Q: How many vibes can I generate?**
+A: 3 free web vibes, then email gate. After email: +3 more (6 total). Logged-in users: unlimited.
+
+**Q: Do I need to sign up?**
+A: No! Generate 3 vibes without any account. Email required for more vibes or mobile generation.
+
+**Q: Can I use vibes commercially?**
+A: Yes! All generated vibes are yours to use. No attribution required.
+
+**Q: How is this a "lead magnet"?**
+A: We capture emails to follow up with interested dispensaries/brands. If you're generating vibes, you're likely interested in better menu experiences - and that's what BakedBot does!
+
+**Q: What happens to my email?**
+A: We send your vibes, share new features, and may reach out about BakedBot platform. Unsubscribe anytime.
+
+**Q: Can I delete my data?**
+A: Yes. Email privacy@bakedbot.ai to delete your lead data.
+
+## Next Steps
+
+After generating vibes, explore:
+
+- [Creative Center](/help/marketing/creative-content) - Generate product cards, banners, social posts
+- [Marketing Campaigns](/help/marketing/campaigns) - Launch SMS/email campaigns
+- [Dashboard Overview](/help/getting-started/dashboard-overview) - Full platform tour
+
+**Ready to upgrade?**
+- 👉 [Sign up for BakedBot](https://bakedbot.ai/signup) for unlimited vibes and full menu control
+- 💬 Chat with sales team about Enterprise plans
+
+<ArticleRating articleId="marketing-vibe-studio" />
