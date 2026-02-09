@@ -27,6 +27,7 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
         'login',
         'signup',
         'auth',
+        'vibe',
         '_next',
         'favicon.ico',
     ];
