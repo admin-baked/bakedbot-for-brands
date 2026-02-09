@@ -311,7 +311,15 @@ export function SuperAdminSidebar() {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
 
-                                {/* Training Admin Section */}
+                                {/* Training Sections */}
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/training' && !pathname.startsWith('/dashboard/training/admin')}>
+                                        <Link href="/dashboard/training">
+                                            <GraduationCap />
+                                            <span>Training Program</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/training/admin')}>
                                         <Link href="/dashboard/training/admin">
