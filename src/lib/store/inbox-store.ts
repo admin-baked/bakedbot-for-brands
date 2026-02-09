@@ -25,6 +25,9 @@ import {
     getQuickActionsForRoleAsync,
 } from '@/types/inbox';
 
+// ============ View Mode Type ============
+export type ViewMode = 'inbox' | 'chat';
+
 // ============ Store State Interface ============
 
 interface InboxState {
@@ -45,6 +48,7 @@ interface InboxState {
     // UI state
     isSidebarCollapsed: boolean;
     isLoading: boolean;
+    viewMode: ViewMode; // Toggle between inbox and traditional chat view
 
     // Thread persistence tracking
     pendingThreadIds: Set<string>; // Threads being persisted to Firestore
@@ -102,6 +106,7 @@ interface InboxState {
     // UI actions
     setSidebarCollapsed: (collapsed: boolean) => void;
     setLoading: (loading: boolean) => void;
+    setViewMode: (mode: ViewMode) => void;
 
     // Context actions
     setCurrentRole: (role: string | null) => void;
@@ -150,6 +155,7 @@ export const useInboxStore = create<InboxState>()(
             isArtifactPanelOpen: false,
             isSidebarCollapsed: false,
             isLoading: false,
+            viewMode: 'inbox', // Default to unified inbox view
             pendingThreadIds: new Set<string>(),
             currentRole: null,
             currentOrgId: null,
@@ -502,6 +508,10 @@ export const useInboxStore = create<InboxState>()(
                 set({ isLoading: loading });
             },
 
+            setViewMode: (mode) => {
+                set({ viewMode: mode });
+            },
+
             // ============ Context Actions ============
 
             setCurrentRole: (role) => {
@@ -660,6 +670,7 @@ export const useInboxStore = create<InboxState>()(
                 currentRole: state.currentRole,
                 currentOrgId: state.currentOrgId,
                 isSidebarCollapsed: state.isSidebarCollapsed,
+                viewMode: state.viewMode, // Persist user's view preference
                 // Don't persist: selectedArtifactId, isArtifactPanelOpen, isLoading, quickActionMode
             }),
         }

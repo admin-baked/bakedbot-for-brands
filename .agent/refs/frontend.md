@@ -103,6 +103,65 @@ Mobile-optimized swipeable cards for structured content.
 
 Displays agent reasoning steps with terminal aesthetic.
 
+### Unified Inbox
+**Files**:
+- `src/components/inbox/unified-inbox.tsx` - Main inbox container
+- `src/components/inbox/inbox-sidebar.tsx` - Thread list sidebar
+- `src/components/inbox/inbox-conversation.tsx` - Message view
+- `src/components/inbox/inbox-artifact-panel.tsx` - Artifact preview panel
+
+Thread-based workspace that consolidates Carousels, Bundles, and Creative Center.
+
+**Features**:
+- Multi-agent conversations with thread organization
+- Inline artifact creation and preview
+- Filter by type, status, agent, or project
+- Persistent state via Zustand
+
+**Store**: `src/lib/store/inbox-store.ts`
+```typescript
+import { useInboxStore } from '@/lib/store/inbox-store';
+
+// Create a new thread
+const createThread = useInboxStore(state => state.createThread);
+const thread = createThread('carousel', {
+  title: 'Summer Campaign',
+  initialMessage: message
+});
+
+// Get filtered threads
+const threads = useInboxStore(state => state.getFilteredThreads());
+```
+
+### Inbox View Toggle
+**File**: `src/components/inbox/inbox-view-toggle.tsx`
+
+Allows users to switch between Unified Inbox and Traditional Agent Chat views.
+
+**View Modes**:
+- `'inbox'` (default) - Thread-based conversations with artifacts
+- `'chat'` - Traditional PuffChat experience
+
+**Persistence**: User preference stored in localStorage via Zustand persist middleware.
+
+**Usage**:
+```typescript
+import { InboxViewToggle } from '@/components/inbox';
+import { useInboxStore } from '@/lib/store/inbox-store';
+
+// In your component
+<InboxViewToggle />
+
+// Read current view mode
+const viewMode = useInboxStore(state => state.viewMode);
+
+// Programmatically change view
+const setViewMode = useInboxStore(state => state.setViewMode);
+setViewMode('chat'); // or 'inbox'
+```
+
+**Implementation**: See `/dashboard/inbox/page.tsx` for conditional rendering based on viewMode.
+
 ---
 
 ## Styling
