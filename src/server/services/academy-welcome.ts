@@ -50,7 +50,7 @@ export async function sendAcademyWelcomeEmail(
     }
 
     const subject = `Welcome to the Cannabis Marketing AI Academy, ${displayName}! 🌱`;
-    const htmlContent = generateWelcomeEmailHtml({ displayName, company });
+    const htmlContent = generateWelcomeEmailHtml({ displayName, company, leadId, email });
     const textContent = generateWelcomeEmailText({ displayName, company });
 
     await sendGenericEmail({
@@ -104,7 +104,7 @@ export async function sendAcademyValueEmail(
     });
 
     const subject = `How Thrive Syracuse Increased Sales 40% with AI`;
-    const htmlContent = generateValueEmailHtml({ displayName });
+    const htmlContent = generateValueEmailHtml({ displayName, leadId, email });
     const textContent = generateValueEmailText({ displayName });
 
     await sendGenericEmail({
@@ -155,7 +155,7 @@ export async function sendAcademyDemoEmail(
     });
 
     const subject = `Your Exclusive Academy Member Offer (Expires Soon) 🎁`;
-    const htmlContent = generateDemoEmailHtml({ displayName });
+    const htmlContent = generateDemoEmailHtml({ displayName, leadId, email });
     const textContent = generateDemoEmailText({ displayName });
 
     await sendGenericEmail({
@@ -303,8 +303,13 @@ This lead signed up for the Cannabis Marketing AI Academy, showing strong intere
 function generateWelcomeEmailHtml(context: {
   displayName: string;
   company?: string;
+  leadId: string;
+  email: string;
 }): string {
-  const { displayName, company } = context;
+  const { displayName, company, leadId, email } = context;
+
+  // UTM parameters for tracking
+  const utmParams = 'utm_source=email&utm_medium=welcome&utm_campaign=academy';
 
   return `
 <!DOCTYPE html>
@@ -347,14 +352,14 @@ function generateWelcomeEmailHtml(context: {
         </div>
 
         <div style="text-align: center; margin: 30px 0;">
-            <a href="https://bakedbot.ai/academy" style="display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
+            <a href="https://bakedbot.ai/academy?${utmParams}" style="display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
                 Start Learning Now →
             </a>
         </div>
 
         <p style="font-size: 16px; margin-bottom: 20px;">
             <strong>📚 Recommended first episode:</strong><br>
-            <a href="https://bakedbot.ai/academy?episode=ep1-intro" style="color: #10b981; text-decoration: none; font-weight: 600;">
+            <a href="https://bakedbot.ai/academy?episode=ep1-intro&${utmParams}" style="color: #10b981; text-decoration: none; font-weight: 600;">
                 What Is AI Marketing for Cannabis
             </a><br>
             <span style="color: #666; font-size: 14px;">12 min • Learn why AI is the competitive moat every dispensary needs</span>
@@ -378,8 +383,11 @@ function generateWelcomeEmailHtml(context: {
 
         <p style="font-size: 12px; color: #999; text-align: center;">
             You're receiving this because you signed up for the Cannabis Marketing AI Academy.<br>
-            <a href="#" style="color: #10b981; text-decoration: none;">Unsubscribe</a>
+            <a href="https://bakedbot.ai/unsubscribe?email=${encodeURIComponent(email)}&${utmParams}" style="color: #10b981; text-decoration: none;">Unsubscribe</a>
         </p>
+
+        <!-- Email tracking pixel -->
+        <img src="https://bakedbot.ai/api/track/email/open?type=welcome&leadId=${leadId}" width="1" height="1" style="display:block;border:0;outline:none;" alt="" />
     </div>
 </body>
 </html>
@@ -433,8 +441,9 @@ Unsubscribe: [link]
 /**
  * Email 2: Value Delivery HTML
  */
-function generateValueEmailHtml(context: { displayName: string }): string {
-  const { displayName } = context;
+function generateValueEmailHtml(context: { displayName: string; leadId: string; email: string }): string {
+  const { displayName, leadId, email } = context;
+  const utmParams = 'utm_source=email&utm_medium=value&utm_campaign=academy';
 
   return `
 <!DOCTYPE html>
@@ -486,7 +495,7 @@ function generateValueEmailHtml(context: { displayName: string }): string {
         </p>
 
         <div style="text-align: center; margin: 30px 0;">
-            <a href="https://bakedbot.ai/demo" style="display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
+            <a href="https://bakedbot.ai/demo?${utmParams}" style="display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);">
                 See BakedBot in Action →
             </a>
         </div>
@@ -508,8 +517,11 @@ function generateValueEmailHtml(context: { displayName: string }): string {
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
 
         <p style="font-size: 12px; color: #999; text-align: center;">
-            <a href="#" style="color: #10b981; text-decoration: none;">Unsubscribe</a>
+            <a href="https://bakedbot.ai/unsubscribe?email=${encodeURIComponent(email)}&${utmParams}" style="color: #10b981; text-decoration: none;">Unsubscribe</a>
         </p>
+
+        <!-- Email tracking pixel -->
+        <img src="https://bakedbot.ai/api/track/email/open?type=value&leadId=${leadId}" width="1" height="1" style="display:block;border:0;outline:none;" alt="" />
     </div>
 </body>
 </html>
@@ -560,8 +572,9 @@ Unsubscribe: [link]
 /**
  * Email 3: Demo Booking HTML
  */
-function generateDemoEmailHtml(context: { displayName: string }): string {
-  const { displayName } = context;
+function generateDemoEmailHtml(context: { displayName: string; leadId: string; email: string }): string {
+  const { displayName, leadId, email } = context;
+  const utmParams = 'utm_source=email&utm_medium=demo&utm_campaign=academy';
 
   return `
 <!DOCTYPE html>
@@ -616,7 +629,7 @@ function generateDemoEmailHtml(context: { displayName: string }): string {
         </ul>
 
         <div style="text-align: center; margin: 30px 0;">
-            <a href="https://bakedbot.ai/demo?source=academy&offer=20off" style="display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 18px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 18px; box-shadow: 0 6px 12px rgba(16, 185, 129, 0.4);">
+            <a href="https://bakedbot.ai/demo?source=academy&offer=20off&${utmParams}" style="display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 18px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 18px; box-shadow: 0 6px 12px rgba(16, 185, 129, 0.4);">
                 Book Your Demo (Save 20%) →
             </a>
         </div>
@@ -651,8 +664,11 @@ function generateDemoEmailHtml(context: { displayName: string }): string {
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
 
         <p style="font-size: 12px; color: #999; text-align: center;">
-            <a href="#" style="color: #10b981; text-decoration: none;">Unsubscribe</a>
+            <a href="https://bakedbot.ai/unsubscribe?email=${encodeURIComponent(email)}&${utmParams}" style="color: #10b981; text-decoration: none;">Unsubscribe</a>
         </p>
+
+        <!-- Email tracking pixel -->
+        <img src="https://bakedbot.ai/api/track/email/open?type=demo&leadId=${leadId}" width="1" height="1" style="display:block;border:0;outline:none;" alt="" />
     </div>
 </body>
 </html>
