@@ -49,6 +49,9 @@ import {
     Smartphone,
     Monitor,
     Lock,
+    Link as LinkIcon,
+    Upload,
+    FileCode,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
@@ -67,6 +70,7 @@ import {
 } from './actions';
 
 import { VibePreview } from './vibe-preview';
+import { generateVibeFromURL, generateVibeFromCSS } from './clone-actions';
 
 import {
     getUsageData,
@@ -171,6 +175,12 @@ export default function PublicVibePage() {
     const [currentVibe, setCurrentVibe] = useState<CurrentVibe>(null);
     const [refinementPrompt, setRefinementPrompt] = useState('');
     const [refining, setRefining] = useState(false);
+
+    // Clone from URL/file
+    const [cloneUrl, setCloneUrl] = useState('');
+    const [cloningFromUrl, setCloningFromUrl] = useState(false);
+    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+    const [uploadingFile, setUploadingFile] = useState(false);
 
     // Usage tracking
     const [remaining, setRemaining] = useState(3);
@@ -285,6 +295,116 @@ export default function PublicVibePage() {
             });
         } finally {
             setGenerating(false);
+        }
+    };
+
+    const handleCloneFromURL = async () => {
+        if (!cloneUrl.trim()) {
+            toast({
+                title: 'Enter a URL',
+                description: 'Provide a website URL to clone its design.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        // Check usage limits
+        const check = canGenerateVibe('web');
+        if (!check.allowed) {
+            if (check.reason === 'limit_reached') {
+                setEmailModalReason('limit');
+                setPendingAction(() => () => handleCloneFromURL());
+                setShowEmailModal(true);
+                return;
+            }
+        }
+
+        setCloningFromUrl(true);
+        try {
+            const result = await generateVibeFromURL(cloneUrl);
+            if (result.success && result.data) {
+                setCurrentVibe(result.data);
+                recordVibeGeneration({
+                    id: result.data.id,
+                    name: result.data.config.name || 'Cloned Vibe',
+                    type: 'web',
+                });
+                updateUsageState();
+                toast({
+                    title: 'Vibe Cloned!',
+                    description: `Generated design from ${new URL(cloneUrl).hostname}`,
+                });
+            } else {
+                toast({
+                    title: 'Clone Failed',
+                    description: result.error || 'Could not analyze website',
+                    variant: 'destructive',
+                });
+            }
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to clone website design',
+                variant: 'destructive',
+            });
+        } finally {
+            setCloningFromUrl(false);
+        }
+    };
+
+    const handleFileUpload = async () => {
+        if (!uploadedFile) {
+            toast({
+                title: 'Select a file',
+                description: 'Upload a CSS file (style.css from WordPress theme)',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        // Check usage limits
+        const check = canGenerateVibe('web');
+        if (!check.allowed) {
+            if (check.reason === 'limit_reached') {
+                setEmailModalReason('limit');
+                setPendingAction(() => () => handleFileUpload());
+                setShowEmailModal(true);
+                return;
+            }
+        }
+
+        setUploadingFile(true);
+        try {
+            const cssContent = await uploadedFile.text();
+            const result = await generateVibeFromCSS(cssContent, uploadedFile.name);
+
+            if (result.success && result.data) {
+                setCurrentVibe(result.data);
+                recordVibeGeneration({
+                    id: result.data.id,
+                    name: result.data.config.name || 'Imported Theme',
+                    type: 'web',
+                });
+                updateUsageState();
+                toast({
+                    title: 'Theme Imported!',
+                    description: `Generated vibe from ${uploadedFile.name}`,
+                });
+            } else {
+                toast({
+                    title: 'Import Failed',
+                    description: result.error || 'Could not parse theme file',
+                    variant: 'destructive',
+                });
+            }
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to import theme',
+                variant: 'destructive',
+            });
+        } finally {
+            setUploadingFile(false);
         }
     };
 
@@ -673,6 +793,108 @@ export default function PublicVibePage() {
                                     </CardContent>
                                 </Card>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* Clone from URL or Upload */}
+                    <div className="pt-8 border-t space-y-6">
+                        <div className="text-center">
+                            <p className="text-sm font-medium text-muted-foreground mb-4">
+                                or clone an existing design
+                            </p>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-6">
+                            {/* Clone from URL */}
+                            <Card>
+                                <CardContent className="p-6 space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <LinkIcon className="h-5 w-5 text-primary" />
+                                        <h3 className="font-semibold">Clone from Website</h3>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        Enter any website URL and we'll analyze its design, colors, and typography to generate a matching vibe.
+                                    </p>
+                                    <Input
+                                        type="url"
+                                        placeholder="https://example.com"
+                                        value={cloneUrl}
+                                        onChange={(e) => setCloneUrl(e.target.value)}
+                                        className="text-sm"
+                                    />
+                                    <Button
+                                        onClick={handleCloneFromURL}
+                                        disabled={cloningFromUrl || !cloneUrl.trim()}
+                                        className="w-full gap-2"
+                                    >
+                                        {cloningFromUrl ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Analyzing Website...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <LinkIcon className="h-4 w-4" />
+                                                Clone Website Design
+                                            </>
+                                        )}
+                                    </Button>
+                                </CardContent>
+                            </Card>
+
+                            {/* Upload Theme File */}
+                            <Card>
+                                <CardContent className="p-6 space-y-4">
+                                    <div className="flex items-center gap-2">
+                                        <FileCode className="h-5 w-5 text-primary" />
+                                        <h3 className="font-semibold">Upload Theme CSS</h3>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                        Upload a CSS file (like style.css from a WordPress theme) to extract its design system.
+                                    </p>
+                                    <div className="space-y-2">
+                                        <label className="flex items-center justify-center w-full px-4 py-8 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary/50 transition-colors">
+                                            <div className="text-center space-y-2">
+                                                <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                                                <div className="text-sm">
+                                                    {uploadedFile ? (
+                                                        <span className="text-foreground font-medium">{uploadedFile.name}</span>
+                                                    ) : (
+                                                        <>
+                                                            <span className="text-primary font-medium">Click to upload</span>
+                                                            <span className="text-muted-foreground"> or drag and drop</span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">CSS files only</p>
+                                            </div>
+                                            <input
+                                                type="file"
+                                                accept=".css"
+                                                onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
+                                                className="sr-only"
+                                            />
+                                        </label>
+                                    </div>
+                                    <Button
+                                        onClick={handleFileUpload}
+                                        disabled={uploadingFile || !uploadedFile}
+                                        className="w-full gap-2"
+                                    >
+                                        {uploadingFile ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Importing Theme...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload className="h-4 w-4" />
+                                                Generate from CSS
+                                            </>
+                                        )}
+                                    </Button>
+                                </CardContent>
+                            </Card>
                         </div>
                     </div>
 
