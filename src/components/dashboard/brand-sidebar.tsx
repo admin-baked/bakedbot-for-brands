@@ -27,6 +27,7 @@ import {
     FolderKanban,
     BookOpen,
     Palette,
+    Wand2,
     QrCode,
     Monitor,
     Package,
@@ -110,6 +111,14 @@ export function BrandSidebar() {
                                 <Link href="/dashboard/brand/creative">
                                     <Palette />
                                     <span>Creative Center</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/vibe-studio')}>
+                                <Link href="/dashboard/vibe-studio">
+                                    <Wand2 />
+                                    <span>Vibe Studio</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
