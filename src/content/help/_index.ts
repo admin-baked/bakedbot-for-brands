@@ -570,13 +570,13 @@ export const articles: Record<string, HelpArticleMeta> = {
     slug: 'inbox-guide',
     category: 'getting-started',
     title: 'Navigating the Inbox',
-    description: 'Your unified inbox is mission control for AI agent outputs and campaign management',
+    description: 'Your unified inbox is mission control for AI agent outputs and campaign management. Switch between Inbox and Chat views to match your workflow.',
     roles: [], // Public
-    tags: ['onboarding', 'inbox', 'agents', 'campaigns', 'workflow'],
+    tags: ['onboarding', 'inbox', 'agents', 'campaigns', 'workflow', 'chat', 'views'],
     difficulty: 'beginner',
-    estimatedTime: '10 minutes',
+    estimatedTime: '12 minutes',
     filePath: './getting-started/inbox-guide.mdx',
-    lastUpdated: '2026-02-05',
+    lastUpdated: '2026-02-09',
     author: 'BakedBot Team',
   },
 
@@ -706,7 +706,21 @@ export const articles: Record<string, HelpArticleMeta> = {
     author: 'BakedBot Team',
   },
 
-  // 🎉 50 articles complete (100% - DONE!)
+  'marketing/vibe-studio': {
+    slug: 'vibe-studio',
+    category: 'marketing',
+    title: 'Vibe Studio - Menu Theme Generator',
+    description: 'Generate AI-powered web and mobile menu themes with our public lead magnet tool',
+    roles: [], // Public
+    tags: ['marketing', 'vibe-studio', 'themes', 'branding', 'lead-magnet', 'ai', 'mobile', 'web'],
+    difficulty: 'beginner',
+    estimatedTime: '10 minutes',
+    filePath: './marketing/vibe-studio.mdx',
+    lastUpdated: '2026-02-09',
+    author: 'BakedBot Team',
+  },
+
+  // 🎉 51 articles complete!
 };
 
 /**
