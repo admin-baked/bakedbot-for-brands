@@ -29,5 +29,5 @@ function DashboardLayout({ children }: { children: ReactNode }) {
 
 // Protect the dashboard with authentication and role requirements
 export default withAuth(DashboardLayout, {
-  allowedRoles: ['brand', 'dispensary', 'super_user', 'customer', 'budtender'],
+  allowedRoles: ['brand', 'dispensary', 'super_user', 'customer', 'budtender', 'intern'],
 });
