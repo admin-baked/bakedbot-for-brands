@@ -9,7 +9,7 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
-import { requireUser } from '@/server/auth/auth';
+import { requireSuperUser } from '@/server/auth/auth';
 import type { AcademyAnalytics } from '@/types/academy';
 import { Timestamp } from '@google-cloud/firestore';
 
@@ -33,10 +33,7 @@ export async function getAcademyAnalytics(
 }> {
   try {
     // Require super_user role
-    const authResult = await requireUser();
-    if (!authResult.success || authResult.user?.role !== 'super_user') {
-      return { success: false, error: 'Unauthorized' };
-    }
+    await requireSuperUser();
 
     const { timeRange } = input;
     const db = getAdminFirestore();
@@ -201,6 +198,13 @@ export async function getAcademyAnalytics(
 
     return { success: true, data: analytics };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Check if it's an auth error
+    if (errorMessage.includes('Forbidden') || errorMessage.includes('Unauthorized')) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
     logger.error('[ACADEMY_ANALYTICS] Failed to fetch analytics', { error });
     return {
       success: false,
