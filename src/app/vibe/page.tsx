@@ -66,6 +66,8 @@ import {
     type PublicMobileVibe,
 } from './actions';
 
+import { VibePreview } from './vibe-preview';
+
 import {
     getUsageData,
     canGenerateVibe,
@@ -746,6 +748,9 @@ export default function PublicVibePage() {
                             </div>
                         </Card>
                     )}
+
+                    {/* Live Preview */}
+                    <VibePreview vibe={currentVibe} />
 
                     {/* Color Palette */}
                     {currentVibe.config.theme?.colors && (
