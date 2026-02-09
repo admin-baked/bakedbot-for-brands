@@ -2,6 +2,7 @@ import 'server-only';
 import { getApps, initializeApp, cert, applicationDefault } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
 
 function getServiceAccount() {
     // --------------------------------------------------------------------------
@@ -139,6 +140,37 @@ export function getAdminAuth() {
         return getAuth(app);
     } catch (error) {
         console.error('[Firebase Admin] Error in getAdminAuth:', error);
+        throw error;
+    }
+}
+
+export function getAdminStorage() {
+    try {
+        if (getApps().length === 0) {
+            console.log('[Firebase Admin] No apps found, initializing...');
+            const serviceAccount = getServiceAccount();
+            if (serviceAccount) {
+                console.log('[Firebase Admin] Using service account credentials');
+                initializeApp({
+                    credential: cert(serviceAccount)
+                });
+            } else {
+                console.log('[Firebase Admin] Using application default credentials');
+                initializeApp({
+                    credential: applicationDefault(),
+                    projectId: process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8'
+                });
+            }
+            console.log('[Firebase Admin] Firebase app initialized successfully');
+        }
+        // Explicitly grab the default app to ensure no ambiguity
+        const app = getApps()[0];
+        if (!app) {
+            throw new Error('[Firebase Admin] Failed to initialize Firebase app - no apps found after initialization attempt');
+        }
+        return getStorage(app);
+    } catch (error) {
+        console.error('[Firebase Admin] Error in getAdminStorage:', error);
         throw error;
     }
 }

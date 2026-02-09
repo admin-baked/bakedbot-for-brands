@@ -441,6 +441,48 @@
                     "order": "DESCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "academy_leads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "academy_leads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "highIntent",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "leadScore",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "academy_views",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "leadId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []
