@@ -29,15 +29,54 @@ import {
   getProgressCompletion,
   type AcademyProgress,
 } from '@/server/actions/academy-progress';
+import { generateCertificate } from '@/server/actions/academy-certificates';
 import { ACADEMY_EPISODES, AGENT_TRACKS, getAllResources } from '@/lib/academy/curriculum';
 import type { AgentTrack } from '@/types/academy';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AcademyDashboardPage() {
   const { user } = useAuth();
   const [progress, setProgress] = useState<AcademyProgress | null>(null);
   const [completion, setCompletion] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Handle certificate download
+  const handleDownloadCertificate = async (trackId?: AgentTrack) => {
+    try {
+      toast({
+        title: 'Generating Certificate...',
+        description: 'Creating your certificate. This may take a moment.',
+      });
+
+      const result = await generateCertificate({ trackId });
+
+      if (!result.success || !result.certificateUrl) {
+        toast({
+          title: 'Generation Failed',
+          description: result.error || 'Unable to generate certificate.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Open certificate in new window for printing/downloading
+      window.open(result.certificateUrl, '_blank');
+
+      toast({
+        title: 'Certificate Ready!',
+        description: 'Your certificate is ready. Use your browser to print or save as PDF.',
+      });
+    } catch (error) {
+      console.error('Error generating certificate:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate certificate. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -263,7 +302,12 @@ export default function AcademyDashboardPage() {
                   <p className="text-sm text-muted-foreground mb-3">
                     You've completed all 7 agent tracks!
                   </p>
-                  <Button size="sm" variant="outline" className="w-full gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full gap-2"
+                    onClick={() => handleDownloadCertificate()}
+                  >
                     <Download className="h-4 w-4" />
                     Download Certificate
                   </Button>
