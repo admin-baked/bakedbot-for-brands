@@ -2,12 +2,14 @@
  * BakedBot Builder Bootcamp - 8 Week Curriculum
  *
  * Comprehensive training program for new engineers learning the BakedBot AI way.
- * Week 1 is fully defined, Weeks 2-8 are placeholders to be filled.
+ * All weeks now fully defined with detailed challenges.
  */
 
 import type { TrainingProgram, TrainingChallenge } from '@/types/training';
 import { Timestamp } from '@google-cloud/firestore';
 import { WEEK_3_CHALLENGES, WEEK_4_CHALLENGES } from './weeks-3-4';
+import { WEEK_5_CHALLENGES, WEEK_6_CHALLENGES } from './weeks-5-6';
+import { WEEK_7_CHALLENGES, WEEK_8_CHALLENGES } from './weeks-7-8';
 
 /**
  * Main Training Program Definition
@@ -79,59 +81,62 @@ export const TRAINING_PROGRAM: Omit<TrainingProgram, 'createdAt' | 'updatedAt'> 
             challengeIds: ['week4-ch1', 'week4-ch2', 'week4-ch3', 'week4-ch4', 'week4-ch5'],
         },
 
-        // Week 5: API Routes & External Services (Placeholder)
+        // Week 5: AI Agents & Genkit (Fully Defined)
         {
             weekNumber: 5,
-            title: 'API Routes & External Services',
-            description: 'Build API endpoints and integrate external services',
+            title: 'AI Agents & Genkit',
+            description: 'Build intelligent agents with Genkit and Claude API',
             objectives: [
-                'Create Next.js API routes',
-                'Handle authentication in API routes',
-                'Integrate external APIs (Mailjet, Blackleaf)',
-                'Error handling and logging',
+                'Create custom Genkit tools',
+                'Build agents with system prompts',
+                'Implement multi-tool agents',
+                'Integrate with Claude API',
+                'Understand BakedBot agent squad',
             ],
             challengeIds: ['week5-ch1', 'week5-ch2', 'week5-ch3', 'week5-ch4', 'week5-ch5'],
         },
 
-        // Week 6: Testing & Quality Assurance (Placeholder)
+        // Week 6: Testing & Quality Assurance (Fully Defined)
         {
             weekNumber: 6,
             title: 'Testing & Quality Assurance',
-            description: 'Write tests and ensure code quality',
+            description: 'Write comprehensive tests and achieve quality goals',
             objectives: [
                 'Write Jest unit tests',
-                'Test Server Actions and API routes',
-                'Use testing best practices',
-                'Run tests and interpret results',
+                'Test Server Actions with mocks',
+                'Test React components',
+                'Write integration tests',
+                'Achieve 80% test coverage',
             ],
             challengeIds: ['week6-ch1', 'week6-ch2', 'week6-ch3', 'week6-ch4', 'week6-ch5'],
         },
 
-        // Week 7: Advanced Patterns (Placeholder)
+        // Week 7: Advanced Patterns (Fully Defined)
         {
             weekNumber: 7,
             title: 'Advanced Patterns',
-            description: 'Explore advanced features like Letta memory and browser automation',
+            description: 'Master Letta memory, RTRVR automation, and advanced React patterns',
             objectives: [
-                'Work with Letta memory service',
-                'Understand RTRVR browser automation',
-                'Background job processing',
-                'Cloud Scheduler integration',
+                'Integrate Letta for persistent memory',
+                'Use RTRVR for browser automation',
+                'Schedule background jobs',
+                'Implement real-time updates',
+                'Optimize performance',
             ],
             challengeIds: ['week7-ch1', 'week7-ch2', 'week7-ch3', 'week7-ch4', 'week7-ch5'],
         },
 
-        // Week 8: Capstone Project (Placeholder)
+        // Week 8: Capstone Project (Fully Defined)
         {
             weekNumber: 8,
             title: 'Capstone Project',
-            description: 'Build a complete feature end-to-end',
+            description: 'Design, build, test, and ship a production-ready feature',
             objectives: [
-                'Design and plan a feature',
-                'Implement with full stack',
-                'Write tests and documentation',
-                'Deploy to staging',
-                'Present to team',
+                'Design complete feature from scratch',
+                'Implement full-stack solution',
+                'Write comprehensive tests (>80% coverage)',
+                'Create thorough documentation',
+                'Present demo to team',
             ],
             challengeIds: ['week8-capstone'],
         },
@@ -928,19 +933,14 @@ import { Timestamp } from '@google-cloud/firestore';
  * Helper function to get challenges for a specific week
  */
 export function getChallengesForWeek(weekNumber: number): Omit<TrainingChallenge, 'createdAt' | 'updatedAt'>[] {
-    if (weekNumber === 1) {
-        return WEEK_1_CHALLENGES;
-    }
-    if (weekNumber === 2) {
-        return WEEK_2_CHALLENGES;
-    }
-    if (weekNumber === 3) {
-        return WEEK_3_CHALLENGES;
-    }
-    if (weekNumber === 4) {
-        return WEEK_4_CHALLENGES;
-    }
-    // TODO: Add Week 5-8 challenges as they're created
+    if (weekNumber === 1) return WEEK_1_CHALLENGES;
+    if (weekNumber === 2) return WEEK_2_CHALLENGES;
+    if (weekNumber === 3) return WEEK_3_CHALLENGES;
+    if (weekNumber === 4) return WEEK_4_CHALLENGES;
+    if (weekNumber === 5) return WEEK_5_CHALLENGES;
+    if (weekNumber === 6) return WEEK_6_CHALLENGES;
+    if (weekNumber === 7) return WEEK_7_CHALLENGES;
+    if (weekNumber === 8) return WEEK_8_CHALLENGES;
     return [];
 }
 
@@ -953,6 +953,9 @@ export function getAllChallenges(): Omit<TrainingChallenge, 'createdAt' | 'updat
         ...WEEK_2_CHALLENGES,
         ...WEEK_3_CHALLENGES,
         ...WEEK_4_CHALLENGES,
-        // TODO: Add weeks 5-8 as they're created
+        ...WEEK_5_CHALLENGES,
+        ...WEEK_6_CHALLENGES,
+        ...WEEK_7_CHALLENGES,
+        ...WEEK_8_CHALLENGES,
     ];
 }
