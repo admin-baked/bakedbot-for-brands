@@ -11,7 +11,6 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { requireSuperUser } from '@/server/auth/auth';
 import type { AcademyAnalytics } from '@/types/academy';
-import { Timestamp } from '@google-cloud/firestore';
 
 const ACADEMY_LEADS_COLLECTION = 'academy_leads';
 const ACADEMY_VIEWS_COLLECTION = 'academy_views';
@@ -38,7 +37,8 @@ export async function getAcademyAnalytics(
     const { timeRange } = input;
     const db = getAdminFirestore();
 
-    // Calculate time range for filtering
+    // Calculate time range for filtering using plain Date objects
+    // Firestore Admin SDK handles Date objects correctly
     const now = Date.now();
     const timeRangeMs = {
       week: 7 * 24 * 60 * 60 * 1000,
@@ -46,17 +46,15 @@ export async function getAcademyAnalytics(
       all: now, // All time = since epoch
     };
 
-    const startTime =
-      timeRange === 'all'
-        ? Timestamp.fromMillis(0)
-        : Timestamp.fromMillis(now - timeRangeMs[timeRange]);
+    const startDate =
+      timeRange === 'all' ? new Date(0) : new Date(now - timeRangeMs[timeRange]);
 
     // Fetch all leads in time range
     const leadsQuery = db.collection(ACADEMY_LEADS_COLLECTION);
     const leadsSnapshot =
       timeRange === 'all'
         ? await leadsQuery.get()
-        : await leadsQuery.where('createdAt', '>=', startTime).get();
+        : await leadsQuery.where('createdAt', '>=', startDate).get();
 
     const allLeads = leadsSnapshot.docs.map((doc) => ({
       id: doc.id,
@@ -70,10 +68,13 @@ export async function getAcademyAnalytics(
     ).length;
 
     // Fetch video views
-    const viewsSnapshot = await db
-      .collection(ACADEMY_VIEWS_COLLECTION)
-      .where('createdAt', '>=', startTime)
-      .get();
+    const viewsSnapshot =
+      timeRange === 'all'
+        ? await db.collection(ACADEMY_VIEWS_COLLECTION).get()
+        : await db
+            .collection(ACADEMY_VIEWS_COLLECTION)
+            .where('createdAt', '>=', startDate)
+            .get();
 
     const totalVideoViews = viewsSnapshot.docs.filter(
       (doc) => doc.data().type === 'video'
