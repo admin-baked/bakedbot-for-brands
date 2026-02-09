@@ -7,7 +7,7 @@
  * Tracks view events and completion milestones.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +21,9 @@ import {
 } from 'lucide-react';
 import type { AcademyEpisode } from '@/types/academy';
 import { trackVideoView } from '@/server/actions/academy';
+import { trackVideoProgress } from '@/server/actions/video-progress';
 import { getSessionId, getLeadId } from '@/lib/academy/usage-tracker';
+import { SocialShareButtons } from './social-share-buttons';
 
 export interface YouTubeEmbedProps {
   episode: AcademyEpisode;
@@ -39,6 +41,9 @@ export function YouTubeEmbed({
   onRelatedClick,
 }: YouTubeEmbedProps) {
   const [tracked, setTracked] = useState(false);
+  const [milestonesReached, setMilestonesReached] = useState<Set<25 | 50 | 75 | 100>>(new Set());
+  const playerRef = useRef<any>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isPlaceholder = episode.youtubeId === 'PLACEHOLDER';
 
   // Track view when component mounts (user opened video)
@@ -58,6 +63,113 @@ export function YouTubeEmbed({
       setTracked(true);
     }
   }, [episode.id, tracked, isPlaceholder]);
+
+  // Video progress tracking with YouTube Player API
+  useEffect(() => {
+    if (isPlaceholder) return;
+
+    // Load YouTube IFrame API
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
+
+    // Initialize player when API is ready
+    (window as any).onYouTubeIframeAPIReady = () => {
+      playerRef.current = new (window as any).YT.Player(`youtube-player-${episode.id}`, {
+        events: {
+          onStateChange: handlePlayerStateChange,
+        },
+      });
+    };
+
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
+  }, [episode.id, isPlaceholder]);
+
+  // Handle player state changes (play, pause, etc.)
+  const handlePlayerStateChange = (event: any) => {
+    const playerState = event.data;
+
+    // Playing (1)
+    if (playerState === 1) {
+      startProgressTracking();
+    }
+    // Paused (2) or Ended (0)
+    else if (playerState === 2 || playerState === 0) {
+      stopProgressTracking();
+    }
+  };
+
+  // Start tracking progress every 10 seconds
+  const startProgressTracking = () => {
+    if (progressIntervalRef.current) return; // Already tracking
+
+    progressIntervalRef.current = setInterval(() => {
+      trackCurrentProgress();
+    }, 10000); // Every 10 seconds
+
+    // Also track immediately
+    trackCurrentProgress();
+  };
+
+  // Stop tracking progress
+  const stopProgressTracking = () => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  };
+
+  // Track current video progress
+  const trackCurrentProgress = async () => {
+    if (!playerRef.current || !playerRef.current.getCurrentTime) return;
+
+    try {
+      const currentTime = playerRef.current.getCurrentTime();
+      const duration = playerRef.current.getDuration();
+
+      if (!duration || duration === 0) return;
+
+      const completionPercentage = Math.round((currentTime / duration) * 100);
+
+      // Determine milestone
+      let milestone: 25 | 50 | 75 | 100 | undefined;
+      if (completionPercentage >= 100 && !milestonesReached.has(100)) {
+        milestone = 100;
+      } else if (completionPercentage >= 75 && !milestonesReached.has(75)) {
+        milestone = 75;
+      } else if (completionPercentage >= 50 && !milestonesReached.has(50)) {
+        milestone = 50;
+      } else if (completionPercentage >= 25 && !milestonesReached.has(25)) {
+        milestone = 25;
+      }
+
+      // Track progress
+      await trackVideoProgress({
+        episodeId: episode.id,
+        watchedSeconds: Math.round(currentTime),
+        totalSeconds: Math.round(duration),
+        completionPercentage,
+        milestone,
+      });
+
+      // Update milestones reached
+      if (milestone) {
+        setMilestonesReached((prev) => new Set([...prev, milestone]));
+
+        // Call onComplete callback if 100%
+        if (milestone === 100 && onComplete) {
+          onComplete();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to track video progress:', error);
+    }
+  };
 
   if (isPlaceholder) {
     return (
@@ -136,9 +248,10 @@ export function YouTubeEmbed({
       {/* YouTube Embed */}
       <div className="aspect-video w-full rounded-lg overflow-hidden bg-black">
         <iframe
+          id={`youtube-player-${episode.id}`}
           width="100%"
           height="100%"
-          src={`https://www.youtube.com/embed/${episode.youtubeId}?rel=0`}
+          src={`https://www.youtube.com/embed/${episode.youtubeId}?rel=0&enablejsapi=1`}
           title={episode.title}
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -174,6 +287,11 @@ export function YouTubeEmbed({
               </ul>
             </div>
           )}
+
+          {/* Social Share */}
+          <div className="mt-6 pt-6 border-t">
+            <SocialShareButtons episode={episode} />
+          </div>
         </CardContent>
       </Card>
 
