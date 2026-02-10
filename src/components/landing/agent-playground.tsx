@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { getLandingGeoData, type LandingGeoData } from '@/server/actions/landing-geo';
 import { UnifiedAgentChat } from '@/components/chat/unified-agent-chat';

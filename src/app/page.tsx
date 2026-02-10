@@ -7,7 +7,6 @@ import { Plus, Search, Terminal, Zap, FileSpreadsheet, Scale, Lock, RefreshCw, B
 import { HeroClient } from "@/components/landing/hero-client";
 import { PricingClient } from "@/components/landing/pricing-client";
 import { PRICING_PLANS } from "@/lib/config/pricing";
-import { useUser } from "@/hooks/use-user"; // Note: Auth buttons in header might need client wrapper or be server-compatible
 import Logo from "@/components/logo";
 
 // Navigation Links
