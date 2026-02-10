@@ -289,6 +289,79 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
         };
     }
 
+    // WhatsApp - OpenClaw Gateway
+    if (def.name === 'communications.sendWhatsApp') {
+        const { sendMessage, getSessionStatus, isOpenClawAvailable } = await import('@/server/services/openclaw');
+
+        // Check configuration
+        if (!isOpenClawAvailable()) {
+            return {
+                status: 'failed',
+                data: {
+                    sent: false,
+                    error: 'WhatsApp gateway not configured. OPENCLAW_API_URL and OPENCLAW_API_KEY required.'
+                }
+            };
+        }
+
+        // Check session status
+        const sessionResult = await getSessionStatus();
+        if (!sessionResult.success || !sessionResult.data?.connected) {
+            return {
+                status: 'failed',
+                data: {
+                    sent: false,
+                    error: 'WhatsApp session not connected. Please scan QR code in CEO Dashboard → WhatsApp tab.',
+                    sessionConnected: false
+                }
+            };
+        }
+
+        // Send message
+        const result = await sendMessage({
+            to: inputs.to,
+            message: inputs.message,
+            mediaUrl: inputs.mediaUrl
+        });
+
+        return {
+            status: result.success ? 'success' : 'failed',
+            data: {
+                sent: result.success,
+                messageId: result.data?.messageId,
+                to: inputs.to,
+                error: result.error,
+                sessionConnected: true
+            }
+        };
+    }
+
+    if (def.name === 'communications.getWhatsAppStatus') {
+        const { getSessionStatus, isOpenClawAvailable } = await import('@/server/services/openclaw');
+
+        if (!isOpenClawAvailable()) {
+            return {
+                status: 'success',
+                data: {
+                    available: false,
+                    connected: false,
+                    error: 'OpenClaw not configured'
+                }
+            };
+        }
+
+        const result = await getSessionStatus();
+        return {
+            status: 'success',
+            data: {
+                available: true,
+                connected: result.data?.connected || false,
+                phoneNumber: result.data?.phoneNumber || null,
+                error: result.error
+            }
+        };
+    }
+
     // Phase 2: BI & Intel
     if (def.name === 'analytics.getKPIs') {
         if (!request.tenantId) throw new Error('Tool requires tenant context.');
