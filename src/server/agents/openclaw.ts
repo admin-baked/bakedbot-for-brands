@@ -63,12 +63,13 @@ const openclawTools: ClaudeTool[] = [
     },
     {
         name: 'send_sms',
-        description: 'Send an SMS text message via Blackleaf/Twilio.',
+        description: 'Send an SMS/MMS text message via Blackleaf. Can include images for MMS.',
         input_schema: {
             type: 'object' as const,
             properties: {
-                to: { type: 'string', description: 'Phone number to send to' },
-                message: { type: 'string', description: 'SMS message (160 char limit recommended)' }
+                to: { type: 'string', description: 'Phone number to send to (with or without country code)' },
+                message: { type: 'string', description: 'SMS message (160 char limit recommended for SMS, longer for MMS)' },
+                imageUrl: { type: 'string', description: 'Optional URL to image for MMS' }
             },
             required: ['to', 'message']
         }
@@ -250,11 +251,25 @@ async function executeOpenClawTool(
             }
 
             case 'send_sms': {
-                // TODO: Integrate with Blackleaf SMS
-                return JSON.stringify({
-                    success: false,
-                    error: 'SMS integration pending. Use WhatsApp instead.'
-                });
+                const { blackleafService } = await import('@/lib/notifications/blackleaf-service');
+
+                const success = await blackleafService.sendCustomMessage(
+                    toolInput.to as string,
+                    toolInput.message as string,
+                    toolInput.imageUrl as string | undefined
+                );
+
+                if (success) {
+                    return JSON.stringify({
+                        success: true,
+                        message: `SMS sent to ${toolInput.to}`
+                    });
+                } else {
+                    return JSON.stringify({
+                        success: false,
+                        error: 'Failed to send SMS. Check Blackleaf API configuration.'
+                    });
+                }
             }
 
             case 'browse_url': {
@@ -334,13 +349,66 @@ async function executeOpenClawTool(
                 });
             }
 
-            case 'create_calendar_event':
-            case 'create_task':
-                // TODO: Integrate with Google Calendar
-                return JSON.stringify({
-                    success: false,
-                    error: 'Calendar integration coming soon. Task noted.'
+            case 'create_calendar_event': {
+                const { calendarAction } = await import('@/server/tools/calendar');
+
+                // Calendar requires user context for OAuth tokens
+                if (!context.userId) {
+                    return JSON.stringify({
+                        success: false,
+                        error: 'Calendar requires authenticated user. Please log in.'
+                    });
+                }
+
+                const result = await calendarAction({
+                    action: 'create',
+                    summary: toolInput.title as string,
+                    startTime: toolInput.startTime as string,
+                    endTime: toolInput.endTime as string,
+                    description: toolInput.description as string
                 });
+
+                if (result.success) {
+                    return JSON.stringify({
+                        success: true,
+                        message: `Created calendar event: ${toolInput.title}`,
+                        eventId: result.data?.id,
+                        htmlLink: result.data?.htmlLink
+                    });
+                } else {
+                    return JSON.stringify({
+                        success: false,
+                        error: result.error || 'Failed to create calendar event'
+                    });
+                }
+            }
+
+            case 'create_task': {
+                const db = getAdminFirestore();
+                const taskRef = db.collection('openclaw_tasks').doc();
+
+                const task = {
+                    id: taskRef.id,
+                    title: toolInput.title as string,
+                    dueDate: toolInput.dueDate || null,
+                    priority: toolInput.priority || 'medium',
+                    notes: toolInput.notes || '',
+                    status: 'pending',
+                    tenantId: context.tenantId,
+                    userId: context.userId,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+
+                await taskRef.set(task);
+
+                return JSON.stringify({
+                    success: true,
+                    message: `Created task: ${toolInput.title}`,
+                    taskId: taskRef.id,
+                    dueDate: task.dueDate
+                });
+            }
 
             case 'fill_form':
                 return JSON.stringify({
@@ -369,11 +437,13 @@ const OPENCLAW_SYSTEM_PROMPT = `You are OpenClaw, an autonomous AI agent that ge
 You are a personal AI assistant inspired by OpenClaw.ai. Unlike chatbots that just talk, you EXECUTE tasks. You have real capabilities:
 
 - **WhatsApp messaging** - Send messages to any phone number
+- **SMS/MMS** - Send text messages with optional images
 - **Email** - Send professional emails
+- **Google Calendar** - Create calendar events and reminders
 - **Web browsing** - Navigate websites, extract data, research topics
 - **Web search** - Find current information
 - **Persistent memory** - Remember user preferences and important facts
-- **Task tracking** - Create and manage tasks
+- **Task tracking** - Create and manage tasks with priorities and due dates
 
 ## Your Personality
 - Proactive and action-oriented
@@ -396,7 +466,9 @@ You are a personal AI assistant inspired by OpenClaw.ai. Unlike chatbots that ju
 ## Current Capabilities Status
 - WhatsApp: Check status with get_whatsapp_status tool
 - Email: Ready (Mailjet configured)
-- SMS: Coming soon (use WhatsApp instead)
+- SMS: Ready (Blackleaf configured) - supports MMS with images
+- Calendar: Ready (Google Calendar) - requires user to connect in Settings
+- Tasks: Ready (Firestore) - create and track tasks
 - Browser automation: Available via RTRVR
 - Memory: Operational
 
