@@ -2,10 +2,14 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 env:
-  # Build-time memory allocation for Node.js processes (including Next.js workers)
+  # Build-time memory allocation - reduced for Cloud Build compatibility
+  - variable: NODE_OPTIONS
+    value: "--max-old-space-size=4096"
+    availability: [ BUILD ]
+  # Runtime memory allocation - can be higher since we control runtime resources
   - variable: NODE_OPTIONS
     value: "--max-old-space-size=8192"
-    availability: [ BUILD, RUNTIME ]
+    availability: [ RUNTIME ]
   # Skip Next.js Node version check (Firebase App Hosting uses Node 18)
   - variable: NEXT_SKIP_NODE_VERSION_CHECK
     value: "1"
