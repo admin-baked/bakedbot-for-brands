@@ -3,24 +3,39 @@
  *
  * Production-ready WhatsApp gateway using whatsapp-web.js
  * Uses LocalAuth with Firebase Storage backup for persistence.
+ *
+ * Local Mode: Set LOCAL_MODE=true to skip Firebase (for development)
  */
 
 const express = require('express');
 const cors = require('cors');
 const qrcode = require('qrcode');
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const admin = require('firebase-admin');
-const SessionManager = require('./session-manager');
-
-// Initialize Firebase Admin (uses Default Credentials)
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const API_KEY = process.env.OPENCLAW_API_KEY || 'dev-key-12345';
-const STORAGE_BUCKET = process.env.STORAGE_BUCKET; // Optional: Override default bucket
+const LOCAL_MODE = process.env.LOCAL_MODE === 'true' || !process.env.STORAGE_BUCKET;
+const STORAGE_BUCKET = process.env.STORAGE_BUCKET;
+
+// Initialize Firebase Admin only in production mode
+let sessionManager = null;
+if (!LOCAL_MODE) {
+    const admin = require('firebase-admin');
+    const SessionManager = require('./session-manager');
+    if (!admin.apps.length) {
+        admin.initializeApp();
+    }
+    sessionManager = new SessionManager(STORAGE_BUCKET);
+    console.log('[WhatsApp] Running in PRODUCTION mode with Firebase backup');
+} else {
+    console.log('[WhatsApp] Running in LOCAL mode (no cloud backup)');
+    // Create a no-op session manager for local dev
+    sessionManager = {
+        restore: async () => { console.log('[Local] Skipping restore'); return false; },
+        backup: async () => { console.log('[Local] Skipping backup'); return true; }
+    };
+}
 
 // Middleware
 app.use(cors());
@@ -31,7 +46,6 @@ let whatsappClient = null;
 let currentQRCode = null;
 let clientReady = false;
 let clientInfo = null;
-let sessionManager = new SessionManager(STORAGE_BUCKET);
 let backupInterval = null;
 
 // Auth Middleware
@@ -127,6 +141,16 @@ app.get('/health', (req, res) => {
         service: 'whatsapp-gateway',
         version: '2.0.0',
         whatsappReady: clientReady
+    });
+});
+
+// Session status endpoint
+app.get('/whatsapp/session/status', requireAuth, (req, res) => {
+    res.json({
+        connected: clientReady,
+        phoneNumber: clientInfo?.wid?.user || null,
+        platform: clientInfo?.platform || null,
+        pushname: clientInfo?.pushname || null
     });
 });
 
