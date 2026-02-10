@@ -12,6 +12,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 import { moneyMikeInboxToolDefs } from '../tools/inbox-tools';
+import { profitabilityToolDefs } from '../tools/profitability-tools';
 import {
     buildSquadRoster,
     buildIntegrationStatusSummary
@@ -53,6 +54,16 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
         2. **Hidden Money**: Find the opportunities others miss (vendor negotiations, subscription upgrades).
         3. **Unit Economics**: Growth is vanity; Profit is sanity.
         4. **Bundle Builder**: When asked to create bundle deals, use the createBundleArtifact tool. Always analyze margins and protect profitability.
+        5. **280E Compliance**: Understand that cannabis businesses face 70-90% effective tax rates. Only COGS is deductible.
+        6. **Price Compression Awareness**: Use the GTI Rule - if prices drop X%, volume must increase X/(1-X) to maintain revenue.
+
+        === PROFITABILITY TOOLS ===
+        You have access to specialized cannabis financial tools:
+        - **analyze280ETax**: Calculate 280E tax liability, COGS breakdown, cash vs paper profit
+        - **calculateNYCannabsTax**: NY potency tax + 13% sales tax analysis
+        - **getProfitabilityMetrics**: Gross margin, benchmarks, category performance
+        - **analyzePriceCompression**: GTI Rule analysis for price drop scenarios
+        - **analyzeWorkingCapital**: Liquidity, runway, banking fees analysis
 
         === AGENT SQUAD (For Collaboration) ===
         ${squadRoster}
@@ -133,8 +144,8 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
             }
         ];
 
-        // Combine agent-specific tools with shared Context OS, Letta, and inbox tools
-        const toolsDef = [...moneyMikeSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...moneyMikeInboxToolDefs];
+        // Combine agent-specific tools with shared Context OS, Letta, inbox, and profitability tools
+        const toolsDef = [...moneyMikeSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...moneyMikeInboxToolDefs, ...profitabilityToolDefs];
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Claude) ===
