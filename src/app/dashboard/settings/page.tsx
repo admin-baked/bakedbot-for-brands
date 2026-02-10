@@ -2,13 +2,14 @@
 
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, Code, Download, Store, Users, Palette, Bot, Plug } from 'lucide-react';
+import { Globe, Code, Download, Store, Users, Palette, Bot, Plug, Sparkles } from 'lucide-react';
 import DomainSettingsTab from './components/domain-tab';
 import EmbedGeneratorTab from './components/embed-tab';
 import WordPressPluginTab from './components/wordpress-tab';
 import BrandSetupTab from './components/brand-setup-tab';
 import BrandThemingTab from './components/brand-theming-tab';
 import { ChatbotSettingsTab } from './components/chatbot-settings-tab';
+import { AISettingsTab } from './components/ai-settings-tab';
 import { InvitationsList } from '@/components/invitations/invitations-list';
 import { CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { BillingForm } from './components/billing-form';
@@ -93,6 +94,10 @@ export default function SettingsPage() {
             <Bot className="mr-2 h-4 w-4" />
             Chatbot
           </TabsTrigger>
+          <TabsTrigger value="ai">
+            <Sparkles className="mr-2 h-4 w-4" />
+            AI
+          </TabsTrigger>
           <TabsTrigger value="domain">
             <Globe className="mr-2 h-4 w-4" />
             Domain
@@ -129,6 +134,10 @@ export default function SettingsPage() {
 
         <TabsContent value="chatbot" className="space-y-4">
           <ChatbotSettingsTab planId={planId} />
+        </TabsContent>
+
+        <TabsContent value="ai" className="space-y-4">
+          <AISettingsTab />
         </TabsContent>
 
         <TabsContent value="embeds" className="space-y-4">

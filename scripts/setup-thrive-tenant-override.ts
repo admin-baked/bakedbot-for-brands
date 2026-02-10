@@ -238,13 +238,64 @@ async function setupThriveOverride() {
     await overrideRef.set(override);
 
     console.log('✅ Thrive Syracuse tenant override created successfully!\n');
+
+    // === AI SETTINGS (Custom Instructions) ===
+    console.log('🤖 Setting up AI custom instructions...');
+
+    const aiSettings = {
+        customInstructions: `You are assisting Thrive Syracuse, a licensed adult-use cannabis dispensary in Syracuse, NY.
+
+Key points to always remember:
+- We are community-focused and reinvest profits locally
+- Our hours are Mon-Sat 10am-8pm, Sun 11am-6pm
+- We have a loyalty program: 1 point per $1 spent, 100 points = $5 off
+- Delivery is coming Spring 2026
+- Text THRIVE to 833-420-CANN for updates
+
+Always be welcoming, educational, and emphasize our community-first approach.`,
+        tone: 'friendly',
+        responseLength: 'auto',
+        preferredLanguage: 'en',
+        businessContext: 'Thrive Syracuse is a licensed adult-use cannabis dispensary at 3065 Erie Blvd E, Syracuse, NY. We are community-focused and committed to reinvesting profits locally. Our mission is to provide quality products, customer education, and build a stronger future for Syracuse.',
+        alwaysMention: [
+            'loyalty program',
+            'community reinvestment',
+            'customer education',
+        ],
+        avoidTopics: [
+            'competitor names',
+            'unlicensed dispensaries',
+        ],
+        features: {
+            autoSuggestProducts: true,
+            includeComplianceReminders: true,
+            showConfidenceScores: false,
+            enableVoiceResponses: false,
+        },
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'setup-script',
+    };
+
+    const aiSettingsRef = db
+        .collection('tenants')
+        .doc(TENANT_ID)
+        .collection('settings')
+        .doc('ai');
+
+    await aiSettingsRef.set(aiSettings);
+
+    console.log('✅ AI settings configured!\n');
+
     console.log('📋 Summary:');
     console.log(`   - Tenant: ${TENANT_ID}`);
     console.log(`   - Role: ${ROLE_ID}`);
     console.log(`   - Custom Preset Prompts: ${presetPrompts.length}`);
     console.log(`   - Custom Workflows: ${customWorkflows.length}`);
     console.log(`   - Disabled Presets: ${disabledPresets.length}`);
-    console.log('\n📍 Firestore Path: tenants/org_thrive_syracuse/ground_truth_overrides/dispensary');
+    console.log(`   - AI Custom Instructions: ✅ Configured`);
+    console.log('\n📍 Firestore Paths:');
+    console.log('   - tenants/org_thrive_syracuse/ground_truth_overrides/dispensary');
+    console.log('   - tenants/org_thrive_syracuse/settings/ai');
 }
 
 // Run the setup

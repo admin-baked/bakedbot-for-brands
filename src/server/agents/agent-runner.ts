@@ -63,6 +63,8 @@ import { VerificationContext } from './verification/types';
 import { logger } from '@/lib/logger';
 import { AgentLogEntry } from '@/server/agents/schemas';
 import { validateInput, validateOutput, sanitizeForPrompt, wrapUserData, getRiskLevel } from '@/server/security';
+import { loadAISettingsForAgent } from '@/server/actions/ai-settings';
+import { buildCustomInstructionsBlock } from '@/types/ai-settings';
 
 
 export interface AgentResult {
@@ -497,6 +499,34 @@ export async function runAgentCore(
             } catch (e) {
                 console.warn('Failed to inject brand context:', e);
             }
+        }
+
+        // === CUSTOM AI INSTRUCTIONS INJECTION ===
+        // Load tenant and user AI settings (ChatGPT/Claude-style custom instructions)
+        let customInstructionsBlock = '';
+        try {
+            // Resolve tenantId from user context
+            const tenantId = (user as any)?.orgId || (user as any)?.currentOrgId || userBrandId;
+            const userId = user?.uid;
+
+            if (tenantId || userId) {
+                const { tenant, user: userSettings } = await loadAISettingsForAgent(
+                    tenantId !== 'demo-brand-123' ? tenantId : undefined,
+                    userId
+                );
+                customInstructionsBlock = buildCustomInstructionsBlock(tenant, userSettings);
+
+                if (customInstructionsBlock) {
+                    logger.debug('[AgentRunner] Injecting custom AI instructions', {
+                        hasTenantSettings: !!tenant?.customInstructions,
+                        hasUserSettings: !!userSettings?.customInstructions,
+                        tenantId,
+                        userId,
+                    });
+                }
+            }
+        } catch (e) {
+            logger.warn('[AgentRunner] Failed to load AI settings:', { error: e instanceof Error ? e.message : String(e) });
         }
 
         // === MODEL TIER ENFORCEMENT ===
@@ -993,7 +1023,7 @@ export async function runAgentCore(
                 });
                 
                 const claudeResult = await executeWithTools(
-                    `${activePersona.systemPrompt}\n\nUser Request: ${userMessage}${knowledgeContext}`,
+                    `${activePersona.systemPrompt}${customInstructionsBlock}\n\nUser Request: ${userMessage}${knowledgeContext}`,
                     tools,
                     executor
                 );
@@ -1028,7 +1058,7 @@ export async function runAgentCore(
         
         // Construct Multimodal Prompt
         let promptParts: any[] = [
-            { text: `${activePersona.systemPrompt}\nUser: ${userMessage}\nContext: ${knowledgeContext}${searchContext}` }
+            { text: `${activePersona.systemPrompt}${customInstructionsBlock}\nUser: ${userMessage}\nContext: ${knowledgeContext}${searchContext}` }
         ];
 
         // 1. Audio Input
