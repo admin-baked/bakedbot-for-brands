@@ -16,13 +16,14 @@ import { BillingForm } from './components/billing-form';
 import { CreditCard } from 'lucide-react';
 import { SidecarHealthCheck } from '@/components/settings/sidecar-health';
 import { NotebookLMAuth } from '@/components/settings/notebooklm-auth';
+import { GmailConnection } from './components/gmail-connection';
 
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useUserRole } from '@/hooks/use-user-role';
 import { useUser } from '@/firebase/auth/use-user';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/client';
 
@@ -153,6 +154,9 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="integrations" className="space-y-4">
+          <Suspense fallback={<Card className="p-6 animate-pulse"><div className="h-20 bg-muted rounded" /></Card>}>
+            <GmailConnection />
+          </Suspense>
           <SidecarHealthCheck />
           <NotebookLMAuth />
         </TabsContent>

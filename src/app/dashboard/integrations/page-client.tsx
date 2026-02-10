@@ -155,6 +155,12 @@ export default function AppStorePage() {
     };
 
     const handleConnect = async (appId: string) => {
+        // Handle Gmail/Google OAuth specially - redirect to OAuth flow
+        if (appId === 'gmail') {
+            window.location.href = '/api/auth/google?service=gmail&redirect=/dashboard/integrations';
+            return;
+        }
+
         setLoading(true);
         try {
             await enableApp(appId);
