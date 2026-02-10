@@ -20,6 +20,7 @@ const teko = Teko({
   subsets: ['latin'],
   variable: '--font-teko',
   weight: ['400', '700'],
+  preload: false, // Load on demand - not critical for first paint
 });
 
 
