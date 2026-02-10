@@ -100,6 +100,18 @@ async function startWhatsApp() {
         }
     });
 
+    whatsappClient.on('authenticated', () => {
+        console.log('[WhatsApp] Authentication successful! Initializing...');
+    });
+
+    whatsappClient.on('auth_failure', (msg) => {
+        console.error('[WhatsApp] Authentication failed:', msg);
+    });
+
+    whatsappClient.on('loading_screen', (percent, message) => {
+        console.log(`[WhatsApp] Loading: ${percent}% - ${message}`);
+    });
+
     whatsappClient.on('ready', async () => {
         console.log('[WhatsApp] Client is ready!');
         clientReady = true;

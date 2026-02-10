@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
     generateWhatsAppQRAction,
     disconnectWhatsAppAction,
+    getWhatsAppSessionAction,
 } from '@/server/actions/whatsapp';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -22,6 +23,41 @@ export function SessionCard({ status, onRefresh }: SessionCardProps) {
     const [qrCode, setQrCode] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [showQR, setShowQR] = useState(false);
+    const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Poll for connection status while QR dialog is open
+    useEffect(() => {
+        if (showQR) {
+            // Start polling every 2 seconds
+            pollIntervalRef.current = setInterval(async () => {
+                try {
+                    const result = await getWhatsAppSessionAction();
+                    if (result.success && result.data) {
+                        const data = result.data as any;
+                        if (data.connected) {
+                            // Connected! Close dialog and refresh
+                            setShowQR(false);
+                            setQrCode(null);
+                            toast({
+                                title: "Connected!",
+                                description: `WhatsApp linked to ${data.phoneNumber || 'your phone'}`,
+                            });
+                            onRefresh();
+                        }
+                    }
+                } catch {
+                    // Ignore polling errors
+                }
+            }, 2000);
+        }
+
+        return () => {
+            if (pollIntervalRef.current) {
+                clearInterval(pollIntervalRef.current);
+                pollIntervalRef.current = null;
+            }
+        };
+    }, [showQR, onRefresh, toast]);
 
     const handleGenerateQR = async () => {
         setLoading(true);
