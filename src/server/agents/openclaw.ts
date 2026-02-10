@@ -74,6 +74,41 @@ const openclawTools: ClaudeTool[] = [
             required: ['to', 'message']
         }
     },
+    {
+        name: 'send_gmail',
+        description: 'Send an email from user\'s connected Gmail account. Emails come from their personal Gmail address. Requires Gmail to be connected in Settings.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                to: { type: 'string', description: 'Recipient email address' },
+                subject: { type: 'string', description: 'Email subject line' },
+                body: { type: 'string', description: 'Email body (plain text)' }
+            },
+            required: ['to', 'subject', 'body']
+        }
+    },
+    {
+        name: 'list_gmail',
+        description: 'List recent emails from user\'s Gmail inbox. Can filter by query.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                query: { type: 'string', description: 'Gmail search query (e.g., "from:boss is:unread", "subject:invoice")' }
+            },
+            required: []
+        }
+    },
+    {
+        name: 'read_gmail',
+        description: 'Read the full content of a specific email by message ID.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                messageId: { type: 'string', description: 'Gmail message ID to read' }
+            },
+            required: ['messageId']
+        }
+    },
     // --- Browser Automation Tools ---
     {
         name: 'browse_url',
@@ -272,6 +307,94 @@ async function executeOpenClawTool(
                 }
             }
 
+            case 'send_gmail': {
+                const { gmailAction } = await import('@/server/tools/gmail');
+
+                if (!context.userId) {
+                    return JSON.stringify({
+                        success: false,
+                        error: 'Gmail requires authenticated user. Please log in.'
+                    });
+                }
+
+                const result = await gmailAction({
+                    action: 'send',
+                    to: toolInput.to as string,
+                    subject: toolInput.subject as string,
+                    body: toolInput.body as string
+                });
+
+                if (result.success) {
+                    return JSON.stringify({
+                        success: true,
+                        message: `Email sent from your Gmail to ${toolInput.to}`,
+                        messageId: result.data?.id
+                    });
+                } else {
+                    return JSON.stringify({
+                        success: false,
+                        error: result.error || 'Failed to send Gmail'
+                    });
+                }
+            }
+
+            case 'list_gmail': {
+                const { gmailAction } = await import('@/server/tools/gmail');
+
+                if (!context.userId) {
+                    return JSON.stringify({
+                        success: false,
+                        error: 'Gmail requires authenticated user. Please log in.'
+                    });
+                }
+
+                const result = await gmailAction({
+                    action: 'list',
+                    query: toolInput.query as string || ''
+                });
+
+                if (result.success) {
+                    return JSON.stringify({
+                        success: true,
+                        emails: result.data,
+                        count: result.data?.length || 0
+                    });
+                } else {
+                    return JSON.stringify({
+                        success: false,
+                        error: result.error || 'Failed to list emails'
+                    });
+                }
+            }
+
+            case 'read_gmail': {
+                const { gmailAction } = await import('@/server/tools/gmail');
+
+                if (!context.userId) {
+                    return JSON.stringify({
+                        success: false,
+                        error: 'Gmail requires authenticated user. Please log in.'
+                    });
+                }
+
+                const result = await gmailAction({
+                    action: 'read',
+                    messageId: toolInput.messageId as string
+                });
+
+                if (result.success) {
+                    return JSON.stringify({
+                        success: true,
+                        email: result.data
+                    });
+                } else {
+                    return JSON.stringify({
+                        success: false,
+                        error: result.error || 'Failed to read email'
+                    });
+                }
+            }
+
             case 'browse_url': {
                 const { rtrvrService } = await import('@/server/services/rtrvr');
 
@@ -438,7 +561,8 @@ You are a personal AI assistant inspired by OpenClaw.ai. Unlike chatbots that ju
 
 - **WhatsApp messaging** - Send messages to any phone number
 - **SMS/MMS** - Send text messages with optional images
-- **Email** - Send professional emails
+- **Email (System)** - Send emails via Mailjet (from noreply@bakedbot.ai)
+- **Gmail** - Send emails from user's personal Gmail, list and read inbox
 - **Google Calendar** - Create calendar events and reminders
 - **Web browsing** - Navigate websites, extract data, research topics
 - **Web search** - Find current information
@@ -465,12 +589,17 @@ You are a personal AI assistant inspired by OpenClaw.ai. Unlike chatbots that ju
 
 ## Current Capabilities Status
 - WhatsApp: Check status with get_whatsapp_status tool
-- Email: Ready (Mailjet configured)
+- Email (System): Ready (Mailjet) - sends from noreply@bakedbot.ai
+- Gmail: Ready - requires user to connect Gmail in Settings > Integrations
 - SMS: Ready (Blackleaf configured) - supports MMS with images
 - Calendar: Ready (Google Calendar) - requires user to connect in Settings
 - Tasks: Ready (Firestore) - create and track tasks
 - Browser automation: Available via RTRVR
 - Memory: Operational
+
+## Email Options
+- Use **send_email** for system/automated emails (from BakedBot)
+- Use **send_gmail** to send from user's personal Gmail address (more personal, shows their name)
 
 You are the agent that actually DOES things. When users say "send a message" or "check this website" or "remind me about X" - you make it happen.`;
 
