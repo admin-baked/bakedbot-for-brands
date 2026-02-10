@@ -45,6 +45,7 @@ import {
     UserPlus,
     GraduationCap,
     BookOpenCheck,
+    Calculator,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -272,6 +273,15 @@ export function DispensarySidebar() {
                                             <Globe />
                                             <span>Deep Research</span>
                                             <span className="ml-auto text-[10px] bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded font-medium">BETA</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={isActive('/dashboard/profitability')}>
+                                        <Link href="/dashboard/profitability">
+                                            <Calculator />
+                                            <span>Profitability</span>
+                                            <span className="ml-auto text-[10px] bg-green-500/10 text-green-600 px-1.5 py-0.5 rounded font-medium">NEW</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
