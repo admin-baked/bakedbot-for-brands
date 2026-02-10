@@ -25,6 +25,60 @@ npm run check:types
 
 ## 🆕 Recent Updates
 
+### BakedBot Drive - File Storage System (2026-02-09)
+**Status:** ✅ Production-ready with full sharing capabilities
+
+Google Drive-like file storage system for super users. Provides centralized asset management with folder organization, sharing, and permissions.
+
+**Architecture:**
+```
+CEO Dashboard (/dashboard/ceo?tab=drive)
+    ↓
+File Browser (split view: tree + grid)
+    ↓
+Firebase Storage (drive/{userId}/{category}/) + Firestore (metadata)
+    ↓
+Share Links (/api/drive/share/[token])
+```
+
+**Key Features:**
+- **Categories**: 4 system folders (agents, qr, images, documents) + custom folders
+- **Upload**: Drag-drop or URL upload with progress tracking
+- **Sharing**: Public/link-only/email-gated/users-only/private with password protection
+- **Actions**: Rename, move, delete, duplicate, trash/restore
+- **Views**: Grid/list toggle, breadcrumb navigation, search
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/types/drive.ts` | TypeScript types (DriveFile, DriveFolder, DriveShare) |
+| `src/server/actions/drive.ts` | 50+ CRUD server actions |
+| `src/server/services/drive-storage.ts` | Firebase Storage wrapper |
+| `src/lib/store/drive-store.ts` | Zustand store for UI state |
+| `src/components/drive/` | UI components (9 files) |
+| `src/app/dashboard/ceo/components/drive-tab.tsx` | Main dashboard tab |
+
+**Firestore Collections:**
+- `drive_files` - File metadata with ownership and sharing
+- `drive_folders` - Folder hierarchy with aggregates
+- `drive_shares` - Share links with access control and analytics
+
+**Sharing Model (matches BrandGuideSharing pattern):**
+```typescript
+interface DriveShare {
+  shareToken: string;           // Unique URL token
+  accessControl: 'public' | 'link-only' | 'email-gated' | 'users-only' | 'private';
+  accessLevel: 'view' | 'download' | 'edit';
+  passwordHash?: string;        // Optional password protection
+  expiresAt?: Date;             // Optional expiration
+  maxDownloads?: number;        // Optional download limit
+}
+```
+
+**Deploy indexes:** `firebase deploy --only firestore:indexes`
+
+---
+
 ### Cannabis Marketing AI Academy (2026-02-09)
 **Status:** ✅ Production-ready with email automation and video tracking
 

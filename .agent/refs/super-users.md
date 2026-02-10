@@ -63,6 +63,38 @@ The Executive Agents operate with **Level 5 Autonomy**:
 
 ---
 
+## BakedBot Drive
+
+**Path**: `/dashboard/ceo?tab=drive`
+
+Google Drive-like file storage system for super users.
+
+### Features
+- **File Management**: Upload, organize, search, rename, move, delete
+- **Folder System**: Custom folders + system folders (agents, qr, images, documents)
+- **Sharing**: Public links, password protection, email-gated access, expiration
+- **Views**: Grid and list view with sorting options
+
+### Key Files
+| File | Purpose |
+|------|---------|
+| `src/types/drive.ts` | TypeScript types |
+| `src/server/actions/drive.ts` | Server actions (50+ operations) |
+| `src/server/services/drive-storage.ts` | Firebase Storage wrapper |
+| `src/lib/store/drive-store.ts` | Zustand UI state |
+| `src/components/drive/` | UI components |
+
+### Firestore Collections
+- `drive_files` - File metadata
+- `drive_folders` - Folder structure
+- `drive_shares` - Sharing configurations
+
+### Storage
+- **Bucket**: `bakedbot-global-assets`
+- **Path**: `drive/{userId}/{category}/{timestamp}_{filename}`
+
+---
+
 ## Super Admin Login
 
 **Component**: `src/components/super-admin-login.tsx`

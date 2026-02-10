@@ -40,6 +40,7 @@ const GroundTruthTab = dynamic(() => import("./components/ground-truth-tab"), { 
 const UnifiedAdminConsole = dynamic(() => import("./components/unified-admin-console"), { loading: TabLoader, ssr: false });
 const LeadsTab = dynamic(() => import("./components/leads-tab"), { loading: TabLoader });
 const WhatsAppTab = dynamic(() => import("./components/whatsapp-tab"), { loading: TabLoader, ssr: false });
+const DriveTab = dynamic(() => import("./components/drive-tab"), { loading: TabLoader, ssr: false });
 
 
 import { useSuperAdmin } from '@/hooks/use-super-admin';
@@ -188,6 +189,7 @@ function CeoDashboardContent() {
             case 'ground-truth': return <GroundTruthTab />;
             case 'leads': return <LeadsTab />;
             case 'whatsapp': return <WhatsAppTab />;
+            case 'drive': return <DriveTab />;
             default: return <SuperAdminPlaybooksTab />;
         }
     };
