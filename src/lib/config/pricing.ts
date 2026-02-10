@@ -122,6 +122,7 @@ export const LEGACY_PLAN_ALIASES: Record<string, string> = {
     'free': 'scout',
     'growth_5': 'growth',
     'scale_10': 'growth',
+    'scale': 'growth',  // Common typo/abbreviation
     'pro_25': 'growth',
     'enterprise': 'empire',
 };

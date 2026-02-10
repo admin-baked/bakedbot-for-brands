@@ -39,7 +39,6 @@ export function Spinner({
                 width={96}
                 height={96}
                 className={cn(sizeClasses[size])}
-                priority
                 unoptimized
             />
             {label && <span className="text-sm text-muted-foreground">{label}</span>}
