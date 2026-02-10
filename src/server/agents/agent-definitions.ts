@@ -3,7 +3,7 @@
  * Shared configuration used by both Client and Server code.
  */
 
-export type AgentId = 'craig' | 'pops' | 'ezal' | 'smokey' | 'money_mike' | 'mike_exec' | 'mrs_parker' | 'day_day' | 'felisha' | 'general' | 'puff' | 'deebo' | 'leo' | 'linus' | 'roach' | 'big_worm' | 'jack' | 'glenda';
+export type AgentId = 'craig' | 'pops' | 'ezal' | 'smokey' | 'money_mike' | 'mike_exec' | 'mrs_parker' | 'day_day' | 'felisha' | 'general' | 'puff' | 'deebo' | 'leo' | 'linus' | 'roach' | 'big_worm' | 'jack' | 'glenda' | 'openclaw';
 
 export interface AgentCapability {
     id: AgentId;
@@ -174,6 +174,15 @@ export const AGENT_CAPABILITIES: AgentCapability[] = [
         description: 'Chief Marketing Officer focused on brand awareness, organic traffic, and national campaigns.',
         responseFormat: 'Polished, on-brand, creative. Focus on engagement and reach.',
         roleRestrictions: ['guest', 'customer', 'dispensary', 'brand']
+    },
+    {
+        id: 'openclaw',
+        name: 'OpenClaw',
+        specialty: 'Autonomous Task Execution',
+        keywords: ['whatsapp', 'send', 'message', 'email', 'automate', 'task', 'browse', 'research', 'execute', 'do', 'action', 'work'],
+        description: 'Autonomous AI agent that gets work done. Multi-channel communication (WhatsApp, Email), browser automation, web research, and task execution.',
+        responseFormat: 'Action-oriented. Confirm task, execute, report results. No fluff.',
+        roleRestrictions: ['guest', 'customer', 'dispensary', 'brand', 'intern'] // Super User only
     }
 ];
 

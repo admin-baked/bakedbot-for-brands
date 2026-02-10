@@ -20,6 +20,7 @@ import { linusAgent } from '@/server/agents/linus';
 import { jackAgent } from '@/server/agents/jack';
 import { glendaAgent } from '@/server/agents/glenda';
 import { leoAgent } from '@/server/agents/leo';
+import { openclawAgent } from '@/server/agents/openclaw';
 import { searchWeb, formatSearchResults } from '@/server/tools/web-search';
 import { httpRequest, HttpRequestOptions } from '@/server/tools/http-client';
 import { browserAction, BrowserActionParams } from '@/server/tools/browser';
@@ -102,6 +103,8 @@ const AGENT_MAP = {
     linus: linusAgent, // CTO
     deebo: deeboAgent, // Regulation Enforcement
     bigworm: bigWormAgent,
+    // Autonomous Work Agent
+    openclaw: openclawAgent, // Multi-channel communication & task automation
 };
 
 // Tools Mocks (Simplified for Runner - ideally these would be in a shared 'tools-registry' file)
