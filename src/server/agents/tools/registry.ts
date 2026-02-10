@@ -553,6 +553,32 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
         category: 'write',
         requiredPermission: 'read:analytics' // Accessible to Dispensary/Brand/Admin
     },
+    // --- WhatsApp (OpenClaw Gateway) ---
+    'communications.sendWhatsApp': {
+        name: 'communications.sendWhatsApp',
+        description: 'Sends a WhatsApp message via OpenClaw gateway. Requires WhatsApp session to be connected (QR scanned in CEO Dashboard). Use for customer outreach, order updates, and promotional messages.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                to: { type: 'string', description: 'Phone number with country code (e.g., 13155551234)' },
+                message: { type: 'string', description: 'Message content to send' },
+                mediaUrl: { type: 'string', description: 'Optional URL to image or document to attach' }
+            },
+            required: ['to', 'message']
+        },
+        category: 'side-effect',
+        requiredPermission: 'manage:campaigns' // Same as SMS/email campaigns
+    },
+    'communications.getWhatsAppStatus': {
+        name: 'communications.getWhatsAppStatus',
+        description: 'Check WhatsApp session connection status. Returns whether the OpenClaw gateway is connected and ready to send messages.',
+        inputSchema: {
+            type: 'object',
+            properties: {}
+        },
+        category: 'read',
+        requiredPermission: 'read:analytics'
+    },
     'os.simulator': {
         name: 'os.simulator',
         description: 'Simulates computer interaction (placeholder for Computer Use API).',
