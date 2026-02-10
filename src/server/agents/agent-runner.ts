@@ -66,6 +66,15 @@ import { AgentLogEntry } from '@/server/agents/schemas';
 import { validateInput, validateOutput, sanitizeForPrompt, wrapUserData, getRiskLevel } from '@/server/security';
 import { loadAISettingsForAgent } from '@/server/actions/ai-settings';
 import { buildCustomInstructionsBlock } from '@/types/ai-settings';
+import { extractGmailParams, extractCalendarParams } from '@/server/agents/extraction-helpers';
+
+
+// === STRUCTURED EXTRACTION HELPERS (imported from extraction-helpers.ts) ===
+
+// Re-export for backward compatibility
+export { extractGmailParams, extractCalendarParams } from '@/server/agents/extraction-helpers';
+
+// Removed local definitions - now using extraction-helpers.ts
 
 
 export interface AgentResult {
@@ -436,6 +445,58 @@ export async function runAgentCore(
     // Use sanitized input for processing
     let finalMessage = inputValidation.sanitized;
 
+    // === FAST PATH: Simple queries that don't need KB search, talk tracks, or agent routing ===
+    // This dramatically reduces cost and latency for common simple interactions
+    const FAST_PATH_PATTERNS = [
+        // Greetings
+        /^(hi|hello|hey|yo|sup|greetings|good\s+(morning|afternoon|evening))[\s!?.]*$/i,
+        // Agent status queries
+        /^(show|list|what\s+are)\s+(all\s+)?(active\s+)?agents/i,
+        /^(who|what)\s+(are\s+)?(the\s+)?agents/i,
+        /^agent\s+(status|list|squad)/i,
+        // Help queries
+        /^(help|how\s+do\s+I|what\s+can\s+you\s+do)/i,
+        // Simple acknowledgments
+        /^(thanks|thank\s+you|ok|okay|got\s+it|understood)[\s!?.]*$/i,
+    ];
+
+    const isFastPathQuery = FAST_PATH_PATTERNS.some(pattern => pattern.test(userMessage.trim()));
+
+    if (isFastPathQuery && !extraOptions?.attachments?.length && !extraOptions?.audioInput) {
+        await emitThought(jobId, 'Fast Path', 'Handling simple query directly...');
+
+        // Get user context minimally (no brand profile fetch)
+        let user = injectedUser;
+        if (!user) {
+            const { requireUser } = await import('@/server/auth/auth');
+            user = await requireUser().catch(() => null);
+        }
+
+        const role = (user?.role as string) || 'guest';
+        const activePersona = personaId && PERSONAS[personaId as AgentPersona]
+            ? PERSONAS[personaId as AgentPersona]
+            : PERSONAS.puff;
+
+        // Generate response with minimal model (Gemini Flash Lite)
+        const response = await ai.generate({
+            model: 'googleai/gemini-2.5-flash-lite',
+            prompt: `${activePersona.systemPrompt}\n\nUser: ${userMessage}\n\nRespond concisely and helpfully.`,
+        });
+
+        await emitThought(jobId, 'Complete', 'Fast path response generated.');
+
+        return {
+            content: response.text,
+            toolCalls: [],
+            metadata: {
+                brandId: 'fast-path',
+                agentName: activePersona.name,
+                role,
+                fastPath: true,
+            }
+        };
+    }
+
     // --- INTENTION OS (V2) ---
     // DISABLED globally per user request.
     // -------------------------
@@ -477,25 +538,45 @@ export async function runAgentCore(
         }
 
         const role = (user?.role as string) || 'guest';
-        const userBrandId = (user?.brandId as string) || (role === 'brand' ? 'demo-brand-123' : 'general');
-        const userBrandName = role === 'brand' ? 'Your Brand' : 'BakedBot';
+
+        // Resolve orgId using the standard order: orgId > brandId > currentOrgId > uid
+        // This ensures Thrive Syracuse (orgId: org_thrive_syracuse) and other tenants work correctly
+        const userBrandId = (user as any)?.orgId
+            || (user as any)?.brandId
+            || (user as any)?.currentOrgId
+            || (isPaidUser ? user?.uid : 'general')
+            || 'general';
+
+        const userBrandName = isPaidUser ? 'Your Organization' : 'BakedBot';
 
         // === CONTEXT INJECTION (Fix for Generic Placeholders) ===
-        // Fetch Brand Profile to inject Name, State, City, etc.
+        // Fetch Brand/Tenant Profile to inject Name, State, City, etc.
+        // Checks both 'brands' and 'tenants' collections for compatibility with all org types
         let brandContextString = '';
-        if (userBrandId && userBrandId !== 'demo-brand-123') {
+        if (userBrandId && userBrandId !== 'demo-brand-123' && userBrandId !== 'general') {
             try {
                 const { createServerClient } = await import('@/firebase/server-client');
                 const { firestore } = await createServerClient();
+
+                // Try brands collection first, then tenants (for dispensaries like Thrive Syracuse)
+                let data: any = null;
                 const brandDoc = await firestore.collection('brands').doc(userBrandId).get();
                 if (brandDoc.exists) {
-                    const data = brandDoc.data();
+                    data = brandDoc.data();
+                } else {
+                    const tenantDoc = await firestore.collection('tenants').doc(userBrandId).get();
+                    if (tenantDoc.exists) {
+                        data = tenantDoc.data();
+                    }
+                }
+
+                if (data) {
                     const state = data?.marketState || data?.state || data?.location?.state || 'Unknown State';
                     const city = data?.city || data?.location?.city || '';
-                    const orgName = data?.name || userBrandName;
-                    
+                    const orgName = data?.name || data?.displayName || userBrandName;
+
                     brandContextString = `\n\n[USER CONTEXT]\nOrganization: ${orgName}\nLocation: ${city ? city + ', ' : ''}${state}\nWebsite: ${data?.websiteUrl || 'Not set'}\nMarket: ${state}\n`;
-                    
+
                     // Append to message so the agent "sees" it immediately
                     finalMessage += brandContextString;
                 }
@@ -534,12 +615,15 @@ export async function runAgentCore(
 
         // === MODEL TIER ENFORCEMENT ===
         let effectiveModelLevel = extraOptions?.modelLevel || 'lite';
-        
-        // Super User Bypass
-        const isSuperUser = role === 'super_user'; // Standardized super user check
-        const isFreeUser = !isSuperUser && role === 'guest'; // Assuming 'guest' is free, 'brand' is paid? logic needs to closely match plan
-        // Actually, user object might have 'plan'
-        // Let's assume role check for now: 'guest' = free, 'brand'/'dispensary' = paid, 'super_admin' = super.
+
+        // Super User Bypass (includes legacy super_admin role)
+        const isSuperUser = role === 'super_user' || role === 'super_admin';
+
+        // Paid users: brand roles, dispensary roles (Thrive Syracuse is a dispensary)
+        const isPaidUser = ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender'].includes(role);
+
+        // Free users: guest, customer, or undefined role
+        const isFreeUser = !isSuperUser && !isPaidUser;
         
         if (!isSuperUser) {
              // Free user restrictions
@@ -669,7 +753,8 @@ export async function runAgentCore(
             await emitThought(jobId, 'Memory Lookup', 'Searching Knowledge Base...');
             const kbs = await getKnowledgeBasesAction(agentInfo?.id || 'general');
             let userKbs: any[] = [];
-            if (role === 'brand' || role === 'dispensary') {
+            // Load user-specific KBs for all paid roles (brands, dispensaries including Thrive Syracuse)
+            if (isPaidUser) {
                 userKbs = await getKnowledgeBasesAction(userBrandId);
             }
             const allKbs = [...kbs, ...userKbs];
@@ -734,21 +819,34 @@ export async function runAgentCore(
 
             await emitThought(jobId, 'Playbook Creation', 'Parsing your request into a playbook configuration...');
             executedTools.push({ id: `pb-create-${Date.now()}`, name: 'Create Playbook', status: 'running', result: 'Parsing...' });
-            
+
             try {
-                const { createPlaybookFromNaturalLanguage } = await import('@/server/actions/playbooks');
-                // Force Agentic Model for Playbooks
-                // Note: The action itself usually uses a default, but we should ensure it uses Gemini 3
-                // For now, checking permission is the key step.
-                const result = await createPlaybookFromNaturalLanguage(metadata.brandId || 'demo', userMessage);
-                
+                const { parseNaturalLanguage, createPlaybook } = await import('@/server/actions/playbooks');
+
+                // Parse the natural language into playbook config
+                const parseResult = await parseNaturalLanguage(userMessage);
+                if (!parseResult.success || !parseResult.config) {
+                    throw new Error(parseResult.error || 'Failed to parse prompt');
+                }
+
+                let result;
+
+                // Super users save to internal collection, others to brand collection
+                if (isSuperUser) {
+                    const { createSuperUserPlaybook } = await import('@/app/dashboard/ceo/playbooks/actions');
+                    result = await createSuperUserPlaybook(parseResult.config);
+                } else {
+                    result = await createPlaybook(metadata.brandId || 'demo', parseResult.config);
+                }
+
                 if (result.success && result.playbook) {
                     executedTools[executedTools.length - 1].status = 'success';
                     executedTools[executedTools.length - 1].result = `Created playbook: ${result.playbook.name}`;
                     await emitThought(jobId, 'Playbook Created', `"${result.playbook.name}" is ready! You can edit it in the Playbooks tab.`);
-                    
+
+                    const playbooksPath = isSuperUser ? '/dashboard/ceo/playbooks' : '/dashboard/playbooks';
                     return {
-                        content: `I've created a playbook called "${result.playbook.name}":\n\n**Description:** ${result.playbook.description}\n**Agent:** ${result.playbook.agent}\n**Category:** ${result.playbook.category}\n**Steps:** ${result.playbook.steps.length}\n\nYou can view and edit it in the Playbooks tab.`,
+                        content: `I've created a playbook called "${result.playbook.name}":\n\n**Description:** ${result.playbook.description}\n**Agent:** ${result.playbook.agent}\n**Category:** ${result.playbook.category}\n**Steps:** ${result.playbook.steps.length}\n\nYou can view and edit it in the [Playbooks tab](${playbooksPath}).`,
                         toolCalls: executedTools,
                         metadata: { ...metadata, jobId }
                     };
@@ -931,40 +1029,29 @@ export async function runAgentCore(
         }
 
         // 4. Integrations
-        // Gmail
+        // Gmail - Use structured extraction instead of LLM (faster & cheaper)
         if (lowerMessage.includes('gmail') || lowerMessage.includes('email') || lowerMessage.includes('inbox') || lowerMessage.includes('send message')) {
              // Avoid triggering if it's just "what is your email"
              if (!(lowerMessage.includes('YOUR email') || lowerMessage.includes('login'))) {
                  await emitThought(jobId, 'Tool Detected', 'Gmail Integration triggered');
                  executedTools.push({ id: `gmail-${Date.now()}`, name: 'Gmail', status: 'running', result: 'Processing...' });
-                 
-                 const conversion = await ai.generate({
-                    prompt: `Convert this request into a Gmail tool action (JSON).
-                    User Request: "${userMessage}"
-                    Actions: 'list' | 'read' | 'send'
-                    Fields: 
-                    - action: required
-                    - query: string (for list, e.g. "is:unread")
-                    - messageId: string (for read)
-                    - to, subject, body: string (for send)
-                    Output JSON Schema: GmailParams (JSON only)`
-                 });
-                 
+
                  try {
-                     const params = JSON.parse(conversion.text) as GmailParams;
+                     // Structured extraction (no LLM needed)
+                     const params = extractGmailParams(userMessage);
                      executedTools[executedTools.length - 1].result = `${params.action.toUpperCase()} email`;
-                     
+
                      // PASS USER CONTEXT
                      await emitThought(jobId, 'Executing Tool', `Connecting to Gmail API as ${user?.email}...`);
                      const result = await gmailAction(params, user || undefined);
                      await emitThought(jobId, 'Tool Complete', result.success ? 'Action successful' : 'Action failed');
-                     
+
                      executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
                      executedTools[executedTools.length - 1].result = result.success ? (params.action === 'list' ? `Found ${(result.data || []).length} emails` : 'Success') : result.error || 'Error';
-                     
-                     return { 
+
+                     return {
                          content: result.success ? `✅ **Gmail Action Complete**\n\n${JSON.stringify(result.data, null, 2)}` : `⚠️ **Gmail Error**: ${result.error}`,
-                         toolCalls: executedTools 
+                         toolCalls: executedTools
                      };
                  } catch (e: any) {
                      executedTools[executedTools.length - 1].status = 'error';
@@ -972,33 +1059,26 @@ export async function runAgentCore(
                  }
              }
         }
-        
-        // Calendar
+
+        // Calendar - Use structured extraction instead of LLM (faster & cheaper)
         if (lowerMessage.includes('calendar') || lowerMessage.includes('meeting') || lowerMessage.includes('schedule event')) {
             await emitThought(jobId, 'Tool Detected', 'Calendar Integration triggered');
             executedTools.push({ id: `cal-${Date.now()}`, name: 'Calendar', status: 'running', result: 'Accessing calendar...' });
-            
-            const conversion = await ai.generate({
-                prompt: `Convert: "${userMessage}" to CalendarParams JSON.
-                Actions: 'list' | 'create'
-                Fields: action, timeMin, maxResults, summary, startTime, endTime
-                Current Time: ${new Date().toISOString()}
-                Output JSON only.`
-            });
-            
+
             try {
-                const params = JSON.parse(conversion.text) as CalendarParams;
+                // Structured extraction (no LLM needed)
+                const params = extractCalendarParams(userMessage);
                 // PASS USER CONTEXT
                 await emitThought(jobId, 'Executing Tool', `Connecting to Google Calendar API...`);
                 const result = await calendarAction(params, user || undefined);
                 await emitThought(jobId, 'Tool Complete', result.success ? 'Action successful' : 'Action failed');
-                
+
                 executedTools[executedTools.length-1].status = result.success ? 'success' : 'error';
                 executedTools[executedTools.length-1].result = result.success ? (params.action === 'list' ? `Found ${result.data?.length} events` : 'Event created') : result.error || 'Error';
-                
-                 return { 
+
+                 return {
                      content: result.success ? `✅ **Calendar Action Complete**` : `⚠️ **Calendar Error**: ${result.error}`,
-                     toolCalls: executedTools 
+                     toolCalls: executedTools
                  };
             } catch (e: any) {
                 executedTools[executedTools.length-1].status='error';
