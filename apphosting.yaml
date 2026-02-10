@@ -4,7 +4,7 @@
 env:
   # Build-time memory allocation - reduced for Cloud Build compatibility
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=4096"
+    value: "--max-old-space-size=3072"
     availability: [ BUILD ]
   # Runtime memory allocation - can be higher since we control runtime resources
   - variable: NODE_OPTIONS
