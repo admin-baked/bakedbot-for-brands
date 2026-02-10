@@ -44,6 +44,7 @@ import {
     ChevronRight,
     UserPlus,
     GraduationCap,
+    BookOpenCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -208,6 +209,14 @@ export function DispensarySidebar() {
                 <SidebarGroupLabel>Marketing</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/settings/brand-guide')}>
+                                <Link href="/dashboard/settings/brand-guide">
+                                    <BookOpenCheck />
+                                    <span>Brand Guide</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/brand/creative')}>
                                 <Link href="/dashboard/brand/creative">
