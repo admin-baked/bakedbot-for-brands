@@ -132,10 +132,18 @@ export async function createBrandGuide(
 
     return { success: true, brandGuide };
   } catch (error) {
-    logger.error('Failed to create brand guide', { error, input });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    logger.error('Failed to create brand guide', {
+      error: errorMessage,
+      stack: errorStack,
+      input,
+      brandId: input.brandId,
+      method: input.method,
+    });
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to create brand guide',
+      error: `Failed to create brand guide: ${errorMessage}`,
     };
   }
 }
