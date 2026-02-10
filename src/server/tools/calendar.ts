@@ -16,7 +16,8 @@ export type CalendarAction = 'list' | 'create';
 
 export interface CalendarParams {
     action: CalendarAction;
-    timeMin?: string;    // ISO string for 'list'
+    timeMin?: string;    // ISO string for 'list' - start of range
+    timeMax?: string;    // ISO string for 'list' - end of range
     maxResults?: number; // For 'list'
     summary?: string;    // For 'create'
     startTime?: string;  // ISO string for 'create'

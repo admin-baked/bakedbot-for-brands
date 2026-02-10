@@ -22,6 +22,8 @@ export interface ClaudeContext {
     role?: string;
     maxIterations?: number; // Default: 10
     model?: string; // Allow model override
+    autoRouteModel?: boolean; // Auto-select Opus for complex tasks (default: true)
+    contextTokens?: number; // Estimated context size for model selection
 }
 
 export interface ToolExecution {
@@ -41,11 +43,165 @@ export interface ClaudeResult {
     outputTokens: number;
 }
 
-// Default model for tool calling - Claude Opus 4.5 (User Specified)
-export const CLAUDE_TOOL_MODEL = 'claude-opus-4-5-20251101';
+// Default model for tool calling - Claude Sonnet 4 (optimized for agentic workflows)
+// Sonnet is 5x cheaper than Opus and excels at structured tool use
+// Use CLAUDE_REASONING_MODEL for complex one-shot reasoning tasks
+export const CLAUDE_TOOL_MODEL = 'claude-sonnet-4-20250514';
+
+// Premium model for complex reasoning tasks (use sparingly)
+// Best for: strategic decisions, long document synthesis, novel problem solving
+export const CLAUDE_REASONING_MODEL = 'claude-opus-4-5-20251101';
 
 // Maximum iterations to prevent infinite loops
 const MAX_ITERATIONS = 10;
+
+// === AUTOMATIC MODEL ROUTING ===
+
+export type TaskComplexity = 'simple' | 'standard' | 'complex' | 'strategic';
+
+interface ComplexitySignals {
+    complexity: TaskComplexity;
+    reasoning: string;
+    suggestedModel: string;
+}
+
+/**
+ * Patterns that indicate complex reasoning tasks requiring Opus 4.5
+ */
+const OPUS_PATTERNS = {
+    // Multi-step planning and analysis
+    multiStepPlanning: [
+        /(?:create|build|design|architect)\s+(?:a\s+)?(?:comprehensive|detailed|full|complete)\s+(?:plan|strategy|roadmap|framework)/i,
+        /step[- ]by[- ]step\s+(?:plan|guide|process|analysis)/i,
+        /multi[- ]?step\s+(?:process|workflow|implementation)/i,
+        /(?:develop|create)\s+(?:a\s+)?(?:business|marketing|growth|expansion)\s+(?:plan|strategy)/i,
+    ],
+
+    // Strategic business decisions
+    strategicDecisions: [
+        /(?:strategic|business)\s+(?:decision|recommendation|analysis)/i,
+        /(?:market\s+entry|expansion|pivot)\s+strategy/i,
+        /(?:competitive|swot|pest|porter)\s+analysis/i,
+        /(?:investment|funding|acquisition|merger)\s+(?:decision|analysis|recommendation)/i,
+        /(?:pricing|revenue|monetization)\s+strategy/i,
+        /go[- ]to[- ]market\s+(?:strategy|plan)/i,
+    ],
+
+    // Long document synthesis (100k+ context)
+    documentSynthesis: [
+        /(?:analyze|review|synthesize)\s+(?:this|these|the)\s+(?:document|report|contract|agreement)/i,
+        /summarize\s+(?:all|the\s+entire|this\s+lengthy)/i,
+        /(?:compare|contrast)\s+(?:multiple|several|these)\s+(?:document|report|proposal)/i,
+        /(?:extract|identify)\s+(?:key|main|critical)\s+(?:point|insight|finding|theme)/i,
+    ],
+
+    // Novel problem solving
+    novelProblemSolving: [
+        /(?:novel|unique|unprecedented|complex)\s+(?:problem|challenge|situation)/i,
+        /(?:how\s+(?:would|should|can)\s+(?:we|I))\s+(?:approach|solve|handle|address)/i,
+        /(?:brainstorm|ideate|innovate)\s+(?:solution|approach|strategy)/i,
+        /(?:think\s+through|reason\s+about|analyze)\s+(?:this|the)\s+(?:complex|difficult|challenging)/i,
+    ],
+
+    // Architectural decisions
+    architecturalDecisions: [
+        /(?:system|software|data|cloud)\s+architecture/i,
+        /(?:design|architect)\s+(?:a\s+)?(?:scalable|distributed|microservice)/i,
+        /(?:migration|modernization)\s+(?:strategy|plan|approach)/i,
+        /(?:technical|engineering)\s+(?:decision|recommendation|trade-?off)/i,
+    ],
+};
+
+/**
+ * Detect task complexity and suggest the appropriate Claude model.
+ * Automatically routes complex tasks to Opus 4.5 for better reasoning.
+ */
+export function detectTaskComplexity(prompt: string, contextTokens?: number): ComplexitySignals {
+    const lower = prompt.toLowerCase();
+
+    // Check for Opus-level patterns
+    for (const [category, patterns] of Object.entries(OPUS_PATTERNS)) {
+        for (const pattern of patterns) {
+            if (pattern.test(prompt)) {
+                return {
+                    complexity: 'strategic',
+                    reasoning: `Detected ${category.replace(/([A-Z])/g, ' $1').toLowerCase()} pattern`,
+                    suggestedModel: CLAUDE_REASONING_MODEL,
+                };
+            }
+        }
+    }
+
+    // Check context length (>50k tokens suggests need for Opus)
+    if (contextTokens && contextTokens > 50000) {
+        return {
+            complexity: 'complex',
+            reasoning: `Large context (${contextTokens} tokens) benefits from Opus reasoning`,
+            suggestedModel: CLAUDE_REASONING_MODEL,
+        };
+    }
+
+    // Check prompt length as a proxy for complexity
+    const wordCount = prompt.split(/\s+/).length;
+    if (wordCount > 500) {
+        return {
+            complexity: 'complex',
+            reasoning: 'Long prompt suggests complex task',
+            suggestedModel: CLAUDE_REASONING_MODEL,
+        };
+    }
+
+    // Check for multiple questions/requirements
+    const questionCount = (prompt.match(/\?/g) || []).length;
+    const bulletPoints = (prompt.match(/^[-*•]\s/gm) || []).length;
+    if (questionCount >= 5 || bulletPoints >= 7) {
+        return {
+            complexity: 'complex',
+            reasoning: 'Multiple requirements detected',
+            suggestedModel: CLAUDE_REASONING_MODEL,
+        };
+    }
+
+    // Default to Sonnet for standard tasks
+    return {
+        complexity: 'standard',
+        reasoning: 'Standard task complexity',
+        suggestedModel: CLAUDE_TOOL_MODEL,
+    };
+}
+
+/**
+ * Get the best model for a given prompt, with optional override.
+ * If autoRoute is true, will automatically upgrade to Opus for complex tasks.
+ */
+export function selectModel(prompt: string, options?: {
+    forceModel?: string;
+    autoRoute?: boolean;
+    contextTokens?: number;
+}): { model: string; complexity: ComplexitySignals } {
+    // Honor explicit model override
+    if (options?.forceModel) {
+        return {
+            model: options.forceModel,
+            complexity: { complexity: 'standard', reasoning: 'Model explicitly specified', suggestedModel: options.forceModel },
+        };
+    }
+
+    // Auto-route based on task complexity (default: enabled)
+    const autoRoute = options?.autoRoute !== false;
+    const complexity = detectTaskComplexity(prompt, options?.contextTokens);
+
+    if (autoRoute && complexity.complexity === 'strategic') {
+        return { model: CLAUDE_REASONING_MODEL, complexity };
+    }
+
+    if (autoRoute && complexity.complexity === 'complex') {
+        return { model: CLAUDE_REASONING_MODEL, complexity };
+    }
+
+    // Default to Sonnet
+    return { model: CLAUDE_TOOL_MODEL, complexity };
+}
 
 /**
  * Get the Anthropic client singleton
@@ -84,19 +240,31 @@ export async function executeWithTools(
 ): Promise<ClaudeResult> {
     const client = getClient();
     const maxIterations = context.maxIterations || MAX_ITERATIONS;
-    
+
+    // Auto-select model based on task complexity (unless explicitly specified)
+    const { model: selectedModel, complexity } = selectModel(prompt, {
+        forceModel: context.model,
+        autoRoute: context.autoRouteModel !== false,
+        contextTokens: context.contextTokens,
+    });
+
+    // Log when upgrading to Opus for observability
+    if (selectedModel === CLAUDE_REASONING_MODEL && !context.model) {
+        console.log(`[Claude] Auto-routing to Opus 4.5: ${complexity.reasoning}`);
+    }
+
     const messages: MessageParam[] = [
         { role: 'user', content: prompt }
     ];
-    
+
     const toolExecutions: ToolExecution[] = [];
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
     let finalContent = '';
-    
+
     for (let iteration = 0; iteration < maxIterations; iteration++) {
         const response = await client.messages.create({
-            model: context.model || CLAUDE_TOOL_MODEL,
+            model: selectedModel,
             max_tokens: 4096,
             tools,
             messages,
@@ -175,7 +343,7 @@ export async function executeWithTools(
     return {
         content: finalContent,
         toolExecutions,
-        model: CLAUDE_TOOL_MODEL,
+        model: selectedModel,
         inputTokens: totalInputTokens,
         outputTokens: totalOutputTokens,
     };
@@ -227,13 +395,15 @@ export function isClaudeAvailable(): boolean {
 /**
  * Simple text-based Claude API call without tools.
  * Use this for straightforward text generation tasks.
+ * Automatically routes to Opus 4.5 for complex reasoning tasks.
  */
 export interface ClaudeCallOptions {
     systemPrompt?: string;
     userMessage: string;
     temperature?: number;
     maxTokens?: number;
-    model?: string;
+    model?: string; // Override model selection
+    autoRouteModel?: boolean; // Auto-select Opus for complex tasks (default: true)
     imageUrl?: string; // For vision capabilities
 }
 
@@ -245,9 +415,21 @@ export async function callClaude(options: ClaudeCallOptions): Promise<string> {
         userMessage,
         temperature = 1.0,
         maxTokens = 4096,
-        model = CLAUDE_TOOL_MODEL,
+        model: explicitModel,
+        autoRouteModel = true,
         imageUrl
     } = options;
+
+    // Auto-select model based on task complexity
+    const { model: selectedModel, complexity } = selectModel(userMessage, {
+        forceModel: explicitModel,
+        autoRoute: autoRouteModel,
+    });
+
+    // Log when upgrading to Opus
+    if (selectedModel === CLAUDE_REASONING_MODEL && !explicitModel) {
+        console.log(`[Claude] Auto-routing to Opus 4.5: ${complexity.reasoning}`);
+    }
 
     // Build message content
     const messageContent: Array<{ type: string; text?: string; source?: { type: string; url: string; media_type: string } }> = [];
@@ -270,7 +452,7 @@ export async function callClaude(options: ClaudeCallOptions): Promise<string> {
     });
 
     const response = await client.messages.create({
-        model,
+        model: selectedModel,
         max_tokens: maxTokens,
         temperature,
         system: systemPrompt,
