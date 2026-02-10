@@ -327,5 +327,9 @@ export async function registerBuiltInTools(): Promise<void> {
     const { getWebDiscoveryTool } = await import('./web-discovery');
     registry.register(getWebDiscoveryTool());
 
+    // Register WhatsApp tool (OpenClaw)
+    const { getWhatsAppTool } = await import('./whatsapp-tool');
+    registry.register(getWhatsAppTool());
+
     logger.info('📦 Built-in tools registered:', { tools: registry.toString() });
 }

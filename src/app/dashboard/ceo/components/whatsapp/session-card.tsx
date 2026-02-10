@@ -11,7 +11,6 @@ import {
     disconnectWhatsAppAction,
 } from '@/server/actions/whatsapp';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import Image from 'next/image';
 
 interface SessionCardProps {
     status: any;
@@ -146,7 +145,8 @@ export function SessionCard({ status, onRefresh }: SessionCardProps) {
                     </DialogHeader>
                     <div className="flex flex-col items-center gap-4 py-4">
                         {qrCode && (
-                            <Image
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
                                 src={qrCode}
                                 alt="WhatsApp QR Code"
                                 width={300}
