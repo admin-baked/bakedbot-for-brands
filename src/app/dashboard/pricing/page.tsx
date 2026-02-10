@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Plus, TrendingUp } from 'lucide-react';
 import { PricingKPIGrid } from './components/pricing-kpi-grid';
 import { PricingRulesList } from './components/pricing-rules-list';
+import { InventoryIntelligenceTab } from './components/inventory-intelligence-tab';
+import { PricingAnalyticsTab } from './components/pricing-analytics-tab';
 import { useRouter } from 'next/navigation';
 
 export default function PricingPage() {
@@ -63,26 +65,12 @@ export default function PricingPage() {
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-4">
-          <div className="rounded-lg border border-dashed border-muted-foreground/25 p-12 text-center">
-            <div className="text-muted-foreground text-4xl mb-4">📊</div>
-            <h3 className="text-lg font-semibold mb-2">Analytics Coming Soon</h3>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              Rule performance charts, price timelines, and competitor comparisons
-              will be available here.
-            </p>
-          </div>
+          <PricingAnalyticsTab />
         </TabsContent>
 
         {/* Inventory Tab */}
         <TabsContent value="inventory" className="space-y-4">
-          <div className="rounded-lg border border-dashed border-muted-foreground/25 p-12 text-center">
-            <div className="text-muted-foreground text-4xl mb-4">📦</div>
-            <h3 className="text-lg font-semibold mb-2">Inventory Intelligence Coming Soon</h3>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              Clearance urgency indicators, slow-moving inventory, and velocity
-              trends will be available here.
-            </p>
-          </div>
+          <InventoryIntelligenceTab />
         </TabsContent>
       </Tabs>
     </div>
