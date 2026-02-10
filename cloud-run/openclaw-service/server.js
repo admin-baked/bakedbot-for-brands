@@ -191,18 +191,35 @@ app.post('/whatsapp/message/send', requireAuth, async (req, res) => {
     if (!to || !message) return res.status(400).json({ error: 'Missing to/message' });
 
     try {
-        const chatId = to.replace(/[^0-9]/g, '') + '@c.us';
+        // Normalize phone number - remove all non-digits
+        const normalizedNumber = to.replace(/[^0-9]/g, '');
+        console.log(`[WhatsApp] Sending to: ${normalizedNumber}`);
+
+        // Verify number is registered on WhatsApp
+        const numberId = await whatsappClient.getNumberId(normalizedNumber);
+        if (!numberId) {
+            console.log(`[WhatsApp] Number not registered: ${normalizedNumber}`);
+            return res.status(400).json({
+                error: `Phone number ${normalizedNumber} is not registered on WhatsApp`,
+                code: 'NOT_REGISTERED'
+            });
+        }
+
+        console.log(`[WhatsApp] Number verified, sending to: ${numberId._serialized}`);
+
         let sent;
         if (mediaUrl) {
             const { MessageMedia } = require('whatsapp-web.js');
             const media = await MessageMedia.fromUrl(mediaUrl);
-            sent = await whatsappClient.sendMessage(chatId, media, { caption: message });
+            sent = await whatsappClient.sendMessage(numberId._serialized, media, { caption: message });
         } else {
-            sent = await whatsappClient.sendMessage(chatId, message);
+            sent = await whatsappClient.sendMessage(numberId._serialized, message);
         }
-        res.json({ id: sent.id.id, status: 'sent' });
+
+        console.log(`[WhatsApp] Message sent: ${sent.id.id}`);
+        res.json({ id: sent.id.id, status: 'sent', to: normalizedNumber });
     } catch (err) {
-        console.error(err);
+        console.error('[WhatsApp] Send failed:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
