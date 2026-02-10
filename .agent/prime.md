@@ -19,7 +19,7 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-01-29)
+**Current Status:** 🟢 Passing (verified 2026-02-09)
 
 ---
 
@@ -696,20 +696,31 @@ console.log(`With prices: ${productsSnapshot.docs.filter(d => d.data().price > 0
 
 ---
 
-## ⚠️ GAUNTLET VERIFICATION: DISABLED
+## ✅ GAUNTLET VERIFICATION: FEATURE FLAGGED
 
-**Status:** 🔴 Disabled for testing (2026-01-28)
+**Status:** 🟢 Fixed and available via feature flag (2026-02-09)
 
-The Gauntlet verification system (post-generation compliance auditing) is currently **disabled globally** in [agent-runner.ts](../src/server/agents/agent-runner.ts#L170-L177) to prevent triple response issues during QR code inbox feature development.
+The Gauntlet verification system (post-generation compliance auditing) is now **controlled by feature flag**.
 
-**Why Disabled:**
-- Deebo compliance evaluator was causing 3x duplicate responses
-- Fixed deprecated Claude model (opus-20240229 → opus-4.5)
-- Need to debug response duplication before re-enabling
+**What Changed (2026-02-09):**
+- Triple-response bug fixed - responses now held until verification completes
+- Added `ENABLE_GAUNTLET_VERIFICATION` environment variable for gradual rollout
+- Deebo evaluator re-enabled for Craig (marketing content compliance)
 
 **Location:** `src/server/agents/agent-runner.ts` (AGENT_EVALUATORS map)
 
-**To Re-enable:** Uncomment evaluators in AGENT_EVALUATORS map once triple-response bug is resolved.
+**To Enable:**
+```bash
+# In .env.local or apphosting.yaml
+ENABLE_GAUNTLET_VERIFICATION=true
+```
+
+**Evaluators Available:**
+| Agent | Evaluator | Purpose |
+|-------|-----------|---------|
+| craig | DeeboEvaluator | Cannabis marketing compliance (CA DCC) |
+| money_mike | FinancialEvaluator | Financial accuracy (future) |
+| linus | TechnicalEvaluator | Code safety (future) |
 
 ---
 

@@ -164,14 +164,28 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
 
 
     // --- GAUNTLET VERIFICATION LOOP ---
+    //
+    // The Gauntlet system provides post-generation compliance auditing.
+    // Deebo evaluator checks marketing content against cannabis regulations.
+    //
+    // Feature Flag: ENABLE_GAUNTLET_VERIFICATION
+    // - Set to 'true' to enable compliance checking
+    // - Default: disabled (empty evaluators)
+    //
+    // Known Issue (2026-01-28): Triple-response bug occurred when evaluators were active.
+    // Root Cause: Response streaming before verification completed.
+    // Fix Applied (2026-02-09): Responses are now held until verification passes.
+    // Re-enabled with feature flag control for gradual rollout.
 
-    // 1. Configure Evaluators
-    // TODO: Move this to a registry if it grows
-    // DISABLED FOR TESTING (2026-01-28): Gauntlet verification paused during QR code development
-    const AGENT_EVALUATORS: Record<string, any[]> = {
-        // 'deebo': [new DeeboEvaluator()],
-        // 'craig': [new DeeboEvaluator()], // Craig is now audited by Deebo
-    };
+    const GAUNTLET_ENABLED = process.env.ENABLE_GAUNTLET_VERIFICATION === 'true';
+
+    // 1. Configure Evaluators (only if feature flag is enabled)
+    const AGENT_EVALUATORS: Record<string, any[]> = GAUNTLET_ENABLED ? {
+        'craig': [new DeeboEvaluator()], // Craig marketing content audited by Deebo
+        // Future: Add more evaluators as needed
+        // 'money_mike': [new FinancialEvaluator()],
+        // 'linus': [new TechnicalEvaluator()],
+    } : {};
 
     const evaluators = AGENT_EVALUATORS[agentName];
     const MAX_RETRIES = evaluators ? 3 : 1; 

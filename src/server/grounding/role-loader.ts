@@ -48,6 +48,13 @@ export async function loadRoleGroundTruth(
     tenantId?: string
 ): Promise<RoleGroundTruth | null> {
     try {
+        // Check cache first
+        const cached = getCachedRoleGroundTruth(role, tenantId);
+        if (cached) {
+            logger.debug(`[RoleGrounding] Cache hit for role: ${role}`, { tenantId });
+            return cached;
+        }
+
         // Load base role ground truth from Firestore
         const baseGT = await loadRoleFromFirestore(role);
         if (!baseGT) {
@@ -55,9 +62,10 @@ export async function loadRoleGroundTruth(
             return null;
         }
 
-        // If no tenantId, return base
+        // If no tenantId, cache and return base
         if (!tenantId) {
             logger.info(`[RoleGrounding] Loaded base ground truth for role: ${role}`);
+            cacheRoleGroundTruth(role, baseGT);
             return baseGT;
         }
 
@@ -65,6 +73,7 @@ export async function loadRoleGroundTruth(
         const override = await loadTenantOverrides(tenantId, role);
         if (!override) {
             logger.info(`[RoleGrounding] Loaded base ground truth for role: ${role} (no tenant overrides)`);
+            cacheRoleGroundTruth(role, baseGT, tenantId);
             return baseGT;
         }
 
@@ -76,6 +85,9 @@ export async function loadRoleGroundTruth(
             disabledPresets: override.disabled_presets.length,
             finalPresets: merged.preset_prompts.length,
         });
+
+        // Cache merged result
+        cacheRoleGroundTruth(role, merged, tenantId);
 
         return merged;
     } catch (error) {
