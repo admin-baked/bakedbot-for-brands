@@ -43,7 +43,8 @@ import {
     Rocket,
     Inbox,
     GraduationCap,
-    Plug
+    Plug,
+    HardDrive
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
@@ -251,6 +252,14 @@ export function SuperAdminSidebar() {
                                 <Link href="/dashboard/ceo?tab=ezal">
                                     <Search />
                                     <span>Intel & Research</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive("drive")}>
+                                <Link href="/dashboard/ceo?tab=drive">
+                                    <HardDrive />
+                                    <span>BakedBot Drive</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
