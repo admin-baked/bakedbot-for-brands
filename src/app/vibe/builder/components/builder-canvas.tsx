@@ -10,12 +10,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
+import type { VibeProject } from '@/types/vibe-project';
+
 interface BuilderCanvasProps {
   userId: string;
+  projectId: string;
   projectName: string;
+  initialProject: VibeProject | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onEditorReady?: (editor: any) => void;
 }
 
-export function BuilderCanvas({ userId, projectName }: BuilderCanvasProps) {
+export function BuilderCanvas({
+  userId,
+  projectId,
+  projectName,
+  initialProject,
+  onEditorReady,
+}: BuilderCanvasProps) {
   const editorRef = useRef<grapesjs.Editor | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
@@ -151,8 +163,30 @@ export function BuilderCanvas({ userId, projectName }: BuilderCanvasProps) {
         // Add custom cannabis blocks
         addCannabisBlocks(editor);
 
+        // Load saved project data if exists
+        if (initialProject) {
+          try {
+            // Load components and styles
+            if (initialProject.components && initialProject.components !== '[]') {
+              editor.setComponents(JSON.parse(initialProject.components));
+            }
+            if (initialProject.styles && initialProject.styles !== '[]') {
+              editor.setStyle(JSON.parse(initialProject.styles));
+            }
+
+            console.log('[BUILDER] Loaded saved project data');
+          } catch (error) {
+            console.error('[BUILDER] Failed to load project data:', error);
+          }
+        }
+
         // Store reference
         editorRef.current = editor;
+
+        // Notify parent that editor is ready
+        if (onEditorReady) {
+          onEditorReady(editor);
+        }
 
         // Log editor ready
         console.log('[BUILDER] GrapesJS initialized');
