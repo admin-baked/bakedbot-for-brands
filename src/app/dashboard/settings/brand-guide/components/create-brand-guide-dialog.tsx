@@ -101,7 +101,12 @@ export function CreateBrandGuideDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button size="lg">Create Brand Guide</Button>
+        <Button
+          size="lg"
+          className="w-full bg-baked-green hover:bg-baked-green/90 text-white py-4 rounded-xl font-bold text-lg shadow-lg"
+        >
+          Create Brand Guide
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>

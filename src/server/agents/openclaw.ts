@@ -78,7 +78,7 @@ const openclawTools: ClaudeTool[] = [
     },
     {
         name: 'send_sms',
-        description: 'Send an SMS/MMS text message via Blackleaf. Can include images for MMS.',
+        description: 'Send an SMS/MMS text message via BakedBot SMS. Can include images for MMS.',
         input_schema: {
             type: 'object' as const,
             properties: {
@@ -317,7 +317,7 @@ async function executeOpenClawTool(
                 } else {
                     return JSON.stringify({
                         success: false,
-                        error: 'Failed to send SMS. Check Blackleaf API configuration.'
+                        error: 'Failed to send SMS. Check BakedBot SMS configuration in Settings.'
                     });
                 }
             }
@@ -590,7 +590,7 @@ You are a personal AI assistant inspired by OpenClaw.ai. Unlike chatbots that ju
 
 - **WhatsApp messaging** - Send messages to any phone number
 - **SMS/MMS** - Send text messages with optional images
-- **Email (System)** - Send emails via Mailjet (from noreply@bakedbot.ai)
+- **Email (System)** - Send emails via BakedBot Mail (from noreply@bakedbot.ai)
 - **Gmail** - Send emails from user's personal Gmail, list and read inbox
 - **Google Calendar** - Create calendar events and reminders
 - **Web browsing** - Navigate websites, extract data, research topics
@@ -618,9 +618,9 @@ You are a personal AI assistant inspired by OpenClaw.ai. Unlike chatbots that ju
 
 ## Current Capabilities Status
 - WhatsApp: Check status with get_whatsapp_status tool
-- Email (System): Ready (Mailjet) - sends from noreply@bakedbot.ai
+- Email (System): Ready (BakedBot Mail) - sends from noreply@bakedbot.ai
 - Gmail: Ready - requires user to connect Gmail in Settings > Integrations
-- SMS: Ready (Blackleaf configured) - supports MMS with images
+- SMS: Ready (BakedBot SMS) - supports MMS with images
 - Calendar: Ready (Google Calendar) - requires user to connect in Settings
 - Tasks: Ready (Firestore) - create and track tasks
 - Browser automation: Available via RTRVR

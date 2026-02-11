@@ -246,8 +246,8 @@ export const KNOWN_INTEGRATIONS: IntegrationStatus[] = [
     { id: 'gemini_api', name: 'Gemini API', status: 'active', description: 'AI planning (Google)' },
 
     // Configured but may need brand setup
-    { id: 'blackleaf_sms', name: 'Blackleaf SMS', status: 'configured', description: 'SMS campaigns', setupRequired: 'Brand API key required' },
-    { id: 'mailjet_email', name: 'Mailjet Email', status: 'configured', description: 'Email campaigns', setupRequired: 'Brand API key required' },
+    { id: 'blackleaf_sms', name: 'BakedBot SMS', status: 'configured', description: 'SMS campaigns', setupRequired: 'Brand API key required' },
+    { id: 'mailjet_email', name: 'BakedBot Mail', status: 'configured', description: 'Email campaigns', setupRequired: 'Brand API key required' },
 
     // Not yet implemented
     { id: 'gmail', name: 'Gmail', status: 'not_configured', description: 'Email inbox monitoring', setupRequired: 'OAuth integration needed' },
