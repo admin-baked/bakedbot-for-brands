@@ -1,0 +1,380 @@
+# Dynamic Pricing Dashboard
+
+Maximize revenue and move inventory faster with intelligent, rule-based dynamic pricing. BakedBot's pricing engine integrates with your POS system and competitor intelligence to automatically adjust prices based on inventory age, market conditions, time of day, and more.
+
+## Why Dynamic Pricing Works
+
+**Data-driven pricing increases profitability:**
+- 💰 **+12-18% revenue** (vs. static pricing)
+- 🔄 **40% faster inventory turnover** (clear aging stock)
+- 🎯 **Stay competitive** (match market prices automatically)
+- ⚡ **React in real-time** (demand-based adjustments)
+- 📊 **Optimize margins** (balance volume vs. profit)
+
+<Callout type="success">
+**Real example:** A dispensary using dynamic pricing cleared 45+ day inventory 3x faster while maintaining margins, resulting in $23K additional revenue in the first quarter.
+</Callout>
+
+## Dashboard Overview
+
+The Dynamic Pricing dashboard has **3 tabs:**
+
+### 1. Rules Tab
+Create and manage pricing rules with conditions and priorities.
+
+**Key features:**
+- Priority-based rule system (higher priority = applied first)
+- Multiple condition types (inventory age, competitor price, time, category)
+- Percentage or fixed discounts
+- Active/inactive toggle
+- Real-time rule testing
+
+### 2. Intelligence Tab
+Monitor inventory health and clearance recommendations.
+
+**What you see:**
+- **Expiring Soon**: Products approaching expiration (30-60 days)
+- **Clearance Candidates**: Aging inventory (45+ days old)
+- **Stock Alerts**: Low stock warnings
+- **Sale Badges**: Current POS discounts and promotional prices
+
+### 3. Analytics Tab
+Track rule performance and revenue impact.
+
+**Metrics:**
+- Revenue impact over time (line chart)
+- Rule applications per day (bar chart)
+- Top performing rules (ranked by revenue)
+- Competitor price gaps (alerts when you're 15%+ above/below market)
+- Rule application distribution (pie chart)
+
+---
+
+## Creating Your First Pricing Rule
+
+### Step 1: Choose a Strategy
+
+**4 pricing strategies:**
+
+1. **Clearance** - Move aging inventory before expiration
+2. **Competitive** - Match or beat competitor prices
+3. **Time-Based** - Happy hour, weekend specials, seasonal promos
+4. **Dynamic** - Category-specific or segment-based pricing
+
+### Step 2: Set Conditions
+
+**Condition Types:**
+
+| Condition | When to Use | Example |
+|-----------|-------------|---------|
+| **Inventory Age** | Clear old stock | Products 45+ days old |
+| **Competitor Price** | Stay competitive | When 15%+ above market avg |
+| **Time of Day** | Drive off-peak traffic | Weekdays 2-5pm |
+| **Day of Week** | Weekend specials | Friday-Sunday |
+| **Category** | Promote specific products | All flower products |
+| **Stock Level** | Urgent clearance | Less than 5 units |
+| **Traffic Level** | Surge pricing | Peak hours (controversial!) |
+
+<Callout type="warning">
+**Multiple conditions = AND logic:** All conditions must be met for the rule to apply. Use multiple rules if you need OR logic.
+</Callout>
+
+### Step 3: Configure Price Adjustment
+
+**Percentage Discount** (recommended):
+- Set discount: 10%, 20%, 30%, etc.
+- Min price: Prevent selling below cost ($5.00 minimum)
+- Max discount: System enforces 40% maximum
+
+**Fixed Discount**:
+- Dollar amount off: $5 off, $10 off, etc.
+- Use for specific promotions
+
+### Step 4: Set Priority
+
+**Priority determines rule order (100 = highest):**
+
+- **90-100**: Urgent clearance (expiring soon)
+- **70-89**: Competitor matching (market-driven)
+- **50-69**: Time-based promotions (happy hour, weekends)
+- **20-49**: Category deals (ongoing)
+- **1-19**: Default discounts (loyalty, new customers)
+
+**Why priority matters:**
+Only the **highest priority matching rule** applies to each product. If multiple rules match, the one with the highest priority wins.
+
+---
+
+## Example Rules
+
+### Rule 1: Aggressive Clearance (Priority 90)
+```
+Name: 🔥 Clearance - 45+ Days Old
+Strategy: Clearance
+Conditions:
+  - Inventory Age: min 45 days
+Discount: 30% off
+Min Price: $5.00
+Active: ✅ Yes
+```
+
+**Why it works:** Moves aging stock before it expires, preventing total loss.
+
+### Rule 2: Competitor Price Match (Priority 70)
+```
+Name: 🎯 Match Market - 15% Above
+Strategy: Competitive
+Conditions:
+  - Competitor Price: above 15%
+Discount: 12% off
+Min Price: $8.00
+Active: ✅ Yes (requires Ezal data)
+```
+
+**Why it works:** Automatically matches market prices when you're overpriced, winning back customers.
+
+### Rule 3: Happy Hour (Priority 60)
+```
+Name: 🕐 Happy Hour - Weekdays 2-5pm
+Strategy: Time-Based
+Conditions:
+  - Days: Monday-Friday
+  - Time: 14:00-17:00
+Discount: 10% off
+Min Price: $5.00
+Active: ✅ Yes
+```
+
+**Why it works:** Drives foot traffic during slow afternoon hours.
+
+### Rule 4: Weekend Flower Special (Priority 65)
+```
+Name: 🌿 Weekend Flower Deal
+Strategy: Dynamic
+Conditions:
+  - Category: Flower
+  - Days: Friday, Saturday, Sunday
+Discount: 15% off
+Min Price: $10.00
+Active: ✅ Yes
+```
+
+**Why it works:** Boosts high-volume category sales on peak days.
+
+---
+
+## Best Practices
+
+### ✅ Do This
+
+1. **Start conservative** - Test with 10-15% discounts before going aggressive
+2. **Monitor analytics** - Check revenue impact weekly, adjust priorities
+3. **Use inventory age rules first** - Clearance prevents losses from expiration
+4. **Set minimum prices** - Protect margins with min price floors
+5. **Test one rule at a time** - Easier to measure impact
+6. **Enable competitor rules when Ezal data is live** - Requires competitor scraping
+7. **Review top performers** - Focus on rules generating revenue, disable underperformers
+
+### ❌ Avoid This
+
+1. **Too many active rules** - Limit to 5-7 active rules to start
+2. **Overlapping priorities** - Ensure clear priority hierarchy
+3. **No minimum prices** - Always set min price to prevent selling below cost
+4. **Ignoring analytics** - Rules don't optimize themselves, review weekly
+5. **Surge pricing** - Customers hate dynamic price increases, use sparingly
+6. **Copying competitors blindly** - Match prices strategically, not automatically
+7. **Setting and forgetting** - Market changes, adjust rules quarterly
+
+---
+
+## Ezal Competitor Intelligence
+
+**What is Ezal?**
+Ezal is BakedBot's competitive intelligence agent that scrapes competitor dispensary menus and tracks pricing.
+
+### Enabling Competitor Data
+
+1. Contact support to enable Ezal for your market
+2. Provide list of competitor dispensaries to track
+3. Wait 24-48 hours for initial data scraping
+4. Competitor prices appear in Intelligence tab
+5. Enable competitive pricing rules
+
+### Competitor Price Conditions
+
+**Above market:**
+```
+Competitor Price: above 15%
+```
+Apply discount when your price is 15%+ higher than competitor average.
+
+**Below market:**
+```
+Competitor Price: below 10%
+```
+Reduce discount when your price is already 10%+ lower (maintain margin).
+
+### Competitor Alerts
+
+**Intelligence tab shows:**
+- Products where you're 15%+ above market (losing sales)
+- Products where you're 15%+ below market (low margins)
+- Competitor count and price ranges
+- Data freshness (last updated timestamp)
+
+---
+
+## POS Integration (Alleaves)
+
+**How it works:**
+
+1. **Inventory Age Tracking**
+   - System reads batch procurement dates from Alleaves
+   - Calculates days in inventory automatically
+   - Triggers clearance rules when thresholds met
+
+2. **Automatic Discount Creation**
+   - When rule applies, discount syncs to Alleaves POS
+   - Customer sees discounted price at checkout
+   - Sale badge appears on digital menu
+
+3. **Real-time Sync**
+   - Price updates within 5 minutes (caching)
+   - Discount activates/deactivates based on conditions
+   - Analytics track POS discount usage
+
+**Alleaves Requirements:**
+- Batch tracking enabled (for inventory age)
+- API access configured
+- Location ID set in integration settings
+
+---
+
+## Safety & Constraints
+
+**Built-in protections:**
+
+### 40% Maximum Discount
+System enforces 40% max discount to prevent margin erosion. Even if you set 60% off, it will cap at 40%.
+
+### Minimum Price Enforcement
+Products will never sell below your configured minimum price (recommended: $5.00).
+
+### Single Rule Application
+Only **one rule** applies per product (highest priority). No stacking discounts.
+
+### Cache & Performance
+5-minute caching on inventory and competitor data prevents excessive API calls.
+
+---
+
+## Analytics & Optimization
+
+### Key Metrics to Watch
+
+1. **Revenue Impact** (line chart)
+   - Daily revenue from dynamic pricing
+   - Compare to baseline (static pricing period)
+   - Goal: +15-20% uplift
+
+2. **Rule Applications** (bar chart)
+   - How often each rule triggers
+   - Peak application days/hours
+   - Identify underutilized rules
+
+3. **Top Performing Rules** (ranking)
+   - Revenue generated per rule
+   - Average discount percentage
+   - Times applied
+
+4. **Competitor Price Gaps** (alerts)
+   - Products significantly above/below market
+   - Opportunity to adjust pricing
+   - Win back lost customers
+
+### Optimization Cycle
+
+**Weekly review:**
+1. Check Analytics tab (Monday mornings)
+2. Identify top 3 revenue-generating rules
+3. Increase priority or discount on winners
+4. Disable rules with negative impact
+5. Test one new rule per week
+
+**Monthly deep dive:**
+1. Export analytics data (via API)
+2. Calculate margin impact (revenue vs. profit)
+3. Adjust minimum prices if needed
+4. Review competitor landscape (Ezal)
+5. Plan next month's promotional calendar
+
+---
+
+## Troubleshooting
+
+### Rule Not Applying
+
+**Check:**
+- ✅ Rule is active (toggle ON)
+- ✅ Conditions are met (inventory age threshold, time range)
+- ✅ Priority is high enough (not overridden by another rule)
+- ✅ Product matches conditions (category, stock level)
+- ✅ Min price not blocking discount (product price > min price)
+
+### Discount Not Syncing to POS
+
+**Fix:**
+- Verify Alleaves integration active
+- Check API credentials valid
+- Review integration logs (Settings → Integrations)
+- Contact support if persistent
+
+### Competitor Data Missing
+
+**Reasons:**
+- Ezal not enabled for your market (contact support)
+- Competitor menus not scraped yet (24-48hr initial)
+- Product name mismatch (fuzzy matching may fail)
+- Data freshness (check last updated timestamp)
+
+### Price Too Low / Too High
+
+**Adjust:**
+- Increase minimum price (Rules tab → Edit → Min Price)
+- Lower discount percentage (30% → 20%)
+- Adjust priority (prevent aggressive clearance from always winning)
+
+---
+
+## FAQ
+
+**Q: Can I stack multiple discounts?**
+A: No, only one rule applies per product (highest priority). Create a single rule with combined discount if needed.
+
+**Q: Will surge pricing upset customers?**
+A: Yes, probably. Use surge pricing (negative discounts) very carefully. Customers dislike paying more during peak hours.
+
+**Q: How often does pricing update?**
+A: Real-time for rule changes, 5-minute cache for inventory/competitor data, instant sync to POS.
+
+**Q: Can I override a rule for specific products?**
+A: Yes, use product ID conditions or disable the rule temporarily. Manual POS discounts override dynamic pricing.
+
+**Q: Do I need Ezal for dynamic pricing?**
+A: No, Ezal is only required for competitor price matching rules. Time-based, clearance, and category rules work without it.
+
+**Q: What if I don't have Alleaves POS?**
+A: Dynamic pricing requires POS integration for inventory age tracking. We support Alleaves, Dutchie, and Jane. Contact support for other systems.
+
+---
+
+## Next Steps
+
+1. **Create your first rule** - Start with a simple Happy Hour or Weekend Special
+2. **Enable Ezal** - Contact support to track competitor prices in your market
+3. **Monitor analytics** - Review performance weekly, optimize monthly
+4. **Test and iterate** - Dynamic pricing is a continuous optimization process
+
+<Callout type="info">
+**Need help?** Contact support or ask Mrs. Parker (our Customer Success agent) for personalized pricing strategy recommendations based on your inventory and market.
+</Callout>
