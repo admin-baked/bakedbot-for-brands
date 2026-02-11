@@ -790,7 +790,49 @@ export const articles: Record<string, HelpArticleMeta> = {
     author: 'BakedBot Team',
   },
 
-  // 🎉 56 articles complete!
+  'marketing/media-budget-management': {
+    slug: 'media-budget-management',
+    category: 'marketing',
+    title: 'Media Budget Management',
+    description: 'Control AI-generated content costs with daily, weekly, and monthly budget limits and alerts',
+    roles: ['super_user'],
+    tags: ['marketing', 'media', 'budget', 'cost-control', 'ai', 'automation', 'alerts'],
+    difficulty: 'intermediate',
+    estimatedTime: '12 minutes',
+    filePath: './marketing/media-budget-management.mdx',
+    lastUpdated: '2026-02-11',
+    author: 'BakedBot Team',
+  },
+
+  'marketing/style-presets': {
+    slug: 'style-presets',
+    category: 'marketing',
+    title: 'Style Presets Library',
+    description: 'Create consistent branded content with reusable style presets for AI-generated images and videos',
+    roles: ['brand', 'dispensary_admin'],
+    tags: ['marketing', 'media', 'branding', 'consistency', 'ai', 'style', 'presets', 'templates'],
+    difficulty: 'beginner',
+    estimatedTime: '15 minutes',
+    filePath: './marketing/style-presets.mdx',
+    lastUpdated: '2026-02-11',
+    author: 'BakedBot Team',
+  },
+
+  'marketing/ab-testing-media': {
+    slug: 'ab-testing-media',
+    category: 'marketing',
+    title: 'A/B Testing for Media',
+    description: 'Optimize content performance with multi-variant testing, metrics tracking, and winner identification',
+    roles: ['brand', 'dispensary_admin'],
+    tags: ['marketing', 'media', 'ab-testing', 'optimization', 'metrics', 'ctr', 'conversion', 'testing'],
+    difficulty: 'intermediate',
+    estimatedTime: '18 minutes',
+    filePath: './marketing/ab-testing-media.mdx',
+    lastUpdated: '2026-02-11',
+    author: 'BakedBot Team',
+  },
+
+  // 🎉 59 articles complete!
 };
 
 /**

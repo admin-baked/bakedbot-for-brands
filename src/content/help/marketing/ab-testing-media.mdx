@@ -1,0 +1,528 @@
+# A/B Testing for Media
+
+Optimize AI-generated content performance with multi-variant testing, real-time metrics tracking, and statistical winner identification. Stop guessing, start measuring.
+
+## What is A/B Testing?
+
+A/B testing compares multiple versions of content to determine which performs best:
+
+**Simple A/B Test:**
+```
+Variant A: Modern minimal product image
+Variant B: Bold colorful product image
+
+Measure: Click-through rate (CTR)
+Result: Variant B wins (4.2% vs 2.8% CTR)
+Action: Use bold colorful style for all future posts
+```
+
+**Why Test?**
+- 2-3x performance improvement common
+- Data-driven decisions (not guesswork)
+- Optimize ROI on ad spend
+- Discover audience preferences
+
+<Callout type="tip">
+**Test everything**: Style, colors, layouts, captions, CTAs. Small changes create big impacts. A 1% CTR improvement = thousands in extra revenue.
+</Callout>
+
+## When to A/B Test
+
+### Best Use Cases
+
+**High-Stakes Content:**
+- Paid social ads (spending $500+)
+- Email campaigns (large lists)
+- Product launch content
+- Homepage hero images
+
+**High-Volume Content:**
+- Daily social posts
+- Automated playbook output
+- Weekly email newsletters
+
+**Strategic Decisions:**
+- New brand style direction
+- Seasonal campaign themes
+- Product photography approach
+
+### When NOT to Test
+
+**Low Traffic:**
+Need 100+ impressions per variant minimum
+- Below 100: Results not statistically significant
+
+**Time-Sensitive:**
+Need 3-7 days for meaningful data
+- Flash sales: Too short to test
+- Same-day promotions: Skip testing
+
+**One-Off Content:**
+Testing requires reusability
+- One-time event posts: Don't test
+- Recurring weekly content: Definitely test
+
+## Creating Your First A/B Test
+
+### Step 1: Access A/B Testing
+
+1. Go to **Dashboard → Media Center**
+2. Click **"A/B Testing"** tab
+3. Click **"Create New Test"**
+
+### Step 2: Basic Info
+
+**Test Name**
+Descriptive and searchable
+```
+✅ Good: "Instagram Product Posts - Bold vs Minimal Style"
+❌ Bad: "Test 1"
+```
+
+**Test Description**
+Hypothesis and context
+```
+Example: "Testing if bold, colorful product images
+outperform our current minimal white background
+style for Instagram feed posts. Hypothesis: Bold
+gets higher engagement."
+```
+
+**Test Duration**
+How long to run
+```
+Recommended:
+- Social posts: 7 days (1 week of data)
+- Email campaigns: 3 days (quick opens)
+- Paid ads: 14 days (budget optimization)
+```
+
+### Step 3: Define Variants
+
+Create 2-4 versions to test:
+
+**Variant A: "Control"**
+Current/baseline approach
+```
+Name: "Current Minimal Style"
+Style Preset: "Modern Clean"
+Custom Prompt: "White background, soft lighting"
+```
+
+**Variant B: "Bold Test"**
+Test hypothesis
+```
+Name: "Bold Colorful Style"
+Style Preset: "Bold Street"
+Custom Prompt: "Vibrant colors, high contrast"
+```
+
+**Variant C: "Natural Test"** (Optional)
+Additional alternative
+```
+Name: "Natural Organic Style"
+Style Preset: "Organic Natural"
+Custom Prompt: "Wood surface, natural light"
+```
+
+<Callout type="info">
+**2-3 variants ideal**: More variants require more traffic to reach significance. Start with 2, add 3rd if traffic supports.
+</Callout>
+
+### Step 4: Set Audience Split
+
+Divide traffic between variants:
+
+**Equal Split (Recommended):**
+```
+Variant A: 33%
+Variant B: 33%
+Variant C: 34%
+```
+
+**Weighted Split:**
+```
+Variant A (Control): 50%
+Variant B (Test): 25%
+Variant C (Test): 25%
+```
+
+Use weighted when:
+- Testing risky changes (keep most traffic on control)
+- Multiple alternatives (hedge bets)
+
+**Auto-Calculated:**
+BakedBot adjusts splits to equal percentages automatically. Manual override available.
+
+### Step 5: Select Metrics
+
+Choose what to measure:
+
+| Metric | Measures | Best For |
+|--------|----------|----------|
+| **Impressions** | Views/reach | Awareness campaigns |
+| **Clicks** | Engagement | Social posts, ads |
+| **Conversions** | Sales/signups | E-commerce, funnels |
+| **Engagement** | Likes, comments, shares | Social proof |
+| **Cost** | Spend per result | Budget optimization |
+
+**Primary Metric (Required):**
+Main success criteria
+```
+Example: Click-through rate (CTR)
+Why: Want to drive traffic to product pages
+```
+
+**Secondary Metrics (Optional):**
+Supporting data
+```
+Examples: Conversion rate (CVR), Cost per click (CPC)
+Why: CTR matters, but only if converts + affordable
+```
+
+<Callout type="tip">
+**Choose ONE primary metric**: Optimizing for multiple goals dilutes results. Pick what matters most to this campaign.
+</Callout>
+
+### Step 6: Generate Content
+
+For each variant:
+
+1. Click "Generate"
+2. AI creates image/video with variant style
+3. Review and approve
+4. System saves as test variant
+
+**Generated Assets Stored:**
+- Media URL saved
+- Cost tracked
+- Ready for deployment
+
+### Step 7: Deploy Test
+
+**Manual Deployment:**
+1. Download variant assets
+2. Upload to social platform
+3. Track metrics manually
+4. Input results into BakedBot
+
+**Automated Deployment** (Coming Soon):
+System auto-posts variants and tracks results
+
+## Monitoring Test Performance
+
+### Real-Time Dashboard
+
+Access during test:
+**Dashboard → Media Center → A/B Testing → [Your Test]**
+
+**Summary Cards:**
+```
+Variant A: 2,850 impressions | 124 clicks | 4.35% CTR
+Variant B: 2,790 impressions | 87 clicks  | 3.12% CTR
+Variant C: 2,920 impressions | 156 clicks | 5.34% CTR ⭐
+```
+
+**Detailed Metrics Table:**
+
+| Variant | Impressions | Clicks | CTR | Conversions | CVR | Cost | CPC |
+|---------|-------------|--------|-----|-------------|-----|------|-----|
+| A       | 2,850       | 124    | 4.35% | 18 | 14.5% | $12.50 | $0.10 |
+| B       | 2,790       | 87     | 3.12% | 12 | 13.8% | $11.00 | $0.13 |
+| C       | 2,920       | 156    | 5.34% ⭐ | 24 | 15.4% | $14.80 | $0.09 |
+
+**Winner Indicators:**
+- ⭐ Star badge on leading variant
+- Green highlighting on winning metrics
+- ↑ Trend arrows showing improvements
+
+### Statistical Confidence
+
+Test confidence level indicates reliability:
+
+```
+< 70%: "Inconclusive" - Not enough data
+70-90%: "Moderate" - Suggestive but not definitive
+90-95%: "High" - Strong evidence
+> 95%: "Very High" - Statistical significance
+```
+
+<Callout type="warning">
+**Don't call winners early**: Even if Variant B leads after day 1, wait for 90%+ confidence. Early leads often reverse with more data.
+</Callout>
+
+## Interpreting Results
+
+### Understanding Metrics
+
+**Click-Through Rate (CTR)**
+```
+Formula: (Clicks / Impressions) × 100
+Example: (156 / 2,920) × 100 = 5.34%
+
+Good CTR:
+- Organic social: 1-3%
+- Paid social: 0.5-2%
+- Email: 2-5%
+```
+
+**Conversion Rate (CVR)**
+```
+Formula: (Conversions / Clicks) × 100
+Example: (24 / 156) × 100 = 15.4%
+
+Good CVR:
+- E-commerce: 2-5%
+- Lead gen: 5-15%
+- High-intent: 15-30%
+```
+
+**Cost Per Click (CPC)**
+```
+Formula: Total Cost / Clicks
+Example: $14.80 / 156 = $0.09
+
+Good CPC:
+- Social ads: $0.50-2.00
+- Display ads: $0.10-0.50
+- Search ads: $1.00-5.00
+```
+
+**Engagement Rate**
+```
+Formula: (Likes + Comments + Shares) / Impressions × 100
+Example: (45 + 12 + 8) / 2,920 × 100 = 2.23%
+
+Good Engagement:
+- Instagram: 1-5%
+- Facebook: 0.5-2%
+- TikTok: 5-10%
+```
+
+### Declaring a Winner
+
+Winner criteria:
+
+1. **Statistical Significance**: 90%+ confidence
+2. **Sufficient Sample**: 100+ impressions per variant
+3. **Time Duration**: Completed planned test period
+4. **Consistent Performance**: Winner leads across days
+
+**Example Decision:**
+```
+Test Duration: 7 days complete ✓
+Sample Size: 2,920 impressions ✓
+Confidence: 94% ✓
+Consistent Lead: Variant C led 6/7 days ✓
+
+Decision: Variant C wins. Use "Natural Organic
+Style" for all future product posts.
+```
+
+### When Results are Inconclusive
+
+**No Clear Winner:**
+```
+Variant A: 3.2% CTR
+Variant B: 3.4% CTR
+Difference: 0.2% (not significant)
+Confidence: 68%
+```
+
+**Actions:**
+1. **Extend test**: Run another 7 days for more data
+2. **Increase traffic**: Boost posts for faster results
+3. **Test bigger changes**: Current variants too similar
+4. **Accept tie**: Both work, pick favorite
+
+<Callout type="info">
+**Inconclusive ≠ Failure**: Ties mean both variants work. Pick one or continue testing with bigger style differences.
+</Callout>
+
+## Implementing Winners
+
+### Apply to Playbooks
+
+Update automated workflows:
+
+**Before Test:**
+```yaml
+generate_image:
+  style_prompt: "generic product photo"
+```
+
+**After Test (Winner = Variant C):**
+```yaml
+generate_image:
+  style_preset: "Natural Organic Style"
+```
+
+All future playbook executions use winning style automatically.
+
+### Update Style Presets
+
+Winner becomes new default:
+
+1. Go to **Style Presets Library**
+2. Find/create preset matching winner
+3. Mark as "Default for Product Photography"
+4. Agents use automatically
+
+### Document Learnings
+
+Record insights:
+
+```
+Test: Bold vs Minimal Product Styles
+Result: Bold won (5.34% CTR vs 4.35%)
+Insight: Audience prefers vibrant colors
+Action: Update brand guidelines to emphasize color
+Next Test: Bold warm tones vs Bold cool tones
+```
+
+### Retirement of Losers
+
+Losing variants:
+- Archive in test history
+- Don't delete (reference for future)
+- Update documentation "tested, underperformed"
+
+## Advanced Testing Strategies
+
+### Sequential Testing
+
+Test in stages:
+
+**Stage 1: Broad Styles**
+```
+Test: Minimal vs Bold vs Natural
+Winner: Bold
+```
+
+**Stage 2: Bold Variations**
+```
+Test: Bold Warm vs Bold Cool vs Bold Neon
+Winner: Bold Warm
+```
+
+**Stage 3: Bold Warm Refinements**
+```
+Test: Warm Sunset vs Warm Autumn vs Warm Tropical
+Winner: Warm Tropical
+```
+
+**Result:** Optimized style through progressive refinement.
+
+### Multi-Channel Testing
+
+Test same content across platforms:
+
+```
+Content: Product launch video (3 style variants)
+Channels: Instagram, TikTok, Facebook
+
+Results:
+- Instagram: Variant A wins (minimal)
+- TikTok: Variant C wins (bold)
+- Facebook: Variant B wins (natural)
+
+Action: Use platform-specific styles
+```
+
+### Seasonal A/B Testing
+
+Establish seasonal baselines:
+
+**Q1 Test (Winter):**
+Winner: Cozy indoor styles
+
+**Q2 Test (Spring):**
+Winner: Bright outdoor styles
+
+**Q3 Test (Summer):**
+Winner: Vibrant energetic styles
+
+**Q4 Test (Fall):**
+Winner: Warm natural styles
+
+**Apply seasonally** moving forward.
+
+### Budget Optimization Testing
+
+Test cost efficiency:
+
+```
+Test: Provider comparison
+Variant A: Gemini Flash ($0.02/image)
+Variant B: Gemini Pro ($0.04/image)
+
+Results:
+- Both: 3.5% CTR (tie on performance)
+- Flash: $0.006 cost per click
+- Pro: $0.011 cost per click
+
+Winner: Gemini Flash (same results, 45% cheaper)
+```
+
+## Common Mistakes
+
+### ❌ Testing Too Many Variables
+
+**Wrong:**
+```
+Variant A: Minimal style, white background, soft light
+Variant B: Bold style, wood background, harsh light
+```
+Can't isolate which factor drove results.
+
+**Right:**
+```
+Variant A: Minimal style (all else equal)
+Variant B: Bold style (all else equal)
+```
+
+### ❌ Calling Winners Too Early
+
+**Wrong:**
+```
+Day 1: Variant B leads! (45% CTR with 20 impressions)
+Action: Immediately switch to Variant B
+```
+
+**Right:**
+```
+Day 7: Variant A wins (4.2% CTR with 3,000 impressions)
+Reality: Day 1 was random variance
+```
+
+### ❌ Testing Without Hypothesis
+
+**Wrong:**
+"Let's test these 4 styles and see what happens"
+
+**Right:**
+"Hypothesis: Bold colors outperform minimal because our audience is Gen Z who prefer vibrant content"
+
+### ❌ Ignoring Context
+
+**Wrong:**
+"Bold style won in winter, use forever"
+
+**Right:**
+"Bold style won for winter campaign. Retest for summer when bright outdoor styles may perform better"
+
+## Next Steps
+
+- ✅ **Create your first test**: Start with 2 variants
+- ✅ **Wait for significance**: Let test run 7+ days
+- ✅ **Document winner**: Record insights for future
+- ✅ **Apply learnings**: Update playbooks and presets
+
+**Related Articles:**
+- [Style Presets Library](/help/marketing/style-presets) - Use winning styles everywhere
+- [Media Budget Management](/help/marketing/media-budget-management) - Optimize testing costs
+- [Marketing Playbooks](/help/marketing/playbooks) - Automate with winning variants
+
+<Callout type="success">
+**Testing = Compound Growth**: A 1% improvement per month = 12.7% annual growth. Small wins accumulate into massive improvements.
+</Callout>
