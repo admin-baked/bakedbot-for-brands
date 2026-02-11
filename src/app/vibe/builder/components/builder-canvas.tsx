@@ -320,5 +320,103 @@ function addCannabisBlocks(editor: grapesjs.Editor) {
     attributes: { class: 'fa fa-lock' },
   });
 
-  console.log('[BUILDER] Cannabis blocks added');
+  // Button Block
+  blockManager.add('styled-button', {
+    label: 'Button',
+    category: 'Basic',
+    content: `
+      <a href="#" class="inline-block bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg transition-colors">
+        Click Me
+      </a>
+    `,
+    attributes: { class: 'fa fa-hand-pointer' },
+  });
+
+  // Text Block
+  blockManager.add('text-block', {
+    label: 'Text',
+    category: 'Basic',
+    content: `
+      <div class="text-base text-gray-700 leading-relaxed">
+        <p>Double-click to edit this text. You can add multiple paragraphs, format text, and create engaging content for your visitors.</p>
+      </div>
+    `,
+    attributes: { class: 'fa fa-font' },
+  });
+
+  // Image Block
+  blockManager.add('image-block', {
+    label: 'Image',
+    category: 'Basic',
+    content: `
+      <img src="https://via.placeholder.com/800x400?text=Your+Image+Here" alt="Placeholder" class="w-full h-auto rounded-lg shadow-md" />
+    `,
+    attributes: { class: 'fa fa-image' },
+  });
+
+  // Contact Form Block
+  blockManager.add('contact-form', {
+    label: 'Contact Form',
+    category: 'Forms',
+    content: `
+      <form class="max-w-2xl mx-auto p-8 bg-white rounded-lg shadow-lg">
+        <h3 class="text-2xl font-bold mb-6">Get in Touch</h3>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Name</label>
+          <input type="text" name="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" required />
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+          <input type="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" required />
+        </div>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Message</label>
+          <textarea name="message" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" required></textarea>
+        </div>
+        <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-colors">
+          Send Message
+        </button>
+      </form>
+    `,
+    attributes: { class: 'fa fa-envelope' },
+  });
+
+  // Container Block
+  blockManager.add('container', {
+    label: 'Container',
+    category: 'Layout',
+    content: `
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <p class="text-center text-gray-500">Drag blocks here</p>
+      </div>
+    `,
+    attributes: { class: 'fa fa-square' },
+  });
+
+  // Section Block
+  blockManager.add('section', {
+    label: 'Section',
+    category: 'Layout',
+    content: `
+      <section class="py-16 px-4 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+          <h2 class="text-3xl font-bold text-center mb-8">Section Heading</h2>
+          <p class="text-center text-gray-600">Add your content here</p>
+        </div>
+      </section>
+    `,
+    attributes: { class: 'fa fa-bars' },
+  });
+
+  // Spacer Block
+  blockManager.add('spacer', {
+    label: 'Spacer',
+    category: 'Layout',
+    content: `
+      <div class="h-16" style="min-height: 4rem"></div>
+    `,
+    attributes: { class: 'fa fa-arrows-v' },
+  });
+
+  console.log('[BUILDER] 10 blocks added (3 cannabis + 7 core)');
 }
