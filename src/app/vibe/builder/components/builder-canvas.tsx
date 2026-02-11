@@ -9,6 +9,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { getBuilderProducts, type BuilderProduct } from '@/server/actions/vibe-pos-products';
 
 import type { VibeProject } from '@/types/vibe-project';
 
@@ -162,6 +163,89 @@ export function BuilderCanvas({
 
         // Add custom cannabis blocks
         addCannabisBlocks(editor);
+
+        // Add custom component type for Live Product Grid
+        editor.DomComponents.addType('live-product-grid', {
+          model: {
+            defaults: {
+              traits: [
+                {
+                  type: 'button',
+                  label: 'Sync POS Products',
+                  name: 'sync-products',
+                  text: 'Sync Products',
+                  command: async (editor: grapesjs.Editor) => {
+                    const component = editor.getSelected();
+                    if (!component) return;
+
+                    try {
+                      // Show loading state
+                      const productContainer = component.find(
+                        '[data-product-container]'
+                      )[0];
+                      if (productContainer) {
+                        productContainer.components(
+                          '<div class="text-center text-gray-500 col-span-3"><div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div><p class="mt-2">Loading products...</p></div>'
+                        );
+                      }
+
+                      // Fetch products from POS
+                      const result = await getBuilderProducts(userId, 12);
+
+                      if (result.success && result.products) {
+                        const productCards = result.products
+                          .map(
+                            (product: BuilderProduct) => `
+                          <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+                            <img src="${product.imageUrl}" alt="${product.name}" class="w-full h-64 object-cover">
+                            <div class="p-6">
+                              ${product.isOnSale ? '<span class="inline-block bg-red-500 text-white text-xs px-2 py-1 rounded mb-2">' + product.saleBadgeText + '</span>' : ''}
+                              <h3 class="font-bold text-xl mb-2">${product.name}</h3>
+                              <p class="text-gray-600 text-sm mb-4">${product.brand} • ${product.category}${product.thcPercent ? ` • ${product.thcPercent}% THC` : ''}</p>
+                              <div class="flex justify-between items-center">
+                                ${product.isOnSale && product.salePrice ? '<div><span class="text-lg text-gray-400 line-through">$' + product.price + '</span> <span class="text-2xl font-bold text-green-600">$' + product.salePrice + '</span></div>' : '<span class="text-2xl font-bold text-green-600">$' + product.price + '</span>'}
+                                <button class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">Add to Cart</button>
+                              </div>
+                            </div>
+                          </div>
+                        `
+                          )
+                          .join('');
+
+                        if (productContainer) {
+                          productContainer.components(productCards);
+                        }
+
+                        console.log(
+                          `[BUILDER] Synced ${result.products.length} products`
+                        );
+                      }
+                    } catch (error) {
+                      console.error('[BUILDER] Failed to sync products:', error);
+                      const productContainer = component.find(
+                        '[data-product-container]'
+                      )[0];
+                      if (productContainer) {
+                        productContainer.components(
+                          '<div class="text-center text-red-500 col-span-3">Failed to load products. Please try again.</div>'
+                        );
+                      }
+                    }
+                  },
+                },
+                {
+                  type: 'number',
+                  label: 'Product Count',
+                  name: 'product-count',
+                  min: 3,
+                  max: 24,
+                  step: 3,
+                  value: 12,
+                },
+              ],
+            },
+          },
+        });
 
         // Load saved project data if exists
         if (initialProject) {
@@ -329,6 +413,53 @@ function addCannabisBlocks(editor: grapesjs.Editor) {
       </section>
     `,
     attributes: { class: 'fa fa-th' },
+  });
+
+  // Live Product Grid Block (syncs with POS)
+  blockManager.add('live-product-grid', {
+    label: 'Live Product Grid',
+    category: 'Cannabis',
+    content: {
+      tagName: 'section',
+      attributes: {
+        class: 'py-16 px-4',
+        'data-gjs-type': 'live-product-grid',
+      },
+      components: [
+        {
+          tagName: 'div',
+          attributes: { class: 'max-w-7xl mx-auto' },
+          components: [
+            {
+              tagName: 'h2',
+              attributes: { class: 'text-3xl font-bold text-center mb-12' },
+              components: [{ type: 'textnode', content: 'Live Products from POS' }],
+            },
+            {
+              tagName: 'div',
+              attributes: {
+                class: 'grid grid-cols-1 md:grid-cols-3 gap-8',
+                'data-product-container': 'true',
+              },
+              components: [
+                {
+                  tagName: 'div',
+                  attributes: { class: 'text-center text-gray-500 col-span-3' },
+                  components: [
+                    {
+                      type: 'textnode',
+                      content:
+                        'Click "Sync POS Products" in the settings panel to load your products →',
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    attributes: { class: 'fa fa-sync' },
   });
 
   // Age Verification Block
