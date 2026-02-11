@@ -222,6 +222,31 @@ export class LettaClient {
         return this.request(`/agents/${agentId}/archival-memory?limit=${limit}`);
     }
 
+    /**
+     * Backward-compatible alias used by memory gardening services.
+     */
+    async getArchivalMemory(agentId: string, limit: number = 50): Promise<any[]> {
+        return this.listPassages(agentId, limit);
+    }
+
+    /**
+     * Fetch a single archival memory item by id.
+     * Falls back to in-memory filtering because Letta SDK support varies by deployment.
+     */
+    async getArchivalMemoryById(agentId: string, memoryId: string): Promise<any | null> {
+        const memories = await this.listPassages(agentId, 1000);
+        return memories.find((memory: any) => memory.id === memoryId) || null;
+    }
+
+    /**
+     * Delete an archival memory item by id.
+     */
+    async deleteArchivalMemory(agentId: string, memoryId: string): Promise<void> {
+        await this.request(`/agents/${agentId}/archival-memory/${memoryId}`, {
+            method: 'DELETE',
+        });
+    }
+
     // ============================================================================
     // CORE MEMORY (Legacy API)
     // ============================================================================
