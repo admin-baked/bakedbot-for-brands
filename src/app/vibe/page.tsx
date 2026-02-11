@@ -71,6 +71,8 @@ import {
 
 import { VibePreview } from './vibe-preview';
 import { generateVibeFromURL, generateVibeFromCSS, generateVibeFromWordPressTheme } from './clone-actions';
+import { LivePreviewPane } from './components/live-preview-pane';
+import { MobilePreviewModal } from './components/mobile-preview-modal';
 
 import {
     getUsageData,
@@ -201,6 +203,9 @@ export default function PublicVibePage() {
     // Share state
     const [showShareMenu, setShowShareMenu] = useState(false);
     const [copied, setCopied] = useState(false);
+
+    // Mobile preview modal
+    const [showMobilePreview, setShowMobilePreview] = useState(false);
 
     const { toast } = useToast();
 
@@ -661,8 +666,10 @@ export default function PublicVibePage() {
 
             {/* Generator Section */}
             {!currentVibe ? (
-                <div className="max-w-3xl mx-auto space-y-8">
-                    {/* Platform Tabs */}
+                <div className="grid lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
+                    {/* Left Column: Input Controls */}
+                    <div className="space-y-8">
+                        {/* Platform Tabs */}
                     <Tabs value={vibeType} onValueChange={(v) => setVibeType(v as VibeType)} className="w-full">
                         <TabsList className="grid w-full grid-cols-2 max-w-md mx-auto">
                             <TabsTrigger value="web" className="gap-2">
@@ -916,11 +923,33 @@ export default function PublicVibePage() {
                         </div>
                     </div>
 
-                    {/* Social Proof */}
-                    <div className="text-center pt-8 border-t">
-                        <p className="text-sm text-muted-foreground">
-                            Trusted by <span className="font-semibold text-foreground">500+</span> cannabis businesses
-                        </p>
+                        {/* Social Proof */}
+                        <div className="text-center pt-8 border-t">
+                            <p className="text-sm text-muted-foreground">
+                                Trusted by <span className="font-semibold text-foreground">500+</span> cannabis businesses
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Right Column: Live Preview (Desktop Only) */}
+                    <div className="hidden lg:block">
+                        <LivePreviewPane
+                            currentVibe={currentVibe}
+                            generating={generating}
+                            onSaveClick={() => {
+                                setEmailModalReason('save');
+                                setShowEmailModal(true);
+                            }}
+                            onExportClick={() => {
+                                toast({
+                                    title: 'Export Code',
+                                    description: 'This feature is coming soon!',
+                                });
+                            }}
+                            onUpgradeClick={() => {
+                                window.location.href = '/signup?source=vibe-preview';
+                            }}
+                        />
                     </div>
                 </div>
             ) : (
@@ -1215,6 +1244,35 @@ export default function PublicVibePage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Mobile Preview Modal */}
+            <MobilePreviewModal
+                open={showMobilePreview}
+                onOpenChange={setShowMobilePreview}
+                currentVibe={currentVibe}
+                onSaveClick={() => {
+                    setEmailModalReason('save');
+                    setShowEmailModal(true);
+                }}
+                onShareClick={() => setShowShareMenu(true)}
+                onUpgradeClick={() => {
+                    window.location.href = '/signup?source=vibe-mobile-preview';
+                }}
+            />
+
+            {/* Floating Preview Button (Mobile Only) */}
+            {currentVibe && !generating && (
+                <div className="lg:hidden fixed bottom-6 right-6 z-50">
+                    <Button
+                        size="lg"
+                        className="rounded-full shadow-lg gap-2"
+                        onClick={() => setShowMobilePreview(true)}
+                    >
+                        <Monitor className="w-5 h-5" />
+                        Preview
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }
