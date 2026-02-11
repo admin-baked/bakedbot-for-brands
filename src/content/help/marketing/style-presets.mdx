@@ -1,0 +1,446 @@
+# Style Presets Library
+
+Create consistent, on-brand AI-generated content with reusable style presets. Build your library once, use it everywhere.
+
+## What are Style Presets?
+
+Style presets are reusable templates that control the visual style of AI-generated images and videos:
+
+**A preset includes:**
+- **Style prompt**: Describes the desired aesthetic
+- **Negative prompt**: What to avoid
+- **Color palette**: Primary, secondary, accent colors
+- **Typography**: Font family, size, weight
+- **Aspect ratios**: Supported dimensions
+
+<Callout type="tip">
+**Think of presets as brand guidelines for AI**: Just like your brand guide defines logo usage and colors, presets ensure every AI-generated asset matches your brand identity.
+</Callout>
+
+## Why Use Style Presets?
+
+### Brand Consistency
+
+**Without Presets:**
+```
+Social Post A: Modern minimal aesthetic
+Social Post B: Vintage film grain look
+Social Post C: Bold cyberpunk style
+Result: Inconsistent, unprofessional brand
+```
+
+**With Presets:**
+```
+All posts use "Brand Premium" preset
+Result: Cohesive, professional feed
+```
+
+### Cost Savings
+
+- **Fewer regenerations**: Get it right the first time
+- **No experimentation waste**: Proven styles work
+- **Faster iterations**: Reuse what works
+
+**Example:**
+- Manual styling: 5 attempts × $0.04 = $0.20
+- Preset styling: 1 attempt × $0.04 = $0.04
+- **Savings: 80% reduction**
+
+### Speed
+
+- **Skip prompt writing**: Preset handles styling
+- **One-click generation**: Select preset → Generate
+- **Consistent results**: No trial and error
+
+## Built-In Presets
+
+BakedBot includes 8 professional presets:
+
+| Preset | Best For | Style |
+|--------|----------|-------|
+| **Modern Clean** | Product photos, professional content | Minimal, bright, sharp focus |
+| **Dark Luxury** | Premium products, evening mood | Deep colors, gold accents, elegant |
+| **Organic Natural** | Wellness, natural products | Earth tones, soft lighting, plants |
+| **Bold Street** | Urban brands, youth market | Graffiti, neon, high contrast |
+| **Vintage Film** | Heritage brands, nostalgia | Film grain, warm tones, retro |
+| **Tech Minimal** | Modern dispensaries, apps | Clean lines, geometric, futuristic |
+| **Cannabis Culture** | Traditional dispensaries | Green tones, plant focus, chill vibe |
+| **Medical Professional** | Medical cannabis | Clinical white, professional, trustworthy |
+
+<Callout type="info">
+**Built-in presets are immutable**: You can't edit them, but you can clone and customize to create your own.
+</Callout>
+
+## Creating Custom Presets
+
+### Step 1: Access Preset Library
+
+1. Go to **Dashboard → Media Center**
+2. Click **"Style Presets"** tab
+3. Click **"Create Custom Preset"**
+
+### Step 2: Define Basic Info
+
+**Preset Name**
+Descriptive and memorable
+- ✅ Good: "Brand Summer Collection 2026"
+- ❌ Bad: "Preset 1"
+
+**Description**
+When and how to use this preset
+```
+Example: "Bright, energetic style for summer
+social media posts. High saturation, warm
+tones, outdoor lighting. Use for Instagram
+and TikTok content."
+```
+
+**Tags**
+Help find presets later
+```
+Examples: summer, social, energetic, outdoor,
+instagram, seasonal
+```
+
+### Step 3: Write Style Prompts
+
+**Style Prompt** (Required)
+Describes the desired aesthetic:
+
+```
+Good Style Prompt:
+"Professional cannabis product photography with
+soft natural lighting, shallow depth of field,
+white marble surface, minimalist composition,
+subtle green accent color, premium luxury feel,
+8k resolution, sharp focus"
+```
+
+**Negative Prompt** (Optional)
+What to avoid:
+
+```
+Good Negative Prompt:
+"blurry, low quality, cluttered background,
+harsh shadows, neon colors, cartoon style,
+text overlays, watermarks"
+```
+
+<Callout type="tip">
+**Be specific**: "Soft natural lighting" is better than "good lighting". "Shallow depth of field" is better than "blurry background".
+</Callout>
+
+### Step 4: Configure Color Palette (Optional)
+
+Add brand colors for consistency:
+
+**Primary Color**
+Main brand color (hex code)
+```
+Example: #2D5C3F (forest green)
+```
+
+**Secondary Color**
+Supporting brand color
+```
+Example: #F5F5F0 (cream)
+```
+
+**Accent Color**
+Highlight or CTA color
+```
+Example: #D4AF37 (gold)
+```
+
+**How Colors Are Used:**
+- Image generation: AI incorporates colors naturally
+- Video generation: Color grading, overlays, graphics
+- Social posts: Background, text, elements
+
+### Step 5: Set Typography (Optional)
+
+Define text styling for video captions and overlays:
+
+**Font Family**
+```
+Examples: "Montserrat", "Playfair Display",
+"Roboto", "custom-brand-font"
+```
+
+**Font Size**
+- Small: Captions, disclaimers
+- Medium: Body text, product names
+- Large: Headlines, CTAs
+
+**Font Weight**
+- Light: Elegant, minimal
+- Normal: Standard body text
+- Bold: Headlines, emphasis
+
+<Callout type="warning">
+**Typography only affects videos**: Image generation doesn't include text. Use typography settings for video captions, overlays, and animated text.
+</Callout>
+
+### Step 6: Choose Aspect Ratios
+
+Select supported dimensions:
+
+| Ratio | Dimensions | Best For |
+|-------|------------|----------|
+| **1:1** | Square | Instagram feed, Facebook |
+| **4:5** | Portrait | Instagram feed, Pinterest |
+| **16:9** | Landscape | YouTube, website banners |
+| **9:16** | Vertical | Instagram Stories, TikTok |
+
+**Recommendation:**
+Select all ratios to maximize preset flexibility.
+
+### Step 7: Test and Save
+
+**Preview Generation:**
+1. Click "Generate Test Image"
+2. AI generates sample with your preset
+3. Review results
+4. Adjust prompts if needed
+
+**Save Preset:**
+1. Click "Save Preset"
+2. Preset added to library
+3. Available immediately for all playbooks and agents
+
+## Using Presets
+
+### In Playbook Automation
+
+Configure playbooks to use specific presets:
+
+**Weekly Deals Video Playbook:**
+```yaml
+Steps:
+  - generate_video:
+      style_preset: "Brand Summer Collection 2026"
+      duration: 8
+```
+
+All videos generated by this playbook will use your preset automatically.
+
+### In Agent Chat
+
+Ask agents to use presets:
+
+```
+You: "Craig, create 3 Instagram posts for our
+new gummies using the Modern Clean preset"
+
+Craig: "I'll generate 3 posts with the Modern
+Clean style. One moment..."
+```
+
+### In Media Dashboard
+
+Manual generation with preset:
+
+1. Go to **Media Center → Generate**
+2. Select preset from dropdown
+3. Add content prompt (what to show)
+4. Click "Generate"
+
+**Example:**
+```
+Preset: "Dark Luxury"
+Content Prompt: "Premium live resin cartridge
+on black marble with gold accents"
+Result: Luxury product photo with preset styling
+```
+
+## Managing Your Library
+
+### Organizing Presets
+
+**Use descriptive names:**
+- ✅ "Social Media - Bright Summer"
+- ✅ "Product Photography - Premium"
+- ✅ "Video - Cannabis Culture"
+- ❌ "Preset 1", "Style A", "New"
+
+**Tag consistently:**
+```
+Product presets: "product", "photography", "ecommerce"
+Social presets: "social", "instagram", "tiktok"
+Seasonal: "summer", "420", "holiday"
+Brand: "luxury", "medical", "recreational"
+```
+
+**Archive unused presets:**
+Keep library clean by hiding old seasonal or campaign-specific styles.
+
+### Editing Presets
+
+**Built-In Presets:**
+- Cannot edit
+- Clone → Edit clone → Save as new
+
+**Custom Presets:**
+1. Find preset in library
+2. Click "Edit"
+3. Update any field
+4. Click "Save Changes"
+
+<Callout type="warning">
+**Editing affects future generations**: Changing a preset doesn't update already-generated content. Only new generations use the updated preset.
+</Callout>
+
+### Sharing Presets
+
+**Public Presets:**
+Toggle "Make Public" when creating:
+- Visible to all users in your organization
+- Anyone can use in playbooks/agents
+- Only creator can edit
+
+**Private Presets:**
+- Only visible to creator
+- Use for experimental or personal styles
+- Can make public later
+
+## Best Practices
+
+### 1. Start with Built-In
+
+Don't reinvent the wheel:
+1. Try built-in presets first
+2. Find closest match to your brand
+3. Clone and customize as needed
+
+### 2. Create Preset Families
+
+Group related presets:
+
+**Example Family: "Product Line"**
+- Product Photography - Premium
+- Product Photography - Casual
+- Product Photography - Medical
+
+Use consistently across product types.
+
+### 3. Test Before Rollout
+
+Generate 5-10 test images:
+- Verify consistency
+- Check color accuracy
+- Ensure prompt clarity
+- Adjust if needed
+
+### 4. Document Usage
+
+Add usage notes in description:
+
+```
+"Use for Instagram feed posts only. Bright and
+energetic for summer campaign (May-August).
+Optimized for product close-ups and lifestyle
+shots. NOT for medical products."
+```
+
+### 5. Regular Audits
+
+Quarterly review:
+- Archive unused presets
+- Update outdated styles
+- Create new seasonal presets
+- Consolidate duplicates
+
+## Advanced Tips
+
+### Prompt Engineering
+
+**Good Style Prompts:**
+- Specific: "Soft natural window lighting" not "good lighting"
+- Visual: "Shallow depth of field bokeh" not "blurry background"
+- Complete: Include lighting, composition, mood, quality
+
+**Common Patterns:**
+```
+[Subject] + [Style] + [Lighting] + [Composition] +
+[Colors] + [Mood] + [Technical Quality]
+
+Example: "Cannabis flower macro shot, modern
+minimal style, soft diffused lighting, center
+composition, white background with green accent,
+clean professional mood, 8k sharp focus"
+```
+
+### Seasonal Presets
+
+Create event-specific styles:
+
+**420 Preset:**
+```
+Style: "Vibrant green smoke effects, purple
+lighting, party atmosphere, energetic,
+celebratory"
+Tags: "420", "holiday", "celebration"
+Active: April only
+```
+
+**Holiday Preset:**
+```
+Style: "Festive red and green tones, cozy warm
+lighting, premium gift packaging, holiday decor"
+Tags: "holiday", "gifts", "seasonal"
+Active: November-December
+```
+
+### A/B Test Presets
+
+Create similar presets with variations:
+
+**Test:** Modern Clean vs. Modern Bold
+```
+Preset A: "Modern Clean" - Minimal, white, soft
+Preset B: "Modern Bold" - Vibrant, color, contrast
+
+Generate same content with both
+Measure: CTR, engagement, conversions
+Winner: Use for all future content
+```
+
+## Troubleshooting
+
+**Preset not appearing in dropdown?**
+- Check if set to Private (only you can see)
+- Refresh page
+- Verify preset was saved successfully
+
+**Generated content doesn't match preset?**
+- Style prompt may be too vague
+- Negative prompt may conflict
+- Content prompt may override style
+- Try regenerating (AI has variability)
+
+**Colors don't match brand exactly?**
+- AI interprets colors creatively
+- Use color hex codes in style prompt
+- Add "exact color matching" to prompt
+- Consider manual color grading after generation
+
+**Preset works for images but not videos?**
+- Verify aspect ratio is 16:9 or 9:16
+- Check video provider supports preset features
+- Some typography settings video-only
+
+## Next Steps
+
+- ✅ **Browse built-in presets**: Find your starting point
+- ✅ **Create your first custom preset**: Clone and customize
+- ✅ **Test with sample generations**: Verify quality
+- ✅ **Add to playbooks**: Automate with consistency
+
+**Related Articles:**
+- [Media Budget Management](/help/marketing/media-budget-management) - Control costs with presets
+- [A/B Testing for Media](/help/marketing/ab-testing-media) - Test preset performance
+- [Marketing Playbooks](/help/marketing/playbooks) - Automate generation with presets
+
+<Callout type="success">
+**Presets = Brand Insurance**: Every AI-generated asset automatically matches your brand, no manual oversight needed.
+</Callout>

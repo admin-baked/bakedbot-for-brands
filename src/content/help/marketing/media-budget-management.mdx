@@ -1,0 +1,283 @@
+# Media Budget Management
+
+Control costs for AI-generated images and videos with automated budget tracking, alerts, and spending limits. Never overspend on content creation again.
+
+## Why Budget Management Matters
+
+AI-generated media has real costs:
+
+| Provider | Type | Cost |
+|----------|------|------|
+| **Gemini Flash** | Image | $0.02/image |
+| **Gemini Pro** | Image | $0.04/image |
+| **Veo** | Video (4-8s) | $0.50-0.75/video |
+| **Sora** | Video (4-8s) | $0.50-1.00/video |
+
+<Callout type="warning">
+**Scale adds up fast**: 100 product images at $0.02 = $2.00. 50 videos at $0.75 = $37.50. Daily playbook automations can generate dozens of assets per day.
+</Callout>
+
+Without budget controls, automated playbooks and agent-generated content can exceed expected costs. Budget management prevents surprises.
+
+## Setting Up Your Budget
+
+### Step 1: Access Media Dashboard
+
+1. Go to **Dashboard → Media Center**
+2. Click **"Budget Settings"** tab
+3. View current spending and configure limits
+
+### Step 2: Configure Budget Limits
+
+Set three levels of protection:
+
+**Daily Limit**
+Maximum spend per day (resets at midnight)
+- Recommended: $10-25 for active brands
+- Use for: Controlling playbook costs
+
+**Weekly Limit**
+Maximum spend per week (resets Monday)
+- Recommended: $50-100 for regular campaigns
+- Use for: Campaign budget allocation
+
+**Monthly Limit**
+Maximum spend per month (resets 1st)
+- Recommended: $200-500 for full automation
+- Use for: Overall budget planning
+
+<Callout type="tip">
+**Start conservative**: Set daily at $10, weekly at $50, monthly at $200. Increase as you understand usage patterns.
+</Callout>
+
+### Step 3: Configure Alert Thresholds
+
+Get notified before hitting limits:
+
+**Soft Limit (default 80%)**
+Warning when approaching budget
+- Dashboard notification
+- Email alert to admin
+- Does NOT block generation
+
+**Hard Limit (100%)**
+Blocks all media generation when reached
+- Dashboard alert (red)
+- Email to admin
+- Requires manual override or next period
+
+**Example Configuration:**
+```
+Daily Budget: $20
+Soft Limit: 80% ($16)
+Hard Limit: 100% ($20)
+
+At $16 spent → Warning notification
+At $20 spent → All generation blocked until tomorrow
+```
+
+## Monitoring Spending
+
+### Cost Dashboard
+
+The Media Dashboard shows:
+
+**Summary Cards:**
+- Total cost (current period)
+- Generations count
+- Success rate
+- Average cost per generation
+
+**Provider Breakdown:**
+```
+Gemini Flash: $12.40 (620 images)
+Gemini Pro:    $8.00 (200 images)
+Veo:          $45.00 (60 videos)
+Sora:         $12.50 (15 videos)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total:        $77.90 (895 assets)
+```
+
+**Daily Trend Chart:**
+Visual graph showing cost and volume over time
+
+**Budget Status:**
+- Green: Under 60%
+- Yellow: 60-80% (approaching soft limit)
+- Orange: 80-100% (soft limit exceeded)
+- Red: 100%+ (hard limit hit, generation blocked)
+
+### Real-Time Alerts
+
+Budget alerts appear in:
+
+1. **Dashboard Badge** - Red notification dot
+2. **Email** - Sent to account admin
+3. **Agent Chat** - Warning in conversation
+4. **API Response** - Error when generation attempted
+
+<Callout type="info">
+**Alerts sent at**: 50%, 80%, 90%, 100% of budget. You'll have multiple warnings before generation stops.
+</Callout>
+
+## Cost Optimization Tips
+
+### 1. Use Appropriate Tiers
+
+Match provider to use case:
+
+| Use Case | Provider | Cost | Best For |
+|----------|----------|------|----------|
+| Social thumbnails | Gemini Flash | $0.02 | High volume, quick iterations |
+| Product hero images | Gemini Pro | $0.04 | Marketing materials, hero shots |
+| Social clips (short) | Veo | $0.50 | Instagram Reels, TikTok |
+| Premium video ads | Sora | $1.00 | Polished commercials |
+
+**Cost Savings:**
+Use Flash for thumbnails → Pro for finals → Save 50%
+
+### 2. Leverage Style Presets
+
+Reuse successful styles instead of experimenting:
+- Test 5 styles → Pick winner → Reuse
+- Saves regeneration costs
+- Maintains brand consistency
+
+### 3. Schedule Smart Generations
+
+Avoid redundant daily generations:
+- Weekly deals video: Monday only (not daily)
+- Product spotlight: 3x/week (not 7x)
+- Social content: Batch 5 posts/session
+
+### 4. Use A/B Testing Strategically
+
+Test 2-3 variants (not 10):
+- More variants = higher cost
+- Diminishing returns after 3
+- Statistical significance with 2-3
+
+### 5. Monitor Success Rate
+
+Failed generations still cost money:
+- Check prompt quality
+- Review error logs
+- Improve prompts = fewer retries
+
+## Handling Budget Overruns
+
+### When Hard Limit is Hit
+
+Generation stops automatically. You have 3 options:
+
+**Option 1: Wait for Reset**
+- Daily: Resets at midnight
+- Weekly: Resets Monday 12am
+- Monthly: Resets 1st of month
+- Best for: Planned budget adherence
+
+**Option 2: Increase Limit**
+- Go to Budget Settings
+- Increase daily/weekly/monthly cap
+- Effective immediately
+- Best for: Unexpected campaigns
+
+**Option 3: Emergency Override**
+- Click "Emergency Override" button
+- Removes limit for 24 hours
+- Requires admin approval
+- Best for: Critical deadlines
+
+<Callout type="warning">
+**Emergency overrides are tracked**: Use sparingly. Frequent overrides indicate budget needs adjustment.
+</Callout>
+
+### Budget Review Best Practices
+
+Monthly review process:
+
+1. **Check Actual vs. Budget**
+   - Were limits appropriate?
+   - Hit hard limit? Increase budget.
+   - Under 50% used? Decrease budget.
+
+2. **Analyze Cost Drivers**
+   - Which playbooks cost most?
+   - Which providers dominate?
+   - Any failed generations?
+
+3. **Adjust Strategy**
+   - Optimize expensive playbooks
+   - Switch providers where possible
+   - Update generation frequency
+
+4. **Update Limits**
+   - Set next month's budget
+   - Adjust soft limit threshold
+   - Configure seasonal buffers (420, holidays)
+
+## Playbook Budget Integration
+
+Playbooks respect budget limits:
+
+**Before Generation:**
+1. Playbook estimates cost
+2. Checks budget status
+3. Proceeds only if under limit
+
+**Example: Weekly Deals Video**
+```
+Estimated Cost: $0.75 (Veo 8s video)
+Current Spend: $18.50 / $20.00 daily
+Available Budget: $1.50
+Status: ✅ ALLOWED (under limit)
+```
+
+**If Over Budget:**
+```
+Estimated Cost: $0.75
+Current Spend: $19.80 / $20.00 daily
+Available Budget: $0.20
+Status: ❌ BLOCKED (would exceed limit)
+Action: Playbook skipped, retry tomorrow
+```
+
+<Callout type="info">
+**Playbooks auto-retry**: When blocked by budget, playbooks reschedule for next valid time (tomorrow for daily limits).
+</Callout>
+
+## Common Questions
+
+**Q: What happens to scheduled playbooks when budget is exceeded?**
+A: They're automatically paused and retry when budget resets (next day/week/month).
+
+**Q: Can I set different budgets per agent or playbook?**
+A: Not currently. Budget is per-organization across all media generation.
+
+**Q: Do failed generations count against budget?**
+A: Yes, provider charges apply even if generation fails. Monitor success rate.
+
+**Q: Can I get refunds for failed generations?**
+A: BakedBot doesn't charge for generation (we pass through provider costs). Contact provider support for refunds.
+
+**Q: How do I export cost data for accounting?**
+A: Go to Media Dashboard → Export → Download CSV with all transactions.
+
+**Q: What if I need to exceed budget for a major campaign?**
+A: Temporarily increase monthly limit before campaign launch, then reduce after completion.
+
+## Next Steps
+
+- ✅ **Set your first budget**: Start with conservative limits
+- ✅ **Enable soft limit alerts**: Get warnings before blocks
+- ✅ **Review weekly**: Check spending patterns
+- ✅ **Optimize costs**: Use appropriate tiers for each use case
+
+**Related Articles:**
+- [Style Presets Library](/help/marketing/style-presets) - Reduce costs with reusable styles
+- [A/B Testing for Media](/help/marketing/ab-testing-media) - Optimize performance, reduce waste
+- [Marketing Playbooks](/help/marketing/playbooks) - Automated content generation
+
+<Callout type="success">
+**Budget control = creative freedom**: With proper limits, you can automate confidently without cost anxiety.
+</Callout>
