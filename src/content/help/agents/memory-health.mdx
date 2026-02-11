@@ -1,0 +1,412 @@
+# Memory Health & Auto-Gardening
+
+Keep your AI agents sharp with automated memory maintenance—BakedBot Intelligence automatically detects stale memories, resolves conflicts, and optimizes memory quality without manual intervention.
+
+## What is Memory Health?
+
+**Memory health is how well your agents remember and use information:**
+- 🧹 **Auto-Gardening** - Automatic cleanup of outdated or low-value memories
+- ⚔️ **Conflict Detection** - Identifies contradictory facts across memories
+- 📊 **Health Scoring** - 0-100 score based on staleness, conflicts, and completeness
+- ⏰ **Relevance Decay** - Memories age naturally—older = less relevant
+- 🔍 **Semantic Analysis** - AI determines which memories matter most
+- 📈 **Continuous Optimization** - Weekly scheduled maintenance keeps agents sharp
+
+<Callout type="success">
+**Result:** Agents maintain high accuracy, fast response times, and reliable recommendations without manual memory management.
+</Callout>
+
+## Why Memory Health Matters
+
+### The Problem: Memory Accumulation
+
+**Over time, agents accumulate:**
+- ❌ **Stale facts** - Outdated pricing, discontinued products, old promotions
+- ❌ **Conflicting data** - "Store opens at 9am" vs "Store opens at 10am"
+- ❌ **Low-value memories** - Repeated greetings, trivial conversations
+- ❌ **Expired information** - Seasonal campaigns, limited-time offers
+
+**Without maintenance:**
+- Response quality degrades
+- Agents hallucinate or contradict themselves
+- Context window fills up (slower responses)
+- Confidence scores drop
+
+### The Solution: Automated Gardening
+
+**BakedBot Intelligence runs weekly maintenance:**
+1. **Analyze** all memories for relevance and quality
+2. **Score** each memory (semantic similarity + recency decay)
+3. **Detect** conflicts between contradictory facts
+4. **Prune** low-value or stale memories (configurable threshold)
+5. **Resolve** conflicts automatically or flag for manual review
+6. **Report** improvements (memories removed, conflicts resolved, health score)
+
+<Callout type="info">
+**Frequency:** Weekly by default. Agents with low health (<70) trigger on-demand gardening automatically.
+</Callout>
+
+## Health Score Breakdown
+
+**Health Score (0-100) is calculated from:**
+
+### Staleness (40% weight)
+- **Recent (0-7 days):** 100 points
+- **Fresh (8-30 days):** 85 points
+- **Aging (31-90 days):** 60 points
+- **Stale (91-180 days):** 30 points
+- **Very Stale (180+ days):** 10 points
+
+**Interpretation:**
+- >50 stale memories = **Warning**
+- >100 stale memories = **Critical**
+
+### Conflicts (30% weight)
+- **0 conflicts:** 100 points
+- **1-5 conflicts:** 80 points
+- **6-10 conflicts:** 50 points
+- **11-20 conflicts:** 25 points
+- **20+ conflicts:** 0 points
+
+**Types of conflicts:**
+- **Direct Contradiction:** "Open at 9am" vs "Open at 10am"
+- **Outdated Fact:** Old price still in memory after price change
+- **Inconsistent Data:** Different values for same product across sources
+
+### Completeness (20% weight)
+- **Average completeness:** Based on 7-day completeness score
+- **100% complete:** All user intents addressed in responses
+- **<70% complete:** Frequently missing user questions
+
+### Memory Efficiency (10% weight)
+- **Total memories:** Fewer is better (focused knowledge)
+- **Memory/retrieval ratio:** Are memories being used?
+- **Duplicate detection:** Redundant memories penalized
+
+**Target Score:** 80+ (Healthy)
+
+<Callout type="warning">
+**Critical threshold:** Health score <40 triggers immediate auto-gardening regardless of schedule.
+</Callout>
+
+## Relevance Scoring
+
+**How BakedBot determines which memories to keep:**
+
+### Semantic Relevance (60% weight)
+AI analyzes memory content for business value:
+- **High value:** Product details, customer preferences, compliance rules, pricing
+- **Medium value:** Campaign performance, historical trends, FAQs
+- **Low value:** Greetings, acknowledgments, trivial conversations
+
+**Example:**
+- 🟢 **Keep:** "Customer prefers indica strains for sleep issues" (semantic score: 0.92)
+- 🔴 **Prune:** "User said hello" (semantic score: 0.12)
+
+### Recency Decay (40% weight)
+Memories decay based on age using exponential decay curve:
+
+```
+Recency Score = e^(-age_in_days / decay_constant)
+
+Default decay_constant = 60 days (half-life)
+```
+
+**Example decay:**
+- **Day 0:** 1.00 (100%)
+- **Day 30:** 0.61 (61%)
+- **Day 60:** 0.37 (37%)
+- **Day 90:** 0.22 (22%)
+- **Day 180:** 0.05 (5%)
+
+**Combined Score:**
+```
+Final Score = (Semantic * 0.6) + (Recency * 0.4)
+```
+
+**Pruning threshold:** <0.30 (configurable)
+
+<Callout type="tip">
+**Time-sensitive facts** (like "Sale ends Friday") automatically get expiration dates and are pruned when expired.
+</Callout>
+
+## Conflict Detection
+
+**How BakedBot detects contradictions:**
+
+### 1. Semantic Similarity
+AI compares memory pairs for similar topics:
+```
+"Store opens at 9am" vs "Store opens at 10am"
+→ Similarity: 0.95 (same topic: store hours)
+```
+
+### 2. Contradiction Analysis
+AI determines if facts conflict:
+```
+Different values for same attribute = Conflict
+→ "9am" ≠ "10am" = Direct Contradiction
+```
+
+### 3. Severity Classification
+- **Critical:** Safety, compliance, legal (e.g., license status)
+- **High:** Customer-facing data (e.g., store hours, pricing)
+- **Medium:** Internal operations (e.g., workflow preferences)
+- **Low:** Minor inconsistencies (e.g., formatting differences)
+
+### 4. Resolution Strategy
+
+**Automatic resolution:**
+- **Recency wins:** Newer memory replaces older (if recency difference >30 days)
+- **Source authority:** POS data > User-stated > Inference
+- **Verification status:** Verified > Pending > Challenged
+
+**Manual resolution required:**
+- **Equal recency:** Both memories <30 days old
+- **Critical severity:** Compliance, safety, legal matters
+- **Ambiguous:** AI can't determine correct value
+
+<Callout type="info">
+**Manual conflicts** appear in Memory Health Dashboard for CEO review.
+</Callout>
+
+## Auto-Gardening Process
+
+**Weekly scheduled maintenance (Sundays at 3am ET by default):**
+
+### Phase 1: Health Assessment (5 min)
+1. Load all agent memories
+2. Calculate health metrics
+3. Identify stale memories, conflicts, low-value entries
+
+### Phase 2: Conflict Detection (10 min)
+1. Find memory pairs with high semantic similarity
+2. Check for contradictory values
+3. Classify severity (critical/high/medium/low)
+4. Attempt automatic resolution
+
+### Phase 3: Pruning (5 min)
+1. Score all memories (semantic + recency)
+2. Remove memories below threshold (<0.30)
+3. Expire time-sensitive facts past their expiration date
+4. Deduplicate redundant memories
+
+### Phase 4: Optimization (5 min)
+1. Consolidate fragmented knowledge
+2. Verify fact sources
+3. Update confidence scores
+4. Rebuild memory indexes
+
+### Phase 5: Reporting (1 min)
+Generate report:
+- Health score (before/after)
+- Memories removed
+- Conflicts resolved (automatic + manual)
+- Recommendations
+
+**Total time:** ~25 minutes per agent
+
+<Callout type="success">
+**Zero downtime:** Agents remain available during gardening. New memories are queued and processed after maintenance completes.
+</Callout>
+
+## Using the Memory Health Dashboard
+
+**Access:** CEO Dashboard → MERIDIAN tab → Memory Health section
+
+### Overview Tab
+
+**System-wide metrics:**
+- **Total Agents:** Number of agents with memory
+- **Average Health:** Mean health score across all agents
+- **Total Memories:** Count of all memories
+- **Stale Memories:** Count of memories >90 days old
+- **Active Conflicts:** Unresolved contradictions
+
+**Agent-specific cards:**
+- Agent name + health score badge (color-coded)
+- Last gardening run timestamp
+- Quick actions: "Run Gardening", "View Details"
+
+### Agent Details
+
+**Select an agent to view:**
+- **Health Score Trend:** 30-day line chart
+- **Memory Breakdown:** Pie chart (recent/fresh/aging/stale)
+- **Conflict Timeline:** Bar chart by severity
+- **Retrieval Frequency:** Which memories are actually used?
+
+### Gardening Reports
+
+**Recent maintenance runs:**
+- **Started At:** Timestamp
+- **Duration:** How long it took
+- **Health Score:** Before → After
+- **Memories Removed:** Count + percentage
+- **Conflicts Resolved:** Automatic + manual
+- **Status:** Completed/Failed/In Progress
+
+**Click a report to see details:**
+- Removed memories (with reasons)
+- Conflict resolutions (how they were resolved)
+- Recommendations for improvement
+
+### Conflict Resolution
+
+**Manual conflicts requiring review:**
+
+**For each conflict:**
+- **Memory A:** Content + timestamp + source
+- **Memory B:** Content + timestamp + source
+- **Conflict Type:** Direct contradiction/outdated fact/inconsistent data
+- **Severity:** Critical/High/Medium/Low
+
+**Resolution options:**
+1. **Keep Memory A** (discard B)
+2. **Keep Memory B** (discard A)
+3. **Keep Both** (not actually a conflict)
+4. **Discard Both** (neither is correct)
+5. **Manual Edit** (write new authoritative fact)
+
+**After resolution:**
+- Conflict marked "Resolved"
+- Correct memory retained (or new one created)
+- Health score recalculated
+
+## Triggering Manual Gardening
+
+**When to manually trigger:**
+- Major data migration (POS switch, product catalog update)
+- Agent behavior seems "confused" or contradictory
+- Health score drops below 60
+- After bulk fact imports
+
+**How to trigger:**
+1. **CEO Dashboard → MERIDIAN → Memory Health**
+2. Select agent from dropdown
+3. Click **"Run Gardening Now"**
+4. Confirm (agent will be busy for ~25 minutes)
+5. Monitor progress in Gardening Reports tab
+
+<Callout type="warning">
+**Limitation:** Only one gardening run per agent per hour. Wait for current run to complete before starting another.
+</Callout>
+
+## Heartbeat Integration
+
+**Automatic health monitoring:**
+
+### Memory Health Checks (Super Users)
+**Frequency:** Every 30 minutes
+
+**Alerts triggered when:**
+- Health score <60 → **Warning** (yellow notification)
+- Health score <40 → **Alert** (red notification)
+- Stale memories >50 → **Warning**
+- Conflicts >5 → **Alert**
+
+**Notification channels:**
+- Dashboard badge
+- Email (if enabled)
+- SMS (for critical alerts)
+
+**Auto-actions:**
+- Health <40 → Trigger immediate gardening
+- Conflicts >10 → Flag for manual review
+
+### Scheduled Gardening
+**Frequency:** Weekly (Sundays at 3am ET)
+
+**Runs gardening if:**
+- Health score <70 (needs cleanup)
+- Stale memories >30
+- Conflicts >3
+- Last gardening >7 days ago
+
+**Post-gardening:**
+- Health report emailed to CEO
+- Dashboard notification
+- Metrics updated in LiveHud
+
+## Best Practices
+
+### 1. **Review Conflicts Weekly**
+Don't let manual conflicts pile up:
+- Set aside 15 minutes each Monday
+- Resolve high/critical severity first
+- Document resolution reasoning
+
+### 2. **Monitor Health Trends**
+Declining health indicates systemic issues:
+- Check **Health Score Trend** chart
+- Look for sudden drops (data migration? integration issues?)
+- Address root causes, not just symptoms
+
+### 3. **Verify Fact Sources**
+When creating authoritative facts:
+- **POS data:** Most reliable for products, inventory, pricing
+- **User-stated:** Good for preferences, but verify if critical
+- **Inference:** Lowest confidence—verify with external data
+
+### 4. **Set Expiration Dates**
+For time-sensitive information:
+- Sales/promotions: Set end date
+- Seasonal products: Expire after season
+- Event details: Expire after event date
+
+**How to set expiration:**
+- When saving facts via agent, include expiration metadata
+- Auto-gardening will prune after expiration
+
+### 5. **Track Gardening Impact**
+Measure improvements post-gardening:
+- **Response confidence:** Should increase
+- **Completeness score:** Should improve
+- **Customer complaints:** Should decrease
+
+## Troubleshooting
+
+### Health Score Stuck Below 70
+**Cause:** Underlying data quality issues.
+
+**Fix:**
+1. Check **Stale Memories** count
+   - If >100, reduce decay constant (faster aging)
+2. Check **Conflicts** count
+   - If >10, manually resolve backlog
+3. Check **Source Quality**
+   - Are POS integrations working?
+   - Is ground truth up to date?
+
+### Gardening Fails Repeatedly
+**Cause:** Too many memories or AI timeouts.
+
+**Fix:**
+1. Check **Total Memories** count
+   - If >10,000, consider aggressive pruning (lower threshold to 0.25)
+2. Check **System Logs** for errors
+   - Contact support if AI timeouts persist
+
+### Conflicts Keep Reappearing
+**Cause:** Multiple data sources providing contradictory information.
+
+**Fix:**
+1. Identify **Source of Conflict** (POS vs manual entry?)
+2. Establish **Source Hierarchy** (POS wins over manual)
+3. Update **Ground Truth** with authoritative facts
+4. Disable lower-priority sources if necessary
+
+### Memories Pruned Too Aggressively
+**Cause:** Threshold too low or decay too fast.
+
+**Fix:**
+1. Increase **Pruning Threshold** (default 0.30 → 0.40)
+2. Increase **Decay Constant** (default 60 days → 90 days)
+3. Review **Semantic Scoring** (are high-value memories marked correctly?)
+
+## Related Articles
+
+- [LiveHud - Agent Cognitive Monitoring](/help/agents/intelligence-livehud) - Real-time agent status
+- [Completeness Doctrine](/help/agents/completeness-doctrine) - Ensure all questions answered
+- [Input Safety & Security](/help/agents/input-safety) - Protect against adversarial inputs
+- [Agent Collaboration (Hive Mind)](/help/agents/hive-mind) - How agents share knowledge
