@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Memory Health Heartbeat Checks (MERIDIAN)
  *

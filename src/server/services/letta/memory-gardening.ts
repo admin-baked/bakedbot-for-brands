@@ -1,14 +1,13 @@
-// @ts-nocheck - WIP: MERIDIAN integration
 /**
- * Memory Gardening Service (MERIDIAN-Enhanced)
+ * Memory Gardening Service (BakedBot Intelligence)
  *
- * Implements MERIDIAN_Brain's memory gardening protocol:
+ * Implements automated memory gardening protocol:
  * - Auto-cleanup of outdated context to prevent logic drift
  * - Conflict detection (contradictory facts)
  * - Relevance scoring and pruning
  * - Memory health tracking
  *
- * Inspired by: https://github.com/mattvideoproductions/MERIDIAN_Brain
+ * Part of BakedBot Intelligence, inspired by: https://github.com/mattvideoproductions/MERIDIAN_Brain
  * BakedBot adaptation: Integrated with Letta Memory + Firestore
  */
 
@@ -237,7 +236,7 @@ export class MemoryGardeningService {
     }
 
     /**
-     * Detect conflicting memories (MERIDIAN Safety Protocol)
+     * Detect conflicting memories (BakedBot Intelligence - Safety Protocol)
      */
     private async detectConflicts(
         memories: Array<{ id: string; content: string }>,

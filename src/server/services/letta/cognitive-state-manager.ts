@@ -1,10 +1,10 @@
 /**
- * Cognitive State Manager (MERIDIAN LiveHud Backend)
+ * Cognitive State Manager (BakedBot Intelligence - LiveHud Backend)
  *
  * Manages real-time agent cognitive state updates for the LiveHud dashboard.
  * Tracks agent status, behavior settings, context usage, and performance metrics.
  *
- * Inspired by: https://github.com/mattvideoproductions/MERIDIAN_Brain
+ * Part of BakedBot Intelligence, inspired by: https://github.com/mattvideoproductions/MERIDIAN_Brain
  * BakedBot adaptation: Multi-agent state management with Firestore persistence
  */
 

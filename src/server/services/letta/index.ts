@@ -117,10 +117,10 @@ export {
 export type { TaggedMemory, TagIndex } from './archival-tags';
 
 // =============================================================================
-// MERIDIAN-ENHANCED MEMORY FEATURES
+// BAKEDBOT INTELLIGENCE - ENHANCED MEMORY FEATURES
 // =============================================================================
 
-// MERIDIAN Memory Types (Confidence Scoring, Fact Labeling, Conflict Detection)
+// BakedBot Intelligence Memory Types (Confidence Scoring, Fact Labeling, Conflict Detection)
 export {
     MemoryConfidenceSchema,
     MemoryEvidenceSchema,

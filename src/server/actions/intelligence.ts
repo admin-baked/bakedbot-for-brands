@@ -304,13 +304,13 @@ export async function getCursedInputStats(days: number = 30) {
 }
 
 // =============================================================================
-// SYSTEM-WIDE MERIDIAN METRICS
+// SYSTEM-WIDE INTELLIGENCE METRICS
 // =============================================================================
 
 /**
- * Get overall MERIDIAN intelligence metrics (for CEO Dashboard)
+ * Get overall BakedBot Intelligence metrics (for CEO Dashboard)
  */
-export async function getMeridianSystemMetrics() {
+export async function getIntelligenceSystemMetrics() {
     const user = await requireUser(['super_user']);
     const orgId = user.orgId || user.brandId || user.uid;
 
