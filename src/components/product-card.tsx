@@ -48,7 +48,24 @@ export function ProductCard({
   });
 
   const priceDisplay = useMemo(() => {
-    // Priority 1: Use dynamic price if available and discounted
+    // Priority 1: Use menu-published dynamic pricing (persisted to product document)
+    if (product.dynamicPricingApplied && product.originalPrice) {
+      const current = product.price;
+      const original = product.originalPrice;
+      const discount = ((original - current) / original) * 100;
+
+      return {
+        current: `$${current.toFixed(2)}`,
+        original: `$${original.toFixed(2)}`,
+        discount: discount.toFixed(0),
+        badge: product.dynamicPricingBadge
+          ? { text: product.dynamicPricingBadge, color: 'red' }
+          : { text: `${discount.toFixed(0)}% OFF`, color: 'red' },
+        reason: product.dynamicPricingReason || 'Dynamic pricing',
+      };
+    }
+
+    // Priority 2: Use on-demand dynamic price if available and discounted
     if (dynamicPrice && hasDiscount) {
       return {
         current: `$${dynamicPrice.dynamicPrice.toFixed(2)}`,
@@ -59,7 +76,7 @@ export function ProductCard({
       };
     }
 
-    // Priority 2: Retailer-specific pricing
+    // Priority 3: Retailer-specific pricing
     const prices = product.prices ?? {};
     const hasPricing = Object.keys(prices).length > 0;
 
@@ -73,7 +90,7 @@ export function ProductCard({
       };
     }
 
-    // Priority 3: Price range if multiple retailers
+    // Priority 4: Price range if multiple retailers
     if (!selectedRetailerId && hasPricing) {
       const priceValues = Object.values(prices);
       if (priceValues.length > 0) {
@@ -99,7 +116,7 @@ export function ProductCard({
       }
     }
 
-    // Priority 4: Fallback to standard price
+    // Priority 5: Fallback to standard price
     return {
       current: `$${product.price.toFixed(2)}`,
       original: null,

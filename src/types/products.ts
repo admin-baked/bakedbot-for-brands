@@ -125,6 +125,13 @@ export type Product = {
     mgPerServing?: number; // mg CBD/THC per serving
     shippable?: boolean; // Can this product be shipped?
     shippingRestrictions?: string[]; // State codes where shipping is blocked
+
+    // Dynamic Pricing Fields (Public Menu Integration)
+    originalPrice?: number; // Original price before dynamic pricing
+    dynamicPricingApplied?: boolean; // Whether dynamic pricing is active on this product
+    dynamicPricingBadge?: string | null; // Badge text to display (e.g., "20% OFF")
+    dynamicPricingReason?: string | null; // Reason for price change (e.g., "Clearance - Expiring Soon")
+    dynamicPricingUpdatedAt?: Date | string; // Timestamp of last dynamic pricing update
 };
 
 export type Retailer = {

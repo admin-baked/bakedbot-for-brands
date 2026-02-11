@@ -815,3 +815,298 @@ export async function createAndSyncPricingRule(
 
   return createResult;
 }
+
+// ============ Public Menu Publishing ============
+
+/**
+ * Apply dynamic pricing to a single product in the public view
+ *
+ * Updates the product's price in tenants/{orgId}/publicViews/products/items/{productId}
+ * to reflect the calculated dynamic price, making it visible on the live menu.
+ */
+export async function applyPriceToMenu(params: {
+  productId: string;
+  orgId: string;
+}): Promise<{ success: boolean; originalPrice?: number; newPrice?: number; error?: string }> {
+  try {
+    const { productId, orgId } = params;
+
+    logger.info('[DYNAMIC_PRICING] Applying price to menu', { productId, orgId });
+
+    // Calculate dynamic price
+    const priceResult = await calculateDynamicPrice({ productId, orgId });
+
+    if (!priceResult.success || !priceResult.data) {
+      return {
+        success: false,
+        error: priceResult.error || 'Failed to calculate price'
+      };
+    }
+
+    const { originalPrice, dynamicPrice, discount, badge } = priceResult.data;
+
+    // No discount = no change needed
+    if (discount === 0) {
+      logger.info('[DYNAMIC_PRICING] No discount to apply', { productId });
+      return {
+        success: true,
+        originalPrice,
+        newPrice: originalPrice
+      };
+    }
+
+    // Update product in public view
+    const db = getAdminFirestore();
+    const productRef = db
+      .collection('tenants')
+      .doc(orgId)
+      .collection('publicViews')
+      .doc('products')
+      .collection('items')
+      .doc(productId);
+
+    await productRef.update({
+      price: dynamicPrice,
+      originalPrice, // Store original for reverting later
+      dynamicPricingApplied: true,
+      dynamicPricingBadge: badge?.text || null,
+      dynamicPricingReason: priceResult.data.displayReason,
+      dynamicPricingUpdatedAt: new Date(),
+    });
+
+    logger.info('[DYNAMIC_PRICING] Price applied to menu', {
+      productId,
+      originalPrice,
+      newPrice: dynamicPrice,
+      discount,
+    });
+
+    // Revalidate the brand page to show updated prices
+    revalidatePath(`/${orgId}`);
+
+    return {
+      success: true,
+      originalPrice,
+      newPrice: dynamicPrice,
+    };
+  } catch (error) {
+    logger.error('[DYNAMIC_PRICING] Error applying price to menu', { error, params });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to apply price'
+    };
+  }
+}
+
+/**
+ * Batch apply dynamic pricing to all products matching active rules
+ *
+ * This is the "Publish to Menu" function that applies all active pricing rules
+ * to the public menu, making dynamic prices visible to customers.
+ *
+ * @param orgId - Organization ID
+ * @param ruleId - Optional: only apply a specific rule. If not provided, applies all active rules.
+ * @returns Summary of products updated
+ */
+export async function publishPricesToMenu(
+  orgId: string,
+  ruleId?: string
+): Promise<{
+  success: boolean;
+  productsUpdated?: number;
+  totalSavings?: number;
+  errors?: string[];
+  error?: string;
+}> {
+  try {
+    logger.info('[DYNAMIC_PRICING] Publishing prices to menu', { orgId, ruleId });
+
+    const db = getAdminFirestore();
+
+    // Get products from public view
+    const productsSnapshot = await db
+      .collection('tenants')
+      .doc(orgId)
+      .collection('publicViews')
+      .doc('products')
+      .collection('items')
+      .get();
+
+    if (productsSnapshot.empty) {
+      return { success: false, error: 'No products found in public view' };
+    }
+
+    const products = productsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    logger.info('[DYNAMIC_PRICING] Found products to process', { count: products.length });
+
+    // Apply pricing to each product
+    const results = await Promise.allSettled(
+      products.map(product => applyPriceToMenu({ productId: product.id, orgId }))
+    );
+
+    // Aggregate results
+    let productsUpdated = 0;
+    let totalSavings = 0;
+    const errors: string[] = [];
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled' && result.value.success) {
+        const { originalPrice = 0, newPrice = 0 } = result.value;
+        if (originalPrice > newPrice) {
+          productsUpdated++;
+          totalSavings += (originalPrice - newPrice);
+        }
+      } else if (result.status === 'rejected') {
+        errors.push(`Product ${products[index].id}: ${result.reason}`);
+      } else if (result.status === 'fulfilled' && !result.value.success) {
+        errors.push(`Product ${products[index].id}: ${result.value.error}`);
+      }
+    });
+
+    logger.info('[DYNAMIC_PRICING] Batch publish complete', {
+      orgId,
+      productsUpdated,
+      totalSavings: totalSavings.toFixed(2),
+      errorCount: errors.length,
+    });
+
+    return {
+      success: true,
+      productsUpdated,
+      totalSavings: Math.round(totalSavings * 100) / 100,
+      errors: errors.length > 0 ? errors : undefined,
+    };
+  } catch (error) {
+    logger.error('[DYNAMIC_PRICING] Error publishing prices to menu', { error, orgId });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to publish prices'
+    };
+  }
+}
+
+/**
+ * Revert dynamic pricing for a product (restore original price)
+ *
+ * @param productId - Product ID
+ * @param orgId - Organization ID
+ */
+export async function revertPriceOnMenu(params: {
+  productId: string;
+  orgId: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { productId, orgId } = params;
+
+    logger.info('[DYNAMIC_PRICING] Reverting price on menu', { productId, orgId });
+
+    const db = getAdminFirestore();
+    const productRef = db
+      .collection('tenants')
+      .doc(orgId)
+      .collection('publicViews')
+      .doc('products')
+      .collection('items')
+      .doc(productId);
+
+    const productDoc = await productRef.get();
+
+    if (!productDoc.exists) {
+      return { success: false, error: 'Product not found' };
+    }
+
+    const product = productDoc.data();
+    const originalPrice = product?.originalPrice || product?.price;
+
+    await productRef.update({
+      price: originalPrice,
+      dynamicPricingApplied: false,
+      dynamicPricingBadge: null,
+      dynamicPricingReason: null,
+      dynamicPricingUpdatedAt: new Date(),
+    });
+
+    logger.info('[DYNAMIC_PRICING] Price reverted on menu', { productId, originalPrice });
+
+    // Revalidate the brand page
+    revalidatePath(`/${orgId}`);
+
+    return { success: true };
+  } catch (error) {
+    logger.error('[DYNAMIC_PRICING] Error reverting price on menu', { error, params });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to revert price'
+    };
+  }
+}
+
+/**
+ * Revert all dynamic pricing for an org (restore all original prices)
+ *
+ * @param orgId - Organization ID
+ */
+export async function revertAllPricesOnMenu(
+  orgId: string
+): Promise<{ success: boolean; productsReverted?: number; error?: string }> {
+  try {
+    logger.info('[DYNAMIC_PRICING] Reverting all prices on menu', { orgId });
+
+    const db = getAdminFirestore();
+
+    // Get all products with dynamic pricing applied
+    const productsSnapshot = await db
+      .collection('tenants')
+      .doc(orgId)
+      .collection('publicViews')
+      .doc('products')
+      .collection('items')
+      .where('dynamicPricingApplied', '==', true)
+      .get();
+
+    if (productsSnapshot.empty) {
+      logger.info('[DYNAMIC_PRICING] No products with dynamic pricing to revert', { orgId });
+      return { success: true, productsReverted: 0 };
+    }
+
+    const batch = db.batch();
+
+    productsSnapshot.docs.forEach(doc => {
+      const product = doc.data();
+      const originalPrice = product.originalPrice || product.price;
+
+      batch.update(doc.ref, {
+        price: originalPrice,
+        dynamicPricingApplied: false,
+        dynamicPricingBadge: null,
+        dynamicPricingReason: null,
+        dynamicPricingUpdatedAt: new Date(),
+      });
+    });
+
+    await batch.commit();
+
+    logger.info('[DYNAMIC_PRICING] All prices reverted on menu', {
+      orgId,
+      productsReverted: productsSnapshot.size,
+    });
+
+    // Revalidate the brand page
+    revalidatePath(`/${orgId}`);
+
+    return {
+      success: true,
+      productsReverted: productsSnapshot.size,
+    };
+  } catch (error) {
+    logger.error('[DYNAMIC_PRICING] Error reverting all prices on menu', { error, orgId });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to revert prices'
+    };
+  }
+}
