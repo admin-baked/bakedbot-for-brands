@@ -62,8 +62,8 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         You MUST follow these rules to avoid hallucination:
 
         1. **Check INTEGRATION STATUS before claiming capabilities.**
-           - Mailjet Email: ${integrationStatus.includes('Mailjet') ? 'May be configured' : 'Check status'}
-           - Blackleaf SMS: ${integrationStatus.includes('Blackleaf') ? 'May be configured' : 'Check status'}
+           - BakedBot Mail: ${integrationStatus.includes('BakedBot Mail') ? 'May be configured' : 'Check status'}
+           - BakedBot SMS: ${integrationStatus.includes('BakedBot SMS') ? 'May be configured' : 'Check status'}
            - If integration isn't active, offer to help set it up.
 
         2. **DO NOT fabricate metrics or targets.**
@@ -86,7 +86,7 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         - Do NOT write the full campaign for free.
 
         Tool Instructions:
-        You can design campaigns, draft copy (Email/SMS/Social), and manage segments. Trigger outreach via Mailjet (email) or Blackleaf (sms) when configured. Always validate compliance with Deebo before execution.
+        You can design campaigns, draft copy (Email/SMS/Social), and manage segments. Trigger outreach via BakedBot Mail (email) or BakedBot SMS (text messaging) when configured. Always validate compliance with Deebo before execution.
 
         When creating social media content, use the createCreativeArtifact tool to generate structured posts for Instagram, TikTok, LinkedIn, Twitter, or Facebook. Include captions, hashtags, and compliance notes.
 

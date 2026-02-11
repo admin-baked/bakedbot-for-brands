@@ -247,7 +247,10 @@
       "Bash(gcloud artifacts repositories create:*)",
       "Bash(npx tsx dev/seed-training.ts)",
       "Bash(git check-ignore:*)",
-      "Bash(npm run compile:*)"
+      "Bash(npm run compile:*)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\admin\\\\BakedBot for Brands\\\\bakedbot-for-brands\\\\.next\" -Directory -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -Property Name, CreationTime)",
+      "Bash(Format-Table -AutoSize)"
     ],
     "deny": [],
     "ask": []

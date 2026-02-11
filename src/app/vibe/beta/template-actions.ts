@@ -4,9 +4,9 @@
  * Vibe Template Marketplace Actions
  *
  * Browse, download, and submit community templates.
+ * Uses centralized template service for consistency.
  */
 
-import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type {
   VibeTemplate,
@@ -14,11 +14,7 @@ import type {
   TemplateSearchResult,
   TemplateReview,
 } from '@/types/vibe-template';
-
-const TEMPLATES_COLLECTION = 'vibe_templates';
-const REVIEWS_COLLECTION = 'vibe_template_reviews';
-const FAVORITES_COLLECTION = 'vibe_template_favorites';
-const DOWNLOADS_COLLECTION = 'vibe_template_downloads';
+import * as templateService from '@/server/services/vibe-template-service';
 
 /**
  * Search templates with filters
