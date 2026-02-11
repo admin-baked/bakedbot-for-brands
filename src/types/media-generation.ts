@@ -455,3 +455,167 @@ export interface EditImageOutput {
     /** Original image URL for comparison */
     originalUrl: string;
 }
+
+/**
+ * Style preset for consistent branding
+ */
+export interface StylePreset {
+    /** Preset ID */
+    id: string;
+
+    /** Preset name */
+    name: string;
+
+    /** Description */
+    description: string;
+
+    /** Category (built-in or custom) */
+    category: 'built-in' | 'custom';
+
+    /** Tenant ID (null for built-in presets) */
+    tenantId?: string;
+
+    /** Style prompt template */
+    stylePrompt: string;
+
+    /** Negative prompt (what to avoid) */
+    negativePrompt?: string;
+
+    /** Recommended aspect ratios */
+    aspectRatios: Array<'1:1' | '4:5' | '16:9' | '9:16'>;
+
+    /** Visual tags for categorization */
+    tags: string[];
+
+    /** Example image URL */
+    exampleImageUrl?: string;
+
+    /** Color palette */
+    colorPalette?: {
+        primary: string;
+        secondary: string;
+        accent: string;
+    };
+
+    /** Typography preferences */
+    typography?: {
+        fontFamily?: string;
+        fontSize?: 'small' | 'medium' | 'large';
+        fontWeight?: 'light' | 'normal' | 'bold';
+    };
+
+    /** Whether preset is public (shareable) */
+    isPublic: boolean;
+
+    /** Usage count */
+    usageCount: number;
+
+    /** Created timestamp */
+    createdAt: number;
+
+    /** Last updated timestamp */
+    updatedAt: number;
+}
+
+/**
+ * A/B test configuration for generated content
+ */
+export interface MediaABTest {
+    /** Test ID */
+    id: string;
+
+    /** Tenant ID */
+    tenantId: string;
+
+    /** Test name */
+    name: string;
+
+    /** Test description */
+    description?: string;
+
+    /** Test status */
+    status: 'draft' | 'running' | 'completed' | 'cancelled';
+
+    /** Base prompt */
+    basePrompt: string;
+
+    /** Variants to test */
+    variants: Array<{
+        id: string;
+        name: string;
+        stylePresetId?: string;
+        customPrompt?: string;
+        mediaUrl?: string;
+    }>;
+
+    /** Target audience split (percentage per variant) */
+    audienceSplit: Record<string, number>;
+
+    /** Metrics to track */
+    metrics: Array<'impressions' | 'clicks' | 'conversions' | 'engagement' | 'cost'>;
+
+    /** Start date */
+    startDate?: number;
+
+    /** End date */
+    endDate?: number;
+
+    /** Created timestamp */
+    createdAt: number;
+
+    /** Last updated timestamp */
+    updatedAt: number;
+}
+
+/**
+ * A/B test result for a variant
+ */
+export interface MediaABTestResult {
+    /** Result ID */
+    id: string;
+
+    /** Test ID */
+    testId: string;
+
+    /** Variant ID */
+    variantId: string;
+
+    /** Impressions */
+    impressions: number;
+
+    /** Clicks */
+    clicks: number;
+
+    /** Conversions */
+    conversions: number;
+
+    /** Engagement (likes, shares, comments) */
+    engagement: number;
+
+    /** Total cost */
+    costUsd: number;
+
+    /** Click-through rate */
+    ctr: number;
+
+    /** Conversion rate */
+    cvr: number;
+
+    /** Cost per click */
+    cpc: number;
+
+    /** Cost per conversion */
+    cpconv: number;
+
+    /** Engagement rate */
+    engagementRate: number;
+
+    /** Statistical confidence */
+    confidence?: number;
+
+    /** Is winning variant */
+    isWinner: boolean;
+
+    /** Last updated timestamp */
+    updatedAt: number;
+}
