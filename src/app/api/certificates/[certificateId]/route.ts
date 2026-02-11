@@ -3,10 +3,10 @@ import { getAdminFirestore } from '@/firebase/admin';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { certificateId: string } }
+  context: { params: Promise<{ certificateId: string }> }
 ) {
   try {
-    const { certificateId } = params;
+    const { certificateId } = await context.params;
 
     const db = getAdminFirestore();
     const certDoc = await db.collection('academy_certificates').doc(certificateId).get();

@@ -17,7 +17,6 @@
 
 import { executeWithTools, isClaudeAvailable, ClaudeTool, ClaudeResult } from '@/ai/claude';
 import { z } from 'zod';
-import { AgentImplementation } from './harness';
 import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { browserService } from '../services/browser-service';
@@ -396,9 +395,9 @@ async function executeOpenClawTool(
             }
 
             case 'browse_url': {
-                const { rtrvrService } = await import('@/server/services/rtrvr');
+                const { extractFromUrl, isRTRVRAvailable } = await import('@/server/services/rtrvr');
 
-                if (!rtrvrService.isAvailable()) {
+                if (!isRTRVRAvailable()) {
                     // Fallback to simple fetch
                     const response = await fetch(toolInput.url as string);
                     const text = await response.text();
@@ -410,11 +409,19 @@ async function executeOpenClawTool(
                     });
                 }
 
-                const result = await rtrvrService.navigateAndExtract({
-                    url: toolInput.url as string,
-                    extractSelector: toolInput.extractSelector as string,
-                    screenshot: toolInput.screenshot as boolean
-                });
+                const result = await extractFromUrl(
+                    toolInput.url as string,
+                    toolInput.extractSelector
+                        ? `Extract content matching CSS selector: ${String(toolInput.extractSelector)}`
+                        : 'Extract the main textual content from this page.',
+                    {
+                        type: 'object',
+                        properties: {
+                            content: { type: 'string' },
+                            title: { type: 'string' },
+                        },
+                    }
+                );
 
                 return JSON.stringify(result);
             }
@@ -607,7 +614,7 @@ You are the agent that actually DOES things. When users say "send a message" or 
 // AGENT IMPLEMENTATION
 // ============================================================================
 
-export const openclawAgent: AgentImplementation = {
+export const openclawAgent = {
     id: 'openclaw',
     name: 'OpenClaw',
     description: 'Autonomous AI agent that gets work done. Multi-channel communication, browser automation, task execution.',
@@ -625,9 +632,11 @@ export const openclawAgent: AgentImplementation = {
 
         if (!isClaudeAvailable()) {
             return {
-                text: "I'm OpenClaw, your autonomous AI agent. However, my AI backend (Claude) is not configured. Please set up the CLAUDE_API_KEY.",
-                toolCalls: [],
-                model: 'unavailable'
+                content: "I'm OpenClaw, your autonomous AI agent. However, my AI backend (Claude) is not configured. Please set up the CLAUDE_API_KEY.",
+                toolExecutions: [],
+                model: 'unavailable',
+                inputTokens: 0,
+                outputTokens: 0,
             };
         }
 
@@ -636,18 +645,15 @@ export const openclawAgent: AgentImplementation = {
             ? `\n\nCurrent context: Tenant ${context.tenantId}, User ${context.userId || 'unknown'}`
             : '';
 
-        const result = await executeWithTools({
-            prompt: input,
-            systemPrompt: OPENCLAW_SYSTEM_PROMPT + contextInfo,
-            tools: openclawTools,
-            maxTokens: 4000,
-            onToolCall: async (toolName, toolInput) => {
-                return executeOpenClawTool(toolName, toolInput, context);
-            }
-        });
+        const result = await executeWithTools(
+            `${OPENCLAW_SYSTEM_PROMPT}${contextInfo}\n\nUser request:\n${input}`,
+            openclawTools,
+            async (toolName: string, toolInput: Record<string, unknown>) => executeOpenClawTool(toolName, toolInput, context),
+            { model: 'claude-sonnet-4-20250514' }
+        );
 
         logger.info('[OpenClaw] Request completed', {
-            toolCalls: result.toolCalls?.length || 0
+            toolCalls: result.toolExecutions?.length || 0
         });
 
         return result;

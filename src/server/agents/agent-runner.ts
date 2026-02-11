@@ -579,13 +579,15 @@ All agents are online and ready. Type an agent name or describe your task to get
 
         // Resolve orgId using the standard order: orgId > brandId > currentOrgId > uid
         // This ensures Thrive Syracuse (orgId: org_thrive_syracuse) and other tenants work correctly
+        const paidRoleSet = ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender'];
+        const isPaidRole = paidRoleSet.includes(role);
         const userBrandId = (user as any)?.orgId
             || (user as any)?.brandId
             || (user as any)?.currentOrgId
-            || (isPaidUser ? user?.uid : 'general')
+            || (isPaidRole ? user?.uid : 'general')
             || 'general';
 
-        const userBrandName = isPaidUser ? 'Your Organization' : 'BakedBot';
+        const userBrandName = isPaidRole ? 'Your Organization' : 'BakedBot';
 
         // === CONTEXT INJECTION (Fix for Generic Placeholders) ===
         // Fetch Brand/Tenant Profile to inject Name, State, City, etc.
@@ -658,7 +660,7 @@ All agents are online and ready. Type an agent name or describe your task to get
         const isSuperUser = role === 'super_user' || role === 'super_admin';
 
         // Paid users: brand roles, dispensary roles (Thrive Syracuse is a dispensary)
-        const isPaidUser = ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender'].includes(role);
+        const isPaidUser = isPaidRole;
 
         // Free users: guest, customer, or undefined role
         const isFreeUser = !isSuperUser && !isPaidUser;

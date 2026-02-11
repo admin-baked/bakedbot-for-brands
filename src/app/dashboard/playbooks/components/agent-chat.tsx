@@ -178,6 +178,7 @@ function PersonaSelector({ value, onChange }: { value: AgentPersona, onChange: (
         glenda: { label: 'Glenda', desc: 'CMO & Marketing', icon: Sparkles },
         mike_exec: { label: 'Mike', desc: 'CFO & Finance', icon: DollarSign },
         bigworm: { label: 'Big Worm', desc: 'Deep Research', icon: Search },
+        openclaw: { label: 'OpenClaw', desc: 'Autonomous Execution Agent', icon: Wrench },
         // Legacy
         wholesale_analyst: { label: 'Wholesale', desc: 'LeafLink & Inventory', icon: Briefcase },
         menu_watchdog: { label: 'Watchdog', desc: 'Menu Monitoring', icon: ShoppingCart },

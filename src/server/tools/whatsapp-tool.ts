@@ -166,7 +166,7 @@ export class WhatsAppTool extends BaseTool<WhatsAppSendInput, WhatsAppSendOutput
                     apiCalls: 2, // session check + send
                 },
                 {
-                    type: 'whatsapp',
+                    type: 'text',
                     title: `WhatsApp Sent: ${normalizedPhone}`,
                     content: {
                         to: normalizedPhone,
@@ -180,7 +180,7 @@ export class WhatsAppTool extends BaseTool<WhatsAppSendInput, WhatsAppSendOutput
             );
 
         } catch (error: unknown) {
-            logger.error('[WhatsApp Tool] Send failed:', error);
+            logger.error('[WhatsApp Tool] Send failed:', { error });
 
             if (error && typeof error === 'object' && 'code' in error) {
                 return this.createFailedResult(error as any);
