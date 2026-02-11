@@ -178,3 +178,176 @@ export const SleepTimeConsolidationSchema = z.object({
 });
 
 export type SleepTimeConsolidation = z.infer<typeof SleepTimeConsolidationSchema>;
+
+// =============================================================================
+// MERIDIAN-ENHANCED MEMORY FEATURES
+// =============================================================================
+
+/**
+ * Confidence scoring for all memory entries (MERIDIAN Receipts-Backed Protocol)
+ * Every factual claim includes a confidence score (0.00-1.00) and source attribution
+ */
+export const MemoryConfidenceSchema = z.object({
+    overall: z.number().min(0).max(1),  // Overall confidence in this memory
+    claims: z.array(z.object({
+        text: z.string(),                 // The specific claim
+        score: z.number().min(0).max(1),  // Confidence in this claim
+        source: z.enum([
+            'memory',           // Retrieved from Letta archival
+            'pos_api',          // Direct from POS system (high confidence)
+            'web_search',       // Web search result
+            'inference',        // AI-inferred (lower confidence)
+            'user_stated',      // User explicitly stated
+            'competitor_intel', // Ezal scrape (medium confidence)
+            'calculated',       // Computed from data
+        ]),
+        lastVerified: z.date().optional(),  // When was this last checked?
+    })).optional(),
+});
+
+export type MemoryConfidence = z.infer<typeof MemoryConfidenceSchema>;
+
+/**
+ * Fact vs Speculation labeling (MERIDIAN Safety Protocol)
+ * Enforces distinction between verified facts and AI inferences
+ */
+export const MemoryEvidenceSchema = z.object({
+    type: z.enum([
+        'fact',         // Verified, grounded in data
+        'speculation',  // AI inference, not yet verified
+        'opinion',      // User preference or subjective statement
+        'hypothesis',   // Testable claim, needs validation
+    ]),
+    verificationStatus: z.enum([
+        'verified',     // Confirmed by authoritative source
+        'pending',      // Awaiting verification
+        'challenged',   // Contradicted by other evidence
+        'expired',      // Was true, but may be outdated
+    ]).default('pending'),
+    verifiedBy: z.string().optional(),  // Agent or system that verified
+    verifiedAt: z.date().optional(),
+    expiresAt: z.date().optional(),     // When this fact becomes stale
+});
+
+export type MemoryEvidence = z.infer<typeof MemoryEvidenceSchema>;
+
+/**
+ * Memory Conflict Detection (MERIDIAN Memory Gardening)
+ * Identifies contradictory facts in the memory system
+ */
+export const MemoryConflictSchema = z.object({
+    id: z.string(),
+    memoryId1: z.string(),
+    memoryId2: z.string(),
+    conflictType: z.enum([
+        'direct_contradiction',  // "X is Y" vs "X is not Y"
+        'outdated_superseded',   // Older fact replaced by newer
+        'partial_overlap',       // Partially conflicting claims
+        'source_disagreement',   // Same topic, different sources, different claims
+    ]),
+    severity: z.enum(['critical', 'warning', 'minor']),
+    detectedAt: z.date(),
+    detectedBy: z.string(),  // Agent or service that detected conflict
+    resolution: z.enum([
+        'unresolved',
+        'keep_both',      // Both valid in different contexts
+        'keep_newer',     // Supersedes older fact
+        'keep_higher_confidence',  // Trust higher confidence source
+        'manual_review',  // Needs human decision
+    ]).default('unresolved'),
+    resolvedAt: z.date().optional(),
+    resolvedBy: z.string().optional(),
+});
+
+export type MemoryConflict = z.infer<typeof MemoryConflictSchema>;
+
+/**
+ * Memory Health Metrics (MERIDIAN Memory Gardening)
+ * Track the health and quality of the memory system
+ */
+export const MemoryHealthMetricsSchema = z.object({
+    agentId: z.string(),
+    tenantId: z.string(),
+    timestamp: z.date(),
+
+    // Volume metrics
+    totalMemories: z.number(),
+    byType: z.object({
+        episodic: z.number(),
+        semantic: z.number(),
+        procedural: z.number(),
+        associative: z.number(),
+    }),
+
+    // Quality metrics
+    averageConfidence: z.number().min(0).max(1),
+    factVsSpeculationRatio: z.number(),  // Higher is better
+    conflictsDetected: z.number(),
+    conflictsResolved: z.number(),
+
+    // Freshness metrics
+    staleMemories: z.number(),            // Older than threshold
+    expiredFacts: z.number(),             // Past validUntil date
+    averageAgeHours: z.number(),
+
+    // Usage metrics
+    retrievalsLast24h: z.number(),
+    lastGardeningRun: z.date().optional(),
+    gardeningRecommended: z.boolean(),
+});
+
+export type MemoryHealthMetrics = z.infer<typeof MemoryHealthMetricsSchema>;
+
+/**
+ * Memory Gardening Report (MERIDIAN Auto-Cleanup)
+ * Results from automated memory cleanup and consolidation
+ */
+export const MemoryGardeningReportSchema = z.object({
+    id: z.string(),
+    agentId: z.string(),
+    tenantId: z.string(),
+    startedAt: z.date(),
+    completedAt: z.date().optional(),
+    status: z.enum(['running', 'completed', 'failed']),
+
+    // Input
+    memoriesScanned: z.number(),
+    scanCriteria: z.object({
+        minAge: z.number().optional(),          // Days old
+        maxRelevanceScore: z.number().optional(), // Below threshold
+        includeUnverified: z.boolean(),
+    }),
+
+    // Actions taken
+    memoriesRemoved: z.number(),
+    memoriesMerged: z.number(),
+    conflictsDetected: z.number(),
+    conflictsResolved: z.number(),
+    factsExpired: z.number(),
+
+    // Details
+    removedMemoryIds: z.array(z.string()),
+    conflictReports: z.array(MemoryConflictSchema),
+
+    // Improvements
+    spaceReclaimed: z.number(),  // Estimated tokens saved
+    healthScoreBefore: z.number().min(0).max(100),
+    healthScoreAfter: z.number().min(0).max(100),
+
+    recommendations: z.array(z.string()),  // Suggestions for next gardening
+});
+
+export type MemoryGardeningReport = z.infer<typeof MemoryGardeningReportSchema>;
+
+/**
+ * Enhanced Semantic Memory with MERIDIAN features
+ */
+export const MeridianSemanticMemorySchema = SemanticMemorySchema.extend({
+    confidence: MemoryConfidenceSchema,  // Replaces simple number
+    evidence: MemoryEvidenceSchema,
+    conflictedWith: z.array(z.string()).optional(),  // IDs of conflicting memories
+    supersedes: z.string().optional(),    // ID of older memory this replaces
+    supersededBy: z.string().optional(),  // ID of newer memory that replaced this
+});
+
+export type MeridianSemanticMemory = z.infer<typeof MeridianSemanticMemorySchema>;

@@ -115,3 +115,56 @@ export {
     AGENT_TAGS,
 } from './archival-tags';
 export type { TaggedMemory, TagIndex } from './archival-tags';
+
+// =============================================================================
+// MERIDIAN-ENHANCED MEMORY FEATURES
+// =============================================================================
+
+// MERIDIAN Memory Types (Confidence Scoring, Fact Labeling, Conflict Detection)
+export {
+    MemoryConfidenceSchema,
+    MemoryEvidenceSchema,
+    MemoryConflictSchema,
+    MemoryHealthMetricsSchema,
+    MemoryGardeningReportSchema,
+    MeridianSemanticMemorySchema,
+} from './memory-types';
+export type {
+    MemoryConfidence,
+    MemoryEvidence,
+    MemoryConflict,
+    MemoryHealthMetrics,
+    MemoryGardeningReport,
+    MeridianSemanticMemory,
+} from './memory-types';
+
+// Memory Gardening Service (Auto-cleanup, Conflict Detection)
+export {
+    memoryGardeningService,
+    MemoryGardeningService,
+} from './memory-gardening';
+export type { MemoryGardeningConfig } from './memory-gardening';
+
+// Cursed Input Protection (Adversarial Input Detection)
+export {
+    cursedInputProtection,
+    CursedInputProtectionService,
+} from './cursed-input-protection';
+export type { CursedInputCheck, InputSafetyConfig } from './cursed-input-protection';
+
+// Completeness Doctrine (Intent Extraction & Response Verification)
+export {
+    completenessDoctrineService,
+    CompletenessDoctrineService,
+} from './completeness-doctrine';
+export type {
+    UserIntent,
+    CompletenessCheck,
+    CompletenessConfig,
+} from './completeness-doctrine';
+
+// Cognitive State Manager (LiveHud Backend)
+export {
+    cognitiveStateManager,
+    CognitiveStateManager,
+} from './cognitive-state-manager';
