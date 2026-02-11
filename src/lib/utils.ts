@@ -58,3 +58,15 @@ export function formatNumber(num: number): string {
     }
     return num.toString();
 }
+
+/**
+ * Formats a number as currency (USD).
+ * @param value - The number to format.
+ * @returns A formatted currency string (e.g., "$12.50").
+ */
+export function formatCurrency(value: number): string {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+    }).format(value);
+}

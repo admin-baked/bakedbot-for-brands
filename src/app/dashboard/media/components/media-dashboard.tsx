@@ -20,7 +20,14 @@ import {
     Settings,
     Bell,
 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
+
+// Inline currency formatter to avoid import issues
+const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+    }).format(value);
+};
 
 interface MediaDashboardProps {
     tenantId: string;
