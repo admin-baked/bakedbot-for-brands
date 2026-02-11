@@ -816,6 +816,76 @@ export async function createAndSyncPricingRule(
   return createResult;
 }
 
+/**
+ * Batch sync all active pricing rules to Alleaves POS
+ *
+ * Creates discounts in Alleaves for all active rules that haven't been synced yet.
+ *
+ * @param orgId - Organization ID
+ * @returns Summary of rules synced
+ */
+export async function syncAllRulesToPOS(
+  orgId: string
+): Promise<{
+  success: boolean;
+  rulesSynced?: number;
+  errors?: string[];
+  error?: string;
+}> {
+  try {
+    logger.info('[DYNAMIC_PRICING] Batch syncing all rules to POS', { orgId });
+
+    // Get all active rules
+    const rulesResult = await getPricingRules(orgId);
+    if (!rulesResult.success || !rulesResult.data) {
+      return { success: false, error: 'Failed to fetch pricing rules' };
+    }
+
+    const activeRules = rulesResult.data.filter(r => r.active);
+
+    if (activeRules.length === 0) {
+      return { success: true, rulesSynced: 0 };
+    }
+
+    // Sync each rule to Alleaves
+    const results = await Promise.allSettled(
+      activeRules.map(rule => syncRuleToAlleaves(rule.id, orgId))
+    );
+
+    // Aggregate results
+    let rulesSynced = 0;
+    const errors: string[] = [];
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled' && result.value.success) {
+        rulesSynced++;
+      } else if (result.status === 'rejected') {
+        errors.push(`Rule ${activeRules[index].name}: ${result.reason}`);
+      } else if (result.status === 'fulfilled' && !result.value.success) {
+        errors.push(`Rule ${activeRules[index].name}: ${result.value.error}`);
+      }
+    });
+
+    logger.info('[DYNAMIC_PRICING] Batch POS sync complete', {
+      orgId,
+      rulesSynced,
+      errorCount: errors.length,
+    });
+
+    return {
+      success: true,
+      rulesSynced,
+      errors: errors.length > 0 ? errors : undefined,
+    };
+  } catch (error) {
+    logger.error('[DYNAMIC_PRICING] Error batch syncing rules to POS', { error, orgId });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to sync to POS'
+    };
+  }
+}
+
 // ============ Public Menu Publishing ============
 
 /**
@@ -1107,6 +1177,101 @@ export async function revertAllPricesOnMenu(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to revert prices'
+    };
+  }
+}
+
+/**
+ * Publish pricing to both BakedBot menu AND Alleaves POS simultaneously
+ *
+ * This is the "one-click deploy everywhere" function that:
+ * 1. Applies all pricing rules to the public menu (instant)
+ * 2. Syncs all pricing rules to Alleaves POS (5-15 min)
+ *
+ * @param orgId - Organization ID
+ * @returns Combined results from both operations
+ */
+export async function publishToMenuAndPOS(
+  orgId: string
+): Promise<{
+  success: boolean;
+  menuResult?: {
+    productsUpdated: number;
+    totalSavings: number;
+    errors?: string[];
+  };
+  posResult?: {
+    rulesSynced: number;
+    errors?: string[];
+  };
+  error?: string;
+}> {
+  try {
+    logger.info('[DYNAMIC_PRICING] Publishing to menu and POS', { orgId });
+
+    // Execute both operations in parallel for speed
+    const [menuResult, posResult] = await Promise.allSettled([
+      publishPricesToMenu(orgId),
+      syncAllRulesToPOS(orgId),
+    ]);
+
+    // Extract results
+    const menuData = menuResult.status === 'fulfilled' && menuResult.value.success
+      ? {
+          productsUpdated: menuResult.value.productsUpdated || 0,
+          totalSavings: menuResult.value.totalSavings || 0,
+          errors: menuResult.value.errors,
+        }
+      : undefined;
+
+    const posData = posResult.status === 'fulfilled' && posResult.value.success
+      ? {
+          rulesSynced: posResult.value.rulesSynced || 0,
+          errors: posResult.value.errors,
+        }
+      : undefined;
+
+    // Determine overall success
+    const menuSuccess = menuResult.status === 'fulfilled' && menuResult.value.success;
+    const posSuccess = posResult.status === 'fulfilled' && posResult.value.success;
+
+    // Partial success is still success (one system updated)
+    const overallSuccess = menuSuccess || posSuccess;
+
+    // Collect errors
+    const errors: string[] = [];
+    if (!menuSuccess) {
+      const error = menuResult.status === 'rejected'
+        ? menuResult.reason
+        : menuResult.value.error;
+      errors.push(`Menu: ${error}`);
+    }
+    if (!posSuccess) {
+      const error = posResult.status === 'rejected'
+        ? posResult.reason
+        : posResult.value.error;
+      errors.push(`POS: ${error}`);
+    }
+
+    logger.info('[DYNAMIC_PRICING] Publish to menu and POS complete', {
+      orgId,
+      menuSuccess,
+      posSuccess,
+      menuProductsUpdated: menuData?.productsUpdated,
+      posRulesSynced: posData?.rulesSynced,
+    });
+
+    return {
+      success: overallSuccess,
+      menuResult: menuData,
+      posResult: posData,
+      error: errors.length > 0 ? errors.join('; ') : undefined,
+    };
+  } catch (error) {
+    logger.error('[DYNAMIC_PRICING] Error publishing to menu and POS', { error, orgId });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to publish'
     };
   }
 }
