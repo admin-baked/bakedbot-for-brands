@@ -81,11 +81,11 @@ env:
     availability:
       - BUILD
       - RUNTIME
-  - variable: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
-    secret: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
-    availability:
-      - BUILD
-      - RUNTIME
+  # - variable: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
+  #   secret: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
+  #   availability:
+  #     - BUILD
+  #     - RUNTIME
   - variable: NEXT_PUBLIC_AUTHNET_API_LOGIN_ID
     secret: AUTHNET_API_LOGIN_ID
     availability:
