@@ -20,10 +20,65 @@ npm run check:types
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
 **Current Status:** 🟢 Passing (verified 2026-02-11)
+**Recent Fix:** Heartbeat 'use server' violations resolved (removed directive from 6 service files)
 
 ---
 
 ## 🆕 Recent Updates
+
+### Dynamic Pricing with Ezal Competitor Intelligence (2026-02-11)
+**Status:** ✅ Production-ready with 34 unit tests
+
+Rule-based dynamic pricing engine integrated with Alleaves POS and Ezal competitor intelligence. Supports inventory age conditions, competitor price matching, time-based rules, and automatic POS discount creation.
+
+**Architecture:**
+```
+/dashboard/pricing (3-tab UI: Rules | Intelligence | Analytics)
+    ↓
+Dynamic Pricing Engine → Alleaves POS (Inventory/Discounts) + Ezal (Competitor Pricing)
+    ↓
+Real-time Price Calculation with 5-min caching
+```
+
+**Key Features:**
+- **Rule-Based Engine**: Priority-based rules with conditions (inventory age, competitor price, time, category, traffic)
+- **Alleaves Integration**: Inventory age tracking, batch expiration monitoring, automatic discount creation
+- **Ezal Integration**: Real Firestore competitor pricing with fuzzy name matching (5-min cache)
+- **Analytics Dashboard**: Recharts visualizations (revenue impact, rule applications, competitor gaps)
+- **Inventory Intelligence**: Expiring products, clearance recommendations, sale badge generation
+- **Module-Level Caching**: 5-min TTL for inventory age and competitor pricing lookups
+- **Safety Constraints**: 40% max discount, min price enforcement, POS sync validation
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/app/actions/dynamic-pricing.ts` | CRUD + price calculation engine (~700 lines) |
+| `src/server/services/ezal/competitor-pricing.ts` | Real Firestore queries + fuzzy matching |
+| `src/server/services/alleaves/inventory-intelligence.ts` | Batch tracking, expiration monitoring |
+| `src/app/api/inventory/intelligence/route.ts` | Inventory API endpoint |
+| `src/app/dashboard/pricing/components/pricing-analytics-tab.tsx` | Analytics UI (464 lines) |
+| `src/app/dashboard/pricing/components/inventory-intelligence-tab.tsx` | Intelligence UI (388 lines) |
+| `src/app/dashboard/pricing/components/analytics-actions.ts` | Competitor alerts, rule stats |
+
+**Testing:**
+- 34 unit tests (20 dynamic pricing + 14 competitor pricing)
+- All tests passing with comprehensive coverage
+- Mocked dependencies: Firestore, Alleaves client, inventory services
+
+**Implementation Phases Completed:**
+- ✅ **P0 (Core)**: Inventory age integration, two-way POS sync, caching
+- ✅ **P1 (Intelligence)**: Sale badges, inventory dashboard, metadata sync
+- ✅ **Ezal Integration**: Real competitor data, fuzzy matching, condition evaluation
+- ✅ **P3 (Analytics)**: Revenue/applications charts, top rules, competitor gaps, pie chart
+
+**Firestore Collections:**
+- `pricingRules` - Dynamic pricing rule definitions
+- `tenants/{id}/publicViews/products/items` - Product catalog with sale badges
+- `tenants/{id}/products_competitive` - Ezal competitor product data
+
+**Thrive Syracuse Ready:** Full integration with Alleaves POS (org_thrive_syracuse)
+
+---
 
 ### Cannabis Profitability Intelligence (2026-02-11)
 **Status:** ✅ Production-ready with 66 unit tests
