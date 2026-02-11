@@ -46,17 +46,17 @@ export function calculateVideoCost(
     provider: 'veo' | 'sora',
     durationSeconds: number
 ): number {
-    const pricing = MEDIA_PRICING[provider];
-
     if (provider === 'veo') {
+        const veoPricing = MEDIA_PRICING.veo;
         // Veo supports 4, 6, or 8 seconds
-        if (durationSeconds <= 4) return pricing.per4Seconds;
-        if (durationSeconds <= 6) return pricing.per6Seconds;
-        return pricing.per8Seconds;
+        if (durationSeconds <= 4) return veoPricing.per4Seconds;
+        if (durationSeconds <= 6) return veoPricing.per6Seconds;
+        return veoPricing.per8Seconds;
     } else {
+        const soraPricing = MEDIA_PRICING.sora;
         // Sora supports 4 or 8 seconds
-        if (durationSeconds <= 4) return pricing.per4Seconds;
-        return pricing.per8Seconds;
+        if (durationSeconds <= 4) return soraPricing.per4Seconds;
+        return soraPricing.per8Seconds;
     }
 }
 
