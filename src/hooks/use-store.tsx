@@ -130,7 +130,13 @@ export const useStore = create<StoreState & StoreActions>()(
           }));
         }
       },
-      clearCart: () => set({ cartItems: [], selectedBrandId: null }),
+      clearCart: () => set({
+        cartItems: [],
+        selectedBrandId: null,
+        selectedRetailerId: null,
+        selectedRetailer: null,
+        purchaseMode: 'pickup',
+      }),
       setCartSheetOpen: (isOpen) => set({ isCartSheetOpen: isOpen }),
       getCartTotal: () => {
         const subtotal = get().cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0);

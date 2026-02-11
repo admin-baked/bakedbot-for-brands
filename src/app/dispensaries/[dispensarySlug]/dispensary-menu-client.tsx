@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ShoppingCart, Search } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
+import { useRouter } from 'next/navigation';
 import type { Product, Retailer } from '@/types/domain';
 import type { BundleDeal } from '@/types/bundles';
 
@@ -63,7 +64,8 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [] }: Dis
 
   // Cart state
   const [cartOpen, setCartOpen] = useState(false);
-  const { addToCart, cartItems, clearCart, removeFromCart, updateQuantity } = useStore();
+  const { addToCart, cartItems, clearCart, removeFromCart, updateQuantity, setSelectedRetailerId, setPurchaseMode, setSelectedBrandId } = useStore();
+  const router = useRouter();
 
   // Bundle state
   const [selectedBundle, setSelectedBundle] = useState<BundleDialogDeal | null>(null);
@@ -448,8 +450,10 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [] }: Dis
         onClearCart={clearCart}
         onCheckout={() => {
           setCartOpen(false);
-          // TODO: Implement checkout flow
-          alert('Proceeding to checkout...');
+          setSelectedRetailerId(dispensary.id);
+          setSelectedBrandId(null);
+          setPurchaseMode('pickup');
+          router.push('/checkout');
         }}
         primaryColor={primaryColor}
       />
