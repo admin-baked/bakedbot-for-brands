@@ -6,9 +6,9 @@
  */
 
 // @ts-expect-error - No type definitions available for authorizenet
-import ApiContracts from 'authorizenet/lib/apiContracts';
+import ApiContracts from 'authorizenet/lib/apicontracts';
 // @ts-expect-error - No type definitions available for authorizenet
-import ApiControllers from 'authorizenet/lib/apiControllers';
+import ApiControllers from 'authorizenet/lib/apicontrollers';
 import { logger } from '@/lib/logger';
 
 // Get credentials from environment

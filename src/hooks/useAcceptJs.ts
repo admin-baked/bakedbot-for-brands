@@ -73,7 +73,10 @@ export function useAcceptJs({ clientKey, apiLoginId }: UseAcceptJsOptions) {
 
         if (scriptLoaded.current || typeof window === 'undefined') return;
 
-        const isProduction = process.env.NEXT_PUBLIC_AUTHNET_ENV === 'production';
+        const publicAuthNetEnv = process.env.NEXT_PUBLIC_AUTHNET_ENV?.toLowerCase();
+        const isProduction = publicAuthNetEnv
+            ? publicAuthNetEnv === 'production'
+            : process.env.NODE_ENV === 'production';
         const scriptSrc = isProduction
             ? 'https://js.authorize.net/v1/Accept.js'
             : 'https://jstest.authorize.net/v1/Accept.js';

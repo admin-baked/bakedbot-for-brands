@@ -47,7 +47,7 @@ export function PaymentSmokey({ amount, onSuccess, onError }: PaymentSmokeyProps
                     <CardTitle>Smokey Pay</CardTitle>
                 </div>
                 <CardDescription>
-                    Secure mobile payment for cannabis
+                    Continue to Smokey Pay secure checkout
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -55,7 +55,7 @@ export function PaymentSmokey({ amount, onSuccess, onError }: PaymentSmokeyProps
                     <QrCode className="h-6 w-6 text-blue-600 mt-1" />
                     <div className="text-sm text-blue-800">
                         <p className="font-medium">How it works:</p>
-                        <p>You'll receive a secure payment link via SMS or scan a QR code at pickup to complete your payment with Smokey Pay.</p>
+                        <p>Your order is submitted now. We will continue to Smokey Pay to complete checkout.</p>
                     </div>
                 </div>
 
@@ -68,12 +68,12 @@ export function PaymentSmokey({ amount, onSuccess, onError }: PaymentSmokeyProps
                     {loading ? (
                         <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Connecting to Smokey Pay...
+                            Preparing Smokey Pay...
                         </>
                     ) : (
                         <>
                             <ExternalLink className="h-4 w-4 mr-2" />
-                            Pay ${amount.toFixed(2)} with Smokey Pay
+                            Confirm ${amount.toFixed(2)} Order
                         </>
                     )}
                 </Button>

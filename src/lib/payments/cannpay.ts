@@ -92,7 +92,11 @@ function getCannPayConfig(): CannPayConfig {
   const apiSecret = process.env.CANPAY_API_SECRET;
   const integratorId = process.env.CANPAY_INTEGRATOR_ID;
   const internalVersion = process.env.CANPAY_INTERNAL_VERSION || '1.4.0';
-  const environment = (process.env.CANPAY_ENVIRONMENT || 'sandbox') as 'sandbox' | 'live';
+  const environmentValue = (process.env.CANPAY_ENVIRONMENT || process.env.CANPAY_MODE || 'sandbox').toLowerCase();
+  const environment: 'sandbox' | 'live' =
+    environmentValue === 'live' || environmentValue === 'production'
+      ? 'live'
+      : 'sandbox';
 
   if (!appKey) {
     throw new Error('[P0-PAY-CANNPAY] CANPAY_APP_KEY environment variable is required');

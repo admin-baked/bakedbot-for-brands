@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
@@ -47,23 +47,37 @@ function SubscriptionCheckoutContent() {
         );
     }
 
-    // Reset price if plan changes (though component likely remounts)
-    if (finalPrice === undefined && plan.price) {
-        setFinalPrice(plan.price);
+    if (plan.price === null) {
+        return (
+            <div className="text-center py-12 space-y-4">
+                <h1 className="text-2xl font-bold">Custom Plan</h1>
+                <p className="text-muted-foreground">The {plan.name} plan requires a custom quote from sales.</p>
+                <div className="flex items-center justify-center gap-3">
+                    <Link href="/pricing"><Button variant="outline">Back to Pricing</Button></Link>
+                    <Link href="/get-started"><Button>Contact Sales</Button></Link>
+                </div>
+            </div>
+        );
     }
+
+    useEffect(() => {
+        setFinalPrice(plan.price);
+    }, [plan.id, plan.price]);
 
     const handleValidateCoupon = async () => {
         if (!couponCode.trim()) return;
+        const normalizedCode = couponCode.trim().toUpperCase();
 
         setIsValidatingCoupon(true);
         try {
-            const result = await validateCoupon(couponCode, plan.id);
+            const result = await validateCoupon(normalizedCode, plan.id);
             if (result.isValid) {
                 setAppliedCoupon({
-                    code: couponCode,
+                    code: normalizedCode,
                     discountValue: result.discountValue || 0,
                     discountType: result.discountType || 'fixed'
                 });
+                setCouponCode(normalizedCode);
                 setFinalPrice(result.newPrice);
                 toast({ title: 'Coupon Applied', description: `Discount applied successfully!` });
             } else {

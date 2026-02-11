@@ -11,7 +11,7 @@ type ApplyCouponInput = {
 };
 
 type ApplyCouponResult = 
-  | { success: true; code: string; discountAmount: number; message: string; }
+  | { success: true; couponId: string; code: string; discountAmount: number; message: string; }
   | { success: false; message: string; };
 
 export async function applyCoupon(code: string, { subtotal, brandId }: ApplyCouponInput): Promise<ApplyCouponResult> {
@@ -19,11 +19,16 @@ export async function applyCoupon(code: string, { subtotal, brandId }: ApplyCoup
     return { success: false, message: 'Coupon code and brand ID are required.' };
   }
 
+  const normalizedCode = code.trim().toUpperCase();
+  if (!normalizedCode) {
+    return { success: false, message: 'Coupon code and brand ID are required.' };
+  }
+
   const { firestore } = await createServerClient();
   const couponsRef = firestore.collection('coupons').withConverter(couponConverter as any);
   
   const query = couponsRef
-    .where('code', '==', code.toUpperCase())
+    .where('code', '==', normalizedCode)
     .where('brandId', '==', brandId)
     .limit(1);
 
@@ -36,14 +41,27 @@ export async function applyCoupon(code: string, { subtotal, brandId }: ApplyCoup
   const coupon = snapshot.docs[0].data() as Coupon;
   const couponDocRef = snapshot.docs[0].ref;
 
+  if ((coupon as any).active === false) {
+    return { success: false, message: 'This coupon is inactive.' };
+  }
+
   // Check expiration
-  if (coupon.expiresAt && coupon.expiresAt.toDate() < new Date()) {
+  const expiresAt = coupon.expiresAt
+    ? (typeof (coupon.expiresAt as any).toDate === 'function'
+      ? (coupon.expiresAt as any).toDate()
+      : new Date(coupon.expiresAt as any))
+    : null;
+  if (expiresAt && expiresAt < new Date()) {
     return { success: false, message: 'This coupon has expired.' };
   }
 
   // Check usage limits
   if (coupon.maxUses && coupon.uses >= coupon.maxUses) {
     return { success: false, message: 'This coupon has reached its maximum number of uses.' };
+  }
+
+  if ((coupon.type !== 'fixed' && coupon.type !== 'percentage') || typeof coupon.value !== 'number' || coupon.value <= 0) {
+    return { success: false, message: 'This coupon has an invalid configuration.' };
   }
   
   // Calculate discount
@@ -55,17 +73,13 @@ export async function applyCoupon(code: string, { subtotal, brandId }: ApplyCoup
   }
 
   // Ensure discount doesn't exceed subtotal
-  discountAmount = Math.min(discountAmount, subtotal);
+  discountAmount = Number(Math.min(discountAmount, subtotal).toFixed(2));
   
-  // It's generally better to increment usage when the order is *completed*,
-  // but for this implementation, we'll increment it on application.
-  // A more robust system would handle this in a transaction during order submission.
-  await couponDocRef.update({ uses: (coupon.uses || 0) + 1 });
-
   return {
     success: true,
+    couponId: couponDocRef.id,
     code: coupon.code,
     discountAmount,
-    message: 'Coupon applied successfully!',
+    message: 'Coupon validated successfully.',
   };
 }

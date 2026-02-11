@@ -13,6 +13,15 @@ export type ValidateCouponResult = {
     newPrice?: number;
 };
 
+function asDate(value: any): Date | null {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (typeof value?.toDate === 'function') return value.toDate();
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export async function validateCoupon(code: string, planId: string): Promise<ValidateCouponResult> {
     if (!code) {
         return { isValid: false, message: 'Please enter a coupon code.' };
@@ -29,9 +38,11 @@ export async function validateCoupon(code: string, planId: string): Promise<Vali
 
         const basePrice = plan.price || 0;
 
+        const normalizedCode = code.trim().toUpperCase();
+
         // Query coupon by code using Admin SDK fluent API
         const couponsSnap = await firestore.collection('coupons')
-            .where('code', '==', code.toUpperCase())
+            .where('code', '==', normalizedCode)
             .limit(1)
             .get();
 
@@ -41,9 +52,28 @@ export async function validateCoupon(code: string, planId: string): Promise<Vali
 
         const couponDoc = couponsSnap.docs[0];
         const coupon = couponDoc.data();
+        const now = new Date();
 
-        // Check if coupon is active/valid (add more checks as needed)
-        // For now, we assume existence = validity
+        if (coupon.active === false) {
+            return { isValid: false, message: 'This coupon is inactive.' };
+        }
+
+        const expiresAt = asDate(coupon.expiresAt);
+        if (expiresAt && expiresAt < now) {
+            return { isValid: false, message: 'This coupon has expired.' };
+        }
+
+        if (coupon.maxUses && (coupon.uses || 0) >= coupon.maxUses) {
+            return { isValid: false, message: 'This coupon has reached its maximum number of uses.' };
+        }
+
+        if (coupon.type !== 'percentage' && coupon.type !== 'fixed') {
+            return { isValid: false, message: 'Invalid coupon configuration.' };
+        }
+
+        if (typeof coupon.value !== 'number' || coupon.value <= 0) {
+            return { isValid: false, message: 'Invalid coupon value.' };
+        }
 
         // Calculate new price
         let newPrice = basePrice;
@@ -61,7 +91,7 @@ export async function validateCoupon(code: string, planId: string): Promise<Vali
             discountType: coupon.type,
             discountValue: coupon.value,
             couponId: couponDoc.id,
-            newPrice
+            newPrice: Math.max(0, Number(newPrice.toFixed(2)))
         };
 
     } catch (error: any) {
