@@ -3,8 +3,6 @@
  * Tests for chat height adjustments and layout changes
  */
 
-import { describe, it, expect, vi } from 'vitest';
-
 describe('Homepage Chat Layout', () => {
     describe('chat container height', () => {
         it('should use fixed height for chat container', () => {
