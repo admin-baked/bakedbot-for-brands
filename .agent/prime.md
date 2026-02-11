@@ -26,6 +26,110 @@ npm run check:types
 
 ## 🆕 Recent Updates
 
+### CannPay / Smokey Pay Integration (2026-02-11)
+**Status:** ✅ Sandbox configured, ready for testing
+**Customer-Facing:** "Smokey Pay" | **Backend:** CannPay RemotePay v1.4.0-dev
+
+Complete payment processing integration for cannabis debit payments via CannPay. Customer sees "Smokey Pay" branding while backend uses CannPay RemotePay API for secure ACH debit transactions.
+
+**Architecture:**
+```
+Checkout → Authorize Payment (intent_id) → CannPay Widget → Payment Confirmation → Webhook → Order Fulfillment
+    ↓                                                                ↓
+Backend API (HMAC signature)                                  HMAC Verification → POS Sync (Alleaves)
+```
+
+**Key Features:**
+- **Payment Authorization**: Backend calls `/integrator/authorize` API to get secure `intent_id`
+- **JavaScript Widget**: Loads `cp-min.js` from `https://sandbox-remotepay.canpaydebit.com`
+- **HMAC Security**: SHA-256 signature verification prevents payment tampering
+- **Transaction Fees**: $0.50 processing fee per transaction (via `delivery_fee` parameter)
+- **Webhook Integration**: Real-time payment confirmations with signature validation
+- **Guest Checkout**: No CannPay account linking required (passwordless mode available)
+- **POS Sync**: Paid orders automatically sync to Alleaves POS for fulfillment
+
+**Sandbox Configuration:**
+- **Environment:** `sandbox` (set in `apphosting.yaml`)
+- **API Base URL:** `https://sandbox-api.canpaydebit.com`
+- **Widget URL:** `https://sandbox-remotepay.canpaydebit.com/cp-min.js`
+- **Credentials:** Stored in Firebase Secret Manager
+  - `CANPAY_INTEGRATOR_ID`: 8954cd15 (v4)
+  - `CANPAY_APP_KEY`: BaKxozke8 (v2)
+  - `CANPAY_API_SECRET`: 7acfs2il (v4)
+- **Test Consumers:**
+  - Phone: `555-779-4523`, PIN: `2222`
+  - Phone: `555-448-9921`, PIN: `3333`
+
+**Critical Fixes Applied (2026-02-11):**
+- ✅ **API Endpoints:** Corrected from `canpayapp.com` to `canpaydebit.com` (per official spec)
+- ✅ **Widget Script:** Corrected from `/widget.js` to `/cp-min.js`
+- ✅ **Global Object:** Corrected from `window.CannPay` to `window.canpay` (lowercase)
+- ✅ **Callback Structure:** Implemented official callbacks (`processed_callback`, `login_callback`, `intentId_validation_callback`)
+- ✅ **HMAC Verification:** Response includes signature for server-side validation
+
+**Key Files:**
+| File | Purpose | Lines |
+|------|---------|-------|
+| `src/lib/payments/cannpay.ts` | CannPay API client (authorize, transaction details, reversal) | ~300 |
+| `src/components/checkout/cannpay-widget.tsx` | React widget wrapper with callback handling | ~200 |
+| `src/components/checkout/payment-smokey.tsx` | "Smokey Pay" customer-facing UI component | ~100 |
+| `src/app/api/webhooks/cannpay/route.ts` | Webhook handler with HMAC-SHA256 verification | ~150 |
+| `src/app/api/checkout/smokey-pay/route.ts` | Backend authorization endpoint | ~100 |
+| `docs/THRIVE-SYRACUSE-CANNPAY-ONBOARDING.md` | Complete onboarding guide for Thrive Syracuse | 369 |
+| `docs/CANNPAY-SANDBOX-CREDENTIALS.md` | Sandbox credentials (DO NOT COMMIT) | 141 |
+| `docs/CANNPAY-TESTING-CHECKLIST.md` | 8-scenario testing checklist | 400+ |
+
+**Testing Checklist:**
+See `docs/CANNPAY-TESTING-CHECKLIST.md` for comprehensive 8-scenario test plan:
+1. ✅ Basic payment flow (guest checkout)
+2. ⏳ Backend webhook verification (HMAC signature)
+3. ⏳ POS integration (Alleaves order sync)
+4. ⏳ Transaction fees ($0.50 processing fee)
+5. ⏳ Payment failure handling (cancellation, errors)
+6. ⏳ HMAC signature security test (invalid signature rejection)
+7. ⏳ Multiple concurrent payments (stress test)
+8. ⏳ Edge cases (min/max amounts, expired intent_id, tips)
+
+**Test URL:**
+```
+https://bakedbot.ai/thrivesyracuse
+→ Add products → Checkout → Select "Smokey Pay"
+→ Use test account: Phone 555-779-4523, PIN 2222
+```
+
+**Monitoring:**
+```powershell
+# Real-time logs
+gcloud app logs tail --project=studio-567050101-bc6e8 | grep -i cannpay
+
+# Webhook events
+gcloud app logs tail --project=studio-567050101-bc6e8 | grep "/api/webhooks/cannpay"
+```
+
+**Firestore Collections:**
+- `orders` - Payment status, intent_id, transaction_number stored here
+- `payment_events` - (Optional) Webhook event log
+- `tenants/{id}/publicViews/products/items` - Product catalog for checkout
+
+**Production Deployment (Future):**
+1. Request production credentials from CannPay (support@canpayapp.com)
+2. Update secrets in Firebase Secret Manager
+3. Change `apphosting.yaml` from `"sandbox"` to `"live"`
+4. Deploy and test with small real transaction ($5 minimum)
+5. Verify settlement arrives in bank account (T+1 or T+2 business days)
+
+**Security Notes:**
+- ⚠️ **NEVER commit** sandbox credentials file to version control
+- 🔒 All API calls require HMAC-SHA256 signature with `api_secret`
+- ✅ Webhook signature verification prevents payment tampering
+- ✅ Constant-time comparison prevents timing attacks
+- ✅ TLS/HTTPS for all API communications
+
+**Official Documentation:**
+- `docs/CanPay RemotePay Integration - Developers Guide 1.4.0-dev (2).pdf`
+
+---
+
 ### Dynamic Pricing with Ezal Competitor Intelligence (2026-02-11)
 **Status:** ✅ Production-ready with 34 unit tests
 
