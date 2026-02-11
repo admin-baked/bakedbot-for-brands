@@ -100,4 +100,178 @@ describe('useUserRole', () => {
             expect(result.current.role).toBe('customer');
         });
     });
+
+    describe('loginRoute', () => {
+        it('returns /customer-login for users with no role', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: null,
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+            expect(result.current.loginRoute).toBe('/customer-login');
+        });
+
+        it('returns /brand-login for brand roles', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: { role: 'brand_admin', email: 'brand@example.com' },
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+            expect(result.current.loginRoute).toBe('/brand-login');
+        });
+
+        it('returns /dispensary-login for dispensary roles', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: { role: 'dispensary_admin', email: 'dispensary@example.com' },
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+            expect(result.current.loginRoute).toBe('/dispensary-login');
+        });
+
+        it('returns /customer-login for customer role', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: { role: 'customer', email: 'customer@example.com' },
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+            expect(result.current.loginRoute).toBe('/customer-login');
+        });
+    });
+
+    describe('defaultRoute', () => {
+        it('returns / for users with no role', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: null,
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+            expect(result.current.defaultRoute).toBe('/');
+        });
+
+        it('returns /dashboard/playbooks for super_user', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: { role: 'super_user', email: 'admin@example.com' },
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+            expect(result.current.defaultRoute).toBe('/dashboard/playbooks');
+        });
+
+        it('returns /dashboard for brand roles', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: { role: 'brand_admin', email: 'brand@example.com' },
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+            expect(result.current.defaultRoute).toBe('/dashboard');
+        });
+
+        it('returns /dashboard for dispensary roles', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: { role: 'dispensary_admin', email: 'dispensary@example.com' },
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+            expect(result.current.defaultRoute).toBe('/dashboard');
+        });
+
+        it('returns /dashboard for customer role', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: { role: 'customer', email: 'customer@example.com' },
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+            expect(result.current.defaultRoute).toBe('/dashboard');
+        });
+    });
+
+    describe('canAccessDashboard', () => {
+        it('returns false when no role is set', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: null,
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+            expect(result.current.canAccessDashboard).toBe(false);
+        });
+
+        it('returns true for dispensary_admin role', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: { role: 'dispensary_admin', email: 'dispensary@example.com' },
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+            expect(result.current.canAccessDashboard).toBe(true);
+        });
+
+        it('returns true for brand_admin role', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: { role: 'brand_admin', email: 'brand@example.com' },
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+            expect(result.current.canAccessDashboard).toBe(true);
+        });
+
+        it('returns true for customer role', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: { role: 'customer', email: 'customer@example.com' },
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+            expect(result.current.canAccessDashboard).toBe(true);
+        });
+    });
+
+    describe('Thrive Syracuse user regression test', () => {
+        it('dispensary_admin with orgId should redirect to /dashboard not /customer-login', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: {
+                    role: 'dispensary_admin',
+                    email: 'thrivesyracuse@bakedbot.ai',
+                    orgId: 'org_thrive_syracuse',
+                    locationId: 'org_thrive_syracuse',
+                    planId: 'empire',
+                },
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+
+            // Should have dispensary_admin role
+            expect(result.current.role).toBe('dispensary_admin');
+
+            // Should be recognized as dispensary role
+            expect(result.current.isDispensaryRole).toBe(true);
+
+            // Should redirect to dispensary login page
+            expect(result.current.loginRoute).toBe('/dispensary-login');
+
+            // Should redirect to dashboard after login
+            expect(result.current.defaultRoute).toBe('/dashboard');
+
+            // Should have dashboard access
+            expect(result.current.canAccessDashboard).toBe(true);
+
+            // Should have dispensary admin access
+            expect(result.current.hasDispensaryAdminAccess).toBe(true);
+
+            // Should have correct orgId
+            expect(result.current.orgId).toBe('org_thrive_syracuse');
+        });
+    });
 });
