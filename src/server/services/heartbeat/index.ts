@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * Heartbeat Service
  *
@@ -11,6 +9,9 @@
  * - Service finds tenants due for heartbeat based on config
  * - Runs appropriate checks based on role (super_user, dispensary, brand)
  * - Dispatches notifications for non-OK results
+ *
+ * Note: This is a service file, NOT a server action file.
+ * It exports utility functions that can be used by server actions and API routes.
  */
 
 import { getAdminFirestore } from '@/firebase/admin';
