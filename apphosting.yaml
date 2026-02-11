@@ -68,10 +68,10 @@ env:
     secret: AUTHNET_TRANSACTION_KEY
     availability:
       - RUNTIME
-  - variable: AUTHNET_SIGNATURE_KEY
-    secret: AUTHNET_SIGNATURE_KEY
-    availability:
-      - RUNTIME
+  # - variable: AUTHNET_SIGNATURE_KEY
+  #   secret: AUTHNET_SIGNATURE_KEY
+  #   availability:
+  #     - RUNTIME
   - variable: AUTHNET_ENV
     value: "production"
     availability:
