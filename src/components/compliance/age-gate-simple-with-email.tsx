@@ -107,6 +107,7 @@ export function AgeGateSimpleWithEmail({
                         await createFirstOrderCoupon(eligibility.discountCode, brandId);
                         generatedDiscountCode = eligibility.discountCode;
                         setDiscountCode(eligibility.discountCode);
+                        localStorage.setItem('bakedbot_first_order_coupon', eligibility.discountCode);
 
                         logger.info('[AgeGateSimpleWithEmail] Generated first-order discount', {
                             email,
@@ -259,6 +260,12 @@ export function AgeGateSimpleWithEmail({
                                     Be the first to know about new drops, exclusive deals, and special events
                                 </p>
                             </div>
+
+                            {discountCode && (
+                                <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">
+                                    Your first-order code is ready: <strong>{discountCode}</strong>
+                                </div>
+                            )}
 
                             {error && (
                                 <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">

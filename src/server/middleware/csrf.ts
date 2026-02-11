@@ -17,7 +17,7 @@ const PROTECTED_METHODS = ['POST', 'PUT', 'DELETE', 'PATCH'];
  */
 const EXEMPT_ROUTES = [
   // '/api/webhooks/stripe', removed
-  '/api/webhooks/canpay',
+  '/api/webhooks/cannpay',
   '/api/webhooks/authnet',
   '/api/auth/session', // Session creation uses Firebase auth
   '/api/auth/logout',
