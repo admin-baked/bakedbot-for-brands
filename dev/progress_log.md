@@ -1,3 +1,140 @@
+## Session: 2026-02-11 (Media Generation Cost Tracking & Playbook Automation)
+### Task ID
+media_generation_cost_tracking_weekly_deals_playbook
+
+### Summary
+Implemented comprehensive media generation infrastructure with cost tracking for AI-generated images (Gemini Flash/Pro) and videos (Veo/Sora). Built CEO Dashboard Costs Tab with analytics, created automated playbook system for content generation, and added 3 template playbooks including Weekly Deals Video (Monday 9am cron). Fixed 'use server' directive bugs in service files. Added 35+ unit tests for full coverage.
+
+### Key Changes
+*   **NEW**: `src/types/media-generation.ts` - Types, pricing constants, MediaGenerationEvent, MediaCostEstimate (330+ lines)
+*   **NEW**: `src/server/services/media-tracking.ts` - Cost calculations, tracking service, wrapper functions (490+ lines)
+*   **NEW**: `src/server/actions/media-costs.ts` - Dashboard and global cost analytics actions (250+ lines)
+*   **NEW**: `src/server/actions/seed-playbooks.ts` - Template seeding and installation logic (400+ lines)
+*   **NEW**: `src/app/dashboard/ceo/components/costs-tab.tsx` - CEO Dashboard Costs Tab with charts (350+ lines)
+*   **UPDATE**: `src/server/services/playbook-executor.ts` - Added 5 media generation step executors
+*   **UPDATE**: `src/components/dashboard/super-admin-sidebar.tsx` - Added Creative Center and Media Costs links
+*   **UPDATE**: `src/app/dashboard/ceo/playbooks/page.tsx` - Added "Seed Templates" button
+*   **FIX**: Removed 'use server' from `src/server/services/heartbeat/index.ts` (same pattern as media-tracking)
+*   **TEST**: 35+ unit tests (media-tracking: 21, seed-playbooks: 14, playbook-executor-media: integration tests)
+*   **DOC**: `.agent/refs/media-generation.md` - Complete reference documentation
+
+### Features Implemented
+**1. Media Cost Tracking**
+- Multi-provider support: gemini-flash ($0.02/img), gemini-pro ($0.04/img), veo ($0.50-0.75/video), sora ($0.50-1.00/video)
+- `calculateImageCost()`, `calculateVideoCost()`, `estimateMediaCost()` utility functions
+- `trackMediaGeneration()` - Firestore persistence to `media_generation_events` collection
+- `withImageTracking()`, `withVideoTracking()` - Automatic cost tracking wrappers
+- Daily aggregates: `tenants/{id}/media_usage/{date}` for quick queries
+
+**2. CEO Dashboard Costs Tab**
+- URL: `/dashboard/ceo?tab=costs` (super_user only)
+- Summary cards: total cost, generations, success rate, avg cost per generation
+- Provider breakdown: Gemini Flash/Pro, Veo, Sora with usage/cost
+- Tenant breakdown: Top spenders with cost analysis
+- Daily trend chart with cost and generation count
+- Time filters: 7d, 30d, 90d, all time
+- Server actions: `getMediaCostsDashboard()`, `getGlobalMediaCosts()`
+
+**3. Playbook Step Executors**
+- `executeFetchDeals` - Fetch deals from Firestore or POS (Alleaves)
+- `executeGenerateVideo` - Generate videos with Veo/Sora, automatic cost tracking
+- `executeGenerateImage` - Generate images with Gemini, tier-based (free/paid/super)
+- `executeGenerateCaption` - AI-generated platform-specific captions (Instagram, Twitter, etc.)
+- `executeSubmitApproval` - Create creative content for approval queue
+
+**4. Playbook Templates**
+- Global collection: `playbook_templates` for reusable automation patterns
+- Seed action: `seedPlaybookTemplates()` - Checks existing, seeds missing templates
+- Install action: `installPlaybookTemplate(templateId, orgId)` - Clone template for org
+- UI: "Seed Templates" button on `/dashboard/ceo/playbooks` (super_user)
+
+**5. Template Playbooks**
+- **Weekly Deals Video**: Monday 9am cron (`0 9 * * 1`), fetch_deals → generate_video → caption → review → approval → notify
+- **Daily Product Spotlight**: Select product → generate_image → caption → approval
+- **Competitor Price Alert**: Fetch competitor prices → analyze → video → notify (no approval)
+
+**6. Super Admin Sidebar Updates**
+- Creative Center link: `/dashboard/creative`
+- Media Costs link: `/dashboard/ceo?tab=costs`
+- Both in Operations section with proper active state detection
+
+### Technical Patterns
+**Service File Pattern**: Always remove 'use server' from service files (utility exports, not server actions)
+- ✅ `src/server/services/media-tracking.ts` - No 'use server'
+- ✅ `src/server/services/heartbeat/index.ts` - Removed 'use server' (fix commit 9cbfd27b)
+- ❌ Never use 'use server' in service files - only in `src/server/actions/` and `src/app/.../actions.ts`
+
+**Cost Tracking Wrapper Pattern**: Always use wrappers for automatic tracking
+```typescript
+const result = await withVideoTracking(
+    tenantId, userId, 'veo', prompt, 5,
+    async () => generateVeoVideo({ prompt, duration: '5' }),
+    { contentId, playbookRunId }
+);
+// Access both: result.videoUrl, result.trackingEvent.costUsd
+```
+
+**TypeScript Narrowing for Union Types**: Direct access after narrowing
+```typescript
+if (provider === 'veo') {
+    const veoPricing = MEDIA_PRICING.veo;
+    return veoPricing.per6Seconds; // OK
+}
+```
+
+### Build Errors Fixed
+1. **media-tracking.ts TypeScript error**: Union type narrowing for `per6Seconds` property (commit d6f6ced4)
+2. **seed-playbooks.ts import errors**: Fixed `createServerClient`, `requireUser`, `useToast` imports (commit f14b19cc)
+3. **heartbeat/index.ts 'use server' error**: Removed directive from service file (commit 9cbfd27b)
+
+### Test Coverage (35+ tests, all passing ✅)
+**media-tracking.test.ts (21 tests)**:
+- Image cost: gemini-flash, gemini-pro
+- Video cost: veo 4s/6s/8s, sora 4s/8s with rounding
+- Cost estimation for all providers
+- Invalid combinations handling
+- Cost comparison helpers
+
+**seed-playbooks.test.ts (14 tests)**:
+- Template seeding: success, skip, partial failure
+- Weekly Deals Video: structure, steps, trigger, metadata
+- Template installation: success, template not found, already installed
+- Org-specific properties: orgId, templateId, reset counters
+
+**playbook-executor-media.test.ts (integration tests)**:
+- executeFetchDeals: Firestore and POS sources
+- executeGenerateVideo: Veo and Sora providers
+- executeGenerateImage: tier-based generation
+- executeGenerateCaption: platform-specific
+- executeSubmitApproval: creative content creation
+- Full Weekly Deals workflow: end-to-end integration
+- Cost tracking: verify tracking calls
+- Error handling: API failures, missing data
+
+### Commits (7 total)
+1. `9cbfd27b` - fix: Remove 'use server' directive from heartbeat service
+2. `6a67e507` - test: Add comprehensive unit tests for media generation features
+3. `193b2d0d` - feat(heartbeat): add proactive agent monitoring with playbook checks
+4. `d6f6ced4` - fix: TypeScript narrowing for video cost calculation
+5. `f14b19cc` - fix: Resolve build errors in media tracking and seed playbooks
+6. `5d8ae7e0` - feat(sidebar): Add Creative Center and Media Costs to Super Admin sidebar
+7. `e13a763a` - feat(media): Add media generation cost tracking and Weekly Deals playbook
+
+### Documentation
+- Created `.agent/refs/media-generation.md` - Complete reference guide (500+ lines)
+- Covers: cost tracking, playbook automation, templates, patterns, troubleshooting
+- Updated progress log with session details
+
+### Next Steps
+- [ ] Deploy and test in production (Firebase App Hosting build pending)
+- [ ] Seed playbook templates via CEO Dashboard
+- [ ] Monitor media costs dashboard for real usage data
+- [ ] Add Imagen 3 support for image generation
+- [ ] Implement cost alerts (daily/weekly/monthly thresholds)
+- [ ] Add budget management (per-org limits)
+
+---
+
 ## Session: 2026-02-11 (Cannabis Profitability Intelligence Dashboard)
 ### Task ID
 cannabis_profitability_dashboard_280e_ny_tax
