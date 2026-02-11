@@ -46,6 +46,7 @@ import {
     GraduationCap,
     BookOpenCheck,
     Calculator,
+    Image,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -231,6 +232,14 @@ export function DispensarySidebar() {
                                 <Link href="/dashboard/vibe-studio">
                                     <Wand2 />
                                     <span>Vibe Studio</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/media')}>
+                                <Link href="/dashboard/media">
+                                    <Image />
+                                    <span>Media</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
