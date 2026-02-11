@@ -88,19 +88,27 @@ export function verifyCannPaySignature(
   }
 }
 
+function extractAuthorizeNetSignature(signatureHeader: string): string {
+  const trimmed = signatureHeader.trim();
+  const match = trimmed.match(/^sha512=(.+)$/i);
+  return (match ? match[1] : trimmed).trim();
+}
+
+function getAuthorizeNetSignatureKeyBuffer(secret: string): Buffer {
+  const normalized = secret.trim();
+  const isHex = /^[0-9a-f]+$/i.test(normalized) && normalized.length % 2 === 0;
+  return isHex ? Buffer.from(normalized, 'hex') : Buffer.from(normalized, 'utf8');
+}
+
 /**
- * Verify Authorize.Net webhook signature using HMAC SHA2 (SHA512 by default)
- * 
- * Authorize.Net sends signature in x-anet-signature header
- * Signature is computed over: ^ + concatenated field values + ^
- * 
- * @param fields - Parsed webhook fields (usually query parameters)
+ * Verify Authorize.Net webhook signature using HMAC SHA512 over raw request body.
+ *
+ * @param payload - Raw request body string
  * @param signature - x-anet-signature header value
- * @param secret - AUTHORIZE_NET_SIGNATURE_KEY from environment
- * @returns true if signature is valid
+ * @param secret - AUTHNET_SIGNATURE_KEY / AUTHORIZE_NET_SIGNATURE_KEY
  */
 export function verifyAuthorizeNetSignature(
-  fields: Record<string, any>,
+  payload: string,
   signature: string,
   secret: string
 ): WebhookValidationResult {
@@ -115,22 +123,35 @@ export function verifyAuthorizeNetSignature(
       return { valid: false, error: 'Missing signature' };
     }
 
-    // Authorize.Net uses specific field order
-    // Per documentation: timestamp + id (in hex format)
-    // This is a simplified implementation - consult Authorize.Net docs for exact spec
+    const signatureValue = extractAuthorizeNetSignature(signature).toLowerCase();
 
-    logger.warn(
-      '[WEBHOOK_VALIDATION] Authorize.Net signature verification not fully implemented. ' +
-        'Consult Authorize.Net documentation for exact specification.'
+    if (!/^[0-9a-f]{128}$/i.test(signatureValue)) {
+      logger.warn('[WEBHOOK_VALIDATION] Invalid Authorize.Net signature format');
+      return { valid: false, error: 'Invalid signature format' };
+    }
+
+    const keyBuffer = getAuthorizeNetSignatureKeyBuffer(secret);
+    const computed = createHmac('sha512', keyBuffer).update(payload).digest('hex').toLowerCase();
+
+    if (computed.length !== signatureValue.length) {
+      logger.warn('[WEBHOOK_VALIDATION] Authorize.Net signature length mismatch', {
+        computed: computed.length,
+        received: signatureValue.length,
+      });
+      return { valid: false, error: 'Signature mismatch' };
+    }
+
+    const isValid = timingSafeEqual(
+      Buffer.from(computed, 'utf8'),
+      Buffer.from(signatureValue, 'utf8')
     );
 
-    // TODO: Implement full Authorize.Net signature verification
-    // For now, log a warning to ensure this is addressed
+    if (!isValid) {
+      logger.warn('[WEBHOOK_VALIDATION] Authorize.Net signature invalid');
+      return { valid: false, error: 'Signature verification failed' };
+    }
 
-    return {
-      valid: false,
-      error: 'Authorize.Net webhook verification not yet implemented',
-    };
+    return { valid: true };
   } catch (error: any) {
     logger.error('[WEBHOOK_VALIDATION] Authorize.Net verification failed', {
       error: error?.message,
@@ -161,7 +182,7 @@ export function validateWebhook(
       return verifyCannPaySignature(body, signature, secret);
 
     case 'authorize-net':
-      return verifyAuthorizeNetSignature(JSON.parse(body), signature, secret);
+      return verifyAuthorizeNetSignature(body, signature, secret);
 
     default:
       logger.error('[WEBHOOK_VALIDATION] Unknown gateway', { gateway });

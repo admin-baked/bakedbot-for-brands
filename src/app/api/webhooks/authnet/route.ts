@@ -1,0 +1,396 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { FieldValue } from 'firebase-admin/firestore';
+import { createServerClient } from '@/firebase/server-client';
+import { emitEvent } from '@/server/events/emitter';
+import { verifyAuthorizeNetSignature } from '@/lib/payments/webhook-validation';
+import type { EventType } from '@/types/domain';
+import { logger } from '@/lib/logger';
+
+export const dynamic = 'force-dynamic';
+
+type AuthNetWebhookPayload = {
+  notificationId?: string;
+  eventType?: string;
+  eventDate?: string;
+  webhookId?: string;
+  payload?: {
+    id?: string | number;
+    entityName?: string;
+    responseCode?: string | number;
+    authAmount?: string | number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+};
+
+type PaymentWebhookOutcome = {
+  paymentStatus: string;
+  orderStatus?: string;
+  emittedEvent?: EventType;
+};
+
+type SubscriptionWebhookOutcome = {
+  subscriptionStatus?: string;
+  emittedEvent?: EventType;
+};
+
+function isAlreadyExistsError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const code = (error as { code?: unknown }).code;
+  return code === 6 || code === '6' || code === 'already-exists';
+}
+
+function parseNumericValue(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function mapPaymentWebhookOutcome(eventType: string, responseCode: number | null): PaymentWebhookOutcome {
+  const normalizedType = eventType.toLowerCase();
+
+  if (
+    normalizedType.includes('refund') ||
+    normalizedType.includes('void') ||
+    normalizedType.includes('declined') ||
+    normalizedType.includes('failed') ||
+    responseCode === 2 ||
+    responseCode === 3 ||
+    responseCode === 4
+  ) {
+    return {
+      paymentStatus: normalizedType.includes('refund') ? 'refunded' : 'failed',
+      orderStatus: 'canceled',
+      emittedEvent: 'checkout.failed',
+    };
+  }
+
+  if (
+    normalizedType.includes('authcapture') ||
+    normalizedType.includes('capture') ||
+    normalizedType.includes('settled') ||
+    responseCode === 1
+  ) {
+    return {
+      paymentStatus: 'paid',
+      orderStatus: 'ready_for_pickup',
+      emittedEvent: 'checkout.paid',
+    };
+  }
+
+  return { paymentStatus: 'pending' };
+}
+
+function mapSubscriptionWebhookOutcome(eventType: string): SubscriptionWebhookOutcome {
+  const normalizedType = eventType.toLowerCase();
+
+  if (
+    normalizedType.includes('suspended') ||
+    normalizedType.includes('payment.failed') ||
+    normalizedType.includes('.failed')
+  ) {
+    return { subscriptionStatus: 'past_due', emittedEvent: 'subscription.failed' };
+  }
+
+  if (normalizedType.includes('terminated') || normalizedType.includes('cancelled')) {
+    return { subscriptionStatus: 'canceled', emittedEvent: 'subscription.updated' };
+  }
+
+  if (
+    normalizedType.includes('created') ||
+    normalizedType.includes('updated') ||
+    normalizedType.includes('reactivated') ||
+    normalizedType.includes('expiring')
+  ) {
+    return { subscriptionStatus: 'active', emittedEvent: 'subscription.updated' };
+  }
+
+  return {};
+}
+
+function resolveOrderStatus(currentOrderData: Record<string, any>, desiredStatus?: string): string | undefined {
+  if (!desiredStatus) return undefined;
+
+  const hasShippingAddress = !!currentOrderData.shippingAddress;
+  const purchaseModel = currentOrderData.purchaseModel;
+
+  if (desiredStatus === 'ready_for_pickup' && (hasShippingAddress || purchaseModel === 'online_only')) {
+    return undefined;
+  }
+
+  const currentStatus = String(currentOrderData.status || '').toLowerCase();
+  if (currentStatus === 'completed' || currentStatus === 'canceled' || currentStatus === 'cancelled') {
+    return undefined;
+  }
+
+  return desiredStatus;
+}
+
+function extractOrgIdFromSubscriptionPath(path: string): string | null {
+  const match = path.match(/^organizations\/([^/]+)\/subscription\/[^/]+$/);
+  return match?.[1] ?? null;
+}
+
+export async function POST(req: NextRequest) {
+  const { firestore: db } = await createServerClient();
+  let webhookLogRef: FirebaseFirestore.DocumentReference | null = null;
+
+  try {
+    const secret = process.env.AUTHNET_SIGNATURE_KEY || process.env.AUTHORIZE_NET_SIGNATURE_KEY;
+    if (!secret) {
+      logger.critical('[AUTHNET_WEBHOOK] Missing AUTHNET signature key configuration');
+      return NextResponse.json(
+        { error: 'Payment gateway configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const signature = req.headers.get('x-anet-signature') || '';
+    const rawBody = await req.text();
+    const validation = verifyAuthorizeNetSignature(rawBody, signature, secret);
+
+    if (!validation.valid) {
+      logger.warn('[AUTHNET_WEBHOOK] Invalid webhook signature', {
+        reason: validation.error,
+      });
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
+    }
+
+    let body: AuthNetWebhookPayload;
+    try {
+      body = JSON.parse(rawBody) as AuthNetWebhookPayload;
+    } catch {
+      logger.error('[AUTHNET_WEBHOOK] Invalid JSON payload');
+      return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
+    }
+
+    const eventType = typeof body.eventType === 'string' ? body.eventType : '';
+    const payload = (body.payload ?? {}) as Record<string, unknown>;
+    const entityId = payload.id != null ? String(payload.id) : '';
+    const notificationId = typeof body.notificationId === 'string' ? body.notificationId : '';
+    const eventDate = typeof body.eventDate === 'string' ? body.eventDate : null;
+
+    if (!eventType) {
+      logger.error('[AUTHNET_WEBHOOK] Missing eventType');
+      return NextResponse.json({ error: 'Missing eventType' }, { status: 400 });
+    }
+
+    const webhookLogId = notificationId
+      ? `authnet_${notificationId}`
+      : `authnet_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+    webhookLogRef = db.collection('payment_webhooks').doc(webhookLogId);
+
+    if (notificationId) {
+      try {
+        await webhookLogRef.create({
+          provider: 'authorize_net',
+          notificationId,
+          webhookId: body.webhookId || null,
+          eventType,
+          entityId: entityId || null,
+          receivedAt: FieldValue.serverTimestamp(),
+          status: 'received',
+        });
+      } catch (error) {
+        if (isAlreadyExistsError(error)) {
+          logger.info('[AUTHNET_WEBHOOK] Duplicate notification ignored', { notificationId, eventType });
+          return NextResponse.json({ received: true, duplicate: true });
+        }
+        throw error;
+      }
+    } else {
+      await webhookLogRef.set({
+        provider: 'authorize_net',
+        notificationId: null,
+        webhookId: body.webhookId || null,
+        eventType,
+        entityId: entityId || null,
+        receivedAt: FieldValue.serverTimestamp(),
+        status: 'received',
+      });
+    }
+
+    let processedOrders = 0;
+    let processedSubscriptions = 0;
+
+    if (eventType.toLowerCase().includes('net.authorize.payment.') && entityId) {
+      const responseCode = parseNumericValue(payload.responseCode);
+      const outcome = mapPaymentWebhookOutcome(eventType, responseCode);
+
+      const [rootOrdersSnapshot, groupOrdersSnapshot] = await Promise.all([
+        db.collection('orders').where('transactionId', '==', entityId).limit(20).get(),
+        db.collectionGroup('orders').where('transactionId', '==', entityId).limit(50).get(),
+      ]);
+
+      const orderDocMap = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>();
+      for (const doc of rootOrdersSnapshot.docs) orderDocMap.set(doc.ref.path, doc);
+      for (const doc of groupOrdersSnapshot.docs) orderDocMap.set(doc.ref.path, doc);
+
+      if (orderDocMap.size === 0) {
+        logger.warn('[AUTHNET_WEBHOOK] Payment event received with no matching order', {
+          transactionId: entityId,
+          eventType,
+        });
+      }
+
+      await Promise.all(
+        Array.from(orderDocMap.values()).map(async (doc) => {
+          const orderData = doc.data();
+          const nextStatus = resolveOrderStatus(orderData, outcome.orderStatus);
+          const updatePayload: Record<string, unknown> = {
+            paymentProvider: 'authorize_net',
+            paymentStatus: outcome.paymentStatus,
+            lastPaymentEvent: {
+              eventType,
+              eventDate,
+              notificationId: notificationId || null,
+              payload,
+            },
+            updatedAt: FieldValue.serverTimestamp(),
+          };
+
+          if (nextStatus) {
+            updatePayload.status = nextStatus;
+          }
+
+          await doc.ref.set(updatePayload, { merge: true });
+          processedOrders += 1;
+
+          const orgId = typeof orderData.brandId === 'string'
+            ? orderData.brandId
+            : typeof orderData.organizationId === 'string'
+              ? orderData.organizationId
+              : null;
+
+          if (orgId && outcome.emittedEvent) {
+            await emitEvent({
+              orgId,
+              type: outcome.emittedEvent,
+              agent: 'money_mike',
+              refId: doc.id,
+              data: {
+                transactionId: entityId,
+                paymentStatus: outcome.paymentStatus,
+                responseCode,
+                amount: parseNumericValue(payload.authAmount),
+                eventType,
+              },
+            });
+
+            if (outcome.emittedEvent === 'checkout.paid' && nextStatus === 'ready_for_pickup') {
+              await emitEvent({
+                orgId,
+                type: 'order.readyForPickup',
+                agent: 'smokey',
+                refId: doc.id,
+                data: {
+                  transactionId: entityId,
+                  paymentStatus: outcome.paymentStatus,
+                },
+              });
+            }
+          }
+        })
+      );
+    }
+
+    if (eventType.toLowerCase().includes('net.authorize.customer.subscription.') && entityId) {
+      const outcome = mapSubscriptionWebhookOutcome(eventType);
+
+      const subscriptionSnapshot = await db
+        .collectionGroup('subscription')
+        .where('providerSubscriptionId', '==', entityId)
+        .limit(20)
+        .get();
+
+      if (subscriptionSnapshot.empty) {
+        logger.warn('[AUTHNET_WEBHOOK] Subscription event received with no matching subscription', {
+          providerSubscriptionId: entityId,
+          eventType,
+        });
+      }
+
+      await Promise.all(
+        subscriptionSnapshot.docs.map(async (doc) => {
+          const updatePayload: Record<string, unknown> = {
+            updatedAt: FieldValue.serverTimestamp(),
+            providerLastEventType: eventType,
+            providerLastEventAt: eventDate || FieldValue.serverTimestamp(),
+          };
+
+          if (outcome.subscriptionStatus) {
+            updatePayload.status = outcome.subscriptionStatus;
+          }
+
+          await doc.ref.set(updatePayload, { merge: true });
+          processedSubscriptions += 1;
+
+          const orgId = extractOrgIdFromSubscriptionPath(doc.ref.path);
+          if (orgId && outcome.emittedEvent) {
+            await emitEvent({
+              orgId,
+              type: outcome.emittedEvent,
+              agent: 'money_mike',
+              refId: doc.id,
+              data: {
+                providerSubscriptionId: entityId,
+                status: outcome.subscriptionStatus || null,
+                eventType,
+              },
+            });
+          }
+        })
+      );
+    }
+
+    await webhookLogRef.set(
+      {
+        status: 'processed',
+        processedAt: FieldValue.serverTimestamp(),
+        processedOrders,
+        processedSubscriptions,
+      },
+      { merge: true }
+    );
+
+    return NextResponse.json({
+      received: true,
+      eventType,
+      processedOrders,
+      processedSubscriptions,
+    });
+  } catch (error: any) {
+    logger.error('[AUTHNET_WEBHOOK] Processing failed', {
+      error: error?.message,
+      stack: error?.stack,
+    });
+
+    if (webhookLogRef) {
+      await webhookLogRef.set(
+        {
+          status: 'failed',
+          failedAt: FieldValue.serverTimestamp(),
+          error: error?.message || String(error),
+        },
+        { merge: true }
+      );
+    }
+
+    return NextResponse.json(
+      { error: error?.message || 'Webhook processing error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET() {
+  return NextResponse.json({
+    status: 'ready',
+    endpoint: '/api/webhooks/authnet',
+    provider: 'authorize_net',
+  });
+}
