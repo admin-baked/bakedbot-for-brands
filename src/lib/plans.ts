@@ -1,6 +1,5 @@
 
-
-export type PlanId = "scout" | "pro" | "growth" | "empire" | "free" | "claim_pro" | "founders_claim" | "growth_5" | "scale_10" | "pro_25" | "enterprise";
+export type PlanId = "scout" | "pro" | "growth" | "empire" | "free" | "claim_pro" | "founders_claim" | "growth_5" | "scale_10" | "pro_25" | "custom_25" | "enterprise";
 
 export interface PlanConfig {
   id: PlanId;
@@ -80,6 +79,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
   growth_5: { id: "growth", name: "Growth", description: "", baseAmount: 249, includedLocations: 5, extraPerLocation: 25 },
   scale_10: { id: "growth", name: "Scale", description: "", baseAmount: 349, includedLocations: 10, extraPerLocation: 25 },
   pro_25: { id: "growth", name: "Pro 25", description: "", baseAmount: 499, includedLocations: 25, extraPerLocation: 20 },
+  custom_25: { id: "custom_25", name: "Custom 25", description: "$25/month custom plan.", baseAmount: 25, includedLocations: 1, extraPerLocation: null },
   enterprise: { id: "empire", name: "Enterprise", description: "", baseAmount: 0, includedLocations: 999, extraPerLocation: null },
 };
 
