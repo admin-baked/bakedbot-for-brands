@@ -720,7 +720,77 @@ export const articles: Record<string, HelpArticleMeta> = {
     author: 'BakedBot Team',
   },
 
-  // 🎉 51 articles complete!
+  'dispensary/dynamic-pricing': {
+    slug: 'dynamic-pricing',
+    category: 'dispensary',
+    title: 'Dynamic Pricing Dashboard',
+    description: 'Intelligent AI-powered pricing with competitor intelligence, inventory age, and automated POS sync',
+    roles: ['super_user', 'dispensary_admin'],
+    tags: ['dispensary', 'pricing', 'money-mike', 'ezal', 'alleaves', 'automation', 'competitive-intelligence', 'ai', 'revenue', 'margins'],
+    difficulty: 'advanced',
+    estimatedTime: '25 minutes',
+    filePath: './dispensary/dynamic-pricing.mdx',
+    lastUpdated: '2026-02-11',
+    author: 'BakedBot Team',
+  },
+
+  'agents/intelligence-livehud': {
+    slug: 'intelligence-livehud',
+    category: 'agents',
+    title: 'LiveHud - Agent Cognitive Monitoring',
+    description: 'Real-time agent monitoring with personality modes, behavior sliders, and performance metrics',
+    roles: ['super_user'],
+    tags: ['agents', 'intelligence', 'monitoring', 'personality-modes', 'behavior', 'performance', 'ai'],
+    difficulty: 'advanced',
+    estimatedTime: '15 minutes',
+    filePath: './agents/intelligence-livehud.mdx',
+    lastUpdated: '2026-02-11',
+    author: 'BakedBot Team',
+  },
+
+  'agents/memory-health': {
+    slug: 'memory-health',
+    category: 'agents',
+    title: 'Memory Health & Auto-Gardening',
+    description: 'Automated memory maintenance, conflict detection, and quality optimization for AI agents',
+    roles: ['super_user'],
+    tags: ['agents', 'intelligence', 'memory', 'optimization', 'health', 'automation', 'ai'],
+    difficulty: 'advanced',
+    estimatedTime: '12 minutes',
+    filePath: './agents/memory-health.mdx',
+    lastUpdated: '2026-02-11',
+    author: 'BakedBot Team',
+  },
+
+  'agents/input-safety': {
+    slug: 'input-safety',
+    category: 'agents',
+    title: 'Input Safety & Security',
+    description: 'Multi-layer protection against adversarial inputs, prompt injection, and malicious patterns',
+    roles: ['super_user'],
+    tags: ['agents', 'intelligence', 'security', 'safety', 'adversarial', 'protection', 'ai'],
+    difficulty: 'advanced',
+    estimatedTime: '10 minutes',
+    filePath: './agents/input-safety.mdx',
+    lastUpdated: '2026-02-11',
+    author: 'BakedBot Team',
+  },
+
+  'agents/completeness-doctrine': {
+    slug: 'completeness-doctrine',
+    category: 'agents',
+    title: 'Completeness Doctrine',
+    description: 'Ensuring AI agents address all user intents with intent extraction and coverage verification',
+    roles: ['super_user'],
+    tags: ['agents', 'intelligence', 'completeness', 'intent', 'quality', 'verification', 'ai'],
+    difficulty: 'advanced',
+    estimatedTime: '10 minutes',
+    filePath: './agents/completeness-doctrine.mdx',
+    lastUpdated: '2026-02-11',
+    author: 'BakedBot Team',
+  },
+
+  // 🎉 56 articles complete!
 };
 
 /**
