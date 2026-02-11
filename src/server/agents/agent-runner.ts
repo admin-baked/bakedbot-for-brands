@@ -577,6 +577,9 @@ All agents are online and ready. Type an agent name or describe your task to get
 
         const role = (user?.role as string) || 'guest';
 
+        // Check if user has a paid role (brand, dispensary, etc.)
+        const isPaidUser = ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender'].includes(role);
+
         // Resolve orgId using the standard order: orgId > brandId > currentOrgId > uid
         // This ensures Thrive Syracuse (orgId: org_thrive_syracuse) and other tenants work correctly
         const userBrandId = (user as any)?.orgId
@@ -657,10 +660,7 @@ All agents are online and ready. Type an agent name or describe your task to get
         // Super User Bypass (includes legacy super_admin role)
         const isSuperUser = role === 'super_user' || role === 'super_admin';
 
-        // Paid users: brand roles, dispensary roles (Thrive Syracuse is a dispensary)
-        const isPaidUser = ['brand', 'brand_admin', 'brand_member', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender'].includes(role);
-
-        // Free users: guest, customer, or undefined role
+        // Free users: guest, customer, or undefined role (isPaidUser already declared above)
         const isFreeUser = !isSuperUser && !isPaidUser;
         
         if (!isSuperUser) {

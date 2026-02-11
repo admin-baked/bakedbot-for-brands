@@ -10,7 +10,20 @@
 
 // --- Agent Event Types (Loop 1) ---
 
-export type AgentName = 'smokey' | 'pops' | 'deebo' | 'craig' | 'ezal' | 'money_mike';
+export type AgentName =
+    | 'smokey'      // Budtender - product recommendations
+    | 'pops'        // Analytics - metrics and insights
+    | 'deebo'       // Compliance - rule enforcement
+    | 'craig'       // Marketing - campaigns
+    | 'ezal'        // Competitive intel - lookout
+    | 'money_mike'  // Pricing - revenue optimization
+    | 'linus'       // CTO - system health, deployments
+    | 'leo'         // COO - operations orchestration
+    | 'jack'        // Sales - lead tracking, churn
+    | 'glenda'      // Outreach - academy, vibe studio leads
+    | 'openclaw'    // Communications - WhatsApp, Gmail, Calendar
+    | 'mrs_parker'  // Customer success - birthdays, at-risk
+    | 'day_day';    // Growth - forecasting, partnerships
 
 export type AgentEventType =
     | 'message_in'
