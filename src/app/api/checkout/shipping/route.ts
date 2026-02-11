@@ -24,15 +24,46 @@ type ShippingOrderRequest = {
     };
     shippingAddress: ShippingAddress;
     brandId: string;
+    couponCode?: string;
     paymentMethod: 'authorize_net';
     paymentData?: any;
+    subtotal?: number;
+    tax?: number;
     total: number;
 };
+
+function asDate(value: any): Date | null {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (typeof value?.toDate === 'function') return value.toDate();
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
 
 export async function POST(req: NextRequest) {
     try {
         const body: ShippingOrderRequest = await req.json();
-        const { items, customer, shippingAddress, brandId, paymentData, total } = body;
+        const { items, customer, shippingAddress, brandId, paymentData, couponCode, total } = body;
+
+        if (!brandId || !Array.isArray(items) || items.length === 0 || !customer?.name || !customer?.email || !shippingAddress?.state) {
+            return NextResponse.json({
+                success: false,
+                error: 'Missing required checkout fields.',
+            }, { status: 400 });
+        }
+
+        if (typeof total !== 'number' || !Number.isFinite(total) || total < 0) {
+            return NextResponse.json({
+                success: false,
+                error: 'Invalid total amount.',
+            }, { status: 400 });
+        }
+
+        const rawSubtotal = Number(items.reduce(
+            (sum, item) => sum + ((item.price || 0) * (item.quantity || 1)),
+            0
+        ).toFixed(2));
 
         // 1. Validate shipping state
         if (RESTRICTED_STATES.includes(shippingAddress.state)) {
@@ -42,6 +73,85 @@ export async function POST(req: NextRequest) {
             }, { status: 400 });
         }
 
+        const { firestore } = await createServerClient();
+
+        let discount = 0;
+        let appliedCoupon: { couponId: string; code: string; discountAmount: number } | null = null;
+        const normalizedCouponCode = couponCode?.trim().toUpperCase();
+
+        if (normalizedCouponCode) {
+            const couponSnap = await firestore.collection('coupons')
+                .where('code', '==', normalizedCouponCode)
+                .where('brandId', '==', brandId)
+                .limit(1)
+                .get();
+
+            if (couponSnap.empty) {
+                return NextResponse.json({
+                    success: false,
+                    error: 'This coupon code is not valid.',
+                }, { status: 400 });
+            }
+
+            const couponDoc = couponSnap.docs[0];
+            const coupon = couponDoc.data();
+
+            if (coupon.active === false) {
+                return NextResponse.json({
+                    success: false,
+                    error: 'This coupon is inactive.',
+                }, { status: 400 });
+            }
+
+            const expiresAt = asDate(coupon.expiresAt);
+            if (expiresAt && expiresAt < new Date()) {
+                return NextResponse.json({
+                    success: false,
+                    error: 'This coupon has expired.',
+                }, { status: 400 });
+            }
+
+            if (coupon.maxUses && (coupon.uses || 0) >= coupon.maxUses) {
+                return NextResponse.json({
+                    success: false,
+                    error: 'This coupon has reached its maximum number of uses.',
+                }, { status: 400 });
+            }
+
+            if ((coupon.type !== 'fixed' && coupon.type !== 'percentage') || typeof coupon.value !== 'number' || coupon.value <= 0) {
+                return NextResponse.json({
+                    success: false,
+                    error: 'This coupon has an invalid configuration.',
+                }, { status: 400 });
+            }
+
+            if (coupon.type === 'fixed') {
+                discount = coupon.value;
+            } else {
+                discount = rawSubtotal * (coupon.value / 100);
+            }
+
+            discount = Number(Math.min(discount, rawSubtotal).toFixed(2));
+            appliedCoupon = {
+                couponId: couponDoc.id,
+                code: normalizedCouponCode,
+                discountAmount: discount,
+            };
+        }
+
+        const calculatedSubtotal = Number(Math.max(0, rawSubtotal - discount).toFixed(2));
+        const calculatedTax = Number((calculatedSubtotal * 0.15).toFixed(2));
+        const calculatedTotal = Number((calculatedSubtotal + calculatedTax).toFixed(2));
+
+        if (Math.abs(total - calculatedTotal) > 0.01) {
+            logger.warn('[ShippingOrderAPI] Client total mismatch, using server-calculated total', {
+                clientTotal: total,
+                serverTotal: calculatedTotal,
+                brandId,
+                discount,
+            });
+        }
+
         let transactionId = null;
         let paymentStatus = 'pending';
 
@@ -49,7 +159,7 @@ export async function POST(req: NextRequest) {
         if (paymentData) {
             logger.info('[ShippingOrderAPI] Processing Authorize.net payment', {
                 brandId,
-                total,
+                total: calculatedTotal,
                 customerEmail: customer.email
             });
 
@@ -58,7 +168,7 @@ export async function POST(req: NextRequest) {
             const lastName = nameParts.slice(1).join(' ') || firstName;
 
             const paymentResult = await createTransaction({
-                amount: total,
+                amount: calculatedTotal,
                 opaqueData: paymentData.opaqueData,
                 cardNumber: paymentData.cardNumber,
                 expirationDate: paymentData.expirationDate,
@@ -81,7 +191,7 @@ export async function POST(req: NextRequest) {
                     errors: paymentResult.errors,
                     responseCode: paymentResult.responseCode,
                     brandId,
-                    total
+                    total: calculatedTotal
                 });
                 return NextResponse.json({
                     success: false,
@@ -101,7 +211,6 @@ export async function POST(req: NextRequest) {
         }
 
         // 3. Create Order in Firestore
-        const { firestore } = await createServerClient();
         const order = {
             items: items.map(item => ({
                 productId: item.id,
@@ -118,11 +227,16 @@ export async function POST(req: NextRequest) {
             brandId,
             retailerId: brandId, // For shipping orders, brand is the "retailer"
             totals: {
-                subtotal: total * 0.9, // Rough estimate
-                tax: total * 0.1,
+                subtotal: calculatedSubtotal,
+                tax: calculatedTax,
+                discount,
                 shipping: 0, // Free shipping
-                total,
+                total: calculatedTotal,
             },
+            coupon: appliedCoupon ? {
+                code: appliedCoupon.code,
+                discount: appliedCoupon.discountAmount,
+            } : undefined,
             transactionId,
             paymentMethod: 'credit_card',
             paymentProvider: 'authorize_net',
@@ -144,20 +258,47 @@ export async function POST(req: NextRequest) {
 
         logger.info('[ShippingOrderAPI] Order created', { orderId, brandId });
 
+        if (appliedCoupon) {
+            try {
+                await firestore.collection('coupons').doc(appliedCoupon.couponId).update({
+                    uses: FieldValue.increment(1),
+                    updatedAt: new Date(),
+                });
+            } catch (couponError) {
+                logger.warn('[ShippingOrderAPI] Failed to increment coupon usage after order creation', {
+                    orderId,
+                    couponId: appliedCoupon.couponId,
+                    error: couponError instanceof Error ? couponError.message : String(couponError),
+                });
+            }
+        }
+
         // 4. Send Confirmation Email
         const shippingAddressStr = `${shippingAddress.street}${shippingAddress.street2 ? ', ' + shippingAddress.street2 : ''}, ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.zip}`;
+        let brandName = 'Ecstatic Edibles';
+        try {
+            const brandDoc = await firestore.collection('brands').doc(brandId).get();
+            if (brandDoc.exists) {
+                brandName = brandDoc.data()?.name || brandName;
+            }
+        } catch (brandError) {
+            logger.warn('[ShippingOrderAPI] Could not fetch brand for confirmation email', {
+                brandId,
+                error: brandError instanceof Error ? brandError.message : String(brandError),
+            });
+        }
 
         sendOrderConfirmationEmail({
             orderId,
             customerName: customer.name,
             customerEmail: customer.email,
-            total,
+            total: calculatedTotal,
             items: items.map(i => ({
                 name: i.name,
                 qty: i.quantity || 1,
                 price: i.price
             })),
-            retailerName: 'Ecstatic Edibles',
+            retailerName: brandName,
             pickupAddress: `Shipping to: ${shippingAddressStr}`,
         }).catch(err => logger.error('[ShippingOrderAPI] Email send failed', { error: err.message }));
 

@@ -9,6 +9,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { createTransaction } from '@/lib/authorize-net';
 import { sendOrderConfirmationEmail } from '@/lib/email/dispatcher';
+import { applyCoupon } from './applyCoupon';
 
 
 import { logger } from '@/lib/logger';
@@ -20,6 +21,8 @@ type CreateOrderInput = {
         phone: string;
     };
     retailerId: string;
+    brandId?: string;
+    couponCode?: string;
     paymentMethod: 'authorize_net' | 'cannpay' | 'cash' | 'smokey_pay'; // smokey_pay is legacy alias
     paymentData?: any;
     total: number;
@@ -31,12 +34,68 @@ export async function createOrder(input: CreateOrderInput) {
         let transactionId = null;
         let paymentStatus = 'pending';
 
+        const normalizedItems = input.items.map((item) => ({
+            productId: item.productId || item.id,
+            name: item.name,
+            qty: item.quantity || item.qty || 1,
+            price: item.unitPrice || item.price || 0,
+            category: item.category,
+        }));
+
+        const subtotal = Number(
+            normalizedItems.reduce((sum, item) => sum + (item.price * item.qty), 0).toFixed(2)
+        );
+
+        const inferredBrandId = input.brandId || input.items.find((item) => typeof item.brandId === 'string')?.brandId;
+        let discount = 0;
+        let appliedCoupon: { couponId: string; code: string; discountAmount: number } | null = null;
+
+        if (input.couponCode) {
+            if (!inferredBrandId) {
+                return {
+                    success: false,
+                    error: 'Coupon validation requires a brand context.'
+                };
+            }
+
+            const couponResult = await applyCoupon(input.couponCode, {
+                subtotal,
+                brandId: inferredBrandId,
+            });
+
+            if (!couponResult.success) {
+                return {
+                    success: false,
+                    error: couponResult.message || 'Invalid coupon code.',
+                };
+            }
+
+            discount = Number(couponResult.discountAmount.toFixed(2));
+            appliedCoupon = {
+                couponId: couponResult.couponId,
+                code: couponResult.code,
+                discountAmount: discount,
+            };
+        }
+
+        const subtotalAfterDiscount = Number(Math.max(0, subtotal - discount).toFixed(2));
+        const tax = Number((subtotalAfterDiscount * 0.15).toFixed(2));
+        const serverTotal = Number((subtotalAfterDiscount + tax).toFixed(2));
+
+        if (Math.abs(input.total - serverTotal) > 0.01) {
+            logger.warn('[createOrder] Client total mismatch, using server-calculated total', {
+                clientTotal: input.total,
+                serverTotal,
+                retailerId: input.retailerId,
+            });
+        }
+
         // 1. Process Payment (if Authorize.net)
         if (input.paymentMethod === 'authorize_net' && input.paymentData) {
             logger.info('Processing Authorize.net payment for order');
 
             const paymentResult = await createTransaction({
-                amount: input.total,
+                amount: serverTotal,
                 // Support opaque data from client
                 opaqueData: input.paymentData.opaqueData,
                 // Or raw card data (if passed - be careful with logging!)
@@ -74,18 +133,51 @@ export async function createOrder(input: CreateOrderInput) {
 
         // 2. Create Order in Firestore
         const order = {
-            ...input,
-            // Remove sensitive payment data from storage
-            paymentData: null,
+            items: normalizedItems,
+            customer: input.customer,
+            retailerId: input.retailerId,
+            brandId: inferredBrandId || null,
+            totals: {
+                subtotal: subtotalAfterDiscount,
+                tax,
+                discount,
+                total: serverTotal,
+            },
+            coupon: appliedCoupon ? {
+                code: appliedCoupon.code,
+                discount: appliedCoupon.discountAmount,
+            } : undefined,
             transactionId,
             status: 'submitted', // Initial status
             paymentStatus,
+            paymentMethod: input.paymentMethod === 'authorize_net' ? 'credit_card' : input.paymentMethod,
+            paymentProvider: input.paymentMethod === 'authorize_net'
+                ? 'authorize_net'
+                : input.paymentMethod === 'cannpay'
+                    ? 'cannpay'
+                    : null,
+            mode: 'live' as const,
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
         };
 
         const docRef = await firestore.collection('orders').add(order);
         const orderId = docRef.id;
+
+        if (appliedCoupon) {
+            try {
+                await firestore.collection('coupons').doc(appliedCoupon.couponId).update({
+                    uses: FieldValue.increment(1),
+                    updatedAt: new Date(),
+                });
+            } catch (couponError) {
+                logger.warn('Order created but failed to increment coupon usage', {
+                    orderId,
+                    couponId: appliedCoupon.couponId,
+                    error: couponError instanceof Error ? couponError.message : String(couponError),
+                });
+            }
+        }
 
         // 3. Send Confirmation Email
         // Fetch retailer details for the email
@@ -108,11 +200,11 @@ export async function createOrder(input: CreateOrderInput) {
             orderId,
             customerName: input.customer.name,
             customerEmail: input.customer.email,
-            total: input.total,
-            items: input.items.map(i => ({
+            total: serverTotal,
+            items: normalizedItems.map(i => ({
                 name: i.name,
-                qty: i.quantity || i.qty || 1, // Handle different item structures
-                price: i.unitPrice || i.price || 0
+                qty: i.qty,
+                price: i.price,
             })),
             retailerName,
             pickupAddress

@@ -11,11 +11,6 @@ import Stripe from 'stripe';
 import { processPayment as processAuthorizeNetPayment } from './authorize-net';
 import { logger } from '@/lib/logger';
 
-// Initialize payment providers
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2026-01-28.clover',
-});
-
 // Square SDK placeholder - actual implementation would use square package
 const squareClient: any = {
   paymentsApi: {
@@ -29,6 +24,17 @@ const squareClient: any = {
     },
   },
 };
+
+function getStripeClient(): Stripe | null {
+  const apiKey = process.env.STRIPE_SECRET_KEY;
+  if (!apiKey) {
+    return null;
+  }
+
+  return new Stripe(apiKey, {
+    apiVersion: '2026-01-28.clover',
+  });
+}
 
 export type PaymentProvider = 'authorize_net' | 'stripe' | 'square';
 
@@ -145,6 +151,15 @@ async function processWithStripe(
   request: UnifiedPaymentRequest
 ): Promise<UnifiedPaymentResult> {
   try {
+    const stripe = getStripeClient();
+    if (!stripe) {
+      return {
+        success: false,
+        provider: 'stripe',
+        error: 'Stripe is not configured',
+      };
+    }
+
     if (!request.stripeData?.paymentMethodId) {
       return {
         success: false,
@@ -245,17 +260,25 @@ async function processWithSquare(
  * Get available payment providers
  */
 export function getAvailableProviders(isCannabisProduct: boolean = false): ProviderInfo[] {
+  const hasAuthNet =
+    !!(
+      process.env.AUTHNET_API_LOGIN_ID &&
+      process.env.AUTHNET_TRANSACTION_KEY &&
+      process.env.NEXT_PUBLIC_AUTHNET_CLIENT_KEY
+    ) ||
+    !!(
+      process.env.AUTHORIZENET_API_LOGIN_ID &&
+      process.env.AUTHORIZENET_TRANSACTION_KEY &&
+      process.env.AUTHORIZENET_CLIENT_KEY
+    );
+
   const providers: ProviderInfo[] = [
     {
       id: 'authorize_net',
       name: 'Authorize.net',
       description: 'Credit/debit cards via Authorize.net',
       supportsCannabis: true,
-      available: !!(
-        process.env.AUTHORIZENET_API_LOGIN_ID &&
-        process.env.AUTHORIZENET_TRANSACTION_KEY &&
-        process.env.AUTHORIZENET_CLIENT_KEY
-      ),
+      available: hasAuthNet,
     },
     {
       id: 'stripe',
@@ -298,6 +321,14 @@ export async function createStripePaymentIntent(
   description: string
 ): Promise<{ clientSecret: string; error?: string }> {
   try {
+    const stripe = getStripeClient();
+    if (!stripe) {
+      return {
+        clientSecret: '',
+        error: 'Stripe is not configured',
+      };
+    }
+
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100),
       currency: 'usd',
@@ -335,6 +366,10 @@ export async function refundUnifiedPayment(
         return { success: result.success, error: result.error };
 
       case 'stripe':
+        const stripe = getStripeClient();
+        if (!stripe) {
+          return { success: false, error: 'Stripe is not configured' };
+        }
         const refund = await stripe.refunds.create({
           payment_intent: transactionId,
           amount: Math.round(amount * 100),

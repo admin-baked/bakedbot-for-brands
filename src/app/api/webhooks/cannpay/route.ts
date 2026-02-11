@@ -39,16 +39,28 @@ function verifySignature(payload: string, signature: string, secret: string): bo
   );
 }
 
+function safeParseJson(value: unknown): Record<string, any> {
+  if (typeof value !== "string" || !value.trim()) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return {};
+  }
+}
+
 export async function POST(req: NextRequest) {
   const { firestore: db } = await createServerClient();
 
   try {
-    // Get secret from environment (CANPAY_API_SECRET per spec)
-    const secret = process.env.CANPAY_API_SECRET;
+    // Primary secret is CANPAY_API_SECRET; allow legacy fallback for compatibility.
+    const secret = process.env.CANPAY_API_SECRET || process.env.CANPAY_WEBHOOK_SECRET;
 
     // Fail fast in production if secret is not configured
     if (!secret) {
-      logger.critical("[P0-SEC-CANNPAY-WEBHOOK] CANPAY_API_SECRET not configured");
+      logger.critical("[P0-SEC-CANNPAY-WEBHOOK] Missing webhook secret (CANPAY_API_SECRET/CANPAY_WEBHOOK_SECRET)");
       return NextResponse.json(
         { error: "Payment gateway configuration error" },
         { status: 500 }
@@ -100,19 +112,19 @@ export async function POST(req: NextRequest) {
 
     // Extract CannPay transaction details from verified payload
     const intentId = event?.intent_id;
-    const canpayTransactionNumber = event?.canpay_transaction_number;
+    const canpayTransactionNumber = event?.canpay_transaction_number || event?.transaction_number;
     const transactionTime = event?.transaction_time;
     const status = event?.status; // "Success", "Pending", "Failed", etc.
     const amount = event?.amount;
     const tipAmount = event?.tip_amount;
     const deliveryFee = event?.delivery_fee;
-    const passthroughParam = event?.passthrough_param;
+    const passthroughParam = event?.passthrough_param || event?.passthrough;
     const merchantOrderId = event?.merchant_order_id;
 
     // Extract our internal IDs from passthrough (set by frontend)
-    const passthrough = passthroughParam ? JSON.parse(passthroughParam) : {};
+    const passthrough = safeParseJson(passthroughParam);
     const orderId = passthrough?.orderId || merchantOrderId;
-    const organizationId = passthrough?.brandId || passthrough?.organizationId;
+    const organizationId = passthrough?.brandId || passthrough?.organizationId || event?.organization_id;
 
     if (!intentId) {
       logger.error("[P0-SEC-CANNPAY-WEBHOOK] Missing intent_id in verified payload");
@@ -122,22 +134,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!orderId || !organizationId) {
-      logger.error("[P0-SEC-CANNPAY-WEBHOOK] Missing orderId or organizationId in passthrough", {
+    if (!orderId) {
+      logger.error("[P0-SEC-CANNPAY-WEBHOOK] Missing orderId in passthrough/merchant_order_id", {
         intentId,
         passthrough,
       });
       return NextResponse.json(
-        { error: "Missing order_id or organization_id in passthrough" },
+        { error: "Missing order_id in webhook payload" },
         { status: 400 }
       );
     }
-
-    const orderRef = db
-      .collection("organizations")
-      .doc(organizationId)
-      .collection("orders")
-      .doc(orderId);
 
     // Map CannPay status to our internal payment/order statuses
     let paymentStatus: string = "pending";
@@ -175,29 +181,55 @@ export async function POST(req: NextRequest) {
         break;
     }
 
-    // Update order with CannPay transaction details
-    await orderRef.set(
-      {
-        paymentIntentId: intentId,
-        paymentStatus,
-        status: orderStatus,
-        updatedAt: FieldValue.serverTimestamp(),
-        lastPaymentEvent: event,
-        // Store CannPay-specific fields
-        canpay: {
-          intentId,
-          canpayTransactionNumber,
-          transactionTime,
-          status,
-          amount,
-          tipAmount,
-          deliveryFee,
-          passthrough: passthroughParam,
-          merchantOrderId,
-        },
+    const topLevelOrderRef = db.collection("orders").doc(orderId);
+    const orgOrderRef = organizationId
+      ? db.collection("organizations").doc(organizationId).collection("orders").doc(orderId)
+      : null;
+
+    const [topLevelSnap, orgOrderSnap] = await Promise.all([
+      topLevelOrderRef.get(),
+      orgOrderRef ? orgOrderRef.get() : Promise.resolve(null),
+    ]);
+
+    if (!topLevelSnap.exists && !orgOrderSnap?.exists) {
+      logger.error("[P0-SEC-CANNPAY-WEBHOOK] Order not found for webhook event", {
+        orderId,
+        organizationId: organizationId || null,
+        intentId,
+      });
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    const updatePayload = {
+      paymentIntentId: intentId,
+      paymentStatus,
+      status: orderStatus,
+      updatedAt: FieldValue.serverTimestamp(),
+      lastPaymentEvent: event,
+      // Store CannPay-specific fields
+      canpay: {
+        intentId,
+        canpayTransactionNumber,
+        transactionTime,
+        status,
+        amount,
+        tipAmount,
+        deliveryFee,
+        passthrough: passthroughParam,
+        merchantOrderId,
       },
-      { merge: true }
-    );
+    };
+
+    const updateTargets = [];
+    if (topLevelSnap.exists) {
+      updateTargets.push(topLevelOrderRef.set(updatePayload, { merge: true }));
+    }
+    if (orgOrderRef && orgOrderSnap?.exists) {
+      updateTargets.push(orgOrderRef.set(updatePayload, { merge: true }));
+    }
+    await Promise.all(updateTargets);
+
+    const eventOrgId = organizationId || topLevelSnap.data()?.brandId || orgOrderSnap?.data()?.brandId || null;
 
     logger.info("[P0-SEC-CANNPAY-WEBHOOK] Order updated successfully", {
       orderId,
@@ -207,9 +239,9 @@ export async function POST(req: NextRequest) {
       orderStatus,
     });
 
-    if (eventType) {
+    if (eventType && eventOrgId) {
       await emitEvent({
-        orgId: organizationId,
+        orgId: eventOrgId,
         type: eventType,
         agent: 'smokey',
         refId: orderId,
@@ -218,13 +250,19 @@ export async function POST(req: NextRequest) {
 
       if (eventType === 'checkout.paid') {
         await emitEvent({
-          orgId: organizationId,
+          orgId: eventOrgId,
           type: 'order.readyForPickup',
           agent: 'smokey',
           refId: orderId,
           data: { paymentStatus },
         });
       }
+    } else if (eventType) {
+      logger.warn("[P0-SEC-CANNPAY-WEBHOOK] Skipping event emit due to missing organization context", {
+        orderId,
+        intentId,
+        eventType,
+      });
     }
 
     return NextResponse.json({ received: true });

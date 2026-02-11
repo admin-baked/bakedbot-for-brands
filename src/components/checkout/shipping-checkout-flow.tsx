@@ -17,11 +17,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, Truck, AlertTriangle, Package } from 'lucide-react';
+import { CheckCircle, Truck, AlertTriangle, Package, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import type { ShippingAddress } from '@/types/orders';
 import { logger } from '@/lib/logger';
+import { applyCoupon } from '@/app/checkout/actions/applyCoupon';
 
 // States where hemp shipping is restricted
 const RESTRICTED_STATES = ['ID', 'MS', 'SD', 'NE', 'KS'];
@@ -62,6 +63,10 @@ export function ShippingCheckoutFlow({ brandId }: ShippingCheckoutFlowProps) {
     const [step, setStep] = useState<CheckoutStep>('shipping');
     const [loading, setLoading] = useState(false);
     const [stateError, setStateError] = useState<string | null>(null);
+    const [couponCode, setCouponCode] = useState('');
+    const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+    const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
+    const [couponValidatedSubtotal, setCouponValidatedSubtotal] = useState<number | null>(null);
 
     // Customer & Shipping Details
     const [customerDetails, setCustomerDetails] = useState({
@@ -89,7 +94,69 @@ export function ShippingCheckoutFlow({ brandId }: ShippingCheckoutFlowProps) {
         }
     }, [user]);
 
-    const { total, subtotal, tax } = getCartTotal();
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const storedCouponCode = localStorage.getItem('bakedbot_first_order_coupon');
+        if (storedCouponCode) {
+            setCouponCode(storedCouponCode);
+        }
+    }, []);
+
+    const { subtotal: cartSubtotal } = getCartTotal();
+    const discount = Number((appliedCoupon?.discountAmount || 0).toFixed(2));
+    const subtotal = Number(Math.max(0, cartSubtotal - discount).toFixed(2));
+    const tax = Number((subtotal * 0.15).toFixed(2));
+    const total = Number((subtotal + tax).toFixed(2));
+
+    useEffect(() => {
+        if (appliedCoupon && couponValidatedSubtotal !== null && Math.abs(cartSubtotal - couponValidatedSubtotal) > 0.01) {
+            setAppliedCoupon(null);
+            setCouponValidatedSubtotal(null);
+        }
+    }, [cartSubtotal, appliedCoupon, couponValidatedSubtotal]);
+
+    const handleApplyCoupon = async () => {
+        const normalizedCode = couponCode.trim().toUpperCase();
+        if (!normalizedCode) {
+            toast({ variant: 'destructive', title: 'Coupon Required', description: 'Enter a coupon code first.' });
+            return;
+        }
+
+        setIsApplyingCoupon(true);
+        try {
+            const result = await applyCoupon(normalizedCode, { subtotal: cartSubtotal, brandId });
+            if (!result.success) {
+                toast({ variant: 'destructive', title: 'Invalid Coupon', description: result.message });
+                return;
+            }
+
+            setAppliedCoupon({
+                code: result.code,
+                discountAmount: result.discountAmount,
+            });
+            setCouponValidatedSubtotal(cartSubtotal);
+            setCouponCode(result.code);
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('bakedbot_first_order_coupon', result.code);
+            }
+            toast({
+                title: 'Coupon Applied',
+                description: `${result.code} saved $${result.discountAmount.toFixed(2)} on this order.`,
+            });
+        } catch (error) {
+            logger.error('[ShippingCheckout] Coupon validation failed', {
+                error: error instanceof Error ? error.message : String(error),
+            });
+            toast({ variant: 'destructive', title: 'Coupon Error', description: 'Unable to validate coupon right now.' });
+        } finally {
+            setIsApplyingCoupon(false);
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setAppliedCoupon(null);
+        setCouponValidatedSubtotal(null);
+    };
 
     // Check if selected state is restricted
     const isStateRestricted = RESTRICTED_STATES.includes(shippingAddress.state);
@@ -140,7 +207,10 @@ export function ShippingCheckoutFlow({ brandId }: ShippingCheckoutFlowProps) {
                     brandId,
                     paymentMethod: 'authorize_net',
                     paymentData,
+                    subtotal,
+                    tax,
                     total,
+                    couponCode: appliedCoupon?.code,
                 }),
             });
 
@@ -148,6 +218,9 @@ export function ShippingCheckoutFlow({ brandId }: ShippingCheckoutFlowProps) {
 
             if (result.success) {
                 clearCart();
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('bakedbot_first_order_coupon');
+                }
                 router.push(`/order-confirmation/${result.orderId}`);
             } else {
                 logger.error('[ShippingCheckout] Order creation failed', {
@@ -331,6 +404,39 @@ export function ShippingCheckoutFlow({ brandId }: ShippingCheckoutFlowProps) {
 
             {step === 'payment' && (
                 <div className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Coupon Code</CardTitle>
+                            <CardDescription>Apply a valid promo code before payment.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <div className="flex gap-2">
+                                <Input
+                                    value={couponCode}
+                                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                    placeholder="Enter coupon code"
+                                    disabled={loading || isApplyingCoupon}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleApplyCoupon}
+                                    disabled={loading || isApplyingCoupon || !couponCode.trim()}
+                                >
+                                    {isApplyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply'}
+                                </Button>
+                            </div>
+                            {appliedCoupon && (
+                                <div className="flex items-center justify-between rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm">
+                                    <span>{appliedCoupon.code} applied (-${appliedCoupon.discountAmount.toFixed(2)})</span>
+                                    <Button type="button" variant="ghost" size="sm" onClick={handleRemoveCoupon}>
+                                        Remove
+                                    </Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
                     {/* Order Summary */}
                     <Card>
                         <CardHeader>
@@ -348,6 +454,16 @@ export function ShippingCheckoutFlow({ brandId }: ShippingCheckoutFlowProps) {
                             <div className="border-t pt-2 space-y-1">
                                 <div className="flex justify-between text-sm">
                                     <span>Subtotal</span>
+                                    <span>${cartSubtotal.toFixed(2)}</span>
+                                </div>
+                                {discount > 0 && (
+                                    <div className="flex justify-between text-sm text-emerald-600">
+                                        <span>Discount</span>
+                                        <span>-${discount.toFixed(2)}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between text-sm">
+                                    <span>Discounted Subtotal</span>
                                     <span>${subtotal.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">

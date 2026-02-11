@@ -3,10 +3,10 @@
 
 import { cookies } from 'next/headers';
 import { createServerClient } from '@/firebase/server-client';
-import { redirect } from 'next/navigation';
 import type { CartItem } from '@/types/domain';
 import { applyCoupon } from './applyCoupon';
 import type { ServerOrderPayload as ServerOrderPayloadType } from '@/types/domain';
+import { FieldValue } from 'firebase-admin/firestore';
 
 import { logger } from '@/lib/logger';
 export interface ClientOrderInput {
@@ -24,11 +24,13 @@ export type SubmitOrderResult = {
   error?: string;
   orderId?: string;
   userId?: string;
+  checkoutUrl?: string;
 };
 
 export async function submitOrder(clientPayload: ClientOrderInput): Promise<SubmitOrderResult> {
-  const { auth } = await createServerClient();
-  const sessionCookie = (await cookies()).get('__session')?.value;
+  const { auth, firestore } = await createServerClient();
+  const cookieStore = await cookies();
+  const sessionCookie = cookieStore.get('__session')?.value;
   let userId: string | null = null;
   if (sessionCookie) {
     try {
@@ -46,10 +48,21 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
   );
 
   let discount = 0;
+  let appliedCoupon: { couponId: string; code: string; discountAmount: number } | null = null;
   if (clientPayload.couponCode) {
     const couponResult = await applyCoupon(clientPayload.couponCode, { subtotal, brandId: clientPayload.organizationId });
     if (couponResult.success) {
       discount = couponResult.discountAmount;
+      appliedCoupon = {
+        couponId: couponResult.couponId,
+        code: couponResult.code,
+        discountAmount: couponResult.discountAmount,
+      };
+    } else {
+      return {
+        ok: false,
+        error: couponResult.message,
+      };
     }
   }
 
@@ -59,7 +72,10 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
   const total = subtotalAfterDiscount + tax + fees;
 
   // The base URL of the application, used to construct API routes for fetch.
-  const apiBaseUrl = process.env.APP_BASE_URL || 'http://localhost:3001';
+  const apiBaseUrl =
+    process.env.APP_BASE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    'http://localhost:3000';
 
   try {
     const res = await fetch(
@@ -69,7 +85,7 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
         headers: {
           "Content-Type": "application/json",
           // Pass cookies to the API route to maintain session context if needed
-          Cookie: cookies().toString(),
+          Cookie: cookieStore.toString(),
         },
         body: JSON.stringify({
           organizationId: clientPayload.organizationId,
@@ -91,6 +107,7 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
           tax,
           fees,
           total,
+          couponCode: appliedCoupon?.code,
           currency: "USD",
         }),
       }
@@ -102,17 +119,54 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
       throw new Error(json.error || "Failed to start Smokey Pay checkout");
     }
 
-    // If CannPay provides a hosted checkout URL, redirect the user to it.
-    if (json.checkoutUrl) {
-      redirect(json.checkoutUrl);
+    if (appliedCoupon) {
+      try {
+        await firestore.collection('coupons').doc(appliedCoupon.couponId).update({
+          uses: FieldValue.increment(1),
+          updatedAt: new Date(),
+        });
+      } catch (couponError) {
+        logger.warn('Order succeeded but failed to increment coupon usage', {
+          couponId: appliedCoupon.couponId,
+          error: couponError instanceof Error ? couponError.message : String(couponError),
+        });
+      }
     }
 
-    // Fallback redirect to our confirmation page.
-    redirect(`/order-confirmation/${json.orderId}`);
+    let checkoutUrl: string | undefined;
+    if (typeof json.checkoutUrl === 'string') {
+      const candidate = json.checkoutUrl.trim();
+      const isRelative = candidate.startsWith('/');
 
-    // This part is now unreachable due to the redirect, but we keep the shape
-    // for type consistency in case the redirect logic changes.
-    return { ok: true, orderId: json.orderId, userId: userId || 'anonymous' }
+      let isAllowedExternal = false;
+      if (!isRelative) {
+        try {
+          const parsed = new URL(candidate);
+          isAllowedExternal =
+            parsed.protocol === 'https:' &&
+            (parsed.hostname === 'widget.canpayapp.com' ||
+              parsed.hostname === 'sandbox-widget.canpayapp.com');
+        } catch {
+          isAllowedExternal = false;
+        }
+      }
+
+      if (isRelative || isAllowedExternal) {
+        checkoutUrl = candidate;
+      } else {
+        logger.warn('submitOrder received an untrusted checkout URL, ignoring', {
+          checkoutUrl: candidate,
+          orderId: json.orderId,
+        });
+      }
+    }
+
+    return {
+      ok: true,
+      orderId: json.orderId,
+      userId: userId || 'anonymous',
+      checkoutUrl,
+    };
 
   } catch (e: any) {
     logger.error("ORDER_SUBMISSION_FAILED:", e);

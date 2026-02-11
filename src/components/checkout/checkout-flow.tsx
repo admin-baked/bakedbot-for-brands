@@ -16,12 +16,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Separator } from '@/components/ui/separator';
-import { CheckCircle, MapPin, User, CreditCard, Loader2, Smartphone } from 'lucide-react';
+import { CheckCircle, CreditCard, Loader2, Smartphone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { createOrder } from '@/app/checkout/actions/createOrder';
+import { submitOrder } from '@/app/checkout/actions/submitOrder';
+import { applyCoupon } from '@/app/checkout/actions/applyCoupon';
 import { useRouter } from 'next/navigation';
 
 import { logger } from '@/lib/logger';
@@ -36,6 +36,11 @@ export function CheckoutFlow() {
     const [step, setStep] = useState<CheckoutStep>('details');
     const [verified, setVerified] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [couponCode, setCouponCode] = useState('');
+    const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+    const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
+    const [couponValidatedSubtotal, setCouponValidatedSubtotal] = useState<number | null>(null);
+    const [couponValidatedBrandId, setCouponValidatedBrandId] = useState<string | null>(null);
 
     // Customer Details
     const [customerDetails, setCustomerDetails] = useState({
@@ -46,7 +51,6 @@ export function CheckoutFlow() {
 
     // Payment
     const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'cannpay'>('card');
-    const [paymentResult, setPaymentResult] = useState<any>(null);
 
     useEffect(() => {
         setVerified(isAgeVerified());
@@ -60,7 +64,92 @@ export function CheckoutFlow() {
         }
     }, [user]);
 
-    const { total } = getCartTotal();
+    useEffect(() => {
+        if (selectedRetailerId && paymentMethod === 'card') {
+            setPaymentMethod('cash');
+        }
+
+        if (!selectedRetailerId && (paymentMethod === 'cash' || paymentMethod === 'cannpay')) {
+            setPaymentMethod('card');
+        }
+    }, [selectedRetailerId, paymentMethod]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const storedCouponCode = localStorage.getItem('bakedbot_first_order_coupon');
+        if (storedCouponCode) {
+            setCouponCode(storedCouponCode);
+        }
+    }, []);
+
+    const { subtotal } = getCartTotal();
+    const currentBrandId = cartItems[0]?.brandId || null;
+    const discount = Number((appliedCoupon?.discountAmount || 0).toFixed(2));
+    const discountedSubtotal = Number(Math.max(0, subtotal - discount).toFixed(2));
+    const tax = Number((discountedSubtotal * 0.15).toFixed(2));
+    const total = Number((discountedSubtotal + tax).toFixed(2));
+
+    useEffect(() => {
+        const subtotalChanged = couponValidatedSubtotal !== null && Math.abs(subtotal - couponValidatedSubtotal) > 0.01;
+        const brandChanged = couponValidatedBrandId !== null && currentBrandId !== couponValidatedBrandId;
+
+        if (appliedCoupon && (subtotalChanged || brandChanged)) {
+            setAppliedCoupon(null);
+            setCouponValidatedSubtotal(null);
+            setCouponValidatedBrandId(null);
+        }
+    }, [subtotal, currentBrandId, appliedCoupon, couponValidatedSubtotal, couponValidatedBrandId]);
+
+    const handleApplyCoupon = async () => {
+        const normalizedCode = couponCode.trim().toUpperCase();
+        if (!normalizedCode) {
+            toast({ variant: 'destructive', title: 'Coupon Required', description: 'Enter a coupon code first.' });
+            return;
+        }
+
+        const brandId = currentBrandId;
+        if (!brandId) {
+            toast({ variant: 'destructive', title: 'Coupon Error', description: 'Could not resolve brand for coupon validation.' });
+            return;
+        }
+
+        setIsApplyingCoupon(true);
+        try {
+            const result = await applyCoupon(normalizedCode, { subtotal, brandId });
+            if (!result.success) {
+                toast({ variant: 'destructive', title: 'Invalid Coupon', description: result.message });
+                return;
+            }
+
+            setAppliedCoupon({
+                code: result.code,
+                discountAmount: result.discountAmount,
+            });
+            setCouponValidatedSubtotal(subtotal);
+            setCouponValidatedBrandId(brandId);
+            setCouponCode(result.code);
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('bakedbot_first_order_coupon', result.code);
+            }
+            toast({
+                title: 'Coupon Applied',
+                description: `${result.code} saved $${result.discountAmount.toFixed(2)} on this order.`,
+            });
+        } catch (error) {
+            logger.error('[Checkout] Coupon validation failed', {
+                error: error instanceof Error ? error.message : String(error),
+            });
+            toast({ variant: 'destructive', title: 'Coupon Error', description: 'Unable to validate coupon right now.' });
+        } finally {
+            setIsApplyingCoupon(false);
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setAppliedCoupon(null);
+        setCouponValidatedSubtotal(null);
+        setCouponValidatedBrandId(null);
+    };
 
     const handleDetailsSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -74,17 +163,64 @@ export function CheckoutFlow() {
     const handleOrderSubmit = async (paymentData?: any) => {
         setLoading(true);
         try {
+            if (!selectedRetailerId) {
+                toast({ variant: 'destructive', title: 'Retailer Required', description: 'Please choose a pickup location before checkout.' });
+                return;
+            }
+
+            const brandId = currentBrandId;
+            if (!brandId) {
+                toast({ variant: 'destructive', title: 'Order Failed', description: 'Unable to determine brand for this order.' });
+                return;
+            }
+
+            if (paymentMethod === 'cannpay') {
+                const result = await submitOrder({
+                    items: cartItems,
+                    customer: customerDetails,
+                    retailerId: selectedRetailerId,
+                    organizationId: brandId,
+                    couponCode: appliedCoupon?.code,
+                });
+
+                if (result.ok && result.orderId) {
+                    clearCart();
+                    if (typeof window !== 'undefined') {
+                        localStorage.removeItem('bakedbot_first_order_coupon');
+                    }
+
+                    if (result.checkoutUrl) {
+                        if (result.checkoutUrl.startsWith('/')) {
+                            router.push(result.checkoutUrl);
+                        } else {
+                            window.location.assign(result.checkoutUrl);
+                        }
+                        return;
+                    }
+
+                    router.push(`/order-confirmation/${result.orderId}`);
+                } else {
+                    toast({ variant: 'destructive', title: 'Order Failed', description: result.error || 'Unable to start Smokey Pay checkout.' });
+                }
+                return;
+            }
+
             const result = await createOrder({
                 items: cartItems,
                 customer: customerDetails,
-                retailerId: selectedRetailerId!,
-                paymentMethod: paymentMethod === 'card' ? 'authorize_net' : (paymentMethod === 'cannpay' ? 'cannpay' : 'cash'),
+                retailerId: selectedRetailerId,
+                brandId,
+                couponCode: appliedCoupon?.code,
+                paymentMethod: paymentMethod === 'card' ? 'authorize_net' : 'cash',
                 paymentData,
                 total,
             });
 
             if (result.success) {
                 clearCart();
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('bakedbot_first_order_coupon');
+                }
                 router.push(`/order-confirmation/${result.orderId}`);
             } else {
                 toast({ variant: 'destructive', title: 'Order Failed', description: result.error });
@@ -113,9 +249,9 @@ export function CheckoutFlow() {
                         <CardDescription>Please verify your age to continue checkout.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button onClick={() => setVerified(false)} className="w-full">
-                            Verify Age
-                        </Button>
+                        <p className="text-sm text-muted-foreground">
+                            Complete the date-of-birth check below to continue.
+                        </p>
                     </CardContent>
                 </Card>
                 <AgeVerification onVerified={() => setVerified(true)} />
@@ -194,6 +330,67 @@ export function CheckoutFlow() {
                 <div className="space-y-6">
                     <Card>
                         <CardHeader>
+                            <CardTitle>Coupon Code</CardTitle>
+                            <CardDescription>Apply a valid promo code before placing your order.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <div className="flex gap-2">
+                                <Input
+                                    value={couponCode}
+                                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                                    placeholder="Enter coupon code"
+                                    disabled={loading || isApplyingCoupon}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleApplyCoupon}
+                                    disabled={loading || isApplyingCoupon || !couponCode.trim()}
+                                >
+                                    {isApplyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply'}
+                                </Button>
+                            </div>
+                            {appliedCoupon && (
+                                <div className="flex items-center justify-between rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm">
+                                    <span>
+                                        {appliedCoupon.code} applied (-${appliedCoupon.discountAmount.toFixed(2)})
+                                    </span>
+                                    <Button type="button" variant="ghost" size="sm" onClick={handleRemoveCoupon}>
+                                        Remove
+                                    </Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Order Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span>Subtotal</span>
+                                <span>${subtotal.toFixed(2)}</span>
+                            </div>
+                            {discount > 0 && (
+                                <div className="flex justify-between text-sm text-emerald-700">
+                                    <span>Discount</span>
+                                    <span>-${discount.toFixed(2)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between text-sm">
+                                <span>Tax</span>
+                                <span>${tax.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between border-t pt-2 text-base font-semibold">
+                                <span>Total</span>
+                                <span>${total.toFixed(2)}</span>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
                             <CardTitle>Payment Method</CardTitle>
                             <CardDescription>Choose how you'd like to pay.</CardDescription>
                         </CardHeader>
@@ -206,7 +403,7 @@ export function CheckoutFlow() {
                                             <RadioGroupItem value="cannpay" id="cannpay" />
                                             <Label htmlFor="cannpay" className="flex-1 cursor-pointer flex items-center gap-2">
                                                 <Smartphone className="h-4 w-4" />
-                                                Pay Online (SmokeyPay / CannPay)
+                                                Smokey Pay (Secure Checkout)
                                             </Label>
                                         </div>
                                         <div className="flex items-center space-x-2 border p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">

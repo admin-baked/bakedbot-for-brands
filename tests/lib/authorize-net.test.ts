@@ -38,7 +38,10 @@ describe('Authorize.Net Mock Fallback', () => {
         expect(result.success).toBe(true);
         expect(result.transactionId).toMatch(/^mock_tx_/);
         expect(result.message).toBe('Transaction approved (MOCK)');
-        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Using MOCK transaction for dev'));
+        expect(logger.warn).toHaveBeenCalledWith(
+            expect.stringContaining('Using MOCK transaction for non-production Authorize.net checkout'),
+            expect.any(Object)
+        );
     });
 
     it('should return error in production environment when credentials are missing', async () => {

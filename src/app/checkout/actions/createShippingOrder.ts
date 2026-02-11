@@ -26,12 +26,30 @@ type CreateShippingOrderInput = {
     brandId: string;
     paymentMethod: 'authorize_net';
     paymentData?: any;
+    subtotal?: number;
+    tax?: number;
     total: number;
 };
 
 export async function createShippingOrder(input: CreateShippingOrderInput) {
     try {
         const { firestore } = await createServerClient();
+        const calculatedSubtotal = input.items.reduce(
+            (sum, item) => sum + ((item.price || 0) * (item.quantity || 1)),
+            0
+        );
+        const calculatedTax = typeof input.tax === 'number' && input.tax >= 0
+            ? Number(input.tax.toFixed(2))
+            : Number((calculatedSubtotal * 0.15).toFixed(2));
+        const calculatedTotal = Number((calculatedSubtotal + calculatedTax).toFixed(2));
+
+        if (Math.abs(input.total - calculatedTotal) > 0.01) {
+            logger.warn('[ShippingOrder] Client total mismatch, using server-calculated total', {
+                clientTotal: input.total,
+                serverTotal: calculatedTotal,
+                brandId: input.brandId,
+            });
+        }
 
         // 1. Validate shipping state
         if (RESTRICTED_STATES.includes(input.shippingAddress.state)) {
@@ -53,7 +71,7 @@ export async function createShippingOrder(input: CreateShippingOrderInput) {
             const lastName = nameParts.slice(1).join(' ') || firstName;
 
             const paymentResult = await createTransaction({
-                amount: input.total,
+                amount: calculatedTotal,
                 opaqueData: input.paymentData.opaqueData,
                 cardNumber: input.paymentData.cardNumber,
                 expirationDate: input.paymentData.expirationDate,
@@ -106,10 +124,10 @@ export async function createShippingOrder(input: CreateShippingOrderInput) {
             brandId: input.brandId,
             retailerId: input.brandId, // For shipping orders, brand is the "retailer"
             totals: {
-                subtotal: input.total * 0.9, // Rough estimate (actual should come from cart)
-                tax: input.total * 0.1,
+                subtotal: calculatedSubtotal,
+                tax: calculatedTax,
                 shipping: 0, // Free shipping
-                total: input.total,
+                total: calculatedTotal,
             },
             transactionId,
             paymentMethod: 'credit_card',
@@ -139,7 +157,7 @@ export async function createShippingOrder(input: CreateShippingOrderInput) {
             orderId,
             customerName: input.customer.name,
             customerEmail: input.customer.email,
-            total: input.total,
+            total: calculatedTotal,
             items: input.items.map(i => ({
                 name: i.name,
                 qty: i.quantity || 1,

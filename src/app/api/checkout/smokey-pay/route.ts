@@ -5,6 +5,7 @@ import { createServerClient } from "@/firebase/server-client";
 import { FieldValue } from "firebase-admin/firestore";
 import { emitEvent } from "@/server/events/emitter";
 import { getUserFromRequest } from "@/server/auth/auth-helpers";
+import { authorizePayment, CANNPAY_TRANSACTION_FEE_CENTS } from "@/lib/payments/cannpay";
 
 import { logger } from '@/lib/logger';
 type CheckoutItem = {
@@ -31,7 +32,17 @@ interface SmokeyPayBody {
   tax: number;
   fees: number;
   total: number;
+  couponCode?: string;
   currency?: string;
+}
+
+function asDate(value: any): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value?.toDate === 'function') return value.toDate();
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 export async function POST(req: NextRequest) {
@@ -47,7 +58,9 @@ export async function POST(req: NextRequest) {
       !body.pickupLocationId ||
       !body.customer?.email ||
       !body.items?.length ||
-      !body.total
+      typeof body.total !== 'number' ||
+      !Number.isFinite(body.total) ||
+      body.total < 0
     ) {
       return NextResponse.json(
         { error: "Missing required fields for Smokey Pay checkout." },
@@ -69,16 +82,71 @@ export async function POST(req: NextRequest) {
     const currency = body.currency || "USD";
     const orgId = body.organizationId;
 
+    const itemsTotal = Number(body.items.reduce(
+      (acc, item) => acc + item.unitPrice * item.quantity,
+      0
+    ).toFixed(2));
+
+    let discount = 0;
+    let normalizedCouponCode: string | null = null;
+    if (body.couponCode?.trim()) {
+      normalizedCouponCode = body.couponCode.trim().toUpperCase();
+
+      const couponSnap = await db.collection('coupons')
+        .where('code', '==', normalizedCouponCode)
+        .where('brandId', '==', orgId)
+        .limit(1)
+        .get();
+
+      if (couponSnap.empty) {
+        return NextResponse.json({ error: 'This coupon code is not valid.' }, { status: 400 });
+      }
+
+      const couponDoc = couponSnap.docs[0];
+      const coupon = couponDoc.data();
+
+      if (coupon.active === false) {
+        return NextResponse.json({ error: 'This coupon is inactive.' }, { status: 400 });
+      }
+
+      const expiresAt = asDate(coupon.expiresAt);
+      if (expiresAt && expiresAt < new Date()) {
+        return NextResponse.json({ error: 'This coupon has expired.' }, { status: 400 });
+      }
+
+      if (coupon.maxUses && (coupon.uses || 0) >= coupon.maxUses) {
+        return NextResponse.json({ error: 'This coupon has reached its maximum number of uses.' }, { status: 400 });
+      }
+
+      if ((coupon.type !== 'fixed' && coupon.type !== 'percentage') || typeof coupon.value !== 'number' || coupon.value <= 0) {
+        return NextResponse.json({ error: 'This coupon has an invalid configuration.' }, { status: 400 });
+      }
+
+      if (coupon.type === 'fixed') {
+        discount = coupon.value;
+      } else {
+        discount = itemsTotal * (coupon.value / 100);
+      }
+      discount = Number(Math.min(discount, itemsTotal).toFixed(2));
+    }
+
+    const subtotal = Number(Math.max(0, itemsTotal - discount).toFixed(2));
+    const tax = Number((subtotal * 0.15).toFixed(2));
+    const fees = typeof body.fees === 'number' && body.fees >= 0 ? Number(body.fees.toFixed(2)) : 0;
+    const total = Number((subtotal + tax + fees).toFixed(2));
+
+    if (Math.abs(body.total - total) > 0.01) {
+      logger.warn('[SmokeyPay] Client total mismatch, using server-calculated total', {
+        clientTotal: body.total,
+        serverTotal: total,
+        organizationId: orgId,
+      });
+    }
+
     // 1) Create order doc in Firestore (pending)
     const orderRef = db
       .collection("orders")
       .doc();
-
-    const itemsTotal = body.items.reduce(
-      (acc, item) => acc + item.unitPrice * item.quantity,
-      0
-    );
-    const rawDiscount = itemsTotal - body.subtotal;
 
     const orderData = {
       brandId: orgId, // Denormalize brandId for easier queries
@@ -97,15 +165,15 @@ export async function POST(req: NextRequest) {
         price: i.unitPrice,
       })),
       totals: {
-        subtotal: body.subtotal,
-        tax: body.tax,
-        fees: body.fees,
-        total: body.total,
-        discount: rawDiscount > 0 ? rawDiscount : 0,
+        subtotal,
+        tax,
+        fees,
+        total,
+        discount,
       },
-      coupon: rawDiscount > 0 ? {
-        code: 'PROMO', // Placeholder
-        discount: rawDiscount
+      coupon: discount > 0 ? {
+        code: normalizedCouponCode || 'PROMO',
+        discount
       } : undefined,
       retailerId: body.pickupLocationId,
       createdAt: FieldValue.serverTimestamp(),
@@ -125,7 +193,7 @@ export async function POST(req: NextRequest) {
       agent: "smokey",
       refId: orderRef.id,
       data: {
-        total: body.total, currency, dispensaryId: body.dispensaryId,
+        total, currency, dispensaryId: body.dispensaryId,
         pickupLocationId: body.pickupLocationId, itemCount: body.items.length,
       },
     });
@@ -138,19 +206,51 @@ export async function POST(req: NextRequest) {
 
     if (isTestEnvironment) {
       const fakeIntentId = `pi_${Date.now()}`;
-      // Redirect to a non-existent but verifiable page for the test runner.
-      const fakeCheckoutUrl = "https://example.com/pay";
+      const fakeCheckoutUrl = `/order-confirmation/${orderRef.id}`;
 
       await orderRef.update({ paymentIntentId: fakeIntentId, updatedAt: FieldValue.serverTimestamp() });
 
-      await emitEvent({ orgId, type: 'checkout.intentCreated', agent: 'smokey', refId: orderRef.id, data: { intentId: fakeIntentId, checkoutUrl: fakeCheckoutUrl, total: body.total } });
+      await emitEvent({ orgId, type: 'checkout.intentCreated', agent: 'smokey', refId: orderRef.id, data: { intentId: fakeIntentId, checkoutUrl: fakeCheckoutUrl, total } });
 
       return NextResponse.json({ success: true, orderId: orderRef.id, intentId: fakeIntentId, checkoutUrl: fakeCheckoutUrl });
     }
 
-    // --- REAL AUTHORIZE.NET LOGIC WOULD GO HERE ---
-    // This part is now effectively skipped in non-production environments.
-    return NextResponse.json({ error: "Live payment processing is not enabled in this environment." }, { status: 501 });
+    const authResult = await authorizePayment({
+      amount: Math.round(total * 100),
+      deliveryFee: CANNPAY_TRANSACTION_FEE_CENTS,
+      merchantOrderId: orderRef.id,
+      passthrough: JSON.stringify({
+        orderId: orderRef.id,
+        organizationId: orgId,
+        customerEmail: body.customer.email,
+      }),
+      returnConsumerGivenTipAmount: true,
+    });
+
+    await orderRef.update({
+      paymentIntentId: authResult.intent_id,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    await emitEvent({
+      orgId,
+      type: 'checkout.intentCreated',
+      agent: 'smokey',
+      refId: orderRef.id,
+      data: {
+        intentId: authResult.intent_id,
+        checkoutUrl: authResult.widget_url,
+        total,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      orderId: orderRef.id,
+      intentId: authResult.intent_id,
+      checkoutUrl: authResult.widget_url,
+      expiresAt: authResult.expires_at,
+    });
 
 
   } catch (err: any) {

@@ -7,10 +7,15 @@
 import { logger } from '@/lib/logger';
 
 function getConfig() {
+    const authnetEnv = (process.env.AUTHNET_ENV || '').toLowerCase();
+    const nodeEnv = (process.env.NODE_ENV || '').toLowerCase();
+
     return {
         API_LOGIN_ID: process.env.AUTHNET_API_LOGIN_ID,
         TRANSACTION_KEY: process.env.AUTHNET_TRANSACTION_KEY,
-        IS_PRODUCTION: process.env.AUTHNET_ENV === 'production',
+        AUTHNET_ENV: authnetEnv || 'sandbox',
+        IS_PRODUCTION: authnetEnv === 'production' || nodeEnv === 'production',
+        FORCE_MOCK: process.env.AUTHNET_FORCE_MOCK === 'true',
     };
 }
 
@@ -54,26 +59,30 @@ export type PaymentResponse = {
  * Create a transaction (Auth & Capture)
  */
 export async function createTransaction(payment: PaymentRequest): Promise<PaymentResponse> {
-    const { API_LOGIN_ID, TRANSACTION_KEY, IS_PRODUCTION } = getConfig();
+    const { API_LOGIN_ID, TRANSACTION_KEY, IS_PRODUCTION, AUTHNET_ENV, FORCE_MOCK } = getConfig();
+    const hasCredentials = !!(API_LOGIN_ID && TRANSACTION_KEY);
 
-    // Force MOCK transactions in sandbox/test mode to avoid invalid credential issues
-    if (!IS_PRODUCTION) {
-        logger.warn('Authorize.net sandbox mode - Using MOCK transaction', {
+    const shouldMock = FORCE_MOCK || (!IS_PRODUCTION && !hasCredentials);
+
+    // Never allow mock transactions in production.
+    if (shouldMock && !IS_PRODUCTION) {
+        logger.warn('Using MOCK transaction for non-production Authorize.net checkout', {
             nodeEnv: process.env.NODE_ENV,
-            authnetEnv: process.env.AUTHNET_ENV,
+            authnetEnv: AUTHNET_ENV,
             amount: payment.amount,
-            hasCredentials: !!(API_LOGIN_ID && TRANSACTION_KEY)
+            hasCredentials,
+            forced: FORCE_MOCK,
         });
         await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network delay
         return {
             success: true,
             transactionId: `mock_tx_${Date.now()}`,
-            message: 'Transaction approved (MOCK - sandbox mode)',
+            message: 'Transaction approved (MOCK)',
         };
     }
 
-    if (!API_LOGIN_ID || !TRANSACTION_KEY) {
-        logger.error('Authorize.net credentials missing in production');
+    if (!hasCredentials) {
+        logger.error('Authorize.net credentials missing');
         return {
             success: false,
             message: 'Payment configuration error',

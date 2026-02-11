@@ -151,6 +151,10 @@ export function CheckoutForm({ onOrderSuccess, selectedRetailer, couponCode }: C
 
         if (result.ok && result.orderId) {
           clearCart();
+          if (result.checkoutUrl) {
+            window.location.assign(result.checkoutUrl);
+            return;
+          }
           onOrderSuccess(result.orderId, result.userId);
         } else {
           toast({ variant: 'destructive', title: 'Order Submission Failed', description: result.error || 'Could not submit order. Please try again.' });
