@@ -246,7 +246,8 @@
       "Bash(gcloud builds submit:*)",
       "Bash(gcloud artifacts repositories create:*)",
       "Bash(npx tsx dev/seed-training.ts)",
-      "Bash(git check-ignore:*)"
+      "Bash(git check-ignore:*)",
+      "Bash(npm run compile:*)"
     ],
     "deny": [],
     "ask": []
