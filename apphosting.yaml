@@ -254,7 +254,7 @@ runConfig:
   maxInstances: 10
   concurrency: 80
   cpu: 1
-  memoryMiB: 512
+  memoryMiB: 2048  # Increased from 512MB - Next.js + AI features need more memory
 
 build:
   installCommand: npm install --legacy-peer-deps
