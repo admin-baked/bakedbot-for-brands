@@ -218,6 +218,131 @@ export async function allocateSubdomain(
 }
 
 /**
+ * Verify custom domain ownership
+ */
+export async function verifyCustomDomain(
+  domain: string,
+  userId: string
+): Promise<{ verified: boolean; error?: string }> {
+  try {
+    logger.info('[VIBE-DEPLOY] Verifying custom domain', { domain, userId });
+
+    // Generate verification token
+    const verificationToken = `bakedbot-verify-${userId}-${Date.now()}`;
+
+    // Store verification request
+    const { getAdminFirestore } = await import('@/firebase/admin');
+    const db = getAdminFirestore();
+
+    await db.collection('vibe_domain_verifications').add({
+      domain,
+      userId,
+      verificationToken,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    });
+
+    // In production, this would check for a TXT record or meta tag
+    // For now, return instructions
+    logger.info('[VIBE-DEPLOY] Domain verification initiated', { domain });
+
+    return {
+      verified: false,
+      error: `Please add this TXT record to ${domain}:\n\nName: _bakedbot-verify\nValue: ${verificationToken}\n\nThen click "Verify" again.`,
+    };
+  } catch (error) {
+    logger.error('[VIBE-DEPLOY] Domain verification failed', { error });
+    return {
+      verified: false,
+      error: 'Failed to initiate domain verification',
+    };
+  }
+}
+
+/**
+ * Configure custom domain for deployment
+ */
+export async function configureCustomDomain(
+  projectId: string,
+  domain: string,
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    logger.info('[VIBE-DEPLOY] Configuring custom domain', {
+      projectId,
+      domain,
+      userId,
+    });
+
+    // Verify domain is verified
+    const { getAdminFirestore } = await import('@/firebase/admin');
+    const db = getAdminFirestore();
+
+    const verificationQuery = await db
+      .collection('vibe_domain_verifications')
+      .where('domain', '==', domain)
+      .where('userId', '==', userId)
+      .where('status', '==', 'verified')
+      .limit(1)
+      .get();
+
+    if (verificationQuery.empty) {
+      return {
+        success: false,
+        error: 'Domain not verified. Please verify domain ownership first.',
+      };
+    }
+
+    // Update deployment with custom domain
+    await db
+      .collection('vibe_deployments')
+      .where('projectId', '==', projectId)
+      .where('userId', '==', userId)
+      .limit(1)
+      .get()
+      .then((snapshot) => {
+        if (!snapshot.empty) {
+          snapshot.docs[0].ref.update({
+            customDomain: domain,
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      });
+
+    logger.info('[VIBE-DEPLOY] Custom domain configured', { projectId, domain });
+
+    return { success: true };
+  } catch (error) {
+    logger.error('[VIBE-DEPLOY] Custom domain configuration failed', { error });
+    return {
+      success: false,
+      error: 'Failed to configure custom domain',
+    };
+  }
+}
+
+/**
+ * Get DNS configuration instructions for custom domain
+ */
+export function getDNSInstructions(
+  domain: string,
+  subdomain: string
+): { type: string; name: string; value: string }[] {
+  return [
+    {
+      type: 'CNAME',
+      name: domain.startsWith('www.') ? 'www' : '@',
+      value: `${subdomain}.bakedbot.ai`,
+    },
+    {
+      type: 'TXT',
+      name: '_bakedbot-verify',
+      value: `bakedbot-site-verification`,
+    },
+  ];
+}
+
+/**
  * Simpler alternative: Export as .zip with deployment instructions
  * (Fallback if automated deployment is too complex)
  */
