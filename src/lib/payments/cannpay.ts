@@ -78,11 +78,11 @@ export interface TransactionReversalRequest {
 // Configuration
 // ============================================================================
 
-const SANDBOX_BASE_URL = 'https://sandbox-api.canpayapp.com';
-const LIVE_BASE_URL = 'https://api.canpayapp.com';
+const SANDBOX_BASE_URL = 'https://sandbox-api.canpaydebit.com';
+const LIVE_BASE_URL = 'https://api.canpaydebit.com';
 
-const SANDBOX_WIDGET_URL = 'https://sandbox-widget.canpayapp.com';
-const LIVE_WIDGET_URL = 'https://widget.canpayapp.com';
+const SANDBOX_WIDGET_URL = 'https://sandbox-remotepay.canpaydebit.com';
+const LIVE_WIDGET_URL = 'https://remotepay.canpaydebit.com';
 
 /**
  * Get CannPay configuration from environment variables

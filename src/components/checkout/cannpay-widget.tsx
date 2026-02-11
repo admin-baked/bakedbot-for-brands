@@ -57,14 +57,26 @@ export interface CannPayErrorResult {
 }
 
 // Extend window interface for CannPay global functions
+// Official API: canpay.init(config) - lowercase 'canpay'
 declare global {
   interface Window {
-    CannPay?: {
+    canpay?: {
       init: (config: {
         intent_id: string;
-        onSuccess: (result: any) => void;
-        onError: (error: any) => void;
-        onCancel: () => void;
+        amount?: string;
+        tip_amount?: string;
+        delivery_fee?: string;
+        split_funding_merchant_id?: string;
+        merchant_order_id?: string;
+        passthrough?: any;
+        is_guest?: string;
+        need_modification_url?: string;
+        return_consumer_given_tip_amount?: string;
+        auth_id?: string;
+        login_callback?: (response: any) => void;
+        link_callback?: (response: any) => void;
+        processed_callback: (response: any) => void;
+        intentId_validation_callback?: (response: any) => void;
       }) => void;
     };
   }
@@ -91,7 +103,7 @@ export function CannPayWidget({
 
     // Load CannPay widget script from CDN
     const script = document.createElement('script');
-    script.src = `${widgetUrl}/widget.js`;
+    script.src = `${widgetUrl}/cp-min.js`;
     script.async = true;
 
     script.onload = () => {
@@ -116,33 +128,66 @@ export function CannPayWidget({
   }, [intentId, widgetUrl]);
 
   function initializeWidget() {
-    if (!window.CannPay) {
+    if (!window.canpay) {
       setLoadError('Payment widget not available. Please refresh the page.');
       return;
     }
 
     try {
-      window.CannPay.init({
+      // Official CannPay API initialization per v1.4.0-dev spec
+      window.canpay.init({
         intent_id: intentId,
-        onSuccess: (result: any) => {
-          onSuccess({
-            status: result.status,
-            transactionNumber: result.transaction_number,
-            amount: result.amount,
-            tipAmount: result.tip_amount,
-            deliveryFee: result.delivery_fee,
-            intentId: result.intent_id,
-          });
+        is_guest: 'true', // Guest checkout for now
+
+        // processed_callback: Called when payment is complete
+        // Response contains: { response: "<JSON>", signature: "<HMAC-SHA256>" }
+        processed_callback: (response: any) => {
+          // Per spec: response and signature must be verified server-side
+          // before processing to prevent fraud
+          console.log('[CannPay Widget] Payment processed:', response);
+
+          try {
+            // Parse the response JSON string
+            const paymentData = JSON.parse(response.response);
+
+            // Call success callback with parsed data
+            // NOTE: Signature verification should happen server-side!
+            onSuccess({
+              status: 'Success',
+              transactionNumber: paymentData.canpay_transaction_number,
+              amount: paymentData.amount,
+              tipAmount: paymentData.tip_amount,
+              deliveryFee: paymentData.delivery_fee,
+              intentId: paymentData.intent_id,
+            });
+          } catch (error) {
+            console.error('[CannPay Widget] Failed to parse payment response:', error);
+            onError({
+              status: 'Failed',
+              message: 'Failed to process payment response',
+              intentId,
+            });
+          }
         },
-        onError: (error: any) => {
+
+        // intentId_validation_callback: Called when intent ID validation fails
+        intentId_validation_callback: (response: any) => {
+          console.error('[CannPay Widget] Intent ID validation failed:', response);
           onError({
-            status: error.status,
-            message: error.message || 'Payment failed',
-            intentId: error.intent_id || intentId,
+            status: 'Failed',
+            message: response.message || 'Invalid payment session',
+            intentId,
           });
         },
-        onCancel: () => {
-          onCancel();
+
+        // login_callback: Called when login fails (optional)
+        login_callback: (response: any) => {
+          console.error('[CannPay Widget] Login failed:', response);
+          onError({
+            status: 'Failed',
+            message: response.message || 'Login failed',
+            intentId,
+          });
         },
       });
     } catch (error) {
