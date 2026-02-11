@@ -19,11 +19,135 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-02-09)
+**Current Status:** 🟢 Passing (verified 2026-02-11)
 
 ---
 
 ## 🆕 Recent Updates
+
+### Cannabis Profitability Intelligence (2026-02-11)
+**Status:** ✅ Production-ready with 66 unit tests
+
+Comprehensive financial analytics dashboard for cannabis dispensaries, addressing 280E tax compliance, NY-specific cannabis taxes, price compression modeling, and working capital management.
+
+**Architecture:**
+```
+/dashboard/profitability (4-tab UI)
+    ↓
+280E Tax | NY Tax | Benchmarks | Working Capital
+    ↓
+Server Actions → Tax Calculation Services → Money Mike Tools
+```
+
+**Key Features:**
+- **280E Tax Mitigation**: COGS breakdown (direct/indirect), absorption costing, cash vs paper profit analysis
+- **NY Cannabis Tax**: Potency tax calculator ($0.005-$0.03/mg THC) + 13% state sales tax
+- **Industry Benchmarks**: Revenue/sq ft, revenue/employee, gross margin, inventory turnover
+- **GTI Rule (Price Compression)**: If prices drop X%, volume must increase X/(1-X) to maintain revenue
+- **Working Capital Analysis**: Current/quick ratios, runway months, liquidity risk assessment
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/types/cannabis-tax.ts` | Types, constants, benchmarks (280E, NY tax, GTI rule) |
+| `src/server/services/cannabis-tax.ts` | Tax calculation engine (~700 lines) |
+| `src/server/actions/profitability.ts` | Server actions + Thrive-specific endpoint |
+| `src/server/tools/profitability-tools.ts` | 5 Money Mike agent tools |
+| `src/app/dashboard/profitability/` | Dashboard page + 4-tab UI component |
+| `src/components/dashboard/dispensary-sidebar.tsx` | Added Profitability link (Intelligence section) |
+
+**Money Mike Integration:**
+5 new tools added to Money Mike agent:
+- `analyze280ETax` - 280E liability, COGS breakdown, optimization suggestions
+- `calculateNYCannabsTax` - NY potency tax + sales tax analysis
+- `getProfitabilityMetrics` - Gross margin, benchmarks, category performance
+- `analyzePriceCompression` - GTI Rule scenarios for price drops
+- `analyzeWorkingCapital` - Liquidity, runway, banking fees
+
+**Thrive Syracuse Config:**
+Pre-configured with:
+- 3,500 sq ft facility, 12 employees
+- Onondaga County, NY
+- 35% rent allocation for COGS
+- $1,800/month banking fees
+- 45% tax reserve target
+
+**Testing:**
+- 66 unit tests across 3 test files
+- Tests cover: expense classification, NY tax calculations, GTI rule, benchmarks, server actions, tool executor
+
+**Firestore Collections:**
+- `tenants/{id}/expenses` - 280E expense tracking with allocation percentages
+- `tenants/{id}/settings/tax_config` - Tenant-specific tax configuration
+
+---
+
+### Heartbeat System - Proactive Agent Monitoring (2026-02-11)
+**Status:** ✅ Production-ready with playbook monitoring
+
+Proactive monitoring system that runs scheduled checks and dispatches notifications. Inspired by OpenClaw's "alive" feeling - time produces events, agents respond proactively.
+
+**Architecture:**
+```
+Cloud Scheduler (5-min cron) → Heartbeat Service → Role-specific Checks → Multi-channel Notifier
+                                      ↓
+                    Agent Bus + Letta Memory + Sleep-Time Integration
+```
+
+**Key Features:**
+- **Role-based Checks**: super_user (30min), dispensary (15min), brand (60min)
+- **Playbook Monitoring**: 5 checks for scheduled/failed/stalled/pending/upcoming playbooks
+- **Multi-channel Notifications**: dashboard, email, SMS, WhatsApp, push (planned)
+- **Smart Scheduling**: Active hours, quiet hours, suppressAllClear, priority overrides
+- **Hive Mind Integration**: Connects to Agent Bus and Letta Memory for context
+
+**Check Categories:**
+- **Super User**: system_errors, deployment_status, new_signups, churn_risk, leads, gmail, calendar
+- **Dispensary**: low_stock, expiring_batches, margins, competitors, at_risk_customers, birthdays, license_expiry, pos_sync
+- **Brand**: content_pending, campaign_performance, competitor_launches, partner_performance, seo_rankings, traffic
+- **Playbooks**: scheduled_playbooks_due, failed_playbooks, stalled_playbook_executions, pending_playbook_approvals, upcoming_playbooks
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/types/heartbeat.ts` | Types, check definitions, default configs (621 lines) |
+| `src/server/services/heartbeat/index.ts` | Main service, executeHeartbeat() (515 lines) |
+| `src/server/services/heartbeat/checks/playbooks.ts` | Playbook monitoring checks (441 lines) |
+| `src/server/services/heartbeat/checks/super-user.ts` | Super user checks (449 lines) |
+| `src/server/services/heartbeat/checks/dispensary.ts` | Dispensary checks (782 lines) |
+| `src/server/services/heartbeat/checks/brand.ts` | Brand checks (582 lines) |
+| `src/server/services/heartbeat/notifier.ts` | Multi-channel notification dispatcher (292 lines) |
+| `src/server/services/heartbeat/hive-mind-integration.ts` | Agent Bus + Letta integration (340 lines) |
+| `src/app/api/cron/heartbeat/route.ts` | Cron endpoint for Cloud Scheduler (107 lines) |
+| `src/server/actions/heartbeat.ts` | Server actions for dashboard UI (363 lines) |
+
+**Deploy Cron:**
+```bash
+gcloud scheduler jobs create http heartbeat-cron \
+  --schedule="*/5 * * * *" \
+  --uri="https://bakedbot.ai/api/cron/heartbeat"
+```
+
+**Firestore:**
+- `tenants/{id}/settings/heartbeat` - Tenant-level heartbeat config
+- `heartbeat_executions` - Execution history and analytics
+- `heartbeat_notifications` - Notification log with delivery status
+
+**Type Fixes in This Session:**
+Fixed multiple pre-existing TypeScript errors to ensure build health:
+- `src/server/tools/whatsapp-tool.ts` - Proper ToolError construction, fixed logger.error typing
+- `src/server/agents/openclaw.ts` - ClaudeResult interface (`content` not `text`, `toolExecutions` not `toolCalls`), executeWithTools signature
+- `src/server/agents/agent-runner.ts` - Fixed isPaidUser declaration order
+- `src/app/api/certificates/[certificateId]/route.ts` - Next.js 15 Promise params
+- `src/app/api/webhooks/agent/[id]/route.ts` - Next.js 15 Promise params
+
+**Key Learnings:**
+- Next.js 15: Route params are now Promises - must `await params` before destructuring
+- Claude SDK: ClaudeResult uses `content` and `toolExecutions` (not `text` and `toolCalls`)
+- executeWithTools: Takes positional args `(prompt, tools, executor, context)` not object-based call
+- Logger typing: Second argument expects `Record<string, any>` not `unknown`
+
+---
 
 ### BakedBot Drive - File Storage System (2026-02-09)
 **Status:** ✅ Production-ready with full sharing capabilities
