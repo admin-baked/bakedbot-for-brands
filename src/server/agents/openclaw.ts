@@ -17,12 +17,27 @@
 
 import { executeWithTools, isClaudeAvailable, ClaudeTool, ClaudeResult } from '@/ai/claude';
 import { z } from 'zod';
-import { AgentImplementation } from './harness';
 import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { browserService } from '../services/browser-service';
 import { browserToolDefs } from '../tools/browser-tools';
 import { getAdminFirestore } from '@/firebase/admin';
+
+/**
+ * OpenClaw Agent Interface
+ * Different from harness AgentImplementation - this is a standalone agent
+ */
+interface OpenClawAgent {
+    id: string;
+    name: string;
+    description: string;
+    icon: string;
+    process(input: string, context: {
+        tenantId?: string;
+        userId?: string;
+        memory?: AgentMemory;
+    }): Promise<ClaudeResult>;
+}
 
 // ============================================================================
 // OPENCLAW TOOLS
@@ -396,9 +411,9 @@ async function executeOpenClawTool(
             }
 
             case 'browse_url': {
-                const { rtrvrService } = await import('@/server/services/rtrvr');
+                const { isRTRVRAvailable, summarizeUrl } = await import('@/server/services/rtrvr');
 
-                if (!rtrvrService.isAvailable()) {
+                if (!isRTRVRAvailable()) {
                     // Fallback to simple fetch
                     const response = await fetch(toolInput.url as string);
                     const text = await response.text();
@@ -410,13 +425,27 @@ async function executeOpenClawTool(
                     });
                 }
 
-                const result = await rtrvrService.navigateAndExtract({
-                    url: toolInput.url as string,
-                    extractSelector: toolInput.extractSelector as string,
-                    screenshot: toolInput.screenshot as boolean
-                });
+                // Use RTRVR to summarize the URL
+                const rtrvrResult = await summarizeUrl(toolInput.url as string);
 
-                return JSON.stringify(result);
+                if (!rtrvrResult.success || !rtrvrResult.data) {
+                    return JSON.stringify({
+                        success: false,
+                        url: toolInput.url,
+                        error: rtrvrResult.error || 'Failed to fetch URL'
+                    });
+                }
+
+                // Extract content from AgentResult
+                const agentResult = rtrvrResult.data;
+                const textOutput = agentResult.output?.find(o => o.type === 'text');
+
+                return JSON.stringify({
+                    success: true,
+                    url: toolInput.url,
+                    content: textOutput?.content || JSON.stringify(agentResult.result) || 'No content extracted',
+                    method: 'rtrvr'
+                });
             }
 
             case 'web_search': {
@@ -607,7 +636,7 @@ You are the agent that actually DOES things. When users say "send a message" or 
 // AGENT IMPLEMENTATION
 // ============================================================================
 
-export const openclawAgent: AgentImplementation = {
+export const openclawAgent: OpenClawAgent = {
     id: 'openclaw',
     name: 'OpenClaw',
     description: 'Autonomous AI agent that gets work done. Multi-channel communication, browser automation, task execution.',
@@ -625,9 +654,11 @@ export const openclawAgent: AgentImplementation = {
 
         if (!isClaudeAvailable()) {
             return {
-                text: "I'm OpenClaw, your autonomous AI agent. However, my AI backend (Claude) is not configured. Please set up the CLAUDE_API_KEY.",
-                toolCalls: [],
-                model: 'unavailable'
+                content: "I'm OpenClaw, your autonomous AI agent. However, my AI backend (Claude) is not configured. Please set up the CLAUDE_API_KEY.",
+                toolExecutions: [],
+                model: 'unavailable',
+                inputTokens: 0,
+                outputTokens: 0
             };
         }
 
@@ -636,18 +667,19 @@ export const openclawAgent: AgentImplementation = {
             ? `\n\nCurrent context: Tenant ${context.tenantId}, User ${context.userId || 'unknown'}`
             : '';
 
-        const result = await executeWithTools({
-            prompt: input,
-            systemPrompt: OPENCLAW_SYSTEM_PROMPT + contextInfo,
-            tools: openclawTools,
-            maxTokens: 4000,
-            onToolCall: async (toolName, toolInput) => {
+        const fullPrompt = `${OPENCLAW_SYSTEM_PROMPT}${contextInfo}\n\nUser request: ${input}`;
+
+        const result = await executeWithTools(
+            fullPrompt,
+            openclawTools,
+            async (toolName: string, toolInput: Record<string, unknown>) => {
                 return executeOpenClawTool(toolName, toolInput, context);
-            }
-        });
+            },
+            { maxIterations: 10 }
+        );
 
         logger.info('[OpenClaw] Request completed', {
-            toolCalls: result.toolCalls?.length || 0
+            toolExecutions: result.toolExecutions?.length || 0
         });
 
         return result;
