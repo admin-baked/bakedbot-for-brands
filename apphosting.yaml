@@ -2,9 +2,9 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 env:
-  # Build-time memory allocation - reduced for Cloud Build compatibility
+  # Build-time memory allocation - reduced for Cloud Build compatibility (2GB to avoid OOM)
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=3072"
+    value: "--max-old-space-size=2048"
     availability: [ BUILD ]
   # Runtime memory allocation - can be higher since we control runtime resources
   - variable: NODE_OPTIONS
