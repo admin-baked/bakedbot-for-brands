@@ -1,0 +1,529 @@
+# Completeness Doctrine
+
+Ensure your AI agents answer every user question—BakedBot Intelligence automatically extracts all intents from user messages and verifies each one is addressed in agent responses.
+
+## What is the Completeness Doctrine?
+
+**Completeness means agents address all user intents, not just the primary question:**
+- 🎯 **Intent Extraction** - AI identifies every question, request, or concern in user message
+- ✅ **Coverage Verification** - Checks if agent response addresses each extracted intent
+- 📊 **Completeness Scoring** - 0-100% score based on intents covered vs missed
+- 🔍 **Missed Intent Detection** - Flags unanswered questions for follow-up
+- 📈 **Trend Analysis** - Track completeness over time (7-day rolling average)
+- 💬 **Auto-Completion** - Optionally generate follow-up for missed intents (disabled by default)
+
+<Callout type="success">
+**Result:** Users get complete answers, fewer follow-up questions, higher satisfaction, better agent performance.
+</Callout>
+
+## Why Completeness Matters
+
+### The Problem: Multi-Intent Messages
+
+**Users often ask multiple questions in one message:**
+
+**Example 1: Customer Query**
+```
+"What's the best strain for sleep? Also, do you have any deals
+this week? And what are your store hours on Sunday?"
+```
+
+**3 intents:**
+1. Product recommendation (sleep strain)
+2. Current promotions
+3. Store hours (specifically Sunday)
+
+**Without completeness checking:**
+- Agent might only answer #1 (primary intent)
+- User has to ask #2 and #3 separately (poor UX)
+- Leads to frustration, longer conversations
+
+**Example 2: Strategic Question**
+```
+"What's our market position on pricing for pre-rolls? How does
+that compare to competitors? Should we adjust?"
+```
+
+**3 intents:**
+1. Current pricing analysis
+2. Competitive benchmarking
+3. Strategic recommendation
+
+**Without completeness checking:**
+- Agent might provide pricing data (#1) but skip comparison (#2) and recommendation (#3)
+- Decision-maker left with incomplete information
+- Requires follow-up questions
+
+<Callout type="warning">
+**Industry average:** AI agents miss 30-40% of secondary intents in multi-question messages. BakedBot aims for >95% completeness.
+</Callout>
+
+## How It Works
+
+### Step 1: Intent Extraction
+
+**When user sends message, AI analyzes for all intents:**
+
+**Prompt sent to Claude:**
+```
+Extract all distinct user intents from this message. For each intent:
+- text: The question or request
+- type: question, request, command, statement
+- priority: primary, secondary, tertiary
+- requiresResponse: true if agent must address it
+
+Message: [user input]
+
+Respond with JSON array of intents.
+```
+
+**Example:**
+```
+Input: "What's the best indica for sleep? Do you deliver?"
+
+Output:
+[
+  {
+    "text": "What's the best indica for sleep?",
+    "type": "question",
+    "priority": "primary",
+    "requiresResponse": true
+  },
+  {
+    "text": "Do you deliver?",
+    "type": "question",
+    "priority": "secondary",
+    "requiresResponse": true
+  }
+]
+```
+
+**Intent types:**
+- **Question:** Seeking information ("What's your return policy?")
+- **Request:** Asking for action ("Show me sativa strains under $40")
+- **Command:** Directive ("Add this to cart")
+- **Statement:** Declarative (may not require response)
+
+**Priority levels:**
+- **Primary:** Main question (usually first or longest)
+- **Secondary:** Follow-up questions
+- **Tertiary:** Nice-to-have clarifications
+
+<Callout type="info">
+**Performance:** Intent extraction takes ~1-2 seconds using Claude Sonnet 4. Runs in parallel with agent processing—no added latency.
+</Callout>
+
+### Step 2: Agent Response
+
+**Agent processes message and generates response:**
+
+```
+User: "What's the best indica for sleep? Do you deliver?"
+
+Agent (Smokey):
+"For sleep, I highly recommend Northern Lights or Granddaddy Purple.
+Both are classic indicas known for sedative effects. Northern Lights
+is available now at $45/eighth. We offer delivery within 10 miles—
+just add items to cart and select 'Delivery' at checkout!"
+```
+
+### Step 3: Coverage Verification
+
+**AI checks if agent response addresses each intent:**
+
+**Prompt sent to Claude:**
+```
+Given these user intents and the agent's response, determine which
+intents were addressed.
+
+Intents:
+[list of extracted intents]
+
+Response:
+[agent response text]
+
+Return JSON:
+{
+  "covered": [array of intent indexes addressed],
+  "missed": [array of intent indexes NOT addressed],
+  "explanation": "Brief reasoning"
+}
+```
+
+**Example:**
+```
+Intents:
+[0] "What's the best indica for sleep?"
+[1] "Do you deliver?"
+
+Response: [agent response above]
+
+Output:
+{
+  "covered": [0, 1],
+  "missed": [],
+  "explanation": "Both intents addressed: recommended Northern Lights
+                  and Granddaddy Purple for sleep (#0), confirmed delivery
+                  available within 10 miles (#1)"
+}
+```
+
+### Step 4: Completeness Scoring
+
+**Calculate score:**
+```
+Completeness Score = Intents Covered / Total Intents
+
+Example:
+2 covered / 2 total = 1.0 (100%)
+```
+
+**Score interpretation:**
+- **100%** - All intents addressed (perfect)
+- **90-99%** - Minor intent missed (usually tertiary)
+- **70-89%** - Secondary intent missed (needs improvement)
+- **<70%** - Primary or multiple intents missed (poor)
+
+**Priority weighting (optional):**
+```
+Weighted Score = (Primary * 0.5) + (Secondary * 0.3) + (Tertiary * 0.2)
+
+Example: Miss tertiary intent but cover primary + secondary = 0.8 (80%)
+```
+
+<Callout type="tip">
+**Thresholds:** Completeness <80% triggers alert. <70% flags for manual review.
+</Callout>
+
+### Step 5: Logging & Trending
+
+**Each completeness check logged to Firestore:**
+
+```json
+{
+  "tenantId": "org_example",
+  "agentId": "smokey",
+  "timestamp": "2026-02-11T14:45:23Z",
+  "intents": [
+    { "text": "Best indica for sleep?", "priority": "primary", "covered": true },
+    { "text": "Do you deliver?", "priority": "secondary", "covered": true }
+  ],
+  "completenessScore": 1.0,
+  "allIntentsCovered": true,
+  "missedIntents": [],
+  "responseConfidence": 0.87
+}
+```
+
+**Analytics available:**
+- 7-day rolling average completeness
+- By agent (which agents have low completeness?)
+- By intent type (do agents struggle with specific question types?)
+- Trend over time (improving or declining?)
+
+## Using the Completeness Dashboard
+
+**Access:** CEO Dashboard → MERIDIAN tab → Completeness section
+
+### Overview
+
+**System-wide metrics (last 7 days):**
+- **Average Completeness:** Mean score across all agents
+- **Total Checks:** Number of multi-intent messages analyzed
+- **Perfect Scores:** % of 100% completeness responses
+- **Low Scores:** Count of <70% completeness
+
+**By agent:**
+- Agent name + completeness badge (color-coded)
+- 7-day average
+- Trend (↑ improving, ↓ declining, → stable)
+- Most common missed intent types
+
+### Agent Details
+
+**Select agent to view:**
+
+**Completeness Trend (30 days):**
+- Line chart showing daily average
+- Identify drops (new feature? integration issue?)
+- Seasonal patterns (holiday rush = lower completeness?)
+
+**Intent Coverage Breakdown:**
+- Pie chart: Primary/Secondary/Tertiary coverage
+- Bar chart: Coverage by intent type (question/request/command)
+- Table: Most frequently missed intents
+
+**Recent Low-Completeness Responses:**
+- Timestamp
+- User message (anonymized)
+- Intents extracted
+- Which intents were missed
+- Agent response (what was missing?)
+- Link to conversation (for context)
+
+### Missed Intent Analysis
+
+**Drill down on specific missed intents:**
+
+**Top missed intents (last 30 days):**
+1. "Do you deliver?" (missed 23 times)
+2. "What's your return policy?" (missed 18 times)
+3. "Are you hiring?" (missed 12 times)
+
+**For each:**
+- Count (how often missed)
+- Agents involved (which agents miss it most?)
+- Context (what else was user asking?)
+- Fix recommendations
+
+**Actions:**
+- Update **Ground Truth** with authoritative answer
+- Modify **Agent Prompt** to prioritize this intent
+- Add **Quick Action** for common queries
+
+### Completeness Logs
+
+**Full audit trail:**
+- Timestamp
+- User (anonymized if not super user)
+- Agent
+- Intents (count)
+- Score
+- Covered/Missed breakdown
+
+**Filters:**
+- Date range
+- Agent
+- Score threshold (<70%, <80%, etc.)
+- Intent type
+
+**Export:**
+- CSV download for analysis
+- Share with team for training
+
+## Improving Completeness
+
+### 1. **Update Ground Truth**
+
+**Most common cause of missed intents: Agent doesn't know answer.**
+
+**Fix:**
+1. Identify frequently missed intents (e.g., "Do you deliver?")
+2. Add authoritative fact to Ground Truth:
+   ```
+   Q: Do you deliver?
+   A: Yes, we offer delivery within 10 miles of [address] for orders $50+.
+      Delivery fee: $5. Available 7 days/week, 12pm-8pm.
+   ```
+3. Sync Ground Truth to agents
+4. Monitor completeness improvement
+
+<Callout type="info">
+**Ground Truth location:** Firestore → `ground_truth_v2/[roleId]` or tenant-specific overrides.
+</Callout>
+
+### 2. **Modify Agent Prompts**
+
+**If agent consistently misses secondary intents, adjust prompt:**
+
+**Example: Smokey missing delivery questions**
+
+**Before (implied):**
+```
+Recommend products based on user preferences.
+```
+
+**After (explicit):**
+```
+Recommend products based on user preferences. If user asks multiple
+questions (e.g., delivery, hours, policies), address ALL questions
+in your response, even if secondary.
+```
+
+**How to update:**
+1. CEO Dashboard → MERIDIAN → LiveHud → Select agent
+2. Scroll to **Personality Mode** section
+3. Add custom system prompt modifier (super user only)
+4. Save and test
+
+### 3. **Create Quick Actions**
+
+**For very common secondary intents, create Quick Actions:**
+
+**Example: "Do you deliver?"**
+1. Create Quick Action: "Delivery Info"
+2. Agent auto-suggests when delivery-related keywords detected
+3. User clicks → Full delivery policy displayed
+
+**How to create:**
+1. Dashboard → Settings → Quick Actions
+2. Add new action with trigger keywords
+3. Assign to relevant agents (Smokey, Craig)
+
+### 4. **Train Agents with Examples**
+
+**Show agents good vs bad completeness:**
+
+**Bad example (50% completeness):**
+```
+User: "Best strain for anxiety? Do you have edibles?"
+
+Agent: "I recommend Blue Dream for anxiety. It's balanced and calming."
+
+Missing: Edibles availability
+```
+
+**Good example (100% completeness):**
+```
+User: "Best strain for anxiety? Do you have edibles?"
+
+Agent: "I recommend Blue Dream for anxiety. It's balanced and calming.
+        For edibles, we have Blue Dream gummies (10mg) and chocolates (5mg).
+        Both great for anxiety relief!"
+
+Covered: Strain recommendation + Edibles availability
+```
+
+**How to train:**
+- Add examples to agent-specific Ground Truth
+- Include in system prompt as "Examples of complete responses"
+
+### 5. **Monitor Post-Deployment**
+
+**After making improvements:**
+1. Track completeness trend (should increase)
+2. Verify missed intents decrease
+3. Check user satisfaction (fewer follow-ups?)
+4. A/B test changes if possible
+
+## Auto-Completion (Advanced)
+
+**Optional feature: Automatically complete missed intents.**
+
+### How It Works
+
+**If completeness <80%, generate follow-up:**
+
+**Example:**
+```
+Original response: "I recommend Northern Lights for sleep."
+Missed intent: "Do you deliver?"
+
+Auto-completion generates:
+"Regarding delivery: Yes, we offer delivery within 10 miles for
+orders $50+. Delivery fee is $5. Available 12pm-8pm daily."
+
+Final response:
+"I recommend Northern Lights for sleep. Regarding delivery: Yes,
+we offer delivery within 10 miles for orders $50+..."
+```
+
+### Configuration
+
+**CEO Dashboard → MERIDIAN → Completeness → Settings**
+
+**Auto-Completion Options:**
+- **Disabled** (default) - No auto-completion
+- **Append Only** - Add completion to end of response
+- **Integrated** - Weave completion naturally into response (experimental)
+
+**Threshold:**
+- Only trigger if completeness <80% (configurable)
+
+**Channels:**
+- Enable for specific agents (e.g., Smokey only)
+- Disable for high-stakes agents (e.g., Deebo - compliance)
+
+<Callout type="warning">
+**Risk:** Auto-completion may hallucinate if Ground Truth is incomplete. Use cautiously—manual review recommended initially.
+</Callout>
+
+## Best Practices
+
+### 1. **Aim for 90%+ Completeness**
+- 100% is ideal but not always realistic
+- 90-95% is excellent (covers primary + most secondary intents)
+- <80% indicates systemic issues
+
+### 2. **Prioritize Primary Intents**
+- Missing primary intent = critical failure
+- Missing tertiary intent = acceptable if response quality high
+
+### 3. **Context Matters**
+- Some "intents" are rhetorical ("You know what I mean?")
+- AI usually identifies these as `requiresResponse: false`
+- Don't penalize agents for not responding to rhetorical statements
+
+### 4. **Balance Completeness vs Conciseness**
+- Answering 5 questions in one response can be overwhelming
+- Consider splitting into multiple responses if user prefers brevity
+- Check **Verbosity** slider setting (low verbosity = brief responses)
+
+### 5. **Track by Use Case**
+- Customer service: Aim for 95%+ (users expect full answers)
+- Internal queries: 85%+ acceptable (can follow up easily)
+- Strategic questions: 90%+ (decision-makers need complete info)
+
+## Troubleshooting
+
+### Completeness Score Stuck Below 80%
+**Cause:** Agent missing common secondary intents.
+
+**Fix:**
+1. Review **Missed Intent Analysis** (what's being missed?)
+2. Add answers to **Ground Truth**
+3. Modify **Agent Prompt** to emphasize multi-intent handling
+4. Consider **Auto-Completion** (experimental)
+
+### False Positives (Score Low But Response Good)
+**Cause:** Intent extraction incorrectly identified extra intents.
+
+**Fix:**
+1. Review **Completeness Logs** for specific cases
+2. Check if user message had rhetorical questions
+3. Tune intent extraction (reduce sensitivity)
+4. Flag in logs for manual review
+
+### Auto-Completion Generating Bad Responses
+**Cause:** Ground Truth incomplete or AI hallucinating.
+
+**Fix:**
+1. Disable auto-completion temporarily
+2. Review **Ground Truth** coverage
+3. Add missing facts
+4. Re-enable with lower threshold (only <70% completeness)
+
+### Agent Responses Too Long
+**Cause:** Agent trying to address too many intents in one response.
+
+**Fix:**
+1. Lower **Verbosity** slider (80 → 50)
+2. Train agent to prioritize primary intents
+3. Use multiple shorter responses instead of one long response
+
+## Heartbeat Integration
+
+**Automatic completeness monitoring:**
+
+### Completeness Health Checks (Super Users)
+**Frequency:** Every 30 minutes
+
+**Alerts triggered when:**
+- Agent completeness <70% (7-day average) → **Warning**
+- Agent completeness <60% → **Alert**
+- Completeness drop >15% in 24 hours → **Alert**
+
+**Notification channels:**
+- Dashboard badge
+- Email (if enabled)
+
+**Auto-actions:**
+- Low completeness → Flag for manual review
+- Sudden drop → Check recent ground truth changes, integration issues
+
+## Related Articles
+
+- [LiveHud - Agent Cognitive Monitoring](/help/agents/intelligence-livehud) - Monitor agent status and settings
+- [Memory Health & Auto-Gardening](/help/agents/memory-health) - Maintain agent knowledge quality
+- [Input Safety & Security](/help/agents/input-safety) - Protect against malicious inputs
+- [Agent Collaboration (Hive Mind)](/help/agents/hive-mind) - Multi-agent coordination

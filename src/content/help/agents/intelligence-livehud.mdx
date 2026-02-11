@@ -1,0 +1,325 @@
+# LiveHud - Agent Cognitive Monitoring
+
+Monitor your AI agents in real-time with LiveHud—a mission control dashboard that shows agent status, personality modes, behavior settings, and performance metrics.
+
+## What is LiveHud?
+
+**LiveHud gives you real-time visibility into your AI agents:**
+- 🎯 **Agent Status** - See which agents are active, idle, busy, or offline
+- 🎭 **Personality Modes** - Switch between 6 behavioral personas instantly
+- 🎚️ **Behavior Sliders** - Fine-tune 8 dimensions of agent behavior
+- 📊 **Performance Metrics** - Track response times, context usage, confidence scores
+- 🧠 **Cognitive Load** - Monitor agent workload (idle/light/moderate/heavy/overloaded)
+- 💾 **Memory Health** - View memory usage, quality, and optimization status
+
+<Callout type="info">
+**Where to find it:** CEO Dashboard → MERIDIAN tab → LiveHud section (Super User only)
+</Callout>
+
+## Personality Modes
+
+**6 switchable personas for different use cases:**
+
+### 1. **Base Mode** (Default)
+Balanced, friendly, helpful—the standard BakedBot personality.
+
+**Best for:** General customer interactions, everyday tasks
+
+### 2. **Professional Mode**
+Formal, precise, corporate tone.
+
+**Best for:** B2B communications, investor reports, legal documents
+
+### 3. **Casual Mode**
+Friendly, conversational, relaxed.
+
+**Best for:** Social media, brand voice, community engagement
+
+### 4. **Technical Mode**
+Detailed, data-driven, expert language.
+
+**Best for:** API documentation, technical support, developer tools
+
+### 5. **Analyst Mode**
+Methodical, research-focused, evidence-based.
+
+**Best for:** Competitive intelligence, market research, data analysis
+
+### 6. **Creative Mode**
+Imaginative, experimental, bold ideas.
+
+**Best for:** Marketing campaigns, brand storytelling, content creation
+
+<Callout type="tip">
+Personality modes automatically adjust system prompts—no manual configuration needed!
+</Callout>
+
+## Behavior Sliders
+
+**Fine-tune 8 dimensions of agent behavior (0-100 scale):**
+
+### 🗣️ **Verbosity**
+- **Low (0-30):** Brief, concise responses
+- **Medium (40-60):** Balanced detail
+- **High (70-100):** Comprehensive, detailed explanations
+
+**Use case:** Set low for SMS campaigns, high for long-form content
+
+### 🎨 **Creativity**
+- **Low (0-30):** Conventional, proven approaches
+- **Medium (40-60):** Balanced innovation
+- **High (70-100):** Bold, unconventional ideas
+
+**Use case:** Set high for brand campaigns, low for compliance reviews
+
+### 🎯 **Directness**
+- **Low (0-30):** Diplomatic, softened language
+- **Medium (40-60):** Balanced tone
+- **High (70-100):** Blunt, straightforward communication
+
+**Use case:** Set high for internal reports, low for customer service
+
+### 🔬 **Technicality**
+- **Low (0-30):** Simple, accessible language
+- **Medium (40-60):** Moderate jargon
+- **High (70-100):** Expert-level terminology
+
+**Use case:** Set high for dispensary staff training, low for consumer content
+
+### ⚡ **Proactivity**
+- **Low (0-30):** Respond only to what's asked
+- **Medium (40-60):** Suggest related actions
+- **High (70-100):** Anticipate needs, offer recommendations
+
+**Use case:** Set high for strategic planning, low for simple data queries
+
+### 😄 **Humor**
+- **Low (0-30):** Serious, professional tone
+- **Medium (40-60):** Occasional wit
+- **High (70-100):** Playful, entertaining
+
+**Use case:** Set high for brand content, low for legal compliance
+
+### 📋 **Compliance**
+- **Low (0-30):** Flexible, pragmatic
+- **Medium (40-60):** Balanced adherence
+- **High (70-100):** Strict rule following
+
+**Use case:** Set high for marketing approval, low for internal brainstorming
+
+### 🚀 **Speed**
+- **Low (0-30):** Thorough, deep analysis
+- **Medium (40-60):** Balanced depth
+- **High (70-100):** Quick, surface-level responses
+
+**Use case:** Set high for fast customer queries, low for strategic reports
+
+## Slider Presets
+
+**8 pre-configured slider combinations for common scenarios:**
+
+### ⚖️ **Balanced** (Default)
+All sliders at 50—versatile, well-rounded performance.
+
+### 🎨 **Creative**
+High creativity (80), verbosity (70), humor (75), lower compliance (40).
+**Use for:** Marketing campaigns, social media content
+
+### 📊 **Analytical**
+High technicality (85), directness (80), low creativity (30), humor (20).
+**Use for:** Competitive intelligence, data analysis
+
+### ⚡ **Efficient**
+High speed (90), directness (85), low verbosity (30), technicality (40).
+**Use for:** Quick customer queries, SMS responses
+
+### 🤝 **Friendly**
+High humor (80), low directness (35), medium verbosity (55), creativity (60).
+**Use for:** Customer service, community engagement
+
+### 💼 **Professional**
+Low humor (20), high compliance (85), directness (70), technicality (65).
+**Use for:** B2B communications, formal reports
+
+### 📋 **Compliant**
+High compliance (95), low creativity (25), humor (15), medium technicality (55).
+**Use for:** Regulatory filings, legal content
+
+### 🔬 **Experimental**
+High creativity (90), proactivity (85), low compliance (35), speed (40).
+**Use for:** R&D, brainstorming, innovation workshops
+
+<Callout type="warning">
+**Note:** Presets override individual slider values. Save custom slider configurations before switching presets.
+</Callout>
+
+## Performance Metrics
+
+**Track agent performance in real-time:**
+
+### Context Window
+- **Messages Loaded:** Number of messages in current conversation
+- **Tokens Used:** Total tokens consumed (out of 100k limit)
+- **Utilization:** Percentage of context window used
+- **Memory Retrievals:** Number of memory lookups performed
+
+**Why it matters:** High utilization (>80%) means context is nearly full—agent may need memory gardening.
+
+### Cognitive Load
+- **Idle:** No active tasks
+- **Light:** 1-2 tool calls, 0-1 queued requests
+- **Moderate:** 3-5 tool calls, 2-3 queued requests
+- **Heavy:** 6-10 tool calls, 4-5 queued requests
+- **Overloaded:** 10+ tool calls, 5+ queued requests
+
+**Why it matters:** Overloaded agents have slower response times—consider load balancing.
+
+### Response Confidence
+- **Current:** Confidence score (0.00-1.00) of last response
+- **Average:** Rolling 30-day average confidence
+- **Source Breakdown:** Where confidence comes from (memory, POS data, inference, etc.)
+
+**Why it matters:** Low confidence (<0.60) suggests agent needs more training data or fact verification.
+
+### Completeness Score
+- **Score:** Percentage (0-100%) of user intents addressed
+- **Missed Intents:** Number of questions left unanswered
+- **Trend:** 7-day rolling average
+
+**Why it matters:** Low completeness (<70%) means agent is missing user questions—investigate intent extraction.
+
+## How to Use LiveHud
+
+### Monitoring Active Agents
+
+**Step 1: Access LiveHud**
+1. Navigate to **CEO Dashboard** (Super User only)
+2. Click **MERIDIAN** tab
+3. View **LiveHud Dashboard**
+
+**Step 2: Select Agent**
+Use the dropdown to switch between agents:
+- Smokey (Budtender)
+- Craig (Marketing)
+- Ezal (Competitive Intel)
+- Deebo (Compliance)
+- Money Mike (Pricing)
+- Mrs. Parker (Retention)
+- Pops (Analytics)
+- Day Day (SEO)
+
+**Step 3: Review Status**
+Check agent status badge:
+- 🟢 **Active** - Currently processing requests
+- 🟡 **Idle** - Waiting for tasks
+- 🔵 **Busy** - Heavy workload
+- 🔴 **Offline** - Agent unavailable
+- ⚠️ **Error** - Requires attention
+
+### Adjusting Personality
+
+**To switch personality mode:**
+1. Open **LiveHud Dashboard** for the agent
+2. Click **Personality Mode** dropdown
+3. Select new mode (Base/Professional/Casual/Technical/Analyst/Creative)
+4. Changes apply immediately to next agent response
+
+**To apply a preset:**
+1. Open **Sliders** tab
+2. Click **Apply Preset** dropdown
+3. Select preset (Balanced/Creative/Analytical/etc.)
+4. Confirm—all 8 sliders update instantly
+
+### Fine-Tuning Sliders
+
+**To manually adjust sliders:**
+1. Open **Sliders** tab
+2. Drag slider to desired value (0-100)
+3. Changes save automatically
+4. Agent uses new settings on next request
+
+**Pro tip:** Combine personality modes with custom sliders for ultimate control. Example:
+- Mode: **Technical**
+- Custom adjustments: Verbosity +20, Directness +15
+
+### Monitoring Context Usage
+
+**When to check context:**
+- Agent responses seem "forgetful"
+- Response quality declining
+- Many memory retrievals (>100)
+
+**Actions to take:**
+1. Check **Context Window** tab
+2. If utilization >80%, trigger memory gardening
+3. Review memory health in **Memory Health Dashboard**
+
+## Best Practices
+
+### 1. **Match Mode to Task**
+Don't use Technical mode for customer-facing content or Casual mode for investor reports.
+
+### 2. **Monitor Confidence**
+If average confidence drops below 0.70, investigate:
+- Are agents accessing the right data sources?
+- Is ground truth up to date?
+- Do agents need retraining?
+
+### 3. **Balance Cognitive Load**
+If an agent is consistently **Heavy** or **Overloaded**:
+- Delegate tasks to other agents
+- Reduce tool call frequency
+- Optimize workflows
+
+### 4. **Document Custom Configurations**
+When you find a winning slider configuration, save it:
+- Take a screenshot
+- Note the use case
+- Share with team
+
+### 5. **Review Completeness Weekly**
+Low completeness means customers aren't getting full answers:
+- Check **Completeness Score** tab
+- Review missed intents
+- Adjust agent prompts or grounding
+
+## Troubleshooting
+
+### Agent Status Shows "Error"
+**Cause:** Agent encountered a critical failure.
+
+**Fix:**
+1. Check **CEO Dashboard → MERIDIAN → System Logs**
+2. Review error messages
+3. Contact support if unresolved
+
+### Sliders Not Affecting Behavior
+**Cause:** Slider changes apply to new requests, not in-progress conversations.
+
+**Fix:**
+1. Start a new conversation in Inbox
+2. Test with a fresh request
+3. Verify slider values saved
+
+### High Context Utilization (>90%)
+**Cause:** Context window nearly full—agent may hallucinate or forget details.
+
+**Fix:**
+1. Run **Memory Gardening** (see Memory Health guide)
+2. Clear old conversation threads
+3. Reduce message history retention
+
+### Low Confidence Scores (<0.60)
+**Cause:** Agent lacks reliable data sources or grounding.
+
+**Fix:**
+1. Update **Ground Truth** with authoritative facts
+2. Sync POS data (products, inventory, pricing)
+3. Verify integrations (Alleaves, Dutchie, Jane)
+
+## Related Articles
+
+- [Memory Health & Auto-Gardening](/help/agents/memory-health) - Optimize agent memory
+- [Input Safety & Security](/help/agents/input-safety) - Protect against adversarial inputs
+- [Completeness Doctrine](/help/agents/completeness-doctrine) - Ensure all questions answered
+- [Agent Collaboration (Hive Mind)](/help/agents/hive-mind) - How agents work together
