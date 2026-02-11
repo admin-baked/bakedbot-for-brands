@@ -44,7 +44,9 @@ import {
     Inbox,
     GraduationCap,
     Plug,
-    HardDrive
+    HardDrive,
+    Palette,
+    DollarSign,
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
@@ -260,6 +262,22 @@ export function SuperAdminSidebar() {
                                 <Link href="/dashboard/ceo?tab=drive">
                                     <HardDrive />
                                     <span>BakedBot Drive</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/creative')}>
+                                <Link href="/dashboard/creative">
+                                    <Palette />
+                                    <span>Creative Center</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive("costs")}>
+                                <Link href="/dashboard/ceo?tab=costs">
+                                    <DollarSign />
+                                    <span>Media Costs</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
