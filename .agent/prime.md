@@ -27,8 +27,9 @@ npm run check:types
 ## 🆕 Recent Updates
 
 ### CannPay / Smokey Pay Integration (2026-02-11)
-**Status:** ✅ Sandbox configured, ready for testing
+**Status:** ✅ **DEPLOYED TO SANDBOX** - Ready for testing
 **Customer-Facing:** "Smokey Pay" | **Backend:** CannPay RemotePay v1.4.0-dev
+**Deployment:** Commit 6d7c55d4 (fixed secret versioning issue)
 
 Complete payment processing integration for cannabis debit payments via CannPay. Customer sees "Smokey Pay" branding while backend uses CannPay RemotePay API for secure ACH debit transactions.
 
@@ -52,10 +53,10 @@ Backend API (HMAC signature)                                  HMAC Verification 
 - **Environment:** `sandbox` (set in `apphosting.yaml`)
 - **API Base URL:** `https://sandbox-api.canpaydebit.com`
 - **Widget URL:** `https://sandbox-remotepay.canpaydebit.com/cp-min.js`
-- **Credentials:** Stored in Firebase Secret Manager
-  - `CANPAY_INTEGRATOR_ID`: 8954cd15 (v4)
-  - `CANPAY_APP_KEY`: BaKxozke8 (v2)
-  - `CANPAY_API_SECRET`: 7acfs2il (v4)
+- **Credentials:** Stored in Firebase Secret Manager (explicit version numbers required!)
+  - `CANPAY_INTEGRATOR_ID@1`: 8954cd15
+  - `CANPAY_APP_KEY@1`: BaKxozke8
+  - `CANPAY_API_SECRET@1`: 7acfs2il
 - **Test Consumers:**
   - Phone: `555-779-4523`, PIN: `2222`
   - Phone: `555-448-9921`, PIN: `3333`
@@ -1181,6 +1182,75 @@ BakedBot AI utilizes the **Gemini 2.5** family for all core reasoning and creati
 | Assuming file structure | Use Glob/Grep to verify |
 | Using `&&` in PowerShell | Use `;` instead |
 | Runtime-only env vars at module level | Use lazy initialization (see Next.js Build Gotcha below) |
+| Using `latest` for secrets in apphosting.yaml | **Always use explicit version numbers** (see Firebase Secret Manager Gotcha below) |
+
+### Firebase Secret Manager Gotcha: Explicit Version Numbers Required
+
+**Problem:** Firebase App Hosting's preparer step resolves secrets during build time to validate configuration. The preparer requires `secretmanager.versions.get` permission to resolve the `latest` alias, which is different from the `secretmanager.versions.access` permission used to actually read secret values.
+
+**Symptom:**
+```
+Error resolving secret version with name=projects/PROJECT_ID/secrets/SECRET_NAME/versions/latest
+Permission 'secretmanager.versions.get' denied
+```
+
+This error persists even after:
+- Granting IAM permissions correctly
+- Waiting 20+ minutes for propagation
+- Deleting and recreating secrets from scratch
+
+**Root Cause:** The preparer uses a different permission model for version resolution than for runtime access. While your service account has `secretAccessor` role (which grants `secretmanager.versions.access`), it may lack the specific `secretmanager.versions.get` permission needed to resolve the `latest` pointer.
+
+**Solution: Always Use Explicit Version Numbers**
+
+❌ **BAD** (implicit `latest`):
+```yaml
+- variable: CANPAY_APP_KEY
+  secret: CANPAY_APP_KEY
+  availability:
+    - RUNTIME
+```
+
+✅ **GOOD** (explicit version):
+```yaml
+- variable: CANPAY_APP_KEY
+  secret: CANPAY_APP_KEY@1
+  availability:
+    - RUNTIME
+```
+
+**Pattern in Working Secrets:**
+All successfully deployed secrets in `apphosting.yaml` use explicit versions:
+- `FIREBASE_SERVICE_ACCOUNT_KEY@8`
+- `SENDGRID_API_KEY@2`
+- `CANNMENUS_API_KEY@3`
+- `GEMINI_API_KEY@5`
+- `CANPAY_APP_KEY@1`
+- `CANPAY_API_SECRET@1`
+- `CANPAY_INTEGRATOR_ID@1`
+
+**When Creating New Secrets:**
+```powershell
+# Create secret
+echo -n "secret-value" | gcloud secrets create SECRET_NAME --data-file=- --replication-policy=automatic --project=studio-567050101-bc6e8
+
+# Grant IAM permissions
+gcloud secrets add-iam-policy-binding SECRET_NAME \
+  --member="serviceAccount:service-1016399212569@gcp-sa-firebaseapphosting.iam.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor" \
+  --project=studio-567050101-bc6e8
+
+# In apphosting.yaml, reference as SECRET_NAME@1 (NOT just SECRET_NAME)
+```
+
+**Updating Secrets:**
+```powershell
+# Add new version
+echo -n "new-value" | gcloud secrets versions add SECRET_NAME --data-file=- --project=studio-567050101-bc6e8
+
+# Update apphosting.yaml to use new version number (e.g., @2, @3, etc.)
+# Deploy will now use explicit version without needing to resolve 'latest'
+```
 
 ### Next.js Build Gotcha: Runtime-Only Environment Variables
 
