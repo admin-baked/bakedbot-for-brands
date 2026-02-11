@@ -71,9 +71,10 @@ export async function searchTemplates(
     const templates: VibeTemplate[] = [];
 
     snapshot.docs.slice(0, limit).forEach((doc) => {
+      const data = doc.data() as Record<string, any>;
       templates.push({
         id: doc.id,
-        ...doc.data(),
+        ...data,
       } as VibeTemplate);
     });
 
@@ -84,13 +85,15 @@ export async function searchTemplates(
       .count()
       .get();
 
+    const countData = countSnapshot.data() as { count: number };
+
     return {
       templates,
-      total: countSnapshot.data().count,
+      total: countData.count,
       hasMore: snapshot.docs.length > limit,
     };
   } catch (error) {
-    logger.error('[TEMPLATE-SERVICE] Search failed:', error);
+    logger.error('[TEMPLATE-SERVICE] Search failed:', error as Error);
     return {
       templates: [],
       total: 0,
@@ -113,12 +116,13 @@ export async function getTemplateById(
       return null;
     }
 
+    const data = doc.data() as Record<string, any>;
     return {
       id: doc.id,
-      ...doc.data(),
+      ...data,
     } as VibeTemplate;
   } catch (error) {
-    logger.error('[TEMPLATE-SERVICE] Get template failed:', error);
+    logger.error('[TEMPLATE-SERVICE] Get template failed:', error as Error);
     return null;
   }
 }
@@ -131,14 +135,15 @@ export async function incrementDownloads(templateId: string): Promise<void> {
     const db = getAdminFirestore();
     const docRef = db.collection(TEMPLATES_COLLECTION).doc(templateId);
 
+    const docData = (await docRef.get()).data() as Record<string, any> | undefined;
     await docRef.update({
-      downloads: (await docRef.get()).data()?.downloads + 1 || 1,
+      downloads: (docData?.downloads || 0) + 1,
       lastDownloadedAt: new Date().toISOString(),
     });
 
     logger.info(`[TEMPLATE-SERVICE] Incremented downloads for ${templateId}`);
   } catch (error) {
-    logger.error('[TEMPLATE-SERVICE] Increment downloads failed:', error);
+    logger.error('[TEMPLATE-SERVICE] Increment downloads failed:', error as Error);
   }
 }
 
@@ -173,7 +178,7 @@ export async function submitTemplate(
       templateId: docRef.id,
     };
   } catch (error) {
-    logger.error('[TEMPLATE-SERVICE] Submit template failed:', error);
+    logger.error('[TEMPLATE-SERVICE] Submit template failed:', error as Error);
     return {
       success: false,
       error: 'Failed to submit template',
@@ -199,15 +204,16 @@ export async function getFeaturedTemplates(
 
     const templates: VibeTemplate[] = [];
     snapshot.forEach((doc) => {
+      const data = doc.data() as Record<string, any>;
       templates.push({
         id: doc.id,
-        ...doc.data(),
+        ...data,
       } as VibeTemplate);
     });
 
     return templates;
   } catch (error) {
-    logger.error('[TEMPLATE-SERVICE] Get featured templates failed:', error);
+    logger.error('[TEMPLATE-SERVICE] Get featured templates failed:', error as Error);
     return [];
   }
 }
@@ -244,13 +250,14 @@ export async function favoriteTemplate(
 
     // Increment template favorite count
     const templateRef = db.collection(TEMPLATES_COLLECTION).doc(templateId);
+    const templateData = (await templateRef.get()).data() as Record<string, any> | undefined;
     await templateRef.update({
-      favorites: (await templateRef.get()).data()?.favorites + 1 || 1,
+      favorites: (templateData?.favorites || 0) + 1,
     });
 
     return { success: true };
   } catch (error) {
-    logger.error('[TEMPLATE-SERVICE] Favorite template failed:', error);
+    logger.error('[TEMPLATE-SERVICE] Favorite template failed:', error as Error);
     return {
       success: false,
       error: 'Failed to favorite template',
@@ -278,14 +285,15 @@ export async function unfavoriteTemplate(
 
     // Decrement template favorite count
     const templateRef = db.collection(TEMPLATES_COLLECTION).doc(templateId);
-    const currentFavorites = (await templateRef.get()).data()?.favorites || 0;
+    const templateData = (await templateRef.get()).data() as Record<string, any> | undefined;
+    const currentFavorites = templateData?.favorites || 0;
     await templateRef.update({
       favorites: Math.max(0, currentFavorites - 1),
     });
 
     return { success: true };
   } catch (error) {
-    logger.error('[TEMPLATE-SERVICE] Unfavorite template failed:', error);
+    logger.error('[TEMPLATE-SERVICE] Unfavorite template failed:', error as Error);
     return {
       success: false,
       error: 'Failed to unfavorite template',
@@ -325,7 +333,7 @@ export async function getUserFavorites(
 
     return templates;
   } catch (error) {
-    logger.error('[TEMPLATE-SERVICE] Get user favorites failed:', error);
+    logger.error('[TEMPLATE-SERVICE] Get user favorites failed:', error as Error);
     return [];
   }
 }
