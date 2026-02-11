@@ -209,6 +209,18 @@ export class LettaBlockManager {
         return block.value;
     }
 
+    /**
+     * List blocks, optionally filtered to a tenant namespace.
+     */
+    async listBlocks(tenantId?: string): Promise<LettaBlock[]> {
+        const blocks = await lettaClient.listBlocks();
+        if (!tenantId) {
+            return blocks;
+        }
+
+        return blocks.filter((block) => block.label.startsWith(`${tenantId}:`));
+    }
+
     private cacheBlock(tenantId: string, label: BlockLabel, blockId: string): void {
         if (!blockCache.has(tenantId)) {
             blockCache.set(tenantId, new Map());
