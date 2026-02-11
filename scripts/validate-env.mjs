@@ -33,12 +33,16 @@ const ENV_VARS = {
         { key: 'SENTRY_DSN', description: 'Sentry error tracking DSN' },
     ],
 
-    // Payment Processing - At least one required
+    // Payment Processing - CannPay + Authorize.Net required for full checkout coverage
     PAYMENT: [
         { key: 'CANPAY_APP_KEY', description: 'CannPay application key' },
         { key: 'CANPAY_API_SECRET', description: 'CannPay API secret' },
-        { key: 'STRIPE_SECRET_KEY', description: 'Stripe secret key' },
-        { key: 'STRIPE_WEBHOOK_SECRET', description: 'Stripe webhook signing secret' },
+        { key: 'CANPAY_INTEGRATOR_ID', description: 'CannPay integrator ID' },
+        { key: 'AUTHNET_API_LOGIN_ID', description: 'Authorize.Net API Login ID' },
+        { key: 'AUTHNET_TRANSACTION_KEY', description: 'Authorize.Net transaction key' },
+        { key: 'AUTHNET_SIGNATURE_KEY', description: 'Authorize.Net webhook signature key' },
+        { key: 'NEXT_PUBLIC_AUTHNET_CLIENT_KEY', description: 'Authorize.Net Accept.js public client key' },
+        { key: 'NEXT_PUBLIC_AUTHNET_API_LOGIN_ID', description: 'Authorize.Net Accept.js public API login ID' },
     ],
 
     // Optional - Nice to have but not critical
@@ -58,7 +62,7 @@ const CONFIG_VARS = {
         { key: 'CANNMENUS_API_BASE', defaultValue: 'https://api.cannmenus.com', description: 'CannMenus API base URL' },
         { key: 'AUTHNET_ENV', defaultValue: 'sandbox', description: 'Authorize.Net environment (sandbox/production)' },
         { key: 'BLACKLEAF_BASE_URL', defaultValue: 'https://api.blackleaf.io', description: 'BlackLeaf API base URL' },
-        { key: 'CANPAY_MODE', defaultValue: 'test', description: 'CannPay mode (test/live)' },
+        { key: 'CANPAY_ENVIRONMENT', defaultValue: 'sandbox', description: 'CannPay environment (sandbox/live)' },
         { key: 'NEXT_PUBLIC_DEV_AUTH_BYPASS', defaultValue: 'false', description: 'Dev auth bypass (MUST be false in production)' },
     ],
 };
@@ -153,21 +157,33 @@ function checkConfigVars(result) {
  * Check payment provider configuration
  */
 function checkPaymentVars(result) {
-    const cannPaySet = process.env.CANPAY_APP_KEY && process.env.CANPAY_API_SECRET;
-    const stripeSet = process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET;
+    const cannPaySet = !!(process.env.CANPAY_APP_KEY && process.env.CANPAY_API_SECRET && process.env.CANPAY_INTEGRATOR_ID);
+    const authNetSet = !!(
+        process.env.AUTHNET_API_LOGIN_ID &&
+        process.env.AUTHNET_TRANSACTION_KEY &&
+        process.env.AUTHNET_SIGNATURE_KEY &&
+        process.env.NEXT_PUBLIC_AUTHNET_CLIENT_KEY &&
+        process.env.NEXT_PUBLIC_AUTHNET_API_LOGIN_ID
+    );
 
-    if (!cannPaySet && !stripeSet) {
+    if (!cannPaySet) {
         result.required.missing.push({
-            key: 'PAYMENT_PROVIDER',
-            description: 'At least one payment provider (CannPay OR Stripe) must be configured',
+            key: 'CANNPAY_PROVIDER',
+            reason: 'CannPay payment credentials incomplete',
+            description: 'CannPay requires CANPAY_APP_KEY, CANPAY_API_SECRET, and CANPAY_INTEGRATOR_ID',
         });
     } else {
-        if (cannPaySet) {
-            logger.info('✅ CannPay payment provider configured');
-        }
-        if (stripeSet) {
-            logger.info('✅ Stripe payment provider configured');
-        }
+        logger.info('OK CannPay payment provider configured');
+    }
+
+    if (!authNetSet) {
+        result.required.missing.push({
+            key: 'AUTHNET_PROVIDER',
+            reason: 'Authorize.Net payment credentials incomplete',
+            description: 'Authorize.Net requires AUTHNET_API_LOGIN_ID, AUTHNET_TRANSACTION_KEY, AUTHNET_SIGNATURE_KEY, NEXT_PUBLIC_AUTHNET_CLIENT_KEY, and NEXT_PUBLIC_AUTHNET_API_LOGIN_ID',
+        });
+    } else {
+        logger.info('OK Authorize.Net payment provider configured');
     }
 
     // Check individual payment vars
@@ -327,3 +343,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 
 export { validateEnvironment, ValidationResult };
+

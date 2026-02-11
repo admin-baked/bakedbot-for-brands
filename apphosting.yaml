@@ -68,12 +68,24 @@ env:
     secret: AUTHNET_TRANSACTION_KEY
     availability:
       - RUNTIME
+  - variable: AUTHNET_SIGNATURE_KEY
+    secret: AUTHNET_SIGNATURE_KEY
+    availability:
+      - RUNTIME
   - variable: AUTHNET_ENV
+    value: "sandbox"
+    availability:
+      - RUNTIME
+  - variable: NEXT_PUBLIC_AUTHNET_ENV
     value: "sandbox"
     availability:
       - RUNTIME
   - variable: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
     value: "9K42597r7YGCrMfdxPTd3Zy59fKe9rvWLbmKBK4bWr7Rn5ghdEmT9Fz8CZNLcT2G"
+    availability:
+      - RUNTIME
+  - variable: NEXT_PUBLIC_AUTHNET_API_LOGIN_ID
+    secret: AUTHNET_API_LOGIN_ID
     availability:
       - RUNTIME
   # AI/Tools
@@ -141,18 +153,18 @@ env:
     value: "sandbox"
     availability:
       - RUNTIME
-  # - variable: CANPAY_APP_KEY
-  #   secret: CANPAY_APP_KEY
-  #   availability:
-  #     - RUNTIME
-  # - variable: CANPAY_API_SECRET
-  #   secret: CANPAY_API_SECRET
-  #   availability:
-  #     - RUNTIME
-  # - variable: CANPAY_INTEGRATOR_ID
-  #   secret: CANPAY_INTEGRATOR_ID
-  #   availability:
-  #     - RUNTIME
+  - variable: CANPAY_APP_KEY
+    secret: CANPAY_APP_KEY
+    availability:
+      - RUNTIME
+  - variable: CANPAY_API_SECRET
+    secret: CANPAY_API_SECRET
+    availability:
+      - RUNTIME
+  - variable: CANPAY_INTEGRATOR_ID
+    secret: CANPAY_INTEGRATOR_ID
+    availability:
+      - RUNTIME
   - variable: CANPAY_INTERNAL_VERSION
     value: "1.4.0"
     availability:
