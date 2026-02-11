@@ -43,10 +43,10 @@ export function BuilderTopBar({
     <div className="border-b bg-background flex items-center justify-between px-4 py-2 h-14 flex-shrink-0">
       {/* Left Section */}
       <div className="flex items-center gap-4">
-        <Link href="/dashboard/vibe-studio">
+        <Link href="/vibe/builder/projects">
           <Button variant="ghost" size="sm" className="gap-2">
             <ArrowLeft className="w-4 h-4" />
-            Back
+            My Projects
           </Button>
         </Link>
 
