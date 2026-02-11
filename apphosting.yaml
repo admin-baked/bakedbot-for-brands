@@ -157,15 +157,15 @@ env:
     availability:
       - RUNTIME
   - variable: CANPAY_APP_KEY
-    secret: CANPAY_APP_KEY
+    secret: CANPAY_APP_KEY@1
     availability:
       - RUNTIME
   - variable: CANPAY_API_SECRET
-    secret: CANPAY_API_SECRET
+    secret: CANPAY_API_SECRET@1
     availability:
       - RUNTIME
   - variable: CANPAY_INTEGRATOR_ID
-    secret: CANPAY_INTEGRATOR_ID
+    secret: CANPAY_INTEGRATOR_ID@1
     availability:
       - RUNTIME
   - variable: CANPAY_INTERNAL_VERSION
