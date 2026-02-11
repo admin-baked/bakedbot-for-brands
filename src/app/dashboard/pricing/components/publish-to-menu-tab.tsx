@@ -19,20 +19,28 @@ import {
   AlertCircle,
   ExternalLink,
   RotateCcw,
-  DollarSign
+  DollarSign,
+  Zap
 } from 'lucide-react';
-import { publishPricesToMenu, revertAllPricesOnMenu } from '@/app/actions/dynamic-pricing';
+import {
+  publishPricesToMenu,
+  revertAllPricesOnMenu,
+  publishToMenuAndPOS
+} from '@/app/actions/dynamic-pricing';
 import { useDispensaryId } from '@/hooks/use-dispensary-id';
 
 interface PublishResult {
   productsUpdated: number;
   totalSavings: number;
   errors?: string[];
+  rulesSynced?: number;
+  posErrors?: string[];
 }
 
 export function PublishToMenuTab() {
   const { dispensaryId } = useDispensaryId();
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isPublishingBoth, setIsPublishingBoth] = useState(false);
   const [isReverting, setIsReverting] = useState(false);
   const [publishResult, setPublishResult] = useState<PublishResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +71,37 @@ export function PublishToMenuTab() {
       setError(err instanceof Error ? err.message : 'Failed to publish prices');
     } finally {
       setIsPublishing(false);
+    }
+  };
+
+  const handlePublishBoth = async () => {
+    if (!dispensaryId) {
+      setError('Organization ID not found');
+      return;
+    }
+
+    setIsPublishingBoth(true);
+    setError(null);
+    setPublishResult(null);
+
+    try {
+      const result = await publishToMenuAndPOS(dispensaryId);
+
+      if (!result.success) {
+        setError(result.error || 'Failed to publish prices');
+      } else {
+        setPublishResult({
+          productsUpdated: result.menuResult?.productsUpdated || 0,
+          totalSavings: result.menuResult?.totalSavings || 0,
+          errors: result.menuResult?.errors,
+          rulesSynced: result.posResult?.rulesSynced,
+          posErrors: result.posResult?.errors,
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to publish prices');
+    } finally {
+      setIsPublishingBoth(false);
     }
   };
 
@@ -146,18 +185,21 @@ export function PublishToMenuTab() {
               <AlertDescription className="text-green-900">
                 <div className="font-semibold mb-2">Successfully Published!</div>
                 <div className="space-y-1 text-sm">
-                  <div>✓ {publishResult.productsUpdated} products updated</div>
+                  <div>✓ {publishResult.productsUpdated} products updated on menu</div>
                   {publishResult.totalSavings > 0 && (
                     <div className="flex items-center gap-1">
                       <DollarSign className="h-3 w-3" />
                       Total customer savings: ${publishResult.totalSavings.toFixed(2)}
                     </div>
                   )}
+                  {publishResult.rulesSynced !== undefined && (
+                    <div>✓ {publishResult.rulesSynced} pricing rules synced to POS</div>
+                  )}
                 </div>
                 {publishResult.errors && publishResult.errors.length > 0 && (
                   <details className="mt-3">
                     <summary className="text-xs cursor-pointer text-orange-700">
-                      {publishResult.errors.length} warnings
+                      {publishResult.errors.length} menu warnings
                     </summary>
                     <ul className="mt-2 text-xs space-y-1 text-orange-800">
                       {publishResult.errors.slice(0, 5).map((err, i) => (
@@ -165,6 +207,21 @@ export function PublishToMenuTab() {
                       ))}
                       {publishResult.errors.length > 5 && (
                         <li>... and {publishResult.errors.length - 5} more</li>
+                      )}
+                    </ul>
+                  </details>
+                )}
+                {publishResult.posErrors && publishResult.posErrors.length > 0 && (
+                  <details className="mt-3">
+                    <summary className="text-xs cursor-pointer text-orange-700">
+                      {publishResult.posErrors.length} POS warnings
+                    </summary>
+                    <ul className="mt-2 text-xs space-y-1 text-orange-800">
+                      {publishResult.posErrors.slice(0, 5).map((err, i) => (
+                        <li key={i}>{err}</li>
+                      ))}
+                      {publishResult.posErrors.length > 5 && (
+                        <li>... and {publishResult.posErrors.length - 5} more</li>
                       )}
                     </ul>
                   </details>
@@ -182,57 +239,93 @@ export function PublishToMenuTab() {
           )}
 
           {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm space-y-2">
-            <div className="font-semibold text-blue-900">What happens when you publish?</div>
-            <ul className="space-y-1 text-blue-800">
-              <li>✓ All active pricing rules are evaluated for each product</li>
-              <li>✓ Products matching rule conditions get updated prices</li>
-              <li>✓ Original prices are preserved for easy reverting</li>
-              <li>✓ Discount badges appear next to updated prices</li>
-              <li>✓ Changes are visible immediately on your public menu</li>
-            </ul>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm space-y-3">
+            <div>
+              <div className="font-semibold text-blue-900 mb-2">
+                ⚡ Publish to Menu & POS (Recommended)
+              </div>
+              <ul className="space-y-1 text-blue-800 text-xs">
+                <li>✓ Updates BakedBot menu instantly (10-30 seconds)</li>
+                <li>✓ Syncs pricing rules to Alleaves POS (5-15 minutes)</li>
+                <li>✓ Customers see prices on both online menu and in-store</li>
+                <li>✓ Most convenient option for full deployment</li>
+              </ul>
+            </div>
+
+            <div>
+              <div className="font-semibold text-blue-900 mb-2">Menu Only</div>
+              <ul className="space-y-1 text-blue-800 text-xs">
+                <li>• Online-exclusive promotions and flash sales</li>
+                <li>• A/B testing prices before POS deployment</li>
+                <li>• Instant updates (no POS sync delay)</li>
+              </ul>
+            </div>
           </div>
         </CardContent>
 
-        <CardFooter className="flex gap-3">
-          <Button
-            onClick={handlePublish}
-            disabled={isPublishing || isReverting}
-            className="gap-2"
-            size="lg"
-          >
-            {isPublishing ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Publishing...
-              </>
-            ) : (
-              <>
-                <Globe className="h-4 w-4" />
-                Publish to Menu
-              </>
-            )}
-          </Button>
+        <CardFooter className="flex flex-col gap-3">
+          <div className="flex gap-3 w-full">
+            <Button
+              onClick={handlePublishBoth}
+              disabled={isPublishing || isPublishingBoth || isReverting}
+              className="gap-2 flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+              size="lg"
+            >
+              {isPublishingBoth ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Publishing to Menu & POS...
+                </>
+              ) : (
+                <>
+                  <Zap className="h-4 w-4" />
+                  Publish to Menu & POS
+                </>
+              )}
+            </Button>
+          </div>
 
-          <Button
-            onClick={handleRevert}
-            disabled={isPublishing || isReverting}
-            variant="outline"
-            className="gap-2"
-            size="lg"
-          >
-            {isReverting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Reverting...
-              </>
-            ) : (
-              <>
-                <RotateCcw className="h-4 w-4" />
-                Revert All Prices
-              </>
-            )}
-          </Button>
+          <div className="flex gap-3 w-full">
+            <Button
+              onClick={handlePublish}
+              disabled={isPublishing || isPublishingBoth || isReverting}
+              variant="outline"
+              className="gap-2 flex-1"
+              size="lg"
+            >
+              {isPublishing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                <>
+                  <Globe className="h-4 w-4" />
+                  Menu Only
+                </>
+              )}
+            </Button>
+
+            <Button
+              onClick={handleRevert}
+              disabled={isPublishing || isPublishingBoth || isReverting}
+              variant="outline"
+              className="gap-2 flex-1"
+              size="lg"
+            >
+              {isReverting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Reverting...
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="h-4 w-4" />
+                  Revert All
+                </>
+              )}
+            </Button>
+          </div>
         </CardFooter>
       </Card>
 
