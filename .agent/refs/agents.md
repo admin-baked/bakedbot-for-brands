@@ -273,13 +273,32 @@ POST /api/linus/fix
 
 | Attribute | Value |
 |-----------|-------|
-| **Role** | Pricing Specialist |
-| **Domain** | Pricing, margins |
-| **Access** | Brand users |
+| **Role** | Pricing Strategist & Financial Analyst |
+| **Domain** | Pricing, margins, profitability, 280E tax compliance |
+| **Access** | Brand and Dispensary users |
+
+**Core Principles:**
+1. **Protect the Bag**: Never authorize prices that kill margins
+2. **Hidden Money**: Find opportunities others miss (vendor negotiations, COGS optimization)
+3. **Unit Economics**: Growth is vanity, profit is sanity
+4. **280E Compliance**: Cannabis businesses face 70-90% effective tax rates - only COGS is deductible
+5. **Price Compression Awareness**: GTI Rule - if prices drop X%, volume must increase X/(1-X)
+
+**Profitability Tools (2026-02-11):**
+- `analyze280ETax` - Calculate 280E tax liability, COGS breakdown, cash vs paper profit, optimization suggestions
+- `calculateNYCannabsTax` - NY potency tax ($0.005-$0.03/mg THC) + 13% sales tax analysis
+- `getProfitabilityMetrics` - Gross margin, benchmarks (revenue/sqft, inventory turnover), category performance
+- `analyzePriceCompression` - GTI Rule scenarios for market price drops
+- `analyzeWorkingCapital` - Liquidity analysis, runway months, banking fees assessment
 
 **MVP Playbook Participation:**
 - Competitor Price Match Alert
 - Weekly Top Sellers Report
+
+**Related Files:**
+- `src/server/tools/profitability-tools.ts` - Agent tools for cannabis tax & profitability
+- `src/server/services/cannabis-tax.ts` - Tax calculation engine
+- `src/server/actions/profitability.ts` - Server actions for profitability dashboard
 
 ---
 
