@@ -6,6 +6,7 @@ import { useMemo } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { Settings } from 'lucide-react';
 import { useUserRole, type Role } from '@/hooks/use-user-role';
+import { normalizeRole } from '@/types/roles';
 
 export type DashboardNavLink = {
   label: string;
@@ -324,7 +325,9 @@ export function useDashboardConfig() {
     ];
 
     // Filter links based on user's role
-    const normalizedRole = role ? role.toLowerCase() as Role : null;
+    const normalizedRole = role
+      ? (normalizeRole(role.toLowerCase()) as Role)
+      : null;
 
     const filteredLinks = allLinks.filter(link => {
       // Always show links with no role requirements
@@ -347,7 +350,7 @@ export function useDashboardConfig() {
 
       // If link requires 'dispensary', allow dispensary_admin and dispensary_staff
       if (link.roles.includes('dispensary' as Role) &&
-        ['dispensary_admin', 'dispensary_staff'].includes(normalizedRole)) {
+        ['dispensary_admin', 'dispensary_staff', 'budtender'].includes(normalizedRole)) {
         return true;
       }
 

@@ -9,7 +9,8 @@ import {
     isBrandAdmin, 
     isDispensaryRole, 
     isDispensaryAdmin,
-    DASHBOARD_ROLES 
+    DASHBOARD_ROLES,
+    ALL_ROLES
 } from '@/types/roles';
 
 // Role is now synonymous with UserRole
@@ -42,13 +43,17 @@ export function useUserRole() {
     const [simulatedRole, setSimulatedRole] = useState<Role | null>(null);
     
     useEffect(() => {
+        // Role simulation is a development-only feature.
+        if (process.env.NODE_ENV === 'production') return;
+
         // Only check cookie on client after hydration
         if (typeof document !== 'undefined') {
             const match = document.cookie.match(new RegExp('(^| )x-simulated-role=([^;]+)'));
             if (match) {
-                // Ensure the cookie value is a valid role, otherwise ignore or default
-                // In a stricter world we might validation against UserRole values
-                setSimulatedRole(match[2] as Role);
+                const cookieRole = match[2] as Role;
+                if (ALL_ROLES.includes(cookieRole as UserRole)) {
+                    setSimulatedRole(cookieRole);
+                }
             }
         }
     }, []);
@@ -70,6 +75,10 @@ export function useUserRole() {
             
             // Direct match
             if (roles.includes(role)) return true;
+
+            // Legacy super admin compatibility
+            if (role === 'super_admin' && roles.includes('super_user')) return true;
+            if (role === 'super_user' && roles.includes('super_admin')) return true;
             
             // Check for group matches
             for (const r of roles) {

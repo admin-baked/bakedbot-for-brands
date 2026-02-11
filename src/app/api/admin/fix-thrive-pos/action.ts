@@ -25,17 +25,18 @@ export async function fixThriveSyracusePOS() {
         // Get credentials from environment
         const username = process.env.ALLEAVES_USERNAME;
         const password = process.env.ALLEAVES_PASSWORD;
-        const pin = process.env.ALLEAVES_PIN || '1234';
+        const pin = process.env.ALLEAVES_PIN;
         const storeId = process.env.ALLEAVES_STORE_ID || process.env.THRIVE_ALLEAVES_STORE_ID || '1000';
 
-        if (!username || !password) {
+        if (!username || !password || !pin) {
             log('ERROR: Missing Alleaves credentials in environment variables.');
             log(`  ALLEAVES_USERNAME: ${username ? 'set' : 'MISSING'}`);
             log(`  ALLEAVES_PASSWORD: ${password ? 'set' : 'MISSING'}`);
+            log(`  ALLEAVES_PIN: ${pin ? 'set' : 'MISSING'}`);
             return {
                 success: false,
                 logs,
-                error: 'Missing environment variables: ALLEAVES_USERNAME, ALLEAVES_PASSWORD',
+                error: 'Missing environment variables: ALLEAVES_USERNAME, ALLEAVES_PASSWORD, ALLEAVES_PIN',
             };
         }
 

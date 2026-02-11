@@ -194,12 +194,12 @@ export async function requireDispensaryAccess(
   const user = await requireAuth(req);
 
   // Super User can access all dispensaries
-  if (user.role === 'super_user') {
+  if (user.role === 'super_user' || user.role === 'super_admin') {
     return user;
   }
 
-  // Dispensary managers can only access their own location
-  if (user.role === 'dispensary' && user.locationId === dispensaryId) {
+  // Any dispensary-scoped role can only access their own location
+  if (isDispensaryRole(user.role) && user.locationId === dispensaryId) {
     return user;
   }
 
