@@ -331,8 +331,8 @@ Return ONLY the additional text to append (no preamble like "Here's what I misse
      * Get completeness metrics for analytics
      */
     async getCompletenessMetrics(tenantId: string, agentId: string, days: number = 7) {
-        const { getFirestore } = await import('@/lib/firebase-admin');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('@/firebase/admin');
+        const db = getAdminFirestore();
 
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - days);
@@ -379,8 +379,8 @@ Return ONLY the additional text to append (no preamble like "Here's what I misse
         completenessCheck: CompletenessCheck,
         wasCompleted: boolean
     ): Promise<void> {
-        const { getFirestore } = await import('@/lib/firebase-admin');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('@/firebase/admin');
+        const db = getAdminFirestore();
 
         await db.collection('completeness_logs').add({
             tenantId,

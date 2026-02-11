@@ -23,7 +23,7 @@ import {
     MemoryConfidence,
     MemoryEvidence,
 } from './memory-types';
-import { getFirestore } from '@/lib/firebase-admin';
+import { getAdminFirestore } from '@/firebase/admin';
 
 // =============================================================================
 // CONFIGURATION
@@ -56,7 +56,7 @@ const DEFAULT_CONFIG: MemoryGardeningConfig = {
 
 export class MemoryGardeningService {
     private config: MemoryGardeningConfig;
-    private db = getFirestore();
+    private db = getAdminFirestore();
 
     constructor(config: Partial<MemoryGardeningConfig> = {}) {
         this.config = { ...DEFAULT_CONFIG, ...config };

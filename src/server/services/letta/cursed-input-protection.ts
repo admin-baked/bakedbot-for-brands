@@ -361,8 +361,8 @@ Return JSON:
     ): Promise<void> {
         if (!check.isCursed) return;
 
-        const { getFirestore } = await import('@/lib/firebase-admin');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('@/firebase/admin');
+        const db = getAdminFirestore();
 
         await db.collection('cursed_input_incidents').add({
             reason: check.reason,
