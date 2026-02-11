@@ -1,0 +1,179 @@
+{
+  "name": "bakedbot-vibe-ide",
+  "displayName": "BakedBot Vibe IDE",
+  "description": "Develop and deploy Vibe IDE projects locally with VS Code",
+  "version": "1.0.0",
+  "publisher": "bakedbot",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bakedbot/vibe-ide"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Snippets",
+    "Themes"
+  ],
+  "keywords": [
+    "bakedbot",
+    "vibe",
+    "web design",
+    "cannabis",
+    "dispensary"
+  ],
+  "activationEvents": [
+    "onCommand:vibeIDE.openProject",
+    "onCommand:vibeIDE.createProject",
+    "onCommand:vibeIDE.deploy",
+    "onCommand:vibeIDE.preview",
+    "onCommand:vibeIDE.syncFromCloud",
+    "workspaceContains:**/vibe.config.json"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vibeIDE.createProject",
+        "title": "Vibe IDE: Create New Project",
+        "icon": "$(add)"
+      },
+      {
+        "command": "vibeIDE.openProject",
+        "title": "Vibe IDE: Open Project",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "vibeIDE.preview",
+        "title": "Vibe IDE: Preview Project",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "vibeIDE.deploy",
+        "title": "Vibe IDE: Deploy to Production",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "vibeIDE.syncFromCloud",
+        "title": "Vibe IDE: Sync from Cloud",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "vibeIDE.editVibeConfig",
+        "title": "Vibe IDE: Edit Theme Config"
+      },
+      {
+        "command": "vibeIDE.browseTemplates",
+        "title": "Vibe IDE: Browse Templates"
+      },
+      {
+        "command": "vibeIDE.startCollaboration",
+        "title": "Vibe IDE: Start Collaboration Session"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "vibe-ide",
+          "title": "Vibe IDE",
+          "icon": "assets/sidebar-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "vibe-ide": [
+        {
+          "id": "vibeProjects",
+          "name": "Projects"
+        },
+        {
+          "id": "vibeTemplates",
+          "name": "Templates"
+        },
+        {
+          "id": "vibeCollaboration",
+          "name": "Collaboration"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Vibe IDE",
+      "properties": {
+        "vibeIDE.apiUrl": {
+          "type": "string",
+          "default": "https://bakedbot.ai/api",
+          "description": "BakedBot API URL"
+        },
+        "vibeIDE.autoSync": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically sync changes to cloud"
+        },
+        "vibeIDE.previewPort": {
+          "type": "number",
+          "default": 3000,
+          "description": "Local preview server port"
+        },
+        "vibeIDE.enableCollaboration": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable real-time collaboration features"
+        }
+      }
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "vibeIDE.createProject",
+          "when": "true"
+        },
+        {
+          "command": "vibeIDE.preview",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "vibeIDE.deploy",
+          "when": "workspaceFolderCount > 0"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "vibeIDE.preview",
+          "when": "resourceFilename == 'vibe.config.json'",
+          "group": "navigation"
+        }
+      ]
+    },
+    "snippets": [
+      {
+        "language": "json",
+        "path": "./snippets/vibe-config.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.2",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "ws": "^8.14.2"
+  }
+}
