@@ -25,14 +25,14 @@ import {
 import { LiveHudDashboard } from '@/components/meridian/livehud-dashboard';
 import { MemoryHealthDashboard } from '@/components/meridian/memory-health-dashboard';
 import {
-    getMeridianSystemMetrics,
+    getIntelligenceSystemMetrics,
     getAllAgentCognitiveStates,
     getCursedInputStats,
-} from '@/server/actions/meridian-intelligence';
+} from '@/server/actions/intelligence';
 import { AgentCognitiveState } from '@/types/agent-cognitive-state';
 import { Brain, Shield, Target, TrendingUp, AlertTriangle } from 'lucide-react';
 
-export function MeridianTab() {
+export function IntelligenceTab() {
     const [systemMetrics, setSystemMetrics] = useState<any>(null);
     const [agents, setAgents] = useState<AgentCognitiveState[]>([]);
     const [securityStats, setSecurityStats] = useState<any>(null);
@@ -48,7 +48,7 @@ export function MeridianTab() {
     const loadData = async () => {
         try {
             const [metrics, agentStates, security] = await Promise.all([
-                getMeridianSystemMetrics(),
+                getIntelligenceSystemMetrics(),
                 getAllAgentCognitiveStates(),
                 getCursedInputStats(30),
             ]);

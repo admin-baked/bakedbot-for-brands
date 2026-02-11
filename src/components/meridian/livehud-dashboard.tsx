@@ -28,7 +28,7 @@ import {
     setAgentPersonalityMode,
     updateAgentSliders,
     applySliderPreset,
-} from '@/server/actions/meridian-intelligence';
+} from '@/server/actions/intelligence';
 import { Activity, Brain, Gauge, MemoryStick, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

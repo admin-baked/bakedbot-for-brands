@@ -180,11 +180,11 @@ export const SleepTimeConsolidationSchema = z.object({
 export type SleepTimeConsolidation = z.infer<typeof SleepTimeConsolidationSchema>;
 
 // =============================================================================
-// MERIDIAN-ENHANCED MEMORY FEATURES
+// BAKEDBOT INTELLIGENCE - ENHANCED MEMORY FEATURES
 // =============================================================================
 
 /**
- * Confidence scoring for all memory entries (MERIDIAN Receipts-Backed Protocol)
+ * Confidence scoring for all memory entries (BakedBot Intelligence - Receipts-Backed Protocol)
  * Every factual claim includes a confidence score (0.00-1.00) and source attribution
  */
 export const MemoryConfidenceSchema = z.object({
@@ -208,7 +208,7 @@ export const MemoryConfidenceSchema = z.object({
 export type MemoryConfidence = z.infer<typeof MemoryConfidenceSchema>;
 
 /**
- * Fact vs Speculation labeling (MERIDIAN Safety Protocol)
+ * Fact vs Speculation labeling (BakedBot Intelligence - Safety Protocol)
  * Enforces distinction between verified facts and AI inferences
  */
 export const MemoryEvidenceSchema = z.object({
@@ -232,7 +232,7 @@ export const MemoryEvidenceSchema = z.object({
 export type MemoryEvidence = z.infer<typeof MemoryEvidenceSchema>;
 
 /**
- * Memory Conflict Detection (MERIDIAN Memory Gardening)
+ * Memory Conflict Detection (BakedBot Intelligence - Memory Gardening)
  * Identifies contradictory facts in the memory system
  */
 export const MemoryConflictSchema = z.object({
@@ -262,7 +262,7 @@ export const MemoryConflictSchema = z.object({
 export type MemoryConflict = z.infer<typeof MemoryConflictSchema>;
 
 /**
- * Memory Health Metrics (MERIDIAN Memory Gardening)
+ * Memory Health Metrics (BakedBot Intelligence - Memory Gardening)
  * Track the health and quality of the memory system
  */
 export const MemoryHealthMetricsSchema = z.object({
@@ -340,7 +340,7 @@ export const MemoryGardeningReportSchema = z.object({
 export type MemoryGardeningReport = z.infer<typeof MemoryGardeningReportSchema>;
 
 /**
- * Enhanced Semantic Memory with MERIDIAN features
+ * Enhanced Semantic Memory with BakedBot Intelligence features
  */
 export const MeridianSemanticMemorySchema = SemanticMemorySchema.extend({
     confidence: MemoryConfidenceSchema,  // Replaces simple number

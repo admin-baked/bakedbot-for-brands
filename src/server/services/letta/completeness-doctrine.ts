@@ -1,6 +1,5 @@
-// @ts-nocheck - WIP: MERIDIAN integration
 /**
- * Completeness Doctrine (MERIDIAN Protocol)
+ * Completeness Doctrine (BakedBot Intelligence)
  *
  * Ensures agents address EVERY distinct point in user input.
  * Prevents incomplete responses where secondary questions are skipped.
@@ -11,7 +10,7 @@
  * 3. Verify all intents were addressed
  * 4. If incomplete, append missing coverage
  *
- * Inspired by: https://github.com/mattvideoproductions/MERIDIAN_Brain
+ * Part of BakedBot Intelligence, inspired by: https://github.com/mattvideoproductions/MERIDIAN_Brain
  * BakedBot adaptation: Integrated with agent-runner response pipeline
  */
 

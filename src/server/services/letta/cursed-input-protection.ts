@@ -1,6 +1,5 @@
-// @ts-nocheck - WIP: MERIDIAN integration
 /**
- * Cursed Input Protection (MERIDIAN Safety Protocol)
+ * Cursed Input Protection (BakedBot Intelligence - Safety Protocol)
  *
  * Detects and handles adversarial, confusing, or malicious inputs:
  * - Prompt injection attempts
@@ -8,7 +7,7 @@
  * - Memory bomb attacks
  * - Role confusion attacks
  *
- * Inspired by: https://github.com/mattvideoproductions/MERIDIAN_Brain
+ * Part of BakedBot Intelligence, inspired by: https://github.com/mattvideoproductions/MERIDIAN_Brain
  * BakedBot adaptation: Integrated with agent-runner preprocessing
  */
 

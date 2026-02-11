@@ -42,7 +42,7 @@ import {
     getMemoryGardeningReports,
     getUnresolvedConflicts,
     resolveMemoryConflict,
-} from '@/server/actions/meridian-intelligence';
+} from '@/server/actions/intelligence';
 import {
     MemoryHealthMetrics,
     MemoryGardeningReport,
