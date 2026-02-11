@@ -2,7 +2,7 @@
 
 /**
  * Super User Playbooks Page
- * 
+ *
  * Agent Command UX for internal BakedBot operations:
  * - Welcome emails for new signups
  * - Competitor pricing research (AIQ, etc.)
@@ -16,12 +16,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Search, Bot, Zap, Clock, TrendingUp, Users, Mail, BarChart3, Target } from 'lucide-react';
+import { Search, Bot, Zap, Clock, TrendingUp, Users, Mail, BarChart3, Target, Database, Loader2, CheckCircle } from 'lucide-react';
 import { SuperUserAgentChat } from './components/super-user-agent-chat';
 import { InternalPlaybooksGrid } from './components/internal-playbooks-grid';
+import { seedPlaybookTemplates, type SeedResult } from '@/server/actions/seed-playbooks';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function SuperUserPlaybooksPage() {
     const [searchQuery, setSearchQuery] = useState('');
+    const [isSeeding, setIsSeeding] = useState(false);
+    const [seedResult, setSeedResult] = useState<SeedResult | null>(null);
+    const { toast } = useToast();
 
     const stats = {
         activePlaybooks: 8,
@@ -30,14 +35,68 @@ export default function SuperUserPlaybooksPage() {
         automationsThisWeek: 156,
     };
 
+    const handleSeedTemplates = async () => {
+        setIsSeeding(true);
+        setSeedResult(null);
+        try {
+            const result = await seedPlaybookTemplates();
+            setSeedResult(result);
+
+            if (result.success) {
+                toast({
+                    title: 'Templates seeded',
+                    description: `Seeded ${result.seeded.length} templates, ${result.skipped.length} already existed.`,
+                });
+            } else {
+                toast({
+                    title: 'Seeding completed with errors',
+                    description: result.errors.join(', '),
+                    variant: 'destructive',
+                });
+            }
+        } catch (error) {
+            toast({
+                title: 'Seeding failed',
+                description: error instanceof Error ? error.message : 'Unknown error',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsSeeding(false);
+        }
+    };
+
     return (
         <div className="space-y-8 p-8 max-w-[1600px] mx-auto">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">BakedBot Operations</h1>
-                <p className="text-muted-foreground">
-                    Internal agent commands and automation playbooks for BakedBot operations.
-                </p>
+            <div className="flex items-start justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">BakedBot Operations</h1>
+                    <p className="text-muted-foreground">
+                        Internal agent commands and automation playbooks for BakedBot operations.
+                    </p>
+                </div>
+                <Button
+                    variant="outline"
+                    onClick={handleSeedTemplates}
+                    disabled={isSeeding}
+                >
+                    {isSeeding ? (
+                        <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Seeding...
+                        </>
+                    ) : seedResult?.success ? (
+                        <>
+                            <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                            Seeded
+                        </>
+                    ) : (
+                        <>
+                            <Database className="h-4 w-4 mr-2" />
+                            Seed Templates
+                        </>
+                    )}
+                </Button>
             </div>
 
             {/* Stats Row */}

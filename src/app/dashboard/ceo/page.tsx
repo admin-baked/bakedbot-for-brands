@@ -41,6 +41,7 @@ const UnifiedAdminConsole = dynamic(() => import("./components/unified-admin-con
 const LeadsTab = dynamic(() => import("./components/leads-tab"), { loading: TabLoader });
 const WhatsAppTab = dynamic(() => import("./components/whatsapp-tab"), { loading: TabLoader, ssr: false });
 const DriveTab = dynamic(() => import("./components/drive-tab"), { loading: TabLoader, ssr: false });
+const CostsTab = dynamic(() => import("./components/costs-tab"), { loading: TabLoader, ssr: false });
 
 
 import { useSuperAdmin } from '@/hooks/use-super-admin';
@@ -190,6 +191,7 @@ function CeoDashboardContent() {
             case 'leads': return <LeadsTab />;
             case 'whatsapp': return <WhatsAppTab />;
             case 'drive': return <DriveTab />;
+            case 'costs': return <CostsTab />;
             default: return <SuperAdminPlaybooksTab />;
         }
     };

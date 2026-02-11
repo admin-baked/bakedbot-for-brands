@@ -16,6 +16,16 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { createValidationPipeline } from '@/server/validators/validation-pipeline';
 import type { ValidationResult } from '@/server/validators/base-validator';
 
+// Media Generation - Cost Tracking
+import {
+    trackMediaGeneration,
+    calculateVideoCost,
+    calculateImageCost,
+} from '@/server/services/media-tracking';
+import { generateVeoVideo } from '@/ai/generators/veo';
+import { generateSoraVideo } from '@/ai/generators/sora';
+import { generateImageFromPrompt } from '@/ai/flows/generate-social-image';
+
 // Types
 export interface PlaybookExecutionRequest {
     playbookId: string;
@@ -291,6 +301,411 @@ async function executeGenerate(
 }
 
 // =============================================================================
+// MEDIA GENERATION STEP EXECUTORS
+// =============================================================================
+
+/**
+ * Fetch deals from POS or dynamic pricing rules
+ * Action: fetch_deals
+ */
+async function executeFetchDeals(
+    step: any,
+    context: ExecutionContext
+): Promise<any> {
+    const source = step.params?.source || 'firestore';
+    const { firestore } = await createServerClient();
+
+    logger.info('[PlaybookExecutor] Fetching deals:', { source, orgId: context.orgId });
+
+    try {
+        // Fetch from dynamic_pricing collection (active rules)
+        const rulesSnap = await firestore
+            .collection('tenants')
+            .doc(context.orgId)
+            .collection('dynamic_pricing')
+            .where('status', '==', 'active')
+            .get();
+
+        const deals = rulesSnap.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+        }));
+
+        // Store in context for subsequent steps
+        context.variables.deals = deals;
+        context.previousResults.deals = deals;
+
+        logger.info('[PlaybookExecutor] Fetched deals:', { count: deals.length });
+
+        return {
+            success: true,
+            deals,
+            count: deals.length,
+        };
+    } catch (error) {
+        logger.error('[PlaybookExecutor] Failed to fetch deals:', { error });
+        return {
+            success: false,
+            deals: [],
+            count: 0,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        };
+    }
+}
+
+/**
+ * Generate a video using Veo or Sora with cost tracking
+ * Action: generate_video
+ */
+async function executeGenerateVideo(
+    step: any,
+    context: ExecutionContext
+): Promise<any> {
+    const provider = step.params?.provider || 'veo';
+    const aspectRatio = step.params?.aspectRatio || '9:16';
+    const duration = step.params?.duration || '5';
+    const style = step.params?.style || 'professional';
+    const template = step.params?.template || 'general';
+
+    // Build prompt from deals or custom prompt
+    let prompt = step.params?.prompt;
+    if (!prompt && context.variables.deals) {
+        prompt = buildDealsVideoPrompt(context.variables.deals, style, template);
+    }
+    if (!prompt) {
+        prompt = 'Create a professional promotional video';
+    }
+
+    // Resolve any variables in prompt
+    prompt = resolveVariables(prompt, context.variables);
+
+    logger.info('[PlaybookExecutor] Generating video:', {
+        provider,
+        aspectRatio,
+        duration,
+        promptLength: prompt.length,
+    });
+
+    const startTime = Date.now();
+    let videoUrl: string;
+    let actualDuration: number;
+
+    try {
+        if (provider === 'sora') {
+            const result = await generateSoraVideo({
+                prompt,
+                aspectRatio: aspectRatio as '16:9' | '9:16' | '1:1',
+                duration: duration as '5' | '10',
+            });
+            videoUrl = result.videoUrl;
+            actualDuration = result.duration;
+        } else {
+            const result = await generateVeoVideo({
+                prompt,
+                aspectRatio: aspectRatio as '16:9' | '9:16' | '1:1',
+                duration: duration as '5' | '10',
+            });
+            videoUrl = result.videoUrl;
+            actualDuration = result.duration;
+        }
+
+        // Track the generation
+        const costUsd = calculateVideoCost(provider as 'veo' | 'sora', actualDuration);
+        await trackMediaGeneration({
+            tenantId: context.orgId,
+            userId: context.userId,
+            type: 'video',
+            provider: provider as 'veo' | 'sora',
+            model: provider === 'sora' ? 'sora-2' : 'veo-3.1-generate-preview',
+            prompt,
+            durationSeconds: actualDuration,
+            aspectRatio,
+            costUsd,
+            success: true,
+            metadata: {
+                generationTimeMs: Date.now() - startTime,
+                template,
+                style,
+            },
+        });
+
+        // Store in context
+        context.variables.videoUrl = videoUrl;
+        context.variables.videoDuration = actualDuration;
+        context.previousResults.video = { videoUrl, duration: actualDuration };
+
+        logger.info('[PlaybookExecutor] Video generated:', {
+            videoUrl,
+            duration: actualDuration,
+            costUsd,
+        });
+
+        return {
+            success: true,
+            videoUrl,
+            duration: actualDuration,
+            costUsd,
+        };
+    } catch (error) {
+        logger.error('[PlaybookExecutor] Video generation failed:', { error });
+
+        // Track failed generation
+        const durationNum = parseInt(duration, 10) || 5;
+        await trackMediaGeneration({
+            tenantId: context.orgId,
+            userId: context.userId,
+            type: 'video',
+            provider: provider as 'veo' | 'sora',
+            model: provider === 'sora' ? 'sora-2' : 'veo-3.1-generate-preview',
+            prompt,
+            durationSeconds: durationNum,
+            costUsd: 0,
+            success: false,
+            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        });
+
+        throw error;
+    }
+}
+
+/**
+ * Generate a caption for social media content
+ * Action: generate_caption
+ */
+async function executeGenerateCaption(
+    step: any,
+    context: ExecutionContext
+): Promise<any> {
+    const platform = step.params?.platform || 'instagram';
+    const includeHashtags = step.params?.includeHashtags !== false;
+    const includeCTA = step.params?.includeCTA !== false;
+    const brandVoice = step.params?.brandVoice || context.variables.brandVoice || 'professional';
+
+    // Build caption based on deals
+    const deals = context.variables.deals || [];
+    let caption = '';
+
+    if (deals.length > 0) {
+        // Simple caption generation (in production, use Craig agent)
+        const dealLines = deals.slice(0, 3).map((deal: any) => {
+            if (deal.discountType === 'percentage') {
+                return `${deal.discountValue}% off ${deal.name || 'select items'}`;
+            } else if (deal.discountType === 'fixed') {
+                return `$${deal.discountValue} off ${deal.name || 'select items'}`;
+            }
+            return deal.name || 'Special deal';
+        });
+
+        caption = `🔥 This week's deals are here!\n\n${dealLines.join('\n')}\n\n`;
+    } else {
+        caption = '🌿 Check out our latest offerings!\n\n';
+    }
+
+    if (includeCTA) {
+        caption += 'Shop now at the link in bio! 🛒\n\n';
+    }
+
+    if (includeHashtags) {
+        const hashtags = ['#cannabis', '#deals', '#dispensary', '#420', '#weed'];
+        caption += hashtags.join(' ');
+    }
+
+    // Store in context
+    context.variables.caption = caption;
+    context.previousResults.caption = caption;
+
+    logger.info('[PlaybookExecutor] Caption generated:', {
+        platform,
+        captionLength: caption.length,
+    });
+
+    return {
+        success: true,
+        caption,
+        platform,
+    };
+}
+
+/**
+ * Generate an image using Nano Banana with cost tracking
+ * Action: generate_image
+ */
+async function executeGenerateImage(
+    step: any,
+    context: ExecutionContext
+): Promise<any> {
+    const tier = step.params?.tier || 'free';
+    const style = step.params?.style || 'professional';
+    let prompt = step.params?.prompt;
+
+    // Build prompt from deals if not provided
+    if (!prompt && context.variables.deals) {
+        const deals = context.variables.deals.slice(0, 3);
+        const dealText = deals.map((d: any) => d.name || 'Special deal').join(', ');
+        prompt = `Professional cannabis dispensary promotional image featuring: ${dealText}. Style: ${style}. High quality, modern design.`;
+    }
+    if (!prompt) {
+        prompt = `Professional cannabis dispensary promotional image. Style: ${style}. High quality, modern design.`;
+    }
+
+    // Resolve variables
+    prompt = resolveVariables(prompt, context.variables);
+
+    logger.info('[PlaybookExecutor] Generating image:', {
+        tier,
+        style,
+        promptLength: prompt.length,
+    });
+
+    const startTime = Date.now();
+    const provider = tier === 'free' ? 'gemini-flash' : 'gemini-pro';
+
+    try {
+        const imageUrl = await generateImageFromPrompt(prompt, {
+            tier: tier as 'free' | 'paid' | 'super',
+        });
+
+        // Track the generation
+        const costUsd = calculateImageCost(provider);
+        await trackMediaGeneration({
+            tenantId: context.orgId,
+            userId: context.userId,
+            type: 'image',
+            provider,
+            model: provider === 'gemini-flash' ? 'gemini-2.5-flash-image' : 'gemini-3-pro-image-preview',
+            prompt,
+            costUsd,
+            success: true,
+            metadata: {
+                generationTimeMs: Date.now() - startTime,
+                tier,
+                style,
+            },
+        });
+
+        // Store in context
+        context.variables.imageUrl = imageUrl;
+        context.previousResults.image = { imageUrl };
+
+        logger.info('[PlaybookExecutor] Image generated:', { imageUrl, costUsd });
+
+        return {
+            success: true,
+            imageUrl,
+            costUsd,
+        };
+    } catch (error) {
+        logger.error('[PlaybookExecutor] Image generation failed:', { error });
+
+        // Track failed generation
+        await trackMediaGeneration({
+            tenantId: context.orgId,
+            userId: context.userId,
+            type: 'image',
+            provider,
+            model: provider === 'gemini-flash' ? 'gemini-2.5-flash-image' : 'gemini-3-pro-image-preview',
+            prompt,
+            costUsd: 0,
+            success: false,
+            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        });
+
+        throw error;
+    }
+}
+
+/**
+ * Submit content to approval queue
+ * Action: submit_approval
+ */
+async function executeSubmitApproval(
+    step: any,
+    context: ExecutionContext
+): Promise<any> {
+    const platform = step.params?.platform || 'instagram';
+    const { firestore } = await createServerClient();
+
+    const videoUrl = context.variables.videoUrl;
+    const imageUrl = context.variables.imageUrl;
+    const caption = context.variables.caption || '';
+
+    if (!videoUrl && !imageUrl) {
+        throw new Error('No media URL found in context. Generate video or image first.');
+    }
+
+    const mediaType = videoUrl ? 'video' : 'image';
+    const mediaUrls = videoUrl ? [videoUrl] : [imageUrl];
+
+    logger.info('[PlaybookExecutor] Submitting to approval:', {
+        platform,
+        mediaType,
+    });
+
+    // Create creative content in pending status
+    const contentRef = await firestore.collection('tenants').doc(context.orgId).collection('creative_content').add({
+        tenantId: context.orgId,
+        brandId: context.orgId,
+        platform,
+        status: 'pending',
+        complianceStatus: 'active',
+        caption,
+        mediaUrls,
+        mediaType,
+        generatedBy: 'nano-banana-pro',
+        createdBy: 'playbook',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        approvalState: {
+            currentLevel: 1,
+            approvals: [],
+            status: 'pending_approval',
+            nextRequiredRoles: ['marketing_manager', 'admin'],
+        },
+    });
+
+    // Store in context
+    context.variables.contentId = contentRef.id;
+    context.previousResults.approval = { contentId: contentRef.id };
+
+    logger.info('[PlaybookExecutor] Content submitted for approval:', {
+        contentId: contentRef.id,
+    });
+
+    return {
+        success: true,
+        contentId: contentRef.id,
+        status: 'pending',
+    };
+}
+
+/**
+ * Build a video prompt from deals data
+ */
+function buildDealsVideoPrompt(deals: any[], style: string, template: string): string {
+    if (!deals || deals.length === 0) {
+        return `Create a ${style} promotional video for a cannabis dispensary. Feature modern design and vibrant energy.`;
+    }
+
+    const dealDescriptions = deals.slice(0, 3).map((deal: any) => {
+        if (deal.discountType === 'percentage') {
+            return `${deal.discountValue}% off ${deal.name || 'select items'}`;
+        } else if (deal.discountType === 'fixed') {
+            return `$${deal.discountValue} off ${deal.name || 'select items'}`;
+        }
+        return deal.name || 'Special promotion';
+    });
+
+    const templatePrompts: Record<string, string> = {
+        'deals-showcase': `Create an energetic promotional video showcasing this week's cannabis deals: ${dealDescriptions.join(', ')}. Use dynamic transitions, vibrant colors, and modern motion graphics. Style: ${style}. Include text overlays for each deal. Professional dispensary marketing video.`,
+        'flash-sale': `Create an urgent, exciting flash sale video for cannabis products. Feature these deals: ${dealDescriptions.join(', ')}. Use fast cuts, countdown elements, and bold text. Style: ${style}. High energy, modern design.`,
+        'weekly-update': `Create a friendly weekly update video for a cannabis dispensary. Highlight these current offers: ${dealDescriptions.join(', ')}. Use smooth transitions and warm, inviting visuals. Style: ${style}.`,
+        'general': `Create a ${style} promotional video featuring these cannabis deals: ${dealDescriptions.join(', ')}. Modern design, professional quality, suitable for social media.`,
+    };
+
+    return templatePrompts[template] || templatePrompts['general'];
+}
+
+// =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
 
@@ -540,6 +955,22 @@ export async function executePlaybook(
                         break;
                     case 'review':
                         output = await executeDelegate(step, context); // Alias for delegate
+                        break;
+                    // Media Generation Actions
+                    case 'fetch_deals':
+                        output = await executeFetchDeals(step, context);
+                        break;
+                    case 'generate_video':
+                        output = await executeGenerateVideo(step, context);
+                        break;
+                    case 'generate_caption':
+                        output = await executeGenerateCaption(step, context);
+                        break;
+                    case 'generate_image':
+                        output = await executeGenerateImage(step, context);
+                        break;
+                    case 'submit_approval':
+                        output = await executeSubmitApproval(step, context);
                         break;
                     default:
                         logger.warn('[PlaybookExecutor] Unknown action:', step.action);
