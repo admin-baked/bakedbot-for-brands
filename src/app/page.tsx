@@ -1,12 +1,10 @@
-import React from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Search, Terminal, Zap, FileSpreadsheet, Scale, Lock, RefreshCw, BarChart3, Mail, MessageSquare } from "lucide-react";
+import { Search, Terminal, Zap, FileSpreadsheet, Scale, Lock, RefreshCw, BarChart3, Mail, MessageSquare } from "lucide-react";
 
 import { HeroClient } from "@/components/landing/hero-client";
 import { PricingClient } from "@/components/landing/pricing-client";
-import { PRICING_PLANS } from "@/lib/config/pricing";
 import Logo from "@/components/logo";
 
 // Navigation Links
@@ -38,7 +36,7 @@ const outcomes = [
   {
     icon: Search,
     title: "Get found on Google",
-    desc: "Headless, SEO-first menus and product pages—built to rank and load fast.",
+    desc: "Headless, SEO-first menus and product pages built to rank and load fast.",
   },
   {
     icon: Zap,
@@ -67,7 +65,7 @@ const modules = [
   {
     icon: Mail,
     name: "Add-on: Craig (Marketing)",
-    blurb: "Lifecycle email + SMS workflows that stay warm, not spammy—checked before sending.",
+    blurb: "Lifecycle email + SMS workflows that stay warm, not spammy, and checked before sending.",
     bullets: [
       "Welcome + winback workflows",
       "Segmentation playbooks",
@@ -89,7 +87,7 @@ const modules = [
   {
     icon: RefreshCw,
     name: "Add-on: Ezal (Intelligence)",
-    blurb: "Track competitor pricing and availability—then respond with smarter positioning.",
+    blurb: "Track competitor pricing and availability, then respond with smarter positioning.",
     bullets: [
       "Competitor menu tracking",
       "Price alerts",
@@ -215,7 +213,7 @@ export default function HomePage() {
               <Badge variant="outline" className="w-fit bg-purple-500/10 text-purple-600 border-purple-500/20">Case Studies</Badge>
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Proof you can feel</h2>
               <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
-                We’re building for outcomes: more visibility, higher conversion, and less manual work.
+                We're building for outcomes: more visibility, higher conversion, and less manual work.
               </p>
             </div>
             <Button variant="outline" asChild className="rounded-xl">
@@ -241,10 +239,10 @@ export default function HomePage() {
         <div className="grid gap-12 lg:grid-cols-2 items-center">
           <div className="space-y-6">
             <Badge variant="outline" className="w-fit bg-red-500/10 text-red-600 border-red-500/20">Safety First</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight">Compliance is not a checkbox.<br />It’s infrastructure.</h2>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight">Compliance is not a checkbox.<br />It's infrastructure.</h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
               Deebo is our compliance engine. It pre-checks on-site content and outbound messaging against jurisdiction-aware
-              rules—then records what happened for auditability.
+              rules, then records what happened for auditability.
             </p>
             <div className="flex flex-wrap gap-3">
               {['Pre-flight checks', 'Audit trails', 'Jurisdiction rule packs', 'Approvals & controls'].map(tag => (
@@ -311,7 +309,7 @@ export default function HomePage() {
             <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Transparent Pricing</Badge>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Launch pricing</h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Predictable plans with included usage. When you outgrow the included limits, you pay transparent overages—no surprises.
+              Predictable plans with included usage. When you outgrow the included limits, you pay transparent overages with no surprises.
             </p>
           </div>
 
@@ -324,7 +322,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-4 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2">
             <Logo height={28} />
-            <span className="text-sm text-muted-foreground">© {year} BakedBot AI</span>
+            <span className="text-sm text-muted-foreground">Copyright {year} BakedBot AI</span>
           </div>
           <div className="flex gap-6 text-sm text-muted-foreground">
             <a href="/privacy" className="hover:text-foreground transition-colors">Privacy</a>
