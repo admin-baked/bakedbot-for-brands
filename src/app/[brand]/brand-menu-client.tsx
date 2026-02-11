@@ -42,11 +42,11 @@ import { CategoryGrid } from '@/components/demo/category-grid';
 import { ProductSection } from '@/components/demo/product-section';
 import { OversizedProductCard } from '@/components/demo/oversized-product-card';
 import { DispensaryLocatorFlow } from '@/components/demo/dispensary-locator-flow';
-import { BrandCheckoutFlow } from '@/components/demo/brand-checkout-flow';
 import { DemoFooter } from '@/components/demo/demo-footer';
 import { ProductDetailModal } from '@/components/demo/product-detail-modal';
 import { BundleDealsSection } from '@/components/demo/bundle-deals-section';
 import { CartSlideOver } from '@/components/demo/cart-slide-over';
+import { CheckoutFlow } from '@/components/checkout/checkout-flow';
 import { ShippingCheckoutFlow } from '@/components/checkout/shipping-checkout-flow';
 import Chatbot from '@/components/chatbot';
 
@@ -100,7 +100,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
 
   // Cart state
   const [cartOpen, setCartOpen] = useState(false);
-  const { addToCart, cartItems, clearCart, removeFromCart, updateQuantity } = useStore();
+  const { addToCart, cartItems, clearCart, removeFromCart, updateQuantity, setSelectedRetailerId } = useStore();
 
   // Dispensary state
   const [selectedDispensary, setSelectedDispensary] = useState<{
@@ -266,16 +266,10 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
   // Handle dispensary selection
   const handleDispensarySelect = (dispensary: typeof selectedDispensary) => {
     setSelectedDispensary(dispensary);
+    setSelectedRetailerId(dispensary?.id || null);
     if (dispensary && cartItems.length > 0) {
       setBrandView('checkout');
     }
-  };
-
-  // Handle checkout completion
-  const handleCheckoutComplete = () => {
-    clearCart();
-    setBrandView('shop');
-    setSelectedDispensary(null);
   };
 
   // Cart items for checkout
@@ -362,15 +356,8 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           onLocationClick={() => setBrandView('locator')}
         />
 
-        <main className="flex-1">
-          <BrandCheckoutFlow
-            brandName={brand.name}
-            primaryColor={primaryColor}
-            cartItems={cartItemsWithQuantity}
-            pickupLocation={selectedDispensary}
-            onBack={() => setBrandView('locator')}
-            onComplete={handleCheckoutComplete}
-          />
+        <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
+          <CheckoutFlow />
         </main>
       </div>
     );
