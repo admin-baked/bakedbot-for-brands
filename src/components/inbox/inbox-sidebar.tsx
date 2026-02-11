@@ -309,6 +309,7 @@ function FilterButton({ collapsed }: { collapsed?: boolean }) {
         // Business Operations
         general: 'General',
         carousel: 'Carousels',
+        hero: 'Hero Banners',
         bundle: 'Bundles',
         creative: 'Creative',
         campaign: 'Campaigns',

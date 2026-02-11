@@ -1110,6 +1110,10 @@ The marker format is: :::artifact:carousel:Title
 :::
 Include this marker block in your final response so the system can create the artifact.`,
 
+        hero: `You are helping create a hero banner for a dispensary or brand storefront.
+Focus on a clear value proposition, compliant copy, and strong visual direction.
+Return structured artifacts using the :::artifact:creative_post:Title format when possible.`,
+
         bundle: `You are helping create bundle deals for a dispensary.
 Use the createBundleArtifact tool to generate bundle suggestions with pricing and margin analysis.
 Return structured artifacts using the :::artifact:bundle:Title format.
