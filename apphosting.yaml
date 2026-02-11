@@ -73,20 +73,23 @@ env:
     availability:
       - RUNTIME
   - variable: AUTHNET_ENV
-    value: "sandbox"
+    value: "production"
     availability:
       - RUNTIME
   - variable: NEXT_PUBLIC_AUTHNET_ENV
-    value: "sandbox"
+    value: "production"
     availability:
+      - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
-    value: "9K42597r7YGCrMfdxPTd3Zy59fKe9rvWLbmKBK4bWr7Rn5ghdEmT9Fz8CZNLcT2G"
+    secret: NEXT_PUBLIC_AUTHNET_CLIENT_KEY
     availability:
+      - BUILD
       - RUNTIME
   - variable: NEXT_PUBLIC_AUTHNET_API_LOGIN_ID
     secret: AUTHNET_API_LOGIN_ID
     availability:
+      - BUILD
       - RUNTIME
   # AI/Tools
   - variable: CLAUDE_API_KEY
