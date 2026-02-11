@@ -1,7 +1,7 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, DocumentReference, type DocumentData } from 'firebase-admin/firestore';
 import { createTransaction } from '@/lib/authorize-net';
 import { logger } from '@/lib/logger';
 import { PRICING_PLANS } from '@/lib/config/pricing';
@@ -17,6 +17,15 @@ type CreateSubscriptionInput = {
     couponCode?: string;
 };
 
+function asDate(value: any): Date | null {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (typeof value?.toDate === 'function') return value.toDate();
+
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export async function createSubscription(input: CreateSubscriptionInput) {
     try {
         const { firestore } = await createServerClient();
@@ -26,47 +35,81 @@ export async function createSubscription(input: CreateSubscriptionInput) {
         if (!plan) {
             return { success: false, error: 'Invalid plan selected.' };
         }
+        if (plan.price === null) {
+            return { success: false, error: 'This plan requires a custom quote. Please contact sales.' };
+        }
 
-        // 0. Handle Coupon Logic (Admin SDK Syntax)
-        let finalPrice = plan.price || 0;
-        let discountApplied = null;
+        // 0. Handle Coupon Logic (validate first, redeem atomically with subscription write)
+        let finalPrice = plan.price;
+        let discountApplied: {
+            code: string;
+            type: 'percentage' | 'fixed';
+            value: number;
+            originalPrice: number | null;
+        } | null = null;
+        let couponRef: DocumentReference<DocumentData> | null = null;
 
         if (input.couponCode) {
+            const normalizedCode = input.couponCode.toUpperCase().trim();
             // Admin SDK uses fluent API: collection().where().limit().get()
             const couponsSnap = await firestore.collection('coupons')
-                .where('code', '==', input.couponCode.toUpperCase())
+                .where('code', '==', normalizedCode)
                 .limit(1)
                 .get();
 
-            if (!couponsSnap.empty) {
-                const couponDoc = couponsSnap.docs[0];
-                const coupon = couponDoc.data();
-
-                // Calculate discounted price
-                if (coupon.type === 'percentage') {
-                    finalPrice = finalPrice - (finalPrice * (coupon.value / 100));
-                } else if (coupon.type === 'fixed') {
-                    finalPrice = Math.max(0, finalPrice - coupon.value);
-                }
-
-                discountApplied = {
-                    code: coupon.code,
-                    type: coupon.type,
-                    value: coupon.value,
-                    originalPrice: plan.price,
-                };
-
-                // Increment coupon usage
-                await firestore.collection('coupons').doc(couponDoc.id).update({
-                    uses: FieldValue.increment(1)
-                });
+            if (couponsSnap.empty) {
+                return { success: false, error: 'Invalid coupon code.' };
             }
+
+            const couponDoc = couponsSnap.docs[0];
+            const coupon = couponDoc.data();
+
+            if (coupon.active === false) {
+                return { success: false, error: 'This coupon is inactive.' };
+            }
+
+            const expiresAt = asDate(coupon.expiresAt);
+            if (expiresAt && expiresAt < new Date()) {
+                return { success: false, error: 'This coupon has expired.' };
+            }
+
+            if (coupon.maxUses && (coupon.uses || 0) >= coupon.maxUses) {
+                return { success: false, error: 'This coupon has reached its maximum number of uses.' };
+            }
+
+            if (coupon.type !== 'percentage' && coupon.type !== 'fixed') {
+                return { success: false, error: 'Invalid coupon configuration.' };
+            }
+
+            if (typeof coupon.value !== 'number' || coupon.value <= 0) {
+                return { success: false, error: 'Invalid coupon value.' };
+            }
+
+            // Calculate discounted price
+            if (coupon.type === 'percentage') {
+                finalPrice = finalPrice - (finalPrice * (coupon.value / 100));
+            } else {
+                finalPrice = Math.max(0, finalPrice - coupon.value);
+            }
+
+            finalPrice = Number(finalPrice.toFixed(2));
+            couponRef = couponDoc.ref;
+            discountApplied = {
+                code: coupon.code,
+                type: coupon.type,
+                value: coupon.value,
+                originalPrice: plan.price,
+            };
         }
 
         let transactionId = null;
         let subscriptionStatus = 'active'; // Default to active for free plans
 
         // 2. Process Initial Payment (if price > 0)
+        if (finalPrice > 0 && !input.paymentData) {
+            return { success: false, error: 'Payment information is required for paid plans.' };
+        }
+
         if (finalPrice > 0 && input.paymentData) {
             logger.info('Processing subscription payment', { plan: plan.id, amount: finalPrice });
 
@@ -115,8 +158,47 @@ export async function createSubscription(input: CreateSubscriptionInput) {
             updatedAt: FieldValue.serverTimestamp(),
         };
 
-        const docRef = await firestore.collection('subscriptions').add(subscription);
-        const subscriptionId = docRef.id;
+        const subscriptionRef = firestore.collection('subscriptions').doc();
+
+        if (couponRef) {
+            try {
+                await firestore.runTransaction(async (transaction) => {
+                    const liveCouponSnap = await transaction.get(couponRef!);
+                    if (!liveCouponSnap.exists) {
+                        throw new Error('Coupon no longer exists.');
+                    }
+
+                    const liveCoupon = liveCouponSnap.data() as any;
+                    if (liveCoupon.active === false) {
+                        throw new Error('This coupon is inactive.');
+                    }
+
+                    const liveExpiresAt = asDate(liveCoupon.expiresAt);
+                    if (liveExpiresAt && liveExpiresAt < new Date()) {
+                        throw new Error('This coupon has expired.');
+                    }
+
+                    if (liveCoupon.maxUses && (liveCoupon.uses || 0) >= liveCoupon.maxUses) {
+                        throw new Error('This coupon has reached its maximum number of uses.');
+                    }
+
+                    transaction.update(couponRef!, {
+                        uses: FieldValue.increment(1),
+                        updatedAt: FieldValue.serverTimestamp(),
+                    });
+                    transaction.set(subscriptionRef, subscription);
+                });
+            } catch (couponError) {
+                return {
+                    success: false,
+                    error: couponError instanceof Error ? couponError.message : 'Failed to redeem coupon.',
+                };
+            }
+        } else {
+            await subscriptionRef.set(subscription);
+        }
+
+        const subscriptionId = subscriptionRef.id;
 
         // 4. Send Confirmation (Log for now)
         logger.info('Subscription created', { subscriptionId, plan: plan.id });

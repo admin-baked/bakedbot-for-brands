@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
           test: 'Inventory Age (Alleaves)',
           status: 'pass',
           message: 'Successfully fetched inventory age',
-          details: { daysOld: inventoryAge.daysOld },
+          details: { daysInInventory: inventoryAge.daysInInventory },
         });
       }
     } catch (error) {
