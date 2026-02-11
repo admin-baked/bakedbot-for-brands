@@ -51,12 +51,15 @@ import { InboxCreativeCard } from './artifacts/creative-card';
 import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
 import { QRCodeGeneratorInline } from './qr-code-generator-inline';
 import { CarouselGeneratorInline } from './carousel-generator-inline';
+import { HeroGeneratorInline } from './hero-generator-inline';
 import { BundleGeneratorInline } from './bundle-generator-inline';
 import { SocialPostGeneratorInline } from './social-post-generator-inline';
 import { DynamicPricingGeneratorInline } from './dynamic-pricing-generator-inline';
 import { formatDistanceToNow } from 'date-fns';
 import { runInboxAgentChat, addMessageToInboxThread } from '@/server/actions/inbox';
 import { generateQRCode } from '@/server/actions/qr-code';
+import { toggleHeroActive } from '@/app/actions/heroes';
+import { getBrandSlug } from '@/server/actions/slug-management';
 import { useJobPoller } from '@/hooks/use-job-poller';
 import { AttachmentPreviewList, type AttachmentItem } from '@/components/ui/attachment-preview';
 import { useToast } from '@/hooks/use-toast';
@@ -336,18 +339,23 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
     const [showQRGenerator, setShowQRGenerator] = useState(false);
     const [showCarouselGenerator, setShowCarouselGenerator] = useState(false);
+    const [showHeroGenerator, setShowHeroGenerator] = useState(false);
     const [showBundleGenerator, setShowBundleGenerator] = useState(false);
     const [showSocialPostGenerator, setShowSocialPostGenerator] = useState(false);
     const [showPricingGenerator, setShowPricingGenerator] = useState(false);
     const [carouselInitialPrompt, setCarouselInitialPrompt] = useState('');
+    const [heroInitialPrompt, setHeroInitialPrompt] = useState('');
     const [bundleInitialPrompt, setBundleInitialPrompt] = useState('');
     const [socialPostInitialPrompt, setSocialPostInitialPrompt] = useState('');
     const [pricingInitialPrompt, setPricingInitialPrompt] = useState('');
+    const [lastCreatedHeroId, setLastCreatedHeroId] = useState<string | null>(null);
+    const [lastCreatedHeroOrgId, setLastCreatedHeroOrgId] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const hasAutoShownQR = useRef<boolean>(false);
     const hasAutoShownCarousel = useRef<boolean>(false);
+    const hasAutoShownHero = useRef<boolean>(false);
     const hasAutoShownBundle = useRef<boolean>(false);
     const hasAutoShownSocialPost = useRef<boolean>(false);
     const hasAutoShownPricing = useRef<boolean>(false);
@@ -499,6 +507,21 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
         }
     }, [thread.id, thread.type, showCarouselGenerator]);
 
+    // Auto-open Hero generator for hero threads
+    useEffect(() => {
+        if (thread.type === 'hero') {
+            if (!showHeroGenerator) {
+                setShowHeroGenerator(true);
+            }
+            hasAutoShownHero.current = true;
+        } else {
+            if (showHeroGenerator) {
+                setShowHeroGenerator(false);
+            }
+            hasAutoShownHero.current = false;
+        }
+    }, [thread.id, thread.type, showHeroGenerator]);
+
     // Auto-open Bundle generator for bundle threads
     useEffect(() => {
         if (thread.type === 'bundle') {
@@ -580,6 +603,83 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             setCarouselInitialPrompt(input.trim());
             setShowCarouselGenerator(true);
             setInput('');
+            return;
+        }
+
+        // Detect Hero banner creation intent
+        const heroKeywords = ['create hero', 'hero banner', 'hero image', 'make hero', 'new hero', 'brand hero'];
+        const isHeroRequest = heroKeywords.some(keyword => lowerInput.includes(keyword));
+
+        if (isHeroRequest) {
+            const userMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'user',
+                content: input.trim(),
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, userMessage);
+            setHeroInitialPrompt(input.trim());
+            setShowHeroGenerator(true);
+            setInput('');
+            return;
+        }
+
+        // Detect Hero banner publish intent
+        const publishHeroKeywords = ['publish hero', 'activate hero', 'make hero live', 'publish my hero', 'activate my hero', 'push hero live'];
+        const isPublishHeroRequest = publishHeroKeywords.some(keyword => lowerInput.includes(keyword));
+
+        if (isPublishHeroRequest && lastCreatedHeroId && lastCreatedHeroOrgId) {
+            const userMessage: ChatMessage = {
+                id: `msg-${Date.now()}`,
+                type: 'user',
+                content: input.trim(),
+                timestamp: new Date(),
+            };
+            addMessageToThread(thread.id, userMessage);
+            setInput('');
+
+            // Activate the hero
+            setIsSubmitting(true);
+            try {
+                const result = await toggleHeroActive(lastCreatedHeroId, true);
+
+                if (result.success) {
+                    // Get menu URL
+                    let menuUrl = '';
+                    try {
+                        const slug = await getBrandSlug(lastCreatedHeroOrgId);
+                        if (slug) {
+                            menuUrl = `\n\n🌐 **[Visit Your Live Menu](/${slug})** to see it in action!`;
+                        }
+                    } catch (error) {
+                        console.error('Error getting menu URL:', error);
+                    }
+
+                    const successMessage: ChatMessage = {
+                        id: `msg-${Date.now()}`,
+                        type: 'agent',
+                        content: `🚀 **Hero Banner Published!**\n\nYour hero banner is now live on your menu. Customers will see it when they visit your page.${menuUrl}`,
+                        timestamp: new Date(),
+                    };
+                    addMessageToThread(thread.id, successMessage);
+
+                    // Clear the stored hero ID after publishing
+                    setLastCreatedHeroId(null);
+                    setLastCreatedHeroOrgId(null);
+                } else {
+                    throw new Error(result.error || 'Failed to publish hero');
+                }
+            } catch (error: any) {
+                const errorMessage: ChatMessage = {
+                    id: `msg-${Date.now()}`,
+                    type: 'agent',
+                    content: `❌ **Failed to publish hero banner**\n\n${error.message || 'Please try again from the Heroes Dashboard.'}`,
+                    timestamp: new Date(),
+                };
+                addMessageToThread(thread.id, errorMessage);
+            } finally {
+                setIsSubmitting(false);
+            }
             return;
         }
 
@@ -725,14 +825,53 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
     const handleCompleteCarousel = async (carouselData: any) => {
         setShowCarouselGenerator(false);
 
+        // Get the menu URL
+        let menuUrl = '';
+        try {
+            const slug = await getBrandSlug(carouselData.orgId);
+            if (slug) {
+                menuUrl = `\n\n🌐 **[View Live Menu](/${slug})** - Your carousel is now visible to customers!`;
+            }
+        } catch (error) {
+            console.error('Error getting menu URL:', error);
+        }
+
         const confirmationMessage: ChatMessage = {
             id: `msg-${Date.now()}`,
             type: 'agent',
-            content: `✅ **Carousel Created Successfully!**\n\n"${carouselData.title}" has been added to your menu with ${carouselData.productIds.length} products. You can view and manage it in the [Carousel Dashboard](/dashboard/carousels).`,
+            content: `✅ **Carousel Created Successfully!**\n\n"${carouselData.title}" has been added to your menu with ${carouselData.productIds.length} products. You can view and manage it in the [Carousel Dashboard](/dashboard/carousels).${menuUrl}`,
             timestamp: new Date(),
         };
         addMessageToThread(thread.id, confirmationMessage);
         setCarouselInitialPrompt('');
+    };
+
+    const handleCompleteHero = async (heroData: any) => {
+        setShowHeroGenerator(false);
+
+        // Get the menu URL
+        let menuUrl = '';
+        try {
+            const slug = await getBrandSlug(heroData.orgId);
+            if (slug) {
+                menuUrl = `\n\n🌐 Your live menu: [bakedbot.ai/${slug}](/${slug})`;
+            }
+        } catch (error) {
+            console.error('Error getting menu URL:', error);
+        }
+
+        const confirmationMessage: ChatMessage = {
+            id: `msg-${Date.now()}`,
+            type: 'agent',
+            content: `✅ **Hero Banner Created Successfully!**\n\n"${heroData.brandName}" hero banner has been created as a draft.\n\n📋 **Next Steps:**\n- Review it in the [Heroes Dashboard](/dashboard/heroes)\n- When ready, activate it to show on your menu${menuUrl}\n\n💡 *Tip: Reply "publish my hero banner" to activate it now, or manage it from the dashboard.*`,
+            timestamp: new Date(),
+        };
+        addMessageToThread(thread.id, confirmationMessage);
+        setHeroInitialPrompt('');
+
+        // Store the hero ID for potential quick activation
+        setLastCreatedHeroId(heroData.id);
+        setLastCreatedHeroOrgId(heroData.orgId);
     };
 
     const handleCompleteBundle = async (bundleData: any) => {
@@ -841,7 +980,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                 <div className="max-w-3xl mx-auto py-4">
                     {thread.messages.length === 0 ? (
                         <>
-                            {!showQRGenerator && !showCarouselGenerator && !showBundleGenerator && !showSocialPostGenerator && !showPricingGenerator && (
+                            {!showQRGenerator && !showCarouselGenerator && !showHeroGenerator && !showBundleGenerator && !showSocialPostGenerator && !showPricingGenerator && (
                                 <div className="text-center py-12">
                                     <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                                     <h3 className="font-medium text-lg mb-2">Start the conversation</h3>
@@ -866,6 +1005,16 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     <CarouselGeneratorInline
                                         onComplete={handleCompleteCarousel}
                                         initialPrompt={carouselInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Show Hero Generator inline for empty hero threads */}
+                            {showHeroGenerator && (
+                                <div className="mt-4">
+                                    <HeroGeneratorInline
+                                        onComplete={handleCompleteHero}
+                                        initialPrompt={heroInitialPrompt}
                                     />
                                 </div>
                             )}
@@ -926,6 +1075,16 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                                     <CarouselGeneratorInline
                                         onComplete={handleCompleteCarousel}
                                         initialPrompt={carouselInitialPrompt}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Show Hero Generator inline after messages */}
+                            {showHeroGenerator && (
+                                <div className="mt-4">
+                                    <HeroGeneratorInline
+                                        onComplete={handleCompleteHero}
+                                        initialPrompt={heroInitialPrompt}
                                     />
                                 </div>
                             )}

@@ -21,6 +21,7 @@ export type InboxThreadType =
     // ---- Business Operations (Brand + Dispensary) ----
     | 'general'           // General conversation
     | 'carousel'          // Product carousel creation
+    | 'hero'              // Hero banner creation
     | 'bundle'            // Bundle deal creation
     | 'creative'          // Social media content
     | 'campaign'          // Multi-channel campaign
@@ -275,6 +276,16 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         threadType: 'carousel',
         defaultAgent: 'smokey',
         promptTemplate: 'Help me create a new product carousel',
+        roles: ALL_BUSINESS_ROLES,
+    },
+    {
+        id: 'new-hero',
+        label: 'New Hero Banner',
+        description: 'Create a hero banner with AI assistance',
+        icon: 'ImagePlus',
+        threadType: 'hero',
+        defaultAgent: 'craig',
+        promptTemplate: 'Help me create a new hero banner',
         roles: ALL_BUSINESS_ROLES,
     },
     {
@@ -709,6 +720,10 @@ export const THREAD_AGENT_MAPPING: Record<InboxThreadType, {
         primary: 'smokey',
         supporting: ['ezal', 'pops'],
     },
+    hero: {
+        primary: 'craig',
+        supporting: ['deebo', 'ezal'],
+    },
     bundle: {
         primary: 'money_mike',
         supporting: ['smokey', 'pops'],
@@ -907,6 +922,7 @@ export const InboxThreadTypeSchema = z.enum([
     // Business Operations
     'general',
     'carousel',
+    'hero',
     'bundle',
     'creative',
     'campaign',
@@ -1129,6 +1145,7 @@ export function getThreadTypeIcon(type: InboxThreadType): string {
         // Business Operations
         general: 'MessageSquare',
         carousel: 'Images',
+        hero: 'ImagePlus',
         bundle: 'PackagePlus',
         creative: 'Palette',
         campaign: 'Megaphone',
@@ -1189,6 +1206,7 @@ export function getThreadTypeLabel(type: InboxThreadType): string {
         // Business Operations
         general: 'General',
         carousel: 'Carousel',
+        hero: 'Hero Banner',
         bundle: 'Bundle',
         creative: 'Creative',
         campaign: 'Campaign',
@@ -1249,6 +1267,7 @@ export function getArtifactTypesForThreadType(type: InboxThreadType): InboxArtif
     const mapping: Record<InboxThreadType, InboxArtifactType[]> = {
         // Business Operations
         carousel: ['carousel'],
+        hero: ['creative_content'],
         bundle: ['bundle'],
         creative: ['creative_content'],
         campaign: ['carousel', 'bundle', 'creative_content'],
