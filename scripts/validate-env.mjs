@@ -5,6 +5,7 @@
  * Validates all required environment variables are set
  * Run before deployment to catch configuration issues early
  */
+import { pathToFileURL } from 'url';
 
 // Simple logger for this script (doesn't use src/lib/logger to avoid dependencies)
 const logger = {
@@ -337,8 +338,9 @@ function main() {
     }
 }
 
-// Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run if called directly (cross-platform: Windows + POSIX)
+const invokedScriptUrl = process.argv[1] ? pathToFileURL(process.argv[1]).href : null;
+if (invokedScriptUrl && import.meta.url === invokedScriptUrl) {
     main();
 }
 
