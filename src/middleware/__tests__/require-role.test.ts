@@ -1,4 +1,4 @@
-import { requireRole, requireBrandAccess, ForbiddenError, UnauthorizedError } from '../require-role';
+import { requireRole, requireBrandAccess, requireDispensaryAccess, ForbiddenError, UnauthorizedError } from '../require-role';
 
 // Mock next/server to avoid environment issues
 jest.mock('next/server', () => ({
@@ -154,5 +154,49 @@ describe('Middleware: require-role', () => {
                .rejects
                .toThrow(ForbiddenError);
        });
+    });
+
+    describe('Scoped Access (requireDispensaryAccess)', () => {
+        it('should allow dispensary_admin to access their own location', async () => {
+            mockVerifyIdToken.mockResolvedValue({
+                uid: 'disp-admin-1',
+                role: 'dispensary_admin',
+                locationId: 'loc-123',
+            });
+
+            const req = createMockRequest('Bearer token-disp-admin');
+            const user = await requireDispensaryAccess(req, 'loc-123');
+
+            expect(user.role).toBe('dispensary_admin');
+            expect(user.locationId).toBe('loc-123');
+        });
+
+        it('should allow dispensary_staff to access their own location', async () => {
+            mockVerifyIdToken.mockResolvedValue({
+                uid: 'disp-staff-1',
+                role: 'dispensary_staff',
+                locationId: 'loc-123',
+            });
+
+            const req = createMockRequest('Bearer token-disp-staff');
+            const user = await requireDispensaryAccess(req, 'loc-123');
+
+            expect(user.role).toBe('dispensary_staff');
+            expect(user.locationId).toBe('loc-123');
+        });
+
+        it('should deny dispensary role when location does not match', async () => {
+            mockVerifyIdToken.mockResolvedValue({
+                uid: 'disp-user-1',
+                role: 'dispensary',
+                locationId: 'loc-123',
+            });
+
+            const req = createMockRequest('Bearer token-disp-user');
+
+            await expect(requireDispensaryAccess(req, 'loc-456'))
+                .rejects
+                .toThrow(ForbiddenError);
+        });
     });
 });

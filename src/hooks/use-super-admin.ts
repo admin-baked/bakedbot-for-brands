@@ -12,21 +12,34 @@ import {
     clearSuperAdminSession,
     isSuperAdminEmail
 } from '@/lib/super-admin-config';
+import { useUser } from '@/firebase/auth/use-user';
 
 export function useSuperAdmin() {
+    const { user, isUserLoading } = useUser();
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [superAdminEmail, setSuperAdminEmail] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     // Check session on mount
     useEffect(() => {
+        if (isUserLoading) return;
+
         const session = getSuperAdminSession();
-        if (session) {
+        const userEmail = user?.email?.toLowerCase() || null;
+
+        if (session && userEmail && session.email === userEmail && isSuperAdminEmail(userEmail)) {
             setIsSuperAdmin(true);
             setSuperAdminEmail(session.email);
+        } else {
+            if (session) {
+                clearSuperAdminSession();
+            }
+            setIsSuperAdmin(false);
+            setSuperAdminEmail(null);
         }
+
         setIsLoading(false);
-    }, []);
+    }, [isUserLoading, user?.email]);
 
     const login = useCallback((email: string): { success: boolean; error?: string } => {
         const normalizedEmail = email.toLowerCase().trim();

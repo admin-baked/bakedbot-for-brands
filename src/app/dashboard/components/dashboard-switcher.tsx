@@ -12,25 +12,25 @@ import SpecialistDashboardClient from '../specialist/dashboard-client';
 import BudtenderDashboardClient from '../budtender/dashboard-client';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { isBrandRole, isDispensaryRole, normalizeRole } from '@/types/roles';
 
 export default function DashboardSwitcher() {
     const router = useRouter(); // Initialize router
-    const { role: rawRole, user, isLoading: isRoleLoading } = useUserRole();
-    const role = rawRole as string;
+    const { role: rawRoleFromHook, user, isLoading: isRoleLoading } = useUserRole();
+    const rawRole = (rawRoleFromHook as string | null) ?? null;
+    const role = rawRole ? normalizeRole(rawRole) : null;
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [checkComplete, setCheckComplete] = useState(false);
-
-    console.log('[DashboardSwitcher] Render:', { role, isSuperAdmin, isRoleLoading });
 
     useEffect(() => {
         if (isRoleLoading) return;
 
         // Check local storage for super admin session
         const session = getSuperAdminSession();
-        if (session) {
+        if (session && user?.email) {
             // SECURITY FIX: If a user is logged in, their email MUST match the super admin session
             // This prevents "Role Leakage" on shared devices where a Super Admin session persists
-            if (user && user.email && session.email !== user.email.toLowerCase()) {
+            if (session.email !== user.email.toLowerCase()) {
                 console.warn('[DashboardSwitcher] Security Alert: Super Admin session mismatch. Invalidating.');
                 setIsSuperAdmin(false);
                 // We don't necessarily clear it here to allow easy switching back,
@@ -69,7 +69,7 @@ export default function DashboardSwitcher() {
     }
 
     // 2. Specialist / Empire View (Agentic Mode)
-    if (role === 'specialist' || role === 'empire') {
+    if (rawRole === 'specialist' || rawRole === 'empire') {
         return <SpecialistDashboardClient />;
     }
 
@@ -85,7 +85,7 @@ export default function DashboardSwitcher() {
     }
 
     // 4. Brand View - Redirect to Inbox as primary workspace
-    if (role === 'brand') {
+    if (role && isBrandRole(role)) {
         router.replace('/dashboard/inbox');
         return (
             <div className="flex h-[50vh] w-full items-center justify-center">
@@ -96,7 +96,7 @@ export default function DashboardSwitcher() {
     }
 
     // 5. Dispensary View - Redirect to Inbox as primary workspace
-    if (role === 'dispensary') {
+    if (role && isDispensaryRole(role)) {
         router.replace('/dashboard/inbox');
         return (
             <div className="flex h-[50vh] w-full items-center justify-center">

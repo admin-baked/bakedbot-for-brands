@@ -32,30 +32,25 @@ export function withAuth<P extends object>(
         const { role, isLoading: isAuthLoading, user, defaultRoute, loginRoute, hasAnyRole } = useUserRole();
         const [superAdminChecked, setSuperAdminChecked] = useState(false);
         const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-        const [hasSessionCookie, setHasSessionCookie] = useState(false);
 
         // Check for super admin session and session cookie on mount/update
         useEffect(() => {
             if (isAuthLoading) return;
 
             const session = getSuperAdminSession();
-            let validSuperAdmin = !!session;
+            let validSuperAdmin = false;
 
-            // SECURITY FIX: Validate session against active user
-            if (session && user && user.email && session.email !== user.email.toLowerCase()) {
-                console.warn('[withAuth] Security Alert: Super Admin session mismatch. Invalidating.');
-                localStorage.removeItem('bakedbot_superadmin_session');
-                validSuperAdmin = false;
+            // Super Admin local session is only valid when tied to the active Firebase user.
+            if (session && user?.email) {
+                if (session.email === user.email.toLowerCase()) {
+                    validSuperAdmin = true;
+                } else {
+                    console.warn('[withAuth] Security Alert: Super Admin session mismatch. Invalidating.');
+                    localStorage.removeItem('bakedbot_superadmin_session');
+                }
             }
 
             setIsSuperAdmin(validSuperAdmin);
-
-            // Check for __session_is_active cookie (client-visible flag)
-            // We use this because __session is HttpOnly and invisible to document.cookie
-            const sessionCookie = document.cookie
-                .split('; ')
-                .find(row => row.startsWith('__session_is_active='));
-            setHasSessionCookie(!!sessionCookie);
 
             setSuperAdminChecked(true);
         }, [isAuthLoading, user]);
@@ -68,21 +63,14 @@ export function withAuth<P extends object>(
             // Wait for all checks to complete
             if (isLoading) return;
 
-            // Super admins can access any dashboard page without Firebase auth
+            // Super admins can access any dashboard page once local session is validated
+            // against the authenticated Firebase user.
             if (isSuperAdmin) {
                 return; // Allow access, no redirect needed
             }
 
-            // If we have a session cookie, Firebase client might still be syncing
-            // Wait for auth to fully load before redirecting
-            if (hasSessionCookie && !user && isAuthLoading) {
-                return; // Still loading, don't redirect yet
-            }
-
             // Regular auth check for non-super admins
-            // Allow access if user is present OR if a role is simulated (cookie)
-            // Also allow if session cookie exists and Firebase is still syncing
-            if (requireAuth && !user && !role && !hasSessionCookie) {
+            if (requireAuth && !user && !role) {
                 router.push(redirectTo || loginRoute);
                 return;
             }
@@ -94,7 +82,7 @@ export function withAuth<P extends object>(
                     return;
                 }
             }
-        }, [isLoading, user, role, router, defaultRoute, loginRoute, isSuperAdmin, hasSessionCookie, isAuthLoading]);
+        }, [isLoading, user, role, router, defaultRoute, loginRoute, isSuperAdmin]);
 
         // Show loading state while checking both auth and super admin
         if (isLoading) {
@@ -108,7 +96,7 @@ export function withAuth<P extends object>(
             );
         }
 
-        // Super admins can access without Firebase auth
+        // Super admins can access only when local session matches authenticated Firebase user
         if (isSuperAdmin) {
             return <Component {...props} />;
         }

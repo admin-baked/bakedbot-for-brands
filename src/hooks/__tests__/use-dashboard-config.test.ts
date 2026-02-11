@@ -80,6 +80,32 @@ describe('useDashboardConfig', () => {
         expect(hasProducts).toBe(true);
     });
 
+    it('should normalize legacy super_admin to super_user navigation access', () => {
+        (useUserRole as jest.Mock).mockReturnValue({ role: 'super_admin' });
+        (usePathname as jest.Mock).mockReturnValue('/dashboard');
+
+        const { result } = renderHook(() => useDashboardConfig());
+
+        const hasAdminConsole = result.current.navLinks.some(link => link.label === 'Admin Console');
+        const hasOperations = result.current.navLinks.some(link => link.label === 'Operations');
+
+        expect(hasAdminConsole).toBe(true);
+        expect(hasOperations).toBe(true);
+    });
+
+    it('should include core dispensary links for budtender role', () => {
+        (useUserRole as jest.Mock).mockReturnValue({ role: 'budtender' });
+        (usePathname as jest.Mock).mockReturnValue('/dashboard/orders');
+
+        const { result } = renderHook(() => useDashboardConfig());
+
+        const hasOrders = result.current.navLinks.some(link => link.label === 'Orders');
+        const hasMenu = result.current.navLinks.some(link => link.label === 'Menu');
+
+        expect(hasOrders).toBe(true);
+        expect(hasMenu).toBe(true);
+    });
+
     it('should show Creative Center to authorized roles', () => {
         const authorizedRoles = ['brand', 'super_user', 'dispensary'];
 

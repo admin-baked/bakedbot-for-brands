@@ -34,6 +34,7 @@ import { DispensarySidebar } from '@/components/dashboard/dispensary-sidebar';
 import { SharedSidebarHistory } from '@/components/dashboard/shared-sidebar-history';
 import { logger } from '@/lib/logger';
 import { useSuperAdmin } from '@/hooks/use-super-admin';
+import { UserRole, isBrandRole, isDispensaryRole, normalizeRole } from '@/types/roles';
 
 // Loading fallback for sidebar components that use useSearchParams (required in Next.js 15+)
 function SidebarLoading() {
@@ -50,23 +51,42 @@ export function DashboardSidebar() {
   const { user } = useUser();
   const { auth } = useFirebase();
   const { toast } = useToast();
-  const { loginRoute, orgId, role: userRoleFromHook } = useUserRole();
+  const { loginRoute, orgId } = useUserRole();
   const { planName, planId, isScale, isEnterprise, isGrowthOrHigher, isPaid } = usePlanInfo();
   const { isSuperAdmin } = useSuperAdmin();
+  const normalizedRole = role ? normalizeRole(role) : null;
 
   // Show Super Admin Sidebar if explicitly on CEO path OR if authenticated as Super Admin (and not impersonating/shopping)
-  // We exclude 'brand'/'dispensary' roles to allow impersonation (where role would be 'brand')
+  // We exclude brand/dispensary roles to allow impersonation dashboards to render correctly.
   // We exclude /dashboard/shop to allow testing the customer flow
+  const isBusinessRole = normalizedRole ? isBrandRole(normalizedRole) || isDispensaryRole(normalizedRole) : false;
   const isCeoDashboard = pathname?.startsWith('/dashboard/ceo') ||
-                         (isSuperAdmin && role !== 'brand' && role !== 'dispensary' && !pathname?.startsWith('/dashboard/shop'));
+                         (isSuperAdmin && !isBusinessRole && !pathname?.startsWith('/dashboard/shop'));
 
   // Show Brand Sidebar for brand users (including brand_admin, brand_member)
-  const isBrandDashboard = !isCeoDashboard &&
-                           (role === 'brand' || role === 'brand_admin' || role === 'brand_member');
+  const isBrandDashboard = !isCeoDashboard && (normalizedRole ? isBrandRole(normalizedRole) : false);
 
   // Show Dispensary Sidebar for dispensary users (including dispensary_admin, dispensary_staff)
   const isDispensaryDashboard = !isCeoDashboard && !isBrandDashboard &&
-                                 (role === 'dispensary' || role === 'dispensary_admin' || role === 'dispensary_staff');
+                                 (normalizedRole ? isDispensaryRole(normalizedRole) : false);
+
+  const inviteAllowedRoles: UserRole[] = (() => {
+    if (!normalizedRole) return [];
+
+    if (normalizedRole === 'super_user') {
+      return ['brand_admin', 'brand_member', 'dispensary_admin', 'dispensary_staff', 'customer'];
+    }
+
+    if (normalizedRole === 'brand_admin') {
+      return ['brand_member'];
+    }
+
+    if (normalizedRole === 'dispensary_admin') {
+      return ['dispensary_staff', 'budtender'];
+    }
+
+    return [];
+  })();
 
   const handleSignOut = async () => {
     if (!auth) return;
@@ -209,18 +229,11 @@ export function DashboardSidebar() {
 
         
         {/* Invite Team Member Action - only show for default nav (not CEO, Brand, or Dispensary sidebars which have their own) */}
-        {!isCeoDashboard && !isBrandDashboard && !isDispensaryDashboard && user && orgId && (
+        {!isCeoDashboard && !isBrandDashboard && !isDispensaryDashboard && user && orgId && inviteAllowedRoles.length > 0 && (
             <div className="mt-auto p-4">
                <InviteUserDialog 
                     orgId={orgId || undefined}
-                    allowedRoles={(() => {
-                        const r = userRoleFromHook;
-                        if (r === 'super_user') return ['brand', 'dispensary', 'super_admin', 'customer'];
-                        if (r === 'brand' || r === 'dispensary') {
-                             return [r];
-                        }
-                        return [];
-                    })()}
+                    allowedRoles={inviteAllowedRoles}
                     trigger={
                         <div className="w-full flex items-center justify-start gap-2 px-4 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-md cursor-pointer transition-colors">
                             <UserPlus className="h-4 w-4" />

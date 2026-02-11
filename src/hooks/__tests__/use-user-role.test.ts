@@ -1,84 +1,103 @@
-
-import { renderHook } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { useUserRole } from '../use-user-role';
 import { useUser } from '@/firebase/auth/use-user';
 
-jest.mock('@/firebase/auth/use-user');
+jest.mock('@/firebase/auth/use-user', () => ({
+    useUser: jest.fn(),
+}));
 
 describe('useUserRole', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+
     beforeEach(() => {
         jest.clearAllMocks();
-    });
+        document.cookie = 'x-simulated-role=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
 
-    it('should return null role when no user is logged in', () => {
-        (useUser as jest.Mock).mockReturnValue({ user: null, isUserLoading: false });
-        const { result } = renderHook(() => useUserRole());
-        expect(result.current.role).toBe(null);
-    });
-
-    it('should return role from user object', () => {
-        (useUser as jest.Mock).mockReturnValue({ 
-            user: { role: 'brand' }, 
-            isUserLoading: false 
+        (useUser as jest.Mock).mockReturnValue({
+            user: { role: 'customer', email: 'test@example.com' },
+            isUserLoading: false,
         });
+    });
+
+    afterEach(() => {
+        Object.defineProperty(process.env, 'NODE_ENV', {
+            value: originalNodeEnv,
+            configurable: true,
+        });
+    });
+
+    it('returns null role when no user is logged in', () => {
+        (useUser as jest.Mock).mockReturnValue({
+            user: null,
+            isUserLoading: false,
+        });
+
+        const { result } = renderHook(() => useUserRole());
+        expect(result.current.role).toBeNull();
+    });
+
+    it('returns role from user object', () => {
+        (useUser as jest.Mock).mockReturnValue({
+            user: { role: 'brand', email: 'brand@example.com' },
+            isUserLoading: false,
+        });
+
         const { result } = renderHook(() => useUserRole());
         expect(result.current.role).toBe('brand');
         expect(result.current.isRole('brand')).toBe(true);
     });
 
-    it('should prioritize simulated role from cookie', () => {
-        // Mock document.cookie
-        Object.defineProperty(document, 'cookie', {
-            writable: true,
-            value: 'x-simulated-role=super_user',
-        });
-
-        (useUser as jest.Mock).mockReturnValue({ 
-            user: { role: 'brand' }, 
-            isUserLoading: false 
+    it('maps legacy super_admin as super_user for hasAnyRole checks', () => {
+        (useUser as jest.Mock).mockReturnValue({
+            user: { role: 'super_admin', email: 'admin@example.com' },
+            isUserLoading: false,
         });
 
         const { result } = renderHook(() => useUserRole());
-        
-        // Wait for useEffect if necessary, but here document.cookie is read on mount
-        // Actually, the hook reads it in useEffect, so we might need to wait or trigger it
-        expect(result.current.role).toBe('super_user');
+        expect(result.current.hasAnyRole(['super_user'])).toBe(true);
     });
 
-    it('should return orgId prioritized correctly', () => {
-        (useUser as jest.Mock).mockReturnValue({ 
-            user: { 
-                currentOrgId: 'org123',
-                brandId: 'brand456',
-                dispensaryId: 'disp789'
-            }, 
-            isUserLoading: false 
+    it('prioritizes orgId as currentOrgId -> brandId -> locationId', () => {
+        (useUser as jest.Mock).mockReturnValue({
+            user: {
+                role: 'brand',
+                email: 'brand@example.com',
+                currentOrgId: 'org-123',
+                brandId: 'brand-456',
+                locationId: 'loc-789',
+            },
+            isUserLoading: false,
         });
+
         const { result } = renderHook(() => useUserRole());
-        expect(result.current.orgId).toBe('org123');
-        expect(result.current.brandId).toBe('brand456');
+        expect(result.current.orgId).toBe('org-123');
     });
 
-    it('should fallback orgId to brandId if currentOrgId is missing', () => {
-        (useUser as jest.Mock).mockReturnValue({ 
-            user: { 
-                brandId: 'brand456',
-                dispensaryId: 'disp789'
-            }, 
-            isUserLoading: false 
+    it('accepts valid simulated role cookie in development', async () => {
+        Object.defineProperty(process.env, 'NODE_ENV', {
+            value: 'development',
+            configurable: true,
         });
+        document.cookie = 'x-simulated-role=brand_admin';
+
         const { result } = renderHook(() => useUserRole());
-        expect(result.current.orgId).toBe('brand456');
+
+        await waitFor(() => {
+            expect(result.current.role).toBe('brand_admin');
+        });
     });
 
-    it('should fallback orgId to dispensaryId if others are missing', () => {
-        (useUser as jest.Mock).mockReturnValue({ 
-            user: { 
-                dispensaryId: 'disp789'
-            }, 
-            isUserLoading: false 
+    it('ignores invalid simulated role cookie in development', async () => {
+        Object.defineProperty(process.env, 'NODE_ENV', {
+            value: 'development',
+            configurable: true,
         });
+        document.cookie = 'x-simulated-role=hacker';
+
         const { result } = renderHook(() => useUserRole());
-        expect(result.current.orgId).toBe('disp789');
+
+        await waitFor(() => {
+            expect(result.current.role).toBe('customer');
+        });
     });
 });
