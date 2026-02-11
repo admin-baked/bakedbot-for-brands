@@ -15,15 +15,24 @@ import { PricingKPIGrid } from './components/pricing-kpi-grid';
 import { PricingRulesList } from './components/pricing-rules-list';
 import { InventoryIntelligenceTab } from './components/inventory-intelligence-tab';
 import { PricingAnalyticsTab } from './components/pricing-analytics-tab';
+import { TemplateBrowser } from './components/template-browser';
 import { useRouter } from 'next/navigation';
+import { useDispensaryId } from '@/hooks/use-dispensary-id';
 
 export default function PricingPage() {
   const [activeTab, setActiveTab] = useState('rules');
+  const [refreshKey, setRefreshKey] = useState(0);
   const router = useRouter();
+  const { dispensaryId } = useDispensaryId();
 
   const handleCreateRule = () => {
     // Navigate to inbox with pricing thread type
     router.push('/dashboard/inbox?create=pricing');
+  };
+
+  const handleRuleCreated = () => {
+    // Refresh the rules list
+    setRefreshKey((prev) => prev + 1);
   };
 
   return (
@@ -59,8 +68,24 @@ export default function PricingPage() {
         </TabsList>
 
         {/* Rules Tab */}
-        <TabsContent value="rules" className="space-y-4">
-          <PricingRulesList onCreateRule={handleCreateRule} />
+        <TabsContent value="rules" className="space-y-8">
+          {/* Template Browser */}
+          {dispensaryId && (
+            <TemplateBrowser orgId={dispensaryId} onRuleCreated={handleRuleCreated} />
+          )}
+
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Your Rules</span>
+            </div>
+          </div>
+
+          {/* Existing Rules */}
+          <PricingRulesList key={refreshKey} onCreateRule={handleCreateRule} />
         </TabsContent>
 
         {/* Analytics Tab */}
