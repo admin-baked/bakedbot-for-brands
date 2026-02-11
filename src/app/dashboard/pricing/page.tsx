@@ -15,6 +15,7 @@ import { PricingKPIGrid } from './components/pricing-kpi-grid';
 import { PricingRulesList } from './components/pricing-rules-list';
 import { InventoryIntelligenceTab } from './components/inventory-intelligence-tab';
 import { PricingAnalyticsTab } from './components/pricing-analytics-tab';
+import { PublishToMenuTab } from './components/publish-to-menu-tab';
 import { TemplateBrowser } from './components/template-browser';
 import { useRouter } from 'next/navigation';
 import { useDispensaryId } from '@/hooks/use-dispensary-id';
@@ -63,6 +64,7 @@ export default function PricingPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList>
           <TabsTrigger value="rules">Active Rules</TabsTrigger>
+          <TabsTrigger value="publish">Publish to Menu</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
         </TabsList>
@@ -91,6 +93,11 @@ export default function PricingPage() {
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-4">
           <PricingAnalyticsTab />
+        </TabsContent>
+
+        {/* Publish to Menu Tab */}
+        <TabsContent value="publish" className="space-y-4">
+          <PublishToMenuTab />
         </TabsContent>
 
         {/* Inventory Tab */}
