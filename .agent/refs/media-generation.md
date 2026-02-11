@@ -420,19 +420,188 @@ if (provider === 'veo') {
 
 ---
 
+## Budget Management
+
+**Status**: ✅ Complete (2026-02-11)
+
+**Location**: `src/server/services/media-budget.ts`
+
+**Features**:
+- Daily, weekly, and monthly budget limits
+- Soft limit warnings (default 80%)
+- Hard limit enforcement (blocks generation)
+- Budget status tracking and alerts
+- Per-tenant configuration
+
+**Server Actions**: `src/server/actions/media-budget.ts`
+```typescript
+getMediaBudget(tenantId): Promise<MediaBudgetConfig>
+updateMediaBudget(tenantId, updates): Promise<{ success, error? }>
+getMediaBudgetStatus(tenantId): Promise<BudgetStatus>
+getMediaCostAlerts(tenantId): Promise<CostAlert[]>
+checkBudgetLimit(tenantId, estimatedCost): Promise<{ allowed, reason? }>
+```
+
+**UI Component**: `src/app/dashboard/media/components/media-dashboard.tsx`
+
+**Dashboard URL**: `/dashboard/media` (Brand & Dispensary roles)
+
+---
+
+## Style Presets Library
+
+**Status**: ✅ Complete (2026-02-11)
+
+**Location**: `src/server/services/style-presets.ts`
+
+**Features**:
+- Built-in presets (code-defined, immutable)
+- Custom presets (user-created, stored in Firestore)
+- Color palette support
+- Typography settings
+- Aspect ratio preferences
+- Usage tracking
+
+**Types**: `src/types/media-generation.ts`
+```typescript
+interface StylePreset {
+    id: string;
+    tenantId: string;
+    category: 'built-in' | 'custom';
+    name: string;
+    description: string;
+    stylePrompt: string;
+    negativePrompt?: string;
+    aspectRatios: Array<'1:1' | '4:5' | '16:9' | '9:16'>;
+    colorPalette?: {
+        primary: string;
+        secondary: string;
+        accent: string;
+    };
+    typography?: {
+        fontFamily: string;
+        fontSize: 'small' | 'medium' | 'large';
+        fontWeight: 'light' | 'normal' | 'bold';
+    };
+    tags: string[];
+    usageCount: number;
+    isPublic: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+}
+```
+
+**Server Actions**: `src/server/actions/style-presets.ts`
+```typescript
+getStylePresets(tenantId): Promise<StylePreset[]>
+createStylePreset(tenantId, data): Promise<{ success, presetId?, error? }>
+updateStylePreset(tenantId, presetId, updates): Promise<{ success, error? }>
+deleteStylePreset(tenantId, presetId): Promise<{ success, error? }>
+trackPresetUsage(tenantId, presetId): Promise<void>
+```
+
+**UI Components**:
+- `src/components/media/style-preset-selector.tsx` - Gallery selector with preview
+- `src/components/media/create-preset-dialog.tsx` - Custom preset creation dialog
+
+**Firestore**: `tenants/{id}/style_presets/{presetId}`
+
+---
+
+## A/B Testing
+
+**Status**: ✅ Complete (2026-02-11)
+
+**Location**: `src/server/services/style-presets.ts`
+
+**Features**:
+- Multi-variant testing (2+ variants per test)
+- Style preset integration per variant
+- Configurable audience splits
+- Metric tracking: CTR, CVR, CPC, engagement, cost
+- Winner identification with confidence levels
+- Test lifecycle management (draft, running, paused, completed)
+
+**Types**: `src/types/media-generation.ts`
+```typescript
+interface MediaABTest {
+    id: string;
+    tenantId: string;
+    name: string;
+    description: string;
+    status: 'draft' | 'running' | 'paused' | 'completed';
+    basePrompt: string;
+    variants: Array<{
+        id: string;
+        name: string;
+        stylePresetId?: string;
+        customPrompt?: string;
+        mediaUrl?: string;
+    }>;
+    audienceSplit: Record<string, number>; // variant ID → percentage
+    metrics: Array<'impressions' | 'clicks' | 'conversions' | 'engagement' | 'cost'>;
+    startDate?: Date;
+    endDate?: Date;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+interface MediaABTestResult {
+    id: string;
+    testId: string;
+    tenantId: string;
+    variantId: string;
+    impressions: number;
+    clicks: number;
+    conversions: number;
+    engagement: number;
+    costUsd: number;
+    ctr: number;      // Click-through rate
+    cvr: number;      // Conversion rate
+    cpc: number;      // Cost per click
+    engagementRate: number;
+    isWinner: boolean;
+    confidence?: number; // 0-1 statistical confidence
+    createdAt: Date;
+    updatedAt: Date;
+}
+```
+
+**Server Actions**: `src/server/actions/style-presets.ts`
+```typescript
+createMediaABTest(tenantId, data): Promise<{ success, testId?, error? }>
+updateMediaABTest(tenantId, testId, updates): Promise<{ success, error? }>
+getMediaABTests(tenantId): Promise<MediaABTest[]>
+getMediaABTestResults(tenantId, testId): Promise<MediaABTestResult[]>
+updateABTestMetrics(tenantId, testId, variantId, metrics): Promise<{ success }>
+```
+
+**UI Components**:
+- `src/components/media/ab-test-wizard.tsx` - 4-step test creation wizard
+- `src/components/media/ab-test-results.tsx` - Results dashboard with metrics comparison
+
+**Firestore**:
+- `tenants/{id}/ab_tests/{testId}` - Test configurations
+- `tenants/{id}/ab_test_results/{resultId}` - Variant performance data
+
+---
+
 ## Next Steps
 
 **Potential Enhancements**:
 - [ ] Add Imagen 3 support for image generation
-- [ ] Implement cost alerts (daily/weekly/monthly thresholds)
-- [ ] Add budget management (per-org limits)
+- [x] Implement cost alerts (daily/weekly/monthly thresholds) - ✅ Complete
+- [x] Add budget management (per-org limits) - ✅ Complete
 - [ ] Expose cost API for external integrations
 - [ ] Add media generation dashboard for brands/dispensaries
-- [ ] Implement A/B testing for generated content
-- [ ] Add style presets library for consistent branding
+- [x] Implement A/B testing for generated content - ✅ Complete
+- [x] Add style presets library for consistent branding - ✅ Complete
 - [ ] Implement retry logic with exponential backoff
 - [ ] Add generation queue for high-volume requests
 - [ ] Implement caching for duplicate prompts
+- [ ] Advanced A/B test features: multi-armed bandit, Bayesian inference
+- [ ] Style preset marketplace (share presets across orgs)
+- [ ] AI-powered style recommendation engine
 
 ---
 
