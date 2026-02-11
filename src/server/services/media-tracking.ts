@@ -143,6 +143,17 @@ export async function trackMediaGeneration(
         // Update aggregate counters for quick dashboard queries
         await updateAggregates(fullEvent);
 
+        // Check cost alerts if generation was successful
+        if (fullEvent.success) {
+            try {
+                const { checkCostAlerts } = await import('./media-budget');
+                await checkCostAlerts(fullEvent.tenantId, fullEvent);
+            } catch (error) {
+                logger.warn('[MediaTracking] Failed to check cost alerts', { error });
+                // Don't throw - alert failure shouldn't block generation
+            }
+        }
+
         return fullEvent;
     } catch (error) {
         logger.error('[MediaTracking] Failed to track event', { error, event });
