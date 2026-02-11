@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * Brand Heartbeat Checks
  *

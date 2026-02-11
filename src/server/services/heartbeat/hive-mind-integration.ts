@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * Heartbeat Hive Mind Integration
  *

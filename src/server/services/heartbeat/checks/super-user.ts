@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * Super User Heartbeat Checks
  *
