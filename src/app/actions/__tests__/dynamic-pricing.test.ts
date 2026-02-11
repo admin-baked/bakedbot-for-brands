@@ -5,6 +5,12 @@ import {
     deletePricingRule,
     togglePricingRule,
     calculateDynamicPrice,
+    applyPriceToMenu,
+    publishPricesToMenu,
+    revertPriceOnMenu,
+    revertAllPricesOnMenu,
+    syncAllRulesToPOS,
+    publishToMenuAndPOS,
 } from '../dynamic-pricing';
 import { getAdminFirestore } from '@/firebase/admin';
 import { getInventoryAge } from '@/server/services/alleaves/inventory-intelligence';
@@ -522,5 +528,494 @@ describe('Dynamic Price Calculation with Competitor Data', () => {
         expect(result.success).toBe(true);
         // Should be capped at 40% max discount (price * 0.6 minimum)
         expect(result.data?.dynamicPrice).toBeGreaterThanOrEqual(60); // 100 * 0.6 = 60
+    });
+});
+
+describe('Menu Publishing', () => {
+    let mockFirestore: any;
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+
+        mockFirestore = {
+            collection: jest.fn().mockReturnThis(),
+            doc: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
+            set: jest.fn().mockResolvedValue(undefined),
+            update: jest.fn().mockResolvedValue(undefined),
+            get: jest.fn(),
+            batch: jest.fn(() => ({
+                update: jest.fn(),
+                commit: jest.fn().mockResolvedValue(undefined),
+            })),
+        };
+
+        (getAdminFirestore as jest.Mock).mockReturnValue(mockFirestore);
+    });
+
+    describe('applyPriceToMenu', () => {
+        it('applies dynamic price to product in public view', async () => {
+            // Mock product doc
+            mockFirestore.get.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({
+                    name: 'Test Product',
+                    price: 50,
+                    category: 'flower',
+                }),
+            });
+
+            // Mock rules
+            mockFirestore.get.mockResolvedValueOnce({
+                docs: [
+                    {
+                        id: 'rule-1',
+                        data: () => ({
+                            name: 'Clearance',
+                            active: true,
+                            priority: 80,
+                            conditions: {},
+                            priceAdjustment: {
+                                type: 'percentage',
+                                value: 0.2, // 20% off
+                            },
+                            timesApplied: 0,
+                        }),
+                    },
+                ],
+            });
+
+            // Mock inventory age (no discount from this)
+            (getInventoryAge as jest.Mock).mockResolvedValue(null);
+            (getCompetitorPricingForProduct as jest.Mock).mockResolvedValue(null);
+
+            const result = await applyPriceToMenu({
+                productId: 'test-product',
+                orgId: 'org_test',
+            });
+
+            expect(result.success).toBe(true);
+            expect(result.originalPrice).toBe(50);
+            expect(result.newPrice).toBe(40); // 50 * 0.8 = 40
+            expect(mockFirestore.update).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    price: 40,
+                    originalPrice: 50,
+                    dynamicPricingApplied: true,
+                    dynamicPricingBadge: expect.stringContaining('OFF'),
+                })
+            );
+        });
+
+        it('skips update when no discount applies', async () => {
+            mockFirestore.get.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({
+                    name: 'Test Product',
+                    price: 50,
+                }),
+            });
+
+            mockFirestore.get.mockResolvedValueOnce({
+                docs: [], // No active rules
+            });
+
+            (getInventoryAge as jest.Mock).mockResolvedValue(null);
+            (getCompetitorPricingForProduct as jest.Mock).mockResolvedValue(null);
+
+            const result = await applyPriceToMenu({
+                productId: 'test-product',
+                orgId: 'org_test',
+            });
+
+            expect(result.success).toBe(true);
+            expect(result.originalPrice).toBe(50);
+            expect(result.newPrice).toBe(50);
+            expect(mockFirestore.update).not.toHaveBeenCalled();
+        });
+
+        it('fails for non-existent product', async () => {
+            mockFirestore.get.mockResolvedValueOnce({
+                exists: false,
+            });
+
+            const result = await applyPriceToMenu({
+                productId: 'non-existent',
+                orgId: 'org_test',
+            });
+
+            expect(result.success).toBe(false);
+            expect(result.error).toBeDefined();
+        });
+    });
+
+    describe('publishPricesToMenu', () => {
+        it('batch applies pricing to all products', async () => {
+            // Mock products collection
+            mockFirestore.get.mockResolvedValueOnce({
+                empty: false,
+                docs: [
+                    {
+                        id: 'product-1',
+                        data: () => ({
+                            name: 'Product 1',
+                            price: 50,
+                            inStock: true,
+                        }),
+                    },
+                ],
+            });
+
+            // For each product, we call applyPriceToMenu which:
+            // 1. Gets product doc
+            // 2. Calls calculateDynamicPrice which calls getPricingRules
+
+            // Mock product doc get
+            mockFirestore.get.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({ price: 50 }),
+            });
+
+            // Mock getPricingRules
+            mockFirestore.get.mockResolvedValueOnce({
+                docs: [
+                    {
+                        id: 'rule-1',
+                        data: () => ({
+                            name: 'Rule',
+                            active: true,
+                            priority: 50,
+                            conditions: {},
+                            priceAdjustment: {
+                                type: 'percentage',
+                                value: 0.2,
+                            },
+                            timesApplied: 0,
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                        }),
+                    },
+                ],
+            });
+
+            (getInventoryAge as jest.Mock).mockResolvedValue(null);
+            (getCompetitorPricingForProduct as jest.Mock).mockResolvedValue(null);
+
+            const result = await publishPricesToMenu('org_test');
+
+            expect(result.success).toBe(true);
+            expect(result.productsUpdated).toBeGreaterThan(0);
+        });
+
+        it('returns error when no products found', async () => {
+            mockFirestore.get.mockResolvedValueOnce({
+                empty: true,
+                docs: [],
+            });
+
+            const result = await publishPricesToMenu('org_test');
+
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('No products found');
+        });
+    });
+
+    describe('revertPriceOnMenu', () => {
+        it('reverts product to original price', async () => {
+            mockFirestore.get.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({
+                    price: 40,
+                    originalPrice: 50,
+                    dynamicPricingApplied: true,
+                }),
+            });
+
+            const result = await revertPriceOnMenu({
+                productId: 'test-product',
+                orgId: 'org_test',
+            });
+
+            expect(result.success).toBe(true);
+            expect(mockFirestore.update).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    price: 50,
+                    dynamicPricingApplied: false,
+                    dynamicPricingBadge: null,
+                })
+            );
+        });
+
+        it('fails for non-existent product', async () => {
+            mockFirestore.get.mockResolvedValueOnce({
+                exists: false,
+            });
+
+            const result = await revertPriceOnMenu({
+                productId: 'non-existent',
+                orgId: 'org_test',
+            });
+
+            expect(result.success).toBe(false);
+            expect(result.error).toBeDefined();
+        });
+    });
+
+    describe('revertAllPricesOnMenu', () => {
+        it('reverts all products with dynamic pricing', async () => {
+            const mockBatch = {
+                update: jest.fn(),
+                commit: jest.fn().mockResolvedValue(undefined),
+            };
+
+            mockFirestore.batch.mockReturnValue(mockBatch);
+
+            mockFirestore.get.mockResolvedValueOnce({
+                empty: false,
+                size: 3,
+                docs: [
+                    {
+                        ref: { path: 'products/1' },
+                        data: () => ({
+                            price: 40,
+                            originalPrice: 50,
+                        }),
+                    },
+                    {
+                        ref: { path: 'products/2' },
+                        data: () => ({
+                            price: 24,
+                            originalPrice: 30,
+                        }),
+                    },
+                    {
+                        ref: { path: 'products/3' },
+                        data: () => ({
+                            price: 16,
+                            originalPrice: 20,
+                        }),
+                    },
+                ],
+            });
+
+            const result = await revertAllPricesOnMenu('org_test');
+
+            expect(result.success).toBe(true);
+            expect(result.productsReverted).toBe(3);
+            expect(mockBatch.update).toHaveBeenCalledTimes(3);
+            expect(mockBatch.commit).toHaveBeenCalled();
+        });
+
+        it('handles empty result gracefully', async () => {
+            mockFirestore.get.mockResolvedValueOnce({
+                empty: true,
+                size: 0,
+                docs: [],
+            });
+
+            const result = await revertAllPricesOnMenu('org_test');
+
+            expect(result.success).toBe(true);
+            expect(result.productsReverted).toBe(0);
+        });
+    });
+
+    describe('syncAllRulesToPOS', () => {
+        it('syncs all active rules to Alleaves', async () => {
+            // Add update mock for rule document updates
+            mockFirestore.update = jest.fn().mockResolvedValue(undefined);
+
+            // Mock getPricingRules (first call)
+            mockFirestore.get.mockResolvedValueOnce({
+                docs: [
+                    {
+                        id: 'rule-1',
+                        data: () => ({
+                            name: 'Rule 1',
+                            active: true,
+                            priority: 90,
+                            priceAdjustment: {
+                                type: 'percentage',
+                                value: 0.15,
+                            },
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                        }),
+                    },
+                ],
+            });
+
+            // Mock syncRuleToAlleaves for rule-1 (gets rule doc)
+            mockFirestore.get.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({
+                    name: 'Rule 1',
+                    priceAdjustment: { type: 'percentage', value: 0.15 },
+                    conditions: {}, // Required field - prevents undefined access errors
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                }),
+            });
+
+            const result = await syncAllRulesToPOS('org_test');
+
+            expect(result.success).toBe(true);
+            expect(result.rulesSynced).toBeGreaterThan(0);
+            expect(mockFirestore.update).toHaveBeenCalled(); // Verify rule was updated with Alleaves discount ID
+        });
+
+        it('returns gracefully when no active rules', async () => {
+            mockFirestore.get.mockResolvedValueOnce({
+                docs: [],
+            });
+
+            const result = await syncAllRulesToPOS('org_test');
+
+            expect(result.success).toBe(true);
+            expect(result.rulesSynced).toBe(0);
+        });
+    });
+
+    describe('publishToMenuAndPOS', () => {
+        it('publishes to both menu and POS successfully', async () => {
+            // Called in parallel, so both get mocked concurrently
+
+            // publishPricesToMenu path:
+            // 1. Get products
+            mockFirestore.get.mockResolvedValueOnce({
+                empty: false,
+                docs: [
+                    {
+                        id: 'product-1',
+                        data: () => ({
+                            price: 50,
+                            inStock: true,
+                        }),
+                    },
+                ],
+            });
+
+            // syncAllRulesToPOS path:
+            // 1. Get pricing rules
+            mockFirestore.get.mockResolvedValueOnce({
+                docs: [
+                    {
+                        id: 'rule-1',
+                        data: () => ({
+                            name: 'Test Rule',
+                            active: true,
+                            priority: 90,
+                            priceAdjustment: {
+                                type: 'percentage',
+                                value: 0.2,
+                            },
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                        }),
+                    },
+                ],
+            });
+
+            // applyPriceToMenu for product-1:
+            // 2. Get product doc
+            mockFirestore.get.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({ price: 50 }),
+            });
+
+            // 3. Get pricing rules for calculateDynamicPrice
+            mockFirestore.get.mockResolvedValueOnce({
+                docs: [
+                    {
+                        id: 'rule-1',
+                        data: () => ({
+                            name: 'Rule',
+                            active: true,
+                            priority: 50,
+                            conditions: {},
+                            priceAdjustment: {
+                                type: 'percentage',
+                                value: 0.2,
+                            },
+                            timesApplied: 0,
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                        }),
+                    },
+                ],
+            });
+
+            // syncRuleToAlleaves for rule-1:
+            // 4. Get rule doc
+            mockFirestore.get.mockResolvedValueOnce({
+                exists: true,
+                data: () => ({
+                    name: 'Test Rule',
+                    priceAdjustment: { type: 'percentage', value: 0.2 },
+                }),
+            });
+
+            (getInventoryAge as jest.Mock).mockResolvedValue(null);
+            (getCompetitorPricingForProduct as jest.Mock).mockResolvedValue(null);
+
+            const result = await publishToMenuAndPOS('org_test');
+
+            expect(result.success).toBe(true);
+            expect(result.menuResult).toBeDefined();
+            expect(result.posResult).toBeDefined();
+        });
+
+        it('succeeds with partial success (menu only)', async () => {
+            // Mock products for menu publish (success)
+            mockFirestore.get.mockResolvedValueOnce({
+                empty: false,
+                docs: [
+                    {
+                        id: 'product-1',
+                        data: () => ({ price: 50, inStock: true }),
+                    },
+                ],
+            });
+
+            // Mock rules fetch failure for POS sync
+            mockFirestore.get.mockResolvedValueOnce({
+                docs: [],
+            });
+
+            // Mock price calc
+            mockFirestore.get
+                .mockResolvedValueOnce({
+                    exists: true,
+                    data: () => ({ price: 50 }),
+                })
+                .mockResolvedValueOnce({
+                    docs: [
+                        {
+                            id: 'rule-1',
+                            data: () => ({
+                                active: true,
+                                priority: 50,
+                                conditions: {},
+                                priceAdjustment: {
+                                    type: 'percentage',
+                                    value: 0.1,
+                                },
+                                timesApplied: 0,
+                            }),
+                        },
+                    ],
+                });
+
+            (getInventoryAge as jest.Mock).mockResolvedValue(null);
+            (getCompetitorPricingForProduct as jest.Mock).mockResolvedValue(null);
+
+            const result = await publishToMenuAndPOS('org_test');
+
+            expect(result.success).toBe(true);
+            expect(result.menuResult).toBeDefined();
+            expect(result.posResult?.rulesSynced).toBe(0);
+        });
     });
 });
