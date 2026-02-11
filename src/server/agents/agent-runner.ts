@@ -462,6 +462,9 @@ export async function runAgentCore(
 
     const isFastPathQuery = FAST_PATH_PATTERNS.some(pattern => pattern.test(userMessage.trim()));
 
+    // Check for agent status queries specifically
+    const isAgentStatusQuery = /show.*agents|agent.*status|list.*agents|agents.*active/i.test(userMessage.trim());
+
     if (isFastPathQuery && !extraOptions?.attachments?.length && !extraOptions?.audioInput) {
         await emitThought(jobId, 'Fast Path', 'Handling simple query directly...');
 
@@ -476,6 +479,41 @@ export async function runAgentCore(
         const activePersona = personaId && PERSONAS[personaId as AgentPersona]
             ? PERSONAS[personaId as AgentPersona]
             : PERSONAS.puff;
+
+        // Handle agent status queries with static response (no AI needed)
+        if (isAgentStatusQuery) {
+            await emitThought(jobId, 'Complete', 'Returning agent squad status.');
+
+            const agentStatusContent = `## 🤖 Agent Squad Status
+
+| Agent | Role | Status |
+|-------|------|--------|
+| **Smokey** | Product Intelligence & Budtender | 🟢 Active |
+| **Craig** | Content & Campaigns | 🟢 Active |
+| **Deebo** | Compliance & Regulations | 🟢 Active |
+| **Ezal** | Research & Competitive Intel | 🟢 Active |
+| **Pops** | Analytics & Strategy | 🟢 Active |
+| **Money Mike** | Pricing & Revenue | 🟢 Active |
+| **Mrs. Parker** | Customer Journeys & Loyalty | 🟢 Active |
+| **Day Day** | SEO & Growth | 🟢 Active |
+| **Felisha** | Meetings & Operations | 🟢 Active |
+| **Linus** | Technical & Infrastructure (AI CTO) | 🟢 Active |
+| **Leo** | Operations Orchestration (COO) | 🟢 Active |
+| **Puff** | Executive Assistant | 🟢 Active |
+
+All agents are online and ready. Type an agent name or describe your task to get started.`;
+
+            return {
+                content: agentStatusContent,
+                toolCalls: [],
+                metadata: {
+                    brandId: 'fast-path',
+                    agentName: 'System',
+                    role,
+                    fastPath: true,
+                }
+            };
+        }
 
         // Generate response with minimal model (Gemini Flash Lite)
         const response = await ai.generate({
