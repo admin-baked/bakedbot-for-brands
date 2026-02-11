@@ -22,9 +22,11 @@
 
 /**
  * Claude Model Configuration
- * Claude Sonnet 4 is optimized for agentic tool-use workflows
+ * Claude Sonnet 4 is optimized for agentic tool-use workflows (5x cheaper than Opus)
+ * Use CLAUDE_REASONING_MODEL only for complex one-shot reasoning tasks
  */
 export const CLAUDE_TOOL_MODEL = 'claude-sonnet-4-20250514';
+export const CLAUDE_REASONING_MODEL = 'claude-opus-4-5-20251101';
 
 /**
  * Check if Claude should be preferred for a given task type

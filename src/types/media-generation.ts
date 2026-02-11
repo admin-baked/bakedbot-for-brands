@@ -196,11 +196,137 @@ export interface MediaCostAlert {
     /** Notification channels */
     notifyChannels: Array<'email' | 'inbox' | 'webhook'>;
 
+    /** Email addresses for notifications */
+    notifyEmails?: string[];
+
+    /** Webhook URL for notifications */
+    webhookUrl?: string;
+
     /** Created timestamp */
     createdAt: number;
 
     /** Last updated timestamp */
     updatedAt: number;
+
+    /** Last triggered timestamp */
+    lastTriggeredAt?: number;
+}
+
+/**
+ * Budget configuration for a tenant
+ */
+export interface MediaBudget {
+    /** Budget ID */
+    id: string;
+
+    /** Tenant ID */
+    tenantId: string;
+
+    /** Daily budget limit in USD */
+    dailyLimitUsd?: number;
+
+    /** Weekly budget limit in USD */
+    weeklyLimitUsd?: number;
+
+    /** Monthly budget limit in USD */
+    monthlyLimitUsd?: number;
+
+    /** Hard limit - stops generation when exceeded */
+    hardLimit: boolean;
+
+    /** Soft limit - sends alerts but allows generation */
+    softLimit: boolean;
+
+    /** Percentage threshold for soft limit warnings (e.g., 80 = warn at 80%) */
+    softLimitPercentage: number;
+
+    /** Whether budget is enabled */
+    enabled: boolean;
+
+    /** Created timestamp */
+    createdAt: number;
+
+    /** Last updated timestamp */
+    updatedAt: number;
+}
+
+/**
+ * Alert notification that was sent
+ */
+export interface MediaCostAlertNotification {
+    /** Notification ID */
+    id: string;
+
+    /** Alert ID that triggered this */
+    alertId: string;
+
+    /** Tenant ID */
+    tenantId: string;
+
+    /** Current spend in USD */
+    currentSpendUsd: number;
+
+    /** Threshold that was exceeded */
+    thresholdUsd: number;
+
+    /** Period (daily, weekly, monthly) */
+    period: string;
+
+    /** Notification channels used */
+    channels: Array<'email' | 'inbox' | 'webhook'>;
+
+    /** Sent timestamp */
+    sentAt: number;
+
+    /** Delivery status */
+    status: 'sent' | 'failed' | 'pending';
+
+    /** Error message if failed */
+    errorMessage?: string;
+}
+
+/**
+ * Budget status check result
+ */
+export interface BudgetCheckResult {
+    /** Whether budget allows generation */
+    allowed: boolean;
+
+    /** Current period spend */
+    currentSpendUsd: number;
+
+    /** Daily limit and status */
+    daily?: {
+        limitUsd: number;
+        spendUsd: number;
+        remainingUsd: number;
+        percentUsed: number;
+        exceeded: boolean;
+    };
+
+    /** Weekly limit and status */
+    weekly?: {
+        limitUsd: number;
+        spendUsd: number;
+        remainingUsd: number;
+        percentUsed: number;
+        exceeded: boolean;
+    };
+
+    /** Monthly limit and status */
+    monthly?: {
+        limitUsd: number;
+        spendUsd: number;
+        remainingUsd: number;
+        percentUsed: number;
+        exceeded: boolean;
+    };
+
+    /** Reasons why generation is blocked (if any) */
+    blockReasons: string[];
+
+    /** Warnings to show user */
+    warnings: string[];
 }
 
 /**
