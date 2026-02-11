@@ -29,9 +29,21 @@ import { TemplateMarketplace } from './components/template-marketplace';
 import { CustomDomainSetup } from './components/custom-domain-setup';
 import { CollaborationManager } from './components/collaboration-manager';
 import Link from 'next/link';
+import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
 
 export default function VibeBetaPage() {
   const [activeTab, setActiveTab] = useState('overview');
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  const handleDashboardClick = () => {
+    if (user) {
+      router.push('/dashboard/vibe-studio');
+    } else {
+      router.push('/signup?redirect=/dashboard/vibe-studio');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
@@ -55,12 +67,15 @@ export default function VibeBetaPage() {
                   Back to Vibe Studio
                 </Button>
               </Link>
-              <Link href="/dashboard/vibe-studio">
-                <Button>
-                  <Rocket className="w-4 h-4 mr-2" />
-                  Dashboard
+              {!loading && !user && (
+                <Button variant="outline" onClick={() => router.push('/login?redirect=/vibe/beta')}>
+                  Log In
                 </Button>
-              </Link>
+              )}
+              <Button onClick={handleDashboardClick}>
+                <Rocket className="w-4 h-4 mr-2" />
+                {user ? 'Dashboard' : 'Start Free Trial'}
+              </Button>
             </div>
           </div>
         </div>
