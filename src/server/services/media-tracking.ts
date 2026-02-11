@@ -1,9 +1,11 @@
-'use server';
 /**
  * Media Tracking Service
  *
  * Tracks image and video generation costs and usage analytics.
  * All generation events are persisted to Firestore for reporting.
+ *
+ * Note: This is a service file, NOT a server action file.
+ * It exports utility functions that can be used by server actions.
  */
 
 import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';

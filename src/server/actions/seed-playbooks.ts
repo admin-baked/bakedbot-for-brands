@@ -6,14 +6,11 @@
  * proper Firebase credentials. Run from the CEO Dashboard.
  */
 
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
-import { getAdminApp } from '@/lib/firebase-admin';
+import { Timestamp } from 'firebase-admin/firestore';
+import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
-import { requireUser } from '@/server/actions/auth';
+import { requireUser } from '@/server/auth/auth';
 import type { Playbook } from '@/types/playbook';
-
-// Ensure admin app is initialized
-getAdminApp();
 
 const WEEKLY_DEALS_PLAYBOOK: Omit<Playbook, 'createdAt' | 'updatedAt'> = {
     id: 'weekly-deals-video',
@@ -242,7 +239,7 @@ export interface SeedResult {
 export async function seedPlaybookTemplates(): Promise<SeedResult> {
     const { user } = await requireUser(['super_user']);
 
-    const db = getFirestore();
+    const { firestore: db } = await createServerClient();
     const now = Timestamp.now();
     const seeded: string[] = [];
     const skipped: string[] = [];
@@ -313,7 +310,7 @@ export async function installPlaybookTemplate(
 ): Promise<{ success: boolean; playbookId?: string; error?: string }> {
     const { user } = await requireUser(['super_user', 'brand_admin', 'dispensary_admin']);
 
-    const db = getFirestore();
+    const { firestore: db } = await createServerClient();
 
     try {
         // Get template

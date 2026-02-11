@@ -20,7 +20,7 @@ import { Search, Bot, Zap, Clock, TrendingUp, Users, Mail, BarChart3, Target, Da
 import { SuperUserAgentChat } from './components/super-user-agent-chat';
 import { InternalPlaybooksGrid } from './components/internal-playbooks-grid';
 import { seedPlaybookTemplates, type SeedResult } from '@/server/actions/seed-playbooks';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SuperUserPlaybooksPage() {
     const [searchQuery, setSearchQuery] = useState('');
