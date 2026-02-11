@@ -7,6 +7,7 @@
  * Uses centralized template service for consistency.
  */
 
+import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type {
   VibeTemplate,
@@ -15,6 +16,11 @@ import type {
   TemplateReview,
 } from '@/types/vibe-template';
 import * as templateService from '@/server/services/vibe-template-service';
+
+const TEMPLATES_COLLECTION = 'vibe_templates';
+const REVIEWS_COLLECTION = 'vibe_template_reviews';
+const FAVORITES_COLLECTION = 'vibe_template_favorites';
+const DOWNLOADS_COLLECTION = 'vibe_template_downloads';
 
 /**
  * Search templates with filters
@@ -66,25 +72,28 @@ export async function searchTemplates(
     const hasMore = snapshot.docs.length > limit;
     const templates = snapshot.docs
       .slice(0, limit)
-      .map((doc) => ({ id: doc.id, ...doc.data() } as VibeTemplate));
+      .map((doc) => {
+        const data = doc.data() as Record<string, any>;
+        return { id: doc.id, ...data } as VibeTemplate;
+      });
 
     // Client-side filter for tags/features (Firestore array-contains limitations)
     let filtered = templates;
 
     if (filter.tags && filter.tags.length > 0) {
-      filtered = filtered.filter((t) =>
+      filtered = filtered.filter((t: VibeTemplate) =>
         filter.tags!.some((tag) => t.tags.includes(tag))
       );
     }
 
     if (filter.features && filter.features.length > 0) {
-      filtered = filtered.filter((t) =>
+      filtered = filtered.filter((t: VibeTemplate) =>
         filter.features!.some((feature) => t.features.includes(feature))
       );
     }
 
     if (filter.minRating) {
-      filtered = filtered.filter((t) => t.rating >= filter.minRating!);
+      filtered = filtered.filter((t: VibeTemplate) => t.rating >= filter.minRating!);
     }
 
     logger.info('[TEMPLATE-MARKETPLACE] Search complete', {
