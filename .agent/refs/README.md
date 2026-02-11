@@ -22,6 +22,7 @@ Detailed documentation for AI agents working in this codebase.
 | Tests, Jest, coverage | `testing.md` |
 | External APIs (Blackleaf, etc.) | `integrations.md` |
 | Playbooks, automation | `workflows.md` |
+| Media generation, cost tracking | `media-generation.md` |
 | Past decisions | `work-archive.md` |
 
 ---
@@ -77,6 +78,7 @@ Detailed documentation for AI agents working in this codebase.
 | `testing.md` | Jest patterns, test strategies, coverage |
 | `tools.md` | Genkit tool definitions, executors |
 | `workflows.md` | Playbooks, automation recipes |
+| `media-generation.md` | AI image/video generation, cost tracking, playbook templates |
 
 ### Operations
 | File | What's Inside |
