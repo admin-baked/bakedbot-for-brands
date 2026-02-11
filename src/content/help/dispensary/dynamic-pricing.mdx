@@ -17,7 +17,7 @@ Maximize revenue and move inventory faster with intelligent, rule-based dynamic 
 
 ## Dashboard Overview
 
-The Dynamic Pricing dashboard has **3 tabs:**
+The Dynamic Pricing dashboard has **4 tabs:**
 
 ### 1. Rules Tab
 Create and manage pricing rules with conditions and priorities.
@@ -29,7 +29,22 @@ Create and manage pricing rules with conditions and priorities.
 - Active/inactive toggle
 - Real-time rule testing
 
-### 2. Intelligence Tab
+### 2. Publish to Menu Tab ⭐ NEW
+Apply dynamic pricing directly to your public menu, making price changes visible to customers.
+
+**Key features:**
+- One-click publish all pricing rules to your live menu
+- Batch updates all products matching active rules
+- Discount badges appear next to updated prices
+- Original prices shown with strikethrough
+- Instant revert to original prices
+- Real-time price updates on your public menu (e.g., bakedbot.ai/thrivesyracuse)
+
+<Callout type="success">
+**Game changer:** This is the fastest way to push promotions live. No manual price updates in your POS, no waiting for syncs. Click "Publish to Menu" and customers see new prices immediately.
+</Callout>
+
+### 3. Intelligence Tab
 Monitor inventory health and clearance recommendations.
 
 **What you see:**
@@ -38,7 +53,7 @@ Monitor inventory health and clearance recommendations.
 - **Stock Alerts**: Low stock warnings
 - **Sale Badges**: Current POS discounts and promotional prices
 
-### 3. Analytics Tab
+### 4. Analytics Tab
 Track rule performance and revenue impact.
 
 **Metrics:**
@@ -47,6 +62,134 @@ Track rule performance and revenue impact.
 - Top performing rules (ranked by revenue)
 - Competitor price gaps (alerts when you're 15%+ above/below market)
 - Rule application distribution (pie chart)
+
+---
+
+## Publishing Prices to Your Menu
+
+### What is "Publish to Menu"?
+
+When you create pricing rules, they exist in the BakedBot system but **don't automatically appear on your public menu**. The "Publish to Menu" feature applies all your active pricing rules to your live menu in one click, making price changes visible to customers immediately.
+
+**How it works:**
+
+1. You create pricing rules (clearance, happy hour, competitor matching, etc.)
+2. Click **"Publish to Menu"** in the Publish to Menu tab
+3. BakedBot evaluates all active rules against your product catalog
+4. Products matching rule conditions get updated prices
+5. Discount badges appear next to prices on your public menu
+6. Original prices are preserved for easy reverting
+
+### When to Publish
+
+**Best times to publish:**
+
+- ✅ **Monday mornings** - Start the week with fresh promotions
+- ✅ **Off-peak hours (9-11am, 2-4pm)** - Minimize customer confusion from mid-session price changes
+- ✅ **Before major events** - Pre-plan 4/20, local events, holidays
+- ✅ **After creating new rules** - Test new rules on live menu before committing to POS sync
+
+**Avoid publishing:**
+
+- ❌ **During peak hours** - Customers may be mid-checkout when prices change
+- ❌ **Without testing first** - Always preview in Analytics tab before publishing
+- ❌ **Too frequently** - Constant price changes erode customer trust
+
+<Callout type="warning">
+**Important:** Publishing to your BakedBot menu is separate from syncing to your POS system. If you want dynamic pricing in both places, you need to:
+1. Publish to Menu (makes prices visible on bakedbot.ai/yourstore)
+2. Sync to POS (creates discounts in your Alleaves/Dutchie/Jane system)
+</Callout>
+
+### How to Publish Prices
+
+**Step-by-step:**
+
+1. Navigate to **Dashboard → Dynamic Pricing**
+2. Click the **"Publish to Menu"** tab
+3. Review the summary:
+   - Number of active rules
+   - Affected products (estimate)
+   - Total customer savings
+4. Click **"Publish to Menu"** button
+5. Wait 10-30 seconds for batch processing
+6. Success message shows:
+   - Products updated (e.g., "127 products updated")
+   - Total savings (e.g., "$1,245.67 in customer savings")
+   - Any errors or warnings
+
+**Result:**
+Your public menu now shows updated prices with discount badges. Customers see prices like:
+
+```
+<strikethrough>$45.00</strikethrough> $31.50  [30% OFF]
+```
+
+### Reverting Prices
+
+**Need to undo?** No problem. The "Revert All Prices" button instantly restores all products to their original prices.
+
+**When to revert:**
+
+- 🔧 **Rule malfunction** - Discount applied too aggressively
+- 📊 **Negative customer feedback** - Price changes received poorly
+- 🎯 **Promotion ended** - Return to standard pricing after sale
+- 🧪 **Testing completed** - You were just experimenting
+
+**How to revert:**
+
+1. Go to **Publish to Menu** tab
+2. Click **"Revert All Prices"** button
+3. Confirm the action (this is irreversible)
+4. All products return to original prices immediately
+5. Discount badges removed from menu
+
+<Callout type="info">
+**Pro tip:** Original prices are automatically preserved when you publish, so reverting is always safe. You never lose the baseline price data.
+</Callout>
+
+### Menu Publishing Best Practices
+
+**✅ Do:**
+
+1. **Preview first** - Check Analytics tab to see which products will be affected
+2. **Test one rule** - Publish a single high-priority rule first to validate
+3. **Publish off-peak** - 9-11am or 2-4pm to minimize customer disruption
+4. **Monitor impact** - Check Analytics tab 24 hours after publishing
+5. **Communicate changes** - Post on social about new deals/promotions
+6. **Revert if needed** - Don't be afraid to undo if something goes wrong
+
+**❌ Don't:**
+
+1. **Publish untested rules** - Always validate logic in Analytics first
+2. **Change prices mid-peak** - Customers hate prices changing while they shop
+3. **Forget to monitor** - Price changes can impact margins, watch closely
+4. **Over-publish** - Constant price changes erode trust (weekly max recommended)
+5. **Ignore warnings** - If publish shows errors, investigate before proceeding
+
+### Publishing vs. POS Sync
+
+**Two separate actions:**
+
+| Feature | Publish to Menu | Sync to POS |
+|---------|----------------|-------------|
+| **Target** | BakedBot public menu | Your POS system (Alleaves/Dutchie/Jane) |
+| **Speed** | Instant (10-30 seconds) | 5-15 minutes |
+| **Visibility** | Online customers only | In-store + online |
+| **Revert** | One-click instant | Manual discount removal in POS |
+| **Use case** | Fast online promotions | Permanent price changes |
+
+**When to use both:**
+
+- **Weekend special** - Publish to menu (instant), sync to POS (same prices everywhere)
+- **Clearance sale** - Publish to menu (online customers), sync to POS (budtenders see it too)
+- **Happy Hour** - Publish to menu only (online exclusive), skip POS sync
+
+**When to use menu publishing only:**
+
+- **Flash sales** - 2-hour promo, publish → promote → revert
+- **A/B testing** - Test pricing on online customers before rolling to POS
+- **Online exclusives** - Reward web customers with special prices
 
 ---
 
