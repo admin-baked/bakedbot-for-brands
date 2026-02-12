@@ -1,0 +1,489 @@
+# Agent Notifications
+
+Stay ahead of your business with proactive AI-powered alerts. BakedBot's agents continuously monitor your dispensary operations and push real-time notifications when they detect events that need your attention — so you never miss a beat.
+
+## How Agent Notifications Work
+
+Traditional dashboards require you to log in and check metrics manually. BakedBot flips this model: **agents push notifications to you** when something important happens. Each agent monitors its domain and surfaces alerts based on priority, so you only see what matters.
+
+<Callout type="info">
+**Think of it like a team of managers running your dispensary 24/7.** Craig watches your campaigns, Money Mike tracks pricing, Deebo monitors compliance, and Mrs. Parker keeps an eye on your customers. When any of them spots something, they tap you on the shoulder.
+</Callout>
+
+## What Triggers Notifications
+
+Agents detect and alert you about ten categories of events:
+
+| Category | Examples | Typical Agent |
+|----------|----------|---------------|
+| **Campaign Results** | Sent confirmations, high open rates, delivery issues | Craig |
+| **Pricing Anomalies** | Competitor price drops, margin threshold breaches | Money Mike |
+| **CRM Alerts** | VIP customer at risk, upcoming birthdays | Mrs. Parker |
+| **Compliance Flags** | Content violations detected, review required | Deebo |
+| **Inventory Alerts** | Low stock warnings, expiring batches | System |
+| **Competitive Intel** | New competitor detected, product launches | Ezal |
+| **System Alerts** | Deployment issues, error rate spikes | System |
+| **Approval Requests** | Campaigns pending review, content sign-off | Craig / Deebo |
+| **Task Completions** | Playbook steps finished, automations complete | Various |
+| **Insights** | Trend analysis, strategic recommendations | Various |
+
+---
+
+## The Notification Bell
+
+### Where to Find It
+
+The notification bell icon is located in the **dashboard header**, top-right area, and is visible on every dashboard page regardless of your role.
+
+**What you see:**
+
+- **Bell icon** — Always visible in the header
+- **Red badge** — Shows unread notification count (e.g., "3")
+- **No badge** — All notifications are read or dismissed
+
+### Interacting with the Bell
+
+- **Click** the bell to open the notification panel
+- The red badge disappears once you open the panel (notifications marked as read)
+- The bell is available on all dashboard pages: Inbox, Analytics, Dynamic Pricing, Loyalty, and more
+
+<Callout type="tip">
+**Quick glance:** The red badge count gives you an instant read on pending items. If you see a high number, open the panel right away — there may be urgent items requiring action.
+</Callout>
+
+---
+
+## Notification Panel
+
+### Layout and Navigation
+
+Clicking the bell opens a **slide-out panel** from the header. Notifications are organized chronologically in three groups:
+
+- **Today** — Notifications from the current day
+- **Yesterday** — Notifications from the previous day
+- **Earlier** — All older notifications
+
+### Anatomy of a Notification
+
+Each notification card displays:
+
+| Element | Description |
+|---------|-------------|
+| **Agent avatar** | Emoji and name identifying the source agent |
+| **Title** | Brief summary of the event |
+| **Message** | Detailed description with relevant data |
+| **Timestamp** | Relative time (e.g., "5 minutes ago", "2 hours ago") |
+| **Priority bar** | Color-coded left border indicating urgency |
+| **Action button** | Contextual link (e.g., "View Campaign", "Review Compliance") |
+
+**Agent avatars you will see:**
+
+```
+Craig        — Marketing campaigns, content, approvals
+Money Mike   — Pricing anomalies, margins, competitor prices
+Deebo        — Compliance violations, content reviews
+Mrs. Parker  — Customer churn risk, birthdays, loyalty milestones
+Ezal         — Competitive intelligence, new competitors
+System       — Health alerts, cron results, deployments
+```
+
+### Priority Color Bars
+
+Every notification has a colored left border indicating its urgency level:
+
+| Priority | Color | Meaning |
+|----------|-------|---------|
+| **Low** | Gray | Informational — review at your convenience |
+| **Medium** | Blue | Notable event — review within a few hours |
+| **High** | Orange | Important — review soon, may need action |
+| **Urgent** | Red | Critical — requires immediate attention |
+
+### Panel Actions
+
+- **Mark all read** — Button at the top of the panel; clears all unread indicators at once
+- **Dismiss (X)** — Click the X on any individual notification to dismiss it permanently
+- **Action button** — Click to navigate directly to the relevant page (e.g., campaign details, compliance review, customer profile)
+
+<Callout type="tip">
+**Keyboard shortcut:** When the panel is open, press `Escape` to close it without losing your place on the current page.
+</Callout>
+
+---
+
+## Multi-Channel Delivery
+
+Notifications are not limited to the dashboard. Based on priority level, alerts are delivered across multiple channels so you never miss critical events — even when you are away from the dashboard.
+
+### Channel Matrix
+
+| Priority | Dashboard | Email | SMS | Push |
+|----------|-----------|-------|-----|------|
+| **Low** | Yes | No | No | No |
+| **Medium** | Yes | Yes | No | No |
+| **High** | Yes | Yes | No | Yes |
+| **Urgent** | Yes | Yes | Yes | Yes |
+
+### How Each Channel Works
+
+**Dashboard (all priorities):**
+- Instant delivery to notification panel
+- Persists until read or dismissed
+- Action buttons link to relevant pages
+
+**Email (medium and above):**
+- Sent to your account email address
+- Includes full notification details and action link
+- Respects quiet hours settings
+
+**SMS (urgent only):**
+- Short message with key details
+- Sent to the phone number in your profile
+- Only fires for truly critical events (compliance violations, system outages)
+
+**Push notifications (high and above):**
+- Browser push notifications when supported
+- Works even when BakedBot tab is not active
+- Requires one-time browser permission
+
+<Callout type="warning">
+**SMS charges may apply.** Urgent SMS notifications are sent via your configured SMS provider (Blackleaf). Ensure your SMS plan includes sufficient credits for notification volume. Most dispensaries see fewer than 5 urgent notifications per month.
+</Callout>
+
+---
+
+## Notification Types by Agent
+
+### Craig (Marketing)
+
+| Notification | Priority | When It Fires |
+|-------------|----------|---------------|
+| Campaign sent successfully | Medium | After a campaign finishes sending to all recipients |
+| Campaign performance highlights | Low | Daily digest of open rates, click rates, and revenue attributed |
+| Content ready for review | Medium | When AI-generated content needs your approval before publishing |
+
+**Example notification:**
+```
+Craig
+"Weekend Flower Sale" campaign sent
+Delivered to 1,247 recipients (98.2% delivery rate).
+Open rate so far: 34.1% — above your 28% average.
+[View Campaign]                              2 hours ago
+```
+
+### Money Mike (Pricing)
+
+| Notification | Priority | When It Fires |
+|-------------|----------|---------------|
+| Pricing anomaly detected | High | When a product's price deviates significantly from expected range |
+| Competitor price change | Medium | When Ezal detects a competitor adjusting prices on matching products |
+| Margin threshold breached | High | When a product or category margin drops below your configured floor |
+
+**Example notification:**
+```
+Money Mike
+Margin alert: Flower category at 31%
+Flower category gross margin dropped below your 35% threshold.
+3 products are selling below target margin.
+[View Pricing Dashboard]                     45 minutes ago
+```
+
+### Deebo (Compliance)
+
+| Notification | Priority | When It Fires |
+|-------------|----------|---------------|
+| Compliance violation found | High | When generated content contains prohibited claims or language |
+| Campaign compliance review complete | Medium | When Deebo finishes auditing a campaign and flags no issues (all clear) or issues found |
+
+**Example notification:**
+```
+Deebo
+Compliance issue: "Weekend Sale" email
+Health claim detected in paragraph 2: "relieves anxiety."
+Cannabis marketing regulations prohibit medical claims.
+[Review Compliance]                          15 minutes ago
+```
+
+<Callout type="warning">
+**Compliance notifications should never be ignored.** Violations can result in regulatory fines or license suspension. Always review compliance flags promptly and make corrections before publishing.
+</Callout>
+
+### Mrs. Parker (Retention)
+
+| Notification | Priority | When It Fires |
+|-------------|----------|---------------|
+| VIP customer at risk of churn | High | When a Gold/Silver tier member has not purchased in 30+ days |
+| Customer birthday approaching | Low | 7 days before a loyalty member's birthday |
+| Loyalty milestone reached | Low | When a customer reaches a new tier or points threshold |
+
+**Example notification:**
+```
+Mrs. Parker
+VIP churn risk: Sarah M. (Gold tier)
+Sarah has not made a purchase in 34 days.
+Lifetime value: $8,920. Last order: Jan 9.
+[View Customer Profile]                      3 hours ago
+```
+
+### Ezal (Competitive Intel)
+
+| Notification | Priority | When It Fires |
+|-------------|----------|---------------|
+| New competitor detected | Medium | When a new dispensary is identified in your market area |
+| Competitor product launch | Medium | When a tracked competitor adds new products or brands to their menu |
+
+**Example notification:**
+```
+Ezal
+New competitor: Green Leaf Dispensary
+Green Leaf Dispensary opened at 215 W Fayette St,
+1.2 miles from your location. Menu has 280 products.
+[View Competitive Intel]                     1 day ago
+```
+
+### System
+
+| Notification | Priority | When It Fires |
+|-------------|----------|---------------|
+| Campaign cron execution results | Low | After scheduled automation runs complete (success or partial failure) |
+| System health alerts | Urgent | When error rates spike, services degrade, or deployments fail |
+
+**Example notification:**
+```
+System
+Error rate spike detected
+API error rate increased to 4.2% (threshold: 2%).
+Affected endpoint: /api/pos/sync
+[View System Health]                         5 minutes ago
+```
+
+---
+
+## Managing Notifications
+
+### Reading and Dismissing
+
+**Mark as read:**
+- Click any notification to mark it as read (removes bold styling)
+- Use "Mark all read" button at the top of the panel to clear all unread indicators
+
+**Dismiss:**
+- Click the X icon on any notification to dismiss it
+- Dismissed notifications are hidden from the panel but retained in storage for 30 days
+
+**Navigate:**
+- Click the action button (e.g., "View Campaign", "Review Compliance") to go directly to the relevant page
+- The notification is automatically marked as read when you navigate
+
+### Linked Inbox Threads
+
+Some notifications link back to **Inbox threads** for full context. When an agent creates a notification from an ongoing conversation or workflow, you will see a "View Thread" link that opens the relevant inbox thread with complete history.
+
+<Callout type="info">
+**Inbox integration:** If you use the Unified Inbox (toggle available in Dashboard > Inbox), agent notifications appear as thread items alongside your regular agent conversations. This gives you a single view of all agent activity.
+</Callout>
+
+### Notification Statuses
+
+Every notification has one of four statuses:
+
+| Status | Meaning |
+|--------|---------|
+| **Unread** | New notification, not yet viewed |
+| **Read** | Viewed but no action taken |
+| **Dismissed** | Manually removed from panel |
+| **Acted On** | User clicked the action button and navigated to the relevant page |
+
+---
+
+## Notification Settings
+
+### Accessing Settings
+
+Navigate to **Dashboard > Settings > Notifications** to configure your notification preferences.
+
+### Active Hours
+
+Set the hours during which you want to receive notifications:
+
+```
+Active Hours: 9:00 AM - 6:00 PM
+Time Zone: Eastern (auto-detected)
+```
+
+Notifications generated outside active hours are **queued** and delivered when your active hours begin — except for urgent notifications, which always deliver immediately.
+
+### Quiet Hours
+
+Enable quiet hours to suppress non-urgent notifications during specific periods:
+
+```
+Quiet Hours: 10:00 PM - 7:00 AM
+Suppress: Low, Medium, High
+Always deliver: Urgent
+```
+
+<Callout type="tip">
+**Weekend quiet hours:** You can configure separate quiet hours for weekends. Many dispensary owners set broader quiet hours on Sundays (e.g., all day) while keeping weekday hours tight.
+</Callout>
+
+### Channel Preferences
+
+Customize which channels deliver each notification type:
+
+| Notification Type | Dashboard | Email | SMS |
+|-------------------|-----------|-------|-----|
+| Campaign results | On | On | Off |
+| Pricing anomalies | On | On | Off |
+| CRM alerts | On | Off | Off |
+| Compliance flags | On | On | On |
+| Inventory alerts | On | On | Off |
+| Competitive intel | On | Off | Off |
+| System alerts | On | On | On |
+| Approval requests | On | On | Off |
+| Task completions | On | Off | Off |
+| Insights | On | Off | Off |
+
+These preferences override the default priority-based channel matrix. For example, you can enable SMS for all compliance notifications regardless of priority level.
+
+### Heartbeat Integration
+
+Notification delivery respects the **heartbeat system's** schedule and configuration. The heartbeat runs role-specific checks at regular intervals:
+
+- **Dispensary role:** Every 15 minutes
+- **Brand role:** Every 60 minutes
+- **Super user role:** Every 30 minutes
+
+Heartbeat checks that detect issues automatically generate notifications through the same system. Configure heartbeat settings at **Dashboard > Settings > Heartbeat** to control check frequency and which checks are active.
+
+---
+
+## Firestore Storage
+
+Notifications are stored per-user in Firestore at:
+
+```
+users/{userId}/agent_notifications/{notificationId}
+```
+
+### Notification Document Structure
+
+Each notification document contains:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique notification identifier |
+| `agentName` | string | Source agent (craig, money_mike, deebo, mrs_parker, ezal, system) |
+| `title` | string | Short notification title |
+| `message` | string | Detailed notification body |
+| `priority` | string | low, medium, high, urgent |
+| `status` | string | unread, read, dismissed, acted_on |
+| `category` | string | Notification category (campaign, pricing, crm, compliance, etc.) |
+| `actionUrl` | string | Optional URL for the action button |
+| `actionLabel` | string | Optional label for the action button |
+| `threadId` | string | Optional linked inbox thread ID |
+| `createdAt` | timestamp | When the notification was created |
+| `readAt` | timestamp | When the notification was read (null if unread) |
+| `dismissedAt` | timestamp | When the notification was dismissed (null if active) |
+
+### Retention Policy
+
+- **Active notifications:** Retained indefinitely
+- **Read notifications:** Retained for 90 days
+- **Dismissed notifications:** Retained for 30 days, then automatically cleaned up
+
+---
+
+## Best Practices
+
+### Do's
+
+- **Check notifications daily** — Even low-priority alerts can surface valuable insights over time
+- **Act on compliance flags immediately** — Regulatory violations carry real consequences
+- **Configure quiet hours** — Prevent notification fatigue during off-hours
+- **Use channel preferences** — Route critical categories (compliance, system) to SMS/email; keep informational ones dashboard-only
+- **Review churn risk alerts** — A single outreach to an at-risk VIP can save thousands in lifetime value
+
+### Don'ts
+
+- **Don't ignore high-priority alerts** — Orange and red bars mean something needs your attention now
+- **Don't dismiss without reading** — Scan the message before hitting X; you might miss something important
+- **Don't over-enable SMS** — Reserve SMS for truly urgent channels; too many texts cause alert fatigue
+- **Don't disable compliance notifications** — Deebo's alerts protect your license; keep them active on all channels
+
+<Callout type="tip">
+**Pro tip:** Set aside 5 minutes at the start of each day to review yesterday's notifications. This quick habit helps you catch trends early — like a pricing anomaly that has been building for a few days or a VIP customer who is gradually disengaging.
+</Callout>
+
+---
+
+## Troubleshooting
+
+### Not Receiving Notifications
+
+**Check:**
+- Notifications are enabled in **Dashboard > Settings > Notifications**
+- Active hours include the current time
+- Quiet hours are not suppressing the notification priority level
+- Browser push permissions are granted (for push notifications)
+- Email address is verified in your profile (for email notifications)
+- Phone number is set in your profile (for SMS notifications)
+
+### Notification Panel Not Opening
+
+**Fix:**
+- Hard refresh the page (Ctrl+Shift+R)
+- Clear browser cache and reload
+- Check for browser extension conflicts (ad blockers can interfere)
+- Try a different browser to isolate the issue
+
+### Too Many Notifications
+
+**Reduce volume:**
+- Adjust heartbeat check frequency in **Dashboard > Settings > Heartbeat**
+- Disable low-priority notification categories you do not need
+- Enable quiet hours for evenings and weekends
+- Review which agents are generating the most alerts and adjust their check thresholds
+
+### Email or SMS Not Arriving
+
+**Check:**
+- Verify email/phone number in profile settings
+- Check spam/junk folder for email notifications
+- Confirm SMS provider (Blackleaf) has sufficient credits
+- Review channel preferences — the notification type may be set to dashboard-only
+
+---
+
+## FAQ
+
+**Q: Can I turn off notifications entirely?**
+A: You can disable individual notification categories and channels, but the dashboard notification bell always remains active. This ensures you never miss a critical system or compliance alert.
+
+**Q: Do notifications count against my plan limits?**
+A: No. Notifications are included with all plan tiers at no additional cost. SMS delivery costs depend on your Blackleaf SMS plan.
+
+**Q: How quickly do notifications arrive after an event?**
+A: Dashboard notifications are near real-time (under 10 seconds). Email delivery takes 1-3 minutes. SMS delivery takes 15-60 seconds. Push notifications are near-instant when the browser supports them.
+
+**Q: Can I configure notifications for specific products or customers?**
+A: Not yet directly. However, agents like Mrs. Parker automatically track your VIP customers, and Money Mike monitors products matching your pricing rules. Configure those systems to indirectly control which events generate notifications.
+
+**Q: Do notifications work on mobile?**
+A: Yes. The dashboard notification panel is fully responsive. Email and SMS channels work on any device. Browser push notifications work on mobile browsers that support the Push API.
+
+**Q: What happens to notifications when I am on vacation?**
+A: Notifications queue up and are available when you return. Enable quiet hours for your vacation period to suppress non-urgent channels. Urgent notifications (system outages, compliance violations) will still reach you via SMS and email.
+
+---
+
+## Next Steps
+
+- [Heartbeat System Overview](/help/dispensary/menu-sync) — Configure proactive monitoring schedules
+- [Dynamic Pricing Dashboard](/help/dispensary/dynamic-pricing) — Set up pricing rules that trigger Money Mike alerts
+- [Loyalty Program](/help/dispensary/loyalty-program) — Enable customer milestones that trigger Mrs. Parker alerts
+- [Deebo - Compliance Agent](/help/agents/deebo) — Understand how compliance monitoring works
+- [Craig - Marketing Agent](/help/agents/craig) — Learn about campaign notifications and approvals
+- [Ezal - Competitive Intel](/help/agents/ezal) — Configure competitor tracking for intel alerts
+- [Inbox Guide](/help/getting-started/inbox-guide) — Use the Unified Inbox alongside notifications
+
+<ArticleRating articleId="dispensary-agent-notifications" />

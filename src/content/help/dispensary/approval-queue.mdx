@@ -1,0 +1,305 @@
+# Approval Queue - Your Content Review Hub
+
+The Approval Queue at `/dashboard/approvals` is your centralized review hub for all agent-generated content. Before any campaign goes live or content gets published, it must pass through the approval queue. This gives you full control over what your AI agents produce.
+
+<Callout type="info">
+**Human-in-the-loop by design.** BakedBot agents are powerful, but every piece of customer-facing content requires your sign-off. The Approval Queue is where you maintain brand control while letting AI do the heavy lifting.
+</Callout>
+
+## What Needs Approval
+
+Not everything agents do requires your review. Informational lookups, analytics queries, and internal research happen automatically. But anything that touches customers or goes public stops here first.
+
+| Item Type | Source Agent | Why It Needs Approval |
+|-----------|-------------|----------------------|
+| **Campaigns** | Craig (Marketing) | Review content, audience targeting, and compliance before sending |
+| **Creative Content** | Craig, Smokey | Ensure brand consistency and regulatory compliance |
+| **Outreach Drafts** | Mrs. Parker (Re-engagement) | Verify tone and offers before customer contact |
+| **Playbook Steps** | Automated playbook execution | Human-in-the-loop for critical automated actions |
+
+<Callout type="tip">
+**Think of the approval queue as your editorial desk.** Agents draft, Deebo checks compliance, and you make the final call. This three-layer process keeps your brand safe while moving fast.
+</Callout>
+
+## Accessing the Approval Queue
+
+There are three ways to reach your approval queue:
+
+### 1. Sidebar Navigation (Primary)
+Navigate to **Dashboard > Approvals** in the left sidebar. This is the main entry point and shows all pending items across every category.
+
+### 2. Agent Notification
+When an agent creates something that needs your review, you receive a notification. Click the **"Approve"** action button directly in the notification to jump to that specific item.
+
+### 3. Inline from Inbox
+When Craig presents a campaign card inside your inbox conversation, click **"Review"** on the card to open it in the approval queue with full details.
+
+## Approval Queue Layout
+
+The approval page is designed for fast, confident decision-making.
+
+### Stats Bar
+
+At the top of the page, three counters give you an at-a-glance status:
+
+| Counter | What It Shows |
+|---------|--------------|
+| **Pending** | Total items waiting for your review |
+| **Approved Today** | Items you approved in the current day |
+| **Rejected Today** | Items you rejected in the current day |
+
+### Filter Tabs
+
+Below the stats bar, tabs let you filter by content type:
+
+- **All Pending** - Everything awaiting review (default view)
+- **Campaigns** - SMS, email, and social campaigns from Craig
+- **Content** - Creative assets, marketing materials, sell sheets
+- **Playbooks** - Automated playbook steps requiring human approval
+
+### Item Cards
+
+Each item in the queue displays:
+
+- **Type icon** - Visual indicator (campaign, content, playbook step)
+- **Name/title** - What the item is called
+- **Source agent** - Which agent created it (Craig, Mrs. Parker, etc.)
+- **Created date** - When the item was generated
+- **Compliance status badge** - Deebo's automated compliance verdict
+- **Approve/Reject buttons** - Primary action buttons on each card
+
+## Campaign Approval Flow
+
+Campaigns are the most common items in the approval queue. Here is the typical lifecycle from creation to launch.
+
+### Step 1: Draft Created
+
+Craig creates a campaign draft, either from a conversation you had in the inbox ("Create a 420 sale campaign") or from an automated playbook trigger. The campaign enters `draft` status.
+
+### Step 2: Compliance Review
+
+Deebo automatically scans the campaign content for regulatory violations. This includes:
+
+- Medical claims check (no "cures" or "treats" language)
+- Age-gating verification (21+ targeting only)
+- Required disclaimers (opt-out language, THC warnings)
+- State-specific rules (advertising restrictions by jurisdiction)
+- Platform policies (SMS character limits, email CAN-SPAM)
+
+### Step 3: Pending Approval
+
+Once Deebo finishes the compliance scan, the campaign appears in your approval queue with the compliance results attached.
+
+### Step 4: Your Review
+
+When you open a campaign for review, you see the complete picture:
+
+**Campaign Details:**
+- Campaign name and description
+- Goal (win-back, product launch, flash sale, etc.)
+- Target audience with segment breakdown
+- Estimated reach and send cost
+
+**Content Preview:**
+- Email subject line and body (rendered preview)
+- SMS text (character count displayed)
+- Social media post copy and image
+
+**Compliance Results:**
+- Pass/fail/warning status from Deebo
+- Specific findings with line-by-line details
+- Suggested fixes for any flagged issues
+
+### Step 5: Approve or Reject
+
+You have two options:
+
+**Approve** - The campaign moves to `approved` status. It is now ready to be scheduled for sending. Approving does not send the campaign immediately; you still control when it goes out.
+
+**Reject** - The campaign returns to `draft` status. The source agent is notified with your rejection reason so it can improve future drafts. You can optionally add notes explaining what needs to change.
+
+<Callout type="warning">
+**Approving a campaign does not send it.** After approval, you still need to schedule the campaign with a send time. Go to the campaign detail page to set the schedule, or tell Craig in chat: "Schedule campaign X for tomorrow at 10am."
+</Callout>
+
+## Compliance Status Indicators
+
+Every item in the approval queue carries a compliance badge from Deebo's automated review. Here is what each status means:
+
+| Status | Badge | Meaning |
+|--------|-------|---------|
+| **Passed** | Green checkmark | All compliance checks passed. Safe to approve. |
+| **Warning** | Yellow triangle | Minor issues found. Review the suggestions before approving. |
+| **Failed** | Red X | Violations detected. Must be fixed before you can approve. |
+| **Pending** | Gray clock | Compliance check is still running. Wait for results. |
+
+### Understanding Warnings vs. Failures
+
+**Warnings** are advisory. They flag things that might be problematic but are not definitive violations. Examples:
+- Discount percentage is unusually high (> 30%)
+- Language is close to a medical claim but not explicitly one
+- Send time is outside typical engagement windows
+
+**Failures** are blocking. They indicate clear regulatory violations. Examples:
+- Content contains a medical/health claim
+- Missing required opt-out language in SMS
+- Targeting parameters include minors
+
+<Callout type="info">
+**You can still approve items with warnings**, but take the time to review what Deebo flagged. Warnings exist to protect your brand and your license. Items with **failed** compliance should be rejected and revised.
+</Callout>
+
+## Bulk Actions
+
+When multiple items pile up, bulk actions keep you efficient:
+
+1. **Select items** - Click the checkbox on each item you want to act on, or use "Select All" to grab everything visible
+2. **Approve All** - Approve all selected items in one click
+3. **Reject All** - Reject all selected items with an optional shared reason
+
+<Callout type="warning">
+**Use bulk approve carefully.** It is tempting to "Approve All" when you have 10+ items waiting. Always at least scan the compliance badges first. Bulk approve items that show green checkmarks; review yellow warnings individually.
+</Callout>
+
+### When Bulk Actions Make Sense
+
+- **Multiple playbook steps** from the same execution that you have already reviewed
+- **A batch of creative variants** where you reviewed the first one and the rest follow the same template
+- **End-of-day catchup** when you have reviewed items throughout the day and just need to formally approve them
+
+## Creative Content Approval
+
+Beyond campaigns, agents generate creative assets that also need your sign-off:
+
+| Content Type | What to Check |
+|-------------|---------------|
+| **Carousels** | Product images, descriptions, pricing accuracy |
+| **Sell Sheets** | Brand messaging, product claims, design quality |
+| **QR Codes** | Destination URL, tracking parameters |
+| **Event Promos** | Date/time accuracy, venue details, legal disclaimers |
+| **Outreach Drafts** | Customer tone, offer validity, personalization accuracy |
+
+For creative content, focus on:
+- **Brand voice consistency** - Does it sound like your brand?
+- **Factual accuracy** - Are prices, strain names, and THC percentages correct?
+- **Visual quality** - Do images represent your products well?
+- **Compliance** - No medical claims, proper disclaimers
+
+## Playbook Step Approval
+
+Playbooks are automated workflows that execute a sequence of steps. Some steps are configured to require human approval before proceeding.
+
+**Common approval-gated steps:**
+- Sending a campaign to more than 500 recipients
+- Publishing content to social media
+- Generating and distributing discount codes
+- Customer outreach with personalized offers
+
+When a playbook hits an approval-gated step:
+1. Execution **pauses** at that step
+2. The step appears in your approval queue under the **Playbooks** tab
+3. You review the step details and what will happen next
+4. **Approve** resumes the playbook; **Reject** stops execution
+
+<Callout type="tip">
+**Configure approval gates wisely.** Too many gates slow down automation. Too few gates risk sending something you did not intend. A good rule: require approval for anything customer-facing and anything involving spend.
+</Callout>
+
+## Best Practices
+
+### Review Daily
+
+Check the approval queue at least once a day to avoid bottlenecks. Pending items block campaigns from going out and playbooks from completing. If you are unavailable for extended periods, consider delegating approval access to a trusted team member.
+
+### Do Not Skip Compliance Warnings
+
+Even when Deebo shows "warning" rather than "failed," take a moment to read the details. Warnings are early indicators of content that could cause problems. A pattern of ignored warnings can lead to actual violations over time.
+
+### Provide Feedback When Rejecting
+
+When you reject an item, add a reason. This feedback helps agents improve future content. Good rejection reasons are specific:
+
+- **Vague (not helpful):** "Not good enough"
+- **Specific (helpful):** "The SMS copy mentions 'pain relief' which is too close to a medical claim. Rewrite to focus on relaxation instead."
+
+### Set Up Notifications
+
+Enable `approval_required` notifications in your notification settings so you get alerted immediately when new items enter the queue. This prevents items from sitting unreviewed for days.
+
+**To enable:**
+1. Go to **Dashboard > Settings > Notifications**
+2. Toggle on **"Approval Required"** alerts
+3. Choose your channel (dashboard, email, or SMS)
+
+### Trust but Verify
+
+AI agents produce high-quality content, but they are not perfect. Always review:
+- **Audience targeting** - Make sure the right customers are being reached
+- **Pricing and offers** - Verify discount amounts and promo codes are correct
+- **Compliance details** - Confirm Deebo's automated check aligns with your local regulations
+- **Tone and voice** - Ensure the content matches your brand personality
+
+## Troubleshooting
+
+### "No items in queue"
+
+This is normal if agents have not generated content recently. It does not indicate a problem.
+
+**Check these if unexpected:**
+- Verify agents are active in the inbox (try asking Craig to draft a campaign)
+- Confirm playbooks are running (Dashboard > Marketing > Playbooks)
+- Check that your role has approval permissions (dispensary owner/manager roles)
+
+### "Compliance check stuck on Pending"
+
+If a campaign shows "Compliance: Pending" for more than a few minutes:
+
+1. **Wait and refresh** - Deebo's compliance service may be processing a backlog
+2. **Check after 5 minutes** - Most compliance checks complete in under 60 seconds
+3. **Manual override** - If still stuck, you can approve the item manually, but review the content yourself for compliance issues before doing so
+
+<Callout type="warning">
+**Manually approving items with pending compliance** means you are taking on the compliance responsibility yourself. Only do this if you are confident the content meets all regulatory requirements for your state.
+</Callout>
+
+### "Approved but campaign is not sending"
+
+Approving a campaign does not trigger sending. Campaigns still need to be scheduled.
+
+**To schedule an approved campaign:**
+1. Navigate to **Dashboard > Marketing > Campaigns**
+2. Find the approved campaign
+3. Click **"Schedule"** and set a send date/time
+4. Or ask Craig in chat: "Schedule the [campaign name] for [date and time]"
+
+### "Rejected item keeps coming back"
+
+If an agent regenerates content that keeps getting rejected:
+1. Open the inbox and talk to the source agent directly
+2. Provide specific instructions on what needs to change
+3. The agent will create a new draft incorporating your feedback
+4. The revised item will appear in the approval queue as a new entry
+
+## Approval Queue and Team Roles
+
+Different team roles have different approval capabilities:
+
+| Role | Can View Queue | Can Approve | Can Reject | Can Bulk Approve |
+|------|---------------|-------------|------------|-----------------|
+| **Owner** | Yes | Yes | Yes | Yes |
+| **Manager** | Yes | Yes | Yes | Yes |
+| **Staff** | View only | No | No | No |
+
+<Callout type="info">
+**Need to delegate approvals?** Make sure your team members have the appropriate role assigned. Go to **Dashboard > Settings > Team** to manage roles. See the [User Roles](/help/getting-started/user-roles) guide for details.
+</Callout>
+
+## Next Steps
+
+- [Creating Marketing Campaigns](/help/marketing/campaigns) - Learn how Craig creates campaigns that flow into the queue
+- [Cannabis Marketing Compliance](/help/marketing/compliance) - Understand what Deebo checks for
+- [Marketing Playbooks](/help/marketing/playbooks) - Set up automated workflows with approval gates
+- [Craig - Marketing Automation](/help/agents/craig) - Deep dive into Craig's capabilities
+- [Deebo - Compliance Agent](/help/agents/deebo) - Learn how Deebo protects your brand
+
+<ArticleRating articleId="dispensary-approval-queue" />
