@@ -13,88 +13,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, TrendingUp, Sparkles, Leaf, DollarSign } from 'lucide-react';
+import { getUpsellAnalytics } from '@/server/actions/upsell-analytics';
+import type { TopPairing } from '@/server/actions/upsell-analytics';
 import type { UpsellStrategy } from '@/types/upsell';
 
 interface TopPairingsProps {
     orgId: string;
 }
-
-interface PairingData {
-    anchorProduct: string;
-    anchorCategory: string;
-    suggestedProduct: string;
-    suggestedCategory: string;
-    strategy: UpsellStrategy;
-    reason: string;
-    impressions: number;
-    conversions: number;
-    conversionRate: number;
-    revenue: number;
-}
-
-// Mock data - will be replaced with real analytics from Firestore
-const TOP_PAIRINGS: PairingData[] = [
-    {
-        anchorProduct: 'Blue Dream Flower (3.5g)',
-        anchorCategory: 'Flower',
-        suggestedProduct: 'Lemon Haze Pre-Roll',
-        suggestedCategory: 'Pre-roll',
-        strategy: 'terpene_pairing',
-        reason: 'Similar limonene profile for uplifting effects',
-        impressions: 342,
-        conversions: 89,
-        conversionRate: 26.0,
-        revenue: 1247.50,
-    },
-    {
-        anchorProduct: 'Indica Gummies (10pk)',
-        anchorCategory: 'Edibles',
-        suggestedProduct: 'Lavender CBD Tincture',
-        suggestedCategory: 'Tinctures',
-        strategy: 'effect_stacking',
-        reason: 'Linalool + myrcene for enhanced relaxation',
-        impressions: 287,
-        conversions: 71,
-        conversionRate: 24.7,
-        revenue: 1065.00,
-    },
-    {
-        anchorProduct: 'Sativa Vape Cartridge',
-        anchorCategory: 'Vapes',
-        suggestedProduct: 'Pineapple Express Flower',
-        suggestedCategory: 'Flower',
-        strategy: 'category_complement',
-        reason: 'Cross-format energy boost pairing',
-        impressions: 256,
-        conversions: 58,
-        conversionRate: 22.7,
-        revenue: 928.00,
-    },
-    {
-        anchorProduct: 'Wedding Cake Flower',
-        anchorCategory: 'Flower',
-        suggestedProduct: 'Premium Grinder',
-        suggestedCategory: 'Accessories',
-        strategy: 'category_complement',
-        reason: 'Essential accessory for flower consumption',
-        impressions: 198,
-        conversions: 47,
-        conversionRate: 23.7,
-        revenue: 658.00,
-    },
-    {
-        anchorProduct: 'Sunset Sherbet (3.5g)',
-        anchorCategory: 'Flower',
-        suggestedProduct: 'Gelato #33 (1g)',
-        suggestedCategory: 'Flower',
-        strategy: 'clearance',
-        reason: 'Expiring soon - similar caryophyllene profile',
-        impressions: 176,
-        conversions: 38,
-        conversionRate: 21.6,
-        revenue: 532.00,
-    },
-];
 
 const STRATEGY_ICONS: Record<UpsellStrategy, typeof Leaf> = {
     terpene_pairing: Leaf,
@@ -120,11 +45,21 @@ const STRATEGY_COLORS: Record<UpsellStrategy, string> = {
 
 export function TopPairings({ orgId }: TopPairingsProps) {
     const [loading, setLoading] = useState(true);
+    const [pairings, setPairings] = useState<TopPairing[]>([]);
 
     useEffect(() => {
-        // Simulate data fetch
-        const timer = setTimeout(() => setLoading(false), 800);
-        return () => clearTimeout(timer);
+        async function loadPairings() {
+            setLoading(true);
+            try {
+                const data = await getUpsellAnalytics(orgId);
+                setPairings(data.topPairings);
+            } catch (error) {
+                console.error('Failed to load top pairings:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        loadPairings();
     }, [orgId]);
 
     if (loading) {
@@ -147,8 +82,13 @@ export function TopPairings({ orgId }: TopPairingsProps) {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-4">
-                        {TOP_PAIRINGS.map((pairing, index) => {
+                    {pairings.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                            <p>No pairing data yet. Upsell conversions will appear here as they occur.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {pairings.map((pairing, index) => {
                             const StrategyIcon = STRATEGY_ICONS[pairing.strategy];
                             const strategyColor = STRATEGY_COLORS[pairing.strategy];
 
@@ -217,6 +157,7 @@ export function TopPairings({ orgId }: TopPairingsProps) {
                             );
                         })}
                     </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

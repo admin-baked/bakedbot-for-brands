@@ -17,10 +17,34 @@ import { UpsellAnalytics } from './components/upsell-analytics';
 import { TopPairings } from './components/top-pairings';
 import { UpsellConfiguration } from './components/upsell-configuration';
 import { BundleBuilder } from './components/bundle-builder';
+import { getUpsellAnalytics } from '@/server/actions/upsell-analytics';
 
 export function UpsellsPageClient() {
     const { orgId, isLoading: authLoading } = useUserRole();
     const [activeTab, setActiveTab] = useState('analytics');
+    const [quickStats, setQuickStats] = useState({
+        upsellRate: 0,
+        avgUpsellValue: 0,
+        marginBoost: 0,
+        activePairings: 0,
+    });
+    const [statsLoading, setStatsLoading] = useState(true);
+
+    useEffect(() => {
+        async function loadQuickStats() {
+            if (!orgId) return;
+            setStatsLoading(true);
+            try {
+                const data = await getUpsellAnalytics(orgId);
+                setQuickStats(data.quickStats);
+            } catch (error) {
+                console.error('Failed to load quick stats:', error);
+            } finally {
+                setStatsLoading(false);
+            }
+        }
+        loadQuickStats();
+    }, [orgId]);
 
     if (authLoading || !orgId) {
         return (
@@ -52,10 +76,16 @@ export function UpsellsPageClient() {
                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">18.3%</div>
-                        <p className="text-xs text-muted-foreground">
-                            +2.4% from last week
-                        </p>
+                        {statsLoading ? (
+                            <Skeleton className="h-8 w-20" />
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold">{quickStats.upsellRate}%</div>
+                                <p className="text-xs text-muted-foreground">
+                                    Last 7 days
+                                </p>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
                 <Card>
@@ -64,10 +94,16 @@ export function UpsellsPageClient() {
                         <Package className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">$24.50</div>
-                        <p className="text-xs text-muted-foreground">
-                            +$3.20 from last week
-                        </p>
+                        {statsLoading ? (
+                            <Skeleton className="h-8 w-20" />
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold">${quickStats.avgUpsellValue.toFixed(2)}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    Last 7 days
+                                </p>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
                 <Card>
@@ -76,10 +112,16 @@ export function UpsellsPageClient() {
                         <BarChart3 className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">+12.7%</div>
-                        <p className="text-xs text-muted-foreground">
-                            280E-optimized suggestions
-                        </p>
+                        {statsLoading ? (
+                            <Skeleton className="h-8 w-20" />
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold">+{quickStats.marginBoost}%</div>
+                                <p className="text-xs text-muted-foreground">
+                                    280E-optimized suggestions
+                                </p>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
                 <Card>
@@ -88,10 +130,16 @@ export function UpsellsPageClient() {
                         <Target className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">142</div>
-                        <p className="text-xs text-muted-foreground">
-                            Across all strategies
-                        </p>
+                        {statsLoading ? (
+                            <Skeleton className="h-8 w-20" />
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold">{quickStats.activePairings}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    Across all strategies
+                                </p>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
             </div>
