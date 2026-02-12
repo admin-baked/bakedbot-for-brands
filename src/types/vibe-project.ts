@@ -31,6 +31,8 @@ export interface VibeProject {
   // Publishing
   publishedUrl?: string; // Custom domain or bakedbot subdomain
   lastPublishedAt?: string;
+  customDomain?: string; // User's custom domain
+  customDomainVerified?: boolean; // DNS verification status
 
   // Timestamps
   createdAt: string;

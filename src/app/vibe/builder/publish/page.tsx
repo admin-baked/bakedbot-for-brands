@@ -243,10 +243,23 @@ export default function PublishPage() {
             <h3 className="font-semibold mb-3">What's Next?</h3>
             <ul className="text-sm text-muted-foreground space-y-2 text-left max-w-md mx-auto">
               <li>✓ Share your site URL on social media</li>
-              <li>✓ Connect a custom domain (Pro feature)</li>
               <li>✓ View analytics and track visitors</li>
               <li>✓ Update your site anytime by republishing</li>
             </ul>
+
+            <div className="mt-4 pt-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/vibe/builder/custom-domain?projectId=${project.id}`)}
+                className="w-full gap-2"
+              >
+                <Globe className="w-4 h-4" />
+                Connect Custom Domain
+              </Button>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Use your own domain like www.yourbusiness.com
+              </p>
+            </div>
           </div>
         </div>
       </div>
