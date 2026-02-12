@@ -2,6 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Navigation Progress Bar Animations */
+@keyframes progress {
+  0% {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  50% {
+    transform: scaleX(0.8);
+    transform-origin: left;
+  }
+  100% {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-progress {
+  animation: progress 0.3s ease-out;
+}
+
+.animate-shimmer {
+  animation: shimmer 1s infinite;
+}
+
 @layer base {
   :root {
     --background: 210 40% 98%;

@@ -164,13 +164,34 @@ export default function VibeBuilderPage() {
     return () => clearInterval(interval);
   }, [projectId]);
 
-  const handlePreview = () => {
-    // TODO: Implement preview
-    toast({
-      title: 'Preview',
-      description: 'Preview functionality coming soon',
-    });
-  };
+  const handlePreview = useCallback(async () => {
+    if (!projectId || !editorRef.current) return;
+
+    // Save current state before preview
+    try {
+      const editor = editorRef.current;
+
+      await updateVibeProject(projectId, {
+        html: editor.getHtml(),
+        css: editor.getCss(),
+        components: JSON.stringify(editor.getComponents()),
+        styles: JSON.stringify(editor.getStyle()),
+      });
+
+      // Open preview in new tab
+      window.open(
+        `/vibe/builder/preview?projectId=${projectId}`,
+        '_blank',
+        'noopener,noreferrer'
+      );
+    } catch (error) {
+      toast({
+        title: 'Preview Failed',
+        description: 'Could not open preview',
+        variant: 'destructive',
+      });
+    }
+  }, [projectId, toast]);
 
   const handlePublish = () => {
     // TODO: Implement publish
