@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -227,6 +228,29 @@ export default function DomainSettingsTab() {
 
     return (
         <div className="space-y-6">
+            {/* Migration Banner */}
+            <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="pt-6">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <Globe className="h-5 w-5 text-primary" />
+                            <div>
+                                <p className="font-medium">New: Unified Domain Manager</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Manage all your domains in one place - menus, websites, landing pages, and more.
+                                </p>
+                            </div>
+                        </div>
+                        <Link href="/dashboard/domains">
+                            <Button size="sm" className="gap-1 whitespace-nowrap">
+                                Go to Domains
+                                <ExternalLink className="h-3 w-3" />
+                            </Button>
+                        </Link>
+                    </div>
+                </CardContent>
+            </Card>
+
             {/* Domain Overview Card */}
             <Card>
                 <CardHeader>

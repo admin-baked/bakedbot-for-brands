@@ -74,11 +74,12 @@ export function POSSyncStatus({ orgId, dataType, className }: POSSyncStatusProps
         updateSyncStatus({ status: 'syncing' });
 
         try {
-            const response = await fetch(`/api/cron/pos-sync?orgId=${orgId}`, {
+            const response = await fetch('/api/pos/sync', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET || 'dev-secret-change-in-production'}`,
+                    'Content-Type': 'application/json',
                 },
+                body: JSON.stringify({ orgId }),
             });
 
             if (!response.ok) {
@@ -86,11 +87,14 @@ export function POSSyncStatus({ orgId, dataType, className }: POSSyncStatusProps
             }
 
             const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'Sync failed');
+            }
 
             updateSyncStatus({
                 status: 'success',
                 lastSync: new Date(),
-                count: result.details?.[0]?.customersCount || result.details?.[0]?.ordersCount,
+                count: result.result?.customersCount || result.result?.ordersCount,
             });
 
             // Reload the page to show fresh data

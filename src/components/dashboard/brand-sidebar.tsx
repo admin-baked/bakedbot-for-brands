@@ -380,6 +380,14 @@ export const BrandSidebar = memo(function BrandSidebar() {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                                 <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={isActive('/dashboard/domains')}>
+                                        <Link href="/dashboard/domains" prefetch={true}>
+                                            <Globe />
+                                            <span>Custom Domains</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isActive('/dashboard/settings')}>
                                         <Link href="/dashboard/settings" prefetch={true}>
                                             <Settings />
