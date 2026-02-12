@@ -2,12 +2,12 @@
  * System Metrics Collection Cron Job
  *
  * Endpoint: /api/cron/collect-metrics
- * Schedule: Every 15 minutes (*/15 * * * *)
+ * Schedule: Every 15 minutes
  * Purpose: Collect and store system health metrics for historical tracking
  *
  * Cloud Scheduler Setup:
  * gcloud scheduler jobs create http collect-metrics-cron \
- *   --schedule="*/15 * * * *" \
+ *   --schedule="every 15 minutes" \
  *   --uri="https://bakedbot.ai/api/cron/collect-metrics" \
  *   --http-method=POST \
  *   --oidc-service-account-email=firebase-adminsdk-xxxxx@studio-567050101-bc6e8.iam.gserviceaccount.com
@@ -86,3 +86,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
