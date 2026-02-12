@@ -49,6 +49,7 @@ import {
     Calculator,
     Image,
     HardDrive,
+    Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -176,6 +177,15 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 <Link href="/dashboard/pricing" prefetch={true}>
                                     <TrendingUp />
                                     <span>Pricing</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/upsells')}>
+                                <Link href="/dashboard/upsells" prefetch={true}>
+                                    <Zap />
+                                    <span>Smart Upsells</span>
+                                    <span className="ml-auto text-[10px] bg-green-500/10 text-green-600 px-1.5 py-0.5 rounded font-medium">NEW</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
