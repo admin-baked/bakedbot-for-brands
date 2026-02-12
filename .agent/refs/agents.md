@@ -196,14 +196,22 @@ POST /api/linus/fix
 
 | Attribute | Value |
 |-----------|-------|
-| **Role** | Product Specialist |
-| **Domain** | Product search, recommendations |
+| **Role** | Product Specialist & Front Desk Greeter |
+| **Domain** | Product search, recommendations, upselling |
 | **Access** | All users |
 
 **Capabilities:**
-- Cannabis product recommendations
-- Menu search and filtering
-- Customer preference matching
+- Cannabis product recommendations with algorithmic scoring
+- Menu search and filtering via `searchMenu` tool
+- Customer preference matching (effects, tolerance, price)
+- **Smart upselling** via `suggestUpsells` tool (cannabis science pairing)
+- Delegation routing to specialist agents
+- UX experiment management (A/B testing)
+
+**Upsell Tool:**
+- `suggestUpsells(productId, orgId)` - Complementary product suggestions
+- Terpene entourage effect reasoning + value-focused framing
+- ONE upsell per exchange, respects "no thanks"
 
 **MVP Playbook Participation:**
 - Review Response Autopilot

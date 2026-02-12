@@ -131,6 +131,69 @@ gcloud app logs tail --project=studio-567050101-bc6e8 | grep "/api/webhooks/cann
 
 ---
 
+### Smart Upsell Engine - Cannabis Science Pairing (2026-02-11)
+**Status:** ✅ Production-ready across all customer touchpoints
+
+Unified upsell engine that surfaces value-focused product suggestions using cannabis science (terpene/effect pairing), margin optimization, and inventory clearing. Active at every customer touchpoint: product detail, cart, checkout, and Smokey chatbot.
+
+**Architecture:**
+```
+Product Detail / Cart / Checkout / Smokey Chatbot
+    ↓
+Upsell Engine (weighted composite scoring)
+    ↓
+Cannabis Science (30%) + Margin (25%) + Inventory (20%) + Category (15%) + Price Fit (10%)
+    ↓
+Ranked suggestions with customer-facing reasoning
+```
+
+**Key Features:**
+- **Cannabis Science Pairing**: Terpene entourage effect rules (myrcene+linalool = relaxation, limonene+pinene = energy)
+- **Effect Stacking**: Complementary effects matching (Sleep+Relaxed, Focus+Creative)
+- **Per-Placement Optimization**: Checkout favors margin (35%) and clearance (25%); cart favors cross-category (20%)
+- **Bundle Integration**: Cross-references active bundles to boost scores and show savings
+- **5-Minute Cache**: LRU cache for product catalog and bundles per org
+- **Diversification**: Ensures cross-category variety in suggestions (not all same category)
+- **Value-Focused Framing**: "Save 15% in a bundle", "Complementary terpene profiles"
+
+**Scoring Model:**
+| Dimension | Weight | Source |
+|-----------|--------|--------|
+| Terpene/Effect Match | 30% | Product effects[], terpenes[] |
+| Margin Contribution | 25% | cost_of_good from Alleaves |
+| Inventory Priority | 20% | Stock levels, expiry dates |
+| Category Complement | 15% | Cross-category mapping |
+| Price Fit | 10% | Within ±30% of anchor price |
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/types/upsell.ts` | Types, scoring weights, cannabis pairing rules |
+| `src/server/services/upsell-engine.ts` | Core scoring + recommendation engine (~400 lines) |
+| `src/server/actions/upsell.ts` | Server actions for client fetching |
+| `src/components/upsell/product-upsell-row.tsx` | Reusable upsell card row component |
+| `src/components/demo/product-detail-modal.tsx` | "Pairs Well With" section |
+| `src/components/demo/cart-slide-over.tsx` | "Complete Your Order" section |
+| `src/components/checkout/checkout-flow.tsx` | "Last Chance Deals" section |
+| `src/server/agents/smokey.ts` | `suggestUpsells` tool + upsell prompt |
+| `src/app/api/chat/route.ts` | Chatbot upsell response (pilot customers) |
+| `src/components/chatbot/chat-messages.tsx` | Chatbot upsell card rendering |
+
+**UI Placements:**
+- **Product Detail**: "Pairs Well With" - 3 full cards below effects section
+- **Cart Sidebar**: "Complete Your Order" - 2 compact cards between items and summary
+- **Checkout**: "Last Chance Deals" - 2 compact cards on details step (higher margin weight)
+- **Chatbot**: Amber-themed "Pairs Well With" cards below product recommendations (max 2)
+
+**Smokey Integration:**
+- `suggestUpsells` tool in agent harness (for inbox/dashboard chat)
+- `getChatbotUpsells` in `/api/chat` route (for public chatbot)
+- System prompt instructs ONE upsell per exchange, value-focused framing, respect "no thanks"
+
+**Thrive Syracuse Ready:** Full integration via `orgId={brand.id}` on all touchpoints
+
+---
+
 ### Dynamic Pricing with Ezal Competitor Intelligence (2026-02-11)
 **Status:** ✅ Production-ready with 34 unit tests
 
