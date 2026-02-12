@@ -19,12 +19,176 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-02-11)
-**Recent Fix:** Heartbeat 'use server' violations resolved (removed directive from 6 service files)
+**Current Status:** 🟢 Passing (verified 2026-02-12)
+**Recent Fix:** Campaign Management + Agent Notifications system (8 phases, 136+ tests)
 
 ---
 
 ## 🆕 Recent Updates
+
+### Campaign Management + Agent Notifications + CRM Intelligence (2026-02-12)
+**Status:** ✅ Production-ready with 136+ unit tests, 66 help articles
+
+Full campaign lifecycle system, proactive agent notifications, CRM-to-inbox intelligence, and approval queue — completing the "autonomous commerce" vision where agents create campaigns, check compliance, notify users, and track performance end-to-end.
+
+**Architecture:**
+```
+Craig/Mrs. Parker → Create Campaign Draft → Deebo Compliance → Approval Queue → Schedule → Cron Send → Track → Notify
+       ↓                                                                                         ↓
+CRM Segments (8 types)                                                               Agent Notification Bell
+       ↓                                                                                         ↓
+Inline Cards in Chat                                                              Multi-channel: Dashboard/Email/SMS/Push
+```
+
+**Four Systems Built:**
+
+#### 1. Campaign Management (`/dashboard/campaigns`)
+Full-featured campaign dashboard with 4-step wizard, CRM segment targeting, and AI content generation.
+
+**Campaign Wizard Steps:**
+1. **Goal** — 10 goals: drive_sales, winback, retention, loyalty, birthday, restock_alert, vip_appreciation, product_launch, event_promo, awareness
+2. **Audience** — Multi-select from 8 CRM segments (VIP, Loyal, New, At Risk, Slipping, Churned, High Value, Frequent) with live estimated reach
+3. **Content** — Per-channel editors (Email: subject+body+HTML, SMS: body+image). "Generate with Craig" AI button. 8 personalization variables: `{{firstName}}`, `{{lastName}}`, `{{segment}}`, `{{totalSpent}}`, `{{orderCount}}`, `{{lastOrderDate}}`, `{{loyaltyPoints}}`, `{{loyaltyTier}}`
+4. **Review** — Deebo compliance results (passed/warning/failed), schedule date/time or "Send Now"
+
+**Campaign Lifecycle:**
+```
+draft → compliance_review → pending_approval → approved → scheduled → sending → sent
+                                                          (also: paused, cancelled, failed)
+```
+
+**Channels:** Email (Mailjet/SendGrid with open/click tracking pixels) | SMS (Blackleaf with delivery tracking)
+
+**Cron Sender:** Every 5 minutes, picks up scheduled campaigns, sends via configured channels, logs communications, updates performance, sends agent notification to creator.
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/types/campaign.ts` | Campaign, CampaignStatus, CampaignGoal, CampaignPerformance types |
+| `src/types/agent-notification.ts` | AgentNotification, AgentNotificationType types |
+| `src/server/actions/campaigns.ts` | CRUD + lifecycle (create, update, approve, schedule, cancel, pause) |
+| `src/server/services/campaign-sender.ts` | Send engine: resolveAudience → personalize → send per channel |
+| `src/server/services/campaign-compliance.ts` | Deebo integration for per-channel compliance checking |
+| `src/server/tools/campaign-tools.ts` | 6 agent tools (createCampaignDraft, getCampaigns, getCampaignPerformance, suggestAudience, generateCampaignContent, submitCampaignForReview) |
+| `src/app/dashboard/campaigns/page.tsx` | Dashboard page (stats, tabs, card list, wizard) |
+| `src/app/dashboard/campaigns/[id]/page.tsx` | Campaign detail page with performance dashboard |
+| `src/app/api/cron/campaign-sender/route.ts` | 5-minute cron endpoint |
+| `src/app/api/track/campaign/open/route.ts` | 1x1 pixel open tracking |
+| `src/app/api/track/campaign/click/route.ts` | Click redirect tracking |
+| `src/lib/store/campaign-store.ts` | Zustand store for campaign UI state |
+
+#### 2. Agent Notification System (Bell + Multi-Channel)
+Proactive notifications from agents — notification bell in dashboard header with slide-out panel.
+
+**Notification Types:** campaign_status, anomaly_detection, pricing_alert, crm_alert, compliance_flag, inventory_alert, competitive_intel, system_alert, approval_required, task_completed, insight
+
+**Priority-Based Channel Routing:**
+| Priority | Dashboard | Email | SMS | Push |
+|----------|-----------|-------|-----|------|
+| Low | Yes | No | No | No |
+| Medium | Yes | Yes | No | No |
+| High | Yes | Yes | No | Yes |
+| Urgent | Yes | Yes | Yes | Yes |
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/server/services/agent-notifier.ts` | Multi-channel notification dispatcher |
+| `src/server/actions/agent-notifications.ts` | CRUD: getNotifications, getUnreadCount, markRead, markAllRead, dismiss |
+| `src/components/dashboard/notification-bell.tsx` | Bell icon with unread badge in header |
+| `src/components/dashboard/notification-panel.tsx` | Slide-out panel grouped by date |
+| `src/lib/store/agent-notification-store.ts` | Zustand store for notification state |
+
+**Firestore:** `users/{userId}/agent_notifications/{id}` (per-user subcollection)
+
+#### 3. CRM-to-Inbox Intelligence
+Rich customer data directly in agent conversations via inline cards and CRM tools.
+
+**CRM Tools (in `src/server/tools/crm-tools.ts`):**
+- `lookupCustomer` — Find customer by name/email/phone, returns full profile card
+- `getSegmentSummary` — Distribution chart of all 8 segments with counts, avg spend, avg LTV
+- `getAtRiskCustomers` — Customers 30+ days inactive, sorted by value
+- `getUpcomingBirthdays` — Customers with birthdays in next N days
+- `getCustomerCommunications` — Communication history log
+
+**Inline Cards:**
+- `CustomerContextCard` — Avatar, segment badge, LTV, orders, AOV, last visit, loyalty tier/points, days inactive, tags, "View Profile" link
+- `SegmentSummaryCard` — Horizontal bar chart of segment distribution with counts and percentages
+
+**Pattern:** `:::crm:customer:Name\n{json}\n:::` and `:::crm:segments:Title\n{json}\n:::` markers in agent responses, parsed and rendered inline in chat.
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/server/tools/crm-tools.ts` | 5 CRM tools with Zod schemas |
+| `src/components/inbox/crm/customer-context-card.tsx` | Inline customer card component |
+| `src/components/inbox/crm/segment-summary-card.tsx` | Inline segment distribution card |
+
+#### 4. Approval Queue (`/dashboard/approvals`)
+Centralized review hub for agent-generated campaigns and content.
+
+**Features:**
+- Stats bar: Pending count, Approved today, Rejected today
+- Tabs: All Pending | Campaigns | Content | Playbooks
+- Approve/Reject with bulk actions
+- Compliance status indicators (passed/warning/failed/pending)
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/app/dashboard/approvals/page.tsx` | Approval queue page (rewritten from stub) |
+| `src/app/dashboard/approvals/components/approvals-dashboard.tsx` | Dashboard with tabs and filters |
+
+**Agent Integration:**
+- Craig: All 6 campaign tools + inline campaign cards in chat
+- Mrs. Parker: createCampaignDraft + getCampaigns tools
+- Money Mike: getCampaignPerformance tool
+- Inline campaign cards with quick actions (Review, Approve, Schedule, View)
+- Inline performance cards with sent/opened/clicked bars
+
+**Modified Agent Files:**
+- `src/server/agents/craig.ts` — Added `craigCampaignToolDefs`
+- `src/server/agents/mrsParker.ts` — Added `mrsParkerCampaignToolDefs`
+- `src/app/dashboard/ceo/agents/default-tools.ts` — Registered campaign tool implementations
+- `src/components/inbox/inbox-conversation.tsx` — Added `:::campaign:` marker parsing
+- `src/components/dashboard/dispensary-sidebar.tsx` — Activated Campaigns link (was disabled "Soon")
+- `src/components/dashboard/header.tsx` — Added `<NotificationBell />`
+
+**Heartbeat Integration:**
+- `src/server/services/heartbeat/checks/campaign-checks.ts` — 3 checks: campaign_performance, campaign_stalled, campaign_compliance_pending
+- Registered in dispensary heartbeat checks
+
+**Firestore Collections:**
+- `campaigns/{campaignId}` — Campaign documents
+- `campaigns/{id}/recipients/{recipientId}` — Per-recipient tracking
+- `users/{userId}/agent_notifications/{id}` — Agent notifications
+
+**Firestore Indexes:** Added composite indexes for campaigns (orgId + status + createdAt) and agent_notifications (status + createdAt). Deploy with `firebase deploy --only firestore:indexes`.
+
+**Cron Deployment:**
+```bash
+gcloud scheduler jobs create http campaign-sender-cron \
+  --schedule="*/5 * * * *" \
+  --uri="https://bakedbot.ai/api/cron/campaign-sender" \
+  --http-method=GET \
+  --headers="Authorization=Bearer $CRON_SECRET" \
+  --location=us-central1
+```
+
+**Unit Tests (136+ new tests across 15 test files):**
+- Campaign types, sender, compliance, tools, actions, performance
+- Agent notifier, notification actions
+- CRM tools, inline card parsing
+- Heartbeat campaign checks, tracking endpoints
+- Approval queue page
+
+**Help Center Articles (66 total):**
+- `marketing/campaigns.mdx` — Rewritten for new Campaign Dashboard (757 lines)
+- `dispensary/agent-notifications.mdx` — NEW: Notification bell, panel, multi-channel (489 lines)
+- `dispensary/crm-intelligence.mdx` — NEW: Inline cards, CRM tools, segments (467 lines)
+- `dispensary/approval-queue.mdx` — NEW: Approval workflow (305 lines)
+
+---
 
 ### CannPay / Smokey Pay Integration (2026-02-11)
 **Status:** ✅ **DEPLOYED TO SANDBOX** - Ready for testing
@@ -1287,11 +1451,13 @@ BakedBot AI utilizes the **Gemini 2.5** family for all core reasoning and creati
 - Mike (CFO) — Finance, billing
 
 **Support Staff:**
-- Smokey (Budtender) — Product recommendations
-- Craig (Marketer) — Campaigns, SMS/Email
-- Pops (Analyst) — Revenue analysis
-- Ezal (Lookout) — Competitive intel
-- Deebo (Enforcer) — Compliance
+- Smokey (Budtender) — Product recommendations, upsells
+- Craig (Marketer) — Campaigns, SMS/Email, CRM segments, content generation
+- Pops (Analyst) — Revenue analysis, segment trends
+- Ezal (Lookout) — Competitive intel, pricing
+- Deebo (Enforcer) — Compliance, campaign review
+- Mrs. Parker (Retention) — CRM, win-back campaigns, loyalty, churn prevention
+- Money Mike (CFO) — Profitability, campaign ROI, pricing strategy
 
 > Full details: `refs/agents.md`
 
@@ -1301,11 +1467,13 @@ BakedBot AI utilizes the **Gemini 2.5** family for all core reasoning and creati
 
 | Service | Used By | Purpose |
 |---------|---------|---------|
-| Blackleaf | Craig | SMS |
-| Mailjet | Craig | Email |
+| Blackleaf | Craig, Campaign Sender | SMS campaigns + notifications |
+| Mailjet/SendGrid | Craig, Campaign Sender | Email campaigns + notifications |
 | CannMenus | Ezal | Live pricing |
 | Alpine IQ | Mrs. Parker | Loyalty |
 | Authorize.net | Money Mike | Payments |
+| CannPay | Smokey Pay | Debit payments |
+| FCM | Agent Notifier | Push notifications |
 
 > Full details: `refs/integrations.md`
 
