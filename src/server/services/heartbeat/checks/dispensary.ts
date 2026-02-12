@@ -8,6 +8,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { HeartbeatCheckRegistry, HeartbeatCheckContext } from '../types';
 import { createCheckResult, createOkResult } from '../types';
+import { CAMPAIGN_CHECKS } from './campaign-checks';
 
 // =============================================================================
 // LOW STOCK ALERTS (Smokey)
@@ -760,6 +761,176 @@ async function checkPOSSyncStatus(ctx: HeartbeatCheckContext) {
 }
 
 // =============================================================================
+// CRM HEARTBEAT CHECKS
+// =============================================================================
+
+/**
+ * Check for upcoming birthdays in the next 7 days (for proactive campaigns)
+ */
+async function checkUpcomingBirthdays(ctx: HeartbeatCheckContext) {
+    const firestore = getAdminFirestore();
+
+    // Get customers with birthdays from CRM collection
+    const customersSnap = await firestore.collection('customers')
+        .where('orgId', '==', ctx.tenantId)
+        .get();
+
+    if (customersSnap.empty) {
+        return createOkResult('birthday_upcoming', 'mrs_parker', 'No customers with birthdays on file');
+    }
+
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentDay = now.getDate();
+
+    const upcomingBirthdays: Array<{ name: string; birthday: string; daysAway: number }> = [];
+
+    customersSnap.docs.forEach(doc => {
+        const data = doc.data();
+        const birthDate = data.birthDate || data.date_of_birth;
+        if (!birthDate) return;
+
+        try {
+            const bday = new Date(birthDate);
+            const bdayMonth = bday.getMonth() + 1;
+            const bdayDay = bday.getDate();
+
+            // Calculate days until birthday this year
+            const thisYearBday = new Date(now.getFullYear(), bdayMonth - 1, bdayDay);
+            if (thisYearBday < now) {
+                thisYearBday.setFullYear(now.getFullYear() + 1);
+            }
+            const daysAway = Math.ceil((thisYearBday.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+            if (daysAway <= 7) {
+                upcomingBirthdays.push({
+                    name: data.displayName || data.firstName || data.email || 'Unknown',
+                    birthday: `${bdayMonth}/${bdayDay}`,
+                    daysAway,
+                });
+            }
+        } catch { /* skip invalid dates */ }
+    });
+
+    if (upcomingBirthdays.length === 0) {
+        return createOkResult('birthday_upcoming', 'mrs_parker', 'No birthdays in the next 7 days');
+    }
+
+    upcomingBirthdays.sort((a, b) => a.daysAway - b.daysAway);
+
+    return createCheckResult('birthday_upcoming', 'mrs_parker', {
+        status: 'ok',
+        priority: 'low',
+        title: `${upcomingBirthdays.length} Birthday${upcomingBirthdays.length > 1 ? 's' : ''} This Week`,
+        message: upcomingBirthdays.slice(0, 5).map(b =>
+            `${b.name} (${b.daysAway === 0 ? 'Today!' : `in ${b.daysAway}d`})`
+        ).join(', '),
+        data: {
+            count: upcomingBirthdays.length,
+            birthdays: upcomingBirthdays.slice(0, 10),
+        },
+        actionLabel: 'Send birthday campaigns',
+        actionUrl: '/dashboard/customers',
+    });
+}
+
+/**
+ * Check for VIP customers who have been inactive for 14+ days
+ */
+async function checkVIPInactivity(ctx: HeartbeatCheckContext) {
+    const firestore = getAdminFirestore();
+
+    // Try spending cache via API, or check Firestore customers
+    const customersSnap = await firestore.collection('customers')
+        .where('orgId', '==', ctx.tenantId)
+        .where('segment', '==', 'vip')
+        .get();
+
+    const now = new Date();
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    const inactiveVIPs: Array<{ name: string; lastOrder: string; ltv: number }> = [];
+
+    customersSnap.docs.forEach(doc => {
+        const data = doc.data();
+        const lastOrderDate = data.lastOrderDate?.toDate?.() || (data.lastOrderDate ? new Date(data.lastOrderDate) : null);
+
+        if (lastOrderDate && lastOrderDate < fourteenDaysAgo) {
+            inactiveVIPs.push({
+                name: data.displayName || data.email || 'Unknown',
+                lastOrder: lastOrderDate.toLocaleDateString(),
+                ltv: data.lifetimeValue || data.totalSpent || 0,
+            });
+        }
+    });
+
+    if (inactiveVIPs.length === 0) {
+        return createOkResult('vip_inactivity', 'craig', 'All VIPs active');
+    }
+
+    const totalLTV = inactiveVIPs.reduce((sum, v) => sum + v.ltv, 0);
+
+    return createCheckResult('vip_inactivity', 'craig', {
+        status: inactiveVIPs.length >= 3 ? 'alert' : 'warning',
+        priority: 'high',
+        title: `${inactiveVIPs.length} VIP${inactiveVIPs.length > 1 ? 's' : ''} Inactive 14+ Days`,
+        message: `$${Math.round(totalLTV).toLocaleString()} combined LTV at risk. Consider win-back campaign.`,
+        data: {
+            count: inactiveVIPs.length,
+            totalLTV,
+            customers: inactiveVIPs.slice(0, 5),
+        },
+        actionLabel: 'View at-risk VIPs',
+        actionUrl: '/dashboard/customers',
+    });
+}
+
+/**
+ * Check for new customer signup surge (unusual spike)
+ */
+async function checkNewCustomerSurge(ctx: HeartbeatCheckContext) {
+    const firestore = getAdminFirestore();
+
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // Count customers created in last 24 hours
+    const recentSnap = await firestore.collection('customers')
+        .where('orgId', '==', ctx.tenantId)
+        .where('createdAt', '>=', oneDayAgo)
+        .get();
+
+    // Count customers created in last 7 days for average
+    const weekSnap = await firestore.collection('customers')
+        .where('orgId', '==', ctx.tenantId)
+        .where('createdAt', '>=', sevenDaysAgo)
+        .get();
+
+    const todayCount = recentSnap.size;
+    const weeklyAvg = weekSnap.size / 7;
+
+    // Alert if today's signups > 2x daily average and at least 5
+    if (todayCount > weeklyAvg * 2 && todayCount >= 5) {
+        return createCheckResult('new_customer_surge', 'craig', {
+            status: 'ok',
+            priority: 'medium',
+            title: `New Customer Surge: ${todayCount} Today`,
+            message: `${todayCount} new customers in 24h vs ${weeklyAvg.toFixed(1)}/day average. Check acquisition channels.`,
+            data: {
+                todayCount,
+                weeklyAvg: Math.round(weeklyAvg * 10) / 10,
+                weekTotal: weekSnap.size,
+            },
+            actionLabel: 'View new customers',
+            actionUrl: '/dashboard/customers',
+        });
+    }
+
+    return createOkResult('new_customer_surge', 'craig', `${todayCount} new customers today (avg: ${weeklyAvg.toFixed(1)}/day)`);
+}
+
+// =============================================================================
 // REGISTRY EXPORT
 // =============================================================================
 
@@ -772,9 +943,14 @@ export const DISPENSARY_CHECKS: HeartbeatCheckRegistry[] = [
     { checkId: 'competitor_stockouts', agent: 'ezal', execute: checkCompetitorStockouts },
     { checkId: 'at_risk_customers', agent: 'mrs_parker', execute: checkAtRiskCustomers },
     { checkId: 'birthday_today', agent: 'mrs_parker', execute: checkCustomerBirthdays },
+    { checkId: 'birthday_upcoming', agent: 'mrs_parker', execute: checkUpcomingBirthdays },
+    { checkId: 'vip_inactivity', agent: 'craig', execute: checkVIPInactivity },
+    { checkId: 'new_customer_surge', agent: 'craig', execute: checkNewCustomerSurge },
     { checkId: 'license_expiry', agent: 'deebo', execute: checkLicenseExpiry },
     { checkId: 'content_pending_review', agent: 'deebo', execute: checkContentPendingReview },
     { checkId: 'sales_velocity', agent: 'pops', execute: checkSalesVelocity },
     { checkId: 'order_anomalies', agent: 'pops', execute: checkOrderAnomalies },
     { checkId: 'pos_sync_status', agent: 'smokey', execute: checkPOSSyncStatus },
+    // Campaign checks (shared with brand role)
+    ...CAMPAIGN_CHECKS,
 ];

@@ -43,9 +43,22 @@ export async function sendOrderConfirmationEmail(data: any): Promise<boolean> {
 import { sendGenericEmail as sendSGGeneric } from './sendgrid';
 import { sendGenericEmail as sendMJGeneric } from './mailjet';
 
-export async function sendGenericEmail(data: { to: string, name?: string, fromEmail?: string, fromName?: string, subject: string, htmlBody: string, textBody?: string }): Promise<{ success: boolean; error?: string }> {
+export async function sendGenericEmail(data: {
+    to: string;
+    name?: string;
+    fromEmail?: string;
+    fromName?: string;
+    subject: string;
+    htmlBody: string;
+    textBody?: string;
+    // Optional CRM tracking metadata
+    orgId?: string;
+    communicationType?: 'campaign' | 'transactional' | 'welcome' | 'winback' | 'birthday' | 'order_update' | 'loyalty' | 'manual';
+    agentName?: string;
+    campaignId?: string;
+}): Promise<{ success: boolean; error?: string }> {
     const provider = await getProvider();
-    
+
     // Helper to attempt SendGrid
     const attemptSendGrid = async () => {
         try {
@@ -55,35 +68,59 @@ export async function sendGenericEmail(data: { to: string, name?: string, fromEm
         }
     };
 
+    let result: { success: boolean; error?: string };
+
     if (provider === 'sendgrid') {
-        return attemptSendGrid();
+        result = await attemptSendGrid();
     } else {
         // Try Mailjet
         try {
             const mjResult = await sendMJGeneric(data);
             if (!mjResult.success) {
                 console.warn(`Mailjet attempt failed: ${mjResult.error}. Failing over to SendGrid...`);
-                
+
                 const sgResult = await attemptSendGrid();
                 if (!sgResult.success) {
-                    return { 
-                        success: false, 
-                        error: `Mailjet Failed: ${mjResult.error} | SendGrid Failed: ${sgResult.error}` 
+                    result = {
+                        success: false,
+                        error: `Mailjet Failed: ${mjResult.error} | SendGrid Failed: ${sgResult.error}`
                     };
+                } else {
+                    result = sgResult;
                 }
-                return sgResult;
+            } else {
+                result = mjResult;
             }
-            return mjResult;
         } catch (mjError: any) {
              console.warn(`Mailjet Exception: ${mjError.message}. Failing over to SendGrid...`);
              const sgResult = await attemptSendGrid();
              if (!sgResult.success) {
-                return { 
-                    success: false, 
-                    error: `Mailjet Exception: ${mjError.message} | SendGrid Failed: ${sgResult.error}` 
+                result = {
+                    success: false,
+                    error: `Mailjet Exception: ${mjError.message} | SendGrid Failed: ${sgResult.error}`
                 };
+             } else {
+                result = sgResult;
              }
-             return sgResult;
         }
     }
+
+    // Fire-and-forget: Log communication for CRM tracking
+    if (result.success && data.orgId) {
+        import('@/server/actions/customer-communications').then(({ logCommunication }) => {
+            logCommunication({
+                customerEmail: data.to,
+                orgId: data.orgId!,
+                channel: 'email',
+                type: data.communicationType || 'manual',
+                subject: data.subject,
+                preview: data.textBody?.slice(0, 200) || data.htmlBody?.replace(/<[^>]*>/g, '').slice(0, 200),
+                agentName: data.agentName,
+                campaignId: data.campaignId,
+                provider,
+            }).catch(() => {}); // silently fail - don't break email sending
+        }).catch(() => {});
+    }
+
+    return result;
 }

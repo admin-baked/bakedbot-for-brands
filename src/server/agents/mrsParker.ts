@@ -11,6 +11,8 @@ import { deebo } from './deebo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import { mrsParkerCrmToolDefs } from '../tools/crm-tools';
+import { mrsParkerCampaignToolDefs } from '../tools/campaign-tools';
 import {
     buildSquadRoster,
     buildIntegrationStatusSummary
@@ -136,7 +138,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
         ];
 
         // Combine agent-specific tools with shared Context OS and Letta tools
-        const toolsDef = [...mrsParkerSpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
+        const toolsDef = [...mrsParkerSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...mrsParkerCrmToolDefs, ...mrsParkerCampaignToolDefs];
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Gemini 3) ===

@@ -30,6 +30,12 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
+import { CustomerContextCard, parseCrmCustomers } from './crm/customer-context-card';
+import { SegmentSummaryCard, parseCrmSegments } from './crm/segment-summary-card';
+import {
+    CampaignDraftCard, CampaignPerformanceCard,
+    parseCampaignDrafts, parseCampaignPerformance,
+} from './campaign/campaign-inline-card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -121,6 +127,21 @@ function MessageBubble({
         message.content.includes(a.id) || message.artifacts?.some((ma) => ma.id === a.id)
     );
 
+    // Parse CRM markers from agent responses
+    const { customers: crmCustomers, cleanedContent: afterCustomerParse } = !isUser
+        ? parseCrmCustomers(message.content)
+        : { customers: [], cleanedContent: message.content };
+    const { segments: crmSegments, cleanedContent: afterSegmentParse } = !isUser
+        ? parseCrmSegments(afterCustomerParse)
+        : { segments: [], cleanedContent: afterCustomerParse };
+    // Parse campaign markers
+    const { drafts: campaignDrafts, cleanedContent: afterCampaignDraftParse } = !isUser
+        ? parseCampaignDrafts(afterSegmentParse)
+        : { drafts: [], cleanedContent: afterSegmentParse };
+    const { performances: campaignPerfs, cleanedContent: displayContent } = !isUser
+        ? parseCampaignPerformance(afterCampaignDraftParse)
+        : { performances: [], cleanedContent: afterCampaignDraftParse };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -167,11 +188,28 @@ function MessageBubble({
                             <span>Thinking...</span>
                         </div>
                     ) : (
-                        <div className={cn('prose prose-sm max-w-none', isUser && 'prose-invert')}>
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {message.content}
-                            </ReactMarkdown>
-                        </div>
+                        <>
+                            <div className={cn('prose prose-sm max-w-none', isUser && 'prose-invert')}>
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {displayContent}
+                                </ReactMarkdown>
+                            </div>
+                            {/* Inline CRM Customer Cards */}
+                            {crmCustomers.map((customer, idx) => (
+                                <CustomerContextCard key={`crm-cust-${idx}`} customer={customer} />
+                            ))}
+                            {/* Inline CRM Segment Cards */}
+                            {crmSegments.map((seg, idx) => (
+                                <SegmentSummaryCard key={`crm-seg-${idx}`} data={seg} />
+                            ))}
+                            {/* Inline Campaign Cards */}
+                            {campaignDrafts.map((draft, idx) => (
+                                <CampaignDraftCard key={`camp-draft-${idx}`} data={draft} />
+                            ))}
+                            {campaignPerfs.map((perf, idx) => (
+                                <CampaignPerformanceCard key={`camp-perf-${idx}`} data={perf} />
+                            ))}
+                        </>
                     )}
 
                     {/* Attachments */}

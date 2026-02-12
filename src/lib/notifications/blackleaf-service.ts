@@ -13,6 +13,11 @@ interface SMSOptions {
     to: string;
     body: string;
     imageUrl?: string;
+    // Optional CRM tracking
+    orgId?: string;
+    communicationType?: 'campaign' | 'transactional' | 'welcome' | 'winback' | 'birthday' | 'order_update' | 'loyalty' | 'manual';
+    agentName?: string;
+    campaignId?: string;
 }
 
 interface BlackleafResponse {
@@ -27,7 +32,7 @@ export class BlackleafService {
      * Send SMS/MMS via Blackleaf API
      * Uses GET request with query parameters as per Blackleaf API spec
      */
-    private async sendMessage({ to, body, imageUrl }: SMSOptions): Promise<boolean> {
+    private async sendMessage({ to, body, imageUrl, orgId, communicationType, agentName, campaignId }: SMSOptions): Promise<boolean> {
         if (!BLACKLEAF_API_KEY) {
             logger.warn('[SMS_BLACKLEAF] API key missing - mock mode', { to });
             // In development, log the message via structured logger
@@ -99,6 +104,23 @@ export class BlackleafService {
                 messageId: data.messageId,
                 to: phoneWithCountryCode,
             });
+
+            // Fire-and-forget: Log for CRM tracking
+            if (orgId) {
+                import('@/server/actions/customer-communications').then(({ logCommunication }) => {
+                    logCommunication({
+                        customerEmail: phoneWithCountryCode, // Use phone as identifier for SMS
+                        orgId: orgId!,
+                        channel: 'sms',
+                        type: communicationType || 'manual',
+                        preview: body.slice(0, 200),
+                        agentName,
+                        campaignId,
+                        provider: 'blackleaf',
+                        providerMessageId: data.messageId,
+                    }).catch(() => {});
+                }).catch(() => {});
+            }
 
             return true;
         } catch (error) {

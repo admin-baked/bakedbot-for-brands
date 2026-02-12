@@ -33,6 +33,9 @@ export type HeartbeatCheckId =
     | 'competitor_stockouts'
     | 'at_risk_customers'
     | 'birthday_today'
+    | 'birthday_upcoming'
+    | 'vip_inactivity'
+    | 'new_customer_surge'
     | 'license_expiry'
     | 'content_pending_review'
     | 'sales_velocity'
@@ -49,6 +52,10 @@ export type HeartbeatCheckId =
     | 'seo_opportunities'
     | 'traffic_anomalies'
     | 'conversion_rates'
+    // Campaign Checks (Dispensary + Brand)
+    | 'campaign_performance_alert'
+    | 'campaign_stalled'
+    | 'campaign_compliance_pending'
     // Playbook Checks (All Roles)
     | 'scheduled_playbooks_due'
     | 'failed_playbooks'
@@ -537,6 +544,40 @@ export const HEARTBEAT_CHECKS: HeartbeatCheckDefinition[] = [
         defaultEnabled: true,
         defaultPriority: 'high',
         roles: ['brand'],
+    },
+
+    // -------------------------------------------------------------------------
+    // CAMPAIGN CHECKS (Dispensary + Brand)
+    // -------------------------------------------------------------------------
+    {
+        id: 'campaign_performance_alert',
+        name: 'Campaign Performance',
+        description: 'Active campaigns with low delivery or engagement rates',
+        agent: 'craig',
+        category: 'marketing',
+        defaultEnabled: true,
+        defaultPriority: 'medium',
+        roles: ['dispensary', 'brand'],
+    },
+    {
+        id: 'campaign_stalled',
+        name: 'Stalled Campaigns',
+        description: 'Scheduled campaigns that failed to send on time',
+        agent: 'craig',
+        category: 'marketing',
+        defaultEnabled: true,
+        defaultPriority: 'high',
+        roles: ['dispensary', 'brand'],
+    },
+    {
+        id: 'campaign_compliance_pending',
+        name: 'Campaign Compliance Pending',
+        description: 'Campaigns stuck in compliance review for over 24 hours',
+        agent: 'deebo',
+        category: 'compliance',
+        defaultEnabled: true,
+        defaultPriority: 'medium',
+        roles: ['dispensary', 'brand'],
     },
 
     // -------------------------------------------------------------------------

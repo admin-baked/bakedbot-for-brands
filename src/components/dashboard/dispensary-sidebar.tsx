@@ -245,13 +245,12 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <div className="flex w-full items-center gap-2 p-2 px-3 text-sm text-muted-foreground/50 cursor-not-allowed">
-                                <Megaphone className="h-4 w-4" />
-                                <span>Campaigns</span>
-                                <span className="ml-auto text-[10px] uppercase font-bold bg-muted-foreground/20 px-1.5 py-0.5 rounded text-muted-foreground">
-                                    Soon
-                                </span>
-                            </div>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/campaigns')}>
+                                <Link href="/dashboard/campaigns" prefetch={true}>
+                                    <Megaphone />
+                                    <span>Campaigns</span>
+                                </Link>
+                            </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>

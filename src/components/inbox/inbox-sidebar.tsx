@@ -358,6 +358,8 @@ function FilterButton({ collapsed }: { collapsed?: boolean }) {
         deep_research: 'Deep Research',
         compliance_research: 'Compliance Research',
         market_research: 'Market Research',
+        // CRM
+        crm_customer: 'CRM Customer',
     };
 
     if (collapsed) {

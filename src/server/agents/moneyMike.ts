@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 import { moneyMikeInboxToolDefs } from '../tools/inbox-tools';
 import { profitabilityToolDefs } from '../tools/profitability-tools';
+import { moneyMikeCrmToolDefs } from '../tools/crm-tools';
 import {
     buildSquadRoster,
     buildIntegrationStatusSummary
@@ -145,7 +146,7 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
         ];
 
         // Combine agent-specific tools with shared Context OS, Letta, inbox, and profitability tools
-        const toolsDef = [...moneyMikeSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...moneyMikeInboxToolDefs, ...profitabilityToolDefs];
+        const toolsDef = [...moneyMikeSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...moneyMikeInboxToolDefs, ...profitabilityToolDefs, ...moneyMikeCrmToolDefs];
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Claude) ===
