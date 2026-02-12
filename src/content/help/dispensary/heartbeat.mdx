@@ -1,0 +1,285 @@
+# Heartbeat System
+
+Keep your finger on the pulse of your business without lifting a finger. The Heartbeat system is BakedBot's proactive monitoring engine that runs role-specific checks at regular intervals and pushes notifications when something needs your attention.
+
+## How the Heartbeat Works
+
+Instead of logging in to check dashboards manually, the Heartbeat system operates on a schedule:
+
+1. **Timer fires** at your configured interval (e.g., every 15 minutes)
+2. **Checks run** against your live business data (inventory, customers, pricing, compliance)
+3. **Results evaluated** against thresholds and patterns
+4. **Notifications dispatched** through your preferred channels if anything needs attention
+5. **All-clear suppressed** by default so you only hear about issues
+
+<Callout type="info">
+**Think of it as a night watchman for your business.** Each agent patrols its own domain — Smokey monitors inventory, Money Mike watches margins, Deebo checks compliance — and they only wake you up when something matters.
+</Callout>
+
+---
+
+## Default Schedules by Role
+
+| Role | Check Interval | Active Hours | Quiet Hours |
+|------|---------------|--------------|-------------|
+| **Dispensary** | Every 15 minutes | 9 AM – 9 PM | None |
+| **Brand** | Every 60 minutes | 8 AM – 8 PM | None |
+| **Super User** | Every 30 minutes | 7 AM – 10 PM | 10 PM – 7 AM |
+
+You can customize all of these in **Dashboard > Settings > Heartbeat**.
+
+---
+
+## Available Checks
+
+### Dispensary Checks
+
+| Check | Agent | Default Priority | What It Monitors |
+|-------|-------|-----------------|------------------|
+| **Low Stock Alerts** | Smokey | High | Products running low on inventory |
+| **Expiring Batches** | Smokey | High | Batches expiring within configured days |
+| **Margin Alerts** | Money Mike | Medium | Products or categories below margin threshold |
+| **Pricing Opportunities** | Money Mike | Low | Potential price optimizations |
+| **Competitor Price Changes** | Ezal | Medium | Significant price changes by tracked competitors |
+| **Competitor Stockouts** | Ezal | Low | Competitor products going out of stock |
+| **At-Risk Customers** | Mrs. Parker | Medium | VIP customers not seen recently |
+| **Birthday Today** | Mrs. Parker | Low | VIP customer birthdays for outreach |
+| **License Expiry** | Deebo | Urgent | Licenses expiring within 30 days |
+| **Content Pending Review** | Deebo | Medium | Marketing content awaiting compliance review |
+| **Sales Velocity** | Pops | Medium | Unusual sales patterns detected |
+| **Order Anomalies** | Pops | High | Spikes or drops in order volume |
+| **POS Sync Status** | Smokey | High | Point-of-sale data sync health |
+
+### Brand Checks
+
+| Check | Agent | Default Priority | What It Monitors |
+|-------|-------|-----------------|------------------|
+| **Content Pending Approval** | Craig | Medium | Content waiting for sign-off |
+| **Campaign Performance** | Craig | Medium | Campaigns with declining engagement |
+| **Competitor Launches** | Ezal | Medium | New competitor products in market |
+| **Pricing Trends** | Ezal | Low | Market-wide pricing shifts |
+| **Partner Performance** | Money Mike | Medium | Underperforming retail partners |
+| **Revenue Forecast** | Money Mike | High | Revenue trending below target |
+| **Ranking Changes** | Day Day | Medium | SEO ranking drops |
+| **SEO Opportunities** | Day Day | Low | New keyword opportunities (disabled by default) |
+| **Traffic Anomalies** | Pops | Medium | Unusual website traffic patterns |
+| **Conversion Rates** | Pops | High | Conversion rate drops |
+
+### Super User Checks
+
+| Check | Agent | Default Priority | What It Monitors |
+|-------|-------|-----------------|------------------|
+| **System Errors** | Linus | High | System exceptions and error spikes |
+| **Deployment Status** | Linus | High | Failed or pending deployments |
+| **New Signups** | Jack | Medium | New paid customer signups |
+| **Churn Risk** | Jack | High | At-risk accounts showing disengagement |
+| **Academy Leads** | Glenda | Low | New Academy signups |
+| **Vibe Leads** | Glenda | Low | New Vibe Studio signups |
+| **Gmail Unread** | OpenClaw | Medium | Urgent unread emails (disabled by default) |
+| **Calendar Upcoming** | OpenClaw | Medium | Meetings in next 2 hours (disabled by default) |
+| **Platform Health** | Linus | Medium | Overall platform health metrics |
+
+### Cross-Role Checks
+
+These checks run for all roles when applicable:
+
+**Campaign Checks:**
+- Campaign performance alerts (low delivery/engagement)
+- Stalled campaigns (scheduled but failed to send)
+- Compliance review pending over 24 hours
+
+**Playbook Checks:**
+- Overdue scheduled playbooks
+- Failed playbook executions
+- Stalled playbook executions (stuck in running state)
+- Pending playbook approval requests
+- Upcoming playbooks in next 2 hours (disabled by default)
+
+---
+
+## Notification Channels
+
+The Heartbeat delivers alerts through multiple channels based on urgency:
+
+| Channel | When Used | Details |
+|---------|----------|---------|
+| **Dashboard** | All priorities | In-app notification panel, instant delivery |
+| **Email** | Medium and above | HTML-formatted with action links, respects quiet hours |
+| **SMS** | Urgent and high only | Via Blackleaf, cost-optimized for critical alerts |
+| **WhatsApp** | Urgent only | Via OpenClaw, markdown-formatted alerts |
+
+<Callout type="warning">
+**SMS and WhatsApp are reserved for urgent alerts** to prevent notification fatigue and control costs. Configure email for broader coverage of medium-priority items.
+</Callout>
+
+---
+
+## Configuring the Heartbeat
+
+### Accessing Settings
+
+Navigate to **Dashboard > Settings > Heartbeat** to configure your monitoring preferences.
+
+### Adjusting the Interval
+
+Set how frequently checks run:
+
+- **Minimum**: 5 minutes
+- **Maximum**: 1,440 minutes (24 hours)
+- **Recommended**: Keep defaults unless you have specific needs (15 min for dispensary, 60 min for brand)
+
+### Enabling and Disabling Checks
+
+Each check can be toggled individually:
+
+1. Open Heartbeat settings
+2. Find the check in the list
+3. Toggle the switch to enable or disable
+4. Changes take effect on the next heartbeat cycle
+
+### Setting Active Hours
+
+Active hours control when the Heartbeat runs:
+
+- Checks only execute during active hours
+- Notifications queue outside active hours and deliver when hours begin
+- **Exception**: Urgent notifications always deliver immediately regardless of active hours
+
+### Configuring Quiet Hours
+
+Quiet hours suppress non-urgent notifications during rest periods:
+
+- Low, medium, and high priority alerts are held
+- Urgent alerts still push through (compliance violations, system outages)
+- Default for super users: 10 PM – 7 AM
+
+### Channel Selection
+
+Choose which channels receive Heartbeat notifications:
+
+- **Dashboard**: Recommended to always keep enabled
+- **Email**: Enable for regular monitoring
+- **SMS**: Enable only if you need immediate alerts for critical events
+- **WhatsApp**: Enable if you prefer WhatsApp for urgent communications
+
+---
+
+## Manual Trigger
+
+You can run the Heartbeat on demand without waiting for the next scheduled cycle:
+
+1. Go to **Dashboard > Settings > Heartbeat**
+2. Click **Run Now**
+3. View results immediately in the response
+
+The manual trigger bypasses active hours and quiet hours, giving you a full picture of your current state at any time.
+
+---
+
+## Viewing History
+
+### Execution History
+
+View past Heartbeat runs at **Dashboard > Settings > Heartbeat > History**:
+
+- Execution ID and timestamps
+- Number of checks run
+- Results count (warnings, alerts)
+- Overall status (all clear, has warnings, has alerts, has errors)
+- Number of notifications sent
+
+### Recent Alerts
+
+View recent alerts filtered from Heartbeat notifications:
+
+- Only non-OK results shown (warnings and alerts)
+- Deduplicated by check type (most recent instance)
+- Includes check ID, status, and message
+
+---
+
+## Priority Levels
+
+| Priority | Color | Behavior |
+|----------|-------|----------|
+| **Low** | Gray | Dashboard only, informational |
+| **Medium** | Blue | Dashboard + email |
+| **High** | Orange | Dashboard + email + SMS |
+| **Urgent** | Red | All channels, bypasses quiet hours |
+
+You can override default priorities per check in the settings.
+
+---
+
+## How Checks Work Behind the Scenes
+
+1. The Heartbeat cron job fires every 5 minutes
+2. It finds all tenants whose interval has elapsed since their last run
+3. For each tenant, it loads their role-specific checks
+4. Enabled checks run in parallel against live data sources
+5. Results are classified by severity
+6. If quiet hours are active, only urgent results proceed
+7. Notifications dispatch to configured channels
+8. Execution records save to Firestore for history
+9. Results post to the Agent Bus for other agents to act on
+
+<Callout type="tip">
+**All-clear suppression is on by default.** If all checks come back healthy, no notification is sent. This prevents inbox clutter from constant "everything is fine" messages. You can disable this in settings if you want regular confirmation.
+</Callout>
+
+---
+
+## Best Practices
+
+### Do's
+
+- **Start with defaults** — The default intervals and checks are tuned for each role
+- **Enable email** — Dashboard-only means you have to be logged in to see alerts
+- **Review history weekly** — Look for patterns in recurring warnings
+- **Use manual trigger** — Test your configuration after making changes
+- **Keep urgent SMS enabled** — License expiry and compliance alerts demand immediate attention
+
+### Don'ts
+
+- **Don't set interval below 5 minutes** — More frequent checks increase load without meaningful benefit
+- **Don't enable all checks immediately** — Start with the high-priority defaults, add others as needed
+- **Don't disable compliance checks** — Deebo's license and content reviews protect your business
+- **Don't ignore recurring warnings** — A margin alert that fires repeatedly signals a systemic issue
+
+---
+
+## Troubleshooting
+
+### Heartbeat Not Running
+
+**Check:**
+- Current time is within your configured active hours
+- Heartbeat is enabled in settings (not paused)
+- The interval has elapsed since the last run
+
+### Not Receiving Notifications
+
+**Check:**
+- The notification channel is enabled in your Heartbeat settings
+- Email address / phone number is set in your profile
+- The alert priority meets the channel's minimum (e.g., SMS requires urgent/high)
+- Quiet hours are not suppressing the notification level
+
+### Too Many Notifications
+
+**Reduce volume:**
+- Increase the check interval (e.g., 15 min → 30 min)
+- Disable low-priority checks you don't need
+- Enable "Suppress All Clear" if not already on
+- Set quiet hours for evenings and weekends
+
+---
+
+## Related Articles
+
+- [Agent Notifications](/help/dispensary/agent-notifications) — Multi-channel notification system
+- [Dynamic Pricing](/help/dispensary/dynamic-pricing) — Pricing rules that trigger Money Mike alerts
+- [Loyalty Program](/help/dispensary/loyalty-program) — Customer milestones that trigger Mrs. Parker alerts
+- [Competitive Intelligence](/help/agents/ezal) — Competitor monitoring configuration
+
+<ArticleRating articleId="dispensary-heartbeat" />

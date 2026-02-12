@@ -1,0 +1,221 @@
+# System Health Monitoring
+
+Monitor your BakedBot platform's performance in real time. The System Health dashboard gives super users visibility into memory, CPU, latency, error rates, and deployment status — with customizable alerts and historical trend analysis.
+
+## Accessing the Dashboard
+
+Navigate to **Dashboard > CEO Dashboard > System Health** tab. This feature requires the **super_user** role.
+
+---
+
+## Dashboard Overview
+
+### Real-Time Metrics
+
+Four metric cards display current performance at a glance:
+
+| Metric | What It Shows | Warning | Critical |
+|--------|--------------|---------|----------|
+| **Memory Usage** | Percentage and MB used / allocated | 70% | 85% |
+| **CPU Usage** | Percentage utilization with core count | 60% | 80% |
+| **Active Instances** | Running instance count with autoscale range | — | — |
+| **Throughput** | Requests per second with error rate badge | — | — |
+
+Each metric card is color-coded:
+- **Green** — Healthy, within normal range
+- **Yellow** — Warning threshold exceeded
+- **Red** — Critical threshold exceeded
+
+### Request Latency
+
+Displayed below the main metrics:
+
+- **Average latency** — Mean response time in milliseconds
+- **P95 latency** — 95th percentile (highlighted yellow if > 1,000 ms)
+- **P99 latency** — 99th percentile (highlighted red if > 3,000 ms)
+
+### Deployment Status
+
+A badge in the header shows overall platform health:
+
+- **Healthy** (green) — All metrics within normal range
+- **Degraded** (yellow) — One or more metrics at warning level
+- **Unhealthy** (red) — Critical thresholds exceeded
+
+---
+
+## Data Sources
+
+The dashboard indicates its data source with a badge:
+
+- **Live GCP** — Real metrics from Google Cloud Monitoring API
+- **Simulated** — Realistic test data when GCP metrics are unavailable
+
+<Callout type="info">
+Simulated metrics are realistic but not actual production data. They are useful for testing the dashboard and alert configuration before GCP monitoring is fully connected.
+</Callout>
+
+---
+
+## Tabs
+
+### 24-Hour Trends
+
+Two charts show the last 24 hours of performance data:
+
+**Resource Usage Chart:**
+- Memory usage percentage (line)
+- CPU usage percentage (line)
+- Dual-axis for clear comparison
+
+**Traffic and Errors Chart:**
+- Requests per second (left axis)
+- Error rate percentage (right axis)
+- Hourly data points
+
+### Week vs. Week Comparison
+
+Compare current week averages against the previous week:
+
+| Metric | Display |
+|--------|---------|
+| Average Memory % | Current vs. previous with change indicator |
+| Average CPU % | Green = improvement, red = regression |
+| Average Requests/sec | Green = growth, red = decline |
+| Average Error Rate % | Green = improvement, red = regression |
+
+<Callout type="tip">
+The comparison tab requires at least 2 weeks of historical data. If you just enabled monitoring, check back after 14 days.
+</Callout>
+
+### Configuration
+
+View your current runtime and deployment settings:
+
+- **Runtime**: Memory allocation (2,048 MB), CPU cores, concurrency limits
+- **Autoscaling**: Min/max instance range
+- **Deployment**: Platform, region, project ID, last deployment timestamp
+- **Version**: Current deployment version or commit SHA
+
+---
+
+## Alert System
+
+### Default Thresholds
+
+| Metric | Warning | Critical |
+|--------|---------|----------|
+| Memory Usage | 70% | 85% |
+| CPU Usage | 60% | 80% |
+| P95 Latency | 1,000 ms | 3,000 ms |
+| Error Rate | 1% | 5% |
+
+### Customizing Thresholds
+
+1. Click the **gear icon** in the dashboard header
+2. Adjust warning and critical values for each metric
+3. Configure notification channels
+4. Click **Save**
+
+Custom thresholds are stored in Firestore and persist across sessions.
+
+### Notification Channels
+
+**Dashboard Alerts:**
+- Always active
+- Appear in the alerts section of the System Health dashboard
+- Color-coded by severity (red for critical, yellow for warning)
+
+**Email Alerts:**
+- Toggle on/off in alert settings
+- Add comma-separated recipient email addresses
+- HTML-formatted emails with alert details and dashboard link
+- 30-minute cooldown between identical alert types to prevent spam
+
+---
+
+## CSV Export
+
+Download historical metrics as a CSV file:
+
+1. Click the **Download** button in the dashboard header
+2. Select the time range (default: last 24 hours)
+3. File downloads as `system-health-YYYY-MM-DD.csv`
+
+**CSV columns:**
+```
+timestamp, memoryUsagePercent, cpuUsagePercent, requestsPerSecond, errorRate
+```
+
+Timestamps are in ISO 8601 format. Useful for importing into Excel or Google Sheets for custom analysis.
+
+---
+
+## Manual Health Check
+
+Click the **Refresh** button to trigger an immediate health check. This:
+
+- Collects fresh metrics from the current data source
+- Evaluates all alert thresholds
+- Updates the dashboard in real time
+- Dispatches notifications if thresholds are exceeded
+
+The dashboard also auto-refreshes every 30 seconds.
+
+---
+
+## Metric Collection
+
+### How It Works
+
+A cron job runs every 15 minutes to collect and store metrics:
+
+1. Metrics are collected from GCP Cloud Monitoring (or simulated if unavailable)
+2. Data points are stored in the `system_metrics` Firestore collection
+3. Metrics older than 7 days are automatically cleaned up
+4. Alert thresholds are evaluated against fresh data
+5. Notifications fire if thresholds are exceeded and cooldown has elapsed
+
+### What Gets Stored
+
+Each metric snapshot includes:
+- Memory: allocated MB, used MB, usage percentage
+- CPU: core count, usage percentage
+- Traffic: requests/second, avg/P95/P99 latency
+- Errors: error rate percentage, error count
+- Infrastructure: instance count, deployment status
+- Metadata: timestamp, collection source (GCP or simulated)
+
+---
+
+## Troubleshooting
+
+### Dashboard Shows "Simulated" Data
+
+This means GCP Cloud Monitoring is not connected. To enable live metrics:
+- Ensure the Google Cloud Monitoring API is enabled for your project
+- Verify service account credentials have monitoring read permissions
+- Check that the `@google-cloud/monitoring` package is correctly configured
+
+### Alerts Not Firing
+
+**Check:**
+- Email notifications are enabled in alert settings
+- Recipient email addresses are configured
+- The alert cooldown (30 minutes) has not suppressed the notification
+- The metric actually exceeds the threshold (warning or critical level)
+
+### Historical Charts Are Empty
+
+- Charts require at least a few hours of collected data
+- Verify the metrics collection cron job is running (`/api/cron/collect-metrics`)
+- Check Firestore for documents in the `system_metrics` collection
+
+---
+
+## Related Articles
+
+- [Heartbeat System](/help/dispensary/heartbeat) — Proactive business monitoring
+- [Agent Notifications](/help/dispensary/agent-notifications) — Multi-channel alert delivery
+
+<ArticleRating articleId="system-health-monitoring" />

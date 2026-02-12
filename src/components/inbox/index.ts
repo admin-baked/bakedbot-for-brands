@@ -24,3 +24,4 @@ export { InsightCardsGrid } from './insight-cards-grid';
 export { InboxCarouselCard } from './artifacts/carousel-card';
 export { InboxBundleCard } from './artifacts/bundle-card';
 export { InboxCreativeCard } from './artifacts/creative-card';
+export { InboxIntegrationCard } from './artifacts/integration-card';

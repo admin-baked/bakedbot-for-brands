@@ -3,12 +3,9 @@
 
 env:
   # Build-time memory allocation - increased for large Next.js build
-  # Builder has ~8GB total; using 6GB for V8 heap leaves ~2GB for native memory
+  # Using 8GB for V8 heap to handle webpack (Turbopack disabled via --no-turbopack)
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=6144"
-    availability: [ BUILD ]
-  - variable: NEXT_DISABLE_TURBOPACK
-    value: "1"
+    value: "--max-old-space-size=8192"
     availability: [ BUILD ]
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"
