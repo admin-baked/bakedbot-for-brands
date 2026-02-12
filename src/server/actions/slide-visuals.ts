@@ -16,6 +16,7 @@ const SLIDE_BG_COLLECTION = 'slide_backgrounds';
 const AGENT_ILLUSTRATION_COLLECTION = 'agent_illustrations';
 const STORAGE_BG_PATH = 'academy/slide-backgrounds';
 const STORAGE_AGENT_PATH = 'academy/agent-illustrations';
+const STORAGE_BUCKET = process.env.FIREBASE_STORAGE_BUCKET || 'bakedbot-global-assets';
 
 /** Color hex to descriptive name for better Gemini prompts */
 function colorName(hex: string): string {
@@ -163,7 +164,7 @@ export async function generateSlideBackground(params: {
 
     // Upload to Storage
     const storage = getAdminStorage();
-    const bucket = storage.bucket();
+    const bucket = storage.bucket(STORAGE_BUCKET);
     const storagePath = `${STORAGE_BG_PATH}/${docId}.png`;
 
     const base64Data = imageDataUri.replace(/^data:image\/\w+;base64,/, '');
@@ -232,7 +233,7 @@ export async function generateAgentIllustration(params: {
 
     // Upload
     const storage = getAdminStorage();
-    const bucket = storage.bucket();
+    const bucket = storage.bucket(STORAGE_BUCKET);
     const storagePath = `${STORAGE_AGENT_PATH}/${docId}.png`;
 
     const base64Data = imageDataUri.replace(/^data:image\/\w+;base64,/, '');
