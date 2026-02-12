@@ -22,6 +22,7 @@ import type {
 import { HEALTH_THRESHOLDS } from '@/types/system-health';
 import { getAdminFirestore } from '@/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
+import { getHistoricalMetrics } from '@/server/services/metrics-collector';
 
 /**
  * Get current system health metrics
@@ -107,17 +108,26 @@ export async function getSystemHealth(): Promise<SystemHealthSummary> {
     currentVersion,
   };
 
-  // Generate timeseries (last 24 hours, hourly)
-  const timeseries: SystemHealthTimeseries[] = [];
-  for (let i = 23; i >= 0; i--) {
-    const timestamp = new Date(now.getTime() - i * 60 * 60 * 1000);
-    timeseries.push({
-      timestamp,
-      memoryUsagePercent: Math.round(40 + Math.random() * 30), // 40-70%
-      cpuUsagePercent: Math.round(20 + Math.random() * 40), // 20-60%
-      requestsPerSecond: Math.round(5 + Math.random() * 15), // 5-20 req/s
-      errorRate: Math.random() * 2, // 0-2%
-    });
+  // Get historical metrics from Firestore (last 24 hours)
+  let timeseries: SystemHealthTimeseries[] = [];
+  try {
+    timeseries = await getHistoricalMetrics(24);
+  } catch (error) {
+    console.error('Failed to fetch historical metrics:', error);
+  }
+
+  // Fallback: If no historical data yet, generate simulated data
+  if (timeseries.length === 0) {
+    for (let i = 23; i >= 0; i--) {
+      const timestamp = new Date(now.getTime() - i * 60 * 60 * 1000);
+      timeseries.push({
+        timestamp,
+        memoryUsagePercent: Math.round(40 + Math.random() * 30), // 40-70%
+        cpuUsagePercent: Math.round(20 + Math.random() * 40), // 20-60%
+        requestsPerSecond: Math.round(5 + Math.random() * 15), // 5-20 req/s
+        errorRate: Math.random() * 2, // 0-2%
+      });
+    }
   }
 
   // Generate alerts based on thresholds

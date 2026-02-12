@@ -23,6 +23,7 @@ Detailed documentation for AI agents working in this codebase.
 | External APIs (Blackleaf, etc.) | `integrations.md` |
 | Playbooks, automation | `workflows.md` |
 | Media generation, cost tracking | `media-generation.md` |
+| Vibe Builder, domains, publishing | `vibe-builder-spec.md` |
 | Past decisions | `work-archive.md` |
 
 ---
@@ -64,6 +65,7 @@ Detailed documentation for AI agents working in this codebase.
 | `pages-dispensary.md` | Dispensary console structure |
 | `pages-location.md` | Location/discovery pages |
 | `pilot-setup.md` | Quick provisioning for pilots |
+| `vibe-builder-spec.md` | Vibe Builder visual editor, templates, publishing, domains |
 
 ### Lead Generation
 | File | What's Inside |

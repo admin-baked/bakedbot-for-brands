@@ -542,6 +542,83 @@ generateVibeFromWordPressTheme(zipBuffer: Buffer) → PublicVibe
 
 ---
 
+### Vibe Builder - Visual Website Builder (2026-02-11)
+**Status:** ✅ Week 3 Complete (Template Marketplace, Publishing, Custom Domains)
+
+Visual website builder that transforms Vibe Studio themes into full websites. Built on GrapesJS for drag-drop editing. Includes template marketplace, subdomain publishing, and unified domain management.
+
+**Architecture:**
+```
+Vibe Builder (/vibe/builder) → GrapesJS Editor → Save Projects → Publish to *.bakedbot.site
+     ↓                                                                    ↓
+Template Marketplace → Browse/Install → Start with Template        Custom Domains
+     ↓                                                              ↓
+/vibe/templates → Browse/Search/Filter                     /dashboard/domains (Unified)
+```
+
+**Key Features:**
+- **Template Marketplace**: Browse, search, filter community templates. Admin approval workflow. Install templates to start new projects.
+- **Publishing System**: Publish to `*.bakedbot.site` subdomains. Subdomain availability checking, republishing, unpublishing.
+- **Unified Domain Management**: Single UI for all custom domains. Supports 3 target types:
+  - `menu` - Point domain to BakedBot product catalog
+  - `vibe_site` - Point domain to Vibe Builder website
+  - `hybrid` - Path-based routing (/ → Vibe site, /shop → Menu)
+- **Next.js Middleware**: Edge-compatible middleware for automatic custom domain routing
+- **DNS Verification**: TXT + CNAME/Nameserver verification with cache
+
+**Template Marketplace Files:**
+| File | Purpose |
+|------|---------|
+| `src/server/actions/template-marketplace.ts` | Browse/search/install templates |
+| `src/server/actions/template-admin.ts` | Admin approval workflow |
+| `src/app/vibe/templates/page.tsx` | Public marketplace UI |
+| `src/app/dashboard/admin/templates/page.tsx` | Admin approval dashboard |
+
+**Publishing Files:**
+| File | Purpose |
+|------|---------|
+| `src/server/actions/vibe-publish.ts` | Publish/unpublish/custom domain actions |
+| `src/app/vibe/builder/publish/page.tsx` | Publishing UI with subdomain selection |
+| `src/app/api/site/[subdomain]/route.ts` | Serve published sites by subdomain |
+| `src/app/api/vibe/site/[projectId]/route.ts` | Serve published sites by project ID |
+
+**Unified Domain Management Files:**
+| File | Purpose |
+|------|---------|
+| `src/app/dashboard/domains/page.tsx` | Unified domain manager UI (~686 lines) |
+| `src/server/actions/domain-management.ts` | Extended server actions with targetType support |
+| `src/middleware.ts` | Next.js Edge middleware for custom domain routing |
+| `src/lib/domain-routing.ts` | Server-side domain routing helpers |
+| `src/lib/domain-cache.ts` | In-memory domain→tenant cache (1-min TTL) |
+| `src/lib/dns-verify.ts` | DNS verification (TXT + CNAME/NS) |
+| `src/lib/dns-utils.ts` | Client-safe DNS utilities |
+| `src/app/api/domain/resolve/route.ts` | Domain resolution API (returns target routing) |
+| `src/types/tenant.ts` | DomainTargetType, DomainRoutingConfig types |
+
+**Firestore Collections:**
+- `vibe_published_sites` - Published website data, HTML/CSS, analytics
+- `vibe_templates` - Community templates with approval status
+- `domain_mappings/{domain}` - Domain → target routing (unified)
+- `tenants/{id}/domains/{domain}` - Multi-domain subcollection per tenant
+
+**Domain Target Types:**
+```typescript
+type DomainTargetType = 'menu' | 'vibe_site' | 'hybrid';
+
+interface DomainRoutingConfig {
+  rootPath?: 'vibe' | 'menu';
+  menuPath?: string; // Default: '/shop'
+}
+```
+
+**Sidebar Links:** Custom Domains link added to brand, dispensary, and super admin sidebars.
+
+**Deprecations:**
+- `/vibe/builder/custom-domain` → Redirects to `/dashboard/domains`
+- Settings domain tab shows migration banner to unified manager
+
+---
+
 ### WhatsApp Gateway Integration (2026-02-06)
 **Status:** ✅ Production-ready with persistent sessions
 
@@ -2077,19 +2154,29 @@ Extension token generation now correctly uses email whitelist (`SUPER_ADMIN_EMAI
 - `src/app/api/browser/extension/connect/route.ts` — Token endpoint
 - `src/lib/super-admin-config.ts` — Email whitelist
 
-### Custom Domain Management
-Brands and dispensaries can now connect custom domains to their BakedBot menu.
+### Custom Domain Management (Unified)
+Unified domain management system supporting all BakedBot content types.
 
-| Connection Type | Use Case | Example |
-|-----------------|----------|---------|
-| CNAME | Subdomains | `shop.mybrand.com` |
-| Nameserver | Full domains | `mybrandmenu.com` |
+| Target Type | Use Case | Example |
+|-------------|----------|---------|
+| `menu` | Product catalogs | `shop.mybrand.com` → BakedBot menu |
+| `vibe_site` | Vibe Builder websites | `www.mybrand.com` → Marketing site |
+| `hybrid` | Both on same domain | `mybrand.com/` → Vibe, `/shop` → Menu |
+
+**Connection Types:**
+| Connection | Use Case | DNS Record |
+|------------|----------|------------|
+| CNAME | Subdomains | CNAME → cname.bakedbot.ai |
+| Nameserver | Full domains | NS → ns1/ns2.bakedbot.ai |
 
 **Key Files:**
-- `src/server/actions/domain-management.ts` — Server actions
+- `src/app/dashboard/domains/page.tsx` — Unified domain manager UI
+- `src/middleware.ts` — Next.js Edge middleware for custom domain routing
+- `src/server/actions/domain-management.ts` — Server actions (add/verify/remove/list)
 - `src/lib/dns-utils.ts` — Client-safe DNS utilities
 - `src/lib/dns-verify.ts` — Server-only DNS verification
-- `src/app/dashboard/settings/components/domain-tab.tsx` — Dashboard UI
+- `src/lib/domain-routing.ts` — Server-side routing helpers
+- `src/app/api/domain/resolve/route.ts` — Domain resolution API
 
 > Details: `refs/backend.md` → Custom Domain Management section
 

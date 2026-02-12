@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { getSystemHealth, getSystemConfiguration, triggerHealthCheck } from '@/server/actions/system-health';
 import type { SystemHealthSummary } from '@/types/system-health';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function SystemHealthTab() {
   const [data, setData] = useState<SystemHealthSummary | null>(null);
@@ -366,25 +367,130 @@ export default function SystemHealthTab() {
         </Card>
       )}
 
-      {/* 24-Hour Trend (Placeholder for future chart) */}
-      <Card>
-        <CardHeader>
-          <CardTitle>24-Hour Trend</CardTitle>
-          <CardDescription>
-            Hourly resource usage over the past 24 hours
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              📊 Chart visualization coming soon (integrate with Recharts)
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Data points: {timeseries.length} hours
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* 24-Hour Trend Charts */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Memory & CPU Usage Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Resource Usage (24h)</CardTitle>
+            <CardDescription>Memory and CPU utilization trends</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart
+                data={timeseries.map(point => ({
+                  time: new Date(point.timestamp).getHours() + ':00',
+                  memory: point.memoryUsagePercent,
+                  cpu: point.cpuUsagePercent,
+                }))}
+                margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis
+                  dataKey="time"
+                  className="text-xs"
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis
+                  className="text-xs"
+                  tick={{ fontSize: 12 }}
+                  label={{ value: 'Usage (%)', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--background))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px',
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="memory"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  name="Memory %"
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="cpu"
+                  stroke="hsl(var(--chart-2))"
+                  strokeWidth={2}
+                  name="CPU %"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Throughput & Error Rate Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Traffic & Errors (24h)</CardTitle>
+            <CardDescription>Request throughput and error rate</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart
+                data={timeseries.map(point => ({
+                  time: new Date(point.timestamp).getHours() + ':00',
+                  requests: point.requestsPerSecond,
+                  errors: point.errorRate,
+                }))}
+                margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis
+                  dataKey="time"
+                  className="text-xs"
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis
+                  yAxisId="left"
+                  className="text-xs"
+                  tick={{ fontSize: 12 }}
+                  label={{ value: 'Req/s', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  className="text-xs"
+                  tick={{ fontSize: 12 }}
+                  label={{ value: 'Error %', angle: 90, position: 'insideRight', style: { fontSize: 12 } }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--background))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '6px',
+                  }}
+                />
+                <Legend />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="requests"
+                  stroke="hsl(var(--chart-3))"
+                  strokeWidth={2}
+                  name="Requests/sec"
+                  dot={false}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="errors"
+                  stroke="hsl(var(--destructive))"
+                  strokeWidth={2}
+                  name="Error Rate %"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Footer Note */}
       <Alert>
