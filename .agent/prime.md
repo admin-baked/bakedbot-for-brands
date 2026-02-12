@@ -282,21 +282,60 @@ npx tsx scripts/set-intern-role.ts student@example.com
 ---
 
 ### Firebase App Hosting Build Fix (2026-02-12)
-**Status:** ✅ Deployed — OOM kill (exit code 137) resolved
+**Status:** ✅ Deployed — OOM kill (exit code 137) resolved with 32GB allocation
 
-**Problem:** `next build` was getting OOM killed during Firebase App Hosting deploys. Exit code 137 indicates process killed by OS due to memory exhaustion. Next.js 16.1.2 with Turbopack was exceeding 8GB allocation during compilation of large codebase (18,474 files, 2,291 packages).
+**Problem:** `next build` was getting OOM killed during Firebase App Hosting deploys. Exit code 137 indicates process killed by OS due to memory exhaustion. Next.js 16.1.2 with Turbopack was exceeding allocations during compilation of large codebase (18,477 files, 2,291 packages).
 
-**Fixes Applied:**
-| Change | Before | After |
-|--------|--------|-------|
-| BUILD `--max-old-space-size` | 8192MB (8GB) | 12288MB (12GB) |
-| RUNTIME `--max-old-space-size` | 8192MB (8GB) | 12288MB (12GB) |
+**Progressive Memory Increases:**
+| Attempt | BUILD Memory | Result |
+|---------|--------------|--------|
+| 1 | 8192MB (8GB) | ❌ OOM during optimization |
+| 2 | 12288MB (12GB) | ❌ OOM during optimization |
+| 3 | 16384MB (16GB) | ❌ OOM during optimization |
+| 4 | 24576MB (24GB) | ❌ OOM during optimization |
+| 5 | **32768MB (32GB)** | ✅ **Build succeeded** |
 
-**Key Insight:** Firebase App Hosting builders have limited memory. V8 heap (`--max-old-space-size`) + native memory + OS overhead must fit within that. Turbopack bundler is memory-intensive during the optimization phase. 12GB gives enough headroom for peak memory usage.
+**Root Cause:** Firebase App Hosting buildpack **forces Turbopack** regardless of configuration:
+- CLI flag `--no-turbopack` in buildCommand → Ignored by Firebase wrapper
+- Environment variable `TURBO=0` → Ignored
+- next.config.js `turbo: false` → Invalid option (doesn't exist in Next.js 16.1.2)
+- Firebase wrapper script overrides all attempts to disable Turbopack
 
-**Files Changed:** `apphosting.yaml` (NODE_OPTIONS environment variables)
+**Key Insight:** Turbopack bundler is memory-intensive during optimization phase. On large codebases (18k+ files), Firebase's build environment requires significantly more memory than local builds. 32GB provides enough headroom for Turbopack's peak memory usage + native memory + OS overhead.
 
-**Build Success:** Commit `fa7b142f` deployed successfully with 12GB allocation
+**Additional Fixes:**
+- **Regex Syntax Error (Line 634):** Fixed invalid regex `\\/` → `\/` in `src/app/dashboard/ceo/actions.ts` (Turbopack's strict parser caught this)
+- **Runtime Memory:** Also increased to 24576MB (24GB) for production workloads
+
+**Files Changed:**
+- `apphosting.yaml` — NODE_OPTIONS environment variables (BUILD: 32GB, RUNTIME: 24GB)
+- `src/app/dashboard/ceo/actions.ts` — Line 634 regex fix
+
+**Build Command:**
+```yaml
+buildCommand: npm run build:embed && npm run check:structure && next build --no-turbopack
+```
+(Note: `--no-turbopack` flag is present but ignored by Firebase buildpack)
+
+**Final Configuration in apphosting.yaml:**
+```yaml
+env:
+  # Build-time memory allocation
+  - variable: NODE_OPTIONS
+    value: "--max-old-space-size=32768"  # 32GB
+    availability: [ BUILD ]
+
+  # Runtime memory allocation
+  - variable: NODE_OPTIONS
+    value: "--max-old-space-size=24576"  # 24GB
+    availability: [ RUNTIME ]
+```
+
+**Impact:**
+- ✅ Production builds now succeed consistently
+- ✅ Deployment time: ~8-10 minutes
+- ⚠️ High memory usage is platform limitation (Firebase forces Turbopack)
+- 🔮 **Future:** If codebase grows significantly beyond 20k files, may need to escalate to Firebase support about buildpack behavior
 
 ---
 

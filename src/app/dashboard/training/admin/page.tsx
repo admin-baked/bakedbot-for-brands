@@ -13,17 +13,50 @@ import type { TrainingCohort, UserTrainingProgress, TrainingSubmission } from '@
 
 export default async function TrainingAdminPage() {
     // Only super users can access
+    let user;
     try {
-        await requireUser(['super_user']);
+        user = await requireUser(['super_user']);
+        console.log('[Training Admin] User authenticated successfully:', {
+            uid: user.uid,
+            email: user.email,
+            role: user.role,
+            timestamp: new Date().toISOString(),
+        });
     } catch (error) {
         // Not authorized - redirect to main dashboard
+        console.error('[Training Admin] Auth check failed:', {
+            error: error instanceof Error ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+            } : error,
+            timestamp: new Date().toISOString(),
+        });
         redirect('/dashboard');
     }
 
     const db = getAdminFirestore();
 
     // Fetch all cohorts
-    const cohortsSnapshot = await db.collection('trainingCohorts').orderBy('startDate', 'desc').get();
+    let cohortsSnapshot;
+    try {
+        cohortsSnapshot = await db.collection('trainingCohorts').orderBy('startDate', 'desc').get();
+        console.log('[Training Admin] Cohorts fetched:', {
+            count: cohortsSnapshot.docs.length,
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error('[Training Admin] Failed to fetch cohorts:', {
+            error: error instanceof Error ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+            } : error,
+            timestamp: new Date().toISOString(),
+        });
+        throw error;
+    }
+
     const cohorts = cohortsSnapshot.docs.map((doc) => {
         const data = doc.data() as TrainingCohort;
         return {
@@ -36,11 +69,29 @@ export default async function TrainingAdminPage() {
     });
 
     // Fetch recent submissions (last 50)
-    const submissionsSnapshot = await db
-        .collection('trainingSubmissions')
-        .orderBy('submittedAt', 'desc')
-        .limit(50)
-        .get();
+    let submissionsSnapshot;
+    try {
+        submissionsSnapshot = await db
+            .collection('trainingSubmissions')
+            .orderBy('submittedAt', 'desc')
+            .limit(50)
+            .get();
+        console.log('[Training Admin] Submissions fetched:', {
+            count: submissionsSnapshot.docs.length,
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error('[Training Admin] Failed to fetch submissions:', {
+            error: error instanceof Error ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+            } : error,
+            timestamp: new Date().toISOString(),
+        });
+        throw error;
+    }
+
     const recentSubmissions = submissionsSnapshot.docs.map((doc) => {
         const data = doc.data() as TrainingSubmission;
         return {
@@ -51,16 +102,52 @@ export default async function TrainingAdminPage() {
     });
 
     // Fetch all active participants
-    const usersSnapshot = await db.collectionGroup('training').where('status', '==', 'active').get();
+    let usersSnapshot;
+    try {
+        usersSnapshot = await db.collectionGroup('training').where('status', '==', 'active').get();
+        console.log('[Training Admin] Active participants counted:', {
+            count: usersSnapshot.size,
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error('[Training Admin] Failed to count active participants:', {
+            error: error instanceof Error ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+            } : error,
+            timestamp: new Date().toISOString(),
+        });
+        throw error;
+    }
     const activeParticipants = usersSnapshot.size;
 
     // Calculate stats
-    const totalSubmissions = await db.collection('trainingSubmissions').count().get();
-    const approvedSubmissions = await db
-        .collection('trainingSubmissions')
-        .where('status', '==', 'approved')
-        .count()
-        .get();
+    let totalSubmissions;
+    let approvedSubmissions;
+    try {
+        totalSubmissions = await db.collection('trainingSubmissions').count().get();
+        approvedSubmissions = await db
+            .collection('trainingSubmissions')
+            .where('status', '==', 'approved')
+            .count()
+            .get();
+        console.log('[Training Admin] Stats calculated:', {
+            totalSubmissions: totalSubmissions.data().count,
+            approvedSubmissions: approvedSubmissions.data().count,
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error('[Training Admin] Failed to calculate stats:', {
+            error: error instanceof Error ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+            } : error,
+            timestamp: new Date().toISOString(),
+        });
+        throw error;
+    }
 
     const stats = {
         totalCohorts: cohorts.length,
@@ -72,6 +159,14 @@ export default async function TrainingAdminPage() {
                 ? Math.round((approvedSubmissions.data().count / totalSubmissions.data().count) * 100)
                 : 0,
     };
+
+    console.log('[Training Admin] Rendering admin client:', {
+        totalCohorts: stats.totalCohorts,
+        activeParticipants: stats.activeParticipants,
+        totalSubmissions: stats.totalSubmissions,
+        approvalRate: stats.approvalRate,
+        timestamp: new Date().toISOString(),
+    });
 
     return <TrainingAdminClient cohorts={cohorts} recentSubmissions={recentSubmissions} stats={stats} />;
 }

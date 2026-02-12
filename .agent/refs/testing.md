@@ -338,6 +338,99 @@ npm test -- tests/server/security/prompt-guard.test.ts --silent
 
 ---
 
+## Training Enrollment Tests
+
+### Auto-Enrollment System
+
+The training auto-enrollment system has comprehensive unit tests covering enrollment flow, cohort management, and auth error handling.
+
+**Test Files:**
+| File | Purpose | Tests |
+|------|---------|-------|
+| `tests/server/actions/training-enrollment.test.ts` | Enrollment server action tests | 10 |
+| `tests/app/dashboard/training-auth.test.tsx` | Auth redirect behavior tests | 7 |
+
+**Training Enrollment Tests:**
+```powershell
+# Run all training tests
+npm test -- --testPathPattern="training"
+
+# Enrollment action tests only
+npm test -- tests/server/actions/training-enrollment.test.ts
+
+# Auth redirect tests only
+npm test -- tests/app/dashboard/training-auth.test.tsx
+```
+
+**Coverage:**
+
+1. **Auto-Enrollment Flow (`training-enrollment.test.ts`):**
+   - ✅ Should enroll a new user and set intern role
+   - ✅ Should create a new cohort if none exist
+   - ✅ Should create a new cohort if all existing cohorts are full
+   - ✅ Should handle user not found error
+   - ✅ Should handle Firestore errors gracefully
+   - ✅ Should log all enrollment steps
+   - ✅ Should initialize progress with correct defaults
+   - ✅ Should allow super users to enroll others (admin)
+   - ✅ Should reject enrollment when cohort is full
+   - ✅ Should reject enrollment when cohort not found
+
+2. **Auth Error Handling (`training-auth.test.tsx`):**
+   - ✅ Should redirect to /customer-login when user is not authenticated
+   - ✅ Should redirect to /customer-login when user lacks required role
+   - ✅ Should render normally when user has intern role
+   - ✅ Should render normally when user has super_user role
+   - ✅ Should show enrollment message when user has no progress
+   - ✅ Should redirect to /dashboard when admin user is not super_user
+   - ✅ Should handle auth errors without breaking the app
+
+**Key Mocking Patterns:**
+
+```typescript
+// Mock Firebase Admin Auth
+const mockSetCustomUserClaims = jest.fn().mockResolvedValue(undefined);
+const mockGetUser = jest.fn().mockResolvedValue({
+    uid: 'test-user-123',
+    email: 'student@example.com',
+    emailVerified: true,
+});
+
+jest.mock('firebase-admin/auth', () => ({
+    getAuth: jest.fn(() => ({
+        setCustomUserClaims: mockSetCustomUserClaims,
+        getUser: mockGetUser,
+    })),
+}));
+
+// Mock Firestore with per-test overrides
+const { getAdminFirestore } = require('@/firebase/admin');
+(getAdminFirestore as jest.Mock).mockImplementationOnce(() => ({
+    collection: jest.fn(() => ({
+        where: jest.fn(() => ({
+            orderBy: jest.fn(() => ({
+                limit: jest.fn(() => ({
+                    get: jest.fn().mockResolvedValue({ docs: [] })
+                }))
+            }))
+        }))
+    }))
+}));
+
+// Mock Next.js redirect
+jest.mock('next/navigation', () => ({
+    redirect: jest.fn(),
+}));
+```
+
+**Related Files:**
+- `src/server/actions/training.ts` — `selfEnrollInTraining()` server action
+- `src/app/training/page.tsx` — Auto-enrollment integration in signup flow
+- `src/app/dashboard/training/page.tsx` — Training dashboard with auth error handling
+- `src/app/dashboard/training/admin/page.tsx` — Training admin with super_user check
+
+---
+
 ## Related Files
 - `jest.config.js` — Jest configuration
 - `playwright.config.ts` — Playwright configuration
