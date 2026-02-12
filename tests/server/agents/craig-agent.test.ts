@@ -27,6 +27,19 @@ jest.mock('../../../src/server/agents/harness', () => ({
     }),
 }));
 
+// Mock Letta block manager
+jest.mock('../../../src/server/services/letta/block-manager', () => ({
+    lettaBlockManager: {
+        attachBlocksForRole: jest.fn().mockResolvedValue(undefined),
+    },
+}));
+
+// Mock role ground truth loader
+jest.mock('../../../src/server/grounding/role-loader', () => ({
+    loadRoleGroundTruth: jest.fn().mockResolvedValue(null),
+    buildRoleSystemPrompt: jest.fn().mockReturnValue(''),
+}));
+
 describe('Craig Agent (Marketer)', () => {
     let mockBrandMemory: BrandDomainMemory;
     let mockAgentMemory: CraigMemory;
@@ -90,11 +103,42 @@ describe('Craig Agent (Marketer)', () => {
 
         it('should pause campaigns if their objective is achieved', async () => {
             await craigAgent.initialize(mockBrandMemory, mockAgentMemory);
-            
+
             // camp-2 should be completed because obj-2 is achieved
             const camp2 = mockAgentMemory.campaigns.find(c => c.id === 'camp-2');
             expect(camp2?.status).toBe('completed');
             expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('Pausing campaign camp-2'));
+        });
+
+        it('should use BakedBot Mail branding in system instructions', async () => {
+            const result = await craigAgent.initialize(mockBrandMemory, mockAgentMemory);
+            const instructions = result.system_instructions as string;
+
+            // Should contain BakedBot Mail
+            expect(instructions).toContain('BakedBot Mail');
+
+            // Should NOT contain Mailjet
+            expect(instructions).not.toContain('Mailjet');
+        });
+
+        it('should use BakedBot SMS branding in system instructions', async () => {
+            const result = await craigAgent.initialize(mockBrandMemory, mockAgentMemory);
+            const instructions = result.system_instructions as string;
+
+            // Should contain BakedBot SMS
+            expect(instructions).toContain('BakedBot SMS');
+
+            // Should NOT contain Blackleaf
+            expect(instructions).not.toContain('Blackleaf');
+        });
+
+        it('should include white-label branding in tool instructions', async () => {
+            const result = await craigAgent.initialize(mockBrandMemory, mockAgentMemory);
+            const instructions = result.system_instructions as string;
+
+            // Should describe triggering via BakedBot platforms
+            expect(instructions).toMatch(/BakedBot Mail.*email/i);
+            expect(instructions).toMatch(/BakedBot SMS.*text/i);
         });
     });
 

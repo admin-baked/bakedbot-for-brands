@@ -1,6 +1,6 @@
 /**
  * Agent Definitions Unit Tests
- * 
+ *
  * Validates the agent configuration data structure and helper functions.
  */
 
@@ -10,6 +10,8 @@ import {
     AGENT_CAPABILITIES,
     getAgent,
     canRoleAccessAgent,
+    KNOWN_INTEGRATIONS,
+    buildIntegrationStatusSummary,
 } from '@/server/agents/agent-definitions';
 
 describe('Agent Definitions', () => {
@@ -177,6 +179,51 @@ describe('Agent Definitions', () => {
             expect(deebo?.keywords).toContain('compliance');
             expect(deebo?.keywords).toContain('regulation');
             expect(deebo?.keywords).toContain('license');
+        });
+    });
+
+    describe('White-Label Branding (BakedBot Mail & SMS)', () => {
+        it('should use "BakedBot Mail" instead of "Mailjet" for email integration', () => {
+            const emailIntegration = KNOWN_INTEGRATIONS.find(i => i.id === 'mailjet_email');
+            expect(emailIntegration).toBeDefined();
+            expect(emailIntegration?.name).toBe('BakedBot Mail');
+            expect(emailIntegration?.name).not.toContain('Mailjet');
+        });
+
+        it('should use "BakedBot SMS" instead of "Blackleaf" for SMS integration', () => {
+            const smsIntegration = KNOWN_INTEGRATIONS.find(i => i.id === 'blackleaf_sms');
+            expect(smsIntegration).toBeDefined();
+            expect(smsIntegration?.name).toBe('BakedBot SMS');
+            expect(smsIntegration?.name).not.toContain('Blackleaf');
+        });
+
+        it('integration status summary should use BakedBot branding', () => {
+            const summary = buildIntegrationStatusSummary();
+
+            // Should contain BakedBot branding
+            expect(summary).toContain('BakedBot Mail');
+            expect(summary).toContain('BakedBot SMS');
+
+            // Should NOT contain third-party vendor names
+            expect(summary).not.toContain('Mailjet');
+            expect(summary).not.toContain('Blackleaf');
+        });
+
+        it('integration status summary should list email and sms as configured', () => {
+            const summary = buildIntegrationStatusSummary();
+
+            // Check they appear in the CONFIGURED section
+            expect(summary).toMatch(/\*\*CONFIGURED.*\n.*BakedBot Mail/s);
+            expect(summary).toMatch(/\*\*CONFIGURED.*\n.*BakedBot SMS/s);
+        });
+
+        it('should maintain correct integration IDs (for backwards compatibility)', () => {
+            // Integration IDs should stay the same for code compatibility
+            const emailIntegration = KNOWN_INTEGRATIONS.find(i => i.id === 'mailjet_email');
+            const smsIntegration = KNOWN_INTEGRATIONS.find(i => i.id === 'blackleaf_sms');
+
+            expect(emailIntegration?.id).toBe('mailjet_email');
+            expect(smsIntegration?.id).toBe('blackleaf_sms');
         });
     });
 });
