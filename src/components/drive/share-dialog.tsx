@@ -6,7 +6,7 @@
  * Dialog for configuring sharing settings for files and folders.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useDriveStore } from '@/lib/store/drive-store';
 import { createShare, getSharesForItem, revokeShare } from '@/server/actions/drive';
 import { DRIVE_ACCESS_CONTROLS, DRIVE_ACCESS_LEVELS, type DriveAccessControl, type DriveAccessLevel } from '@/types/drive';
@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Copy, Link, Trash2, Loader2, CheckCircle } from 'lucide-react';
+import { Copy, Link, Trash2, Loader2, CheckCircle, Plus, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export function ShareDialog() {
@@ -40,12 +40,36 @@ export function ShareDialog() {
 
   const [accessControl, setAccessControl] = useState<DriveAccessControl>('link-only');
   const [accessLevel, setAccessLevel] = useState<DriveAccessLevel>('view');
+  const [inviteInput, setInviteInput] = useState('');
+  const [allowedUsers, setAllowedUsers] = useState<Array<{ email: string; accessLevel: DriveAccessLevel }>>([]);
   const [password, setPassword] = useState('');
   const [usePassword, setUsePassword] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [existingShares, setExistingShares] = useState<DriveShare[]>([]);
   const [isLoadingShares, setIsLoadingShares] = useState(false);
   const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
+
+  const requiresAllowedUsers = accessControl === 'users-only';
+  const canCreateShare = !requiresAllowedUsers || allowedUsers.length > 0;
+
+  useEffect(() => {
+    if (accessControl !== 'users-only') {
+      setInviteInput('');
+      setAllowedUsers([]);
+    }
+  }, [accessControl]);
+
+  const normalizedAllowedUsers = useMemo(() => {
+    const seen = new Set<string>();
+    const result: Array<{ email: string; accessLevel: DriveAccessLevel }> = [];
+    for (const u of allowedUsers) {
+      const email = (u.email || '').trim().toLowerCase();
+      if (!email || seen.has(email)) continue;
+      seen.add(email);
+      result.push({ email, accessLevel: u.accessLevel });
+    }
+    return result;
+  }, [allowedUsers]);
 
   // Get selected item details
   const selectedItem = selectedItems[0];
@@ -75,6 +99,14 @@ export function ShareDialog() {
 
   const handleCreateShare = async () => {
     if (!selectedItem) return;
+    if (!canCreateShare) {
+      toast({
+        title: 'Add at least one email',
+        description: 'Select "Specific people" and add emails before creating a share link.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsCreating(true);
     const result = await createShare({
@@ -82,6 +114,7 @@ export function ShareDialog() {
       targetId: selectedItem.id,
       accessControl,
       accessLevel,
+      allowedUsers: requiresAllowedUsers ? normalizedAllowedUsers : undefined,
       password: usePassword && password ? password : undefined,
     });
 
@@ -115,10 +148,51 @@ export function ShareDialog() {
   const handleClose = () => {
     setAccessControl('link-only');
     setAccessLevel('view');
+    setInviteInput('');
+    setAllowedUsers([]);
     setPassword('');
     setUsePassword(false);
     setExistingShares([]);
     closeShareDialog();
+  };
+
+  const addInvites = () => {
+    const raw = inviteInput.trim();
+    if (!raw) return;
+
+    // Allow comma/space/newline separated emails
+    const emails = raw
+      .split(/[\s,;]+/g)
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+
+    const valid = emails.filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+    const invalid = emails.filter((e) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+
+    if (invalid.length > 0) {
+      toast({
+        title: 'Invalid email(s)',
+        description: invalid.slice(0, 3).join(', '),
+        variant: 'destructive',
+      });
+    }
+
+    if (valid.length === 0) return;
+
+    setAllowedUsers((prev) => {
+      const next = [...prev];
+      for (const email of valid) {
+        if (next.some((u) => u.email.toLowerCase() === email)) continue;
+        next.push({ email, accessLevel });
+      }
+      return next;
+    });
+
+    setInviteInput('');
+  };
+
+  const removeInvite = (email: string) => {
+    setAllowedUsers((prev) => prev.filter((u) => u.email.toLowerCase() !== email.toLowerCase()));
   };
 
   return (
@@ -172,6 +246,56 @@ export function ShareDialog() {
             </Select>
           </div>
 
+          {/* People Invites */}
+          {requiresAllowedUsers && (
+            <div className="space-y-2">
+              <div>
+                <Label>Invite people</Label>
+                <p className="text-xs text-muted-foreground">Only these emails will be allowed to access.</p>
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  placeholder="name@example.com, other@example.com"
+                  value={inviteInput}
+                  onChange={(e) => setInviteInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addInvites();
+                    }
+                  }}
+                />
+                <Button type="button" variant="secondary" onClick={addInvites} disabled={!inviteInput.trim()}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add
+                </Button>
+              </div>
+
+              {normalizedAllowedUsers.length > 0 ? (
+                <div className="space-y-1">
+                  {normalizedAllowedUsers.map((u) => (
+                    <div key={u.email} className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                      <div className="min-w-0 flex-1 truncate">{u.email}</div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => removeInvite(u.email)}
+                        title="Remove"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No invites added yet.</p>
+              )}
+            </div>
+          )}
+
           {/* Password Protection */}
           <div className="flex items-center justify-between">
             <div>
@@ -191,7 +315,7 @@ export function ShareDialog() {
           )}
 
           {/* Create Share Button */}
-          <Button onClick={handleCreateShare} disabled={isCreating} className="w-full">
+          <Button onClick={handleCreateShare} disabled={isCreating || !canCreateShare} className="w-full">
             {isCreating ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

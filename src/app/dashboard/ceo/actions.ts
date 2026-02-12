@@ -547,8 +547,8 @@ export async function getCoupons(): Promise<Coupon[]> {
 export type PlatformAnalyticsData = {
   signups: { today: number; week: number; month: number; total: number; trend: number; trendUp: boolean; };
   activeUsers: { daily: number; weekly: number; monthly: number; trend: number; trendUp: boolean; };
-  retention: { day1: number; day7: number; day30: number; trend: number; trendUp: boolean; };
-  revenue: { mrr: number; arr: number; arpu: number; trend: number; trendUp: boolean; };
+  retention: { day1: number | null; day7: number | null; day30: number | null; trend: number | null; trendUp: boolean | null; };
+  revenue: { mrr: number; arr: number; arpu: number; trend: number | null; trendUp: boolean | null; };
   featureAdoption: { name: string; usage: number; trend: number; status: 'healthy' | 'warning' | 'growing' | 'secondary' }[];
   recentSignups: { id: string; name: string; email: string; plan: string; date: string; role: string }[];
   agentUsage: { agent: string; calls: number; avgDuration: string; successRate: number; costToday: number }[];
@@ -556,23 +556,112 @@ export type PlatformAnalyticsData = {
 
 export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
   try {
-    const { firestore } = await createServerClient();
     await requireUser(['super_user']);
+    const { firestore, auth } = await createServerClient();
 
-    // 1. Fetch real counts
-    const [usersSnap, brandsSnap, orgsSnap, leadsSnap] = await Promise.all([
-      firestore.collection('users').count().get(),
-      firestore.collection('brands').count().get(),
-      firestore.collection('organizations').count().get(),
-      firestore.collection('leads').count().get()
-    ]);
+    const now = Date.now();
+    const MS_DAY = 24 * 60 * 60 * 1000;
+    const dayAgo = now - MS_DAY;
+    const weekAgo = now - 7 * MS_DAY;
+    const monthAgo = now - 30 * MS_DAY;
+    const prevWeekStart = now - 14 * MS_DAY;
+    const prevWeekEnd = weekAgo;
 
-    const totalUsers = usersSnap.data().count;
-    const totalBrands = brandsSnap.data().count;
-    const totalOrgs = orgsSnap.data().count;
-    const totalLeads = leadsSnap.data().count;
+    const parseMillis = (value?: string | null): number | null => {
+      if (!value) return null;
+      const parsed = Date.parse(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    };
 
-    // 2. Fetch recent signups (Fixed: Fetch more and sort in-memory to handle missing index/dates)
+    // ======================================================================
+    // AUTH METRICS (Source of truth: Firebase Auth)
+    // ======================================================================
+
+    const authUsers: any[] = [];
+    let pageToken: string | undefined = undefined;
+    do {
+      const batch = await auth.listUsers(1000, pageToken);
+      authUsers.push(...batch.users);
+      pageToken = batch.pageToken;
+    } while (pageToken);
+
+    let signupsToday = 0;
+    let signupsWeek = 0;
+    let signupsMonth = 0;
+    let signupsPrevWeek = 0;
+
+    let dau = 0;
+    let wau = 0;
+    let mau = 0;
+    let prevWau = 0;
+
+    for (const u of authUsers) {
+      const createdAt = parseMillis(u?.metadata?.creationTime);
+      if (createdAt != null) {
+        if (createdAt >= dayAgo) signupsToday += 1;
+        if (createdAt >= weekAgo) signupsWeek += 1;
+        if (createdAt >= monthAgo) signupsMonth += 1;
+        if (createdAt >= prevWeekStart && createdAt < prevWeekEnd) signupsPrevWeek += 1;
+      }
+
+      const lastSignIn = parseMillis(u?.metadata?.lastSignInTime);
+      if (lastSignIn != null) {
+        if (lastSignIn >= dayAgo) dau += 1;
+        if (lastSignIn >= weekAgo) wau += 1;
+        if (lastSignIn >= monthAgo) mau += 1;
+        if (lastSignIn >= prevWeekStart && lastSignIn < prevWeekEnd) prevWau += 1;
+      }
+    }
+
+    const calcTrendPct = (current: number, previous: number): { trend: number; trendUp: boolean } => {
+      if (previous <= 0) {
+        if (current <= 0) return { trend: 0, trendUp: true };
+        return { trend: 100, trendUp: true };
+      }
+      const raw = ((current - previous) / previous) * 100;
+      const trend = Number.isFinite(raw) ? Math.round(raw * 10) / 10 : 0;
+      return { trend, trendUp: trend >= 0 };
+    };
+
+    const signupTrend = calcTrendPct(signupsWeek, signupsPrevWeek);
+    const activeTrend = calcTrendPct(wau, prevWau);
+
+    // ======================================================================
+    // REVENUE (Source of truth: organizations/{orgId}/subscription/current)
+    // ======================================================================
+
+    const extractOrgId = (path: string): string | null => {
+      const match = path.match(/^organizations\\/([^/]+)\\/subscription\\/[^/]+$/);
+      return match?.[1] ?? null;
+    };
+
+    const subsSnapshot = await firestore
+      .collectionGroup('subscription')
+      .where('status', '==', 'active')
+      .get();
+
+    let mrr = 0;
+    const payingOrgIds = new Set<string>();
+
+    subsSnapshot.docs.forEach((doc) => {
+      const data = doc.data() as any;
+      const amount = typeof data.amount === 'number' ? data.amount : Number(data.amount || 0);
+      if (Number.isFinite(amount)) {
+        mrr += amount;
+      }
+      const orgId = extractOrgId(doc.ref.path);
+      if (orgId) payingOrgIds.add(orgId);
+    });
+
+    // Normalize to cents-safe precision (we store USD dollars as a number)
+    mrr = Math.round(mrr * 100) / 100;
+    const arr = Math.round(mrr * 12 * 100) / 100;
+    const arpu = payingOrgIds.size > 0 ? Math.round((mrr / payingOrgIds.size) * 100) / 100 : 0;
+
+    // ======================================================================
+    // RECENT SIGNUPS (Source: Firestore users collection)
+    // ======================================================================
+
     const recentUsersSnap = await firestore.collection('users')
       .limit(50)
       .get();
@@ -590,70 +679,41 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
         id: doc.id,
         name: data.displayName || data.name || 'Unknown',
         email: data.email || 'N/A',
-        plan: data.plan || 'Free',
+        plan: data?.billing?.planId || data.planId || data.plan || 'Free',
         date: data.createdAt?.toDate?.() ? formatDistanceToNow(data.createdAt.toDate(), { addSuffix: true }) : 'N/A',
         role: data.role || 'user'
       };
     });
 
-    // 3. Fetch agent usage from recent logs
-    const logsSnap = await firestore.collection('agent_logs')
-      .orderBy('timestamp', 'desc')
-      .limit(50)
-      .get();
-
-    const agentStats: Record<string, { calls: number; success: number; durationSum: number; costSum: number }> = {};
-    
-    logsSnap.docs.forEach(doc => {
-      const log = doc.data();
-      const name = log.agentName || 'unknown';
-      if (!agentStats[name]) {
-          agentStats[name] = { calls: 0, success: 0, durationSum: 0, costSum: 0 };
-      }
-      agentStats[name].calls++;
-      if (log.status === 'success' || !log.error) agentStats[name].success++;
-      agentStats[name].durationSum += log.durationMs || 0;
-      agentStats[name].costSum += log.estimatedCost || 0;
-    });
-
-    const agentUsage = Object.entries(agentStats).map(([name, stats]) => ({
-      agent: name,
-      calls: stats.calls,
-      avgDuration: stats.calls > 0 ? `${(stats.durationSum / stats.calls / 1000).toFixed(1)}s` : '0s',
-      successRate: stats.calls > 0 ? parseFloat(((stats.success / stats.calls) * 100).toFixed(1)) : 0,
-      costToday: parseFloat(stats.costSum.toFixed(2))
-    }));
-
     return {
       signups: { 
-        today: 0, // Would need daily filtering for exact "today"
-        week: 0, 
-        month: 0, 
-        total: totalUsers, 
-        trend: 0, 
-        trendUp: true 
+        today: signupsToday,
+        week: signupsWeek,
+        month: signupsMonth,
+        total: authUsers.length,
+        trend: signupTrend.trend,
+        trendUp: signupTrend.trendUp
       },
       activeUsers: { 
-        daily: totalUsers > 0 ? Math.ceil(totalUsers * 0.2) : 0, // Placeholder ratio
-        weekly: totalUsers > 0 ? Math.ceil(totalUsers * 0.5) : 0, 
-        monthly: totalUsers, 
-        trend: 0, 
-        trendUp: true 
+        daily: dau,
+        weekly: wau,
+        monthly: mau,
+        trend: activeTrend.trend,
+        trendUp: activeTrend.trendUp
       },
-      retention: { day1: 0, day7: 0, day30: 0, trend: 0, trendUp: true },
+      // Retention requires sign-in history by cohort; not currently tracked.
+      retention: { day1: null, day7: null, day30: null, trend: null, trendUp: null },
       revenue: { 
-        mrr: totalBrands * 99, // Simplified estimate
-        arr: totalBrands * 99 * 12, 
-        arpu: 99, 
-        trend: 0, 
-        trendUp: true 
+        mrr,
+        arr,
+        arpu,
+        trend: null,
+        trendUp: null
       },
-      featureAdoption: [
-          { name: 'AI Chat', usage: 80, trend: 5, status: 'healthy' },
-          { name: 'SEO Pages', usage: totalOrgs > 0 ? 100 : 0, trend: 0, status: 'healthy' }
-      ],
+      // Feature adoption requires product instrumentation; avoid placeholder values.
+      featureAdoption: [],
       recentSignups,
-      agentUsage
+      agentUsage: []
     };
   } catch (error) {
     console.error('Error fetching platform analytics:', error);
@@ -661,8 +721,8 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
     return {
       signups: { today: 0, week: 0, month: 0, total: 0, trend: 0, trendUp: true },
       activeUsers: { daily: 0, weekly: 0, monthly: 0, trend: 0, trendUp: true },
-      retention: { day1: 0, day7: 0, day30: 0, trend: 0, trendUp: true },
-      revenue: { mrr: 0, arr: 0, arpu: 0, trend: 0, trendUp: true },
+      retention: { day1: null, day7: null, day30: null, trend: null, trendUp: null },
+      revenue: { mrr: 0, arr: 0, arpu: 0, trend: null, trendUp: null },
       featureAdoption: [],
       recentSignups: [],
       agentUsage: []

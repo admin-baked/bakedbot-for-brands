@@ -127,9 +127,9 @@ export function useUserRole() {
     const defaultRoute = useMemo(() => {
         if (!role) return '/';
         
-        // Super users go to playbooks
+        // Super users go to the CEO dashboard (production internal workspace)
         if (role === 'super_user' || role === 'super_admin') {
-            return '/dashboard/playbooks';
+            return '/dashboard/ceo?tab=boardroom';
         }
         
         // All brand roles go to dashboard
@@ -152,7 +152,12 @@ export function useUserRole() {
 
     const loginRoute = useMemo(() => {
         if (!role) return '/customer-login';
-        
+
+        // Platform admins have a dedicated login entrypoint
+        if (role === 'super_user' || role === 'super_admin') {
+            return '/super-admin';
+        }
+
         if (isBrandRole(role)) {
             return '/brand-login';
         }

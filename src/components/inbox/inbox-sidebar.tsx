@@ -6,7 +6,7 @@
  * Left sidebar with quick actions, thread filters, and thread list.
  */
 
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState, useCallback } from 'react';
 import {
     Plus,
     Search,
@@ -85,7 +85,27 @@ const QUICK_ACTION_CATEGORIES = {
 };
 
 // Default favorites (most commonly used)
-const DEFAULT_FAVORITES = ['new-carousel', 'new-bundle', 'new-creative', 'new-campaign', 'review-performance', 'customer-blast'];
+function getDefaultFavoritesForRole(role: string | null): string[] {
+    // Super Users: prioritize executive ops + platform growth workflows
+    if (role === 'super_user' || role === 'super_admin' || role === 'owner') {
+        return [
+            'daily-standup',
+            'growth-review',
+            'pipeline-review',
+            'revenue-forecast',
+            'incident-response',
+            'board-update',
+        ];
+    }
+
+    // Customers
+    if (role === 'customer') {
+        return ['find-products', 'my-routines', 'get-help'];
+    }
+
+    // Default (brand/dispensary)
+    return ['new-carousel', 'new-bundle', 'new-creative', 'new-campaign', 'review-performance', 'customer-blast'];
+}
 
 // ============ Props ============
 
@@ -416,6 +436,48 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
 
     const threads = getFilteredThreads();
     const quickActions = getQuickActions();
+    const defaultFavorites = useMemo(() => getDefaultFavoritesForRole(currentRole), [currentRole]);
+    const favoriteQuickActions = useMemo(
+        () => quickActions.filter(action => defaultFavorites.includes(action.id)),
+        [quickActions, defaultFavorites]
+    );
+    const collapsedQuickActions = useMemo(
+        () => (favoriteQuickActions.length > 0 ? favoriteQuickActions.slice(0, 3) : quickActions.slice(0, 3)),
+        [favoriteQuickActions, quickActions]
+    );
+    const favoriteGridActions = useMemo(
+        () => (favoriteQuickActions.length > 0 ? favoriteQuickActions.slice(0, 6) : quickActions.slice(0, 6)),
+        [favoriteQuickActions, quickActions]
+    );
+
+    const handleQuickActionSelect = useCallback((action: InboxQuickAction) => {
+        // Create thread via the action
+        const projectId = threadFilter.projectId && threadFilter.projectId !== 'all'
+            ? threadFilter.projectId
+            : undefined;
+
+        const thread = createThread(action.threadType, {
+            title: action.label,
+            primaryAgent: action.defaultAgent,
+            projectId,
+        });
+
+        markThreadPending(thread.id);
+
+        createInboxThread({
+            id: thread.id,
+            type: action.threadType,
+            title: action.label,
+            primaryAgent: action.defaultAgent,
+            projectId,
+        }).then(result => {
+            if (result.success) {
+                markThreadPersisted(thread.id);
+            } else {
+                deleteThread(thread.id);
+            }
+        });
+    }, [createThread, deleteThread, markThreadPending, markThreadPersisted, threadFilter.projectId]);
 
     // Load quick actions when role changes
     useEffect(() => {
@@ -472,7 +534,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                         >
                             <Plus className="h-4 w-4" />
                         </Button>
-                        {quickActions.slice(0, 3).map((action) => (
+                        {collapsedQuickActions.map((action) => (
                             <QuickActionButton key={action.id} action={action} collapsed />
                         ))}
                     </>
@@ -490,12 +552,9 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
 
                         {/* Favorite Actions (Top 6) */}
                         <div className="grid grid-cols-2 gap-2">
-                            {quickActions
-                                .filter(action => DEFAULT_FAVORITES.includes(action.id))
-                                .slice(0, 6)
-                                .map((action) => (
-                                    <QuickActionButton key={action.id} action={action} />
-                                ))}
+                            {favoriteGridActions.map((action) => (
+                                <QuickActionButton key={action.id} action={action} />
+                            ))}
                         </div>
 
                         {/* More Actions Menu */}
@@ -508,72 +567,86 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="start" className="w-[280px] max-h-[400px] overflow-y-auto">
-                                    {/* Marketing Category */}
-                                    {quickActions.some(a => QUICK_ACTION_CATEGORIES.marketing.includes(a.id)) && (
-                                        <>
-                                            <DropdownMenuLabel className="text-xs">Marketing</DropdownMenuLabel>
-                                            {quickActions
-                                                .filter(a => QUICK_ACTION_CATEGORIES.marketing.includes(a.id) && !DEFAULT_FAVORITES.includes(a.id))
-                                                .map((action) => {
-                                                    const Icon = getIcon(action.icon);
-                                                    return (
-                                                        <DropdownMenuItem key={action.id} className="text-sm" asChild>
-                                                            <button onClick={() => {
-                                                                // Create thread via the action
-                                                                const projectId = threadFilter.projectId && threadFilter.projectId !== 'all'
-                                                                    ? threadFilter.projectId
-                                                                    : undefined;
-                                                                const thread = createThread(action.threadType, {
-                                                                    title: action.label,
-                                                                    primaryAgent: action.defaultAgent,
-                                                                    projectId,
-                                                                });
-                                                                markThreadPending(thread.id);
-                                                                createInboxThread({
-                                                                    id: thread.id,
-                                                                    type: action.threadType,
-                                                                    title: action.label,
-                                                                    primaryAgent: action.defaultAgent,
-                                                                    projectId,
-                                                                }).then(result => {
-                                                                    if (result.success) {
-                                                                        markThreadPersisted(thread.id);
-                                                                    } else {
-                                                                        deleteThread(thread.id);
-                                                                    }
-                                                                });
-                                                            }}>
+                                    {(() => {
+                                        const isSuper = currentRole === 'super_user' || currentRole === 'super_admin' || currentRole === 'owner';
+                                        const isCustomer = currentRole === 'customer';
+
+                                        const orderedCategories: Array<keyof typeof QUICK_ACTION_CATEGORIES> = isCustomer
+                                            ? ['customer']
+                                            : isSuper
+                                                ? ['growth', 'company', 'research', 'marketing', 'operations']
+                                                : ['marketing', 'operations'];
+
+                                        const categorized = new Set<string>();
+                                        Object.values(QUICK_ACTION_CATEGORIES).forEach((ids) => {
+                                            ids.forEach((id) => categorized.add(id));
+                                        });
+
+                                        const blocks: React.ReactNode[] = [];
+
+                                        for (const category of orderedCategories) {
+                                            const actions = quickActions
+                                                .filter(a => QUICK_ACTION_CATEGORIES[category].includes(a.id))
+                                                .filter(a => !defaultFavorites.includes(a.id));
+
+                                            if (actions.length === 0) continue;
+
+                                            blocks.push(
+                                                <React.Fragment key={category}>
+                                                    <DropdownMenuLabel className="text-xs">
+                                                        {category === 'company' ? 'Company Ops' : category.charAt(0).toUpperCase() + category.slice(1)}
+                                                    </DropdownMenuLabel>
+                                                    {actions.map((action) => {
+                                                        const Icon = getIcon(action.icon);
+                                                        return (
+                                                            <DropdownMenuItem
+                                                                key={action.id}
+                                                                className="text-sm"
+                                                                onClick={() => handleQuickActionSelect(action)}
+                                                            >
                                                                 <Icon className="h-4 w-4 mr-2" />
                                                                 {action.label}
-                                                            </button>
-                                                        </DropdownMenuItem>
-                                                    );
-                                                })}
-                                            <DropdownMenuSeparator />
-                                        </>
-                                    )}
+                                                            </DropdownMenuItem>
+                                                        );
+                                                    })}
+                                                    <DropdownMenuSeparator />
+                                                </React.Fragment>
+                                            );
+                                        }
 
-                                    {/* Operations Category */}
-                                    {quickActions.some(a => QUICK_ACTION_CATEGORIES.operations.includes(a.id)) && (
-                                        <>
-                                            <DropdownMenuLabel className="text-xs">Operations</DropdownMenuLabel>
-                                            {quickActions
-                                                .filter(a => QUICK_ACTION_CATEGORIES.operations.includes(a.id) && !DEFAULT_FAVORITES.includes(a.id))
-                                                .map((action) => {
-                                                    const Icon = getIcon(action.icon);
-                                                    return (
-                                                        <DropdownMenuItem key={action.id} className="text-sm">
-                                                            <Icon className="h-4 w-4 mr-2" />
-                                                            {action.label}
-                                                        </DropdownMenuItem>
-                                                    );
-                                                })}
-                                            <DropdownMenuSeparator />
-                                        </>
-                                    )}
+                                        const uncategorized = quickActions
+                                            .filter(a => !categorized.has(a.id))
+                                            .filter(a => !defaultFavorites.includes(a.id));
 
-                                    {/* Other categories would follow similar pattern */}
-                                    {/* For brevity, showing just the structure */}
+                                        if (uncategorized.length > 0) {
+                                            blocks.push(
+                                                <React.Fragment key="other">
+                                                    <DropdownMenuLabel className="text-xs">Other</DropdownMenuLabel>
+                                                    {uncategorized.map((action) => {
+                                                        const Icon = getIcon(action.icon);
+                                                        return (
+                                                            <DropdownMenuItem
+                                                                key={action.id}
+                                                                className="text-sm"
+                                                                onClick={() => handleQuickActionSelect(action)}
+                                                            >
+                                                                <Icon className="h-4 w-4 mr-2" />
+                                                                {action.label}
+                                                            </DropdownMenuItem>
+                                                        );
+                                                    })}
+                                                </React.Fragment>
+                                            );
+                                        }
+
+                                        return blocks.length > 0
+                                            ? blocks
+                                            : (
+                                                <div className="p-4 text-sm text-muted-foreground">
+                                                    No additional actions available.
+                                                </div>
+                                            );
+                                    })()}
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         )}

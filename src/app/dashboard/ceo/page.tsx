@@ -45,9 +45,9 @@ const CostsTab = dynamic(() => import("./components/costs-tab"), { loading: TabL
 const SystemHealthTab = dynamic(() => import("./components/system-health-tab"), { loading: TabLoader, ssr: false });
 
 
-import { useSuperAdmin } from '@/hooks/use-super-admin';
-import { useUser } from '@/firebase/auth/use-user';
-import { Loader2, Shield, ShieldX } from 'lucide-react';
+import { useUserRole } from '@/hooks/use-user-role';
+import { isSuperAdminEmail } from '@/lib/super-admin-config';
+import { Loader2, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
@@ -62,16 +62,19 @@ function CeoDashboardContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const pathname = usePathname();
-    const { isSuperAdmin, isLoading, superAdminEmail, logout } = useSuperAdmin();
-    const { user } = useUser();
+    const { user, isLoading: isAuthLoading, isSuperUser } = useUserRole();
     const { clearCurrentSession } = useAgentChatStore();
+
+    // Server-side layout already enforces `requireSuperUser()`, but we keep
+    // a client-side guard to handle expired sessions / client-only navigation.
+    const canAccessCeo = Boolean(isSuperUser || isSuperAdminEmail(user?.email));
 
     // Sync tabs with URL ?tab=...
     const currentTab = searchParams?.get('tab') || 'boardroom'; // Default to Boardroom
 
     // Clear chat session on mount to prevent leakage from public/customer context
     useEffect(() => {
-        if (isSuperAdmin) {
+        if (canAccessCeo) {
             clearCurrentSession();
             // Hydrate sessions globally on dashboard load
             if (user?.uid) {
@@ -94,16 +97,16 @@ function CeoDashboardContent() {
                 });
             }
         }
-    }, [isSuperAdmin, clearCurrentSession, user]);
+    }, [canAccessCeo, clearCurrentSession, user]);
 
 
 
     // Not authorized - redirect to login
     useEffect(() => {
-        if (!isLoading && !isSuperAdmin) {
+        if (!isAuthLoading && !canAccessCeo) {
             router.push('/super-admin');
         }
-    }, [isLoading, isSuperAdmin, router]);
+    }, [isAuthLoading, canAccessCeo, router]);
 
     // Redirect legacy tabs to unified pages
     useEffect(() => {
@@ -137,7 +140,7 @@ function CeoDashboardContent() {
     }, [currentTab, router]);
 
     // Loading state
-    if (isLoading) {
+    if (isAuthLoading) {
         return (
             <div className="flex min-h-[400px] items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
@@ -148,7 +151,7 @@ function CeoDashboardContent() {
         );
     }
 
-    if (!isSuperAdmin) {
+    if (!canAccessCeo) {
         return null; // Don't render anything while redirecting
     }
 
@@ -207,8 +210,8 @@ function CeoDashboardContent() {
                         <Shield className="h-5 w-5 text-green-600" />
                     </div>
                     <div>
-                        <p className="font-display text-xl font-bold text-green-900">Super Admin Mode</p>
-                        <p className="text-sm text-green-700">{superAdminEmail}</p>
+                        <p className="font-display text-xl font-bold text-green-900">Super User Mode</p>
+                        <p className="text-sm text-green-700">{user?.email || 'Authenticated'}</p>
                     </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
@@ -218,9 +221,6 @@ function CeoDashboardContent() {
                     <DataImportDropdown />
                     <MockDataToggle />
                     <RoleSwitcher />
-                    <Button variant="outline" size="sm" onClick={logout}>
-                        Logout
-                    </Button>
                 </div>
             </div>
 

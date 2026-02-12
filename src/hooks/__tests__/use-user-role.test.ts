@@ -141,6 +141,16 @@ describe('useUserRole', () => {
             const { result } = renderHook(() => useUserRole());
             expect(result.current.loginRoute).toBe('/customer-login');
         });
+
+        it('returns /super-admin for super_user role', () => {
+            (useUser as jest.Mock).mockReturnValue({
+                user: { role: 'super_user', email: 'admin@example.com' },
+                isUserLoading: false,
+            });
+
+            const { result } = renderHook(() => useUserRole());
+            expect(result.current.loginRoute).toBe('/super-admin');
+        });
     });
 
     describe('defaultRoute', () => {
@@ -154,14 +164,14 @@ describe('useUserRole', () => {
             expect(result.current.defaultRoute).toBe('/');
         });
 
-        it('returns /dashboard/playbooks for super_user', () => {
+        it('returns /dashboard/ceo?tab=boardroom for super_user', () => {
             (useUser as jest.Mock).mockReturnValue({
                 user: { role: 'super_user', email: 'admin@example.com' },
                 isUserLoading: false,
             });
 
             const { result } = renderHook(() => useUserRole());
-            expect(result.current.defaultRoute).toBe('/dashboard/playbooks');
+            expect(result.current.defaultRoute).toBe('/dashboard/ceo?tab=boardroom');
         });
 
         it('returns /dashboard for brand roles', () => {
