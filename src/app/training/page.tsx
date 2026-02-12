@@ -25,6 +25,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Spinner } from '@/components/ui/spinner';
 import { GraduationCap, Code, Zap, Users, CheckCircle2 } from 'lucide-react';
 import { logger } from '@/lib/logger';
+import { selfEnrollInTraining } from '@/server/actions/training';
 
 export default function TrainingLandingPage() {
     const router = useRouter();
@@ -40,7 +41,7 @@ export default function TrainingLandingPage() {
 
     const toggleMode = () => setMode(mode === 'signin' ? 'signup' : 'signin');
 
-    const handleAuthSuccess = async (userCredential: UserCredential) => {
+    const handleAuthSuccess = async (userCredential: UserCredential, isNewUser = false) => {
         try {
             // Create server session
             const idToken = await userCredential.user.getIdToken(true);
@@ -59,26 +60,61 @@ export default function TrainingLandingPage() {
 
             // Get user role
             const idTokenResult = await userCredential.user.getIdTokenResult(true);
-            const role = idTokenResult.claims.role as string | undefined;
+            let role = idTokenResult.claims.role as string | undefined;
 
-            logger.info('Training Login Success', { role, uid: userCredential.user.uid });
+            logger.info('Training Login Success', { role, uid: userCredential.user.uid, isNewUser });
+
+            // Auto-enroll new users or users without a role
+            if (isNewUser || !role) {
+                logger.info('Auto-enrolling user in training', { uid: userCredential.user.uid });
+
+                toast({
+                    title: "Setting up your account...",
+                    description: "Enrolling you in the training program",
+                });
+
+                const enrollResult = await selfEnrollInTraining(userCredential.user.uid);
+
+                if (!enrollResult.success) {
+                    logger.error('Auto-enrollment failed', { error: enrollResult.error });
+                    toast({
+                        variant: 'destructive',
+                        title: "Enrollment Failed",
+                        description: enrollResult.error,
+                    });
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Force token refresh to get new custom claims
+                await userCredential.user.getIdToken(true);
+                const updatedToken = await userCredential.user.getIdTokenResult(true);
+                role = updatedToken.claims.role as string | undefined;
+
+                logger.info('Auto-enrollment completed', {
+                    uid: userCredential.user.uid,
+                    cohortId: enrollResult.data.cohortId,
+                    newRole: role,
+                });
+
+                toast({
+                    title: "Welcome to BakedBot Training!",
+                    description: "You've been enrolled in the bootcamp. Let's get started!",
+                    duration: 3000,
+                });
+
+                // Wait a bit for token propagation
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
 
             // Route based on role
             if (role === 'intern' || role === 'super_user') {
                 window.location.href = '/dashboard/training';
-            } else if (!role) {
-                // New user without role - they need to contact admin to be enrolled
-                toast({
-                    title: "Account Created",
-                    description: "Please contact your administrator to enroll in the training program.",
-                    duration: 5000
-                });
-                window.location.href = '/dashboard';
             } else {
-                // User has different role
+                // Fallback - shouldn't happen after auto-enrollment
                 toast({
                     title: "Access Required",
-                    description: "Training access requires intern role. Contact your administrator.",
+                    description: "Training access requires intern role. Please sign out and back in.",
                     variant: "destructive",
                     duration: 5000
                 });
@@ -112,9 +148,11 @@ export default function TrainingLandingPage() {
 
         try {
             let cred: UserCredential;
+            let isNewUser = false;
 
             if (mode === 'signup') {
                 cred = await createUserWithEmailAndPassword(auth, email, password);
+                isNewUser = true;
                 toast({
                     title: "Account Created",
                     description: "Welcome to BakedBot Builder Bootcamp!"
@@ -127,7 +165,7 @@ export default function TrainingLandingPage() {
                 });
             }
 
-            await handleAuthSuccess(cred);
+            await handleAuthSuccess(cred, isNewUser);
         } catch (error: any) {
             logger.error('Training auth error', error);
 
@@ -136,7 +174,7 @@ export default function TrainingLandingPage() {
                 try {
                     const cred = await signInWithEmailAndPassword(auth, email, password);
                     toast({ title: "Account Exists", description: "Logged you in instead!" });
-                    await handleAuthSuccess(cred);
+                    await handleAuthSuccess(cred, false);
                     return;
                 } catch (loginErr) {
                     // Password didn't match
@@ -159,7 +197,9 @@ export default function TrainingLandingPage() {
 
         try {
             const result = await signInWithPopup(auth, provider);
-            await handleAuthSuccess(result);
+            // Check if this is a new user via the result metadata
+            const isNewUser = (result as any)._tokenResponse?.isNewUser || false;
+            await handleAuthSuccess(result, isNewUser);
         } catch (error: any) {
             if (error.code !== 'auth/popup-closed-by-user') {
                 toast({ variant: 'destructive', title: "Google Sign-In Failed", description: error.message });
