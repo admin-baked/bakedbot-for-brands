@@ -2,11 +2,9 @@
  * System Health Monitoring Types
  *
  * Types for tracking Firebase App Hosting runtime metrics:
- * - Memory usage
- * - CPU utilization
- * - Instance count
- * - Request latency
- * - Error rates
+ * - Memory usage, CPU utilization
+ * - Instance count, Request latency, Error rates
+ * - Custom alert thresholds, comparison mode, export
  */
 
 export interface SystemHealthMetrics {
@@ -40,6 +38,9 @@ export interface SystemHealthMetrics {
   deploymentStatus: 'healthy' | 'degraded' | 'unhealthy';
   lastDeployment: Date | null;
   currentVersion: string | null;
+
+  // Data source
+  source: 'gcp' | 'simulated';
 }
 
 export interface SystemHealthTimeseries {
@@ -54,6 +55,7 @@ export interface SystemHealthSummary {
   current: SystemHealthMetrics;
   timeseries: SystemHealthTimeseries[];
   alerts: SystemHealthAlert[];
+  comparison?: SystemHealthComparison;
 }
 
 export interface SystemHealthAlert {
@@ -65,7 +67,51 @@ export interface SystemHealthAlert {
   resolved: boolean;
 }
 
-// Thresholds for alerts
+// Comparison mode: current period vs previous period
+export interface SystemHealthComparison {
+  currentPeriod: {
+    start: Date;
+    end: Date;
+    avgMemory: number;
+    avgCpu: number;
+    avgRequests: number;
+    avgErrorRate: number;
+    avgLatency: number;
+  };
+  previousPeriod: {
+    start: Date;
+    end: Date;
+    avgMemory: number;
+    avgCpu: number;
+    avgRequests: number;
+    avgErrorRate: number;
+    avgLatency: number;
+  };
+  changes: {
+    memory: number;   // +/- percentage change
+    cpu: number;
+    requests: number;
+    errorRate: number;
+    latency: number;
+  };
+}
+
+// Custom alert threshold configuration (stored in Firestore)
+export interface AlertThresholdConfig {
+  memory: { warning: number; critical: number };
+  cpu: { warning: number; critical: number };
+  latency: { warning: number; critical: number };
+  errorRate: { warning: number; critical: number };
+  notifications: {
+    email: boolean;
+    emailRecipients: string[];
+    dashboard: boolean;
+  };
+  updatedAt: Date;
+  updatedBy: string;
+}
+
+// Default thresholds
 export const HEALTH_THRESHOLDS = {
   memory: {
     warning: 70, // %
@@ -84,3 +130,15 @@ export const HEALTH_THRESHOLDS = {
     critical: 5, // %
   },
 } as const;
+
+// CSV export row
+export interface MetricsExportRow {
+  timestamp: string;
+  memoryUsagePercent: number;
+  cpuUsagePercent: number;
+  requestsPerSecond: number;
+  errorRate: number;
+  avgLatencyMs?: number;
+  p95LatencyMs?: number;
+  instanceCount?: number;
+}

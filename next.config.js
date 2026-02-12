@@ -57,6 +57,7 @@ const nextConfig = {
     '@opentelemetry/sdk-node',
     '@opentelemetry/instrumentation',
     'google-auth-library',
+    '@google-cloud/monitoring',
     'fs',
     'path',
     'os',
