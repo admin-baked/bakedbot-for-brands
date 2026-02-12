@@ -266,4 +266,4 @@ runConfig:
 
 build:
   installCommand: npm install --legacy-peer-deps
-  buildCommand: npm run build:embed && npm run check:structure && next build --no-turbopack
+  buildCommand: npm run build:embed && npm run check:structure && next build
