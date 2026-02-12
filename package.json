@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npm run build:embed && npm run check:structure && next build --no-turbopack",
+    "build": "npm run build:embed && npm run check:structure && next build",
     "build:embed": "tsup",
     "start": "next start",
     "lint": "next lint",
