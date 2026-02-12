@@ -70,8 +70,6 @@ const nextConfig = {
   experimental: {
     // Reduce webpack memory usage during builds (helps avoid OOM on Firebase App Hosting)
     webpackMemoryOptimizations: true,
-    // Explicitly disable Turbopack - use webpack for stable, memory-efficient builds
-    turbo: false,
   },
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';

@@ -10,6 +10,10 @@ env:
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"
     availability: [ BUILD ]
+  # Disable Turbopack - use stable webpack bundler for production builds
+  - variable: TURBOPACK
+    value: "0"
+    availability: [ BUILD ]
   # Runtime memory allocation - can be higher since we control runtime resources
   - variable: NODE_OPTIONS
     value: "--max-old-space-size=24576"
