@@ -205,14 +205,14 @@ export const articles: Record<string, HelpArticleMeta> = {
   'marketing/campaigns': {
     slug: 'campaigns',
     category: 'marketing',
-    title: 'Creating Marketing Campaigns',
-    description: 'Launch SMS, email, and social media campaigns from planning to execution',
-    roles: ['brand', 'super_user'],
-    tags: ['marketing', 'campaigns', 'sms', 'email', 'social-media', 'craig'],
-    difficulty: 'beginner',
-    estimatedTime: '15 minutes',
+    title: 'Campaign Management Dashboard',
+    description: 'Create, manage, and track SMS and email campaigns with AI-powered content, CRM segment targeting, and compliance review',
+    roles: ['brand', 'super_user', 'dispensary_admin'],
+    tags: ['marketing', 'campaigns', 'sms', 'email', 'craig', 'deebo', 'compliance', 'crm', 'segments'],
+    difficulty: 'intermediate',
+    estimatedTime: '20 minutes',
     filePath: './marketing/campaigns.mdx',
-    lastUpdated: '2026-02-05',
+    lastUpdated: '2026-02-12',
     author: 'BakedBot Team',
   },
 
@@ -888,7 +888,49 @@ export const articles: Record<string, HelpArticleMeta> = {
     author: 'BakedBot Team',
   },
 
-  // 🎉 63 articles complete!
+  'dispensary/agent-notifications': {
+    slug: 'agent-notifications',
+    category: 'dispensary',
+    title: 'Agent Notifications',
+    description: 'Proactive AI agent alerts for campaigns, pricing, compliance, CRM events, and more',
+    roles: ['brand', 'super_user', 'dispensary_admin'],
+    tags: ['dispensary', 'notifications', 'agents', 'alerts', 'campaigns', 'compliance', 'crm'],
+    difficulty: 'beginner',
+    estimatedTime: '12 minutes',
+    filePath: './dispensary/agent-notifications.mdx',
+    lastUpdated: '2026-02-12',
+    author: 'BakedBot Team',
+  },
+
+  'dispensary/crm-intelligence': {
+    slug: 'crm-intelligence',
+    category: 'dispensary',
+    title: 'CRM Customer Intelligence',
+    description: 'Inline customer cards, segment analysis, and CRM tools in agent conversations',
+    roles: ['brand', 'super_user', 'dispensary_admin'],
+    tags: ['dispensary', 'crm', 'customers', 'segments', 'intelligence', 'agents', 'rfm'],
+    difficulty: 'intermediate',
+    estimatedTime: '15 minutes',
+    filePath: './dispensary/crm-intelligence.mdx',
+    lastUpdated: '2026-02-12',
+    author: 'BakedBot Team',
+  },
+
+  'dispensary/approval-queue': {
+    slug: 'approval-queue',
+    category: 'dispensary',
+    title: 'Approval Queue',
+    description: 'Review, approve, or reject agent-generated campaigns and content before they go live',
+    roles: ['brand', 'super_user', 'dispensary_admin'],
+    tags: ['dispensary', 'approvals', 'campaigns', 'compliance', 'review', 'workflow'],
+    difficulty: 'beginner',
+    estimatedTime: '10 minutes',
+    filePath: './dispensary/approval-queue.mdx',
+    lastUpdated: '2026-02-12',
+    author: 'BakedBot Team',
+  },
+
+  // 🎉 66 articles complete!
 };
 
 /**

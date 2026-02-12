@@ -1,0 +1,467 @@
+# CRM Customer Intelligence
+
+Bring your entire customer database into every agent conversation. BakedBot's CRM Intelligence gives your agents real-time access to customer profiles, segments, communication history, and behavioral data -- so you never have to leave the chat to look up a customer.
+
+## What is CRM Intelligence?
+
+Instead of switching between dashboards, spreadsheets, and your POS system, you can ask any BakedBot agent about your customers and get rich, interactive results right in the conversation. Agents can look up individual customers, analyze segment health, identify at-risk accounts, find upcoming birthdays, and pull communication logs -- all through natural language.
+
+<Callout type="tip">
+**Think of it this way:** CRM Intelligence turns every agent into a customer expert. Ask Craig about your VIPs before planning a campaign. Ask Mrs. Parker which customers are slipping. Ask Smokey about a customer's purchase history before making a recommendation.
+</Callout>
+
+## CRM Tools Available to Agents
+
+Agents have access to five powerful CRM tools they can call during any conversation. Each tool returns structured data that renders as an interactive card in the chat.
+
+| Tool | What It Does | Available To |
+|------|-------------|-------------|
+| `lookupCustomer` | Find a customer by name, email, or phone. Returns full profile with segment, LTV, order history, loyalty info, and tags. | All agents |
+| `getSegmentSummary` | Get a breakdown of all customer segments with counts, average spend, and average LTV per segment. | Craig, Mrs. Parker, Pops |
+| `getAtRiskCustomers` | Find customers who have not ordered in 30+ days, sorted by lifetime value (highest first). | Mrs. Parker, Craig |
+| `getUpcomingBirthdays` | List customers with birthdays in the next N days, with their profile and contact info. | Craig, Mrs. Parker |
+| `getCustomerCommunications` | View the full communication history for a specific customer -- emails, SMS, calls, and agent interactions. | All agents |
+
+<Callout type="info">
+**Agent access is intentional.** Not every agent needs every tool. Smokey (the budtender) can look up a customer to personalize recommendations but does not need segment analytics. Craig (marketing) and Mrs. Parker (retention) have the full suite because their work depends on audience data.
+</Callout>
+
+## Inline Customer Cards
+
+When an agent looks up a customer, a rich **Customer Context Card** appears directly in the chat thread. This is not a link to another page -- it is a fully rendered card with actionable data.
+
+### What the Customer Card Shows
+
+**Header Section:**
+- Avatar with the customer's initials
+- Full name and email address
+- Segment badge with color coding (see Segments section below)
+
+**Metrics Grid:**
+
+| Metric | Description |
+|--------|-------------|
+| **LTV** | Total lifetime spend across all orders |
+| **Orders** | Total number of completed orders |
+| **AOV** | Average order value (LTV / Orders) |
+| **Last Visit** | Date of most recent purchase |
+
+**Additional Context:**
+- Loyalty tier and current points balance
+- Days inactive (color-coded for urgency)
+- Custom tags applied to the customer
+- Direct link to the full customer detail page
+
+### Days Inactive Color Coding
+
+The days-inactive indicator uses color to communicate urgency at a glance:
+
+| Days Inactive | Color | Meaning |
+|---------------|-------|---------|
+| 0-30 days | Green | Active customer, no action needed |
+| 31-60 days | Orange | Starting to slip, consider outreach |
+| 61+ days | Red | At risk or churned, immediate action recommended |
+
+**Example card layout:**
+```
++-----------------------------------------------+
+| [JD]  John Doe                                |
+|       john@email.com            [VIP] purple  |
+|-----------------------------------------------|
+|  LTV        Orders     AOV      Last Visit    |
+|  $3,240     42         $77.14   Feb 8, 2026   |
+|-----------------------------------------------|
+|  Loyalty: Gold Tier | 2,450 pts               |
+|  Inactive: 4 days                             |
+|  Tags: flower-lover, weekly-buyer, referred   |
+|                                               |
+|  [View Profile]                               |
++-----------------------------------------------+
+```
+
+## Inline Segment Summary Cards
+
+When an agent analyzes your customer segments, a **Segment Summary Card** renders in the chat with a visual distribution breakdown.
+
+### What the Segment Summary Shows
+
+**Header:**
+- Total customer count across all segments
+
+**Per-Segment Breakdown:**
+- Segment name with its assigned color
+- Horizontal bar showing relative size
+- Customer count and percentage of total
+- Average spend for customers in that segment
+
+**Example card layout:**
+```
+Customer Segments (2,847 total)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+VIP          ████░░░░░░░░░░░░   152 (5.3%)   Avg: $3,240
+Loyal        ████████░░░░░░░░   421 (14.8%)  Avg: $1,680
+Frequent     ██████░░░░░░░░░░   340 (11.9%)  Avg: $920
+High Value   ███░░░░░░░░░░░░░   87 (3.1%)    Avg: $2,450
+New          ████░░░░░░░░░░░░   198 (7.0%)   Avg: $85
+At Risk      █████░░░░░░░░░░░   287 (10.1%)  Avg: $1,120
+Slipping     ██████░░░░░░░░░░   382 (13.4%)  Avg: $640
+Churned      ██████████░░░░░░   980 (34.4%)  Avg: $310
+```
+
+<Callout type="tip">
+**Quick health check:** If your Churned segment is larger than your combined VIP + Loyal + Frequent segments, it is time to invest in win-back campaigns. Ask Craig: "Plan a win-back campaign for our churned customers."
+</Callout>
+
+## The 8 Customer Segments
+
+BakedBot uses **RFM analysis** (Recency, Frequency, Monetary) to automatically classify every customer into one of eight segments. Segments update dynamically as new orders come in -- a customer who was "Loyal" last month can become "Slipping" if they stop purchasing.
+
+| Segment | Color | Description | Typical Behavior |
+|---------|-------|-------------|-----------------|
+| **VIP** | Purple | Highest-value customers with frequent, recent purchases | Top 5% by spend, orders weekly or bi-weekly |
+| **Loyal** | Green | Consistent purchasing pattern over time | Regular cadence, reliable spend, low churn risk |
+| **New** | Blue | First purchase within the last 30 days | Still in onboarding window, high potential |
+| **At Risk** | Red | Previously active but declining in frequency | Used to order regularly, gap growing |
+| **Slipping** | Orange | Early signs of decreased engagement | Fewer orders or lower spend than usual |
+| **Churned** | Gray | No purchase in 60+ days | May need aggressive win-back or may be lost |
+| **High Value** | Yellow | Large transaction amounts, may be infrequent | Big spenders who do not come often |
+| **Frequent** | Teal | Regular purchase cadence with moderate spend | Comes often, smaller basket size |
+
+### How RFM Scoring Works
+
+Each customer is scored on three dimensions:
+
+```
+Recency (R):    How recently did they purchase?
+                Score 1-5 (5 = purchased this week)
+
+Frequency (F):  How often do they purchase?
+                Score 1-5 (5 = multiple times per week)
+
+Monetary (M):   How much do they spend?
+                Score 1-5 (5 = top spending tier)
+```
+
+**Segment mapping from RFM scores:**
+
+| Segment | R Score | F Score | M Score |
+|---------|---------|---------|---------|
+| VIP | 5 | 4-5 | 4-5 |
+| Loyal | 4-5 | 3-5 | 3-5 |
+| Frequent | 4-5 | 4-5 | 1-3 |
+| High Value | 3-5 | 1-3 | 4-5 |
+| New | 5 | 1 | 1-5 |
+| Slipping | 2-3 | 2-4 | 2-4 |
+| At Risk | 1-2 | 3-5 | 3-5 |
+| Churned | 1 | 1-2 | 1-3 |
+
+<Callout type="info">
+**Segments are automatic.** You do not need to manually assign customers to segments. BakedBot recalculates RFM scores as new order data arrives from your POS system and updates segment assignments accordingly.
+</Callout>
+
+## How to Use CRM Intelligence in Chat
+
+CRM Intelligence works through natural language. You do not need to memorize tool names or special syntax -- just ask your agent what you want to know.
+
+### 1. Look Up a Specific Customer
+
+**What to say:**
+```
+"Who is John Smith?"
+"Look up customer john@email.com"
+"Find the customer with phone 315-555-1234"
+"Pull up Sarah's profile"
+```
+
+**What happens:** The agent calls `lookupCustomer`, searches by name, email, or phone, and returns an inline Customer Context Card with the full profile.
+
+### 2. Analyze Customer Segments
+
+**What to say:**
+```
+"Show me our customer segments"
+"How are our customers distributed?"
+"What does our segment breakdown look like?"
+"Give me a segment health report"
+```
+
+**What happens:** The agent calls `getSegmentSummary` and returns a Segment Summary Card with counts, percentages, and average spend per segment.
+
+### 3. Find At-Risk Customers
+
+**What to say:**
+```
+"Who are our at-risk customers?"
+"Which VIPs haven't ordered recently?"
+"Show me customers we're about to lose"
+"List high-value customers who are slipping"
+```
+
+**What happens:** The agent calls `getAtRiskCustomers`, returns a list sorted by lifetime value (highest first), so you focus retention efforts on the customers who matter most.
+
+### 4. Birthday Marketing
+
+**What to say:**
+```
+"Who has birthdays this week?"
+"Show upcoming birthdays for the next 7 days"
+"Any customer birthdays in February?"
+"List birthdays coming up in the next 14 days"
+```
+
+**What happens:** The agent calls `getUpcomingBirthdays` with the requested time window and returns a list of customers with upcoming birthdays, including their profile data and contact information.
+
+<Callout type="tip">
+**Pro move:** After getting the birthday list, follow up immediately with "Create a birthday offer campaign for these customers." Craig will draft the campaign using the birthday list as the audience.
+</Callout>
+
+### 5. Communication History
+
+**What to say:**
+```
+"Show me all communications with Jane Doe"
+"What emails did we send to this customer?"
+"Pull up the message history for john@email.com"
+"When was the last time we contacted Sarah?"
+```
+
+**What happens:** The agent calls `getCustomerCommunications` and returns a chronological log of all emails, SMS messages, calls, and agent interactions for that customer.
+
+## CRM + Campaign Integration
+
+CRM Intelligence is most powerful when combined with campaign creation. Here is a typical workflow:
+
+### Step 1: Identify the Audience
+
+Ask Craig or Mrs. Parker to surface a specific customer group:
+
+```
+You: "Who are our at-risk customers with LTV over $500?"
+
+Craig: [Returns at-risk customer list with cards]
+       "I found 43 at-risk customers with LTV over $500.
+        Their combined lifetime value is $48,200.
+        Average days inactive: 47."
+```
+
+### Step 2: Review the Data
+
+Examine the returned cards. Each customer card shows their segment, spend history, last visit, and loyalty status -- everything you need to decide on a campaign approach.
+
+### Step 3: Create the Campaign
+
+Follow up in the same conversation:
+
+```
+You: "Create a win-back campaign for these customers.
+      Offer 20% off their next order, emphasize that
+      we miss them."
+
+Craig: [Drafts campaign with audience pre-filled]
+       "Here's the draft win-back campaign:
+        - Audience: 43 at-risk customers (LTV > $500)
+        - Channel: SMS + Email
+        - Offer: 20% off next order
+        - Subject: 'We miss you, {{firstName}}!'
+        - Estimated reach: 43 customers
+        - Estimated redemption: 28% based on segment data"
+```
+
+### Step 4: Personalize with Variables
+
+Craig automatically uses customer data to personalize campaigns. The CRM data feeds directly into message templates.
+
+## Personalization Variables
+
+Campaigns and agent responses can use these customer data variables. They are automatically populated from the CRM when a campaign sends.
+
+| Variable | Description | Example Value |
+|----------|-------------|---------------|
+| `{{firstName}}` | Customer's first name | Sarah |
+| `{{lastName}}` | Customer's last name | Mitchell |
+| `{{segment}}` | Current segment assignment | VIP |
+| `{{totalSpent}}` | Lifetime value (total spent) | $3,240.00 |
+| `{{orderCount}}` | Total completed orders | 42 |
+| `{{lastOrderDate}}` | Date of most recent purchase | Feb 8, 2026 |
+| `{{loyaltyPoints}}` | Current loyalty points balance | 2,450 |
+| `{{loyaltyTier}}` | Current loyalty tier | Gold |
+
+**Example personalized message:**
+```
+Hi {{firstName}},
+
+As one of our {{segment}} customers with {{orderCount}} orders,
+we wanted to give you early access to our new Purple Punch drop.
+
+Your {{loyaltyTier}} tier gets 24-hour priority ordering.
+You have {{loyaltyPoints}} points -- redeem them at checkout!
+
+Shop now: [link]
+```
+
+<Callout type="warning">
+**Always preview before sending.** Variables that do not resolve (for example, a customer missing a loyalty tier) will render as empty strings. Use Craig's campaign preview feature to catch these before launch.
+</Callout>
+
+## Agent-Specific CRM Use Cases
+
+Different agents use CRM data differently. Here is how each agent leverages customer intelligence.
+
+### Smokey (Budtender)
+
+Smokey uses `lookupCustomer` to personalize product recommendations:
+
+```
+Customer: "What should I try?"
+
+Smokey: [Looks up customer by session context]
+        "Based on your profile, you've ordered Blue Dream
+         and Sour Diesel 12 times. You clearly like
+         uplifting Sativas. Try our new Jack Herer --
+         similar terpene profile, on sale this week."
+```
+
+### Craig (Marketing)
+
+Craig uses the full CRM toolkit to plan data-driven campaigns:
+
+```
+You: "Plan this week's marketing"
+
+Craig: [Calls getSegmentSummary, getAtRiskCustomers, getUpcomingBirthdays]
+       "Here's my recommended plan:
+        - 23 at-risk customers need a win-back email (Tuesday)
+        - 8 birthdays this week need offers (send today)
+        - VIP segment grew 3% -- send them a thank-you (Thursday)
+        - New customer onboarding: 14 customers in Day 3 (auto-send)"
+```
+
+### Mrs. Parker (Retention)
+
+Mrs. Parker focuses on preventing churn and growing customer value:
+
+```
+You: "How's retention looking this month?"
+
+Mrs. Parker: [Calls getSegmentSummary, getAtRiskCustomers]
+             "Retention alert: At-risk segment grew 12% this month.
+              47 customers moved from Loyal to Slipping.
+              Top 5 at-risk by LTV: [customer cards]
+              Recommendation: Launch win-back campaign within 48 hours."
+```
+
+### Pops (Operations)
+
+Pops uses segment data for staffing and inventory decisions:
+
+```
+You: "Should we extend hours on Saturdays?"
+
+Pops: [Calls getSegmentSummary]
+      "Your VIP and Frequent segments (492 customers)
+       account for 68% of revenue. Their peak visit
+       times are Saturday 4-7pm. Extending to 9pm
+       could capture an estimated $2,400/week in
+       additional revenue from these segments."
+```
+
+## Best Practices
+
+### Weekly CRM Check-ins
+
+Build a habit of asking your agents about customer health regularly:
+
+**Monday:** "Mrs. Parker, how are our segments trending?"
+- Spot changes in segment distribution early
+- Catch growing at-risk numbers before they become churn
+
+**Wednesday:** "Craig, who has birthdays this week?"
+- Never miss a birthday opportunity
+- Plan offers with enough lead time
+
+**Friday:** "Show me our top 10 VIPs by recent activity"
+- Ensure your highest-value customers are being served
+- Identify VIPs who might be slipping
+
+<Callout type="tip">
+**Automate with Playbooks.** Instead of asking manually each week, set up a playbook that runs these checks on a schedule and sends you the results via email or dashboard notification. Go to **Dashboard → Playbooks → Create** to set this up.
+</Callout>
+
+### Act on At-Risk Alerts Immediately
+
+When the at-risk customer count grows:
+
+1. Ask Mrs. Parker for the at-risk list sorted by LTV
+2. Review the top 10-20 highest-value at-risk customers
+3. Ask Craig to create a win-back campaign immediately
+4. Set up a 3-touch sequence: Day 0 (offer), Day 5 (reminder), Day 10 (last chance)
+5. After 2 weeks, check if those customers moved back to Active or Loyal
+
+### Birthday Automation
+
+Set up a playbook to automate birthday outreach:
+
+1. **Trigger:** 3 days before customer birthday
+2. **Action:** Send personalized offer (20% off or bonus loyalty points)
+3. **Channel:** Email + SMS for best reach
+4. **Follow-up:** Day-of birthday message (no offer, just warm wishes)
+
+### Combine CRM with Competitive Intel
+
+Use segment data alongside Ezal's competitive intelligence:
+
+```
+You: "Ezal, what are competitors offering for win-back campaigns?"
+
+Ezal: [Returns competitor analysis]
+
+You: "Craig, create a win-back campaign for our at-risk customers
+      that beats what [competitor] is offering."
+
+Craig: [Uses CRM at-risk data + competitive intel to draft campaign]
+```
+
+### Track Segment Migration
+
+After running campaigns, measure their impact on segments:
+
+1. Note segment counts before the campaign
+2. Run the campaign targeting specific segments
+3. Wait 2-4 weeks for behavior changes
+4. Ask: "Show me segment summary" and compare
+5. Look for movement: At Risk to Loyal, Slipping to Frequent, etc.
+
+## Frequently Asked Questions
+
+**Q: How often do customer segments update?**
+A: Segments recalculate whenever new order data syncs from your POS. For most dispensaries, this means updates within minutes of a completed sale.
+
+**Q: Can I create custom segments beyond the 8 defaults?**
+A: The 8 RFM-based segments are automatic. For custom segments (e.g., "Sativa lovers who spend over $100/visit"), use the Customer Segmentation tools in your dashboard. See [Customer Segmentation](/help/dispensary/customer-segmentation) for details.
+
+**Q: What if a customer appears in the wrong segment?**
+A: Segments are data-driven. If a customer seems miscategorized, check their order history in the POS. The most common cause is missing order data (sync issues). See [POS Sync Problems](/help/troubleshooting/pos-sync-problems) for troubleshooting.
+
+**Q: Do CRM tools work with all POS integrations?**
+A: Yes. CRM Intelligence works with Alleaves, Dutchie, Jane, and all supported POS integrations. Customer data is normalized before segmentation regardless of the source.
+
+**Q: Can I export the at-risk customer list?**
+A: Ask your agent: "Export the at-risk customer list as CSV." The agent will generate a downloadable file with all customer details.
+
+**Q: Is customer data shared between agents?**
+A: Yes. All agents share the same customer database. When Smokey looks up a customer, he sees the same profile Craig would see. Segment assignments, loyalty data, and communication history are consistent across all agents.
+
+<Callout type="warning">
+**Privacy note:** CRM data is scoped to your organization. Agents can only access customers belonging to your tenant. Customer PII (email, phone, name) is never shared across organizations or used to train AI models.
+</Callout>
+
+## Next Steps
+
+- [Customer Segmentation](/help/dispensary/customer-segmentation) - Deep dive into creating custom segments
+- [Loyalty Program Setup](/help/dispensary/loyalty-program) - Configure points, tiers, and rewards
+- [Mrs. Parker - Customer Retention](/help/agents/mrs-parker) - AI-powered retention strategies
+- [Craig - Marketing Agent](/help/agents/craig) - Data-driven campaign creation
+- [Marketing Campaigns](/help/marketing/campaigns) - Launch targeted campaigns using CRM data
+
+<ArticleRating articleId="dispensary-crm-intelligence" />
