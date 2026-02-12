@@ -9,7 +9,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2, Plus, Eye, Copy, Trash2, Search } from 'lucide-react';
+import { Loader2, Plus, Eye, Copy, Trash2, Search, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -189,6 +189,10 @@ export default function ProjectsPage() {
     setDeleteDialogOpen(true);
   };
 
+  const handleSubmitTemplate = (projectId: string) => {
+    router.push(`/vibe/builder/submit-template?projectId=${projectId}`);
+  };
+
   // Filter projects by search query
   const filteredProjects = projects.filter((project) =>
     project.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -333,33 +337,44 @@ export default function ProjectsPage() {
                     {new Date(project.updatedAt).toLocaleDateString()}
                   </CardDescription>
                 </CardHeader>
-                <CardFooter className="mt-auto flex gap-2">
+                <CardFooter className="mt-auto flex flex-col gap-2">
+                  <div className="flex gap-2 w-full">
+                    <Button
+                      onClick={() => handleEditProject(project.id)}
+                      className="flex-1"
+                      size="sm"
+                    >
+                      <Eye className="w-4 h-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={() => handleDuplicateProject(project.id)}
+                      variant="outline"
+                      size="sm"
+                      disabled={duplicating === project.id}
+                    >
+                      {duplicating === project.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => openDeleteDialog(project.id)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
                   <Button
-                    onClick={() => handleEditProject(project.id)}
-                    className="flex-1"
+                    onClick={() => handleSubmitTemplate(project.id)}
+                    variant="secondary"
                     size="sm"
+                    className="w-full gap-1"
                   >
-                    <Eye className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
-                  <Button
-                    onClick={() => handleDuplicateProject(project.id)}
-                    variant="outline"
-                    size="sm"
-                    disabled={duplicating === project.id}
-                  >
-                    {duplicating === project.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </Button>
-                  <Button
-                    onClick={() => openDeleteDialog(project.id)}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Trash2 className="w-4 h-4 text-destructive" />
+                    <Upload className="w-3 h-3" />
+                    Submit as Template
                   </Button>
                 </CardFooter>
               </Card>
