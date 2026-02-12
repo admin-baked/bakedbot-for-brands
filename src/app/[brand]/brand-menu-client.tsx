@@ -683,6 +683,8 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
             // For dispensary, just close cart - they order in-store
           }}
           primaryColor={primaryColor}
+          orgId={brand.id}
+          onAddUpsellToCart={(product) => handleAddToCart(product, 1)}
         />
 
         {/* Product Detail Modal */}
@@ -694,6 +696,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           onFavorite={toggleFavorite}
           isFavorite={selectedProduct ? favorites.has(selectedProduct.id) : false}
           primaryColor={primaryColor}
+          orgId={brand.id}
         />
 
         {/* Smokey AI Chatbot */}
@@ -1013,6 +1016,8 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           }
         }}
         primaryColor={primaryColor}
+        orgId={brand.id}
+        onAddUpsellToCart={(product) => handleAddToCart(product, 1)}
       />
 
       {/* Product Detail Modal */}
@@ -1024,6 +1029,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         onFavorite={toggleFavorite}
         isFavorite={selectedProduct ? favorites.has(selectedProduct.id) : false}
         primaryColor={primaryColor}
+        orgId={brand.id}
       />
 
       {/* Smokey AI Chatbot */}
