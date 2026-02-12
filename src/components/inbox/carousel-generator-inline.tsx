@@ -97,8 +97,8 @@ export function CarouselGeneratorInline({
                     orgId: dispensaryId,
                     brandGuide: brandGuide ? {
                         brandName: brandGuide.brandName,
-                        primaryColor: brandGuide.visualIdentity?.colorPalette?.primary,
-                        voice: brandGuide.voiceAndMessaging?.toneAttributes,
+                        primaryColor: brandGuide.visualIdentity?.colors?.primary,
+                        voice: brandGuide.voice?.tone,
                     } : undefined,
                 }),
             });

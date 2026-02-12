@@ -72,21 +72,23 @@ export interface CustomerProfile {
     // Personalization data
     birthDate?: string;
     preferences?: CustomerPreferences;
+    notes?: string | null;
 
     // Acquisition tracking
     source: 'brand_page' | 'dispensary_page' | 'pos_dutchie' | 'pos_jane' | 'pos_treez' | 'manual' | 'import';
     acquisitionCampaign?: string;
     referralCode?: string;
+    equityStatus?: boolean | null;
 
     // Gamification
-    purchaseStreak: number;
-    badges: {
+    purchaseStreak?: number;
+    badges?: {
         id: string;
         name: string;
         icon: string;
         earnedAt: Date;
     }[];
-    tierProgress: number; // 0-100 percentage to next tier
+    tierProgress?: number; // 0-100 percentage to next tier
 
     // Metadata
     createdAt: Date;
