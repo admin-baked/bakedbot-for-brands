@@ -198,6 +198,42 @@ export default function VibeBuilderPage() {
     router.push('/vibe/builder/publish');
   };
 
+  const handleExport = useCallback(async () => {
+    if (!projectId || !editorRef.current) return;
+
+    // Save current state before export
+    try {
+      const editor = editorRef.current;
+
+      await updateVibeProject(projectId, {
+        html: editor.getHtml(),
+        css: editor.getCss(),
+        components: JSON.stringify(editor.getComponents()),
+        styles: JSON.stringify(editor.getStyle()),
+      });
+
+      // Trigger download
+      const exportUrl = `/api/vibe/export?projectId=${projectId}`;
+      const link = document.createElement('a');
+      link.href = exportUrl;
+      link.download = `${projectName.toLowerCase().replace(/\s+/g, '-')}-export.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: 'Exporting Project',
+        description: 'Your download will start shortly',
+      });
+    } catch (error) {
+      toast({
+        title: 'Export Failed',
+        description: 'Could not export project',
+        variant: 'destructive',
+      });
+    }
+  }, [projectId, projectName, toast]);
+
   if (loading || loadingProject) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -220,10 +256,12 @@ export default function VibeBuilderPage() {
       {/* Top Bar */}
       <BuilderTopBar
         projectName={projectName}
+        projectId={projectId}
         onProjectNameChange={setProjectName}
         onSave={handleSave}
         onPreview={handlePreview}
         onPublish={handlePublish}
+        onExport={handleExport}
         saving={saving}
       />
 

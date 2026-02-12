@@ -18,25 +18,30 @@ import {
   Smartphone,
   Loader2,
   ArrowLeft,
+  Download,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 
 interface BuilderTopBarProps {
   projectName: string;
+  projectId: string;
   onProjectNameChange: (name: string) => void;
   onSave: () => void;
   onPreview: () => void;
   onPublish: () => void;
+  onExport: () => void;
   saving?: boolean;
 }
 
 export function BuilderTopBar({
   projectName,
+  projectId,
   onProjectNameChange,
   onSave,
   onPreview,
   onPublish,
+  onExport,
   saving = false,
 }: BuilderTopBarProps) {
   return (
@@ -101,6 +106,11 @@ export function BuilderTopBar({
         <Button variant="outline" size="sm" onClick={onPreview}>
           <Eye className="w-4 h-4 mr-1" />
           Preview
+        </Button>
+
+        <Button variant="outline" size="sm" onClick={onExport}>
+          <Download className="w-4 h-4 mr-1" />
+          Export
         </Button>
 
         <Button size="sm" onClick={onPublish}>
