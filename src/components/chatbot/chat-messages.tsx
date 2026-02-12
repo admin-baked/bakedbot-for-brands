@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Bot, Share2, ThumbsDown, ThumbsUp, ChevronDown, Sparkles } from 'lucide-react';
+import { Bot, Share2, ThumbsDown, ThumbsUp, ChevronDown, Sparkles, Zap, Plus } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -14,11 +14,14 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import type { Product } from '@/types/domain';
 
+type UpsellProduct = Product & { reasoning: string; upsellReason?: string; upsellSavings?: string };
+
 type Message = {
     id: number;
     text: string;
     sender: 'user' | 'bot';
     productSuggestions?: (Product & { reasoning: string })[];
+    upsellSuggestions?: UpsellProduct[];
     imageUrl?: string;
 };
 
@@ -79,6 +82,42 @@ const ExpandableProductCard = ({ product, onAskSmokey, onAddToCart, isExpanded, 
     )
 };
 
+
+const UpsellSuggestionCard = ({ product, onAddToCart }: { product: UpsellProduct; onAddToCart: (p: Product) => void }) => {
+    return (
+        <div className="w-full flex items-center gap-2 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30 p-2 text-foreground">
+            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
+                {product.imageUrl ? (
+                    <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+                ) : (
+                    <div className="h-full w-full bg-muted flex items-center justify-center">
+                        <Zap className="h-4 w-4 text-amber-500" />
+                    </div>
+                )}
+            </div>
+            <div className="flex-1 overflow-hidden min-w-0">
+                <p className="text-sm font-semibold truncate">{product.name}</p>
+                <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">${product.price.toFixed(2)}</span>
+                    {product.upsellSavings && (
+                        <span className="text-xs font-medium text-green-600 dark:text-green-400">{product.upsellSavings}</span>
+                    )}
+                </div>
+                {product.upsellReason && (
+                    <p className="text-xs text-amber-700 dark:text-amber-300 truncate">{product.upsellReason}</p>
+                )}
+            </div>
+            <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 h-7 w-7 p-0 border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900"
+                onClick={() => onAddToCart(product)}
+            >
+                <Plus className="h-3.5 w-3.5" />
+            </Button>
+        </div>
+    );
+};
 
 const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, onAddToCart, className, onFeedback }: { messages: Message[], isBotTyping: boolean, messagesEndRef: React.RefObject<HTMLDivElement>, onAskSmokey: (p: Product) => void, onAddToCart: (p: Product) => void, className?: string, onFeedback: (productId: string, type: 'like' | 'dislike') => void }) => {
     const { toast } = useToast();
@@ -204,6 +243,17 @@ const ChatMessages = ({ messages, isBotTyping, messagesEndRef, onAskSmokey, onAd
                                             onExpand={handleExpand}
                                             onFeedback={onFeedback}
                                         />
+                                    ))}
+                                </div>
+                            )}
+                            {message.upsellSuggestions && message.upsellSuggestions.length > 0 && (
+                                <div className="mt-3 space-y-1.5">
+                                    <p className="text-xs font-medium text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                                        <Zap className="h-3 w-3" />
+                                        Pairs Well With
+                                    </p>
+                                    {message.upsellSuggestions.slice(0, 2).map(p => (
+                                        <UpsellSuggestionCard key={p.id} product={p} onAddToCart={onAddToCart} />
                                     ))}
                                 </div>
                             )}

@@ -77,13 +77,36 @@ const DEMO_PRODUCTS: Product[] = [
   }
 ];
 
+type UpsellProduct = Product & { reasoning: string; upsellReason?: string; upsellSavings?: string };
+
 type Message = {
   id: number;
   text: string;
   sender: 'user' | 'bot';
   productSuggestions?: (Product & { reasoning: string })[];
+  upsellSuggestions?: UpsellProduct[];
   imageUrl?: string;
 };
+
+/** Parse upsell products from API response */
+function parseUpsells(data: any): UpsellProduct[] | undefined {
+  if (!data?.upsells || !Array.isArray(data.upsells) || data.upsells.length === 0) return undefined;
+  return data.upsells.map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    price: p.price,
+    imageUrl: p.imageUrl,
+    imageHint: '',
+    description: p.description || p.name,
+    brandId: '',
+    thcPercent: p.thcPercent,
+    cbdPercent: p.cbdPercent,
+    reasoning: p.upsellReason || 'Pairs well with your selection',
+    upsellReason: p.upsellReason,
+    upsellSavings: p.upsellSavings,
+  }));
+}
 
 type OnboardingAnswers = {
   mood: string | null;
@@ -483,6 +506,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
           text: data.message || `Based on your preferences for a ${answers.mood} vibe, here are some products I think you'll love!`,
           sender: 'bot',
           productSuggestions,
+          upsellSuggestions: parseUpsells(data),
         };
         setMessages(prev => [...prev, botMessage]);
       } else {
@@ -574,6 +598,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
           text: data.message,
           sender: 'bot',
           productSuggestions,
+          upsellSuggestions: parseUpsells(data),
         };
         setMessages((prev) => [...prev, botMessage]);
       } else {
@@ -693,7 +718,8 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
             id: Date.now() + 1,
             text: data.message,
             sender: 'bot',
-            productSuggestions
+            productSuggestions,
+            upsellSuggestions: parseUpsells(data),
           }]);
         } else {
           setMessages(prev => [...prev, {
