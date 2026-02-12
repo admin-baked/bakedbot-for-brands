@@ -3,8 +3,9 @@
 
 env:
   # Build-time memory allocation - keep below builder limits to avoid OOM kills
+  # Builder has ~4GB total; V8 heap + native memory must fit. 2048 leaves ~2GB headroom.
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=3072"
+    value: "--max-old-space-size=2048"
     availability: [ BUILD ]
   - variable: NEXT_DISABLE_TURBOPACK
     value: "1"
@@ -268,4 +269,4 @@ runConfig:
 
 build:
   installCommand: npm install --legacy-peer-deps
-  buildCommand: npm run build:embed && npm run check:structure && next build
+  buildCommand: npm run build:embed && npm run check:structure && next build --no-turbopack
