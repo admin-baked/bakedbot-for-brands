@@ -4,11 +4,12 @@
  * Inline Carousel Generator
  *
  * AI-powered carousel creation tool that appears inline in the chat conversation.
+ * Includes live preview and Brand Guide integration for colors and voice.
  */
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Images, Sparkles, Wand2, Plus, X, Loader2 } from 'lucide-react';
+import { Images, Sparkles, Wand2, Plus, X, Loader2, Eye, EyeOff, BookOpenCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,9 +19,12 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useDispensaryId } from '@/hooks/use-dispensary-id';
 import { ProductPicker } from '@/components/dashboard/carousels/product-picker';
+import { CarouselPreview } from '@/components/dashboard/carousels/carousel-preview';
 import { createCarousel } from '@/app/actions/carousels';
+import { getBrandGuide } from '@/server/actions/brand-guide';
 import { useToast } from '@/hooks/use-toast';
 import type { Carousel } from '@/types/carousels';
+import type { BrandGuide } from '@/types/brand-guide';
 
 interface CarouselGeneratorInlineProps {
     onComplete?: (carouselData: Carousel) => void;
@@ -40,6 +44,9 @@ export function CarouselGeneratorInline({
     const [isGenerating, setIsGenerating] = useState(false);
     const [aiPrompt, setAiPrompt] = useState(initialPrompt);
     const [showManualBuilder, setShowManualBuilder] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
+    const [brandGuide, setBrandGuide] = useState<BrandGuide | null>(null);
+    const [brandGuideLoading, setBrandGuideLoading] = useState(false);
     const [aiSuggestion, setAiSuggestion] = useState<{
         title: string;
         description: string;
@@ -48,6 +55,25 @@ export function CarouselGeneratorInline({
 
     const { dispensaryId } = useDispensaryId();
     const { toast } = useToast();
+
+    // Load brand guide on mount for brand context
+    useEffect(() => {
+        async function loadBrandGuide() {
+            if (!dispensaryId) return;
+            setBrandGuideLoading(true);
+            try {
+                const result = await getBrandGuide(dispensaryId);
+                if (result.success && result.brandGuide) {
+                    setBrandGuide(result.brandGuide);
+                }
+            } catch {
+                // Brand guide is optional - continue without it
+            } finally {
+                setBrandGuideLoading(false);
+            }
+        }
+        loadBrandGuide();
+    }, [dispensaryId]);
 
     const generateWithAI = async () => {
         if (!aiPrompt.trim()) {
@@ -62,13 +88,18 @@ export function CarouselGeneratorInline({
         setIsGenerating(true);
 
         try {
-            // Call AI to generate carousel suggestions
+            // Call AI to generate carousel suggestions, include brand guide context
             const response = await fetch('/api/ai/carousel-suggest', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt: aiPrompt,
                     orgId: dispensaryId,
+                    brandGuide: brandGuide ? {
+                        brandName: brandGuide.brandName,
+                        primaryColor: brandGuide.visualIdentity?.colorPalette?.primary,
+                        voice: brandGuide.voiceAndMessaging?.toneAttributes,
+                    } : undefined,
                 }),
             });
 
@@ -87,6 +118,7 @@ export function CarouselGeneratorInline({
                 }
 
                 setShowManualBuilder(true);
+                setShowPreview(true);
 
                 toast({
                     title: "AI Suggestion Ready!",
@@ -155,11 +187,12 @@ export function CarouselGeneratorInline({
             } else {
                 throw new Error(result.error || 'Failed to create carousel');
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Failed to create carousel. Please try again.';
             console.error('Error creating carousel:', error);
             toast({
                 title: "Creation Failed",
-                description: error.message || "Failed to create carousel. Please try again.",
+                description: message,
                 variant: "destructive"
             });
         } finally {
@@ -186,12 +219,20 @@ export function CarouselGeneratorInline({
                                 Create a product carousel with AI assistance
                             </p>
                         </div>
-                        {aiSuggestion && (
-                            <Badge variant="outline" className="gap-1 border-purple-500/30 text-purple-400">
-                                <Sparkles className="h-3 w-3" />
-                                AI Assisted
-                            </Badge>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {brandGuide && (
+                                <Badge variant="outline" className="gap-1 border-green-500/30 text-green-400">
+                                    <BookOpenCheck className="h-3 w-3" />
+                                    Brand Guide
+                                </Badge>
+                            )}
+                            {aiSuggestion && (
+                                <Badge variant="outline" className="gap-1 border-purple-500/30 text-purple-400">
+                                    <Sparkles className="h-3 w-3" />
+                                    AI Assisted
+                                </Badge>
+                            )}
+                        </div>
                     </div>
                 </CardHeader>
 
@@ -218,6 +259,7 @@ export function CarouselGeneratorInline({
                                 />
                                 <p className="text-xs text-muted-foreground">
                                     Describe the products, theme, or criteria you want for your carousel
+                                    {brandGuide && ' (Brand Guide colors and voice will be applied automatically)'}
                                 </p>
                             </div>
 
@@ -285,6 +327,16 @@ export function CarouselGeneratorInline({
                                 </motion.div>
                             )}
 
+                            {/* Live Preview */}
+                            {showPreview && dispensaryId && (
+                                <CarouselPreview
+                                    title={title}
+                                    description={description}
+                                    selectedProductIds={selectedProductIds}
+                                    orgId={dispensaryId}
+                                />
+                            )}
+
                             {/* Carousel Details */}
                             <div className="space-y-4">
                                 <div className="space-y-2">
@@ -345,33 +397,48 @@ export function CarouselGeneratorInline({
                                 </div>
                             )}
 
-                            {/* Create Button */}
-                            <div className="flex gap-2 pt-4 border-t border-white/5">
+                            {/* Preview Toggle + Create Button */}
+                            <div className="space-y-3 pt-4 border-t border-white/5">
                                 <Button
                                     variant="outline"
-                                    onClick={() => setShowManualBuilder(false)}
-                                    disabled={isGenerating}
-                                    className="border-white/10"
+                                    size="sm"
+                                    onClick={() => setShowPreview(!showPreview)}
+                                    className="w-full border-white/10"
                                 >
-                                    Back to AI
-                                </Button>
-                                <Button
-                                    onClick={handleCreateCarousel}
-                                    disabled={isGenerating || !title.trim() || selectedProductIds.length === 0}
-                                    className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
-                                >
-                                    {isGenerating ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Creating...
-                                        </>
+                                    {showPreview ? (
+                                        <><EyeOff className="h-4 w-4 mr-2" /> Hide Preview</>
                                     ) : (
-                                        <>
-                                            <Images className="h-4 w-4 mr-2" />
-                                            Create Carousel
-                                        </>
+                                        <><Eye className="h-4 w-4 mr-2" /> Show Preview</>
                                     )}
                                 </Button>
+
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setShowManualBuilder(false)}
+                                        disabled={isGenerating}
+                                        className="border-white/10"
+                                    >
+                                        Back to AI
+                                    </Button>
+                                    <Button
+                                        onClick={handleCreateCarousel}
+                                        disabled={isGenerating || !title.trim() || selectedProductIds.length === 0}
+                                        className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                                    >
+                                        {isGenerating ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                Creating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Images className="h-4 w-4 mr-2" />
+                                                Create Carousel
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
                             </div>
                         </>
                     )}

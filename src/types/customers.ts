@@ -78,11 +78,15 @@ export interface CustomerProfile {
     acquisitionCampaign?: string;
     referralCode?: string;
 
-    // Social equity
-    equityStatus?: boolean;
-
-    // Notes (manual CRM entries)
-    notes?: string;
+    // Gamification
+    purchaseStreak: number;
+    badges: {
+        id: string;
+        name: string;
+        icon: string;
+        earnedAt: Date;
+    }[];
+    tierProgress: number; // 0-100 percentage to next tier
 
     // Metadata
     createdAt: Date;

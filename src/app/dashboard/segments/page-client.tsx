@@ -25,49 +25,49 @@ const SEGMENT_CONFIG: Record<CustomerSegment, {
         name: 'VIP High Spenders',
         description: 'Customers who have spent over $1,000 or placed 10+ orders.',
         icon: Star,
-        color: 'text-yellow-500 bg-yellow-100'
+        color: 'text-green-600 bg-green-100'
     },
     loyal: {
         name: 'Loyal Customers',
         description: 'Regular customers with 3+ orders.',
         icon: Users,
-        color: 'text-green-500 bg-green-100'
+        color: 'text-green-600 bg-green-100'
     },
     new: {
         name: 'New Customers',
         description: 'Customers who made their first purchase in the last 30 days.',
         icon: Users,
-        color: 'text-blue-500 bg-blue-100'
+        color: 'text-blue-600 bg-blue-100'
     },
     at_risk: {
         name: 'At Risk',
         description: 'Customers who haven\'t ordered in 60-89 days.',
         icon: AlertTriangle,
-        color: 'text-red-500 bg-red-100'
+        color: 'text-red-600 bg-red-100'
     },
     slipping: {
         name: 'Slipping Away',
         description: 'Customers who haven\'t ordered in 30-59 days.',
         icon: TrendingDown,
-        color: 'text-orange-500 bg-orange-100'
+        color: 'text-orange-600 bg-orange-100'
     },
     churned: {
         name: 'Churned',
         description: 'Customers who haven\'t ordered in 90+ days.',
         icon: Zap,
-        color: 'text-gray-500 bg-gray-100'
+        color: 'text-gray-600 bg-gray-100'
     },
     high_value: {
         name: 'High Value',
         description: 'Customers with high average order value but fewer orders.',
         icon: Star,
-        color: 'text-purple-500 bg-purple-100'
+        color: 'text-green-600 bg-green-100'
     },
     frequent: {
         name: 'Frequent Buyers',
         description: 'Customers with 8+ orders and moderate spend.',
         icon: Users,
-        color: 'text-teal-500 bg-teal-100'
+        color: 'text-blue-600 bg-blue-100'
     }
 };
 

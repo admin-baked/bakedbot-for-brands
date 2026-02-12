@@ -1,3 +1,22 @@
+## Session: 2026-02-12 (IAM Permissions & App Hosting Rollout)
+### Task ID
+fix_apphosting_rollout_iam_permissions
+
+### Summary
+Resolved a blocking IAM permission issue for the Firebase App Hosting rollout. The rollout command was failing because the service account lacked `developerconnect.gitRepositoryLinks.fetchReadToken` permission. Granted the `roles/developerconnect.admin` role to the service account and successfully re-initiated the rollout for `bakedbot-prod`.
+
+### Key Changes
+*   **IAM**: Granted `roles/developerconnect.admin` to `firebase-adminsdk-fbsvc@studio-567050101-bc6e8.iam.gserviceaccount.com`.
+*   **OPS**: Re-ran `firebase apphosting:rollouts:create bakedbot-prod --project studio-567050101-bc6e8 --git-commit 4994733d2bae0552eb32d73a404819cb0431671f --force`.
+*   **DOC**: Created `walkthrough.md` documenting the fix and deployment status.
+
+### Verification Results
+*   IAM policy update verified via `gcloud projects get-iam-policy`.
+*   Rollout command executed successfully without permission errors.
+*   Rollout tracking link provided to user.
+
+---
+
 ## Session: 2026-02-11 (Media Generation UI & Build Fixes)
 ### Task ID
 media_generation_ui_style_presets_ab_testing_build_fixes

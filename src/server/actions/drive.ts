@@ -4,7 +4,7 @@
  * BakedBot Drive Server Actions
  *
  * CRUD operations for files, folders, and shares.
- * All actions require super_user role.
+ * All actions require an authenticated paid role (super_user, brand, or dispensary).
  */
 
 import { getAdminFirestore } from '@/firebase/admin';
@@ -56,7 +56,7 @@ const COLLECTIONS = {
  */
 export async function initializeSystemFolders(): Promise<DriveActionResult<DriveFolder[]>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
     const now = Date.now();
 
@@ -122,7 +122,7 @@ export async function initializeSystemFolders(): Promise<DriveActionResult<Drive
  */
 export async function createFolder(input: CreateFolderInput): Promise<DriveActionResult<DriveFolder>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
     const now = Date.now();
 
@@ -183,7 +183,7 @@ export async function getFolderContents(
   options?: { category?: DriveCategory; sortBy?: 'name' | 'date' | 'size' }
 ): Promise<DriveActionResult<DriveListResult>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
 
     // Initialize system folders if this is the root view
@@ -259,7 +259,7 @@ export async function getFolderContents(
  */
 export async function getFolderTree(): Promise<DriveActionResult<DriveFolder[]>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
 
     // Initialize system folders first
@@ -289,7 +289,7 @@ export async function getFolderTree(): Promise<DriveActionResult<DriveFolder[]>>
  */
 export async function uploadFile(formData: FormData): Promise<DriveActionResult<DriveFile>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
     const storageService = getDriveStorageService();
     const now = Date.now();
@@ -387,7 +387,7 @@ export async function uploadFileFromUrl(
   category?: DriveCategory
 ): Promise<DriveActionResult<DriveFile>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
     const storageService = getDriveStorageService();
     const now = Date.now();
@@ -468,7 +468,7 @@ export async function uploadFileFromUrl(
  */
 export async function getFile(fileId: string): Promise<DriveActionResult<DriveFile>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
 
     const doc = await db.collection(COLLECTIONS.FILES).doc(fileId).get();
@@ -493,7 +493,7 @@ export async function getFile(fileId: string): Promise<DriveActionResult<DriveFi
  */
 export async function searchFiles(input: SearchFilesInput): Promise<DriveActionResult<DriveFile[]>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
 
     // Start with base query
@@ -535,7 +535,7 @@ export async function searchFiles(input: SearchFilesInput): Promise<DriveActionR
  */
 export async function getRecentFiles(limit: number = 10): Promise<DriveActionResult<DriveFile[]>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
 
     const snapshot = await db
@@ -563,7 +563,7 @@ export async function getRecentFiles(limit: number = 10): Promise<DriveActionRes
  */
 export async function renameItem(input: RenameItemInput): Promise<DriveActionResult> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
     const collection = input.itemType === 'file' ? COLLECTIONS.FILES : COLLECTIONS.FOLDERS;
 
@@ -607,7 +607,7 @@ export async function renameItem(input: RenameItemInput): Promise<DriveActionRes
  */
 export async function moveItem(input: MoveItemInput): Promise<DriveActionResult> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
     const collection = input.itemType === 'file' ? COLLECTIONS.FILES : COLLECTIONS.FOLDERS;
 
@@ -689,7 +689,7 @@ export async function moveItem(input: MoveItemInput): Promise<DriveActionResult>
  */
 export async function deleteItem(itemType: DriveItemType, itemId: string): Promise<DriveActionResult> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
     const collection = itemType === 'file' ? COLLECTIONS.FILES : COLLECTIONS.FOLDERS;
 
@@ -734,7 +734,7 @@ export async function deleteItem(itemType: DriveItemType, itemId: string): Promi
  */
 export async function restoreItem(itemType: DriveItemType, itemId: string): Promise<DriveActionResult> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
     const collection = itemType === 'file' ? COLLECTIONS.FILES : COLLECTIONS.FOLDERS;
 
@@ -774,7 +774,7 @@ export async function restoreItem(itemType: DriveItemType, itemId: string): Prom
  */
 export async function permanentlyDelete(itemType: DriveItemType, itemId: string): Promise<DriveActionResult> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
     const storageService = getDriveStorageService();
     const collection = itemType === 'file' ? COLLECTIONS.FILES : COLLECTIONS.FOLDERS;
@@ -822,7 +822,7 @@ export async function permanentlyDelete(itemType: DriveItemType, itemId: string)
  */
 export async function getTrash(): Promise<DriveActionResult<DriveListResult>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
 
     const [filesSnapshot, foldersSnapshot] = await Promise.all([
@@ -851,7 +851,7 @@ export async function getTrash(): Promise<DriveActionResult<DriveListResult>> {
  */
 export async function emptyTrash(): Promise<DriveActionResult<{ deletedCount: number }>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
     const storageService = getDriveStorageService();
 
@@ -890,7 +890,7 @@ export async function emptyTrash(): Promise<DriveActionResult<{ deletedCount: nu
  */
 export async function createShare(input: CreateShareInput): Promise<DriveActionResult<DriveShareLinkResult>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
     const now = Date.now();
 
@@ -979,7 +979,7 @@ export async function createShare(input: CreateShareInput): Promise<DriveActionR
  */
 export async function updateShare(input: UpdateShareInput): Promise<DriveActionResult<DriveShare>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
     const now = Date.now();
 
@@ -1053,7 +1053,7 @@ export async function updateShare(input: UpdateShareInput): Promise<DriveActionR
  */
 export async function revokeShare(shareId: string): Promise<DriveActionResult> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
     const now = Date.now();
 
@@ -1103,7 +1103,7 @@ export async function getSharesForItem(
   itemId: string
 ): Promise<DriveActionResult<DriveShare[]>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
 
     const snapshot = await db
@@ -1128,7 +1128,7 @@ export async function getSharesForItem(
  */
 export async function getMyShares(): Promise<DriveActionResult<DriveShare[]>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
 
     const snapshot = await db
@@ -1170,7 +1170,7 @@ export async function generateQuickShareLink(
  */
 export async function getStorageStats(): Promise<DriveActionResult<DriveStorageStats>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
 
     const [filesSnapshot, foldersSnapshot, recentSnapshot] = await Promise.all([
@@ -1224,7 +1224,7 @@ export async function getStorageStats(): Promise<DriveActionResult<DriveStorageS
  */
 export async function duplicateFile(fileId: string, newName?: string): Promise<DriveActionResult<DriveFile>> {
   try {
-    const user = await requireUser(['super_user']);
+    const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
     const storageService = getDriveStorageService();
     const now = Date.now();

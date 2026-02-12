@@ -48,6 +48,7 @@ import {
     BookOpenCheck,
     Calculator,
     Image,
+    HardDrive,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -94,6 +95,14 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 <Link href="/dashboard/playbooks" prefetch={true}>
                                     <BookOpen />
                                     <span>Playbooks</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/drive')}>
+                                <Link href="/dashboard/drive" prefetch={true}>
+                                    <HardDrive />
+                                    <span>Drive</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
