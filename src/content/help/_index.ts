@@ -720,6 +720,48 @@ export const articles: Record<string, HelpArticleMeta> = {
     author: 'BakedBot Team',
   },
 
+  'marketing/vibe-builder': {
+    slug: 'vibe-builder',
+    category: 'marketing',
+    title: 'Vibe Builder - Visual Website Builder',
+    description: 'Build professional websites with drag-and-drop editing, templates, and one-click publishing',
+    roles: [],
+    tags: ['vibe-builder', 'website', 'builder', 'templates', 'publishing', 'grapesjs'],
+    difficulty: 'beginner',
+    estimatedTime: '10 minutes',
+    filePath: './marketing/vibe-builder.mdx',
+    lastUpdated: '2026-02-11',
+    author: 'BakedBot Team',
+  },
+
+  'marketing/custom-domains': {
+    slug: 'custom-domains',
+    category: 'marketing',
+    title: 'Custom Domains',
+    description: 'Connect your own domain name to BakedBot-hosted menus, websites, and landing pages',
+    roles: [],
+    tags: ['domains', 'dns', 'custom-domain', 'hosting', 'seo', 'branding'],
+    difficulty: 'intermediate',
+    estimatedTime: '15 minutes',
+    filePath: './marketing/custom-domains.mdx',
+    lastUpdated: '2026-02-11',
+    author: 'BakedBot Team',
+  },
+
+  'marketing/template-marketplace': {
+    slug: 'template-marketplace',
+    category: 'marketing',
+    title: 'Template Marketplace',
+    description: 'Browse, install, and share professionally designed website templates',
+    roles: [],
+    tags: ['templates', 'marketplace', 'vibe-builder', 'website', 'design'],
+    difficulty: 'beginner',
+    estimatedTime: '5 minutes',
+    filePath: './marketing/template-marketplace.mdx',
+    lastUpdated: '2026-02-11',
+    author: 'BakedBot Team',
+  },
+
   'dispensary/dynamic-pricing': {
     slug: 'dynamic-pricing',
     category: 'dispensary',
@@ -832,7 +874,7 @@ export const articles: Record<string, HelpArticleMeta> = {
     author: 'BakedBot Team',
   },
 
-  // 🎉 59 articles complete!
+  // 🎉 62 articles complete!
 };
 
 /**

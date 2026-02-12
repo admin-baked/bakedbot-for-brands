@@ -1,0 +1,144 @@
+# Custom Domains
+
+Connect your own domain name to BakedBot-hosted content. Use professional URLs like `www.yourdispensary.com` instead of default subdomains.
+
+## What Are Custom Domains?
+
+Custom domains let you serve your BakedBot content (menus, websites, landing pages) from your own branded URL. Instead of `yourbrand.bakedbot.site`, visitors see `www.yourbrand.com`.
+
+**Benefits:**
+- Professional, branded web presence
+- Better SEO ranking (search engines prefer custom domains)
+- Customer trust and recognition
+- Multiple domains for different purposes
+
+<Callout type="tip">
+**One System, All Content**: BakedBot's unified domain manager lets you point any domain to any content type - product menus, Vibe Builder websites, or both on the same domain.
+</Callout>
+
+## Domain Target Types
+
+When you add a custom domain, choose what it serves:
+
+### Product Menu
+Point your domain to your BakedBot product catalog.
+
+**Example:** `shop.mydispensary.com` → Your product menu with search, filters, and cart
+
+**Best for:** Dispensaries who want a branded shopping experience
+
+### Vibe Builder Site
+Point your domain to a website you built with Vibe Builder.
+
+**Example:** `www.mydispensary.com` → Your marketing website
+
+**Best for:** Full websites, landing pages, campaign pages
+
+### Hybrid (Both)
+Serve both your website AND menu on the same domain using path-based routing.
+
+**Example:**
+- `mydispensary.com/` → Your Vibe Builder website (homepage, about, etc.)
+- `mydispensary.com/shop` → Your product menu
+
+**Best for:** Complete web presence on a single domain
+
+## Setting Up a Custom Domain
+
+### Step 1: Open Domain Manager
+
+Navigate to **Dashboard → Admin → Custom Domains** or click "Custom Domains" in your sidebar.
+
+### Step 2: Add Your Domain
+
+1. Click **"Add Domain"**
+2. Enter your domain name (e.g., `www.yourbrand.com`)
+3. Select what the domain should serve:
+   - **Product Menu** - Your BakedBot catalog
+   - **Vibe Builder Site** - Select a published project
+   - **Both (Hybrid)** - Website at root, menu at /shop
+4. Click **"Add Domain"**
+
+### Step 3: Configure DNS
+
+BakedBot will show you the DNS records to add at your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.).
+
+**For subdomains** (e.g., `shop.yourbrand.com`):
+
+| Record Type | Host | Value |
+|-------------|------|-------|
+| CNAME | shop | cname.bakedbot.ai |
+
+**For root domains** (e.g., `yourbrand.com`):
+
+Update your nameservers to:
+- `ns1.bakedbot.ai`
+- `ns2.bakedbot.ai`
+
+<Callout type="warning">
+**DNS changes take time**: After adding DNS records, wait 5-60 minutes for propagation. Some registrars may take up to 24 hours.
+</Callout>
+
+### Step 4: Verify
+
+1. Wait for DNS propagation (5-60 minutes)
+2. Return to the Domain Manager
+3. Click **"Verify DNS"**
+4. Once verified, your domain is live!
+
+### Step 5: SSL Certificate
+
+SSL certificates are automatically provisioned after verification. Your site will be accessible via `https://` within minutes of verification.
+
+## Managing Domains
+
+### View All Domains
+
+The Domain Manager shows all your connected domains with:
+- **Status badge**: Verified, Pending, or Failed
+- **Target type**: Menu, Vibe Site, or Hybrid
+- **Connection type**: CNAME or Nameserver
+
+### Change What a Domain Serves
+
+Want to switch a domain from menu to website? You can update the target without re-verifying DNS:
+
+1. Find the domain in your list
+2. Click the settings icon
+3. Select a new target type
+4. Save changes
+
+### Remove a Domain
+
+1. Find the domain in your list
+2. Click the trash icon
+3. Confirm removal
+
+The domain will stop routing to BakedBot immediately. Don't forget to update your DNS records at your registrar.
+
+## Troubleshooting
+
+### "Verification Pending"
+- DNS changes haven't propagated yet
+- Wait 15-60 minutes and try again
+- Use a DNS checker tool to verify your records are visible
+
+### "Verification Failed"
+- Check that DNS records match exactly what BakedBot shows
+- Ensure there are no conflicting records (e.g., existing A records)
+- Some registrars require removing old records before adding new ones
+
+### Domain Shows Wrong Content
+- Verify the target type is set correctly in Domain Manager
+- For hybrid domains, check that path routing matches your expectations
+- Clear your browser cache and try again
+
+<Callout type="info">
+**Need help?** Contact support at support@bakedbot.ai with your domain name and we'll help you get connected.
+</Callout>
+
+## Related Articles
+
+- [Vibe Builder](/help/marketing/vibe-builder) - Build websites visually
+- [Template Marketplace](/help/marketing/template-marketplace) - Browse website templates
+- [Vibe Studio](/help/marketing/vibe-studio) - Generate AI themes
