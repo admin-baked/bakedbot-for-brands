@@ -13,44 +13,41 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Eye, MousePointer, ShoppingCart } from 'lucide-react';
+import { getUpsellAnalytics } from '@/server/actions/upsell-analytics';
+import type { PlacementMetrics, StrategyMetrics, DailyTrend } from '@/server/actions/upsell-analytics';
 
 interface UpsellAnalyticsProps {
     orgId: string;
 }
 
-// Mock data - will be replaced with real Firestore queries
-const PLACEMENT_DATA = [
-    { placement: 'Product Detail', impressions: 2834, clicks: 512, conversions: 94, rate: 18.4 },
-    { placement: 'Cart', impressions: 1245, clicks: 289, conversions: 67, rate: 23.2 },
-    { placement: 'Checkout', impressions: 892, clicks: 178, conversions: 42, rate: 23.6 },
-    { placement: 'Chatbot', impressions: 567, clicks: 145, conversions: 38, rate: 26.2 },
-];
-
-const STRATEGY_DATA = [
-    { name: 'Terpene Pairing', value: 42, color: '#8b5cf6' },
-    { name: 'Category Complement', value: 28, color: '#3b82f6' },
-    { name: 'Margin Boost', value: 15, color: '#10b981' },
-    { name: 'Clearance', value: 10, color: '#f59e0b' },
-    { name: 'Bundle Match', value: 5, color: '#ec4899' },
-];
-
-const DAILY_TREND = [
-    { date: '2/5', impressions: 420, conversions: 76 },
-    { date: '2/6', impressions: 445, conversions: 82 },
-    { date: '2/7', impressions: 398, conversions: 71 },
-    { date: '2/8', impressions: 512, conversions: 95 },
-    { date: '2/9', impressions: 478, conversions: 88 },
-    { date: '2/10', impressions: 534, conversions: 102 },
-    { date: '2/11', impressions: 551, conversions: 108 },
-];
+const PLACEMENT_LABELS: Record<string, string> = {
+    product_detail: 'Product Detail',
+    cart: 'Cart',
+    checkout: 'Checkout',
+    chatbot: 'Chatbot',
+};
 
 export function UpsellAnalytics({ orgId }: UpsellAnalyticsProps) {
     const [loading, setLoading] = useState(true);
+    const [placementData, setPlacementData] = useState<PlacementMetrics[]>([]);
+    const [strategyData, setStrategyData] = useState<StrategyMetrics[]>([]);
+    const [dailyTrend, setDailyTrend] = useState<DailyTrend[]>([]);
 
     useEffect(() => {
-        // Simulate data fetch
-        const timer = setTimeout(() => setLoading(false), 800);
-        return () => clearTimeout(timer);
+        async function loadAnalytics() {
+            setLoading(true);
+            try {
+                const data = await getUpsellAnalytics(orgId);
+                setPlacementData(data.placements);
+                setStrategyData(data.strategies);
+                setDailyTrend(data.dailyTrend);
+            } catch (error) {
+                console.error('Failed to load upsell analytics:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        loadAnalytics();
     }, [orgId]);
 
     if (loading) {
@@ -71,11 +68,16 @@ export function UpsellAnalytics({ orgId }: UpsellAnalyticsProps) {
                     <CardDescription>Performance across all customer touchpoints</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-4">
-                        {PLACEMENT_DATA.map((placement) => (
-                            <div key={placement.placement} className="space-y-2">
+                    {placementData.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                            <p>No upsell data yet. Start generating upsell suggestions to see analytics here.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {placementData.map((placement) => (
+                                <div key={placement.placement} className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <span className="font-medium">{placement.placement}</span>
+                                    <span className="font-medium">{PLACEMENT_LABELS[placement.placement] || placement.placement}</span>
                                     <Badge variant="secondary">{placement.rate}% conversion</Badge>
                                 </div>
                                 <div className="grid grid-cols-3 gap-4 text-sm">
@@ -104,6 +106,7 @@ export function UpsellAnalytics({ orgId }: UpsellAnalyticsProps) {
                             </div>
                         ))}
                     </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -115,39 +118,47 @@ export function UpsellAnalytics({ orgId }: UpsellAnalyticsProps) {
                         <CardDescription>Upsell suggestions by pairing strategy</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <PieChart>
-                                <Pie
-                                    data={STRATEGY_DATA}
-                                    cx="50%"
-                                    cy="50%"
-                                    labelLine={false}
-                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                    outerRadius={80}
-                                    fill="#8884d8"
-                                    dataKey="value"
-                                >
-                                    {STRATEGY_DATA.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                        {strategyData.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <p>No strategy data available</p>
+                            </div>
+                        ) : (
+                            <>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <PieChart>
+                                        <Pie
+                                            data={strategyData}
+                                            cx="50%"
+                                            cy="50%"
+                                            labelLine={false}
+                                            label={({ name, percent }) => `${name.replace(/_/g, ' ')} ${(percent * 100).toFixed(0)}%`}
+                                            outerRadius={80}
+                                            fill="#8884d8"
+                                            dataKey="value"
+                                        >
+                                            {strategyData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                <div className="mt-4 space-y-2">
+                                    {strategyData.map((strategy) => (
+                                        <div key={strategy.name} className="flex items-center justify-between text-sm">
+                                            <div className="flex items-center gap-2">
+                                                <div
+                                                    className="w-3 h-3 rounded-full"
+                                                    style={{ backgroundColor: strategy.color }}
+                                                />
+                                                <span className="capitalize">{strategy.name.replace(/_/g, ' ')}</span>
+                                            </div>
+                                            <span className="font-medium">{strategy.value}%</span>
+                                        </div>
                                     ))}
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        <div className="mt-4 space-y-2">
-                            {STRATEGY_DATA.map((strategy) => (
-                                <div key={strategy.name} className="flex items-center justify-between text-sm">
-                                    <div className="flex items-center gap-2">
-                                        <div
-                                            className="w-3 h-3 rounded-full"
-                                            style={{ backgroundColor: strategy.color }}
-                                        />
-                                        <span>{strategy.name}</span>
-                                    </div>
-                                    <span className="font-medium">{strategy.value}%</span>
                                 </div>
-                            ))}
-                        </div>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -158,29 +169,35 @@ export function UpsellAnalytics({ orgId }: UpsellAnalyticsProps) {
                         <CardDescription>Impressions and conversions over time</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <LineChart data={DAILY_TREND}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="date" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                <Line
-                                    type="monotone"
-                                    dataKey="impressions"
-                                    stroke="#8b5cf6"
-                                    strokeWidth={2}
-                                    name="Impressions"
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="conversions"
-                                    stroke="#10b981"
-                                    strokeWidth={2}
-                                    name="Conversions"
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
+                        {dailyTrend.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                <p>No trend data available</p>
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={dailyTrend}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="date" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="impressions"
+                                        stroke="#8b5cf6"
+                                        strokeWidth={2}
+                                        name="Impressions"
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="conversions"
+                                        stroke="#10b981"
+                                        strokeWidth={2}
+                                        name="Conversions"
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        )}
                     </CardContent>
                 </Card>
             </div>
