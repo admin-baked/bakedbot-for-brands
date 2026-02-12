@@ -1,8 +1,49 @@
-# Vibe Builder - Visual Editor Specification
+# Vibe Builder - Visual Website Builder
 
-**Status:** Design Phase
+**Status:** ✅ Week 3 Complete (Template Marketplace, Publishing, Custom Domains)
 **Date:** 2026-02-11
-**Target:** Weeks 2-3 Implementation
+**Last Updated:** 2026-02-11
+
+## Implementation Status
+
+| Feature | Status | Key Files |
+|---------|--------|-----------|
+| GrapesJS Visual Editor | ✅ Complete | `src/app/vibe/builder/editor/page.tsx` |
+| Project Management | ✅ Complete | `src/server/actions/vibe-projects.ts` |
+| Template Marketplace | ✅ Complete | `src/app/vibe/templates/page.tsx`, `src/server/actions/template-marketplace.ts` |
+| Template Admin (Approval) | ✅ Complete | `src/app/dashboard/admin/templates/page.tsx`, `src/server/actions/template-admin.ts` |
+| Publishing System | ✅ Complete | `src/server/actions/vibe-publish.ts`, `src/app/vibe/builder/publish/page.tsx` |
+| Site Serving | ✅ Complete | `src/app/api/site/[subdomain]/route.ts`, `src/app/api/vibe/site/[projectId]/route.ts` |
+| Unified Domain Management | ✅ Complete | `src/app/dashboard/domains/page.tsx`, `src/server/actions/domain-management.ts` |
+| Next.js Middleware (Domain Routing) | ✅ Complete | `src/middleware.ts` |
+| Vibe Backend Generator | ✅ Complete | `src/server/services/vibe-backend-generator.ts` |
+| GitHub Integration (Vibe) | ✅ Complete | `src/server/services/vibe-github.ts` |
+
+## Architecture
+
+```
+Vibe Studio (/vibe) → Theme Generation → Lead Capture
+       ↓
+Vibe Builder (/vibe/builder) → GrapesJS Editor → Project Management
+       ↓                                              ↓
+Template Marketplace (/vibe/templates)           Publishing
+       ↓                                              ↓
+Browse/Search/Install                    *.bakedbot.site (subdomain)
+                                                      ↓
+                                         Custom Domains (/dashboard/domains)
+                                                      ↓
+                                         menu | vibe_site | hybrid routing
+```
+
+## Firestore Collections
+
+| Collection | Purpose |
+|------------|---------|
+| `vibe_projects` | User projects (HTML, CSS, components, styles) |
+| `vibe_published_sites` | Published sites with subdomain, analytics |
+| `vibe_templates` | Community templates with approval workflow |
+| `domain_mappings/{domain}` | Unified domain → target routing |
+| `tenants/{id}/domains/{domain}` | Per-tenant domain subcollection |
 
 ---
 

@@ -147,11 +147,18 @@ export async function myAction(input: Input): Promise<Result> {
 
 ---
 
-## Custom Domain Management
+## Custom Domain Management (Unified)
 
-**Location**: `src/server/actions/domain-management.ts`
+**Location**: `src/server/actions/domain-management.ts` (~500 lines)
 
-Allows brands and dispensaries to connect custom domains (e.g., `shop.mybrand.com` or `menu.dispensary.com`) to their BakedBot menu.
+Unified domain management system that supports routing any custom domain to any BakedBot content type: product menus, Vibe Builder websites, or both (hybrid routing).
+
+### Target Types
+| Type | Use Case | Routing |
+|------|----------|---------|
+| `menu` | Product catalogs | Rewrite to `/{tenantId}` or `/dispensaries/{tenantId}` |
+| `vibe_site` | Vibe Builder sites | Rewrite to `/api/vibe/site/{projectId}` |
+| `hybrid` | Both on same domain | Path-based: `/` → Vibe, `/shop` → Menu |
 
 ### Connection Types
 | Type | Use Case | DNS Record |
@@ -160,20 +167,70 @@ Allows brands and dispensaries to connect custom domains (e.g., `shop.mybrand.co
 | Nameserver | Full domains (mybrandmenu.com) | NS → ns1/ns2.bakedbot.ai |
 
 ### Verification Flow
-1. Brand/dispensary adds domain in dashboard settings
-2. System generates TXT verification token
-3. User adds TXT record to DNS
-4. User adds CNAME or updates nameservers
+1. User adds domain in `/dashboard/domains` (unified manager)
+2. Selects target type (menu, vibe_site, hybrid)
+3. System generates TXT verification token
+4. User adds TXT record + CNAME/NS to DNS
 5. System verifies DNS records
-6. Domain mapping created for routing
+6. Domain mapping created in `domain_mappings/{domain}`
+7. Next.js middleware routes requests based on targetType
+
+### Server Actions
+```typescript
+// Add domain with target selection
+addCustomDomain(tenantId, domain, connectionType?, targetType?, targetId?, targetName?, routingConfig?, userId?)
+
+// List all domains for a tenant
+listDomains(tenantId): { domains: DomainListItem[] }
+
+// Verify DNS configuration
+verifyCustomDomain(tenantId)
+
+// Update what a domain points to
+updateDomainTarget(tenantId, domain, { targetType, targetId, targetName })
+
+// Get full domain mapping for routing
+getDomainMapping(domain): DomainMapping | null
+
+// Remove domain
+removeDomain(tenantId, domain)
+
+// Legacy
+getDomainStatus(tenantId)
+removeCustomDomain(tenantId)
+```
+
+### Next.js Middleware
+**Location**: `src/middleware.ts`
+
+Edge-compatible middleware that intercepts custom domain requests. Cannot use Firestore directly (Edge Runtime), so delegates to `/api/domain/resolve` API.
+
+**Flow:**
+1. Check if hostname is BakedBot-owned → pass through
+2. Check edge cache (1-min TTL) → return cached rewrite
+3. Call `/api/domain/resolve` with hostname + path
+4. Rewrite request to resolved path
+5. Set `x-custom-domain`, `x-tenant-id`, `x-domain-target` headers
 
 ### Key Files
 | File | Purpose |
 |------|---------|
-| `src/server/actions/domain-management.ts` | Server actions |
+| `src/server/actions/domain-management.ts` | Server actions (CRUD + verification) |
+| `src/middleware.ts` | Edge middleware for custom domain routing |
+| `src/lib/domain-routing.ts` | Server-side routing helpers |
 | `src/lib/dns-verify.ts` | DNS verification utilities |
-| `src/lib/domain-cache.ts` | In-memory domain→tenant cache |
+| `src/lib/dns-utils.ts` | Client-safe DNS utilities |
+| `src/lib/domain-cache.ts` | In-memory domain→tenant cache (1-min TTL) |
 | `src/app/api/domain/resolve/route.ts` | Domain resolution API |
+| `src/app/dashboard/domains/page.tsx` | Unified domain manager UI |
+| `src/types/tenant.ts` | DomainTargetType, DomainRoutingConfig types |
+
+### Firestore
+| Collection | Purpose |
+|------------|---------|
+| `domain_mappings/{domain}` | Fast lookup: domain → tenant + target |
+| `tenants/{id}/domains/{domain}` | Multi-domain subcollection per tenant |
+| `tenants/{id}.customDomain` | Legacy field (backwards compat for menu domains) |
 
 ---
 
@@ -233,6 +290,9 @@ const snapshot = await docRef.get();
 | `memory_blocks` | Letta agent memory |
 | `tenants` | Tenant configurations (includes customDomain) |
 | `domain_mappings` | Custom domain → tenant ID lookup |
+| `vibe_published_sites` | Published Vibe Builder websites |
+| `vibe_templates` | Community templates with approval status |
+| `vibe_projects` | User's Vibe Builder projects |
 
 ---
 
