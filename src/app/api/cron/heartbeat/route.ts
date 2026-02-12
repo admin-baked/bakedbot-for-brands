@@ -17,11 +17,29 @@ import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120; // 2 minutes max
 
-export async function GET(req: NextRequest) {
-    // Authorize
+function authorizeCron(req: NextRequest): NextResponse | null {
+    const cronSecret = process.env.CRON_SECRET;
+
+    if (!cronSecret) {
+        logger.error('[Heartbeat Cron] CRON_SECRET is not configured');
+        return NextResponse.json(
+            { success: false, error: 'Server misconfiguration' },
+            { status: 500 }
+        );
+    }
+
     const authHeader = req.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    if (authHeader !== `Bearer ${cronSecret}`) {
         return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    return null;
+}
+
+export async function GET(req: NextRequest) {
+    const authError = authorizeCron(req);
+    if (authError) {
+        return authError;
     }
 
     const startTime = Date.now();
@@ -58,10 +76,9 @@ export async function GET(req: NextRequest) {
  * Manual trigger endpoint for testing
  */
 export async function POST(req: NextRequest) {
-    // Authorize
-    const authHeader = req.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return new NextResponse('Unauthorized', { status: 401 });
+    const authError = authorizeCron(req);
+    if (authError) {
+        return authError;
     }
 
     try {

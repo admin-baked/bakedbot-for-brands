@@ -54,6 +54,15 @@ export async function POST(request: NextRequest) {
 
     logger.info('[Cron] Starting daily loyalty sync');
 
+    const appBaseUrl =
+      process.env.APP_BASE_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      request.nextUrl.origin;
+    const syncHeaders: HeadersInit = {
+      'Content-Type': 'application/json',
+      authorization: `Bearer ${cronSecret}`,
+    };
+
     // Get all organizations with Alleaves POS configured
     const firestore = getAdminFirestore();
     const brandsRef = firestore.collection('brands');
@@ -86,17 +95,10 @@ export async function POST(request: NextRequest) {
       try {
         logger.info('[Cron] Syncing brand', { brandId: brand.id });
 
-        const appBaseUrl =
-          process.env.APP_BASE_URL ||
-          process.env.NEXT_PUBLIC_APP_URL ||
-          'http://localhost:3000';
-
         // Call the sync API for this brand
         const syncResponse = await fetch(`${appBaseUrl}/api/loyalty/sync`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: syncHeaders,
           body: JSON.stringify({
             orgId: brand.id
           })
