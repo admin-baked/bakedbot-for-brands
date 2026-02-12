@@ -3,11 +3,11 @@
  *
  * Tests the grouped navigation structure for dispensary users:
  * - Workspace: Inbox, Projects, Playbooks
- * - Menu & Inventory: Menu, Carousels, Bundles, Orders
+ * - Menu & Inventory: Menu, Products, Carousels, Hero Banners, Bundles, Orders, Pricing, Smart Upsells
  * - Customers: Customers, Segments, Loyalty
- * - Marketing: Creative Center, Campaigns (Soon)
- * - Intelligence (collapsible): Competitive Intel, Deep Research
- * - Admin (collapsible): CannSchemas, App Store, Settings, Invite
+ * - Marketing: Brand Guide, Creative Center, Vibe Studio, Media, Campaigns
+ * - Intelligence (collapsible): Competitive Intel, Deep Research, Profitability
+ * - Admin (collapsible): App Store, Custom Domains, Settings, Invite
  */
 
 import React from 'react';
@@ -56,9 +56,9 @@ jest.mock('@/components/ui/collapsible', () => ({
 }));
 
 // Mock InviteUserDialog
-jest.mock('@/components/invitations/invite-user-dialog', () => ({
-    InviteUserDialog: ({ orgId, allowedRoles, trigger }: { orgId?: string; allowedRoles: string[]; trigger: React.ReactNode }) => (
-        <div data-testid="invite-user-dialog" data-org-id={orgId} data-allowed-roles={allowedRoles.join(',')}>
+jest.mock('@/components/dashboard/admin/invite-user-dialog', () => ({
+    InviteUserDialog: ({ defaultRole, trigger }: { defaultRole?: string; trigger?: React.ReactNode }) => (
+        <div data-testid="invite-user-dialog" data-default-role={defaultRole ?? ''}>
             {trigger}
         </div>
     ),
@@ -121,13 +121,15 @@ describe('DispensarySidebar', () => {
             expect(screen.getByText('Loyalty')).toBeInTheDocument();
         });
 
-        it('renders Marketing group with Creative Center and Campaigns (Soon)', () => {
+        it('renders Marketing group with brand and campaign tools', () => {
             render(<DispensarySidebar />);
 
             expect(screen.getByText('Marketing')).toBeInTheDocument();
+            expect(screen.getByText('Brand Guide')).toBeInTheDocument();
             expect(screen.getByText('Creative Center')).toBeInTheDocument();
+            expect(screen.getByText('Vibe Studio')).toBeInTheDocument();
+            expect(screen.getByText('Media')).toBeInTheDocument();
             expect(screen.getByText('Campaigns')).toBeInTheDocument();
-            expect(screen.getByText('Soon')).toBeInTheDocument();
         });
 
         it('renders Intelligence group as collapsible', () => {
@@ -143,8 +145,8 @@ describe('DispensarySidebar', () => {
             render(<DispensarySidebar />);
 
             expect(screen.getByText('Admin')).toBeInTheDocument();
-            expect(screen.getByText('CannSchemas')).toBeInTheDocument();
             expect(screen.getByText('App Store')).toBeInTheDocument();
+            expect(screen.getByText('Custom Domains')).toBeInTheDocument();
             expect(screen.getByText('Settings')).toBeInTheDocument();
             expect(screen.getByText('Invite Team Member')).toBeInTheDocument();
         });
@@ -160,6 +162,8 @@ describe('DispensarySidebar', () => {
             expect(hrefs).toContain('/dashboard/inbox');
             expect(hrefs).toContain('/dashboard/projects');
             expect(hrefs).toContain('/dashboard/playbooks');
+            expect(hrefs).toContain('/dashboard/drive');
+            expect(hrefs).toContain('/dashboard/academy');
         });
 
         it('links to correct paths for Menu & Inventory items', () => {
@@ -169,9 +173,13 @@ describe('DispensarySidebar', () => {
             const hrefs = links.map(link => link.getAttribute('href'));
 
             expect(hrefs).toContain('/dashboard/menu');
+            expect(hrefs).toContain('/dashboard/products');
             expect(hrefs).toContain('/dashboard/carousels');
+            expect(hrefs).toContain('/dashboard/heroes');
             expect(hrefs).toContain('/dashboard/bundles');
             expect(hrefs).toContain('/dashboard/orders');
+            expect(hrefs).toContain('/dashboard/pricing');
+            expect(hrefs).toContain('/dashboard/upsells');
         });
 
         it('links to correct paths for Customer items', () => {
@@ -191,8 +199,8 @@ describe('DispensarySidebar', () => {
             const links = screen.getAllByTestId('link');
             const hrefs = links.map(link => link.getAttribute('href'));
 
-            expect(hrefs).toContain('/dashboard/menu-sync');
             expect(hrefs).toContain('/dashboard/apps');
+            expect(hrefs).toContain('/dashboard/domains');
             expect(hrefs).toContain('/dashboard/settings');
         });
     });
@@ -212,7 +220,7 @@ describe('DispensarySidebar', () => {
             render(<DispensarySidebar />);
 
             const activeButtons = screen.getAllByTestId('sidebar-menu-button');
-            const menuButton = activeButtons.find(btn => btn.textContent?.includes('Menu') && !btn.textContent?.includes('CannSchemas'));
+            const menuButton = activeButtons.find(btn => btn.textContent?.includes('Menu'));
             expect(menuButton).toHaveAttribute('data-active', 'true');
         });
 
@@ -227,12 +235,12 @@ describe('DispensarySidebar', () => {
     });
 
     describe('Collapsible Sections', () => {
-        it('Intelligence section defaults to collapsed', () => {
+        it('Intelligence section defaults to open', () => {
             render(<DispensarySidebar />);
 
             const collapsibles = screen.getAllByTestId('collapsible');
             // Find the Intelligence collapsible (first one)
-            expect(collapsibles[0]).toHaveAttribute('data-default-open', 'false');
+            expect(collapsibles[0]).toHaveAttribute('data-default-open', 'true');
         });
 
         it('Admin section defaults to collapsed', () => {
@@ -245,28 +253,21 @@ describe('DispensarySidebar', () => {
     });
 
     describe('Invite User Dialog', () => {
-        it('renders invite dialog with dispensary role restriction', () => {
+        it('renders invite dialog with default role', () => {
             render(<DispensarySidebar />);
 
             const inviteDialog = screen.getByTestId('invite-user-dialog');
-            expect(inviteDialog).toHaveAttribute('data-allowed-roles', 'dispensary');
-        });
-
-        it('passes orgId to invite dialog', () => {
-            render(<DispensarySidebar />);
-
-            const inviteDialog = screen.getByTestId('invite-user-dialog');
-            expect(inviteDialog).toHaveAttribute('data-org-id', 'dispensary_test-org');
+            expect(inviteDialog).toHaveAttribute('data-default-role', 'dispensary_admin');
         });
     });
 
     describe('Coming Soon Items', () => {
-        it('renders Campaigns as disabled with Soon badge', () => {
+        it('renders Campaigns link', () => {
             render(<DispensarySidebar />);
 
-            const campaignsItem = screen.getByText('Campaigns').closest('div');
-            expect(campaignsItem).toHaveClass('cursor-not-allowed');
-            expect(screen.getByText('Soon')).toBeInTheDocument();
+            const links = screen.getAllByTestId('link');
+            const hrefs = links.map(link => link.getAttribute('href'));
+            expect(hrefs).toContain('/dashboard/campaigns');
         });
     });
 
