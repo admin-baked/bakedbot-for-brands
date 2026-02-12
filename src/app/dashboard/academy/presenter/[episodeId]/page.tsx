@@ -11,6 +11,7 @@ import { useEffect, useState, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { getPresentation } from '@/lib/academy/slides';
 import { SlideRenderer } from '@/components/academy/slides/slide-renderer';
+import { AnimatedSlideWrapper } from '@/components/academy/slides/animated-slide-wrapper';
 import { Button } from '@/components/ui/button';
 import {
   ChevronLeft,
@@ -36,6 +37,31 @@ export default function PresenterPage({ params }: PresenterPageProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [backgrounds, setBackgrounds] = useState<Record<string, string>>({});
+  const [agentIllustrations, setAgentIllustrations] = useState<Record<string, string>>({});
+
+  // Fetch cached slide visuals on mount
+  useEffect(() => {
+    async function fetchVisuals() {
+      try {
+        const [bgRes, agentRes] = await Promise.all([
+          fetch('/api/academy/slide-visuals?type=backgrounds'),
+          fetch('/api/academy/slide-visuals?type=agents'),
+        ]);
+        if (bgRes.ok) {
+          const data = await bgRes.json();
+          if (data.backgrounds) setBackgrounds(data.backgrounds);
+        }
+        if (agentRes.ok) {
+          const data = await agentRes.json();
+          if (data.illustrations) setAgentIllustrations(data.illustrations);
+        }
+      } catch {
+        // Visuals are optional — graceful fallback to CSS gradients
+      }
+    }
+    fetchVisuals();
+  }, []);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
@@ -147,7 +173,14 @@ export default function PresenterPage({ params }: PresenterPageProps) {
     <div className="h-screen w-screen bg-background flex flex-col overflow-hidden">
       {/* Slide Content */}
       <div className="flex-1 relative" onClick={() => setShowControls(!showControls)}>
-        <SlideRenderer slide={slide} trackColor={presentation.trackColor} />
+        <AnimatedSlideWrapper slideKey={`slide-${currentSlide}`}>
+          <SlideRenderer
+            slide={slide}
+            trackColor={presentation.trackColor}
+            backgrounds={backgrounds}
+            agentIllustrations={agentIllustrations}
+          />
+        </AnimatedSlideWrapper>
 
         {/* Speaker Notes Overlay */}
         {showNotes && slide.notes && (

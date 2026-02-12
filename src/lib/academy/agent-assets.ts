@@ -12,6 +12,8 @@ export interface AgentAsset {
   imagePath: string | null;
   /** Whether a real image exists (vs gradient+emoji fallback) */
   hasImage: boolean;
+  /** Gemini-generated illustration URL (cached in Firebase Storage) */
+  illustrationUrl?: string;
   /** Emoji representation for compact displays */
   emoji: string;
   /** Tailwind gradient classes for card backgrounds */
