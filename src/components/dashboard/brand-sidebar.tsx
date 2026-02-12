@@ -14,6 +14,7 @@
  * - Admin: Brand Page, App Store, CannSchemas, Settings
  */
 
+import { memo } from 'react';
 import {
     SidebarGroup,
     SidebarGroupContent,
@@ -57,7 +58,7 @@ import { useUserRole } from "@/hooks/use-user-role";
 import { AGENT_SQUAD } from '@/hooks/use-agentic-dashboard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
-export function BrandSidebar() {
+export const BrandSidebar = memo(function BrandSidebar() {
     const pathname = usePathname();
     const { orgId } = useUserRole();
 
@@ -77,7 +78,7 @@ export function BrandSidebar() {
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/inbox')}>
-                                <Link href="/dashboard/inbox">
+                                <Link href="/dashboard/inbox" prefetch={true}>
                                     <Inbox />
                                     <span>Inbox</span>
                                 </Link>
@@ -85,7 +86,7 @@ export function BrandSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/projects')}>
-                                <Link href="/dashboard/projects">
+                                <Link href="/dashboard/projects" prefetch={true}>
                                     <FolderKanban />
                                     <span>Projects</span>
                                 </Link>
@@ -93,7 +94,7 @@ export function BrandSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/playbooks')}>
-                                <Link href="/dashboard/playbooks">
+                                <Link href="/dashboard/playbooks" prefetch={true}>
                                     <BookOpen />
                                     <span>Playbooks</span>
                                 </Link>
@@ -101,7 +102,7 @@ export function BrandSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/academy')}>
-                                <Link href="/dashboard/academy">
+                                <Link href="/dashboard/academy" prefetch={true}>
                                     <GraduationCap />
                                     <span>Academy</span>
                                 </Link>
@@ -118,7 +119,7 @@ export function BrandSidebar() {
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/brand/creative')}>
-                                <Link href="/dashboard/brand/creative">
+                                <Link href="/dashboard/brand/creative" prefetch={true}>
                                     <Palette />
                                     <span>Creative Center</span>
                                 </Link>
@@ -126,7 +127,7 @@ export function BrandSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/vibe-studio')}>
-                                <Link href="/dashboard/vibe-studio">
+                                <Link href="/dashboard/vibe-studio" prefetch={true}>
                                     <Wand2 />
                                     <span>Vibe Studio</span>
                                 </Link>
@@ -134,7 +135,7 @@ export function BrandSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/heroes')}>
-                                <Link href="/dashboard/heroes">
+                                <Link href="/dashboard/heroes" prefetch={true}>
                                     <Monitor />
                                     <span>Hero Banners</span>
                                 </Link>
@@ -142,7 +143,7 @@ export function BrandSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/qr-codes')}>
-                                <Link href="/dashboard/qr-codes">
+                                <Link href="/dashboard/qr-codes" prefetch={true}>
                                     <QrCode />
                                     <span>QR Codes</span>
                                 </Link>
@@ -150,7 +151,7 @@ export function BrandSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/media')}>
-                                <Link href="/dashboard/media">
+                                <Link href="/dashboard/media" prefetch={true}>
                                     <Image />
                                     <span>Media</span>
                                 </Link>
@@ -167,7 +168,7 @@ export function BrandSidebar() {
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/products')}>
-                                <Link href="/dashboard/products">
+                                <Link href="/dashboard/products" prefetch={true}>
                                     <Package />
                                     <span>Products</span>
                                 </Link>
@@ -175,7 +176,7 @@ export function BrandSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/menu')}>
-                                <Link href="/dashboard/menu">
+                                <Link href="/dashboard/menu" prefetch={true}>
                                     <Utensils />
                                     <span>Menu</span>
                                 </Link>
@@ -183,7 +184,7 @@ export function BrandSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/orders')}>
-                                <Link href="/dashboard/orders">
+                                <Link href="/dashboard/orders" prefetch={true}>
                                     <ShoppingCart />
                                     <span>Orders</span>
                                 </Link>
@@ -191,7 +192,7 @@ export function BrandSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/pricing')}>
-                                <Link href="/dashboard/pricing">
+                                <Link href="/dashboard/pricing" prefetch={true}>
                                     <TrendingUp />
                                     <span>Pricing</span>
                                 </Link>
@@ -208,7 +209,7 @@ export function BrandSidebar() {
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/customers')}>
-                                <Link href="/dashboard/customers">
+                                <Link href="/dashboard/customers" prefetch={true}>
                                     <Users />
                                     <span>Customers</span>
                                 </Link>
@@ -216,7 +217,7 @@ export function BrandSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/segments')}>
-                                <Link href="/dashboard/segments">
+                                <Link href="/dashboard/segments" prefetch={true}>
                                     <PieChart />
                                     <span>Segments</span>
                                 </Link>
@@ -224,7 +225,7 @@ export function BrandSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/leads')}>
-                                <Link href="/dashboard/leads">
+                                <Link href="/dashboard/leads" prefetch={true}>
                                     <UserPlus />
                                     <span>Leads</span>
                                 </Link>
@@ -232,7 +233,7 @@ export function BrandSidebar() {
                         </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/loyalty')}>
-                                <Link href="/dashboard/loyalty">
+                                <Link href="/dashboard/loyalty" prefetch={true}>
                                     <Crown />
                                     <span>Loyalty</span>
                                 </Link>
@@ -256,7 +257,7 @@ export function BrandSidebar() {
                             <SidebarMenu>
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isActive('/dashboard/competitive-intel')}>
-                                        <Link href="/dashboard/competitive-intel">
+                                        <Link href="/dashboard/competitive-intel" prefetch={true}>
                                             <Target />
                                             <span>Competitive Intel</span>
                                         </Link>
@@ -264,7 +265,7 @@ export function BrandSidebar() {
                                 </SidebarMenuItem>
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isActive('/dashboard/research')}>
-                                        <Link href="/dashboard/research">
+                                        <Link href="/dashboard/research" prefetch={true}>
                                             <Globe />
                                             <span>Deep Research</span>
                                             <span className="ml-auto text-[10px] bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded font-medium">BETA</span>
@@ -330,7 +331,7 @@ export function BrandSidebar() {
                             <SidebarMenu>
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isActive('/dashboard/dispensaries')}>
-                                        <Link href="/dashboard/dispensaries">
+                                        <Link href="/dashboard/dispensaries" prefetch={true}>
                                             <Store />
                                             <span>Dispensaries</span>
                                         </Link>
@@ -356,7 +357,7 @@ export function BrandSidebar() {
                             <SidebarMenu>
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isActive('/dashboard/content/brand-page')}>
-                                        <Link href="/dashboard/content/brand-page">
+                                        <Link href="/dashboard/content/brand-page" prefetch={true}>
                                             <LayoutTemplate />
                                             <span>Brand Page</span>
                                         </Link>
@@ -364,7 +365,7 @@ export function BrandSidebar() {
                                 </SidebarMenuItem>
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isActive('/dashboard/apps')}>
-                                        <Link href="/dashboard/apps">
+                                        <Link href="/dashboard/apps" prefetch={true}>
                                             <LayoutGrid />
                                             <span>App Store</span>
                                         </Link>
@@ -372,7 +373,7 @@ export function BrandSidebar() {
                                 </SidebarMenuItem>
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isActive('/dashboard/menu-sync')}>
-                                        <Link href="/dashboard/menu-sync">
+                                        <Link href="/dashboard/menu-sync" prefetch={true}>
                                             <Database />
                                             <span>CannSchemas</span>
                                         </Link>
@@ -380,7 +381,7 @@ export function BrandSidebar() {
                                 </SidebarMenuItem>
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isActive('/dashboard/settings')}>
-                                        <Link href="/dashboard/settings">
+                                        <Link href="/dashboard/settings" prefetch={true}>
                                             <Settings />
                                             <span>Settings</span>
                                         </Link>
@@ -404,4 +405,4 @@ export function BrandSidebar() {
             </SidebarGroup>
         </>
     );
-}
+});
