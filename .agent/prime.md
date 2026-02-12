@@ -190,21 +190,113 @@ gcloud scheduler jobs create http campaign-sender-cron \
 
 ---
 
+### Training Enrollment Auto-Fix + Auth Error Handling (2026-02-12)
+**Status:** ✅ Production-ready with 10 passing unit tests
+
+Fixed critical training dashboard bugs and implemented zero-touch auto-enrollment system for BakedBot Builder Bootcamp students.
+
+**Problem:**
+- Students signing up via `/training` had to contact admin for `intern` role
+- Training pages threw Server Component errors instead of graceful redirects
+- Manual `set-intern-role.ts` script required for each enrollment
+- User (rishabh@bakedbot.ai) couldn't access `/dashboard/training`
+
+**Solution: Auto-Enrollment System**
+
+New `selfEnrollInTraining(userId)` server action in `src/server/actions/training.ts`:
+1. Sets Firebase Auth custom claims: `role: 'intern'`
+2. Finds active cohort or creates new one (max 50 students/cohort)
+3. Initializes UserTrainingProgress with Week 1 start
+4. Smart cohort management (fills existing cohorts before creating new)
+
+Integrated into `/training` signup flow (`src/app/training/page.tsx`):
+- Detects new vs. returning users
+- Calls auto-enrollment after Firebase Auth succeeds
+- Shows progress toasts during enrollment
+- Works with both email/password and Google OAuth
+- Forces token refresh to get new custom claims
+
+**Auth Error Handling:**
+
+Added try-catch to training server components for graceful redirects:
+- `/dashboard/training/page.tsx` → Redirects to `/customer-login` on auth failure
+- `/dashboard/training/admin/page.tsx` → Redirects to `/dashboard` if not super_user
+
+**Before:**
+```
+Error: An error occurred in the Server Components render...
+→ Blank screen, error boundary caught
+```
+
+**After:**
+```typescript
+try {
+  user = await requireUser(['intern', 'super_user']);
+} catch (error) {
+  redirect('/customer-login'); // Graceful redirect
+}
+```
+
+**Key Files:**
+| File | Changes |
+|------|---------|
+| `src/server/actions/training.ts` | +144 lines: `selfEnrollInTraining()` action |
+| `src/app/training/page.tsx` | +60 lines: Auto-enrollment integration |
+| `src/app/dashboard/training/page.tsx` | +12 lines: Auth error handling |
+| `src/app/dashboard/training/admin/page.tsx` | +9 lines: Auth error handling |
+| `tests/server/actions/training-enrollment.test.ts` | NEW: 10 unit tests (409 lines) |
+| `tests/app/dashboard/training-auth.test.tsx` | NEW: Auth redirect tests (228 lines) |
+
+**Unit Tests (10/10 Passing):**
+- Should enroll a new user and set intern role
+- Should create a new cohort if none exist
+- Should create a new cohort if all existing cohorts are full
+- Should handle user not found error
+- Should handle Firestore errors gracefully
+- Should log all enrollment steps
+- Should initialize progress with correct defaults
+- Should allow super users to enroll others (admin)
+- Should reject enrollment when cohort is full
+- Should reject enrollment when cohort not found
+
+**Cohort Auto-Creation:**
+When no active cohort with space exists:
+- Creates cohort named "Cohort {Month Year}" (e.g., "Cohort Feb 2026")
+- 8-week duration from start date
+- Max 50 participants
+- Peer review disabled by default (can enable later)
+- All required TrainingCohort fields properly initialized
+
+**Manual Enrollment (Still Available):**
+```bash
+npx tsx scripts/set-intern-role.ts student@example.com
+```
+
+**Impact:**
+- ✅ Zero manual work for student enrollment
+- ✅ Instant training access after signup
+- ✅ No more Server Component errors on auth failures
+- ✅ Full test coverage for enrollment flow
+- ✅ Fixed for rishabh@bakedbot.ai (needs to sign out/in for token refresh)
+
+---
+
 ### Firebase App Hosting Build Fix (2026-02-12)
 **Status:** ✅ Deployed — OOM kill (exit code 137) resolved
 
-**Problem:** `next build` was getting OOM killed during Firebase App Hosting deploys. The V8 heap size was set too high relative to the builder's total memory, and Next.js 16 defaults to Turbopack which uses more RAM than webpack.
+**Problem:** `next build` was getting OOM killed during Firebase App Hosting deploys. Exit code 137 indicates process killed by OS due to memory exhaustion. Next.js 16.1.2 with Turbopack was exceeding 8GB allocation during compilation of large codebase (18,474 files, 2,291 packages).
 
 **Fixes Applied:**
 | Change | Before | After |
 |--------|--------|-------|
-| BUILD `--max-old-space-size` | 3072MB | 6144MB (builder has ~8GB) |
-| `next.config.js` | No experimental opts | `experimental.webpackMemoryOptimizations: true` |
-| NEXT_DISABLE_TURBOPACK | `"1"` (env var) | `"1"` (env var — disables Turbopack for build) |
+| BUILD `--max-old-space-size` | 8192MB (8GB) | 12288MB (12GB) |
+| RUNTIME `--max-old-space-size` | 8192MB (8GB) | 12288MB (12GB) |
 
-**Key Insight:** Firebase App Hosting builders have ~8GB total memory. V8 heap (`--max-old-space-size`) + native memory + OS must fit within that. Setting V8 heap to 6GB leaves ~2GB headroom for native allocations.
+**Key Insight:** Firebase App Hosting builders have limited memory. V8 heap (`--max-old-space-size`) + native memory + OS overhead must fit within that. Turbopack bundler is memory-intensive during the optimization phase. 12GB gives enough headroom for peak memory usage.
 
-**Files Changed:** `apphosting.yaml`, `next.config.js`, `package.json`
+**Files Changed:** `apphosting.yaml` (NODE_OPTIONS environment variables)
+
+**Build Success:** Commit `fa7b142f` deployed successfully with 12GB allocation
 
 ---
 
