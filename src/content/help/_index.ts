@@ -776,6 +776,20 @@ export const articles: Record<string, HelpArticleMeta> = {
     author: 'BakedBot Team',
   },
 
+  'dispensary/smart-upsells': {
+    slug: 'smart-upsells',
+    category: 'dispensary',
+    title: 'Smart Upsells - Cannabis Science Pairing',
+    description: 'Increase AOV with AI-powered product suggestions using terpene pairing, effect stacking, and margin optimization',
+    roles: ['brand', 'super_user', 'dispensary_admin'],
+    tags: ['dispensary', 'upsell', 'cross-sell', 'aov', 'terpenes', 'smokey', 'cannabis-science', 'recommendations', 'cart', 'checkout', 'chatbot'],
+    difficulty: 'intermediate',
+    estimatedTime: '12 minutes',
+    filePath: './dispensary/smart-upsells.mdx',
+    lastUpdated: '2026-02-11',
+    author: 'BakedBot Team',
+  },
+
   'agents/intelligence-livehud': {
     slug: 'intelligence-livehud',
     category: 'agents',
@@ -874,7 +888,7 @@ export const articles: Record<string, HelpArticleMeta> = {
     author: 'BakedBot Team',
   },
 
-  // 🎉 62 articles complete!
+  // 🎉 63 articles complete!
 };
 
 /**
