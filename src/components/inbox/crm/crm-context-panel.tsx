@@ -116,12 +116,12 @@ export function CrmContextPanel({
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     };
 
-    // Load customer data
+    // Load customer data via server action
     const loadCustomer = useCallback(async () => {
         setLoading(true);
         try {
-            const { lookupCustomer } = await import('@/server/tools/crm-tools');
-            const result = await lookupCustomer(customerId || customerEmail || '', orgId);
+            const { lookupCustomerAction } = await import('@/server/actions/crm-panel');
+            const result = await lookupCustomerAction(customerId || customerEmail || '', orgId);
             if (result?.customer) {
                 setCustomer(result.customer as unknown as CrmPanelCustomer);
             }
@@ -132,12 +132,12 @@ export function CrmContextPanel({
         }
     }, [customerId, customerEmail, orgId]);
 
-    // Load orders lazily when section opens
+    // Load orders lazily when section opens via server action
     const loadOrders = useCallback(async () => {
         if (orders.length > 0) return;
         try {
-            const { getCustomerHistory } = await import('@/server/tools/crm-tools');
-            const result = await getCustomerHistory(customerId, orgId, 5);
+            const { getCustomerHistoryAction } = await import('@/server/actions/crm-panel');
+            const result = await getCustomerHistoryAction(customerId, orgId, 5);
             if (result?.orders) {
                 setOrders(result.orders as unknown as CrmPanelOrder[]);
             }
@@ -146,12 +146,12 @@ export function CrmContextPanel({
         }
     }, [customerId, orgId, orders.length]);
 
-    // Load comms lazily when section opens
+    // Load comms lazily when section opens via server action
     const loadComms = useCallback(async () => {
         if (comms.length > 0) return;
         try {
-            const { getCustomerComms } = await import('@/server/tools/crm-tools');
-            const result = await getCustomerComms(customerId, orgId, 5);
+            const { getCustomerCommsAction } = await import('@/server/actions/crm-panel');
+            const result = await getCustomerCommsAction(customerId, orgId, 5);
             if (result?.communications) {
                 setComms(result.communications as unknown as CrmPanelComm[]);
             }
