@@ -20,7 +20,7 @@ npm run check:types
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
 **Current Status:** 🟢 Passing (verified 2026-02-12)
-**Recent Fix:** Campaign Management + Agent Notifications system (8 phases, 136+ tests)
+**Recent Fix:** Firebase App Hosting OOM build fix + Smart Upsells Dashboard + Campaign Management system
 
 ---
 
@@ -187,6 +187,47 @@ gcloud scheduler jobs create http campaign-sender-cron \
 - `dispensary/agent-notifications.mdx` — NEW: Notification bell, panel, multi-channel (489 lines)
 - `dispensary/crm-intelligence.mdx` — NEW: Inline cards, CRM tools, segments (467 lines)
 - `dispensary/approval-queue.mdx` — NEW: Approval workflow (305 lines)
+
+---
+
+### Firebase App Hosting Build Fix (2026-02-12)
+**Status:** ✅ Deployed — OOM kill (exit code 137) resolved
+
+**Problem:** `next build` was getting OOM killed during Firebase App Hosting deploys. The V8 heap size was set too high relative to the builder's total memory, and Next.js 16 defaults to Turbopack which uses more RAM than webpack.
+
+**Fixes Applied:**
+| Change | Before | After |
+|--------|--------|-------|
+| BUILD `--max-old-space-size` | 3072MB | 6144MB (builder has ~8GB) |
+| `next.config.js` | No experimental opts | `experimental.webpackMemoryOptimizations: true` |
+| NEXT_DISABLE_TURBOPACK | `"1"` (env var) | `"1"` (env var — disables Turbopack for build) |
+
+**Key Insight:** Firebase App Hosting builders have ~8GB total memory. V8 heap (`--max-old-space-size`) + native memory + OS must fit within that. Setting V8 heap to 6GB leaves ~2GB headroom for native allocations.
+
+**Files Changed:** `apphosting.yaml`, `next.config.js`, `package.json`
+
+---
+
+### Smart Upsells Dashboard (2026-02-12)
+**Status:** ✅ Production-ready
+
+Added `/dashboard/upsells` — analytics and configuration dashboard for the Smart Upsell Engine.
+
+**4 Tabs:**
+1. **Analytics** — Upsell performance metrics (impressions, clicks, conversions, revenue)
+2. **Top Pairings** — Most successful product pairings with success rates
+3. **Configuration** — Per-placement scoring weight tuning
+4. **Bundle Builder** — Create bundles from top-performing pairs
+
+**Key Files:**
+| File | Purpose |
+|------|---------|
+| `src/app/dashboard/upsells/page.tsx` | Server component wrapper |
+| `src/app/dashboard/upsells/page-client.tsx` | Main client component with tabs |
+| `src/app/dashboard/upsells/components/upsell-analytics.tsx` | Performance metrics |
+| `src/app/dashboard/upsells/components/top-pairings.tsx` | Top pairings table |
+| `src/app/dashboard/upsells/components/upsell-configuration.tsx` | Scoring weight config |
+| `src/app/dashboard/upsells/components/bundle-builder.tsx` | Bundle creation from pairings |
 
 ---
 
