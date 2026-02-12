@@ -96,8 +96,8 @@ describe('Creative Content Server Actions', () => {
 
             const result = await getPendingContent('tenant-123');
 
-            expect(result).toHaveLength(2);
-            expect(result[0].id).toBe('content-1');
+            expect(result.content).toHaveLength(2);
+            expect(result.content[0].id).toBe('content-1');
             expect(mockFirestore.collection).toHaveBeenCalledWith('tenants/tenant-123/creative_content');
             expect(mockCollection.where).toHaveBeenCalledWith('status', 'in', ['pending', 'draft']);
         });
@@ -107,7 +107,7 @@ describe('Creative Content Server Actions', () => {
 
             const result = await getPendingContent('tenant-123');
 
-            expect(result).toHaveLength(0);
+            expect(result.content).toHaveLength(0);
         });
     });
 
@@ -440,16 +440,17 @@ describe('Creative Content Server Actions', () => {
 
             const result = await getContentByPlatform('tenant-123', 'instagram');
 
-            expect(result).toHaveLength(1);
+            expect(result.content).toHaveLength(1);
             expect(mockCollection.where).toHaveBeenCalledWith('platform', '==', 'instagram');
         });
 
         it('respects limit parameter', async () => {
             mockCollection.get.mockResolvedValue({ docs: [] });
 
-            await getContentByPlatform('tenant-123', 'tiktok', 5);
+            await getContentByPlatform('tenant-123', 'tiktok', { limit: 5 });
 
-            expect(mockCollection.limit).toHaveBeenCalledWith(5);
+            // Pagination fetches one extra doc to determine `hasMore`
+            expect(mockCollection.limit).toHaveBeenCalledWith(6);
         });
     });
 });

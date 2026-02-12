@@ -8,9 +8,8 @@
  * Created as part of feat_iheart_loyalty_production (test_smokey_logic)
  */
 
-import { smokeyAgent, SmokeyTools } from '@/server/agents/smokey';
-import { SmokeyMemory } from '@/server/agents/schemas';
-import { BrandMemory } from '@/server/agents/schemas';
+import type { SmokeyTools } from '@/server/agents/smokey';
+import type { SmokeyMemory, BrandMemory } from '@/server/agents/schemas';
 
 // Mock logger
 jest.mock('@/lib/logger', () => ({
@@ -31,6 +30,18 @@ jest.mock('@/server/agents/harness', () => ({
         };
     })
 }));
+
+// Mock grounding dynamic loader to avoid Firebase Admin initialization in unit tests
+jest.mock('@/server/grounding/dynamic-loader', () => ({
+    loadGroundTruth: jest.fn().mockResolvedValue(null),
+    hasGroundTruthDynamic: jest.fn().mockResolvedValue(false),
+    hasGroundTruthSync: jest.fn().mockReturnValue(false),
+    getGroundTruthSource: jest.fn().mockResolvedValue('none'),
+}));
+
+// NOTE: require after mocks so smokey doesn't initialize Firebase via ground truth loading.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { smokeyAgent } = require('@/server/agents/smokey');
 
 describe('Smokey Agent', () => {
   let brandMemory: BrandMemory;

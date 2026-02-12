@@ -4,36 +4,33 @@
  * Tests for Memory Gardening, Cursed Input Protection, and Completeness Doctrine
  */
 
-import { memoryGardeningService } from '../memory-gardening';
-import { cursedInputProtection } from '../cursed-input-protection';
-import { completenessDoctrineService } from '../completeness-doctrine';
+/** @jest-environment node */
 
 // Mock dependencies
 jest.mock('@/lib/logger', () => ({
     logger: {
         info: jest.fn(),
+        debug: jest.fn(),
         warn: jest.fn(),
         error: jest.fn(),
     },
 }));
 
-jest.mock('@/ai/genkit', () => ({
-    ai: {
-        generate: jest.fn(),
-    },
-}));
-
-jest.mock('@/lib/firebase-admin', () => ({
-    getFirestore: jest.fn(() => ({
+jest.mock('@/firebase/admin', () => ({
+    getAdminFirestore: jest.fn(() => ({
         collection: jest.fn(() => ({
             doc: jest.fn(() => ({
-                set: jest.fn(),
-                get: jest.fn(() => ({ exists: false })),
+                set: jest.fn().mockResolvedValue(undefined),
+                get: jest.fn().mockResolvedValue({ exists: false, data: () => null }),
             })),
+            add: jest.fn().mockResolvedValue({ id: 'mock-doc' }),
             where: jest.fn(() => ({
-                get: jest.fn(() => ({ docs: [] })),
+                where: jest.fn(() => ({
+                    get: jest.fn().mockResolvedValue({ docs: [] }),
+                })),
+                get: jest.fn().mockResolvedValue({ docs: [] }),
                 orderBy: jest.fn(() => ({
-                    get: jest.fn(() => ({ docs: [] })),
+                    get: jest.fn().mockResolvedValue({ docs: [] }),
                 })),
             })),
         })),
@@ -47,6 +44,33 @@ jest.mock('../client', () => ({
         deleteArchivalMemory: jest.fn(() => Promise.resolve()),
     },
 }));
+
+jest.mock('../block-manager', () => ({
+    lettaBlockManager: {
+        listBlocks: jest.fn().mockResolvedValue([]),
+    },
+}));
+
+function getAiMock(): { generate: jest.Mock } {
+    // Jest's module mapper for `@/ai/genkit` can return either `{ ai }` or `{ default: { ai } }`
+    // depending on ESM/CJS interop for the mapped mock file.
+    // Normalize to the actual `ai` object so tests can configure `ai.generate`.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require('@/ai/genkit');
+    const ai = mod?.ai ?? mod?.default?.ai;
+    if (!ai) {
+        throw new Error('Failed to load ai mock from @/ai/genkit');
+    }
+    return ai;
+}
+
+// Require AFTER mocks so singletons are created with mocked deps.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { memoryGardeningService } = require('../memory-gardening');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { cursedInputProtection } = require('../cursed-input-protection');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { completenessDoctrineService } = require('../completeness-doctrine');
 
 describe('Cursed Input Protection', () => {
     describe('Pattern-based Detection', () => {
@@ -142,13 +166,13 @@ describe('Cursed Input Protection', () => {
 describe('Completeness Doctrine', () => {
     beforeEach(() => {
         // Mock AI responses
-        const { ai } = require('@/ai/genkit');
+        const ai = getAiMock();
         ai.generate.mockClear();
     });
 
     describe('Intent Extraction', () => {
         it('should extract multiple intents from compound questions', async () => {
-            const { ai } = require('@/ai/genkit');
+            const ai = getAiMock();
             ai.generate.mockResolvedValueOnce({
                 text: JSON.stringify([
                     {
@@ -176,7 +200,7 @@ describe('Completeness Doctrine', () => {
         });
 
         it('should handle single intent messages', async () => {
-            const { ai } = require('@/ai/genkit');
+            const ai = getAiMock();
             ai.generate.mockResolvedValueOnce({
                 text: JSON.stringify([
                     {
@@ -199,7 +223,7 @@ describe('Completeness Doctrine', () => {
 
     describe('Coverage Verification', () => {
         it('should detect when all intents are addressed', async () => {
-            const { ai } = require('@/ai/genkit');
+            const ai = getAiMock();
             ai.generate.mockResolvedValueOnce({
                 text: JSON.stringify({
                     covered: [0, 1],
@@ -223,7 +247,7 @@ describe('Completeness Doctrine', () => {
         });
 
         it('should detect missed intents', async () => {
-            const { ai } = require('@/ai/genkit');
+            const ai = getAiMock();
             ai.generate.mockResolvedValueOnce({
                 text: JSON.stringify({
                     covered: [0],
@@ -250,7 +274,7 @@ describe('Completeness Doctrine', () => {
 
     describe('Auto-Completion', () => {
         it('should generate completion for missed intents', async () => {
-            const { ai } = require('@/ai/genkit');
+            const ai = getAiMock();
             ai.generate.mockResolvedValueOnce({
                 text: 'As for deals - we have 20% off all edibles this week!',
             });
@@ -304,7 +328,7 @@ describe('Memory Gardening Service', () => {
                 },
             ]);
 
-            const { ai } = require('@/ai/genkit');
+            const ai = getAiMock();
             ai.generate.mockResolvedValueOnce({
                 text: JSON.stringify([
                     {

@@ -43,7 +43,7 @@ jest.mock('@/server/tools/sheets', () => ({ sheetsAction: jest.fn() }));
 jest.mock('@/server/tools/leaflink', () => ({ leaflinkAction: jest.fn() }));
 jest.mock('@/server/tools/dutchie', () => ({ dutchieAction: jest.fn() }));
 jest.mock('@/lib/notifications/blackleaf-service', () => ({ blackleafService: {} }));
-jest.mock('@/server/services/cannmenus', () => ({ CannMenusService: class {} }));
+jest.mock('@/server/services/cannmenus', () => ({ CannMenusService: class { } }));
 jest.mock('@/server/algorithms/intuition-engine', () => ({ getIntuitionSummary: jest.fn() }));
 
 // SKIPPING due to Jest/ESM configuration issues with @genkit-ai/dotprompt
@@ -70,9 +70,9 @@ describe.skip('Agent Runner (Async Support)', () => {
 
     it('should respect injected user context', async () => {
         const { ai } = await import('@/ai/genkit');
-        
+
         const result = await runAgentCore('Hello', 'puff', {}, mockUser);
-        
+
         expect(result).toBeDefined();
         // Verify AI was called (implies runner executed)
         expect(ai.generate).toHaveBeenCalled();
@@ -81,7 +81,7 @@ describe.skip('Agent Runner (Async Support)', () => {
 
     it('should inject user context into Gmail tool', async () => {
         const { ai } = await import('@/ai/genkit');
-        
+
         // Mock AI to trigger Gmail tool
         (ai.generate as jest.Mock).mockImplementation(async (opts: any) => {
             if (opts.prompt.includes('Convert this request into a Gmail tool')) {
@@ -91,10 +91,10 @@ describe.skip('Agent Runner (Async Support)', () => {
         });
 
         const result = await runAgentCore('Check my gmail', 'puff', {}, mockUser);
-        
+
         expect(mockGmailAction).toHaveBeenCalledTimes(1);
         const [params, injectedUser] = mockGmailAction.mock.calls[0];
-        
+
         expect(params).toEqual({ action: 'list', query: 'is:unread' });
         expect(injectedUser).toEqual(mockUser); // CRITICAL: Verify DI works
         expect(result.toolCalls?.[0].name).toBe('Gmail');
@@ -103,25 +103,25 @@ describe.skip('Agent Runner (Async Support)', () => {
 
     it('should inject user context into Calendar tool', async () => {
         const { ai } = await import('@/ai/genkit');
-        
+
         // Mock AI to trigger Calendar tool
         (ai.generate as jest.Mock).mockImplementation(async (opts: any) => {
             if (opts.prompt.includes('CalendarParams JSON')) {
-                return { 
-                    text: JSON.stringify({ 
-                        action: 'list', 
-                        timeMin: '2025-01-01T00:00:00Z' 
-                    }) 
+                return {
+                    text: JSON.stringify({
+                        action: 'list',
+                        timeMin: '2025-01-01T00:00:00Z'
+                    })
                 };
             }
             return { text: 'Calendar checked.' };
         });
 
         await runAgentCore('Check calendar', 'puff', {}, mockUser);
-        
+
         expect(mockCalendarAction).toHaveBeenCalledTimes(1);
         const [params, injectedUser] = mockCalendarAction.mock.calls[0];
-        
+
         expect(params.action).toBe('list');
         expect(injectedUser).toEqual(mockUser);
     });
@@ -131,7 +131,7 @@ describe.skip('Agent Runner (Async Support)', () => {
         (requireUser as jest.Mock).mockResolvedValue({ ...mockUser, uid: 'cookie-user' });
 
         const result = await runAgentCore('Hello synchronous world', 'puff');
-        
+
         expect(requireUser).toHaveBeenCalled();
         expect(result.metadata?.brandId).toBe('brand-123');
     });

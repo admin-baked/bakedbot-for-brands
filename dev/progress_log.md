@@ -1,3 +1,48 @@
+## Session: 2026-02-12 (Smokey AI Personalization & Gamification)
+### Task ID
+smokey_ai_personalization_gamification
+
+### Summary
+Implemented a comprehensive gamification system and integrated customer insights directly into the Smokey AI agent. This allows Smokey to act as a "Personal Budtender," acknowledging customer loyalty tiers, streaks, and preferences (segments) in real-time. This work aligns with the **National Discovery Layer** adoption strategy by enhancing the value proposition for claimed pages.
+
+### Key Changes
+*   **SCHEMA**: `src/types/customers.ts` - Added `purchaseStreak`, `badges`, `tierProgress`, and `preferences.segments`.
+*   **UI**: `src/app/dashboard/customer/components/customer-kpi-grid.tsx` - Added "Achievements" card (Streaks/Badges) and Tier Progress bar.
+*   **UI**: `src/app/dashboard/segments/page-client.tsx` - Updated segment colors (Green=VIP, Blue=Growth, Red=Risk).
+*   **AGENT**: `src/server/agents/agent-runner.ts` - Implemented `[CUSTOMER PROFILE]` injection into the system prompt.
+*   **AGENT**: `src/server/agents/smokey.ts` - Updated system instructions to leverage injected context for rapport.
+*   **DOCS**: `walkthrough.md` - Documented implementation and verification steps.
+
+### Features Implemented
+**1. Customer Gamification Data**
+- **Streak Tracking**: Visualized `purchaseStreak` to encourage repeat visits.
+- **Badge System**: Framework for earning badges (e.g., "Indica Expert").
+- **Tier Progress**: Visual progress bar to next loyalty tier.
+
+**2. Personalized Agent Context**
+- **Automatic Injection**: `agent-runner` detects `customer` role and fetches profile data.
+- **Context Block**: Injects formatted text:
+  ```text
+  [CUSTOMER PROFILE]
+  Tier: GOLD
+  Points: 1200
+  Streak: 5 days
+  Segments: vip
+  Badges: Indica Expert
+  ```
+- **Persona Awareness**: Smokey uses this data to customize greetings and recommendations.
+
+### Verification Results
+*   **Manual Verification**: Confirmed via `walkthrough.md` steps.
+*   **Automated Tests**:
+    *   `src/app/scan/__tests__/actions.test.ts` (Passed ✅) - Verifies scan data retrieval.
+    *   `tests/server/agents/agent-personalization.test.ts` (Manual Run) - Verifies prompt injection logic. *Note: Integrated into `agent-runner.test.ts` but currently skipped in CI due to ESM env issues.*
+
+### Result: ✅ Complete
+Smokey is now "context-aware" and the customer dashboard reflects gamification metrics.
+
+---
+
 ## Session: 2026-02-12 (IAM Permissions & App Hosting Rollout)
 ### Task ID
 fix_apphosting_rollout_iam_permissions

@@ -1,5 +1,4 @@
 /** @jest-environment node */
-import { jest } from '@jest/globals';
 
 // --- Mocks ---
 jest.mock('@/server/auth/auth', () => ({
@@ -11,18 +10,18 @@ jest.mock('@/server/integrations/slack/service', () => ({
 }));
 
 jest.mock('@/server/integrations/drive/service', () => ({
-    uploadFile: jest.fn().mockResolvedValue({ id: 'drive-id-123' })
+    uploadFile: jest.fn().mockResolvedValue({ fileId: 'drive-id-123', url: 'https://drive.google.com/file/d/drive-id-123', name: 'test.txt' })
 }));
 
 jest.mock('@/server/tools/codebase', () => ({
-    readCodebase: jest.fn().mockResolvedValue({ type: 'file', content: 'Mock code' })
+    readCodebase: jest.fn().mockResolvedValue({ status: 'success', data: { path: 'src/app', type: 'directory', files: [] } })
 }));
 
 jest.mock('@/lib/email/dispatcher', () => {
     return {
-        sendGenericEmail: jest.fn().mockResolvedValue(true)
+        sendGenericEmail: jest.fn().mockResolvedValue({ success: true })
     };
-}, { virtual: true });
+});
 
 jest.mock('@/server/tools/gmail', () => ({
     gmailAction: jest.fn().mockResolvedValue({ success: true, data: [] })
@@ -32,9 +31,15 @@ jest.mock('@/server/agents/deebo/policy-gate', () => ({
     checkContent: jest.fn().mockResolvedValue({ allowed: true })
 }));
 
-jest.mock('util', () => ({
-    promisify: jest.fn((fn) => fn) // Simple pass-through for mocks
-}));
+jest.mock('util', () => {
+    const actual = jest.requireActual('util');
+    return {
+        ...actual,
+        // The terminal skill expects `promisify(exec)` to return a fn that yields `{ stdout, stderr }`.
+        // In tests we shortcut and return the input fn which we mock as async.
+        promisify: jest.fn((fn) => fn)
+    };
+});
 
 // Mock child_process for Terminal skill
 jest.mock('child_process', () => ({
@@ -42,12 +47,20 @@ jest.mock('child_process', () => ({
 }));
 
 // --- Skills to Test ---
-import { postMessageTool } from '@/skills/domain/slack';
-import { uploadFileTool } from '@/skills/core/drive';
-import { readCodebaseTool } from '@/skills/core/codebase';
-import { executeTool as terminalExecuteTool } from '@/skills/core/terminal';
-import { evaluateJsTool } from '@/skills/core/analysis';
-import { marketingSendTool } from '@/skills/core/email';
+// NOTE: Use `require()` after `jest.mock()` so mocks apply before module initialization.
+// (Static imports are hoisted and can execute before mocks in our Jest + SWC setup.)
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { postMessageTool } = require('@/skills/domain/slack');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { uploadFileTool } = require('@/skills/core/drive');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { readCodebaseTool } = require('@/skills/core/codebase');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { executeTool: terminalExecuteTool } = require('@/skills/core/terminal');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { evaluateJsTool } = require('@/skills/core/analysis');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { marketingSendTool } = require('@/skills/core/email');
 
 describe('Agent Skills Implementation', () => {
 
@@ -57,7 +70,8 @@ describe('Agent Skills Implementation', () => {
 
     describe('domain/slack', () => {
         it('should call slack postMessage with correct params', async () => {
-            const { postMessage } = await import('@/server/integrations/slack/service');
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const { postMessage } = require('@/server/integrations/slack/service');
             const inputs = { channel: 'general', text: 'Hello' };
             const ctx = { user: { uid: 'user-1' } };
 
@@ -70,13 +84,14 @@ describe('Agent Skills Implementation', () => {
 
     describe('core/drive', () => {
         it('should call drive uploadFile with correct params', async () => {
-            const { uploadFile } = await import('@/server/integrations/drive/service');
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const { uploadFile } = require('@/server/integrations/drive/service');
             const inputs = { filename: 'test.txt', content: 'test content' };
             const ctx = { user: { uid: 'user-1' } };
 
             const result = await uploadFileTool.implementation(ctx, inputs);
 
-            expect(uploadFile).toHaveBeenCalledWith('test-user', 'test.txt', 'test content', 'text/plain');
+            expect(uploadFile).toHaveBeenCalledWith('test-user', 'test.txt', 'test content');
             expect(result.status).toBe('success');
             expect(result.fileId).toBe('drive-id-123');
         });
@@ -84,20 +99,20 @@ describe('Agent Skills Implementation', () => {
 
     describe('core/codebase', () => {
         it('should call readCodebase tool', async () => {
-            const { readCodebase } = await import('@/server/tools/codebase');
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const { readCodebase } = require('@/server/tools/codebase');
             const inputs = { path: 'src/app' };
 
             const result = await readCodebaseTool.implementation({}, inputs);
 
-            expect(readCodebase).toHaveBeenCalledWith(inputs);
+            expect(readCodebase).toHaveBeenCalledWith({ path: 'src/app' });
             expect(result.status).toBe('success');
         });
     });
 
     describe('core/terminal', () => {
         it('should execute shell commands', async () => {
-            const { executeTool } = await import('@/skills/core/terminal');
-            const result = await executeTool.implementation({}, { command: 'ls -la' });
+            const result = await terminalExecuteTool.implementation({}, { command: 'ls -la' });
             expect(result.status).toBe('success');
             expect(result.stdout).toBe('Mock stdout');
         });
@@ -128,26 +143,32 @@ describe('Agent Skills Implementation', () => {
 
     describe('core/email (Compliance Middleware)', () => {
         it('should skip compliance for self-sends', async () => {
-            const { checkContent } = await import('@/server/agents/deebo/policy-gate');
-            const { requireUser } = await import('@/server/auth/auth');
-            const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const { checkContent } = require('@/server/agents/deebo/policy-gate');
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const { requireUser } = require('@/server/auth/auth');
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const { sendGenericEmail } = require('@/lib/email/dispatcher');
 
-            (requireUser as jest.Mock).mockResolvedValue({ email: 'me@bakedbot.ai' });
+            (requireUser as any).mockResolvedValue({ uid: 'test-user', email: 'me@bakedbot.ai', role: 'admin' });
             
             const inputs = { to: 'me@bakedbot.ai', subject: 'Test', htmlBody: 'Test' };
             const result = await marketingSendTool.implementation({}, inputs);
 
             expect(checkContent).not.toHaveBeenCalled();
             expect(sendGenericEmail).toHaveBeenCalled();
+            expect(result.success).toBe(true);
             expect(result.compliance).toBe('skipped (internal/test)');
         });
 
         it('should enforce compliance for external sends', async () => {
-            const { checkContent } = await import('@/server/agents/deebo/policy-gate');
-            const { requireUser } = await import('@/server/auth/auth');
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const { checkContent } = require('@/server/agents/deebo/policy-gate');
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const { requireUser } = require('@/server/auth/auth');
 
-            (requireUser as jest.Mock).mockResolvedValue({ email: 'me@bakedbot.ai' });
-            (checkContent as jest.Mock).mockResolvedValue({ allowed: false, reason: 'Bad words', violations: ['word'] });
+            (requireUser as any).mockResolvedValue({ uid: 'test-user', email: 'me@bakedbot.ai', role: 'admin' });
+            (checkContent as any).mockResolvedValue({ allowed: false, reason: 'Bad words', violations: ['word'] });
             
             const inputs = { to: 'customer@gmail.com', subject: 'Buy Now', htmlBody: 'Great weed' };
             
