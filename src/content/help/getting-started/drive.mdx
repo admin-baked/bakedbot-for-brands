@@ -1,0 +1,195 @@
+# BakedBot Drive
+
+Store, organize, and share files directly within BakedBot. Drive provides a Google Drive-like file management experience built for super users — manage agent assets, QR codes, images, documents, and any other files your organization needs.
+
+## Accessing Drive
+
+Navigate to **Dashboard > CEO Dashboard > Drive** tab. This feature requires the **super_user** role.
+
+---
+
+## File Organization
+
+### System Categories
+
+Drive comes with five built-in categories, each optimized for a specific file type:
+
+| Category | Max File Size | Purpose |
+|----------|--------------|---------|
+| **Agents** | 10 MB | Agent avatars, prompt files, configuration exports |
+| **QR** | 5 MB | Generated QR codes and tracking assets |
+| **Images** | 25 MB | Photos, graphics, marketing visuals |
+| **Documents** | 50 MB | PDFs, spreadsheets, Word/Excel/PowerPoint files |
+| **Custom** | 100 MB | Any files in user-created folders |
+
+### Custom Folders
+
+Create your own folders to organize files beyond the default categories:
+
+1. Click **New Folder** in the Drive toolbar
+2. Enter a folder name
+3. Optionally set a color and icon
+4. Files in custom folders follow the 100 MB size limit
+
+### Folder Navigation
+
+- **Breadcrumb trail** at the top shows your current location
+- **Folder tree** on the left provides quick navigation
+- Click any folder to browse its contents
+- Folders support nesting (subfolders within folders)
+
+---
+
+## Uploading Files
+
+### Drag and Drop
+
+Drag files directly from your computer onto the Drive file browser. A drop zone indicator appears when files are detected.
+
+### Upload Dialog
+
+1. Click the **Upload** button in the toolbar
+2. Select files from your computer
+3. Choose a destination folder or category
+4. Files upload to Firebase Storage and appear in Drive immediately
+
+### URL Upload
+
+Upload files from a web URL:
+
+1. Click **Upload > From URL**
+2. Paste the file URL
+3. Drive downloads and stores the file
+
+---
+
+## Viewing Files
+
+### Grid View
+
+Displays files as cards with thumbnails (for images), file type icons, name, and size. Best for browsing visual assets.
+
+### List View
+
+Displays files in a table with columns for name, size, type, date modified, and actions. Best for sorting and managing large collections.
+
+Toggle between views using the grid/list icons in the toolbar.
+
+---
+
+## File Details
+
+Each file tracks:
+
+| Field | Description |
+|-------|-------------|
+| **Name** | File name with extension |
+| **Type** | MIME type (auto-detected) |
+| **Size** | Formatted file size (KB, MB) |
+| **Downloads** | Total download count |
+| **Views** | Total view count |
+| **Tags** | Custom tags for organization |
+| **Description** | Optional notes about the file |
+| **Created** | Upload date and time |
+| **Modified** | Last modification date |
+
+---
+
+## Sharing Files
+
+### Access Control Levels
+
+Five tiers of access control for shared files:
+
+| Level | Who Can Access |
+|-------|---------------|
+| **Public** | Anyone on the internet |
+| **Link-Only** | Only people with the exact share link (unlisted) |
+| **Email-Gated** | Requires email entry to access — captures leads |
+| **Users-Only** | Specific invited users only |
+| **Private** | Owner only (default) |
+
+### Share Permissions
+
+For each share, set what recipients can do:
+
+- **View** — Preview the file in browser
+- **Download** — Download a copy
+- **Edit** — Modify the file
+
+### Creating a Share
+
+1. Select a file or folder
+2. Click **Share** (or right-click > Share)
+3. Choose an access control level
+4. Set optional restrictions:
+   - **Password protection** — Requires a password to access
+   - **Expiration date** — Share link expires after a set date
+   - **Download limit** — Maximum number of downloads allowed
+5. Copy the share link
+
+<Callout type="tip">
+**Email-gated sharing** is excellent for lead generation. Share product catalogs, brand guides, or sell sheets with an email gate to capture contact information from interested parties.
+</Callout>
+
+### Access Tracking
+
+Every share logs access events:
+
+- Who viewed or downloaded (user ID, email, or IP)
+- When they accessed it
+- What action they took (view vs. download)
+
+---
+
+## Trash
+
+Deleted files move to Trash rather than being permanently removed:
+
+- Click the **X** or **Delete** on any file to move it to Trash
+- View Trash to see deleted files
+- Restore files from Trash if needed
+- Trash is a soft delete — files can be recovered
+
+---
+
+## Storage
+
+Files are stored in Firebase Storage under the path:
+
+```
+drive/{userId}/{category}/{filename}
+```
+
+File metadata, folder structure, and sharing information are stored in Firestore collections:
+
+- `drive_files` — File metadata and properties
+- `drive_folders` — Folder hierarchy and settings
+- `drive_shares` — Share links, permissions, and access logs
+
+---
+
+## Best Practices
+
+### Do's
+
+- **Use categories** — Keep agents, QR codes, images, and documents in their respective system folders
+- **Tag files** — Add tags to make files searchable and organized
+- **Use email-gated sharing** — Capture leads when sharing marketing assets externally
+- **Set expiration dates** — Time-limit shares for sensitive documents
+- **Check access logs** — Monitor who is accessing your shared files
+
+### Don'ts
+
+- **Don't upload sensitive credentials** — Drive is for business assets, not passwords or API keys
+- **Don't exceed file size limits** — Each category has a max size; compress large files if needed
+- **Don't share without intent** — Review access control before creating share links
+
+---
+
+## Related Articles
+
+- [Vibe Studio](/help/marketing/vibe-studio) — Generate visual assets to store in Drive
+- [Agent Notifications](/help/dispensary/agent-notifications) — Notification system overview
+
+<ArticleRating articleId="getting-started-drive" />

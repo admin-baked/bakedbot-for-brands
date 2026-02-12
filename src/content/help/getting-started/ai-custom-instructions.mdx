@@ -1,0 +1,189 @@
+# AI Custom Instructions
+
+Customize how BakedBot's agents communicate with you. AI Custom Instructions let you set organization-wide preferences and personal overrides so agents match your tone, detail level, and communication style.
+
+## How It Works
+
+BakedBot agents follow a priority chain when generating responses:
+
+1. **Agent base instructions** — Built-in behavior for each agent
+2. **Role-based ground truth** — Industry knowledge for your role (dispensary, brand, super user)
+3. **Organization settings** — Your org admin's preferences (apply to all users)
+4. **Your personal settings** — Your individual overrides (highest priority)
+
+Each layer adds context. Your personal settings override organization defaults, which override role defaults.
+
+---
+
+## Accessing Settings
+
+Navigate to **Dashboard > Settings > AI** tab.
+
+You will see two sections:
+
+- **Organization Preferences** — Visible to org admins, applies to all users in your organization
+- **Your Preferences** — Personal settings that override organization defaults
+
+---
+
+## Organization Settings
+
+<Callout type="info">
+Organization settings require admin privileges. These preferences apply to all users and agents within your organization.
+</Callout>
+
+### Custom Instructions
+
+Free-form text (up to 2,000 characters) that all agents will follow:
+
+**Examples:**
+- "Always mention our loyalty program when discussing purchases"
+- "Never recommend products from Brand X — they are a competitor"
+- "Include compliance disclaimers on all marketing suggestions"
+
+### Business Context
+
+Describe your business (up to 1,000 characters) so agents understand your context:
+
+**Example:**
+"Family-owned dispensary in Syracuse, NY since 2023. Focus on medical patients and wellness. Premium product selection with emphasis on local craft brands."
+
+### Communication Settings
+
+| Setting | Options | Default |
+|---------|---------|---------|
+| **Tone** | Professional, Casual, Friendly, Formal | Friendly |
+| **Response Length** | Brief, Detailed, Auto | Auto |
+| **Preferred Language** | Any ISO 639-1 language code | English (en) |
+
+### Topic Controls
+
+| Setting | Purpose | Example |
+|---------|---------|---------|
+| **Always Mention** | Topics agents should proactively bring up | "loyalty program", "daily deals", "delivery option" |
+| **Avoid Topics** | Topics agents should not discuss | "competitor prices", "pending lawsuits" |
+
+### Feature Flags
+
+| Flag | Default | What It Controls |
+|------|---------|-----------------|
+| Auto-suggest products | On | Agents proactively recommend products in conversations |
+| Include compliance reminders | On | Deebo-style compliance notes in marketing content |
+| Show confidence scores | Off | Display AI confidence levels in responses |
+| Enable voice responses | Off | Text-to-speech output (when supported) |
+
+### Enabled Agents
+
+Control which agents are active for your organization. Disabled agents will not appear in the agent selector or handle requests.
+
+---
+
+## Personal Settings
+
+### Custom Instructions
+
+Free-form text (up to 1,000 characters) for your individual preferences:
+
+**Examples:**
+- "I'm new to the cannabis industry — explain things simply"
+- "I prefer bullet points over long paragraphs"
+- "Skip the pleasantries and get straight to the data"
+
+### Communication Preferences
+
+| Setting | Options | Default |
+|---------|---------|---------|
+| **Preferred Tone** | Professional, Casual, Friendly, Formal | (inherits from org) |
+| **Response Format** | Paragraphs, Bullets, Numbered lists, Auto | Auto |
+| **Experience Level** | Beginner, Intermediate, Experienced | Intermediate |
+
+### Experience Level Details
+
+| Level | Agent Behavior |
+|-------|---------------|
+| **Beginner** | Simplified language, avoids jargon, explains industry terms, provides more context |
+| **Intermediate** | Balanced detail, assumes basic industry knowledge |
+| **Experienced** | Technical terms used freely, concise responses, data-focused |
+
+### Accessibility Options
+
+| Option | What It Does |
+|--------|-------------|
+| **Simple Language** | Agents use shorter sentences and simpler vocabulary |
+| **Avoid Jargon** | Industry-specific terms are replaced with plain language |
+| **Larger Text** | Responses formatted for readability (where supported) |
+
+### Default Agent
+
+Set your preferred starting agent. When you open the inbox or chat, this agent is pre-selected.
+
+---
+
+## How Instructions Appear in Prompts
+
+When you interact with any agent, your custom instructions are injected into the agent's context:
+
+```
+[ORGANIZATION PREFERENCES]
+Tone: Friendly
+Response Length: Auto
+Business Context: Family-owned dispensary in Syracuse, NY...
+Custom Instructions: Always mention our loyalty program...
+Always Mention: loyalty program, daily deals
+Avoid Topics: competitor prices
+
+[USER PREFERENCES]
+Tone: Casual
+Response Format: Bullets
+Experience Level: Beginner
+Custom Instructions: Explain things simply...
+```
+
+Agents see these instructions before generating every response, ensuring consistent personalization.
+
+---
+
+## Tips for Writing Good Instructions
+
+### Be Specific
+
+Instead of "be helpful," write "when a customer asks about edibles, always mention onset time and recommended starting dose."
+
+### Be Concise
+
+Agents perform best with clear, direct instructions. Long paragraphs of context dilute the signal.
+
+### Test and Iterate
+
+After saving new instructions:
+1. Open a chat with any agent
+2. Ask a question that should trigger your custom behavior
+3. Verify the response matches your expectations
+4. Adjust instructions if needed
+
+### Use Topics Strategically
+
+"Always Mention" topics are powerful for consistent messaging:
+- Loyalty program during purchase discussions
+- Delivery options when customers ask about ordering
+- Compliance requirements in marketing conversations
+
+---
+
+## Storage
+
+| Data | Firestore Path |
+|------|---------------|
+| Organization settings | `tenants/{tenantId}/settings/ai` |
+| User settings | `users/{userId}/settings/ai` |
+
+Settings are loaded fresh on each agent interaction to reflect any recent changes.
+
+---
+
+## Related Articles
+
+- [Inbox Guide](/help/getting-started/inbox-guide) — Using agent chat and inbox
+- [Agent Notifications](/help/dispensary/agent-notifications) — How agents communicate proactively
+
+<ArticleRating articleId="getting-started-ai-custom-instructions" />

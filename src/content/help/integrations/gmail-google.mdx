@@ -1,0 +1,153 @@
+# Gmail Integration
+
+Connect your Gmail account to BakedBot so agents can send, read, and manage emails on your behalf. Once connected, agents like OpenClaw can handle email tasks directly from your inbox conversations.
+
+## What You Can Do
+
+Once Gmail is connected, BakedBot agents gain three email capabilities:
+
+| Capability | What It Does |
+|-----------|-------------|
+| **Send Email** | Compose and send emails from your Gmail account |
+| **List Emails** | Search and filter your inbox (by sender, subject, labels) |
+| **Read Email** | Read full email content and attachments |
+
+<Callout type="info">
+Emails are sent **from your actual Gmail address**, not from a BakedBot address. Recipients see your name and email, making communication seamless and professional.
+</Callout>
+
+---
+
+## Connecting Gmail
+
+### Step 1: Navigate to Integrations
+
+Go to **Dashboard > Integrations**. Find the **Gmail** card in the integrations list.
+
+### Step 2: Click Connect
+
+Click the **Connect** button on the Gmail card. This initiates the Google OAuth flow.
+
+### Step 3: Authorize with Google
+
+1. A Google sign-in window opens
+2. Select your Google account (or enter credentials)
+3. Review the permissions BakedBot is requesting
+4. Click **Allow** to grant access
+
+### Step 4: Confirmation
+
+After authorization, you are redirected back to BakedBot. The Gmail card now shows **Connected** status.
+
+<Callout type="warning">
+**Use your business Gmail account.** Connect the email address you use for business communications. Agents will send emails from this address, so it should be your professional account.
+</Callout>
+
+---
+
+## Using Gmail with Agents
+
+### Sending Emails
+
+Ask any agent to send an email:
+
+```
+"Send an email to john@example.com about our new loyalty program"
+"Email the weekly deals list to our VIP customers"
+"Draft a follow-up email to the vendor meeting from yesterday"
+```
+
+The agent composes the email and sends it from your connected Gmail account.
+
+### Reading Emails
+
+Ask agents to check your inbox:
+
+```
+"Check my recent emails from suppliers"
+"Do I have any unread emails about the delivery?"
+"Read the latest email from our distributor"
+```
+
+### Listing and Searching
+
+Search your inbox through natural language:
+
+```
+"Show me emails from this week about compliance"
+"List unread emails with attachments"
+"Find emails from john@vendor.com from last month"
+```
+
+---
+
+## Heartbeat Integration
+
+When Gmail is connected, the Heartbeat system (super user role) can monitor your inbox:
+
+- **Gmail Unread** check — Flags urgent unread emails
+- Runs at your configured heartbeat interval
+- Disabled by default — enable in **Dashboard > Settings > Heartbeat**
+
+---
+
+## Security
+
+### Token Storage
+
+Your Gmail credentials are encrypted and stored securely in Firestore at `users/{userId}/integrations/gmail`. BakedBot never stores your Google password — only OAuth tokens that can be revoked at any time.
+
+### Revoking Access
+
+To disconnect Gmail:
+
+1. Go to **Dashboard > Integrations**
+2. Click **Disconnect** on the Gmail card
+3. Optionally, visit [Google Account Permissions](https://myaccount.google.com/permissions) to revoke BakedBot's access from Google's side
+
+### Permissions Requested
+
+BakedBot requests standard Gmail read and write scopes:
+
+- Read email messages and metadata
+- Send email on your behalf
+- Search and filter messages
+
+BakedBot does **not** request access to Google Drive, Calendar, or other Google services through this integration.
+
+---
+
+## Troubleshooting
+
+### Connection Failed
+
+**Check:**
+- You are using a Google account (Gmail or Google Workspace)
+- Pop-up blockers are not preventing the OAuth window
+- You clicked "Allow" on the Google permissions screen
+- Try again with a different browser if the issue persists
+
+### Emails Not Sending
+
+**Check:**
+- Gmail connection shows as **Connected** in Dashboard > Integrations
+- Your Gmail account is not suspended or over quota
+- The recipient email address is valid
+- Check your Gmail "Sent" folder to confirm delivery
+
+### Agent Cannot Access Gmail
+
+**Check:**
+- The integration is connected (green status on Gmail card)
+- You are logged in with the same account that connected Gmail
+- Try disconnecting and reconnecting the integration
+
+---
+
+## Related Articles
+
+- [Heartbeat System](/help/dispensary/heartbeat) — Configure Gmail monitoring in heartbeat checks
+- [AI Custom Instructions](/help/getting-started/ai-custom-instructions) — Customize agent email writing style
+- [Agent Notifications](/help/dispensary/agent-notifications) — Email-based notification delivery
+
+<ArticleRating articleId="integrations-gmail-google" />

@@ -64,28 +64,20 @@ jest.mock('@/components/invitations/invite-user-dialog', () => ({
     ),
 }));
 
-// Mock Lucide Icons - use empty spans to avoid text conflicts
-jest.mock('lucide-react', () => ({
-    Inbox: () => <span data-testid="icon-inbox" />,
-    FolderKanban: () => <span data-testid="icon-folder-kanban" />,
-    BookOpen: () => <span data-testid="icon-book-open" />,
-    Utensils: () => <span data-testid="icon-utensils" />,
-    Images: () => <span data-testid="icon-images" />,
-    PackagePlus: () => <span data-testid="icon-package-plus" />,
-    ShoppingCart: () => <span data-testid="icon-shopping-cart" />,
-    Users: () => <span data-testid="icon-users" />,
-    PieChart: () => <span data-testid="icon-pie-chart" />,
-    Crown: () => <span data-testid="icon-crown" />,
-    Palette: () => <span data-testid="icon-palette" />,
-    Megaphone: () => <span data-testid="icon-megaphone" />,
-    Target: () => <span data-testid="icon-target" />,
-    Globe: () => <span data-testid="icon-globe" />,
-    Database: () => <span data-testid="icon-database" />,
-    LayoutGrid: () => <span data-testid="icon-layout-grid" />,
-    Settings: () => <span data-testid="icon-settings" />,
-    ChevronRight: () => <span data-testid="icon-chevron-right" />,
-    UserPlus: () => <span data-testid="icon-user-plus" />,
-}));
+// Mock Lucide Icons - return lightweight components for any icon
+jest.mock('lucide-react', () => {
+    return new Proxy(
+        {},
+        {
+            get: (_target, prop: string) => {
+                if (prop === '__esModule') {
+                    return true;
+                }
+                return () => <span data-testid={`icon-${String(prop)}`} />;
+            },
+        },
+    );
+});
 
 // Mock Next.js Link
 jest.mock('next/link', () => {

@@ -1,0 +1,257 @@
+# Profitability Intelligence
+
+Understand your true profit after cannabis-specific taxes, IRS Section 280E limitations, and operational costs. The Profitability Intelligence dashboard transforms complex tax compliance into actionable insights across four focused tabs.
+
+## Accessing the Dashboard
+
+Navigate to **Dashboard > Profitability** from the dispensary sidebar (under the Intelligence section). Available to dispensary, brand, and super user roles.
+
+---
+
+## Top-Level KPIs
+
+Four summary cards appear above the tabs:
+
+| KPI | What It Shows |
+|-----|--------------|
+| **Gross Revenue** | Total sales for the selected period |
+| **Gross Margin** | Percentage with benchmark label (e.g., "Good") |
+| **280E Tax Liability** | Estimated tax owed with effective tax rate |
+| **Actual Cash Profit** | What remains after setting aside tax reserves |
+
+---
+
+## Period Selection
+
+All reports support flexible time ranges:
+
+- Current Month
+- Last Month
+- Current Quarter
+- Last Quarter
+- Year to Date (YTD)
+- Custom date range
+
+---
+
+## Tab 1: 280E Tax Analysis
+
+### The Problem
+
+Cannabis businesses face a unique IRS challenge: **Section 280E prohibits deducting normal operating expenses.** Only Cost of Goods Sold (COGS) reduces taxable income. This creates effective tax rates of 70–90% for many dispensaries.
+
+### COGS Breakdown
+
+Expenses are categorized into three groups:
+
+| Category | Examples | Tax Treatment |
+|----------|----------|---------------|
+| **Direct COGS** | Product purchases, packaging, lab testing, wholesale excise taxes | 100% deductible — always |
+| **Indirect COGS** | Facility rent (storage portion), inventory handling labor, security, insurance, equipment depreciation | Allocatable via absorption costing |
+| **Non-Deductible** | Marketing, admin salaries, retail rent, software, banking fees, compliance costs | Cannot reduce taxable income |
+
+<Callout type="info">
+**Absorption costing** lets you allocate a percentage of indirect expenses (like rent and utilities) to COGS based on how much of your facility is used for storage and inventory handling versus retail operations. This is the single biggest lever for reducing your 280E tax burden.
+</Callout>
+
+### Cash vs. Paper Profit
+
+This card shows the waterfall from revenue to actual cash:
+
+```
+Gross Revenue
+ − Deductible COGS
+ = Gross Profit (this is what the IRS taxes)
+ − Non-Deductible Expenses
+ = Paper Profit
+ − Tax Reserve (45% of gross profit)
+ = Actual Cash Profit
+```
+
+The gap between paper profit and cash profit is often dramatic — this visualization makes it tangible.
+
+### Optimization Suggestions
+
+The dashboard automatically generates recommendations:
+
+- **Review indirect expense allocation** — If potential additional COGS allocation exceeds $1,000
+- **Engage a cannabis-specialized CPA** — If effective tax rate exceeds 70%
+- **Ensure adequate cash reserves** — If tax reserve exceeds 50% of gross profit
+
+---
+
+## Tab 2: NY Cannabis Taxes
+
+### Tax Rates
+
+New York applies two cannabis-specific taxes:
+
+| Tax Type | Rate |
+|----------|------|
+| **Flower potency tax** | $0.005 per mg THC |
+| **Concentrate potency tax** | $0.008 per mg THC |
+| **Edible potency tax** | $0.03 per mg THC |
+| **State sales tax** | 13% on retail price |
+
+### Category Breakdown
+
+A table shows tax liability by product type:
+
+- Units sold per category
+- Gross sales
+- Potency tax calculated from THC content
+- Sales tax at 13%
+- Visual progress bars showing category mix
+
+### Tax Liability Summary
+
+Three-column summary showing:
+- Total potency tax owed
+- Total sales tax owed
+- Combined total tax owed
+
+<Callout type="warning">
+**Potency taxes are based on THC milligrams, not price.** A high-potency concentrate generates significantly more potency tax per unit than flower, even if the retail price is similar. Factor this into pricing decisions.
+</Callout>
+
+---
+
+## Tab 3: Industry Benchmarks
+
+### Performance Metrics
+
+Compare your dispensary against industry standards:
+
+| Metric | Poor | Average | Good | Excellent |
+|--------|------|---------|------|-----------|
+| **Gross Margin** | 30% | 45% | 55% | 65% |
+| **Inventory Turnover** | 4x/yr | 8x/yr | 12x/yr | 18x/yr |
+| **Revenue per Sq Ft** | $500 | $974 | $1,500 | $2,500 |
+| **Revenue per Employee** | $100K | $150K | $200K | $400K |
+
+Each metric displays a color-coded progress bar showing where you stand.
+
+### Category Performance
+
+Compare margins for each product category against category-specific targets:
+
+| Category | Target Margin |
+|----------|--------------|
+| Flower | 40% |
+| Concentrate | 50% |
+| Edible | 55% |
+| Accessory | 60% |
+| Preroll | 45% |
+
+Performance badges show whether you are above, at, or below target for each category.
+
+### Facility Configuration
+
+If your facility details are configured, per-unit benchmarks become available:
+- Square footage (for revenue/sq ft)
+- Employee count (for revenue/employee)
+- State and county (for regional comparisons)
+
+---
+
+## Tab 4: Working Capital
+
+### Liquidity Position
+
+| Line Item | Description |
+|-----------|-------------|
+| **Cash on Hand** | Available bank balance |
+| **Accounts Receivable** | Outstanding invoices (typically $0 for cannabis — mostly cash business) |
+| **Inventory Value** | Current inventory at cost |
+| **Accounts Payable** | Outstanding vendor payments |
+| **Working Capital** | Current Assets − Current Liabilities |
+
+### Financial Ratios
+
+| Ratio | Healthy Threshold | What It Means |
+|-------|-------------------|---------------|
+| **Current Ratio** | ≥ 1.5 | Can cover short-term obligations |
+| **Quick Ratio** | ≥ 1.0 | Can cover obligations without selling inventory |
+| **Cash Runway** | ≥ 6 months | Months of operations current cash can sustain |
+
+Cash runway color coding:
+- **Green**: 6+ months
+- **Yellow**: 3–6 months
+- **Red**: Under 3 months
+- **Critical**: Under 1 month
+
+### Risk Assessment
+
+An automatic assessment classifies your liquidity risk:
+
+- **Low** (green) — Healthy cash position, adequate reserves
+- **Medium** (yellow) — Some areas need attention
+- **High** (orange) — Multiple risk factors present
+- **Critical** (red) — Immediate action required
+
+Includes specific risk factors and actionable recommendations.
+
+<Callout type="info">
+**Cannabis banking fees are accounted for.** The assessment recognizes that dispensaries typically pay $1,800–$2,000/month in banking fees due to limited banking options. This is factored into burn rate calculations.
+</Callout>
+
+---
+
+## GTI Rule (Price Compression)
+
+Available via the Money Mike agent, the GTI Rule helps evaluate price drop scenarios:
+
+**Formula**: If prices drop by X%, volume must increase by X ÷ (1 − X) to maintain the same revenue.
+
+| Price Drop | Required Volume Increase |
+|------------|------------------------|
+| 10% | 11.1% |
+| 15% | 17.6% |
+| 20% | 25.0% |
+| 25% | 33.3% |
+| 30% | 42.9% |
+
+If the required volume increase exceeds 30%, the dashboard recommends focusing on high-margin categories (edibles, accessories) rather than competing on price.
+
+---
+
+## Adding Expense Data
+
+To get accurate 280E analysis, add your expenses:
+
+1. Navigate to the Profitability dashboard
+2. Add expenses with category classification:
+   - **Direct COGS**: Product costs, lab testing, packaging
+   - **Indirect COGS**: Rent (storage %), utilities, labor, security
+   - **Non-Deductible**: Marketing, admin, software, banking
+3. Set allocation percentages for indirect costs (e.g., 35% of rent to COGS)
+4. The dashboard recalculates automatically
+
+---
+
+## Best Practices
+
+### Do's
+
+- **Track expenses consistently** — Accurate categorization is essential for 280E optimization
+- **Review allocation percentages quarterly** — As your facility use changes, so should allocations
+- **Monitor cash runway monthly** — Cannabis businesses burn cash faster than paper profits suggest
+- **Compare benchmarks quarterly** — Industry standards shift; check your position regularly
+- **Work with a cannabis CPA** — The dashboard provides data; a specialist optimizes strategy
+
+### Don'ts
+
+- **Don't ignore the cash vs. paper gap** — Paper profit is misleading in cannabis due to 280E
+- **Don't under-allocate indirect COGS** — You may be paying more tax than necessary
+- **Don't skip potency tax planning** — NY potency taxes can significantly impact margins on high-THC products
+- **Don't let cash runway drop below 3 months** — Cannabis businesses face unique cash flow challenges
+
+---
+
+## Related Articles
+
+- [Dynamic Pricing](/help/dispensary/dynamic-pricing) — Pricing strategies that account for tax impact
+- [Inventory Management](/help/dispensary/menu-sync) — Inventory data that feeds benchmark calculations
+- [Loyalty Program](/help/dispensary/loyalty-program) — Customer retention to sustain revenue
+
+<ArticleRating articleId="dispensary-profitability-intelligence" />
