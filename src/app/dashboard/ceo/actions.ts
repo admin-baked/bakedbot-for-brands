@@ -631,7 +631,7 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
     // ======================================================================
 
     const extractOrgId = (path: string): string | null => {
-      const match = path.match(/^organizations\\/([^/]+)\\/subscription\\/[^/]+$/);
+      const match = path.match(/^organizations\/([^/]+)\/subscription\/[^/]+$/);
       return match?.[1] ?? null;
     };
 
