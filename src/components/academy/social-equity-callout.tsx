@@ -7,6 +7,7 @@
  * to social equity operators.
  */
 
+import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,12 @@ import Link from 'next/link';
 
 export function SocialEquityCallout() {
   return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.5 }}
+    >
     <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800">
       <CardContent className="p-8">
         <div className="flex items-start gap-6">
@@ -129,5 +136,6 @@ export function SocialEquityCallout() {
         </div>
       </CardContent>
     </Card>
+    </motion.div>
   );
 }

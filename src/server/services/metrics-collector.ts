@@ -51,6 +51,7 @@ export async function collectAndStoreMetrics(): Promise<void> {
     p99LatencyMs,
     errorRate,
     errorCount,
+    source: 'simulated',
   };
 
   // Store in Firestore with 15-minute granularity
