@@ -164,6 +164,28 @@ export async function trackCheckoutComplete(
 }
 
 /**
+ * Track cart abandonment - saves snapshot for recovery playbooks
+ */
+export async function trackCartAbandonment(
+    cartData: {
+        items: { productId: string; name: string; price: number; quantity: number; category: string }[];
+        total: number;
+        itemCount: number;
+        dispensaryId: string | null;
+        dispensaryName: string | null;
+    },
+    sessionId: string,
+    orgId?: string
+): Promise<void> {
+    await trackCartEvent('checkout_abandoned', {
+        ...cartData,
+        sessionId,
+        orgId,
+        abandonedAt: new Date().toISOString(),
+    });
+}
+
+/**
  * Get customer ID from local storage or auth
  */
 function getCustomerId(): string | undefined {

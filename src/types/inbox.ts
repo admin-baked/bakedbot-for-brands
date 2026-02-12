@@ -453,6 +453,38 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         roles: ['customer'],
     },
 
+    // ============ Dispensary: Upsell & AOV Optimization ============
+    {
+        id: 'upsell-review',
+        label: 'Upsell Performance',
+        description: 'Review upsell conversion rates and top-pairing products',
+        icon: 'Zap',
+        threadType: 'analytics' as InboxThreadType,
+        defaultAgent: 'pops' as InboxAgentPersona,
+        promptTemplate: 'Analyze our upsell performance. Which product pairings are converting best? What terpene-based pairings should we promote more? Show me AOV trends with and without upsells.',
+        roles: [...DISPENSARY_ROLES],
+    },
+    {
+        id: 'suggest-bundles',
+        label: 'Suggest Bundles',
+        description: 'AI-generated bundle ideas based on terpene pairings and sales data',
+        icon: 'Package',
+        threadType: 'product_discovery' as InboxThreadType,
+        defaultAgent: 'smokey' as InboxAgentPersona,
+        promptTemplate: 'Based on our current menu and terpene profiles, suggest 3 new product bundles we should create. Consider the entourage effect, seasonal trends, and products that pair well scientifically. Include suggested bundle names and pricing.',
+        roles: [...ALL_BUSINESS_ROLES],
+    },
+    {
+        id: 'cart-recovery',
+        label: 'Cart Recovery',
+        description: 'Review abandoned carts and create recovery campaigns',
+        icon: 'ShoppingCart',
+        threadType: 'marketing' as InboxThreadType,
+        defaultAgent: 'craig' as InboxAgentPersona,
+        promptTemplate: 'Show me recent abandoned carts. Draft a recovery SMS/email campaign with personalized product recommendations for customers who left items behind. Include a time-limited discount incentive.',
+        roles: [...DISPENSARY_ROLES],
+    },
+
     // ============ Super User: Growth Management ============
     {
         id: 'growth-review',

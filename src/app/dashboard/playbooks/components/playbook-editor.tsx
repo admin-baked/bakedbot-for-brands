@@ -67,6 +67,8 @@ const EVENT_TYPES = [
     'order.completed',
     'review.received',
     'inventory.low',
+    'cart.abandoned',
+    'checkout.abandoned',
 ];
 
 interface PlaybookEditorProps {
