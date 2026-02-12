@@ -53,10 +53,13 @@ function MetricCard({ title, value, subtitle, trend, trendUp, icon: Icon }: {
     title: string;
     value: string | number;
     subtitle: string;
-    trend: number;
-    trendUp: boolean;
+    trend: number | null;
+    trendUp: boolean | null;
     icon: any;
 }) {
+    const showTrend = typeof trend === 'number' && Number.isFinite(trend);
+    const resolvedTrendUp = (trendUp ?? (showTrend ? trend >= 0 : true)) === true;
+
     return (
         <Card>
             <CardContent className="pt-6">
@@ -67,13 +70,17 @@ function MetricCard({ title, value, subtitle, trend, trendUp, icon: Icon }: {
                         <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                        <div className={`p-2 rounded-lg ${trendUp ? 'bg-green-100' : 'bg-red-100'}`}>
-                            <Icon className={`h-5 w-5 ${trendUp ? 'text-green-600' : 'text-red-600'}`} />
+                        <div
+                            className={`p-2 rounded-lg ${showTrend ? (resolvedTrendUp ? 'bg-green-100' : 'bg-red-100') : 'bg-muted'}`}
+                        >
+                            <Icon className={`h-5 w-5 ${showTrend ? (resolvedTrendUp ? 'text-green-600' : 'text-red-600') : 'text-muted-foreground'}`} />
                         </div>
-                        <div className={`flex items-center gap-1 text-sm ${trendUp ? 'text-green-600' : 'text-red-600'}`}>
-                            {trendUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                            {Math.abs(trend)}%
-                        </div>
+                        {showTrend && (
+                            <div className={`flex items-center gap-1 text-sm ${resolvedTrendUp ? 'text-green-600' : 'text-red-600'}`}>
+                                {resolvedTrendUp ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                                {Math.abs(trend)}%
+                            </div>
+                        )}
                     </div>
                 </div>
             </CardContent>
@@ -187,8 +194,8 @@ export default function PlatformAnalyticsTab() {
                 />
                 <MetricCard
                     title="Day 7 Retention"
-                    value={`${data.retention.day7}%`}
-                    subtitle={`Day 30: ${data.retention.day30}%`}
+                    value={typeof data.retention.day7 === 'number' ? `${data.retention.day7}%` : 'N/A'}
+                    subtitle={typeof data.retention.day30 === 'number' ? `Day 30: ${data.retention.day30}%` : 'Retention not tracked'}
                     trend={data.retention.trend}
                     trendUp={data.retention.trendUp}
                     icon={TrendingUp}

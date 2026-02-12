@@ -201,10 +201,11 @@ describe('domain-routing', () => {
   // ─── resolveRoute ────────────────────────────────────────────────────────
 
   describe('resolveRoute', () => {
-    // Helper to set up a domain mapping
+    // Helper to set up a domain mapping (uses mockResolvedValueOnce so
+    // subsequent mockGet calls can be chained for buildMenuPath / tenant lookup)
     const setupMapping = (mapping: Record<string, unknown>) => {
       (getCachedTenant as jest.Mock).mockReturnValue(undefined);
-      mockGet.mockResolvedValue({
+      mockGet.mockResolvedValueOnce({
         exists: true,
         data: () => mapping,
       });
