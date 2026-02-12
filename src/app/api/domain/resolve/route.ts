@@ -81,39 +81,65 @@ export async function GET(request: NextRequest) {
             return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
         }
 
-        // Get tenant to determine if it's a brand or dispensary
+        // Get full domain mapping for target routing
         const { firestore } = await createServerClient();
-        const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
+        const mappingDoc = await firestore
+            .collection('domain_mappings')
+            .doc(normalizedHostname)
+            .get();
 
-        if (!tenantDoc.exists) {
-            logger.warn('[Domain] Tenant not found for custom domain', { hostname: normalizedHostname, tenantId });
-            return NextResponse.redirect(new URL('https://bakedbot.ai/404'));
-        }
+        const mappingData = mappingDoc.exists
+            ? (mappingDoc.data() as DomainMapping)
+            : null;
 
-        const tenant = tenantDoc.data();
-        const tenantType = tenant?.type || 'brand';
+        const targetType = mappingData?.targetType || 'menu';
 
-        // Build the redirect URL based on tenant type
+        // Route based on target type
         let redirectPath: string;
-        if (tenantType === 'dispensary') {
-            redirectPath = `/dispensaries/${tenantId}${originalPath === '/' ? '' : originalPath}`;
+
+        if (targetType === 'vibe_site' && mappingData?.targetId) {
+            // Vibe site - serve published project
+            redirectPath = `/api/vibe/site/${mappingData.targetId}${originalPath === '/' ? '' : originalPath}`;
+        } else if (targetType === 'hybrid' && mappingData?.targetId) {
+            // Hybrid - path-based routing
+            const menuPath = mappingData.routingConfig?.menuPath || '/shop';
+            if (originalPath.startsWith(menuPath)) {
+                // Menu path - route to tenant menu
+                const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
+                const tenant = tenantDoc.data();
+                const tenantType = tenant?.type || 'brand';
+                const strippedPath = originalPath.replace(menuPath, '') || '';
+                redirectPath = tenantType === 'dispensary'
+                    ? `/dispensaries/${tenantId}${strippedPath}`
+                    : `/${tenantId}${strippedPath}`;
+            } else {
+                // Root/other paths - route to Vibe site
+                redirectPath = `/api/vibe/site/${mappingData.targetId}`;
+            }
         } else {
-            redirectPath = `/${tenantId}${originalPath === '/' ? '' : originalPath}`;
+            // Menu (default) - route to tenant page
+            const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
+            const tenant = tenantDoc.data();
+            const tenantType = tenant?.type || 'brand';
+            redirectPath = tenantType === 'dispensary'
+                ? `/dispensaries/${tenantId}${originalPath === '/' ? '' : originalPath}`
+                : `/${tenantId}${originalPath === '/' ? '' : originalPath}`;
         }
 
         logger.info('[Domain] Resolved custom domain', {
             hostname: normalizedHostname,
             tenantId,
-            type: tenantType,
+            targetType,
+            targetId: mappingData?.targetId,
             redirect: redirectPath,
         });
 
         // Return JSON with resolved path - middleware will handle the actual rewrite
-        // We can't chain rewrites (middleware rewrite -> API rewrite), so return data instead
         return NextResponse.json({
             success: true,
             tenantId,
-            type: tenantType,
+            targetType,
+            targetId: mappingData?.targetId,
             path: redirectPath,
         });
     } catch (error) {

@@ -18,6 +18,8 @@ import type {
     DomainMapping,
     DomainConnectionType,
     DomainVerificationStatus,
+    DomainTargetType,
+    DomainRoutingConfig,
 } from '@/types/tenant';
 import {
     generateVerificationToken,
@@ -37,13 +39,18 @@ interface DomainOperationResult {
 }
 
 /**
- * Add a custom domain to a tenant
+ * Add a custom domain to a tenant (unified: supports menu, vibe_site, hybrid)
  * Generates verification token and stores pending domain config
  */
 export async function addCustomDomain(
     tenantId: string,
     domain: string,
-    connectionType?: DomainConnectionType
+    connectionType?: DomainConnectionType,
+    targetType: DomainTargetType = 'menu',
+    targetId?: string,
+    targetName?: string,
+    routingConfig?: DomainRoutingConfig,
+    userId?: string
 ): Promise<DomainOperationResult & { config?: Omit<CustomDomainConfig, 'createdAt' | 'updatedAt'> }> {
     try {
         // Validate tenant ID
@@ -60,6 +67,14 @@ export async function addCustomDomain(
             return {
                 success: false,
                 error: 'Please enter a domain name.',
+            };
+        }
+
+        // Validate target configuration
+        if (targetType === 'vibe_site' && !targetId) {
+            return {
+                success: false,
+                error: 'Please select a Vibe Builder project for this domain.',
             };
         }
 
@@ -101,6 +116,10 @@ export async function addCustomDomain(
         const domainConfigForDb = {
             domain: normalizedDomain,
             connectionType: detectedType,
+            targetType,
+            ...(targetId ? { targetId } : {}),
+            ...(targetName ? { targetName } : {}),
+            ...(routingConfig ? { routingConfig } : {}),
             verificationStatus: 'pending' as const,
             verificationToken,
             createdAt: FieldValue.serverTimestamp(),
@@ -108,25 +127,41 @@ export async function addCustomDomain(
             ...(detectedType === 'nameserver' ? { nameserversAssigned: BAKEDBOT_NAMESERVERS } : {}),
         };
 
-        // Save to tenant document (use set with merge to create if not exists)
+        // Save to tenant's domains subcollection (unified multi-domain)
         await firestore
             .collection('tenants')
             .doc(tenantId)
-            .set({
-                customDomain: domainConfigForDb,
-                updatedAt: FieldValue.serverTimestamp(),
-            }, { merge: true });
+            .collection('domains')
+            .doc(normalizedDomain)
+            .set(domainConfigForDb);
+
+        // Also save to legacy customDomain field for backwards compat (menu only)
+        if (targetType === 'menu') {
+            await firestore
+                .collection('tenants')
+                .doc(tenantId)
+                .set({
+                    customDomain: domainConfigForDb,
+                    updatedAt: FieldValue.serverTimestamp(),
+                }, { merge: true });
+        }
 
         logger.info('[Domain] Added custom domain', {
             tenantId,
             domain: normalizedDomain,
             connectionType: detectedType,
+            targetType,
+            targetId,
         });
 
         // Return a client-safe version (without FieldValue which can't be serialized)
         const responseConfig: Omit<CustomDomainConfig, 'createdAt' | 'updatedAt'> = {
             domain: normalizedDomain,
             connectionType: detectedType,
+            targetType,
+            ...(targetId ? { targetId } : {}),
+            ...(targetName ? { targetName } : {}),
+            ...(routingConfig ? { routingConfig } : {}),
             verificationStatus: 'pending',
             verificationToken,
             ...(detectedType === 'nameserver' ? { nameserversAssigned: BAKEDBOT_NAMESERVERS } : {}),
@@ -226,15 +261,41 @@ export async function verifyCustomDomain(tenantId: string): Promise<DomainOperat
             'customDomain.sslStatus': 'pending', // SSL will be provisioned
         });
 
-        // Create domain mapping for fast lookups
-        const mapping = {
+        // Create domain mapping for fast lookups (include target info)
+        const mapping: Record<string, unknown> = {
             domain,
             tenantId,
             connectionType,
+            targetType: domainConfig.targetType || 'menu',
             verifiedAt: now,
         };
 
+        // Include target-specific fields
+        if (domainConfig.targetId) {
+            mapping.targetId = domainConfig.targetId;
+        }
+        if (domainConfig.targetName) {
+            mapping.targetName = domainConfig.targetName;
+        }
+        if (domainConfig.routingConfig) {
+            mapping.routingConfig = domainConfig.routingConfig;
+        }
+
         await firestore.collection('domain_mappings').doc(domain).set(mapping);
+
+        // Also update the tenant's domains subcollection
+        await firestore
+            .collection('tenants')
+            .doc(tenantId)
+            .collection('domains')
+            .doc(domain)
+            .update({
+                verificationStatus: 'verified',
+                verifiedAt: now,
+                lastCheckAt: now,
+                updatedAt: now,
+                sslStatus: 'pending',
+            });
 
         logger.info('[Domain] Domain verified successfully', { tenantId, domain });
 
@@ -335,5 +396,235 @@ export async function getTenantByDomain(domain: string): Promise<string | null> 
     } catch (error) {
         logger.error('[Domain] Failed to lookup tenant by domain', { domain, error });
         return null;
+    }
+}
+
+// ============================================================================
+// Unified Domain Management Actions
+// ============================================================================
+
+/** Serializable domain info for client components */
+export interface DomainListItem {
+    domain: string;
+    connectionType: DomainConnectionType;
+    targetType: DomainTargetType;
+    targetId?: string;
+    targetName?: string;
+    routingConfig?: DomainRoutingConfig;
+    verificationStatus: DomainVerificationStatus;
+    sslStatus?: string;
+    createdAt?: string;
+    verifiedAt?: string;
+}
+
+/**
+ * List all domains for a tenant (unified view)
+ */
+export async function listDomains(
+    tenantId: string
+): Promise<DomainOperationResult & { domains?: DomainListItem[] }> {
+    try {
+        const { firestore } = await createServerClient();
+
+        // Get domains from subcollection
+        const domainsSnapshot = await firestore
+            .collection('tenants')
+            .doc(tenantId)
+            .collection('domains')
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const domains: DomainListItem[] = [];
+
+        domainsSnapshot.forEach((doc) => {
+            const data = doc.data();
+            domains.push({
+                domain: data.domain || doc.id,
+                connectionType: data.connectionType || 'cname',
+                targetType: data.targetType || 'menu',
+                targetId: data.targetId,
+                targetName: data.targetName,
+                routingConfig: data.routingConfig,
+                verificationStatus: data.verificationStatus || 'pending',
+                sslStatus: data.sslStatus,
+                createdAt: data.createdAt?.toDate?.()?.toISOString?.() || data.createdAt,
+                verifiedAt: data.verifiedAt?.toDate?.()?.toISOString?.() || data.verifiedAt,
+            });
+        });
+
+        // Also check legacy customDomain field for backwards compatibility
+        if (domains.length === 0) {
+            const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
+            const tenant = tenantDoc.data();
+            if (tenant?.customDomain?.domain) {
+                domains.push({
+                    domain: tenant.customDomain.domain,
+                    connectionType: tenant.customDomain.connectionType || 'cname',
+                    targetType: tenant.customDomain.targetType || 'menu',
+                    targetId: tenant.customDomain.targetId,
+                    targetName: tenant.customDomain.targetName,
+                    verificationStatus: tenant.customDomain.verificationStatus || 'pending',
+                    sslStatus: tenant.customDomain.sslStatus,
+                    createdAt: tenant.customDomain.createdAt?.toDate?.()?.toISOString?.(),
+                    verifiedAt: tenant.customDomain.verifiedAt?.toDate?.()?.toISOString?.(),
+                });
+            }
+        }
+
+        return { success: true, domains };
+    } catch (error) {
+        logger.error('[Domain] Failed to list domains', { tenantId, error });
+        return {
+            success: false,
+            error: 'Failed to list domains.',
+        };
+    }
+}
+
+/**
+ * Update domain target (switch from menu to vibe site, etc.)
+ */
+export async function updateDomainTarget(
+    tenantId: string,
+    domain: string,
+    newTarget: {
+        targetType: DomainTargetType;
+        targetId?: string;
+        targetName?: string;
+        routingConfig?: DomainRoutingConfig;
+    }
+): Promise<DomainOperationResult> {
+    try {
+        const { firestore } = await createServerClient();
+        const normalizedDomain = domain.toLowerCase().trim();
+
+        // Validate target
+        if (newTarget.targetType === 'vibe_site' && !newTarget.targetId) {
+            return {
+                success: false,
+                error: 'Please select a Vibe Builder project.',
+            };
+        }
+
+        const updateData: Record<string, unknown> = {
+            targetType: newTarget.targetType,
+            updatedAt: FieldValue.serverTimestamp(),
+        };
+
+        if (newTarget.targetId) {
+            updateData.targetId = newTarget.targetId;
+        }
+        if (newTarget.targetName) {
+            updateData.targetName = newTarget.targetName;
+        }
+        if (newTarget.routingConfig) {
+            updateData.routingConfig = newTarget.routingConfig;
+        }
+
+        // Update in domains subcollection
+        await firestore
+            .collection('tenants')
+            .doc(tenantId)
+            .collection('domains')
+            .doc(normalizedDomain)
+            .update(updateData);
+
+        // Update domain mapping if it exists (already verified)
+        const mappingDoc = await firestore
+            .collection('domain_mappings')
+            .doc(normalizedDomain)
+            .get();
+
+        if (mappingDoc.exists) {
+            await firestore
+                .collection('domain_mappings')
+                .doc(normalizedDomain)
+                .update(updateData);
+        }
+
+        logger.info('[Domain] Updated domain target', {
+            tenantId,
+            domain: normalizedDomain,
+            targetType: newTarget.targetType,
+            targetId: newTarget.targetId,
+        });
+
+        return { success: true };
+    } catch (error) {
+        logger.error('[Domain] Failed to update domain target', { tenantId, domain, error });
+        return {
+            success: false,
+            error: 'Failed to update domain target.',
+        };
+    }
+}
+
+/**
+ * Get full domain mapping by hostname (for middleware routing)
+ * Returns target info so middleware knows what content to serve
+ */
+export async function getDomainMapping(
+    domain: string
+): Promise<DomainMapping | null> {
+    try {
+        const { firestore } = await createServerClient();
+
+        const mappingDoc = await firestore
+            .collection('domain_mappings')
+            .doc(domain.toLowerCase())
+            .get();
+
+        if (!mappingDoc.exists) {
+            return null;
+        }
+
+        return mappingDoc.data() as DomainMapping;
+    } catch (error) {
+        logger.error('[Domain] Failed to get domain mapping', { domain, error });
+        return null;
+    }
+}
+
+/**
+ * Remove a specific domain from a tenant (unified)
+ * Supports multi-domain tenants
+ */
+export async function removeDomain(
+    tenantId: string,
+    domain: string
+): Promise<DomainOperationResult> {
+    try {
+        const { firestore } = await createServerClient();
+        const normalizedDomain = domain.toLowerCase().trim();
+
+        // Remove from domain_mappings
+        await firestore.collection('domain_mappings').doc(normalizedDomain).delete();
+
+        // Remove from tenant's domains subcollection
+        await firestore
+            .collection('tenants')
+            .doc(tenantId)
+            .collection('domains')
+            .doc(normalizedDomain)
+            .delete();
+
+        // Also check and remove legacy customDomain field if it matches
+        const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
+        const tenant = tenantDoc.data();
+        if (tenant?.customDomain?.domain === normalizedDomain) {
+            await firestore.collection('tenants').doc(tenantId).update({
+                customDomain: FieldValue.delete(),
+            });
+        }
+
+        logger.info('[Domain] Domain removed (unified)', { tenantId, domain: normalizedDomain });
+
+        return { success: true };
+    } catch (error) {
+        logger.error('[Domain] Failed to remove domain', { tenantId, domain, error });
+        return {
+            success: false,
+            error: 'Failed to remove domain.',
+        };
     }
 }
