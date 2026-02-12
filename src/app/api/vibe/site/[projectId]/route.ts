@@ -1,21 +1,23 @@
 /**
- * Vibe Published Site Viewer
+ * Vibe Published Site Viewer (by Project ID)
  *
- * Serves published websites by subdomain
+ * Serves published websites by project ID.
+ * Used by the unified domain routing system when a custom domain
+ * points to a Vibe Builder site (targetType: 'vibe_site').
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPublishedSite } from '@/server/actions/vibe-publish';
+import { getPublishedSiteByProject } from '@/server/actions/vibe-publish';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ subdomain: string }> }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    const { subdomain } = await params;
+    const { projectId } = await params;
 
-    // Get published site
-    const siteData = await getPublishedSite(subdomain);
+    // Get published site by project ID
+    const siteData = await getPublishedSiteByProject(projectId);
 
     if (!siteData) {
       return new NextResponse(
@@ -53,7 +55,7 @@ export async function GET(
     <h1>404</h1>
     <p>Site Not Found</p>
     <p style="font-size: 1rem; margin-top: 1rem;">
-      The site <strong>${subdomain}.bakedbot.site</strong> does not exist.
+      This site is not published or does not exist.
     </p>
   </div>
 </body>
@@ -67,8 +69,12 @@ export async function GET(
       );
     }
 
-    // Cast site data
     const site = siteData as Record<string, unknown>;
+    const siteName = (site.name as string) || 'Untitled';
+    const siteDescription = (site.description as string) || siteName;
+    const siteCSS = (site.css as string) || '';
+    const siteHTML = (site.html as string) || '';
+    const subdomain = (site.subdomain as string) || projectId;
 
     // Build complete HTML
     const html = `<!DOCTYPE html>
@@ -76,24 +82,24 @@ export async function GET(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="${site.description as string || site.name as string}">
-  <title>${site.name as string}</title>
+  <meta name="description" content="${siteDescription}">
+  <title>${siteName}</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3/dist/tailwind.min.css" rel="stylesheet">
   <style>
-    ${site.css as string}
+    ${siteCSS}
   </style>
 </head>
 <body>
-  ${site.html as string}
+  ${siteHTML}
 
   <script>
     // Age gate functionality
     document.addEventListener('DOMContentLoaded', function() {
-      const ageGate = document.querySelector('[data-gjs-type="age-gate"]');
+      var ageGate = document.querySelector('[data-gjs-type="age-gate"]');
 
       if (ageGate) {
-        const acceptButton = ageGate.querySelector('button:first-of-type');
-        const exitButton = ageGate.querySelector('button:last-of-type');
+        var acceptButton = ageGate.querySelector('button:first-of-type');
+        var exitButton = ageGate.querySelector('button:last-of-type');
 
         if (acceptButton) {
           acceptButton.addEventListener('click', function() {
@@ -108,29 +114,18 @@ export async function GET(
           });
         }
 
-        // Check if already verified
         if (localStorage.getItem('ageVerified') === 'true') {
           ageGate.style.display = 'none';
         }
       }
 
       // Form submission handling
-      const forms = document.querySelectorAll('form');
-      forms.forEach(form => {
+      var forms = document.querySelectorAll('form');
+      forms.forEach(function(form) {
         form.addEventListener('submit', function(e) {
           e.preventDefault();
           alert('Form submitted! This form is not yet connected to a backend.');
         });
-      });
-
-      // Add to cart buttons
-      const addToCartButtons = document.querySelectorAll('button');
-      addToCartButtons.forEach(button => {
-        if (button.textContent.includes('Add to Cart')) {
-          button.addEventListener('click', function() {
-            alert('Product added! E-commerce integration coming soon.');
-          });
-        }
       });
     });
   </script>
@@ -138,16 +133,16 @@ export async function GET(
   <!-- BakedBot Analytics -->
   <script>
     (function() {
-      // Simple analytics beacon
       fetch('/api/analytics/track', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           site: '${subdomain}',
+          projectId: '${projectId}',
           page: window.location.pathname,
           referrer: document.referrer,
         })
-      }).catch(() => {});
+      }).catch(function() {});
     })();
   </script>
 </body>
@@ -160,7 +155,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('[SITE-VIEWER] Error:', error);
+    console.error('[VIBE-SITE-VIEWER] Error:', error);
     return NextResponse.json(
       { error: 'Failed to load site' },
       { status: 500 }

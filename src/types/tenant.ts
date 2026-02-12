@@ -80,9 +80,21 @@ export type DomainVerificationStatus = 'pending' | 'verified' | 'failed';
 /** SSL certificate status */
 export type DomainSSLStatus = 'pending' | 'provisioning' | 'active' | 'error';
 
+/** What content the domain points to */
+export type DomainTargetType = 'menu' | 'vibe_site' | 'hybrid';
+
+/** Routing configuration for hybrid domains */
+export interface DomainRoutingConfig {
+    /** What '/' serves: 'vibe' or 'menu' (default: 'vibe') */
+    rootPath?: 'vibe' | 'menu';
+    /** Path prefix for menu (default: '/shop') */
+    menuPath?: string;
+}
+
 /**
  * Custom Domain Configuration
- * Stored at tenants/{tenantId}.customDomain
+ * Stored at tenants/{tenantId}.customDomain (legacy single-domain)
+ * or tenants/{tenantId}/domains/{domain} (unified multi-domain)
  */
 export interface CustomDomainConfig {
     /** The custom domain (e.g., "shop.mybrand.com" or "mybrandmenu.com") */
@@ -90,6 +102,18 @@ export interface CustomDomainConfig {
 
     /** How the domain is connected: CNAME (subdomain) or Nameserver (full domain) */
     connectionType: DomainConnectionType;
+
+    /** What content this domain serves */
+    targetType: DomainTargetType;
+
+    /** Target ID (projectId for vibe_site, null for menu) */
+    targetId?: string;
+
+    /** Target display name (for UI listing) */
+    targetName?: string;
+
+    /** Routing config for hybrid domains */
+    routingConfig?: DomainRoutingConfig;
 
     /** Verification status */
     verificationStatus: DomainVerificationStatus;
@@ -130,8 +154,23 @@ export interface DomainMapping {
     /** The tenant ID this domain belongs to */
     tenantId: string;
 
+    /** User who added this domain */
+    userId?: string;
+
     /** Connection type */
     connectionType: DomainConnectionType;
+
+    /** What content this domain serves */
+    targetType: DomainTargetType;
+
+    /** Target ID (projectId for vibe_site) */
+    targetId?: string;
+
+    /** Target display name */
+    targetName?: string;
+
+    /** Routing config for hybrid domains */
+    routingConfig?: DomainRoutingConfig;
 
     /** When the domain was verified */
     verifiedAt: Timestamp;
