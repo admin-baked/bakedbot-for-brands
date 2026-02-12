@@ -250,7 +250,8 @@
       "Bash(npm run compile:*)",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\admin\\\\BakedBot for Brands\\\\bakedbot-for-brands\\\\.next\" -Directory -ErrorAction SilentlyContinue)",
       "Bash(Select-Object -Property Name, CreationTime)",
-      "Bash(Format-Table -AutoSize)"
+      "Bash(Format-Table -AutoSize)",
+      "Bash(cmd.exe:*)"
     ],
     "deny": [],
     "ask": []

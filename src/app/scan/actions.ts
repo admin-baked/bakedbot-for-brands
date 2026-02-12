@@ -7,10 +7,12 @@ export interface ScanOrderData {
         id: string;
         status: string;
         items: { name: string; qty: number; price: number }[];
-        customer: { name: string; email: string; phone: string };
+        customer: { name: string; email: string; phone: string; id?: string };
         totals: { subtotal: number; tax: number; total: number };
         createdAt: any;
     } | null;
+    customerProfile: any | null;
+    lastOrder: any | null;
     dispensary: {
         id: string;
         name: string;
@@ -31,17 +33,44 @@ export async function getScanOrderData(orderId: string): Promise<ScanOrderData> 
 
     // Fetch order
     const orderDoc = await firestore.collection('orders').doc(orderId).get();
-    
+
     if (!orderDoc.exists) {
-        return { order: null, dispensary: null };
+        return { order: null, customerProfile: null, lastOrder: null, dispensary: null };
     }
 
     const orderData = orderDoc.data()!;
-    
-    // Fetch dispensary
+    const customerId = orderData.userId;
     const retailerId = orderData.retailerId;
+
+    // Fetch customer profile and last order if customerId exists
+    let customerProfile = null;
+    let lastOrder = null;
+
+    if (customerId && retailerId) {
+        // Fetch profile from isolated collection
+        const profileDoc = await firestore.collection('customers')
+            .doc(`${retailerId}_${customerId}`).get();
+        if (profileDoc.exists) {
+            customerProfile = profileDoc.data();
+        }
+
+        // Fetch last completed order (excluding current)
+        const lastOrderSnap = await firestore.collection('orders')
+            .where('userId', '==', customerId)
+            .where('retailerId', '==', retailerId)
+            .where('status', '==', 'completed')
+            .orderBy('createdAt', 'desc')
+            .limit(1)
+            .get();
+
+        if (!lastOrderSnap.empty && lastOrderSnap.docs[0].id !== orderId) {
+            lastOrder = lastOrderSnap.docs[0].data();
+            lastOrder.id = lastOrderSnap.docs[0].id;
+        }
+    }
+
+    // Fetch dispensary
     let dispensary = null;
-    
     if (retailerId) {
         const dispDoc = await firestore.collection('dispensaries').doc(retailerId).get();
         if (dispDoc.exists) {
@@ -68,6 +97,8 @@ export async function getScanOrderData(orderId: string): Promise<ScanOrderData> 
             totals: orderData.totals || { subtotal: 0, tax: 0, total: 0 },
             createdAt: orderData.createdAt,
         },
+        customerProfile,
+        lastOrder,
         dispensary,
     };
 }
@@ -76,7 +107,7 @@ export async function getScanOrderData(orderId: string): Promise<ScanOrderData> 
  * Update order status (for budtender actions)
  */
 export async function updateScanOrderStatus(
-    orderId: string, 
+    orderId: string,
     newStatus: 'confirmed' | 'ready' | 'completed'
 ): Promise<{ success: boolean; error?: string }> {
     const { firestore } = await createServerClient();

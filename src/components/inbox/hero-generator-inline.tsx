@@ -6,9 +6,9 @@
  * AI-powered hero banner creation tool that appears inline in the chat conversation.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Wand2, Plus, X, Loader2, Image as ImageIcon, Palette } from 'lucide-react';
+import { Sparkles, Wand2, Plus, X, Loader2, Image as ImageIcon, Palette, BookOpenCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,9 +26,11 @@ import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useDispensaryId } from '@/hooks/use-dispensary-id';
 import { createHero } from '@/app/actions/heroes';
+import { getBrandGuide } from '@/server/actions/brand-guide';
 import { useToast } from '@/hooks/use-toast';
 import { HeroPreview } from '@/components/dashboard/heroes/hero-preview';
 import type { Hero, HeroAISuggestion, HeroStyle, HeroPurchaseModel, HeroCtaAction } from '@/types/heroes';
+import type { BrandGuide } from '@/types/brand-guide';
 
 interface HeroGeneratorInlineProps {
     onComplete?: (heroData: Hero) => void;

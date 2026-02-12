@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-    Package, 
-    CheckCircle, 
-    User, 
-    Phone, 
-    Mail, 
-    Store, 
-    Gift, 
+import {
+    Package,
+    CheckCircle,
+    User,
+    Phone,
+    Mail,
+    Store,
+    Gift,
     Sparkles,
     Mic,
     MessageSquare,
@@ -128,7 +128,7 @@ export default function ScanPageClient({ orderId }: ScanPageClientProps) {
                                     </li>
                                 </ul>
                             </div>
-                            <Link 
+                            <Link
                                 href={`/claim?retailerId=${dispensary.id}&orderId=${order.id}`}
                                 className="block"
                             >
@@ -148,36 +148,101 @@ export default function ScanPageClient({ orderId }: ScanPageClientProps) {
                             <Badge className={cn(
                                 "capitalize",
                                 order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                order.status === 'ready' ? 'bg-orange-100 text-orange-800' :
-                                order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
-                                'bg-slate-100 text-slate-800'
+                                    order.status === 'ready' ? 'bg-orange-100 text-orange-800' :
+                                        order.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                                            'bg-slate-100 text-slate-800'
                             )}>
                                 {order.status}
                             </Badge>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        {/* Customer Info */}
-                        <div className="rounded-lg border p-4 space-y-2">
-                            <div className="flex items-center gap-2 text-sm font-medium">
-                                <User className="h-4 w-4" />
-                                {order.customer.name}
+                        {/* Customer Info & Segment */}
+                        <div className="rounded-lg border p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-sm font-bold text-lg">
+                                    <User className="h-5 w-5" />
+                                    {order.customer.name}
+                                </div>
+                                {data.customerProfile?.segment && (
+                                    <Badge className={cn(
+                                        "capitalize px-3 py-1",
+                                        ['vip', 'loyal', 'high_value'].includes(data.customerProfile.segment) ? 'bg-green-600 text-white' :
+                                            ['new', 'frequent'].includes(data.customerProfile.segment) ? 'bg-blue-600 text-white' :
+                                                ['slipping', 'at_risk'].includes(data.customerProfile.segment) ? 'bg-red-600 text-white' :
+                                                    'bg-slate-500 text-white'
+                                    )}>
+                                        {data.customerProfile.segment.replace('_', ' ')}
+                                    </Badge>
+                                )}
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Phone className="h-4 w-4" />
-                                {order.customer.phone}
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Mail className="h-4 w-4" />
-                                {order.customer.email}
+
+                            {/* Budtender Upsell Tips */}
+                            {data.customerProfile?.segment && (
+                                <div className={cn(
+                                    "p-3 rounded-md border-l-4 text-sm font-medium",
+                                    ['vip', 'loyal', 'high_value'].includes(data.customerProfile.segment) ? 'bg-green-50 border-l-green-600 text-green-800' :
+                                        ['new', 'frequent'].includes(data.customerProfile.segment) ? 'bg-blue-50 border-l-blue-600 text-blue-800' :
+                                            ['slipping', 'at_risk'].includes(data.customerProfile.segment) ? 'bg-red-50 border-l-red-600 text-red-800' :
+                                                'bg-slate-50 border-l-slate-400 text-slate-800'
+                                )}>
+                                    <Sparkles className="h-4 w-4 inline mr-2" />
+                                    {['vip', 'loyal', 'high_value'].includes(data.customerProfile.segment) ? "High Value - Prioritize premium upsells & concierge service." :
+                                        ['new', 'frequent'].includes(data.customerProfile.segment) ? "Growth Opportunity - Educate on next-tier loyalty benefits." :
+                                            ['slipping', 'at_risk'].includes(data.customerProfile.segment) ? "Retention Alert - Offer 'Miss You' discount or personalized deal." :
+                                                "Churned - Reactivate with a strong offer."}
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-2 pt-2">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Phone className="h-4 w-4" />
+                                    {order.customer.phone}
+                                </div>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Mail className="h-4 w-4" />
+                                    {order.customer.email}
+                                </div>
                             </div>
                         </div>
+
+                        {/* Customer Preferences */}
+                        {data.customerProfile?.preferences && (
+                            <div className="bg-emerald-50/30 dark:bg-emerald-900/10 rounded-lg border border-emerald-100 p-4 space-y-2">
+                                <h4 className="text-sm font-bold flex items-center gap-2 text-emerald-800 dark:text-emerald-300">
+                                    <Sparkles className="h-4 w-4" />
+                                    Customer Preferences
+                                </h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {data.customerProfile.preferences.strainType && (
+                                        <Badge variant="outline" className="capitalize bg-white">{data.customerProfile.preferences.strainType}</Badge>
+                                    )}
+                                    {data.customerProfile.preferences.consumptionMethods?.map((m: string) => (
+                                        <Badge key={m} variant="outline" className="capitalize bg-white">{m}</Badge>
+                                    ))}
+                                    {data.customerProfile.preferences.thcPreference && (
+                                        <Badge variant="outline" className="bg-white">{data.customerProfile.preferences.thcPreference} THC</Badge>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Last Order Summary */}
+                        {data.lastOrder && (
+                            <div className="rounded-lg border bg-slate-50/50 p-4 space-y-2">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Last Order</h4>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium">{data.lastOrder.items?.[0]?.name}{data.lastOrder.items?.length > 1 ? ` + ${data.lastOrder.items.length - 1} more` : ''}</span>
+                                    <span className="text-xs text-muted-foreground">{new Date(data.lastOrder.createdAt?.seconds * 1000).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                        )}
 
                         <Separator />
 
                         {/* Items */}
                         <div className="space-y-3">
-                            <h4 className="font-medium text-sm">Items ({order.items.length})</h4>
+                            <h4 className="font-medium text-sm">Target Items ({order.items.length})</h4>
                             {order.items.map((item, idx) => (
                                 <div key={idx} className="flex justify-between items-center text-sm">
                                     <span>{item.qty}x {item.name}</span>
@@ -228,7 +293,7 @@ export default function ScanPageClient({ orderId }: ScanPageClientProps) {
             {order.status !== 'completed' && order.status !== 'cancelled' && (
                 <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur border-t shadow-lg">
                     <div className="max-w-lg mx-auto">
-                        <Button 
+                        <Button
                             className={cn("w-full text-white gap-2", currentAction.color)}
                             size="lg"
                             onClick={() => currentAction.next && handleStatusUpdate(currentAction.next as any)}
