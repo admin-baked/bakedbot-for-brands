@@ -2,9 +2,9 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 env:
-  # Build-time memory allocation - reduced for Cloud Build compatibility (2GB to avoid OOM)
+  # Build-time memory allocation - increased to 4GB for large codebase (18k+ files)
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=2048"
+    value: "--max-old-space-size=4096"
     availability: [ BUILD ]
   # Runtime memory allocation - can be higher since we control runtime resources
   - variable: NODE_OPTIONS
@@ -258,4 +258,4 @@ runConfig:
 
 build:
   installCommand: npm install --legacy-peer-deps
-  buildCommand: next build
+  buildCommand: npm run build:embed && npm run check:structure && next build
