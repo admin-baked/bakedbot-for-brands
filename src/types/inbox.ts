@@ -10,6 +10,7 @@ import type { Carousel } from './carousels';
 import type { BundleDeal } from './bundles';
 import type { CreativeContent } from './creative-content';
 import type { QRCode } from './qr-code';
+import type { IntegrationRequest } from './service-integrations';
 import type { ChatMessage } from '@/lib/store/agent-chat-store';
 
 // ============ Thread Types ============
@@ -208,7 +209,9 @@ export type InboxArtifactType =
     | 'budget_model'      // Budget spreadsheet / forecast
     | 'job_spec'          // Role description, requirements
     | 'research_brief'    // Deep research findings
-    | 'compliance_brief'; // Compliance research document
+    | 'compliance_brief'  // Compliance research document
+    // ---- Integration Artifacts ----
+    | 'integration_request'; // Request to connect third-party service (OAuth, API key, etc.)
 
 /**
  * Artifact approval status
@@ -235,7 +238,7 @@ export interface InboxArtifact {
     status: InboxArtifactStatus;
 
     // The actual data (polymorphic based on type)
-    data: Carousel | BundleDeal | CreativeContent | QRCode;
+    data: Carousel | BundleDeal | CreativeContent | QRCode | IntegrationRequest;
 
     // Agent rationale for the suggestion
     rationale?: string;

@@ -54,6 +54,7 @@ import { getThreadTypeLabel, getThreadTypeIcon } from '@/types/inbox';
 import { InboxCarouselCard } from './artifacts/carousel-card';
 import { InboxBundleCard } from './artifacts/bundle-card';
 import { InboxCreativeCard } from './artifacts/creative-card';
+import { InboxIntegrationCard } from './artifacts/integration-card';
 import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
 import { QRCodeGeneratorInline } from './qr-code-generator-inline';
 import { CarouselGeneratorInline } from './carousel-generator-inline';
@@ -258,6 +259,8 @@ function ArtifactPreviewCard({ artifact }: { artifact: InboxArtifact }) {
             return <InboxBundleCard artifact={artifact} />;
         case 'creative_content':
             return <InboxCreativeCard artifact={artifact} />;
+        case 'integration_request':
+            return <InboxIntegrationCard artifact={artifact} />;
         default:
             return null;
     }
