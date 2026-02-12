@@ -2,10 +2,10 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 env:
-  # Build-time memory allocation - keep below builder limits to avoid OOM kills
-  # Builder has ~4GB total; V8 heap + native memory must fit. 2048 leaves ~2GB headroom.
+  # Build-time memory allocation - increased for large Next.js build
+  # Builder has ~8GB total; using 6GB for V8 heap leaves ~2GB for native memory
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=2048"
+    value: "--max-old-space-size=6144"
     availability: [ BUILD ]
   - variable: NEXT_DISABLE_TURBOPACK
     value: "1"
