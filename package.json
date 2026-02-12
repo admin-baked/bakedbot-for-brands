@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "cross-env NODE_OPTIONS='--max-old-space-size=8192' npm run build:embed && npm run check:structure && next build",
+    "build": "cross-env NODE_OPTIONS='--max-old-space-size=4096' npm run build:embed && npm run check:structure && next build",
     "build:embed": "tsup",
     "start": "next start",
     "lint": "next lint",
