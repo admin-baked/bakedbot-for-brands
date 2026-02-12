@@ -18,15 +18,49 @@ export default async function TrainingPage() {
         user = await requireUser(['intern', 'super_user']);
     } catch (error) {
         // Auth failed - redirect to training landing page
+        console.error('[Training Page] Auth check failed:', {
+            error: error instanceof Error ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+            } : error,
+            timestamp: new Date().toISOString(),
+        });
         redirect('/customer-login');
     }
 
     const db = getAdminFirestore();
 
+    console.log('[Training Page] User authenticated successfully:', {
+        uid: user.uid,
+        email: user.email,
+        role: user.role,
+        timestamp: new Date().toISOString(),
+    });
+
     // Fetch training program
-    const programDoc = await db.collection('trainingPrograms').doc('bakedbot-builder-bootcamp-v1').get();
+    let programDoc;
+    try {
+        programDoc = await db.collection('trainingPrograms').doc('bakedbot-builder-bootcamp-v1').get();
+        console.log('[Training Page] Program fetch result:', {
+            exists: programDoc.exists,
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error('[Training Page] Failed to fetch training program:', {
+            error: error instanceof Error ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+            } : error,
+            userId: user.uid,
+            timestamp: new Date().toISOString(),
+        });
+        throw error;
+    }
 
     if (!programDoc.exists) {
+        console.error('[Training Page] Training program document does not exist');
         return (
             <div className="container mx-auto px-4 py-8">
                 <div className="rounded-lg border border-destructive bg-destructive/10 p-6">
@@ -42,12 +76,37 @@ export default async function TrainingPage() {
     const program = programDoc.data() as TrainingProgram;
 
     // Fetch user progress
-    const progressDoc = await db.collection('users').doc(user.uid).collection('training').doc('current').get();
+    let progressDoc;
+    try {
+        progressDoc = await db.collection('users').doc(user.uid).collection('training').doc('current').get();
+        console.log('[Training Page] Progress fetch result:', {
+            exists: progressDoc.exists,
+            userId: user.uid,
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error('[Training Page] Failed to fetch user progress:', {
+            error: error instanceof Error ? {
+                name: error.name,
+                message: error.message,
+                stack: error.stack,
+            } : error,
+            userId: user.uid,
+            timestamp: new Date().toISOString(),
+        });
+        throw error;
+    }
 
     const progress = progressDoc.exists ? (progressDoc.data() as UserTrainingProgress) : null;
 
     // If no progress, user needs to be enrolled
     if (!progress) {
+        console.warn('[Training Page] User has no progress document:', {
+            userId: user.uid,
+            email: user.email,
+            role: user.role,
+            timestamp: new Date().toISOString(),
+        });
         return (
             <div className="container mx-auto px-4 py-8">
                 <div className="rounded-lg border bg-card p-6">
@@ -69,6 +128,14 @@ export default async function TrainingPage() {
             </div>
         );
     }
+
+    console.log('[Training Page] Rendering training page client:', {
+        userId: user.uid,
+        programId: program.id,
+        currentWeek: progress.currentWeek,
+        completedChallenges: progress.completedChallenges.length,
+        timestamp: new Date().toISOString(),
+    });
 
     return <TrainingPageClient program={program} progress={progress} userId={user.uid} />;
 }
