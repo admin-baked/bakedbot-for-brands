@@ -9,6 +9,7 @@
 
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
+import { getAuth } from 'firebase-admin/auth';
 import { Timestamp } from '@google-cloud/firestore';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -434,5 +435,148 @@ export async function getCohort(cohortId: string): Promise<ActionResult<Training
     } catch (error) {
         logger.error('[Training] Get cohort failed', { error, cohortId });
         return { success: false, error: 'Failed to get cohort' };
+    }
+}
+
+/**
+ * Self-enrollment for training program
+ *
+ * Sets user's role to 'intern' and enrolls them in the active cohort.
+ * Called from /training signup page after Firebase Auth succeeds.
+ *
+ * @param userId - User UID from Firebase Auth
+ * @returns Success status with cohort ID
+ */
+export async function selfEnrollInTraining(userId: string): Promise<ActionResult<{ cohortId: string }>> {
+    try {
+        const db = getAdminFirestore();
+        const auth = getAuth();
+
+        // Verify user exists
+        const userRecord = await auth.getUser(userId);
+        if (!userRecord) {
+            return { success: false, error: 'User not found' };
+        }
+
+        logger.info('[Training] Self-enrollment started', {
+            userId,
+            email: userRecord.email,
+        });
+
+        // Set custom claims to intern role
+        await auth.setCustomUserClaims(userId, {
+            role: 'intern',
+            enrollmentDate: new Date().toISOString(),
+        });
+
+        logger.info('[Training] Intern role set', { userId });
+
+        // Find active cohort (most recent, not full)
+        const cohortsSnapshot = await db
+            .collection('trainingCohorts')
+            .where('status', '==', 'active')
+            .orderBy('startDate', 'desc')
+            .limit(5)
+            .get();
+
+        let cohort: TrainingCohort | null = null;
+        let cohortDoc: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+
+        // Find first non-full cohort
+        for (const doc of cohortsSnapshot.docs) {
+            const data = doc.data() as TrainingCohort;
+            if (data.participantIds.length < data.maxParticipants) {
+                cohort = data;
+                cohortDoc = doc;
+                break;
+            }
+        }
+
+        // If no active cohort with space, create a default one
+        if (!cohort || !cohortDoc) {
+            logger.warn('[Training] No active cohort with space, creating default cohort');
+
+            const newCohortRef = db.collection('trainingCohorts').doc();
+            const now = Timestamp.now();
+            const startDate = now;
+            const endDate = Timestamp.fromMillis(now.toMillis() + 8 * 7 * 24 * 60 * 60 * 1000); // 8 weeks from now
+
+            const newCohort: TrainingCohort = {
+                id: newCohortRef.id,
+                name: `Cohort ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`,
+                programId: 'bakedbot-builder-bootcamp-v1',
+                startDate,
+                endDate,
+                participantIds: [],
+                maxParticipants: 50,
+                status: 'active',
+                enablePeerReview: false,
+                minReviewsRequired: 3,
+                reviewersPerSubmission: 2,
+                reviewDeadlineHours: 48,
+                createdAt: now,
+                updatedAt: now,
+            };
+
+            await newCohortRef.set(newCohort);
+            cohortDoc = await newCohortRef.get() as FirebaseFirestore.QueryDocumentSnapshot;
+            cohort = newCohort;
+
+            logger.info('[Training] Created default cohort', {
+                cohortId: newCohortRef.id,
+            });
+        }
+
+        // Ensure cohort is not null (TypeScript safety)
+        if (!cohort || !cohortDoc) {
+            return { success: false, error: 'Failed to create or find cohort' };
+        }
+
+        // Add user to cohort
+        await cohortDoc.ref.update({
+            participantIds: [...cohort.participantIds, userId],
+            updatedAt: Timestamp.now(),
+        });
+
+        // Initialize user progress
+        const progressRef = db.collection('users').doc(userId).collection('training').doc('current');
+
+        const initialProgress: UserTrainingProgress = {
+            cohortId: cohort.id,
+            programId: cohort.programId,
+            enrolledAt: Timestamp.now(),
+            currentWeek: 1,
+            completedChallenges: [],
+            totalSubmissions: 0,
+            acceptedSubmissions: 0,
+            weeklyProgress: [],
+            certificateEarned: false,
+            lastActivityAt: Timestamp.now(),
+            status: 'active',
+            reviewsCompleted: 0,
+            reviewsAssigned: 0,
+            averageReviewRating: 0,
+            reviewBadges: [],
+        };
+
+        await progressRef.set(initialProgress);
+
+        logger.info('[Training] Self-enrollment completed', {
+            userId,
+            cohortId: cohort.id,
+        });
+
+        revalidatePath('/dashboard/training');
+
+        return {
+            success: true,
+            data: { cohortId: cohort.id },
+        };
+    } catch (error) {
+        logger.error('[Training] Self-enrollment failed', { error, userId });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to enroll in training program',
+        };
     }
 }
