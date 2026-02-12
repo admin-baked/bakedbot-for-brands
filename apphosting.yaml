@@ -3,16 +3,16 @@
 
 env:
   # Build-time memory allocation - increased for large Next.js build
-  # Using 8GB for V8 heap to handle webpack (Turbopack disabled via --no-turbopack)
+  # Using 12GB for V8 heap to handle Turbopack + large codebase (18k+ files)
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=8192"
+    value: "--max-old-space-size=12288"
     availability: [ BUILD ]
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"
     availability: [ BUILD ]
   # Runtime memory allocation - can be higher since we control runtime resources
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=8192"
+    value: "--max-old-space-size=12288"
     availability: [ RUNTIME ]
   # Skip Next.js Node version check (Firebase App Hosting uses Node 18)
   - variable: NEXT_SKIP_NODE_VERSION_CHECK
