@@ -65,35 +65,12 @@ jest.mock('@/components/ui/collapsible', () => ({
 }));
 
 // Mock InviteUserDialog
-jest.mock('@/components/invitations/invite-user-dialog', () => ({
-    InviteUserDialog: ({ orgId, allowedRoles, trigger }: { orgId?: string; allowedRoles: string[]; trigger: React.ReactNode }) => (
-        <div data-testid="invite-user-dialog" data-org-id={orgId} data-allowed-roles={allowedRoles.join(',')}>
+jest.mock('@/components/dashboard/admin/invite-user-dialog', () => ({
+    InviteUserDialog: ({ defaultRole, trigger }: { defaultRole?: string; trigger?: React.ReactNode }) => (
+        <div data-testid="invite-user-dialog" data-default-role={defaultRole || ''}>
             {trigger}
         </div>
-    ),
-}));
-
-// Mock Lucide Icons - use empty spans to avoid text conflicts
-jest.mock('lucide-react', () => ({
-    Inbox: () => <span data-testid="icon-inbox" />,
-    FolderKanban: () => <span data-testid="icon-folder-kanban" />,
-    BookOpen: () => <span data-testid="icon-book-open" />,
-    Palette: () => <span data-testid="icon-palette" />,
-    Package: () => <span data-testid="icon-package" />,
-    Utensils: () => <span data-testid="icon-utensils" />,
-    ShoppingCart: () => <span data-testid="icon-shopping-cart" />,
-    Users: () => <span data-testid="icon-users" />,
-    PieChart: () => <span data-testid="icon-pie-chart" />,
-    UserPlus: () => <span data-testid="icon-user-plus" />,
-    Crown: () => <span data-testid="icon-crown" />,
-    Target: () => <span data-testid="icon-target" />,
-    Globe: () => <span data-testid="icon-globe" />,
-    Store: () => <span data-testid="icon-store" />,
-    LayoutTemplate: () => <span data-testid="icon-layout-template" />,
-    LayoutGrid: () => <span data-testid="icon-layout-grid" />,
-    Database: () => <span data-testid="icon-database" />,
-    Settings: () => <span data-testid="icon-settings" />,
-    ChevronRight: () => <span data-testid="icon-chevron-right" />,
+    )
 }));
 
 // Mock Next.js Link
@@ -318,18 +295,18 @@ describe('BrandSidebar', () => {
     });
 
     describe('Invite User Dialog', () => {
-        it('renders invite dialog with brand role restriction', () => {
+        it('passes brand_admin as defaultRole', () => {
             render(<BrandSidebar />);
 
             const inviteDialog = screen.getByTestId('invite-user-dialog');
-            expect(inviteDialog).toHaveAttribute('data-allowed-roles', 'brand');
+            expect(inviteDialog).toHaveAttribute('data-default-role', 'brand_admin');
         });
 
-        it('passes orgId to invite dialog', () => {
+        it('renders invite trigger inside wrapper', () => {
             render(<BrandSidebar />);
 
             const inviteDialog = screen.getByTestId('invite-user-dialog');
-            expect(inviteDialog).toHaveAttribute('data-org-id', 'brand_test-org');
+            expect(inviteDialog).toHaveTextContent('Invite Team Member');
         });
     });
 

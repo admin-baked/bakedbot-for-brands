@@ -7,20 +7,20 @@
  * we test agents that don't directly import @/ai/genkit.
  */
 
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+/** @jest-environment node */
 
 // MOCKS - Must be before imports
 jest.mock('yaml', () => ({ parse: jest.fn(), stringify: jest.fn() }));
 jest.mock('@mendable/firecrawl-js', () => ({ default: class FirecrawlApp { scrapeUrl = jest.fn(); crawlUrl = jest.fn(); } }));
 jest.mock('@/ai/genkit', () => ({ ai: { generate: jest.fn().mockResolvedValue({ text: 'Mock response' }), defineTool: jest.fn() } }));
-jest.mock('@/lib/logger', () => ({ logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn() } }));
+jest.mock('@/lib/logger', () => ({ logger: { info: jest.fn(), debug: jest.fn(), warn: jest.fn(), error: jest.fn() } }));
 jest.mock('@/server/services/letta/block-manager', () => ({
     lettaBlockManager: { attachBlocksForRole: jest.fn().mockResolvedValue(true) }
 }));
 jest.mock('@/server/agents/harness', () => ({
     runMultiStepTask: jest.fn().mockResolvedValue({
         finalResult: 'Task completed successfully',
-        steps: [{ tool: 'test', result: 'success' }]
+        steps: [{ tool: 'test', args: {}, result: 'success' }]
     })
 }));
 jest.mock('@/server/agents/deebo', () => ({
@@ -31,15 +31,53 @@ jest.mock('@/server/services/python-sidecar', () => ({
     sidecar: { runAction: jest.fn().mockResolvedValue({ success: true }) }
 }));
 
-// Import agents that don't use genkit directly
-import { smokeyAgent } from '@/server/agents/smokey';
-import { craigAgent } from '@/server/agents/craig';
-import { mrsParkerAgent } from '@/server/agents/mrsParker';
-import { dayday } from '@/server/agents/dayday';
-import { felisha } from '@/server/agents/felisha';
-import { bigWormAgent } from '@/server/agents/bigworm';
-import { moneyMikeAgent } from '@/server/agents/moneyMike';
-import type { AgentMemory, SmokeyMemory, CraigMemory, MrsParkerMemory, MoneyMikeMemory } from '@/server/agents/schemas';
+// Avoid Firebase / external services in unit tests
+jest.mock('@/server/grounding/dynamic-loader', () => ({
+    loadGroundTruth: jest.fn().mockResolvedValue(null),
+    hasGroundTruthDynamic: jest.fn().mockResolvedValue(false),
+    hasGroundTruthSync: jest.fn().mockReturnValue(false),
+    getGroundTruthSource: jest.fn().mockResolvedValue('none'),
+}));
+
+jest.mock('@/server/grounding/role-loader', () => ({
+    loadRoleGroundTruth: jest.fn().mockResolvedValue(null),
+    buildRoleSystemPrompt: jest.fn().mockReturnValue(''),
+}));
+
+jest.mock('@/server/services/growth/search-console', () => ({
+    searchConsoleService: {
+        getSiteSummary: jest.fn().mockResolvedValue({ clicks: 0, impressions: 0 }),
+        findLowCompetitionOpportunities: jest.fn().mockResolvedValue([]),
+    }
+}));
+
+jest.mock('@/server/services/growth/google-analytics', () => ({
+    googleAnalyticsService: {
+        getTrafficReport: jest.fn().mockResolvedValue({ sessions: 0, users: 0 }),
+    }
+}));
+
+jest.mock('@/server/services/growth/sitemap-manager', () => ({
+    sitemapManager: {
+        pingGoogle: jest.fn().mockResolvedValue(true),
+    }
+}));
+
+// Require agents AFTER mocks (static imports are hoisted and will bypass mocks in our Jest + SWC setup)
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { smokeyAgent } = require('@/server/agents/smokey');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { craigAgent } = require('@/server/agents/craig');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { mrsParkerAgent } = require('@/server/agents/mrsParker');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { dayday } = require('@/server/agents/dayday');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { felisha } = require('@/server/agents/felisha');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { bigWormAgent } = require('@/server/agents/bigworm');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { moneyMikeAgent } = require('@/server/agents/moneyMike');
 
 // Test data
 const mockBrandMemory = {
@@ -54,12 +92,12 @@ const mockBrandMemory = {
     known_users: []
 };
 
-const createMockAgentMemory = (): AgentMemory => ({
+const createMockAgentMemory = () => ({
     agent_id: 'test-agent-id',
     system_instructions: ''
 });
 
-const createSmokeyMemory = (): SmokeyMemory => ({
+const createSmokeyMemory = () => ({
     ...createMockAgentMemory(),
     ux_experiments: []
 });
@@ -105,7 +143,7 @@ describe('Craig Agent (Marketer)', () => {
         });
 
         it('should set marketing system instructions', async () => {
-            const mockCraigMemory: CraigMemory = {
+            const mockCraigMemory = {
                 ...createMockAgentMemory(),
                 campaigns: []
             };
@@ -118,7 +156,7 @@ describe('Craig Agent (Marketer)', () => {
 
     describe('orient', () => {
         it('should return user_request when stimulus provided', async () => {
-            const mockCraigMemory: CraigMemory = {
+            const mockCraigMemory = {
                 ...createMockAgentMemory(),
                 campaigns: []
             };
@@ -145,7 +183,7 @@ describe('Mrs. Parker Agent (Hostess)', () => {
         });
 
         it('should set loyalty-focused system instructions', async () => {
-            const mockMrsParkerMemory: MrsParkerMemory = {
+            const mockMrsParkerMemory = {
                 ...createMockAgentMemory(),
                 segments: [],
                 at_risk_customers: []
@@ -159,7 +197,7 @@ describe('Mrs. Parker Agent (Hostess)', () => {
 
     describe('orient', () => {
         it('should return user_request when stimulus provided', async () => {
-            const mockMrsParkerMemory: MrsParkerMemory = {
+            const mockMrsParkerMemory = {
                 ...createMockAgentMemory(),
                 segments: [],
                 at_risk_customers: []
@@ -349,7 +387,7 @@ describe('Money Mike Agent (CFO)', () => {
         });
 
         it('should set financial system instructions', async () => {
-            const mockMoneyMikeMemory: MoneyMikeMemory = {
+            const mockMoneyMikeMemory = {
                 ...createMockAgentMemory(),
                 pricing_experiments: []
             };
@@ -363,7 +401,7 @@ describe('Money Mike Agent (CFO)', () => {
 
     describe('orient', () => {
         it('should return user_request when stimulus provided', async () => {
-            const mockMoneyMikeMemory: MoneyMikeMemory = {
+            const mockMoneyMikeMemory = {
                 ...createMockAgentMemory(),
                 pricing_experiments: []
             };
@@ -378,7 +416,7 @@ describe('Money Mike Agent (CFO)', () => {
         });
 
         it('should return experiment ID when running experiment exists', async () => {
-            const mockMoneyMikeMemory: MoneyMikeMemory = {
+            const mockMoneyMikeMemory = {
                 ...createMockAgentMemory(),
                 pricing_experiments: [
                     { id: 'exp-123', status: 'running', sku_ids: ['sku1'] }
