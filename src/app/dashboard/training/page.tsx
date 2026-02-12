@@ -5,6 +5,7 @@
  * Fetches initial data server-side and passes to client component.
  */
 
+import { redirect } from 'next/navigation';
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
 import { TrainingPageClient } from './page-client';
@@ -12,7 +13,14 @@ import type { TrainingProgram, UserTrainingProgress } from '@/types/training';
 
 export default async function TrainingPage() {
     // Auth check - allow interns and super users
-    const user = await requireUser(['intern', 'super_user']);
+    let user;
+    try {
+        user = await requireUser(['intern', 'super_user']);
+    } catch (error) {
+        // Auth failed - redirect to training landing page
+        redirect('/customer-login');
+    }
+
     const db = getAdminFirestore();
 
     // Fetch training program

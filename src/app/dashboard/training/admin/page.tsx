@@ -5,6 +5,7 @@
  * Requires super_user role.
  */
 
+import { redirect } from 'next/navigation';
 import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
 import { TrainingAdminClient } from './page-client';
@@ -12,7 +13,12 @@ import type { TrainingCohort, UserTrainingProgress, TrainingSubmission } from '@
 
 export default async function TrainingAdminPage() {
     // Only super users can access
-    await requireUser(['super_user']);
+    try {
+        await requireUser(['super_user']);
+    } catch (error) {
+        // Not authorized - redirect to main dashboard
+        redirect('/dashboard');
+    }
 
     const db = getAdminFirestore();
 
