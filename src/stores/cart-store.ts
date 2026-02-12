@@ -234,3 +234,32 @@ export function getCartAbandonmentData() {
         dispensaryName: state.selectedDispensaryName,
     };
 }
+
+/**
+ * Save a cart abandonment snapshot when user leaves the page with items in cart.
+ * Uses navigator.sendBeacon for reliable delivery on page hide.
+ * Call this in a useEffect cleanup or visibilitychange handler.
+ */
+export function saveCartAbandonmentSnapshot(orgId?: string): void {
+    const state = useCartStore.getState();
+    if (state.items.length === 0) return;
+
+    const snapshot = {
+        items: state.items.map((i) => ({
+            productId: i.productId,
+            name: i.name,
+            price: i.price,
+            quantity: i.quantity,
+            category: i.category,
+        })),
+        total: state.getTotal().total,
+        itemCount: state.items.length,
+        dispensaryId: state.selectedDispensaryId,
+        dispensaryName: state.selectedDispensaryName,
+    };
+
+    // Fire and forget
+    import('@/lib/customer-analytics').then(({ trackCartAbandonment }) => {
+        trackCartAbandonment(snapshot, state.sessionId, orgId);
+    });
+}

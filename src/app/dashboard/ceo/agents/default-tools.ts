@@ -490,7 +490,34 @@ export const defaultSmokeyTools = {
     },
     generateExecutiveReport: async (topic: string) => {
         return await superUserTools.generateExecutiveReport(topic, 'Smokey');
-    }
+    },
+    suggestUpsells: async (productId: string, orgId: string) => {
+        try {
+            const { getChatbotUpsells } = await import('@/server/services/upsell-engine');
+            const result = await getChatbotUpsells(productId, orgId, { maxResults: 1 });
+            if (result.suggestions.length === 0) {
+                return { success: true, hasSuggestion: false, message: 'No complementary products found.' };
+            }
+            const s = result.suggestions[0];
+            return {
+                success: true,
+                hasSuggestion: true,
+                product: {
+                    id: s.product.id,
+                    name: s.product.name,
+                    category: s.product.category,
+                    price: s.product.price,
+                    strainType: s.product.strainType,
+                },
+                strategy: s.strategy,
+                reason: s.reason,
+                savingsText: s.savingsText,
+                confidenceScore: s.confidenceScore,
+            };
+        } catch (e: any) {
+            return { success: false, error: e.message };
+        }
+    },
 };
 
 export const defaultPopsTools = {
@@ -955,6 +982,7 @@ export const defaultUniversalTools = {
     analyzeExperimentResults: defaultSmokeyTools.analyzeExperimentResults,
     rankProductsForSegment: defaultSmokeyTools.rankProductsForSegment,
     searchMenu: defaultSmokeyTools.searchMenu,
+    suggestUpsells: defaultSmokeyTools.suggestUpsells,
 
     // Pops (Analytics)
     analyzeData: defaultPopsTools.analyzeData,
