@@ -250,7 +250,7 @@ export default function PublishPage() {
             <div className="mt-4 pt-4 border-t">
               <Button
                 variant="outline"
-                onClick={() => router.push(`/vibe/builder/custom-domain?projectId=${project.id}`)}
+                onClick={() => router.push('/dashboard/domains')}
                 className="w-full gap-2"
               >
                 <Globe className="w-4 h-4" />

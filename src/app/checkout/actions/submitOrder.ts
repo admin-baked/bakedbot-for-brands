@@ -27,6 +27,13 @@ export type SubmitOrderResult = {
   checkoutUrl?: string;
 };
 
+const TRUSTED_EXTERNAL_CHECKOUT_HOSTS = new Set([
+  'widget.canpayapp.com',
+  'sandbox-widget.canpayapp.com',
+  'remotepay.canpaydebit.com',
+  'sandbox-remotepay.canpaydebit.com',
+]);
+
 export async function submitOrder(clientPayload: ClientOrderInput): Promise<SubmitOrderResult> {
   const { auth, firestore } = await createServerClient();
   const cookieStore = await cookies();
@@ -144,8 +151,7 @@ export async function submitOrder(clientPayload: ClientOrderInput): Promise<Subm
           const parsed = new URL(candidate);
           isAllowedExternal =
             parsed.protocol === 'https:' &&
-            (parsed.hostname === 'widget.canpayapp.com' ||
-              parsed.hostname === 'sandbox-widget.canpayapp.com');
+            TRUSTED_EXTERNAL_CHECKOUT_HOSTS.has(parsed.hostname);
         } catch {
           isAllowedExternal = false;
         }

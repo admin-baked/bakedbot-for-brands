@@ -217,6 +217,11 @@ export async function unpublishWebsite(
 
 /**
  * Get published site by subdomain or custom domain
+ *
+ * Lookup order:
+ * 1. Subdomain match in vibe_published_sites
+ * 2. Custom domain match in vibe_published_sites (legacy)
+ * 3. Unified domain_mappings with targetType='vibe_site' (new system)
  */
 export async function getPublishedSite(
   subdomainOrDomain: string
@@ -232,7 +237,7 @@ export async function getPublishedSite(
       .limit(1)
       .get();
 
-    // If not found, try custom domain
+    // If not found, try custom domain in published sites (legacy)
     if (snapshot.empty) {
       snapshot = await db
         .collection('vibe_published_sites')
@@ -240,6 +245,22 @@ export async function getPublishedSite(
         .where('status', '==', 'published')
         .limit(1)
         .get();
+    }
+
+    // If still not found, check unified domain_mappings
+    if (snapshot.empty) {
+      const mappingDoc = await db
+        .collection('domain_mappings')
+        .doc(subdomainOrDomain.toLowerCase())
+        .get();
+
+      if (mappingDoc.exists) {
+        const mapping = mappingDoc.data();
+        if (mapping?.targetType === 'vibe_site' && mapping?.targetId) {
+          // Found in unified system - load by project ID
+          return getPublishedSiteByProject(mapping.targetId);
+        }
+      }
     }
 
     if (snapshot.empty) {

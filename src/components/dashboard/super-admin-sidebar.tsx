@@ -404,12 +404,32 @@ export function SuperAdminSidebar() {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
 
+                                {/* Custom Domains */}
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/domains'}>
+                                        <Link href="/dashboard/domains" prefetch={true}>
+                                            <Globe />
+                                            <span>Custom Domains</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+
                                 {/* Settings Section */}
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isAdminSectionActive("settings")}>
                                         <Link href="/dashboard/ceo?tab=admin&section=settings">
                                             <Settings />
                                             <span>Settings</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+
+                                {/* System Health Section */}
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={isActive("health")}>
+                                        <Link href="/dashboard/ceo?tab=health">
+                                            <Activity />
+                                            <span>System Health</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

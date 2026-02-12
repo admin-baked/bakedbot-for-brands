@@ -20,14 +20,58 @@ export interface SyncResult {
     duration?: number;
 }
 
+interface POSIntegrationStatusUpdate {
+    status: 'success' | 'error';
+    provider?: string;
+    lastError?: string | null;
+    customersCount?: number;
+    ordersCount?: number;
+}
+
+async function persistPOSIntegrationStatus(
+    firestore: FirebaseFirestore.Firestore,
+    orgId: string,
+    update: POSIntegrationStatusUpdate
+): Promise<void> {
+    const now = new Date();
+
+    try {
+        await firestore
+            .collection('tenants')
+            .doc(orgId)
+            .collection('integrations')
+            .doc('pos')
+            .set(
+                {
+                    provider: update.provider || 'alleaves',
+                    status: update.status,
+                    lastAttemptAt: now,
+                    ...(update.status === 'success' ? { lastSyncAt: now } : {}),
+                    lastError: update.lastError ?? null,
+                    customersCount: update.customersCount ?? null,
+                    ordersCount: update.ordersCount ?? null,
+                    updatedAt: now,
+                },
+                { merge: true }
+            );
+    } catch (error: any) {
+        logger.warn('[POS_SYNC] Failed to persist integration status', {
+            orgId,
+            error: error?.message || String(error),
+        });
+    }
+}
+
 /**
  * Sync customers and orders for a specific organization
  */
 export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
     const startTime = Date.now();
+    let firestore: FirebaseFirestore.Firestore | null = null;
 
     try {
-        const { firestore } = await createServerClient();
+        const serverClient = await createServerClient();
+        firestore = serverClient.firestore;
 
         // Get location with POS config
         const locationsSnap = await firestore.collection('locations')
@@ -37,6 +81,10 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
 
         if (locationsSnap.empty) {
             logger.warn('[POS_SYNC] No location found for org', { orgId });
+            await persistPOSIntegrationStatus(firestore, orgId, {
+                status: 'error',
+                lastError: 'No location found',
+            });
             return {
                 success: false,
                 orgId,
@@ -50,6 +98,11 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
 
         if (!posConfig || posConfig.provider !== 'alleaves' || posConfig.status !== 'active') {
             logger.info('[POS_SYNC] No active Alleaves POS config', { orgId });
+            await persistPOSIntegrationStatus(firestore, orgId, {
+                status: 'error',
+                provider: posConfig?.provider,
+                lastError: 'No active POS config',
+            });
             return {
                 success: false,
                 orgId,
@@ -88,6 +141,14 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
         posCache.invalidate(cacheKeys.customers(orgId));
         posCache.invalidate(cacheKeys.orders(orgId));
 
+        await persistPOSIntegrationStatus(firestore, orgId, {
+            status: 'success',
+            provider: posConfig.provider,
+            lastError: null,
+            customersCount: customers.length,
+            ordersCount: orders.length,
+        });
+
         logger.info('[POS_SYNC] Successfully synced POS data', {
             orgId,
             customersCount: customers.length,
@@ -108,6 +169,13 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
             error: error.message,
             duration: Date.now() - startTime,
         });
+
+        if (firestore) {
+            await persistPOSIntegrationStatus(firestore, orgId, {
+                status: 'error',
+                lastError: error.message,
+            });
+        }
 
         return {
             success: false,

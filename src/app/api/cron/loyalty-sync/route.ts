@@ -36,7 +36,15 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret) {
+      logger.error('[Cron] CRON_SECRET is not configured');
+      return NextResponse.json(
+        { success: false, error: 'Server misconfiguration' },
+        { status: 500 }
+      );
+    }
+
+    if (authHeader !== `Bearer ${cronSecret}`) {
       logger.warn('[Cron] Unauthorized loyalty sync attempt');
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
@@ -78,8 +86,13 @@ export async function POST(request: NextRequest) {
       try {
         logger.info('[Cron] Syncing brand', { brandId: brand.id });
 
+        const appBaseUrl =
+          process.env.APP_BASE_URL ||
+          process.env.NEXT_PUBLIC_APP_URL ||
+          'http://localhost:3000';
+
         // Call the sync API for this brand
-        const syncResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/loyalty/sync`, {
+        const syncResponse = await fetch(`${appBaseUrl}/api/loyalty/sync`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

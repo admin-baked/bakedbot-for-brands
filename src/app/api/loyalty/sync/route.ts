@@ -11,11 +11,198 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { FieldPath } from 'firebase-admin/firestore';
 import { LoyaltySyncService } from '@/server/services/loyalty-sync';
 import { ALLeavesClient } from '@/lib/pos/adapters/alleaves';
 import { getLoyaltySettings } from '@/app/actions/loyalty';
 import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
+import { buildOrgIdCandidates } from '@/server/org/org-id';
+
+interface ResolvedLoyaltyContext {
+  requestedOrgId: string;
+  effectiveOrgId: string;
+  brandId: string;
+  candidateOrgIds: string[];
+  posConfig: Record<string, any>;
+}
+
+function dedupe(values: string[]): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+
+  for (const value of values) {
+    const cleaned = value.trim();
+    if (!cleaned || seen.has(cleaned)) {
+      continue;
+    }
+    seen.add(cleaned);
+    result.push(cleaned);
+  }
+
+  return result;
+}
+
+async function findBrandDocByCandidates(
+  firestore: FirebaseFirestore.Firestore,
+  candidates: string[]
+): Promise<FirebaseFirestore.DocumentSnapshot | null> {
+  for (const candidate of candidates) {
+    const brandDoc = await firestore.collection('brands').doc(candidate).get();
+    if (brandDoc.exists) {
+      return brandDoc;
+    }
+  }
+  return null;
+}
+
+async function findLocationDocByCandidates(
+  firestore: FirebaseFirestore.Firestore,
+  candidates: string[]
+): Promise<FirebaseFirestore.QueryDocumentSnapshot | null> {
+  for (const candidate of candidates) {
+    const byOrgId = await firestore
+      .collection('locations')
+      .where('orgId', '==', candidate)
+      .limit(1)
+      .get();
+
+    if (!byOrgId.empty) {
+      return byOrgId.docs[0];
+    }
+  }
+
+  for (const candidate of candidates) {
+    const byBrandId = await firestore
+      .collection('locations')
+      .where('brandId', '==', candidate)
+      .limit(1)
+      .get();
+
+    if (!byBrandId.empty) {
+      return byBrandId.docs[0];
+    }
+  }
+
+  return null;
+}
+
+async function resolveExistingDocId(
+  firestore: FirebaseFirestore.Firestore,
+  collectionName: string,
+  candidates: string[]
+): Promise<string | null> {
+  for (const candidate of dedupe(candidates)) {
+    const doc = await firestore.collection(collectionName).doc(candidate).get();
+    if (doc.exists) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+async function resolveLoyaltyContext(
+  firestore: FirebaseFirestore.Firestore,
+  orgId: string
+): Promise<ResolvedLoyaltyContext | null> {
+  const requestedOrgId = orgId.trim();
+  if (!requestedOrgId) {
+    return null;
+  }
+
+  let candidateOrgIds = dedupe(buildOrgIdCandidates(requestedOrgId));
+
+  let brandDoc = await findBrandDocByCandidates(firestore, candidateOrgIds);
+  const locationDoc = await findLocationDocByCandidates(firestore, candidateOrgIds);
+  const locationData = locationDoc?.data() || {};
+
+  const locationOrgId =
+    typeof locationData.orgId === 'string' ? locationData.orgId.trim() : '';
+  const locationBrandId =
+    typeof locationData.brandId === 'string' ? locationData.brandId.trim() : '';
+
+  if (!brandDoc?.exists && locationBrandId) {
+    const brandFromLocation = await firestore.collection('brands').doc(locationBrandId).get();
+    if (brandFromLocation.exists) {
+      brandDoc = brandFromLocation;
+    }
+  }
+
+  if (!brandDoc?.exists && !locationDoc) {
+    return null;
+  }
+
+  const brandId = brandDoc?.id || locationBrandId || requestedOrgId;
+  candidateOrgIds = dedupe([
+    ...candidateOrgIds,
+    ...buildOrgIdCandidates(brandId),
+    ...buildOrgIdCandidates(locationOrgId || ''),
+  ]);
+
+  const brandPosConfig = brandDoc?.data()?.posConfig;
+  const locationPosConfig = locationData.posConfig;
+
+  const posConfig =
+    locationPosConfig?.provider === 'alleaves'
+      ? locationPosConfig
+      : brandPosConfig?.provider === 'alleaves'
+        ? brandPosConfig
+        : locationPosConfig || brandPosConfig;
+
+  const effectiveOrgId = locationOrgId || requestedOrgId || brandId;
+
+  return {
+    requestedOrgId,
+    effectiveOrgId,
+    brandId,
+    candidateOrgIds: dedupe([
+      effectiveOrgId,
+      ...buildOrgIdCandidates(effectiveOrgId),
+      ...candidateOrgIds,
+    ]),
+    posConfig,
+  };
+}
+
+async function fetchCustomersForOrgCandidates(
+  firestore: FirebaseFirestore.Firestore,
+  orgCandidates: string[]
+): Promise<Array<Record<string, any>>> {
+  const candidates = dedupe(orgCandidates);
+  const customerMap = new Map<string, Record<string, any>>();
+
+  for (const candidate of candidates) {
+    const snapshot = await firestore
+      .collection('customers')
+      .where('orgId', '==', candidate)
+      .get();
+
+    snapshot.docs.forEach(doc => {
+      customerMap.set(doc.id, doc.data() as Record<string, any>);
+    });
+  }
+
+  if (customerMap.size > 0) {
+    return Array.from(customerMap.values());
+  }
+
+  // Fallback for records that only encode org in doc ID: {orgId}_{customerId}
+  for (const candidate of candidates) {
+    const prefix = `${candidate}_`;
+    const snapshot = await firestore
+      .collection('customers')
+      .where(FieldPath.documentId(), '>=', prefix)
+      .where(FieldPath.documentId(), '<', `${prefix}\uf8ff`)
+      .get();
+
+    snapshot.docs.forEach(doc => {
+      customerMap.set(doc.id, doc.data() as Record<string, any>);
+    });
+  }
+
+  return Array.from(customerMap.values());
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,23 +217,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    logger.info('[API] Loyalty sync requested', { orgId, customerId, force });
-
-    // Get POS config for this org
     const firestore = getAdminFirestore();
-    const brandDoc = await firestore.collection('brands').doc(orgId).get();
+    const context = await resolveLoyaltyContext(firestore, orgId);
 
-    if (!brandDoc.exists) {
+    if (!context) {
       return NextResponse.json(
         { success: false, error: 'Organization not found' },
         { status: 404 }
       );
     }
 
-    const brandData = brandDoc.data();
-    const posConfig = brandData?.posConfig;
+    logger.info('[API] Loyalty sync requested', {
+      requestedOrgId: context.requestedOrgId,
+      effectiveOrgId: context.effectiveOrgId,
+      brandId: context.brandId,
+      customerId,
+      force,
+    });
 
-    if (!posConfig || posConfig.provider !== 'alleaves') {
+    if (!context.posConfig || context.posConfig.provider !== 'alleaves') {
       return NextResponse.json(
         { success: false, error: 'Alleaves POS not configured for this organization' },
         { status: 400 }
@@ -55,16 +244,25 @@ export async function POST(request: NextRequest) {
 
     // Initialize POS client
     const posClient = new ALLeavesClient({
-      storeId: posConfig.storeId,
-      locationId: posConfig.locationId || posConfig.storeId,
-      username: posConfig.username,
-      password: posConfig.password,
-      pin: posConfig.pin,
-      environment: posConfig.environment || 'production'
+      apiKey: context.posConfig.apiKey,
+      storeId: context.posConfig.storeId,
+      locationId: context.posConfig.locationId || context.posConfig.storeId,
+      username: context.posConfig.username || process.env.ALLEAVES_USERNAME,
+      password: context.posConfig.password || process.env.ALLEAVES_PASSWORD,
+      pin: context.posConfig.pin || process.env.ALLEAVES_PIN,
+      partnerId: context.posConfig.partnerId,
+      environment: context.posConfig.environment || 'production'
     });
 
-    // Get loyalty settings
-    const settingsResult = await getLoyaltySettings(orgId);
+    // Get loyalty settings (try exact match across aliases first)
+    const settingsOrgId =
+      (await resolveExistingDocId(firestore, 'loyalty_settings', [
+        context.effectiveOrgId,
+        context.brandId,
+        ...context.candidateOrgIds,
+      ])) || context.effectiveOrgId;
+
+    const settingsResult = await getLoyaltySettings(settingsOrgId);
 
     if (!settingsResult.success || !settingsResult.data) {
       return NextResponse.json(
@@ -78,16 +276,21 @@ export async function POST(request: NextRequest) {
 
     // Sync single customer or all customers
     if (customerId) {
-      logger.info('[API] Syncing single customer', { orgId, customerId });
+      logger.info('[API] Syncing single customer', {
+        requestedOrgId: context.requestedOrgId,
+        effectiveOrgId: context.effectiveOrgId,
+        customerId,
+      });
 
       const result = await syncService.syncCustomer(
         customerId,
-        orgId,
+        context.effectiveOrgId,
         settingsResult.data
       );
 
       logger.info('[API] Customer sync completed', {
-        orgId,
+        requestedOrgId: context.requestedOrgId,
+        effectiveOrgId: context.effectiveOrgId,
         customerId,
         success: result.success,
         points: result.calculated.points,
@@ -96,19 +299,25 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
+        effectiveOrgId: context.effectiveOrgId,
+        settingsOrgId,
         result
       });
 
     } else {
-      logger.info('[API] Syncing all customers', { orgId });
+      logger.info('[API] Syncing all customers', {
+        requestedOrgId: context.requestedOrgId,
+        effectiveOrgId: context.effectiveOrgId,
+      });
 
       const result = await syncService.syncAllCustomers(
-        orgId,
+        context.effectiveOrgId,
         settingsResult.data
       );
 
       logger.info('[API] Batch sync completed', {
-        orgId,
+        requestedOrgId: context.requestedOrgId,
+        effectiveOrgId: context.effectiveOrgId,
         totalProcessed: result.totalProcessed,
         successful: result.successful,
         failed: result.failed,
@@ -119,7 +328,8 @@ export async function POST(request: NextRequest) {
       // Alert on discrepancies if >10% difference
       if (result.discrepancies.length > 0) {
         logger.warn('[API] Loyalty discrepancies detected', {
-          orgId,
+          requestedOrgId: context.requestedOrgId,
+          effectiveOrgId: context.effectiveOrgId,
           count: result.discrepancies.length,
           samples: result.discrepancies.slice(0, 5)
         });
@@ -129,6 +339,8 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
+        effectiveOrgId: context.effectiveOrgId,
+        settingsOrgId,
         result
       });
     }
@@ -166,23 +378,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    logger.info('[API] Loyalty sync status requested', { orgId, customerId });
-
-    // Get POS config
     const firestore = getAdminFirestore();
-    const brandDoc = await firestore.collection('brands').doc(orgId).get();
+    const context = await resolveLoyaltyContext(firestore, orgId);
 
-    if (!brandDoc.exists) {
+    if (!context) {
       return NextResponse.json(
         { success: false, error: 'Organization not found' },
         { status: 404 }
       );
     }
 
-    const brandData = brandDoc.data();
-    const posConfig = brandData?.posConfig;
+    logger.info('[API] Loyalty sync status requested', {
+      requestedOrgId: context.requestedOrgId,
+      effectiveOrgId: context.effectiveOrgId,
+      customerId,
+    });
 
-    if (!posConfig || posConfig.provider !== 'alleaves') {
+    if (!context.posConfig || context.posConfig.provider !== 'alleaves') {
       return NextResponse.json(
         { success: false, error: 'Alleaves POS not configured' },
         { status: 400 }
@@ -191,19 +403,21 @@ export async function GET(request: NextRequest) {
 
     // Initialize clients
     const posClient = new ALLeavesClient({
-      storeId: posConfig.storeId,
-      locationId: posConfig.locationId || posConfig.storeId,
-      username: posConfig.username,
-      password: posConfig.password,
-      pin: posConfig.pin,
-      environment: posConfig.environment || 'production'
+      apiKey: context.posConfig.apiKey,
+      storeId: context.posConfig.storeId,
+      locationId: context.posConfig.locationId || context.posConfig.storeId,
+      username: context.posConfig.username || process.env.ALLEAVES_USERNAME,
+      password: context.posConfig.password || process.env.ALLEAVES_PASSWORD,
+      pin: context.posConfig.pin || process.env.ALLEAVES_PIN,
+      partnerId: context.posConfig.partnerId,
+      environment: context.posConfig.environment || 'production'
     });
 
     const syncService = new LoyaltySyncService(posClient);
 
     if (customerId) {
       // Get reconciliation report for specific customer
-      const report = await syncService.getReconciliationReport(customerId, orgId);
+      const report = await syncService.getReconciliationReport(customerId, context.effectiveOrgId);
 
       if (!report) {
         return NextResponse.json(
@@ -214,17 +428,16 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
+        effectiveOrgId: context.effectiveOrgId,
         report
       });
 
     } else {
-      // Get organization-level sync stats
-      const customersRef = firestore
-        .collection('customers')
-        .where('orgId', '==', orgId);
-
-      const snapshot = await customersRef.get();
-      const customers = snapshot.docs.map(doc => doc.data());
+      // Get organization-level sync stats (support alias org IDs).
+      const customers = await fetchCustomersForOrgCandidates(
+        firestore,
+        context.candidateOrgIds
+      );
 
       const stats = {
         totalCustomers: customers.length,
@@ -240,6 +453,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
+        effectiveOrgId: context.effectiveOrgId,
         stats
       });
     }
