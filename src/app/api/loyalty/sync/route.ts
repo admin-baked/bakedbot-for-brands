@@ -17,7 +17,12 @@ import { ALLeavesClient } from '@/lib/pos/adapters/alleaves';
 import { getLoyaltySettings } from '@/app/actions/loyalty';
 import { logger } from '@/lib/logger';
 import { getAdminFirestore } from '@/firebase/admin';
-import { buildOrgIdCandidates } from '@/server/org/org-id';
+import { createServerClient } from '@/firebase/server-client';
+import {
+  buildOrgIdCandidates,
+  collectOrgCandidates,
+  hasOrgCandidateIntersection,
+} from '@/server/org/org-id';
 
 interface ResolvedLoyaltyContext {
   requestedOrgId: string;
@@ -41,6 +46,139 @@ function dedupe(values: string[]): string[] {
   }
 
   return result;
+}
+
+function isSuperUser(decodedToken: Record<string, unknown>): boolean {
+  const role = typeof decodedToken.role === 'string' ? decodedToken.role : '';
+  return role === 'super_user' || role === 'super_admin';
+}
+
+function hasValidCronAuth(request: NextRequest): boolean {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    return false;
+  }
+
+  return request.headers.get('authorization') === `Bearer ${cronSecret}`;
+}
+
+async function canAccessOrgFromSession(
+  orgId: string,
+  decodedToken: Record<string, unknown>,
+  firestore: FirebaseFirestore.Firestore
+): Promise<boolean> {
+  const requestedCandidates = new Set(buildOrgIdCandidates(orgId));
+  const tokenCandidates = collectOrgCandidates([
+    decodedToken.orgId as string | undefined,
+    decodedToken.currentOrgId as string | undefined,
+    decodedToken.brandId as string | undefined,
+    decodedToken.locationId as string | undefined,
+    decodedToken.dispensaryId as string | undefined,
+  ]);
+
+  if (hasOrgCandidateIntersection(requestedCandidates, tokenCandidates)) {
+    return true;
+  }
+
+  const uid = decodedToken.uid as string | undefined;
+  if (!uid) {
+    return false;
+  }
+
+  const userDoc = await firestore.collection('users').doc(uid).get();
+  if (!userDoc.exists) {
+    return false;
+  }
+
+  const userData = userDoc.data();
+  const profileCandidates = collectOrgCandidates([
+    userData?.orgId as string | undefined,
+    userData?.currentOrgId as string | undefined,
+    userData?.brandId as string | undefined,
+    userData?.locationId as string | undefined,
+    userData?.dispensaryId as string | undefined,
+    userData?.linkedDispensary?.id as string | undefined,
+  ]);
+
+  return hasOrgCandidateIntersection(requestedCandidates, profileCandidates);
+}
+
+interface AuthResult {
+  source: 'cron' | 'session';
+  uid: string | null;
+  response: NextResponse | null;
+}
+
+async function authorizeRequest(
+  request: NextRequest,
+  orgId: string,
+  firestore: FirebaseFirestore.Firestore,
+  action: 'sync' | 'status'
+): Promise<AuthResult> {
+  if (hasValidCronAuth(request)) {
+    return {
+      source: 'cron',
+      uid: null,
+      response: null,
+    };
+  }
+
+  const sessionCookie = request.cookies.get('__session')?.value;
+  if (!sessionCookie) {
+    return {
+      source: 'session',
+      uid: null,
+      response: NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      ),
+    };
+  }
+
+  try {
+    const { auth } = await createServerClient();
+    const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
+    const tokenRecord = decodedToken as Record<string, unknown>;
+
+    if (
+      !isSuperUser(tokenRecord) &&
+      !(await canAccessOrgFromSession(orgId, tokenRecord, firestore))
+    ) {
+      logger.warn('[LOYALTY_SYNC] Forbidden org access attempt', {
+        action,
+        orgId,
+        uid: decodedToken.uid,
+      });
+      return {
+        source: 'session',
+        uid: decodedToken.uid,
+        response: NextResponse.json(
+          { success: false, error: 'Forbidden' },
+          { status: 403 }
+        ),
+      };
+    }
+
+    return {
+      source: 'session',
+      uid: decodedToken.uid,
+      response: null,
+    };
+  } catch (error) {
+    logger.warn('[LOYALTY_SYNC] Invalid session cookie', {
+      action,
+      orgId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return {
+      source: 'session',
+      uid: null,
+      response: NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      ),
+    };
+  }
 }
 
 async function findBrandDocByCandidates(
@@ -206,8 +344,16 @@ async function fetchCustomersForOrgCandidates(
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { orgId, customerId, force } = body;
+    const body = await request.json().catch(() => ({}));
+    const bodyOrgId =
+      typeof body?.orgId === 'string' ? body.orgId.trim() : '';
+    const queryOrgId = request.nextUrl.searchParams.get('orgId')?.trim() || '';
+    const orgId = bodyOrgId || queryOrgId;
+    const customerId =
+      typeof body?.customerId === 'string' && body.customerId.trim()
+        ? body.customerId.trim()
+        : undefined;
+    const force = body?.force;
 
     // Validate required fields
     if (!orgId) {
@@ -218,6 +364,11 @@ export async function POST(request: NextRequest) {
     }
 
     const firestore = getAdminFirestore();
+    const authResult = await authorizeRequest(request, orgId, firestore, 'sync');
+    if (authResult.response) {
+      return authResult.response;
+    }
+
     const context = await resolveLoyaltyContext(firestore, orgId);
 
     if (!context) {
@@ -231,6 +382,8 @@ export async function POST(request: NextRequest) {
       requestedOrgId: context.requestedOrgId,
       effectiveOrgId: context.effectiveOrgId,
       brandId: context.brandId,
+      authSource: authResult.source,
+      uid: authResult.uid,
       customerId,
       force,
     });
@@ -368,7 +521,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const orgId = searchParams.get('orgId');
+    const orgId = searchParams.get('orgId')?.trim() || '';
     const customerId = searchParams.get('customerId');
 
     if (!orgId) {
@@ -379,6 +532,11 @@ export async function GET(request: NextRequest) {
     }
 
     const firestore = getAdminFirestore();
+    const authResult = await authorizeRequest(request, orgId, firestore, 'status');
+    if (authResult.response) {
+      return authResult.response;
+    }
+
     const context = await resolveLoyaltyContext(firestore, orgId);
 
     if (!context) {
@@ -391,6 +549,8 @@ export async function GET(request: NextRequest) {
     logger.info('[API] Loyalty sync status requested', {
       requestedOrgId: context.requestedOrgId,
       effectiveOrgId: context.effectiveOrgId,
+      authSource: authResult.source,
+      uid: authResult.uid,
       customerId,
     });
 
