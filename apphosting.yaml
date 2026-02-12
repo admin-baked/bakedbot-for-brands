@@ -195,6 +195,10 @@ env:
     value: "false"
     availability:
       - RUNTIME
+  - variable: CRON_SECRET
+    secret: CRON_SECRET
+    availability:
+      - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
     value: "https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app"
     availability:
