@@ -39,6 +39,8 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AGENT_ASSETS } from '@/lib/academy/agent-assets';
+import type { AgentTrack } from '@/types/academy';
 
 interface SlideRendererProps {
   slide: Slide;
@@ -225,18 +227,31 @@ const AGENT_ICONS: Record<string, React.ElementType> = {
 
 function AgentSlideComponent({ slide }: { slide: AgentSlide }) {
   const IconComponent = AGENT_ICONS[slide.icon] || Leaf;
+  // Check if we have a real image for this agent
+  const agentAsset = AGENT_ASSETS[slide.agentId as AgentTrack];
 
   return (
     <div className="h-full flex items-center p-16">
       <div className="flex-1 grid grid-cols-5 gap-12 items-center">
         {/* Agent Avatar */}
         <div className="col-span-2 flex flex-col items-center">
-          <div
-            className="w-48 h-48 rounded-full flex items-center justify-center mb-6"
-            style={{ backgroundColor: `${slide.color}20` }}
-          >
-            <IconComponent className="h-24 w-24" style={{ color: slide.color }} />
-          </div>
+          {agentAsset?.hasImage && agentAsset.imagePath ? (
+            <div className="w-56 h-56 flex items-center justify-center mb-6">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={agentAsset.imagePath}
+                alt={slide.agentName}
+                className="max-w-full max-h-full object-contain drop-shadow-2xl"
+              />
+            </div>
+          ) : (
+            <div
+              className="w-48 h-48 rounded-full flex items-center justify-center mb-6"
+              style={{ backgroundColor: `${slide.color}20` }}
+            >
+              <IconComponent className="h-24 w-24" style={{ color: slide.color }} />
+            </div>
+          )}
           <h2 className="text-3xl font-bold text-center">{slide.agentName}</h2>
           <p className="text-xl text-muted-foreground text-center mt-2">{slide.tagline}</p>
         </div>

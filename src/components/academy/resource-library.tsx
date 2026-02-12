@@ -7,6 +7,7 @@
  * Shows lock icon for email-gated resources.
  */
 
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +20,16 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import type { AcademyResource } from '@/types/academy';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.35 } },
+};
 
 export interface ResourceLibraryProps {
   resources: AcademyResource[];
@@ -146,7 +157,13 @@ function ResourceSection({
       </div>
 
       {/* Resource Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <motion.div
+        className="grid md:grid-cols-2 lg:grid-cols-3 gap-4"
+        variants={containerVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: '-50px' }}
+      >
         {resources.map((resource) => {
           const isLocked = resource.requiresEmail && !hasEmail;
           const isDownloaded = downloadedIds.includes(resource.id);
@@ -154,9 +171,9 @@ function ResourceSection({
           const typeColor = getTypeColor(resource.type);
 
           return (
+            <motion.div key={resource.id} variants={itemVariants} whileHover={{ y: -3 }}>
             <Card
-              key={resource.id}
-              className={`cursor-pointer transition-all hover:shadow-lg ${
+              className={`cursor-pointer transition-shadow hover:shadow-lg h-full ${
                 isLocked ? 'opacity-75' : ''
               }`}
               onClick={() => !isLocked && onDownload(resource)}
@@ -216,9 +233,10 @@ function ResourceSection({
                 </Button>
               </CardContent>
             </Card>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }
