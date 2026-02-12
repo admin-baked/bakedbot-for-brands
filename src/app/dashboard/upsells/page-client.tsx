@@ -19,7 +19,7 @@ import { UpsellConfiguration } from './components/upsell-configuration';
 import { BundleBuilder } from './components/bundle-builder';
 
 export function UpsellsPageClient() {
-    const { orgId, loading: authLoading } = useUserRole();
+    const { orgId, isLoading: authLoading } = useUserRole();
     const [activeTab, setActiveTab] = useState('analytics');
 
     if (authLoading || !orgId) {

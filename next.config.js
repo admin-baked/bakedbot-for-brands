@@ -67,6 +67,10 @@ const nextConfig = {
     // This avoids duplicate TS compilation and memory issues in Firebase builds
     ignoreBuildErrors: true,
   },
+  experimental: {
+    // Reduce webpack memory usage during builds (helps avoid OOM on Firebase App Hosting)
+    webpackMemoryOptimizations: true,
+  },
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';
 
