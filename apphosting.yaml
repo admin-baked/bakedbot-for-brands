@@ -11,7 +11,7 @@ env:
     value: "1"
     availability: [ BUILD ]
   # Disable Turbopack - use stable webpack bundler for production builds
-  - variable: TURBOPACK
+  - variable: TURBO
     value: "0"
     availability: [ BUILD ]
   # Runtime memory allocation - can be higher since we control runtime resources
