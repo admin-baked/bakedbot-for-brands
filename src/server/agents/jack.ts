@@ -10,6 +10,7 @@ import { ExecutiveMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools } from './shared-tools';
+import { crmToolDefs } from '../tools/crm-tools';
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
@@ -218,7 +219,8 @@ export const jackAgent: AgentImplementation<ExecutiveMemory, JackTools> = {
                 ...jackSpecificTools,
                 ...contextOsToolDefs,
                 ...lettaToolDefs,
-                ...intuitionOsToolDefs
+                ...intuitionOsToolDefs,
+                ...crmToolDefs
             ];
 
             try {

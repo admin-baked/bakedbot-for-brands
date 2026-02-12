@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { getChatbotUpsells } from '@/server/services/upsell-engine';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 import { smokeyInboxToolDefs } from '../tools/inbox-tools';
+import { smokeyCrmToolDefs } from '../tools/crm-tools';
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
@@ -211,7 +212,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             ];
 
             // Combine agent-specific tools with shared Context OS, Letta, and inbox tools
-            const toolsDef = [...smokeySpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs];
+            const toolsDef = [...smokeySpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');

@@ -7,6 +7,8 @@ import { calculateCampaignPriority } from '../algorithms/craig-algo';
 import { ai } from '@/ai/genkit';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 import { craigInboxToolDefs } from '../tools/inbox-tools';
+import { craigCrmToolDefs } from '../tools/crm-tools';
+import { craigCampaignToolDefs } from '../tools/campaign-tools';
 import {
     buildSquadRoster,
     buildIntegrationStatusSummary
@@ -232,7 +234,7 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         ];
 
         // Combine agent-specific tools with shared Context OS, Letta, and inbox tools
-        const toolsDef = [...craigSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...craigInboxToolDefs];
+        const toolsDef = [...craigSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...craigInboxToolDefs, ...craigCrmToolDefs, ...craigCampaignToolDefs];
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Claude) ===

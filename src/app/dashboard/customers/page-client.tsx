@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Users, UserPlus, AlertTriangle, Crown, Search,
-    Download, Upload, Loader2, TrendingUp, Filter, Sparkles
+    Download, Upload, Loader2, TrendingUp, Filter, Sparkles, CheckCircle2
 } from 'lucide-react';
 import {
     Dialog,
@@ -18,9 +19,10 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { CustomerProfile, CustomerSegment, CRMStats, getSegmentInfo, SegmentSuggestion } from '@/types/customers';
+import { CustomerProfile, CustomerSegment, CRMStats, getSegmentInfo, SegmentSuggestion, calculateSegment } from '@/types/customers';
 import { getCustomers, getSuggestedSegments, type CustomersData } from './actions';
 import { CustomerImport } from '@/components/crm/customer-import';
+import { SegmentChart } from '@/components/crm/segment-chart';
 
 interface CRMDashboardProps {
     initialData?: CustomersData;
@@ -29,23 +31,24 @@ interface CRMDashboardProps {
 
 export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps) {
     const { toast } = useToast();
+    const router = useRouter();
     const [loading, setLoading] = useState(!initialData);
     const [data, setData] = useState<CustomersData | null>(initialData || null);
     const [search, setSearch] = useState('');
     const [activeSegment, setActiveSegment] = useState<CustomerSegment | 'all'>('all');
     const [suggestions, setSuggestions] = useState<SegmentSuggestion[]>([]);
     const [showImportDialog, setShowImportDialog] = useState(false);
-
-    // Debug: Log customer count
-    useEffect(() => {
-        console.log('[CRM_DASHBOARD] Data received:', {
-            customersCount: data?.customers.length,
-            hasStats: !!data?.stats,
-        });
-    }, [data]);
+    const [spendingLoading, setSpendingLoading] = useState(false);
+    const [spendingLoaded, setSpendingLoaded] = useState(false);
+    const [spendingCustomerCount, setSpendingCustomerCount] = useState(0);
+    const spendingFetchedRef = useRef(false);
 
     const loadData = useCallback(async () => {
         setLoading(true);
+        // Reset spending state so it re-fetches after reload
+        spendingFetchedRef.current = false;
+        setSpendingLoaded(false);
+        setSpendingCustomerCount(0);
         try {
             const result = await getCustomers({ orgId: brandId });
             setData(result);
@@ -69,6 +72,119 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
             getSuggestedSegments(brandId).then(setSuggestions).catch(console.error);
         }
     }, [initialData, brandId, loadData]);
+
+    // Async spending enrichment: after customer list loads, fetch spending data
+    useEffect(() => {
+        if (!data || data.customers.length === 0 || spendingFetchedRef.current) return;
+        spendingFetchedRef.current = true;
+
+        async function enrichWithSpending() {
+            // Capture current data in local var for null safety
+            const currentData = data!;
+            setSpendingLoading(true);
+            try {
+                const res = await fetch(`/api/customers/spending?orgId=${encodeURIComponent(brandId)}`);
+                if (!res.ok) throw new Error(`Spending API returned ${res.status}`);
+                const json = await res.json();
+
+                if (!json.success || !json.spending) return;
+
+                const spending: Record<string, {
+                    totalSpent: number;
+                    orderCount: number;
+                    lastOrderDate: string | null;
+                    firstOrderDate: string | null;
+                    avgOrderValue: number;
+                }> = json.spending;
+
+                let matchedCount = 0;
+
+                const enrichedCustomers: CustomerProfile[] = currentData.customers.map(c => {
+                    const s = spending[c.id];
+                    if (!s || s.orderCount === 0) return c;
+
+                    matchedCount++;
+                    const totalSpent = s.totalSpent;
+                    const orderCount = s.orderCount;
+                    const avgOrderValue = s.avgOrderValue;
+                    const lastOrderDateStr = s.lastOrderDate ?? undefined;
+                    const firstOrderDateStr = s.firstOrderDate ?? (c.firstOrderDate ? String(c.firstOrderDate) : undefined);
+                    const daysSinceLastOrder = lastOrderDateStr
+                        ? Math.floor((Date.now() - new Date(lastOrderDateStr).getTime()) / (1000 * 60 * 60 * 24))
+                        : undefined;
+                    const lifetimeValue = totalSpent;
+
+                    const segment = calculateSegment({
+                        totalSpent, orderCount, avgOrderValue,
+                        daysSinceLastOrder, lifetimeValue,
+                        firstOrderDate: firstOrderDateStr ? new Date(firstOrderDateStr) : undefined,
+                    });
+
+                    const tier: CustomerProfile['tier'] = totalSpent > 2000 ? 'gold'
+                        : totalSpent > 500 ? 'silver'
+                        : 'bronze';
+
+                    return {
+                        ...c,
+                        totalSpent,
+                        orderCount,
+                        avgOrderValue,
+                        lastOrderDate: lastOrderDateStr ? new Date(lastOrderDateStr) : c.lastOrderDate,
+                        firstOrderDate: firstOrderDateStr ? new Date(firstOrderDateStr) : c.firstOrderDate,
+                        daysSinceLastOrder,
+                        lifetimeValue,
+                        segment,
+                        tier,
+                        points: Math.floor(totalSpent),
+                    };
+                });
+
+                // Recalculate stats from enriched data
+                const segmentBreakdown: Record<CustomerSegment, number> = {
+                    vip: 0, loyal: 0, new: 0, at_risk: 0,
+                    slipping: 0, churned: 0, high_value: 0, frequent: 0,
+                };
+                enrichedCustomers.forEach(c => { segmentBreakdown[c.segment]++; });
+
+                const enrichedStats: CRMStats = {
+                    totalCustomers: enrichedCustomers.length,
+                    newThisWeek: currentData.stats.newThisWeek,
+                    newThisMonth: currentData.stats.newThisMonth,
+                    atRiskCount: segmentBreakdown.at_risk + segmentBreakdown.slipping,
+                    vipCount: segmentBreakdown.vip,
+                    avgLifetimeValue: enrichedCustomers.length > 0
+                        ? enrichedCustomers.reduce((sum, c) => sum + c.lifetimeValue, 0) / enrichedCustomers.length
+                        : 0,
+                    segmentBreakdown,
+                };
+
+                // Sort by most recent activity
+                enrichedCustomers.sort((a, b) => {
+                    const bTime = b.lastOrderDate ? new Date(b.lastOrderDate).getTime() : 0;
+                    const aTime = a.lastOrderDate ? new Date(a.lastOrderDate).getTime() : 0;
+                    return bTime - aTime;
+                });
+
+                setData({ customers: enrichedCustomers, stats: enrichedStats });
+                setSpendingCustomerCount(matchedCount);
+
+                // Reload AI suggestions with enriched data
+                getSuggestedSegments(brandId).then(setSuggestions).catch(() => {});
+            } catch (err) {
+                console.error('[CRM] Failed to load spending data:', err);
+                toast({
+                    variant: 'destructive',
+                    title: 'Spending Data',
+                    description: 'Could not load spending data. Segments may be inaccurate.',
+                });
+            } finally {
+                setSpendingLoading(false);
+                setSpendingLoaded(true);
+            }
+        }
+
+        enrichWithSpending();
+    }, [data, brandId, toast]);
 
     const handleExport = () => {
         if (!data?.customers.length) return;
@@ -113,14 +229,6 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
         return true;
     }) || [];
 
-    // Debug: Log filter results
-    console.log('[CRM_DASHBOARD] Filter results:', {
-        totalCustomers: data?.customers.length,
-        filteredCount: filteredCustomers.length,
-        activeSegment,
-        searchTerm: search,
-    });
-
     if (loading) {
         return (
             <div className="flex h-64 items-center justify-center">
@@ -157,6 +265,20 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                 </div>
             </div>
 
+            {/* Spending Loading Banner */}
+            {spendingLoading && (
+                <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading order spending data from POS... Segments will update automatically.
+                </div>
+            )}
+            {spendingLoaded && spendingCustomerCount > 0 && (
+                <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Spending data loaded for {spendingCustomerCount} customers. Segments updated.
+                </div>
+            )}
+
             {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-4">
                 <Card>
@@ -177,7 +299,14 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                         <Crown className="h-4 w-4 text-yellow-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats?.vipCount || 0}</div>
+                        <div className="text-2xl font-bold">
+                            {spendingLoading ? (
+                                <span className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span className="text-sm text-muted-foreground">Loading...</span>
+                                </span>
+                            ) : (stats?.vipCount || 0)}
+                        </div>
                         <p className="text-xs text-muted-foreground">Top spenders</p>
                     </CardContent>
                 </Card>
@@ -187,7 +316,14 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                         <AlertTriangle className="h-4 w-4 text-orange-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats?.atRiskCount || 0}</div>
+                        <div className="text-2xl font-bold">
+                            {spendingLoading ? (
+                                <span className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span className="text-sm text-muted-foreground">Loading...</span>
+                                </span>
+                            ) : (stats?.atRiskCount || 0)}
+                        </div>
                         <p className="text-xs text-muted-foreground">Need win-back</p>
                     </CardContent>
                 </Card>
@@ -198,7 +334,12 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            ${stats?.avgLifetimeValue?.toFixed(0) || 0}
+                            {spendingLoading ? (
+                                <span className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span className="text-sm text-muted-foreground">Loading...</span>
+                                </span>
+                            ) : `$${stats?.avgLifetimeValue?.toFixed(0) || 0}`}
                         </div>
                         <p className="text-xs text-muted-foreground">Lifetime value</p>
                     </CardContent>
@@ -231,6 +372,11 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                         </div>
                     </CardContent>
                 </Card>
+            )}
+
+            {/* Segment Distribution Chart */}
+            {spendingLoaded && stats && (
+                <SegmentChart stats={stats} />
             )}
 
             {/* Segment Tabs & Customer Table */}
@@ -288,7 +434,11 @@ export default function CRMDashboard({ initialData, brandId }: CRMDashboardProps
                                 ) : filteredCustomers.slice(0, 50).map(customer => {
                                     const segInfo = getSegmentInfo(customer.segment);
                                     return (
-                                        <TableRow key={customer.id} className="cursor-pointer hover:bg-muted/50">
+                                        <TableRow
+                                            key={customer.id}
+                                            className="cursor-pointer hover:bg-muted/50"
+                                            onClick={() => router.push(`/dashboard/customers/${encodeURIComponent(customer.id)}`)}
+                                        >
                                             <TableCell>
                                                 <div>
                                                     <div className="font-medium">{customer.displayName || customer.email}</div>

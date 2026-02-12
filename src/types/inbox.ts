@@ -69,7 +69,9 @@ export type InboxThreadType =
     // ---- Super User: Research ----
     | 'deep_research'     // Big Worm deep data analysis
     | 'compliance_research' // Roach compliance knowledge base
-    | 'market_research';  // Strategic market analysis
+    | 'market_research'   // Strategic market analysis
+    // ---- CRM / Customer Intelligence ----
+    | 'crm_customer';    // CRM customer relationship management
 
 /**
  * Thread lifecycle status
@@ -149,6 +151,11 @@ export interface InboxThread {
     projectId?: string;          // Claude Projects-style context
     brandId?: string;
     dispensaryId?: string;
+
+    // CRM context (optional, set when thread is about a specific customer)
+    customerId?: string;          // e.g. 'alleaves_123'
+    customerEmail?: string;
+    customerSegment?: string;     // Cached segment at thread creation
 
     // Organization features
     isPinned?: boolean;          // Pin to top of list
@@ -720,6 +727,89 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         promptTemplate: 'Analyze the market for...',
         roles: ['super_user'],
     },
+
+    // ============ CRM / Customer Intelligence ============
+    {
+        id: 'winback-at-risk',
+        label: 'Win Back At-Risk',
+        description: 'Find at-risk customers and draft personalized win-back campaigns',
+        icon: 'UserMinus',
+        threadType: 'crm_customer',
+        defaultAgent: 'craig',
+        promptTemplate: 'Find at-risk and slipping customers (30+ days inactive). Draft personalized win-back messages for the top 10 by LTV with special offers.',
+        roles: DISPENSARY_ROLES,
+    },
+    {
+        id: 'birthday-campaign',
+        label: 'Birthday Campaign',
+        description: 'Check upcoming birthdays and draft personalized messages',
+        icon: 'Cake',
+        threadType: 'crm_customer',
+        defaultAgent: 'mrs_parker',
+        promptTemplate: 'Check for customer birthdays this week and next. Draft personalized birthday messages with loyalty reward offers.',
+        roles: DISPENSARY_ROLES,
+    },
+    {
+        id: 'vip-appreciation',
+        label: 'VIP Appreciation',
+        description: 'Create exclusive VIP appreciation campaigns',
+        icon: 'Crown',
+        threadType: 'crm_customer',
+        defaultAgent: 'craig',
+        promptTemplate: 'Pull VIP and high-value customer segments. Create an exclusive appreciation campaign — early access, special pricing, or bonus loyalty points.',
+        roles: DISPENSARY_ROLES,
+    },
+    {
+        id: 'segment-analysis',
+        label: 'Segment Analysis',
+        description: 'Break down customer segments with spending and LTV data',
+        icon: 'PieChart',
+        threadType: 'crm_customer',
+        defaultAgent: 'money_mike',
+        promptTemplate: 'Break down our customer segments: counts, average spend, LTV, and trends. Where are the biggest revenue growth opportunities?',
+        roles: ALL_BUSINESS_ROLES,
+    },
+    {
+        id: 'restock-alert',
+        label: 'Restock Alert',
+        description: 'Draft restock notifications for loyal customers',
+        icon: 'PackageCheck',
+        threadType: 'crm_customer',
+        defaultAgent: 'smokey',
+        promptTemplate: 'Look at our VIP and loyal customers. Check their preferred products and order history. Draft restock notifications for products they buy regularly.',
+        roles: DISPENSARY_ROLES,
+    },
+    {
+        id: 'comms-review',
+        label: 'Comms Review',
+        description: 'Review recent customer communications and suggest improvements',
+        icon: 'MailCheck',
+        threadType: 'crm_customer',
+        defaultAgent: 'mrs_parker',
+        promptTemplate: 'Review recent customer emails and SMS sent this month. Which had the best engagement? Suggest improvements for the next round.',
+        roles: DISPENSARY_ROLES,
+    },
+    // Campaign Management
+    {
+        id: 'plan-campaign',
+        label: 'Plan Campaign',
+        description: 'Plan a marketing campaign — goal, audience, channels, and content',
+        icon: 'Megaphone',
+        threadType: 'campaign',
+        defaultAgent: 'craig' as InboxAgentPersona,
+        promptTemplate: 'Help me plan a marketing campaign. What\'s the goal, who should we target, and which channels (email/SMS) should we use? Analyze our customer segments to recommend the best audience.',
+        roles: DISPENSARY_ROLES,
+    },
+    {
+        id: 'campaign-performance',
+        label: 'Campaign Performance',
+        description: 'Analyze performance across recent campaigns',
+        icon: 'BarChart3',
+        threadType: 'campaign',
+        defaultAgent: 'craig' as InboxAgentPersona,
+        promptTemplate: 'Show me performance for our recent campaigns. What are the open rates, click rates, and attributed revenue? Which campaigns performed best and what can we learn?',
+        roles: DISPENSARY_ROLES,
+    },
 ];
 
 // ============ Thread Filters ============
@@ -946,6 +1036,12 @@ export const THREAD_AGENT_MAPPING: Record<InboxThreadType, {
         primary: 'big_worm',
         supporting: ['ezal', 'jack'],
     },
+
+    // CRM / Customer Intelligence
+    crm_customer: {
+        primary: 'mrs_parker',
+        supporting: ['craig', 'money_mike', 'smokey'],
+    },
 };
 
 // ============ Zod Schemas ============
@@ -1002,7 +1098,9 @@ export const InboxThreadTypeSchema = z.enum([
     // Super User: Research
     'deep_research',
     'compliance_research',
-    'market_research'
+    'market_research',
+    // CRM / Customer Intelligence
+    'crm_customer'
 ]);
 
 export const InboxThreadStatusSchema = z.enum([
@@ -1042,6 +1140,10 @@ export const CreateInboxThreadSchema = z.object({
     projectId: z.string().optional(),
     brandId: z.string().optional(),
     dispensaryId: z.string().optional(),
+    // CRM context (optional, set when thread is about a specific customer)
+    customerId: z.string().optional(),
+    customerEmail: z.string().optional(),
+    customerSegment: z.string().optional(),
     tags: z.array(z.string()).optional(),
     color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
     initialMessage: z.any().optional(), // ChatMessage object (optional)
@@ -1226,6 +1328,8 @@ export function getThreadTypeIcon(type: InboxThreadType): string {
         deep_research: 'BookOpen',
         compliance_research: 'Scale',
         market_research: 'BarChart3',
+        // CRM / Customer Intelligence
+        crm_customer: 'UserRound',
     };
     return iconMap[type] || 'MessageSquare';
 }
@@ -1287,6 +1391,8 @@ export function getThreadTypeLabel(type: InboxThreadType): string {
         deep_research: 'Deep Research',
         compliance_research: 'Compliance Research',
         market_research: 'Market Research',
+        // CRM / Customer Intelligence
+        crm_customer: 'CRM Customer',
     };
     return labelMap[type] || 'Unknown';
 }
@@ -1349,6 +1455,8 @@ export function getArtifactTypesForThreadType(type: InboxThreadType): InboxArtif
         deep_research: ['research_brief'],
         compliance_research: ['compliance_brief'],
         market_research: ['market_analysis', 'research_brief'],
+        // CRM / Customer Intelligence
+        crm_customer: ['report'],
     };
     return mapping[type] || [];
 }

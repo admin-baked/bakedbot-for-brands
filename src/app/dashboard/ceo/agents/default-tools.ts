@@ -9,6 +9,21 @@ import { requireUser } from '@/server/auth/auth';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { superUserTools } from '@/app/dashboard/ceo/agents/super-user-tools-impl';
 import { requestPermission } from '@/server/tools/permissions';
+import {
+    lookupCustomer,
+    getCustomerHistory,
+    getSegmentSummary,
+    getAtRiskCustomers,
+    getUpcomingBirthdays,
+    getCustomerComms,
+} from '@/server/tools/crm-tools';
+import {
+    createCampaignDraft,
+    getCampaignsForAgent,
+    getCampaignPerformance,
+    suggestAudience,
+    submitCampaignForReview,
+} from '@/server/tools/campaign-tools';
 
 // Wrapper to avoid cirular dependency issues if any
 // but these tools mostly depend on external services or leaf nodes.
@@ -1022,6 +1037,21 @@ export const defaultUniversalTools = {
     generateSnapshot: defaultExecutiveTools.generateSnapshot,
     createPlaybook: defaultExecutiveTools.createPlaybook,
     use_mcp_tool: defaultExecutiveTools.use_mcp_tool,
+
+    // CRM (Customer Relationship Management)
+    lookupCustomer,
+    getCustomerHistory,
+    getSegmentSummary,
+    getAtRiskCustomers,
+    getUpcomingBirthdays,
+    getCustomerComms,
+
+    // Campaign Management
+    createCampaignDraft,
+    getCampaigns: getCampaignsForAgent,
+    getCampaignPerformance,
+    suggestAudience,
+    submitCampaignForReview,
 };
 
 // Executive Board tools: Universal + RTRvr capabilities + MCP + Python Sidecar

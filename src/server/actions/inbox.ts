@@ -104,6 +104,10 @@ export async function createInboxThread(input: {
     projectId?: string;
     brandId?: string;
     dispensaryId?: string;
+    // CRM context
+    customerId?: string;
+    customerEmail?: string;
+    customerSegment?: string;
     tags?: string[];
     color?: string;
     isPinned?: boolean;
@@ -149,6 +153,9 @@ export async function createInboxThread(input: {
         if (input.projectId) thread.projectId = input.projectId;
         if (input.brandId) thread.brandId = input.brandId;
         if (input.dispensaryId) thread.dispensaryId = input.dispensaryId;
+        if (input.customerId) thread.customerId = input.customerId;
+        if (input.customerEmail) thread.customerEmail = input.customerEmail;
+        if (input.customerSegment) thread.customerSegment = input.customerSegment;
         if (input.tags && input.tags.length > 0) thread.tags = input.tags;
         if (input.color) thread.color = input.color;
         if (input.isPinned !== undefined) thread.isPinned = input.isPinned;
@@ -175,6 +182,9 @@ export async function createInboxThread(input: {
         if (thread.projectId) firestoreData.projectId = thread.projectId;
         if (thread.brandId) firestoreData.brandId = thread.brandId;
         if (thread.dispensaryId) firestoreData.dispensaryId = thread.dispensaryId;
+        if (thread.customerId) firestoreData.customerId = thread.customerId;
+        if (thread.customerEmail) firestoreData.customerEmail = thread.customerEmail;
+        if (thread.customerSegment) firestoreData.customerSegment = thread.customerSegment;
         if (thread.tags && thread.tags.length > 0) firestoreData.tags = thread.tags;
         if (thread.color) firestoreData.color = thread.color;
         if (thread.isPinned !== undefined) firestoreData.isPinned = thread.isPinned;
@@ -1306,10 +1316,40 @@ Generate compliance brief artifacts with guidance.`,
         market_research: `You are Big Worm, conducting market analysis.
 Analyze market trends, competitors, and strategic opportunities.
 Generate market analysis and research brief artifacts.`,
+
+        // CRM / Customer Intelligence
+        crm_customer: `You are managing a customer relationship for a cannabis dispensary.
+Use CRM tools (lookupCustomer, getCustomerHistory, getSegmentSummary, getAtRiskCustomers, getUpcomingBirthdays, getCustomerComms) to access real customer data.
+Personalize all outreach based on the customer's segment, spending patterns, and preferences.
+You can draft emails, SMS, loyalty offers, and win-back campaigns.
+When referencing customer data, be specific with names, amounts, and dates.
+Always validate compliance with Deebo before sending any campaigns.`,
     };
 
+    // Inject customer context when thread is about a specific customer
+    let customerContext = '';
+    if (thread.customerId) {
+        try {
+            const { lookupCustomer } = await import('@/server/tools/crm-tools');
+            const result = await lookupCustomer(thread.customerId, thread.orgId);
+            if (result?.customer) {
+                const c = result.customer;
+                customerContext = `\n\n=== CUSTOMER CONTEXT ===
+Name: ${c.displayName ?? 'Unknown'} | Email: ${c.email ?? 'N/A'} | Phone: ${c.phone || 'N/A'}
+Segment: ${c.segment ?? 'unknown'} | Tier: ${c.tier ?? 'N/A'} | Points: ${c.points ?? 0}
+LTV: $${Number(c.totalSpent ?? 0).toLocaleString()} | Orders: ${c.orderCount ?? 0} | AOV: $${Number(c.avgOrderValue ?? 0).toFixed(2)}
+Last Order: ${c.lastOrderDate || 'Never'} | Days Inactive: ${c.daysSinceLastOrder ?? 'N/A'}
+Tags: ${Array.isArray(c.customTags) ? c.customTags.join(', ') : 'None'}
+Notes: ${c.notes || 'None'}
+=== END CUSTOMER CONTEXT ===`;
+            }
+        } catch {
+            // Silently fail - agent can still use CRM tools to look up customer
+        }
+    }
+
     return `Thread Context: ${thread.title}
-Thread Type: ${thread.type}${projectContext}
+Thread Type: ${thread.type}${projectContext}${customerContext}
 
 ${typeContexts[thread.type]}
 
@@ -1404,5 +1444,60 @@ function getArtifactTitle(artifact: InboxArtifact): string {
         }
         default:
             return 'Artifact';
+    }
+}
+
+// =============================================================================
+// INJECT AGENT MESSAGE (server-side, no auth required)
+// =============================================================================
+
+/**
+ * Inject a message from an agent into an existing thread.
+ * Used by background services (heartbeat, campaign sender) to push proactive updates.
+ * Does NOT require user auth — uses admin Firestore directly.
+ */
+export async function injectAgentMessage(
+    threadId: string,
+    agent: string,
+    message: string,
+): Promise<boolean> {
+    try {
+        const db = getDb();
+        const threadRef = db.collection(INBOX_THREADS_COLLECTION).doc(threadId);
+        const doc = await threadRef.get();
+
+        if (!doc.exists) {
+            logger.warn('[INBOX] Cannot inject message — thread not found', { threadId });
+            return false;
+        }
+
+        const agentMessage = {
+            id: `agent_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            role: 'assistant',
+            content: message,
+            timestamp: new Date().toISOString(),
+            agentPersona: agent,
+        };
+
+        await threadRef.update({
+            messages: FieldValue.arrayUnion(agentMessage),
+            preview: message.slice(0, 50),
+            updatedAt: FieldValue.serverTimestamp(),
+            lastActivityAt: FieldValue.serverTimestamp(),
+        });
+
+        logger.info('[INBOX] Agent message injected', {
+            threadId,
+            agent,
+            messageLength: message.length,
+        });
+
+        return true;
+    } catch (error) {
+        logger.error('[INBOX] Failed to inject agent message', {
+            error: (error as Error).message,
+            threadId,
+        });
+        return false;
     }
 }

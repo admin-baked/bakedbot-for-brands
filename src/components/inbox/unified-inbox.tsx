@@ -7,7 +7,7 @@
  * Consolidates Carousels, Bundles, and Creative Center into a single inbox.
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -17,8 +17,9 @@ import { InboxSidebar } from './inbox-sidebar';
 import { InboxConversation } from './inbox-conversation';
 import { InboxArtifactPanel } from './inbox-artifact-panel';
 import { InboxEmptyState } from './inbox-empty-state';
+import { CrmContextPanel } from './crm/crm-context-panel';
 import type { InboxThreadType } from '@/types/inbox';
-import { getInboxThreads } from '@/server/actions/inbox';
+import { getInboxThreads, createInboxThread } from '@/server/actions/inbox';
 
 interface UnifiedInboxProps {
     className?: string;
@@ -39,6 +40,8 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
         setThreadFilter,
         setLoading,
         isLoading,
+        createThread,
+        setActiveThread,
     } = useInboxStore();
 
     const activeThread = useActiveThread();
@@ -82,6 +85,53 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
             loadThreads();
         }
     }, [role, orgId, hydrateThreads, setLoading]);
+
+    // Handle newThread URL params (e.g., /inbox?newThread=crm_customer&customerId=X&customerName=Y)
+    const newThreadHandled = useRef(false);
+    useEffect(() => {
+        if (newThreadHandled.current) return;
+        const newThreadType = searchParams.get('newThread') as InboxThreadType | null;
+        if (!newThreadType || !role) return;
+
+        const customerId = searchParams.get('customerId') || undefined;
+        const customerName = searchParams.get('customerName') || undefined;
+        const customerEmail = searchParams.get('customerEmail') || undefined;
+
+        newThreadHandled.current = true;
+
+        // Create CRM thread with customer context
+        const title = customerName
+            ? `${customerName} — CRM`
+            : `New ${newThreadType} conversation`;
+
+        const thread = createThread(newThreadType, {
+            title,
+            brandId: orgId || undefined,
+            dispensaryId: orgId || undefined,
+        });
+
+        // Attach CRM fields if present
+        if (customerId) thread.customerId = customerId;
+        if (customerEmail) thread.customerEmail = customerEmail;
+
+        setActiveThread(thread.id);
+
+        // Persist to server
+        createInboxThread({
+            id: thread.id,
+            type: newThreadType,
+            title,
+            brandId: orgId || undefined,
+            dispensaryId: orgId || undefined,
+            customerId,
+            customerEmail,
+        }).catch(() => {
+            // Silent fail — thread exists in local store
+        });
+    }, [searchParams, role, orgId, createThread, setActiveThread]);
+
+    // Determine if CRM panel should show
+    const showCrmPanel = activeThread?.type === 'crm_customer' && activeThread?.customerId;
 
     return (
         <div className={cn(
@@ -143,10 +193,28 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
                     </AnimatePresence>
                 </div>
 
-                {/* Artifact Panel - Right side preview with slide animation */}
+                {/* Right Panel — CRM Context or Artifact Panel */}
                 <AnimatePresence>
-                    {isArtifactPanelOpen && activeArtifacts.length > 0 && (
+                    {showCrmPanel && (
                         <motion.div
+                            key="crm-panel"
+                            initial={{ x: 100, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: 100, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            className="w-[320px]"
+                        >
+                            <CrmContextPanel
+                                customerId={activeThread.customerId!}
+                                customerEmail={activeThread.customerEmail}
+                                orgId={activeThread.orgId}
+                                className="h-full"
+                            />
+                        </motion.div>
+                    )}
+                    {!showCrmPanel && isArtifactPanelOpen && activeArtifacts.length > 0 && (
+                        <motion.div
+                            key="artifact-panel"
                             initial={{ x: 100, opacity: 0 }}
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: 100, opacity: 0 }}

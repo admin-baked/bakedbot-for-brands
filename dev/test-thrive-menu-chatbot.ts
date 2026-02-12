@@ -6,8 +6,8 @@ import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import * as path from 'path';
 import * as fs from 'fs';
-import { makeProductRepo } from '@/server/repos/productRepo';
-import { fetchBrandPageData } from '@/lib/brand-data';
+import { makeProductRepo } from '../src/server/repos/productRepo';
+import { fetchBrandPageData } from '../src/lib/brand-data';
 
 // Initialize Firebase Admin
 const apps = getApps();

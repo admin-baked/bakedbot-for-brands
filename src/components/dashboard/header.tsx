@@ -5,13 +5,14 @@ import { ImportProgress } from '@/components/dashboard/import-progress';
 import { useBrandId } from '@/hooks/use-brand-id';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
+import { NotificationBell } from '@/components/dashboard/notification-bell';
 
 export function DashboardHeader() {
   const { current } = useDashboardConfig();
   const { brandId } = useBrandId();
 
   if (!current) {
-    return null; // Or a default header if you prefer
+    return null;
   }
 
   return (
@@ -23,6 +24,7 @@ export function DashboardHeader() {
         <p className="text-sm md:text-base text-muted-foreground">{current.description}</p>
         {brandId && <ImportProgress brandId={brandId} />}
       </div>
+      <NotificationBell />
     </div>
   );
 }
