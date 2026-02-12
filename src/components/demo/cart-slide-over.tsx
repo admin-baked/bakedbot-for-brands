@@ -22,7 +22,10 @@ import {
   ShoppingBag,
   Sparkles,
 } from 'lucide-react';
+import { useCallback } from 'react';
 import type { Product } from '@/types/domain';
+import { ProductUpsellRow } from '@/components/upsell/product-upsell-row';
+import { fetchCartUpsells } from '@/server/actions/upsell';
 
 interface CartItem extends Product {
   quantity: number;
@@ -37,6 +40,8 @@ interface CartSlideOverProps {
   onClearCart: () => void;
   onCheckout?: () => void;
   primaryColor?: string;
+  orgId?: string;
+  onAddUpsellToCart?: (product: Product) => void;
 }
 
 export function CartSlideOver({
@@ -48,11 +53,22 @@ export function CartSlideOver({
   onClearCart,
   onCheckout,
   primaryColor = '#16a34a',
+  orgId,
+  onAddUpsellToCart,
 }: CartSlideOverProps) {
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const tax = subtotal * 0.25; // Cannabis tax
   const total = subtotal + tax;
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  const cartItemIds = items.map((item) => item.id);
+  const fetchUpsells = useCallback(() => {
+    if (!orgId || cartItemIds.length === 0) {
+      return Promise.resolve({ suggestions: [], placement: 'cart' as const, generatedAt: Date.now() });
+    }
+    return fetchCartUpsells(cartItemIds, orgId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId, cartItemIds.join(',')]);
 
   return (
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -166,15 +182,30 @@ export function CartSlideOver({
               </div>
             </div>
 
+            {/* Upsell Suggestions */}
+            {orgId && onAddUpsellToCart && items.length > 0 && (
+              <div className="px-6 -mx-6 py-3 border-t">
+                <ProductUpsellRow
+                  heading="Complete Your Order"
+                  fetchUpsells={fetchUpsells}
+                  onAddToCart={onAddUpsellToCart}
+                  primaryColor={primaryColor}
+                  compact
+                />
+              </div>
+            )}
+
             {/* Cart Summary */}
             <div className="border-t pt-4 space-y-4">
               {/* Promo Suggestion */}
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800">
-                <Sparkles className="h-5 w-5 text-amber-600 shrink-0" />
-                <p className="text-sm text-amber-800 dark:text-amber-200">
-                  Add ${(50 - subtotal).toFixed(2)} more for free delivery!
-                </p>
-              </div>
+              {subtotal < 50 && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800">
+                  <Sparkles className="h-5 w-5 text-amber-600 shrink-0" />
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    Add ${(50 - subtotal).toFixed(2)} more for free delivery!
+                  </p>
+                </div>
+              )}
 
               {/* Totals */}
               <div className="space-y-2">

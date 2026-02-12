@@ -7,7 +7,9 @@ import { Heart, ShoppingCart, Leaf, Share2, Info } from 'lucide-react';
 import Image from 'next/image';
 import { Product } from '@/types/domain';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { ProductUpsellRow } from '@/components/upsell/product-upsell-row';
+import { fetchProductUpsells } from '@/server/actions/upsell';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -17,6 +19,7 @@ interface ProductDetailModalProps {
   onFavorite: (productId: string) => void;
   isFavorite: boolean;
   primaryColor?: string;
+  orgId?: string;
 }
 
 export function ProductDetailModal({
@@ -27,8 +30,16 @@ export function ProductDetailModal({
   onFavorite,
   isFavorite,
   primaryColor = '#16a34a',
+  orgId,
 }: ProductDetailModalProps) {
   const [quantity, setQuantity] = useState(1);
+
+  const fetchUpsells = useCallback(() => {
+    if (!product || !orgId) {
+      return Promise.resolve({ suggestions: [], placement: 'product_detail' as const, generatedAt: Date.now() });
+    }
+    return fetchProductUpsells(product.id, orgId);
+  }, [product?.id, orgId]);
 
   if (!product) return null;
 
@@ -125,6 +136,20 @@ export function ProductDetailModal({
                 </div>
               </div>
             </div>
+
+            {/* Upsell Suggestions */}
+            {orgId && (
+              <div className="mb-6">
+                <ProductUpsellRow
+                  heading="Pairs Well With"
+                  fetchUpsells={fetchUpsells}
+                  onAddToCart={(p) => {
+                    onAddToCart(p, 1);
+                  }}
+                  primaryColor={primaryColor}
+                />
+              </div>
+            )}
 
             {/* Actions */}
             <div className="mt-auto pt-6 border-t flex flex-col gap-4">

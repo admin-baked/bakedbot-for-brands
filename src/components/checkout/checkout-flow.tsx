@@ -6,7 +6,7 @@
  * Orchestrates age verification, customer details, and payment
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '@/hooks/use-store';
 import { useUser } from '@/firebase/auth/use-user';
 import { AgeVerification, isAgeVerified } from './age-verification';
@@ -25,10 +25,14 @@ import { applyCoupon } from '@/app/checkout/actions/applyCoupon';
 import { useRouter } from 'next/navigation';
 
 import { logger } from '@/lib/logger';
+import { ProductUpsellRow } from '@/components/upsell/product-upsell-row';
+import { fetchCheckoutUpsells } from '@/server/actions/upsell';
+import type { Product } from '@/types/domain';
+
 type CheckoutStep = 'details' | 'payment' | 'confirmation';
 
 export function CheckoutFlow() {
-    const { cartItems, getCartTotal, selectedRetailerId, clearCart } = useStore();
+    const { cartItems, getCartTotal, selectedRetailerId, clearCart, addToCart, addToCartForShipping, purchaseMode, selectedBrandId } = useStore();
     const { user } = useUser();
     const { toast } = useToast();
     const router = useRouter();
@@ -84,6 +88,23 @@ export function CheckoutFlow() {
 
     const { subtotal } = getCartTotal();
     const currentBrandId = cartItems[0]?.brandId || null;
+
+    const cartItemIds = cartItems.map((item) => item.id);
+    const fetchUpsells = useCallback(() => {
+        if (!currentBrandId || cartItemIds.length === 0) {
+            return Promise.resolve({ suggestions: [], placement: 'checkout' as const, generatedAt: Date.now() });
+        }
+        return fetchCheckoutUpsells(cartItemIds, currentBrandId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentBrandId, cartItemIds.join(',')]);
+
+    const handleAddUpsellToCart = useCallback((product: Product) => {
+        if (purchaseMode === 'shipping' && selectedBrandId) {
+            addToCartForShipping(product, selectedBrandId);
+        } else if (selectedRetailerId) {
+            addToCart(product, selectedRetailerId);
+        }
+    }, [purchaseMode, selectedBrandId, selectedRetailerId, addToCart, addToCartForShipping]);
     const discount = Number((appliedCoupon?.discountAmount || 0).toFixed(2));
     const discountedSubtotal = Number(Math.max(0, subtotal - discount).toFixed(2));
     const tax = Number((discountedSubtotal * 0.15).toFixed(2));
@@ -324,6 +345,18 @@ export function CheckoutFlow() {
                         </CardFooter>
                     </form>
                 </Card>
+            )}
+
+            {/* Last Chance Deals - Upsells before payment */}
+            {step === 'details' && currentBrandId && (
+                <div className="mt-4">
+                    <ProductUpsellRow
+                        heading="Last Chance Deals"
+                        fetchUpsells={fetchUpsells}
+                        onAddToCart={handleAddUpsellToCart}
+                        compact
+                    />
+                </div>
             )}
 
             {step === 'payment' && (

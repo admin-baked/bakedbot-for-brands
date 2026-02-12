@@ -12,6 +12,7 @@ import { makeProductRepo } from '@/server/repos/productRepo';
 import type { Product } from '@/types/products';
 import { hasGroundTruth } from '@/server/grounding';
 import { validateInput, validateOutput, getRiskLevel } from '@/server/security';
+import { getChatbotUpsells } from '@/server/services/upsell-engine';
 
 // Force dynamic rendering - prevents build-time evaluation of Genkit imports
 export const dynamic = 'force-dynamic';
@@ -474,10 +475,37 @@ export const POST = withProtection(
                 });
             }
 
+            // 6.5️⃣ Get upsell suggestions for the top recommended product
+            let upsellProducts: ChatbotProduct[] = [];
+            if (chatResponse.shouldShowProducts && chatProducts.length > 0 && isPilotCustomer) {
+                try {
+                    const topProductId = chatProducts[0].id;
+                    const upsellOrgId = brandId;
+                    const upsellResult = await getChatbotUpsells(topProductId, upsellOrgId, { maxResults: 1 });
+                    upsellProducts = upsellResult.suggestions.map(s => ({
+                        id: s.product.id,
+                        name: s.product.name,
+                        category: s.product.category,
+                        price: s.product.price,
+                        imageUrl: s.product.imageUrl,
+                        description: s.product.description || s.product.name,
+                        thcPercent: s.product.thcPercent ?? null,
+                        cbdPercent: s.product.cbdPercent ?? null,
+                        displayWeight: '',
+                        url: '',
+                        upsellReason: s.reason,
+                        upsellSavings: s.savingsText,
+                    }));
+                } catch (upsellError) {
+                    logger.warn('[Chat] Upsell fetch failed (non-critical)', { error: upsellError });
+                }
+            }
+
             return NextResponse.json({
                 ok: true,
                 message: safeMessage,
                 products: chatResponse.shouldShowProducts ? chatProducts : [],
+                upsells: upsellProducts,
                 sessionId: currentSessionId, // Return session ID for client
             });
         } catch (err) {

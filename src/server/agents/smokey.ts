@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { computeSkuScore } from '../algorithms/smokey-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { getChatbotUpsells } from '@/server/services/upsell-engine';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 import { smokeyInboxToolDefs } from '../tools/inbox-tools';
 import {
@@ -32,6 +33,8 @@ export interface SmokeyTools {
     lettaMessageAgent(toAgent: string, message: string): Promise<any>;
     // Search local menu
     searchMenu(query: string): Promise<any>;
+    // Get upsell suggestions for a product
+    suggestUpsells(productId: string, orgId: string): Promise<any>;
 }
 
 // --- Smokey Agent Implementation ---
@@ -107,6 +110,15 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                - Never paraphrase or guess on legal/regulatory information.
 
             Tone: Friendly, knowledgeable, chill but professional.
+
+            === UPSELL BEHAVIOR ===
+            After recommending a product, use suggestUpsells to find ONE complementary item. Present it with value-focused framing:
+            - Use cannabis science reasoning: "These terpenes work together for the entourage effect"
+            - Lead with savings: "Save 15% when you pair these in our bundle"
+            - Keep it natural: "Customers who enjoy [X] also love [Y]"
+            - NEVER push more than ONE upsell suggestion per exchange
+            - If the customer says "no thanks" or ignores the suggestion, respect that immediately
+            - Prioritize: bundles with savings > terpene pairings > category complements
 
             OUTPUT RULES:
             - Use standard markdown headers (###) to separate sections like "Recommendations", "Product Details", and "Next Steps".
@@ -186,6 +198,14 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                         personaId: z.enum(delegatableAgents as [AgentId, ...AgentId[]]),
                         task: z.string().describe("The user's original request or specific subtask"),
                         context: z.any().optional()
+                    })
+                },
+                {
+                    name: "suggestUpsells",
+                    description: "Get complementary product suggestions for a product the customer is interested in. Use this AFTER recommending a product to suggest ONE pairing. Returns products with cannabis science reasoning (terpene/effect matching) and savings info.",
+                    schema: z.object({
+                        productId: z.string().describe("The product ID to find pairings for"),
+                        orgId: z.string().describe("The organization/tenant ID"),
                     })
                 }
             ];
