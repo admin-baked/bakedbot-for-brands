@@ -7,12 +7,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
-    Users, TrendingUp, TrendingDown, Activity, Zap, Bot,
-    Mail, MessageSquare, BarChart3, Clock, CheckCircle2,
-    AlertTriangle, ArrowUpRight, ArrowDownRight, RefreshCw
+    Users, TrendingUp, Activity, Zap, Bot,
+    BarChart3,
+    ArrowUpRight, ArrowDownRight, RefreshCw
 } from 'lucide-react';
 import { useMockData } from '@/hooks/use-mock-data';
 import { useEffect } from 'react';
+import Link from 'next/link';
 
 // Mock data - strictly for when isMock is true
 const MOCK_DATA: any = {
@@ -422,42 +423,23 @@ export default function PlatformAnalyticsTab() {
                 </CardContent>
             </Card>
 
-            {/* Health Indicators */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="border-green-200 bg-green-50">
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <CheckCircle2 className="h-8 w-8 text-green-600" />
-                            <div>
-                                <p className="font-semibold text-green-900">System Health</p>
-                                <p className="text-sm text-green-700">All systems operational</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="border-yellow-200 bg-yellow-50">
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <AlertTriangle className="h-8 w-8 text-yellow-600" />
-                            <div>
-                                <p className="font-semibold text-yellow-900">Email Campaigns</p>
-                                <p className="text-sm text-yellow-700">Usage down 5% - needs attention</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <Clock className="h-8 w-8 text-muted-foreground" />
-                            <div>
-                                <p className="font-semibold">Next Autoresponder</p>
-                                <p className="text-sm text-muted-foreground">Thursday 10:00 AM (1,456 users)</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+            {/* Avoid placeholder/fictional status cards in live mode */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Activity className="h-5 w-5 text-primary" />
+                        System Health
+                    </CardTitle>
+                    <CardDescription>
+                        Runtime health, alerts, and metrics are tracked in the System Health tab.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href="/dashboard/ceo?tab=health">Open System Health</Link>
+                    </Button>
+                </CardContent>
+            </Card>
         </div>
     );
 }

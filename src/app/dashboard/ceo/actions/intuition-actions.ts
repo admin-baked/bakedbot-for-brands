@@ -10,6 +10,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { logger } from '@/lib/logger';
+import { requireUser } from '@/server/auth/auth';
 
 // Dynamic imports to ensure server-side execution and avoid bundling issues
 const getPatternsModule = () => import('@/server/intuition/patterns');
@@ -20,6 +21,11 @@ const getPopsModule = () => import('@/server/intuition/pops-intuition');
 
 export async function triggerPatternAnalysis(tenantId: string) {
     try {
+        await requireUser(['super_user']);
+        if (process.env.NODE_ENV === 'production') {
+            return { success: false, message: 'Manual pattern analysis triggers are disabled in production.' };
+        }
+
         const { incrementPatternSupport, savePatternCluster } = await getPatternsModule();
 
         logger.info(`[Action] Triggering pattern analysis for ${tenantId}`);
@@ -50,6 +56,11 @@ export async function triggerPatternAnalysis(tenantId: string) {
 
 export async function triggerComplianceScan(tenantId: string) {
     try {
+        await requireUser(['super_user']);
+        if (process.env.NODE_ENV === 'production') {
+            return { success: false, message: 'Manual compliance scan triggers are disabled in production.' };
+        }
+
         const { triggerAlert } = await getDeeboModule();
 
         logger.info(`[Action] Triggering compliance scan for ${tenantId}`);
@@ -78,6 +89,11 @@ export async function triggerComplianceScan(tenantId: string) {
 
 export async function generateDailyReport(tenantId: string) {
     try {
+        await requireUser(['super_user']);
+        if (process.env.NODE_ENV === 'production') {
+            return { success: false, message: 'Manual daily report triggers are disabled in production.' };
+        }
+
         const { logMetricSnapshot, detectAnomalies } = await getPopsModule();
 
         logger.info(`[Action] Generating daily report for ${tenantId}`);
