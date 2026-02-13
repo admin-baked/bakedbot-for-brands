@@ -2,6 +2,7 @@
 
 import { UsageService, UsageMetric } from '@/server/services/usage';
 import { logger } from '@/lib/logger';
+import { requireUser } from '@/server/auth/auth';
 
 export async function trackUsageAction(orgId: string, metric: UsageMetric, count: number = 1) {
     if (!orgId) return;
@@ -16,6 +17,7 @@ export async function trackUsageAction(orgId: string, metric: UsageMetric, count
 
 export async function getUsageStatsAction(timeframe: 'today' | 'month' = 'month') {
     try {
+        await requireUser(['super_user']);
         const endDate = new Date();
         const startDate = new Date();
 

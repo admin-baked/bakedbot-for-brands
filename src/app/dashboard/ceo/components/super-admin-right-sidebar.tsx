@@ -21,10 +21,12 @@ import {
 import { SUPER_ADMIN_SMOKEY } from '@/config/super-admin-smokey-config';
 import { triggerAgentRun } from '../agents/actions';
 import { triggerPatternAnalysis, triggerComplianceScan, generateDailyReport } from '@/app/dashboard/ceo/actions/intuition-actions';
+import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 
 export function SuperAdminRightSidebar() {
     const router = useRouter();
     const { toast } = useToast();
+    const showIntuitionControls = process.env.NODE_ENV !== 'production';
 
     // Agent runner state
     const [runningAgent, setRunningAgent] = useState<string | null>(null);
@@ -43,8 +45,8 @@ export function SuperAdminRightSidebar() {
     };
 
     const handleQuickAction = (prompt: string) => {
-        console.log('Quick action:', prompt);
-        toast({ title: 'Quick Action', description: `Action "${prompt}" clicked (Stub)` });
+        useAgentChatStore.getState().queuePrompt(prompt);
+        router.push('/dashboard/ceo?tab=agents');
     };
 
     const handleRunAgent = async (agentId: string, displayName: string) => {
@@ -74,8 +76,8 @@ export function SuperAdminRightSidebar() {
         setAgentStatus(`Running ${name}...`);
 
         try {
-            // Using a stub tenantId for now, in prod getting from context/auth
-            const result = await actionFn('demo-brand');
+            // Dev-only triggers; server action is also disabled in production.
+            const result = await actionFn('system');
             setAgentStatus(result.message);
             toast({
                 title: result.success ? `${name} Complete` : `${name} Error`,

@@ -71,21 +71,9 @@ const nextConfig = {
     // Reduce webpack memory usage during builds (helps avoid OOM on Firebase App Hosting)
     webpackMemoryOptimizations: true,
   },
-  webpack: (config, { isServer }) => {
-    // Webpack-specific optimizations for large codebases
-    config.optimization = {
-      ...config.optimization,
-      moduleIds: 'deterministic',
-      splitChunks: {
-        chunks: 'all',
-        cacheGroups: {
-          default: false,
-          vendors: false,
-        },
-      },
-    };
-    return config;
-  },
+  // Turbopack configuration (required in Next.js 16 if webpack config is present)
+  // Empty config acknowledges we're using Turbopack with default settings
+  turbopack: {},
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';
 
