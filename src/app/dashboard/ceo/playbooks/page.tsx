@@ -10,18 +10,18 @@
  * - Internal operations workflows
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Search, Bot, Zap, Clock, TrendingUp, Users, Mail, BarChart3, Target, Database, Loader2, CheckCircle } from 'lucide-react';
+import { Search, Bot, Zap, TrendingUp, Mail, BarChart3, Target, Database, Loader2, CheckCircle } from 'lucide-react';
 import { SuperUserAgentChat } from './components/super-user-agent-chat';
 import { InternalPlaybooksGrid } from './components/internal-playbooks-grid';
 import { CreateInternalPlaybookDialog } from './components/create-internal-playbook-dialog';
 import { seedPlaybookTemplates, type SeedResult } from '@/server/actions/seed-playbooks';
 import { useToast } from '@/hooks/use-toast';
+import { listSuperUserPlaybooks } from './actions';
 
 export default function SuperUserPlaybooksPage() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -30,12 +30,49 @@ export default function SuperUserPlaybooksPage() {
     const [seedResult, setSeedResult] = useState<SeedResult | null>(null);
     const { toast } = useToast();
 
-    const stats = {
-        activePlaybooks: 8,
-        totalPlaybooks: 12,
-        runsToday: 47,
-        automationsThisWeek: 156,
-    };
+    const [stats, setStats] = useState<{
+        activePlaybooks: number;
+        totalPlaybooks: number;
+        totalRuns: number;
+        successRate: number | null;
+        activeAgents: number;
+    } | null>(null);
+    const [statsLoading, setStatsLoading] = useState(true);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        setStatsLoading(true);
+        listSuperUserPlaybooks()
+            .then((playbooks) => {
+                if (cancelled) return;
+
+                const totalPlaybooks = playbooks.length;
+                const activePlaybooks = playbooks.filter((p) => p.status === 'active').length;
+                const totalRuns = playbooks.reduce((sum, p) => sum + (p.runCount || 0), 0);
+                const totalSuccess = playbooks.reduce((sum, p) => sum + (p.successCount || 0), 0);
+                const totalFailure = playbooks.reduce((sum, p) => sum + (p.failureCount || 0), 0);
+                const denom = totalSuccess + totalFailure;
+                const successRate = denom > 0 ? Math.round((totalSuccess / denom) * 100) : null;
+                const activeAgents = new Set(playbooks.map((p) => p.agent).filter(Boolean)).size;
+
+                setStats({
+                    activePlaybooks,
+                    totalPlaybooks,
+                    totalRuns,
+                    successRate,
+                    activeAgents,
+                });
+            })
+            .finally(() => {
+                if (cancelled) return;
+                setStatsLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [refreshNonce]);
 
     const handleSeedTemplates = async () => {
         setIsSeeding(true);
@@ -111,7 +148,9 @@ export default function SuperUserPlaybooksPage() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-muted-foreground">Active Playbooks</p>
-                                <p className="text-2xl font-bold">{stats.activePlaybooks}/{stats.totalPlaybooks}</p>
+                                <p className="text-2xl font-bold">
+                                    {statsLoading ? '—' : `${stats?.activePlaybooks ?? 0}/${stats?.totalPlaybooks ?? 0}`}
+                                </p>
                             </div>
                             <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
                                 <Zap className="h-6 w-6 text-green-600" />
@@ -123,11 +162,11 @@ export default function SuperUserPlaybooksPage() {
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground">Runs Today</p>
-                                <p className="text-2xl font-bold">{stats.runsToday}</p>
+                                <p className="text-sm text-muted-foreground">Total Runs</p>
+                                <p className="text-2xl font-bold">{statsLoading ? '—' : (stats?.totalRuns ?? 0).toLocaleString()}</p>
                             </div>
                             <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                                <Clock className="h-6 w-6 text-blue-600" />
+                                <TrendingUp className="h-6 w-6 text-blue-600" />
                             </div>
                         </div>
                     </CardContent>
@@ -136,11 +175,13 @@ export default function SuperUserPlaybooksPage() {
                     <CardContent className="pt-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-muted-foreground">This Week</p>
-                                <p className="text-2xl font-bold">{stats.automationsThisWeek}</p>
+                                <p className="text-sm text-muted-foreground">Success Rate</p>
+                                <p className="text-2xl font-bold">
+                                    {statsLoading ? '—' : stats?.successRate == null ? '—' : `${stats.successRate}%`}
+                                </p>
                             </div>
                             <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
-                                <TrendingUp className="h-6 w-6 text-purple-600" />
+                                <Zap className="h-6 w-6 text-purple-600" />
                             </div>
                         </div>
                     </CardContent>
@@ -150,7 +191,7 @@ export default function SuperUserPlaybooksPage() {
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm text-muted-foreground">Active Agents</p>
-                                <p className="text-2xl font-bold">6</p>
+                                <p className="text-2xl font-bold">{statsLoading ? '—' : (stats?.activeAgents ?? 0)}</p>
                             </div>
                             <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
                                 <Bot className="h-6 w-6 text-amber-600" />

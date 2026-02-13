@@ -40,6 +40,7 @@ interface InternalPlaybook {
     lastRun?: Date;
     runsToday: number;
     isCustom?: boolean;
+    isBuiltin?: boolean;
 }
 
 // Built-in playbooks that always show (can be overridden by Firestore)
@@ -51,9 +52,10 @@ const BUILTIN_PLAYBOOKS: InternalPlaybook[] = [
         category: 'email',
         agents: ['Craig', 'Smokey'],
         schedule: '*/30 * * * *',
-        active: true,
-        lastRun: new Date(Date.now() - 1800000),
-        runsToday: 24,
+        active: false,
+        runsToday: 0,
+        isCustom: false,
+        isBuiltin: true,
     },
     {
         id: 'dayday-seo-discovery',
@@ -62,9 +64,10 @@ const BUILTIN_PLAYBOOKS: InternalPlaybook[] = [
         category: 'seo',
         agents: ['Day Day'],
         schedule: '0 5 * * *',
-        active: true,
-        lastRun: new Date(Date.now() - 86400000),
-        runsToday: 1,
+        active: false,
+        runsToday: 0,
+        isCustom: false,
+        isBuiltin: true,
     },
     {
         id: 'competitor-scan',
@@ -73,9 +76,10 @@ const BUILTIN_PLAYBOOKS: InternalPlaybook[] = [
         category: 'research',
         agents: ['Ezal', 'Pops'],
         schedule: '0 6 * * *',
-        active: true,
-        lastRun: new Date(Date.now() - 43200000),
-        runsToday: 1,
+        active: false,
+        runsToday: 0,
+        isCustom: false,
+        isBuiltin: true,
     },
 ];
 
@@ -155,6 +159,15 @@ export function InternalPlaybooksGrid({ searchQuery, refreshNonce }: InternalPla
     );
 
     const togglePlaybook = async (id: string, currentActive: boolean) => {
+        const pb = playbooks.find((p) => p.id === id);
+        if (pb?.isBuiltin) {
+            toast({
+                title: 'Template not installed',
+                description: 'Use "Seed Templates" to install system playbooks into Firestore.',
+            });
+            return;
+        }
+
         // Optimistic update
         setPlaybooks(prev => prev.map(pb =>
             pb.id === id ? { ...pb, active: !currentActive } : pb
@@ -180,6 +193,14 @@ export function InternalPlaybooksGrid({ searchQuery, refreshNonce }: InternalPla
 
     const runPlaybook = async (id: string) => {
         const playbook = playbooks.find(p => p.id === id);
+        if (playbook?.isBuiltin) {
+            toast({
+                title: 'Template not installed',
+                description: 'Use "Seed Templates" to install system playbooks into Firestore.',
+            });
+            return;
+        }
+
         toast({
             title: 'Playbook Started',
             description: `Running ${playbook?.name}...`,
@@ -226,11 +247,15 @@ export function InternalPlaybooksGrid({ searchQuery, refreshNonce }: InternalPla
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <CardTitle className="text-base">{playbook.name}</CardTitle>
-                                        {playbook.isCustom && (
+                                        {playbook.isBuiltin ? (
+                                            <Badge variant="outline" className="text-[10px] bg-muted/40">
+                                                Template
+                                            </Badge>
+                                        ) : playbook.isCustom ? (
                                             <Badge variant="outline" className="text-[10px] bg-pink-50 text-pink-700 border-pink-200">
                                                 Custom
                                             </Badge>
-                                        )}
+                                        ) : null}
                                     </div>
                                     <CardDescription className="text-xs mt-0.5">
                                         {playbook.description}
@@ -239,6 +264,7 @@ export function InternalPlaybooksGrid({ searchQuery, refreshNonce }: InternalPla
                             </div>
                             <Switch
                                 checked={playbook.active}
+                                disabled={playbook.isBuiltin}
                                 onCheckedChange={() => togglePlaybook(playbook.id, playbook.active)}
                             />
                         </div>
@@ -265,7 +291,7 @@ export function InternalPlaybooksGrid({ searchQuery, refreshNonce }: InternalPla
                                     variant="ghost"
                                     onClick={() => runPlaybook(playbook.id)}
                                     className="h-7 px-2"
-                                    disabled={!playbook.active}
+                                    disabled={!playbook.active || playbook.isBuiltin}
                                 >
                                     <Play className="h-3 w-3" />
                                 </Button>

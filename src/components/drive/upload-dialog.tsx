@@ -182,7 +182,12 @@ export function UploadDialog() {
   const hasUploaded = uploadQueue.some((item) => item.status === 'success');
 
   return (
-    <Dialog open={isUploadDialogOpen} onOpenChange={handleClose}>
+    <Dialog
+      open={isUploadDialogOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
+    >
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Upload Files</DialogTitle>
