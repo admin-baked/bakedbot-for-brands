@@ -15,6 +15,12 @@ env:
   - variable: TURBO
     value: "0"
     availability: [ BUILD ]
+  - variable: NEXT_EXPERIMENTAL_TURBOPACK
+    value: "false"
+    availability: [ BUILD ]
+  - variable: __NEXT_EXPERIMENTAL_TURBOPACK
+    value: "false"
+    availability: [ BUILD ]
   # Runtime memory allocation - can be higher since we control runtime resources
   - variable: NODE_OPTIONS
     value: "--max-old-space-size=24576"
