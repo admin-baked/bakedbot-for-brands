@@ -7,7 +7,7 @@ export default async function POSConfigPage() {
     try {
         await requireSuperUser();
     } catch {
-        redirect('/login');
+        redirect('/super-admin');
     }
 
     const locations = await getAllLocations();

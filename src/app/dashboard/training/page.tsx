@@ -28,7 +28,8 @@ export default async function TrainingPage() {
                 } : error,
                 timestamp: new Date().toISOString(),
             });
-            redirect('/customer-login');
+            // Avoid sending internal users to the customer login flow.
+            redirect('/signin');
         }
 
         const db = getAdminFirestore();

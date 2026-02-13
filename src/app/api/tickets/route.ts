@@ -3,7 +3,8 @@ import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import { verifySession, verifySuperAdmin } from '@/server/utils/auth-check';
 import { createTicketSchema } from '@/app/api/schemas';
-import { runAgentChat } from '@/app/dashboard/ceo/agents/actions';
+import { runAgent } from '@/server/agents/harness';
+import { linusAgent } from '@/server/agents/linus';
 import { sanitizeForPrompt, wrapUserData, buildSystemDirectives } from '@/server/security';
 
 // Force dynamic rendering - prevents build-time evaluation of agent dependencies
@@ -95,8 +96,13 @@ ${wrapUserData(String(data.errorDigest || 'N/A'), 'error_digest', true, 100)}
 ${directives}`;
 
                 // Fire-and-forget dispatch to Linus (don't block ticket creation)
-                runAgentChat(linusPrompt, 'linus', { source: 'interrupt', priority: 'high' })
-                    .then(result => logger.info('[Tickets API] Linus dispatched', { ticketId: docRef.id, result: result.metadata }))
+                runAgent({
+                    agent: linusAgent,
+                    userId: user?.uid || 'guest',
+                    userMessage: linusPrompt,
+                    options: { source: 'interrupt', priority: 'high' }
+                })
+                    .then(result => logger.info('[Tickets API] Linus dispatched', { ticketId: docRef.id }))
                     .catch(err => logger.warn('[Tickets API] Linus dispatch failed (non-blocking)', { error: err }));
 
                 logger.info(`[Tickets API] Linus interrupt triggered for ticket ${docRef.id}`);
