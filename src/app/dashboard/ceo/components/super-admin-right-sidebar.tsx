@@ -186,31 +186,40 @@ export function SuperAdminRightSidebar() {
 
             {/* Intuition OS Controls (Dev only) */}
             {showIntuitionControls && (
-            <Card>
-                <CardHeader className="py-2 px-3">
-                    <CardTitle className="text-xs flex items-center gap-1.5">
-                        <Activity className="h-3.5 w-3.5 text-blue-500" />
-                        Intuition Controls (Dev)
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1 p-2 pt-0">
-                    <Button
-                        variant="outline" size="sm" className="w-full justify-start text-[10px] h-7"
-                        onClick={() => handleIntuitionAction(generateDailyReport, 'Pops Daily Report')}
-                    > Generate Daily Report
-                    </Button>
-                    <Button
-                        variant="outline" size="sm" className="w-full justify-start text-[10px] h-7"
-                        onClick={() => handleIntuitionAction(triggerComplianceScan, 'Deebo Scan')}
-                    > Run Compliance Scan
-                    </Button>
-                    <Button
-                        variant="outline" size="sm" className="w-full justify-start text-[10px] h-7"
-                        onClick={() => handleIntuitionAction(triggerPatternAnalysis, 'Pattern Analysis')}
-                    > Run Pattern Analysis
-                    </Button>
-                </CardContent>
-            </Card>
+                <Card>
+                    <CardHeader className="py-2 px-3">
+                        <CardTitle className="text-xs flex items-center gap-1.5">
+                            <Activity className="h-3.5 w-3.5 text-blue-500" />
+                            Intuition Controls (Dev)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-1 p-2 pt-0">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full justify-start text-[10px] h-7"
+                            onClick={() => handleIntuitionAction(generateDailyReport, 'Pops Daily Report')}
+                        >
+                            Generate Daily Report
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full justify-start text-[10px] h-7"
+                            onClick={() => handleIntuitionAction(triggerComplianceScan, 'Deebo Scan')}
+                        >
+                            Run Compliance Scan
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full justify-start text-[10px] h-7"
+                            onClick={() => handleIntuitionAction(triggerPatternAnalysis, 'Pattern Analysis')}
+                        >
+                            Run Pattern Analysis
+                        </Button>
+                    </CardContent>
+                </Card>
             )}
         </div>
     );

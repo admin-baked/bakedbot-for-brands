@@ -219,7 +219,7 @@ export function SuperAdminSidebar() {
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive("agents")}>
-                                <Link href="/dashboard/ceo/agents">
+                                <Link href="/dashboard/ceo?tab=agents">
                                     <Bot />
                                     <span>Agents</span>
                                 </Link>

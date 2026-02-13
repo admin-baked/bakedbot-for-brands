@@ -915,7 +915,7 @@ export async function POST(request: NextRequest) {
             // 0. Brand Footprint Audit (if brand persona and looks like brand name)
             if (persona === 'brand' && isBrandName(prompt) && !urlMatch && !locationMatch) {
                 try {
-                    const { getDemoBrandFootprint } = await import('@/app/dashboard/intelligence/actions/demo-presets');
+                    const { getDemoBrandFootprint } = await import('@/server/services/demo-presets');
                     const result = await getDemoBrandFootprint(prompt.trim());
 
                     if (result.success && result.audit) {
@@ -975,7 +975,7 @@ export async function POST(request: NextRequest) {
             // 2. LIVE Location Search (Market Scout)
             else if (locationMatch) {
                 try {
-                    const { searchDemoRetailers } = await import('@/app/dashboard/intelligence/actions/demo-setup');
+                    const { searchDemoRetailers } = await import('@/server/services/demo-setup');
                     const location = locationMatch[0];
                     const result = await searchDemoRetailers(location);
 
