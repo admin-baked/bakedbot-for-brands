@@ -1,6 +1,5 @@
 'use client';
 
-import { TabsContent } from "@/components/ui/tabs";
 import { EzalCompetitorList } from "./ezal-competitor-list";
 import { EzalInsightsFeed } from "./ezal-insights-feed";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,18 +7,23 @@ import { Activity, Database, Globe } from 'lucide-react';
 import { useMockData } from '@/hooks/use-mock-data';
 import { useState, useEffect } from 'react';
 import { getEzalCompetitors, getEzalInsights } from '../actions';
-import type { Competitor, EzalInsight } from "@/types/ezal-discovery";
 
 export default function EzalTab() {
     const defaultTenantId = 'system'; // Platform-wide tenant scope for Super Users
     const { isMock, isLoading: isMockLoading } = useMockData();
-    const [stats, setStats] = useState({
-        activeSources: 12,
-        sourcesTrend: 2,
-        products: 1429,
-        productsCompetitors: 5,
-        insights: 24,
-        insightsDrops: 8
+
+    const [stats, setStats] = useState<{
+        activeSources: number | null;
+        competitorsTotal: number | null;
+        productsTracked: number | null;
+        insights: number | null;
+        insightsDrops: number | null;
+    }>({
+        activeSources: null,
+        competitorsTotal: null,
+        productsTracked: null,
+        insights: null,
+        insightsDrops: null,
     });
 
     useEffect(() => {
@@ -27,9 +31,8 @@ export default function EzalTab() {
             if (isMock) {
                 setStats({
                     activeSources: 12,
-                    sourcesTrend: 2,
-                    products: 1429,
-                    productsCompetitors: 5,
+                    competitorsTotal: 5,
+                    productsTracked: 1429,
                     insights: 24,
                     insightsDrops: 8
                 });
@@ -49,15 +52,21 @@ export default function EzalTab() {
 
                 setStats({
                     activeSources: activeSources,
-                    sourcesTrend: 0,
-                    products: 0, // Placeholder
-                    productsCompetitors: competitors.length,
+                    competitorsTotal: competitors.length,
+                    productsTracked: null, // Not yet instrumented in the platform data model
                     insights: totalInsights,
                     insightsDrops: insights.filter((i: any) => i.type === 'price_drop').length
                 });
 
             } catch (error) {
                 console.error("Failed to fetch Ezal stats", error);
+                setStats({
+                    activeSources: null,
+                    competitorsTotal: null,
+                    productsTracked: null,
+                    insights: null,
+                    insightsDrops: null,
+                });
             }
         };
 
@@ -75,9 +84,9 @@ export default function EzalTab() {
                         <Activity className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.activeSources}</div>
+                        <div className="text-2xl font-bold">{stats.activeSources ?? '—'}</div>
                         <p className="text-xs text-muted-foreground">
-                            {isMock ? '+2 from last month' : `${stats.productsCompetitors} total competitors`}
+                            {isMock ? '+2 from last month' : `${stats.competitorsTotal ?? '—'} total competitors`}
                         </p>
                     </CardContent>
                 </Card>
@@ -87,8 +96,10 @@ export default function EzalTab() {
                         <Database className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.products.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">Across {stats.productsCompetitors} competitors</p>
+                        <div className="text-2xl font-bold">{typeof stats.productsTracked === 'number' ? stats.productsTracked.toLocaleString() : '—'}</div>
+                        <p className="text-xs text-muted-foreground">
+                            {typeof stats.productsTracked === 'number' ? `Across ${stats.competitorsTotal ?? 0} competitors` : 'Not instrumented'}
+                        </p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -97,7 +108,7 @@ export default function EzalTab() {
                         <Globe className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.insights}</div>
+                        <div className="text-2xl font-bold">{stats.insights ?? '—'}</div>
                         <p className="text-xs text-muted-foreground">
                             {isMock ? '8 price drops detected' : 'Latest updates'}
                         </p>

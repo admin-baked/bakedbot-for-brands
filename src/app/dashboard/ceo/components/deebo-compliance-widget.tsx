@@ -3,20 +3,19 @@
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShieldCheck, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, AlertTriangle } from 'lucide-react';
 
 export function DeeboComplianceWidget({
-    complianceScore = 98,
+    complianceScore,
     openAlerts = []
 }: {
     complianceScore?: number;
     openAlerts?: Array<{ title: string; severity: 'info' | 'medium' | 'critical' }>;
 }) {
 
-    // Default stub alert if none provided
-    const displayAlerts = openAlerts.length > 0 ? openAlerts : [
-        { title: "Missing Age Gate on 3 Products", severity: 'medium' }
-    ];
+    const hasScore = typeof complianceScore === 'number' && Number.isFinite(complianceScore);
+    const scoreValue = hasScore ? Math.max(0, Math.min(100, complianceScore)) : null;
+    const displayAlerts = Array.isArray(openAlerts) ? openAlerts : [];
 
     return (
         <Card className="h-full border-l-4 border-l-amber-500 shadow-lg shadow-amber-500/5 hover:shadow-amber-500/10 transition-all">
@@ -28,11 +27,11 @@ export function DeeboComplianceWidget({
                         </div>
                         Deebo's Watch
                     </CardTitle>
-                    <Badge variant={complianceScore < 90 ? "destructive" : "secondary"} className="px-3 py-1">
-                        {complianceScore}% Score
+                    <Badge variant={hasScore ? (scoreValue! < 90 ? 'destructive' : 'secondary') : 'outline'} className="px-3 py-1">
+                        {hasScore ? `${scoreValue}% Score` : 'No Telemetry'}
                     </Badge>
                 </div>
-                <CardDescription>Regulatory compliance & safety monitor</CardDescription>
+                <CardDescription>Compliance telemetry (shows real data only)</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="space-y-6">
@@ -40,14 +39,23 @@ export function DeeboComplianceWidget({
                     <div className="space-y-2">
                         <div className="flex justify-between text-sm font-medium">
                             <span className="text-muted-foreground">System Health</span>
-                            <span className={complianceScore < 90 ? "text-red-500" : "text-green-600"}>{complianceScore}/100</span>
+                            <span className={hasScore ? (scoreValue! < 90 ? 'text-red-500' : 'text-green-600') : 'text-muted-foreground'}>
+                                {hasScore ? `${scoreValue}/100` : 'N/A'}
+                            </span>
                         </div>
                         <div className="relative w-full h-3 bg-secondary rounded-full overflow-hidden shadow-inner">
-                            <div
-                                className="absolute top-0 left-0 h-full bg-gradient-to-r from-amber-400 to-amber-600 transition-all duration-1000 ease-out"
-                                style={{ width: `${complianceScore}%` }}
-                            />
+                            {hasScore && (
+                                <div
+                                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-amber-400 to-amber-600 transition-all duration-1000 ease-out"
+                                    style={{ width: `${scoreValue}%` }}
+                                />
+                            )}
                         </div>
+                        {!hasScore && (
+                            <p className="text-xs text-muted-foreground">
+                                No compliance scans have been configured for the platform yet.
+                            </p>
+                        )}
                     </div>
 
                     {/* Alerts List */}
@@ -67,9 +75,9 @@ export function DeeboComplianceWidget({
                             ))}
                         </div>
                         {displayAlerts.length === 0 && (
-                            <div className="text-sm text-green-600 bg-green-50 dark:bg-green-900/10 p-4 rounded-lg border border-green-100 dark:border-green-900/20 flex items-center justify-center gap-2">
-                                <ShieldCheck className="h-5 w-5" /> 
-                                <span className="font-medium">All systems compliant</span>
+                            <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-lg border flex items-center justify-center gap-2">
+                                <ShieldCheck className="h-5 w-5" />
+                                <span className="font-medium">No alerts</span>
                             </div>
                         )}
                     </div>
