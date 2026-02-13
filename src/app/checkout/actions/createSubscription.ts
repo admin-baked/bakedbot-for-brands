@@ -17,6 +17,28 @@ type CreateSubscriptionInput = {
     couponCode?: string;
 };
 
+function getEmergencyOverrideCoupon(normalizedCode: string, basePrice: number) {
+    const enabled = process.env.ENABLE_EMERGENCY_LAUNCH25_COUPON !== 'false';
+    const couponCode = (process.env.EMERGENCY_LAUNCH25_CODE || 'LAUNCH25').trim().toUpperCase();
+    const overridePrice = Number(process.env.EMERGENCY_LAUNCH25_PRICE || '25');
+
+    if (!enabled) return null;
+    if (!Number.isFinite(overridePrice) || overridePrice < 0) return null;
+    if (basePrice <= 0) return null;
+    if (normalizedCode !== couponCode) return null;
+
+    const finalPrice = Number(overridePrice.toFixed(2));
+    return {
+        finalPrice,
+        discountApplied: {
+            code: couponCode,
+            type: 'fixed' as const,
+            value: Math.max(0, Number((basePrice - finalPrice).toFixed(2))),
+            originalPrice: basePrice,
+        },
+    };
+}
+
 function normalizeExpiry(expirationDate?: string): string | undefined {
     if (!expirationDate) return undefined;
     const trimmed = expirationDate.trim();
@@ -91,6 +113,12 @@ export async function createSubscription(input: CreateSubscriptionInput) {
 
         if (input.couponCode && !localDevNoFirestore) {
             const normalizedCode = input.couponCode.toUpperCase().trim();
+
+            const emergencyCoupon = getEmergencyOverrideCoupon(normalizedCode, plan.price);
+            if (emergencyCoupon) {
+                finalPrice = emergencyCoupon.finalPrice;
+                discountApplied = emergencyCoupon.discountApplied;
+            } else {
             // Admin SDK uses fluent API: collection().where().limit().get()
             const couponsSnap = await firestore.collection('coupons')
                 .where('code', '==', normalizedCode)
@@ -144,6 +172,7 @@ export async function createSubscription(input: CreateSubscriptionInput) {
                     : coupon.value,
                 originalPrice: plan.price,
             };
+            }
         } else if (input.couponCode && localDevNoFirestore) {
             const normalizedCode = input.couponCode.toUpperCase().trim();
             if (normalizedCode === 'LAUNCH25' && plan.price > 0) {
