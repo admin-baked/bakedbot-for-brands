@@ -13,6 +13,29 @@ export type ValidateCouponResult = {
     newPrice?: number;
 };
 
+function getEmergencyOverrideCoupon(normalizedCode: string, basePrice: number) {
+    const enabled = process.env.ENABLE_EMERGENCY_LAUNCH25_COUPON !== 'false';
+    const couponCode = (process.env.EMERGENCY_LAUNCH25_CODE || 'LAUNCH25').trim().toUpperCase();
+    const overridePrice = Number(process.env.EMERGENCY_LAUNCH25_PRICE || '25');
+
+    if (!enabled) return null;
+    if (!Number.isFinite(overridePrice) || overridePrice < 0) return null;
+    if (basePrice <= 0) return null;
+    if (normalizedCode !== couponCode) return null;
+
+    const newPrice = Number(overridePrice.toFixed(2));
+    const discountValue = Math.max(0, Number((basePrice - newPrice).toFixed(2)));
+
+    return {
+        isValid: true,
+        message: 'Coupon applied!',
+        discountType: 'fixed' as const,
+        discountValue,
+        couponId: 'emergency_launch25',
+        newPrice,
+    };
+}
+
 function asDate(value: any): Date | null {
     if (!value) return null;
     if (value instanceof Date) return value;
@@ -50,6 +73,13 @@ export async function validateCoupon(code: string, planId: string): Promise<Vali
         }
 
         const normalizedCode = code.trim().toUpperCase();
+
+        // Emergency production-safe fallback: lets LAUNCH25 work even if Firestore coupon is missing.
+        // Firestore coupon validation is still preferred and will run when this does not match.
+        const emergencyCoupon = getEmergencyOverrideCoupon(normalizedCode, basePrice);
+        if (emergencyCoupon) {
+            return emergencyCoupon;
+        }
 
         // Local/dev fallback: allow rapid testing without Firestore.
         if (localDevNoFirestore && normalizedCode === 'LAUNCH25') {
