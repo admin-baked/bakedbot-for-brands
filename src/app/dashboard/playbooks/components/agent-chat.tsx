@@ -483,9 +483,9 @@ export interface AgentChatProps {
     // Context-aware props for brand/dispensary pages
     pageContext?: PageContext;
     // Keep standard props for compatibility if needed, but unused here
-    mode?: any;
+    mode?: string;
     placeholder?: string;
-    defaultThinkingLevel?: any;
+    defaultThinkingLevel?: ThinkingLevel;
     externalInput?: string;
     onSimulate?: any;
     onSavePlaybook?: any;
@@ -496,7 +496,10 @@ export function AgentChat({
     initialInput = '',
     onBack,
     onSubmit,
-    pageContext
+    pageContext,
+    placeholder,
+    defaultThinkingLevel = 'standard',
+    externalInput,
 }: AgentChatProps) {
     // Global Store State
     const { 
@@ -549,7 +552,7 @@ export function AgentChat({
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [showTriggers, setShowTriggers] = useState(false);
     const [showPermissions, setShowPermissions] = useState(true);
-    const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>('standard');
+    const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>(defaultThinkingLevel);
     const [persona, setPersona] = useState<AgentPersona>('puff');
 
     // Async Job Polling (Added for Stop Button support)
@@ -933,6 +936,13 @@ export function AgentChat({
         }
     }, [input, isProcessing, onSubmit, addMessage, updateMessage, persona, toolMode, selectedTools, user, attachments, thinkingLevel, convertAttachments]);
 
+    // Run commands from external triggers (e.g., quick actions).
+    useEffect(() => {
+        if (!externalInput) return;
+        if (!hasMounted) return;
+        submitMessage(externalInput);
+    }, [externalInput, hasMounted, submitMessage]);
+
     const handleSubmit = () => submitMessage(input);
 
     const handleGrantPermission = (permissionId: string) => {
@@ -997,7 +1007,7 @@ export function AgentChat({
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onPaste={handlePaste}
-                    placeholder={hasMessages ? "Reply, or use microphone..." : "Ask Smokey anything..."}
+                    placeholder={placeholder || (hasMessages ? "Reply, or use microphone..." : "Ask Smokey anything...")}
                     className="min-h-[60px] border-0 bg-transparent resize-none p-0 focus-visible:ring-0 shadow-none text-base"
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {

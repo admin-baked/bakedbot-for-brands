@@ -197,7 +197,12 @@ export function ShareDialog() {
   };
 
   return (
-    <Dialog open={isShareDialogOpen} onOpenChange={handleClose}>
+    <Dialog
+      open={isShareDialogOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
+    >
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Share {selectedItem?.type === 'folder' ? 'Folder' : 'File'}</DialogTitle>
