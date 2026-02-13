@@ -70,10 +70,6 @@ const nextConfig = {
   experimental: {
     // Reduce webpack memory usage during builds (helps avoid OOM on Firebase App Hosting)
     webpackMemoryOptimizations: true,
-    // CRITICAL FIX: Disable static optimization for all pages during build
-    // With 204 pages (108 in dashboard alone), building them all at once causes OOM at 64GB
-    // This forces on-demand generation instead of build-time pre-rendering
-    isrMemory: 0,
     // Reduce concurrent page compilations to prevent memory spikes
     workerThreads: false,
     cpus: 1,
