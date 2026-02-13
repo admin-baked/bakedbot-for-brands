@@ -113,9 +113,9 @@ describe('Ground Truth Registry', () => {
         it('should return stats for registered brand', () => {
             const stats = getGroundTruthStats(THRIVE_SYRACUSE_BRAND_ID);
             expect(stats).toBeDefined();
-            expect(stats?.totalQAPairs).toBe(29);
+            expect(stats?.totalQAPairs).toBe(thriveGroundTruth.metadata.total_qa_pairs);
             expect(stats?.criticalCount).toBeGreaterThan(0);
-            expect(stats?.categories.length).toBe(8);
+            expect(stats?.categories.length).toBe(Object.keys(thriveGroundTruth.categories).length);
         });
 
         it('should return null for unregistered brand', () => {
@@ -125,8 +125,19 @@ describe('Ground Truth Registry', () => {
 
         it('should have correct priority counts', () => {
             const stats = getGroundTruthStats(THRIVE_SYRACUSE_BRAND_ID);
-            expect(stats?.criticalCount).toBe(6);
-            expect(stats?.highCount + stats?.mediumCount + stats?.criticalCount).toBe(29);
+            expect(stats).toBeDefined();
+            if (!stats) return;
+
+            const allPairs = Object.values(thriveGroundTruth.categories).flatMap(cat => cat.qa_pairs);
+            const expectedCritical = allPairs.filter(p => p.priority === 'critical').length;
+            const expectedHigh = allPairs.filter(p => p.priority === 'high').length;
+            const expectedMedium = allPairs.filter(p => p.priority === 'medium').length;
+
+            expect(stats.totalQAPairs).toBe(allPairs.length);
+            expect(stats.criticalCount).toBe(expectedCritical);
+            expect(stats.highCount).toBe(expectedHigh);
+            expect(stats.mediumCount).toBe(expectedMedium);
+            expect(stats.criticalCount + stats.highCount + stats.mediumCount).toBe(allPairs.length);
         });
     });
 });
@@ -344,9 +355,9 @@ describe('QA Matching', () => {
 
 describe('Helper Functions', () => {
     describe('getAllQAPairs', () => {
-        it('should return all 29 QA pairs', () => {
+        it('should return all QA pairs', () => {
             const pairs = getAllQAPairs(thriveGroundTruth);
-            expect(pairs.length).toBe(29);
+            expect(pairs.length).toBe(thriveGroundTruth.metadata.total_qa_pairs);
         });
 
         it('should return QA pairs with all required fields', () => {
@@ -364,7 +375,9 @@ describe('Helper Functions', () => {
     describe('getCriticalQAPairs', () => {
         it('should return only critical priority pairs', () => {
             const critical = getCriticalQAPairs(thriveGroundTruth);
-            expect(critical.length).toBe(6);
+            const allPairs = Object.values(thriveGroundTruth.categories).flatMap(cat => cat.qa_pairs);
+            const expectedCritical = allPairs.filter(p => p.priority === 'critical').length;
+            expect(critical.length).toBe(expectedCritical);
             for (const pair of critical) {
                 expect(pair.priority).toBe('critical');
             }
@@ -398,22 +411,21 @@ describe('Helper Functions', () => {
             const critical = getQAPairsByPriority(thriveGroundTruth, 'critical');
             const high = getQAPairsByPriority(thriveGroundTruth, 'high');
             const medium = getQAPairsByPriority(thriveGroundTruth, 'medium');
-            expect(critical.length + high.length + medium.length).toBe(29);
+            expect(critical.length + high.length + medium.length).toBe(thriveGroundTruth.metadata.total_qa_pairs);
         });
     });
 
     describe('countByCategory', () => {
-        it('should return correct counts', () => {
+        it('should return correct counts per category', () => {
             const counts = countByCategory(thriveGroundTruth);
-            expect(counts.store_information).toBe(4);
-            expect(counts.age_and_id).toBe(2);
-            expect(counts.product_categories).toBe(6);
-            expect(counts.effect_based_recommendations).toBe(5);
+            for (const [key, category] of Object.entries(thriveGroundTruth.categories)) {
+                expect(counts[key]).toBe(category.qa_pairs.length);
+            }
         });
 
-        it('should have 8 categories', () => {
+        it('should have a count entry for each category', () => {
             const counts = countByCategory(thriveGroundTruth);
-            expect(Object.keys(counts).length).toBe(8);
+            expect(Object.keys(counts).sort()).toEqual(Object.keys(thriveGroundTruth.categories).sort());
         });
     });
 });

@@ -6,8 +6,8 @@ import { z } from 'zod';
 import { getSmokeyConfig } from '@/config/super-admin-smokey-config';
 
 // Schema for extracting search parameters from natural language queries
-const QueryAnalysisSchema = z.object({
-    searchType: z.enum(['semantic', 'keyword', 'filtered', 'competitive', 'marketing', 'compliance', 'analytics', 'scheduling', 'seo']).describe('The type of search or action to perform based on the query'),
+export const QueryAnalysisSchema = z.object({
+    searchType: z.enum(['semantic', 'keyword', 'filtered', 'competitive', 'marketing', 'compliance', 'analytics', 'scheduling', 'seo', 'checkout']).describe('The type of search or action to perform based on the query'),
     filters: z.object({
         priceMin: z.number().optional().describe('Minimum price filter extracted from query'),
         priceMax: z.number().optional().describe('Maximum price filter extracted from query'),
@@ -45,6 +45,11 @@ const QueryAnalysisSchema = z.object({
         action: z.enum(['audit_page', 'check_rank']).optional(),
         url: z.string().optional().describe('URL to audit'),
     }).optional().describe('Parameters for SEO actions (Day Day)'),
+    checkoutParams: z.object({
+        action: z.enum(['create_order', 'view_cart']).optional(),
+        productName: z.string().optional().describe('Product to add/checkout'),
+        quantity: z.number().optional().describe('Quantity to add'),
+    }).optional().describe('Parameters for checkout actions (Smokey Quick Checkout)'),
     searchQuery: z.string().describe('The refined search query to use for product search'),
     intent: z.string().describe('A brief description of what the user is looking for'),
 });
@@ -79,6 +84,7 @@ Extract the following information:
    - "semantic": Complex query about effects, feelings, or experiences (e.g., "something to help me relax")
    - "keyword": Simple product name or brand search (e.g., "Blue Dream")
    - "filtered": Query with specific filters like price or category (e.g., "edibles under $20")
+   - "checkout": Requests to buy, purchase, add to cart, or checkout (e.g., "I'll take the gummies", "add two to cart", "checkout now") [Smokey Quick Checkout]
    - "competitive": Requests to track competitors, check prices, or get market insights (e.g., "Track Green Dragon", "Who has cheaper gummies?") [Ezal Agent]
    - "marketing": Requests to create campaigns, emails, SMS, VIDEOS, or SOCIAL POSTS (e.g., "Draft a 4/20 email", "Tweet about our sale") [Craig Agent]
    - "compliance": Requests to check laws, audit labels, or verify regulations (e.g., "Is 100mg THC legal in CA?", "Check this label") [Deebo Agent]
@@ -112,12 +118,19 @@ Extract the following information:
    - action: audit_page, check_rank
    - url
 
-9. **searchQuery**: Create a refined search query or summary.
+9. **checkoutParams** (Smokey Quick Checkout):
+   - action: create_order, view_cart
+   - productName: extract name if mentioned
+   - quantity: extract quantity if mentioned (default 1)
 
-10. **intent**: Briefly describe user intent.
+10. **searchQuery**: Create a refined search query or summary.
+
+11. **intent**: Briefly describe user intent.
 
 Examples:
 - "Show me uplifting sativa gummies under $25" → searchType: filtered, filters: {priceMax: 25, ...}
+- "I'll take two of the blue dream" → searchType: checkout, checkoutParams: {action: "create_order", productName: "blue dream", quantity: 2}
+- "Checkout now" → searchType: checkout, checkoutParams: {action: "view_cart"}
 - "Track Green Dragon in Denver" → searchType: competitive, competitiveParams: {action: "track_competitor", ...}
 - "Draft an email about our new concentrates drop" → searchType: marketing, marketingParams: {action: "draft_email", topic: "new concentrates drop"}
 - "Post to Twitter about our happy hour" → searchType: marketing, marketingParams: {action: "post_social", topic: "happy hour", platforms: ["twitter"]}

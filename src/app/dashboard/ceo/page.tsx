@@ -22,7 +22,9 @@ const CannMenusTestTab = dynamic(() => import("./components/cannmenus-test-tab")
 const TicketsTab = dynamic(() => import("./components/tickets-tab"), { loading: TabLoader });
 const FootTrafficTab = dynamic(() => import("./components/foot-traffic-tab"), { loading: TabLoader });
 const SuperAdminAgentChat = dynamic(() => import("./components/super-admin-agent-chat"), { loading: TabLoader, ssr: false });
-const SuperAdminPlaybooksTab = dynamic(() => import("./components/super-admin-playbooks-tab"), { loading: TabLoader, ssr: false });
+// Canonical Super User playbooks/ops experience lives at /dashboard/ceo/playbooks.
+// We render it inside the CEO tab to keep navigation consistent for Super Users.
+const SuperUserPlaybooksPage = dynamic(() => import("./playbooks/page"), { loading: TabLoader, ssr: false });
 const OperationsTab = dynamic(() => import("./components/operations-tab"), { loading: TabLoader });
 const UnifiedAnalyticsPage = dynamic(() => import("./components/unified-analytics-page"), { loading: TabLoader });
 const CRMTab = dynamic(() => import("./components/crm-tab"), { loading: TabLoader });
@@ -183,7 +185,7 @@ function CeoDashboardContent() {
             case 'settings':
             case 'pilot-setup':
                 return <UnifiedAdminConsole />;
-            case 'playbooks': return <SuperAdminPlaybooksTab />;
+            case 'playbooks': return <SuperUserPlaybooksPage />;
             case 'foot-traffic': return <FootTrafficTab />;
             case 'operations': return <OperationsTab />;
             case 'crm': return <CRMTab />;
@@ -197,7 +199,7 @@ function CeoDashboardContent() {
             case 'drive': return <DriveTab />;
             case 'costs': return <CostsTab />;
             case 'health': return <SystemHealthTab />;
-            default: return <SuperAdminPlaybooksTab />;
+            default: return <SuperUserPlaybooksPage />;
         }
     };
 
@@ -219,8 +221,8 @@ function CeoDashboardContent() {
                         <Button variant="ghost" size="sm" className="w-full sm:w-auto">Email Tester</Button>
                     </Link>
                     <DataImportDropdown />
-                    <MockDataToggle />
-                    <RoleSwitcher />
+                    {process.env.NODE_ENV !== 'production' && <MockDataToggle />}
+                    {process.env.NODE_ENV !== 'production' && <RoleSwitcher />}
                 </div>
             </div>
 

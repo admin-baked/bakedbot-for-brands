@@ -8,7 +8,7 @@ import {
     searchKnowledgeBaseAction,
     getKnowledgeBasesAction,
     checkUsageLimitsAction,
-    scrapeUrlAction,
+    discoverUrlAction,
     getSystemKnowledgeBasesAction,
     deleteKnowledgeBaseAction
 } from '@/server/actions/knowledge-base';
@@ -325,14 +325,14 @@ describe('Knowledge Base Actions', () => {
         });
     });
 
-    describe('scrapeUrlAction', () => {
+    describe('discoverUrlAction', () => {
         it('should fail for invalid URLs', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: false,
                 status: 404
             });
 
-            const result = await scrapeUrlAction({
+            const result = await discoverUrlAction({
                 knowledgeBaseId: 'kb_123',
                 url: 'https://example.com/notfound'
             });
@@ -341,9 +341,9 @@ describe('Knowledge Base Actions', () => {
             expect(result.message).toContain('404');
         });
 
-        it('should validate ScrapeUrlSchema', async () => {
+        it('should validate DiscoverUrlSchema', async () => {
             const schema = await import('@/types/knowledge-base');
-            const result = schema.ScrapeUrlSchema.safeParse({
+            const result = schema.DiscoverUrlSchema.safeParse({
                 knowledgeBaseId: 'kb_123',
                 url: 'https://example.com/article'
             });

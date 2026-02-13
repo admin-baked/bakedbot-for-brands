@@ -103,9 +103,10 @@ const categoryColors: Record<string, string> = {
 
 interface InternalPlaybooksGridProps {
     searchQuery: string;
+    refreshNonce?: number;
 }
 
-export function InternalPlaybooksGrid({ searchQuery }: InternalPlaybooksGridProps) {
+export function InternalPlaybooksGrid({ searchQuery, refreshNonce }: InternalPlaybooksGridProps) {
     const { toast } = useToast();
     const [playbooks, setPlaybooks] = useState<InternalPlaybook[]>([]);
     const [loading, setLoading] = useState(true);
@@ -146,7 +147,7 @@ export function InternalPlaybooksGrid({ searchQuery }: InternalPlaybooksGridProp
             }
         }
         loadPlaybooks();
-    }, []);
+    }, [refreshNonce]);
 
     const filteredPlaybooks = playbooks.filter(pb =>
         pb.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

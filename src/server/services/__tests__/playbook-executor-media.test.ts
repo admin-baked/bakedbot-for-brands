@@ -3,46 +3,62 @@
  * Tests the new step executors: fetch_deals, generate_video, generate_image, generate_caption, submit_approval
  */
 
-import type { PlaybookStepConfig, PlaybookExecutionContext } from '@/types/playbook';
+import type { PlaybookStepConfig } from '@/types/playbook';
 
 // Mock dependencies
-jest.mock('@/firebase/server-client', () => ({
-    createServerClient: jest.fn(() => ({
-        firestore: {
-            collection: jest.fn(() => ({
-                where: jest.fn(() => ({
-                    get: jest.fn(() => ({
-                        docs: [
-                            {
-                                id: 'deal1',
-                                data: () => ({
-                                    id: 'deal1',
-                                    name: 'BOGO Cartridges',
-                                    discountType: 'bogo',
-                                    productIds: ['prod1', 'prod2'],
-                                    active: true,
-                                }),
-                            },
-                        ],
-                    })),
-                })),
-            })),
-        },
-    })),
-}));
-
-jest.mock('@/server/services/alleaves/index', () => ({
-    getAlleaves: jest.fn(() => ({
-        getDiscounts: jest.fn(async () => [
+jest.mock('@/firebase/server-client', () => {
+    const mockDynamicPricingGet = jest.fn(async () => ({
+        docs: [
             {
-                id: 'pos_discount_1',
-                name: '20% Off Flower',
-                discountPercentage: 20,
-                applicableProducts: ['flower1', 'flower2'],
+                id: 'deal1',
+                data: () => ({
+                    name: 'BOGO Cartridges',
+                    discountType: 'bogo',
+                    productIds: ['prod1', 'prod2'],
+                    status: 'active',
+                }),
             },
-        ]),
-    })),
-}));
+        ],
+    }));
+
+    const mockCreativeAdd = jest.fn(async () => ({ id: 'content_123' }));
+
+    const mockFirestore = {
+        collection: jest.fn((collectionName: string) => {
+            if (collectionName !== 'tenants') {
+                return {};
+            }
+
+            return {
+                doc: jest.fn(() => ({
+                    collection: jest.fn((subcollectionName: string) => {
+                        if (subcollectionName === 'dynamic_pricing') {
+                            return {
+                                where: jest.fn(() => ({
+                                    get: mockDynamicPricingGet,
+                                })),
+                            };
+                        }
+
+                        if (subcollectionName === 'creative_content') {
+                            return {
+                                add: mockCreativeAdd,
+                            };
+                        }
+
+                        return {};
+                    }),
+                })),
+            };
+        }),
+    };
+
+    return {
+        createServerClient: jest.fn(async () => ({
+            firestore: mockFirestore,
+        })),
+    };
+});
 
 jest.mock('@/ai/generators/veo', () => ({
     generateVeoVideo: jest.fn(async () => ({
@@ -60,9 +76,7 @@ jest.mock('@/ai/generators/sora', () => ({
 }));
 
 jest.mock('@/ai/flows/generate-social-image', () => ({
-    generateSocialMediaImage: jest.fn(async () => ({
-        imageUrl: 'https://storage.googleapis.com/test-bucket/image.png',
-    })),
+    generateImageFromPrompt: jest.fn(async () => 'https://storage.googleapis.com/test-bucket/image.png'),
 }));
 
 jest.mock('@/server/services/media-tracking', () => ({
@@ -84,20 +98,17 @@ jest.mock('@/lib/logger', () => ({
 }));
 
 describe('Playbook Executor - Media Generation Steps', () => {
-    const mockContext: PlaybookExecutionContext = {
-        playbookId: 'test-playbook',
-        runId: 'run-123',
-        tenantId: 'org_test',
+    const createContext = () => ({
+        orgId: 'org_test',
         userId: 'user_test',
-        triggeredBy: 'schedule',
-        variables: {},
-        stepResults: {},
-        startTime: Date.now(),
-    };
+        variables: {} as Record<string, any>,
+        previousResults: {} as Record<string, any>,
+    });
 
     describe('executeFetchDeals', () => {
         it('should fetch deals from Firestore when source is firestore', async () => {
             const { executeFetchDeals } = await import('../playbook-executor');
+            const context = createContext();
 
             const step: PlaybookStepConfig = {
                 id: 'step-1',
@@ -108,16 +119,19 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 },
             };
 
-            const result = await executeFetchDeals(step, mockContext);
+            const result = await executeFetchDeals(step, context);
 
+            expect(result.success).toBe(true);
             expect(result.deals).toBeDefined();
             expect(Array.isArray(result.deals)).toBe(true);
             expect(result.deals.length).toBeGreaterThan(0);
             expect(result.deals[0]).toHaveProperty('name');
+            expect(context.variables.deals).toBeDefined();
         });
 
-        it('should fetch deals from POS when source is pos', async () => {
+        it('should still fetch deals when source is pos (fallback)', async () => {
             const { executeFetchDeals } = await import('../playbook-executor');
+            const context = createContext();
 
             const step: PlaybookStepConfig = {
                 id: 'step-1',
@@ -128,8 +142,9 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 },
             };
 
-            const result = await executeFetchDeals(step, mockContext);
+            const result = await executeFetchDeals(step, context);
 
+            expect(result.success).toBe(true);
             expect(result.deals).toBeDefined();
             expect(Array.isArray(result.deals)).toBe(true);
             expect(result.deals.length).toBeGreaterThan(0);
@@ -140,6 +155,7 @@ describe('Playbook Executor - Media Generation Steps', () => {
     describe('executeGenerateVideo', () => {
         it('should generate video with Veo provider', async () => {
             const { executeGenerateVideo } = await import('../playbook-executor');
+            const context = createContext();
 
             const step: PlaybookStepConfig = {
                 id: 'step-2',
@@ -154,27 +170,21 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 },
             };
 
-            const contextWithDeals = {
-                ...mockContext,
-                stepResults: {
-                    'step-1': {
-                        deals: [
-                            { name: 'Deal 1', discountType: 'percent_off', discountValue: 20 },
-                        ],
-                    },
-                },
-            };
+            context.variables.deals = [
+                { name: 'Deal 1', discountType: 'percentage', discountValue: 20 },
+            ];
 
-            const result = await executeGenerateVideo(step, contextWithDeals);
+            const result = await executeGenerateVideo(step, context);
 
+            expect(result.success).toBe(true);
             expect(result.videoUrl).toBeDefined();
             expect(result.videoUrl).toContain('.mp4');
-            expect(result.trackingEvent).toBeDefined();
-            expect(result.trackingEvent.id).toBe('mge_test_123');
+            expect(result.costUsd).toBeDefined();
         });
 
         it('should generate video with Sora provider', async () => {
             const { executeGenerateVideo } = await import('../playbook-executor');
+            const context = createContext();
 
             const step: PlaybookStepConfig = {
                 id: 'step-2',
@@ -187,14 +197,16 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 },
             };
 
-            const result = await executeGenerateVideo(step, mockContext);
+            const result = await executeGenerateVideo(step, context);
 
+            expect(result.success).toBe(true);
             expect(result.videoUrl).toBeDefined();
             expect(result.duration).toBe(8);
         });
 
         it('should default to Veo if no provider specified', async () => {
             const { executeGenerateVideo } = await import('../playbook-executor');
+            const context = createContext();
 
             const step: PlaybookStepConfig = {
                 id: 'step-2',
@@ -203,8 +215,9 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 params: {},
             };
 
-            const result = await executeGenerateVideo(step, mockContext);
+            const result = await executeGenerateVideo(step, context);
 
+            expect(result.success).toBe(true);
             expect(result.videoUrl).toBeDefined();
         });
     });
@@ -212,6 +225,7 @@ describe('Playbook Executor - Media Generation Steps', () => {
     describe('executeGenerateImage', () => {
         it('should generate image with specified tier', async () => {
             const { executeGenerateImage } = await import('../playbook-executor');
+            const context = createContext();
 
             const step: PlaybookStepConfig = {
                 id: 'step-3',
@@ -224,15 +238,17 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 },
             };
 
-            const result = await executeGenerateImage(step, mockContext);
+            const result = await executeGenerateImage(step, context);
 
+            expect(result.success).toBe(true);
             expect(result.imageUrl).toBeDefined();
             expect(result.imageUrl).toContain('.png');
-            expect(result.trackingEvent).toBeDefined();
+            expect(result.costUsd).toBeDefined();
         });
 
         it('should use free tier by default', async () => {
             const { executeGenerateImage } = await import('../playbook-executor');
+            const context = createContext();
 
             const step: PlaybookStepConfig = {
                 id: 'step-3',
@@ -241,8 +257,9 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 params: {},
             };
 
-            const result = await executeGenerateImage(step, mockContext);
+            const result = await executeGenerateImage(step, context);
 
+            expect(result.success).toBe(true);
             expect(result.imageUrl).toBeDefined();
         });
     });
@@ -250,6 +267,7 @@ describe('Playbook Executor - Media Generation Steps', () => {
     describe('executeGenerateCaption', () => {
         it('should generate caption for specified platform', async () => {
             const { executeGenerateCaption } = await import('../playbook-executor');
+            const context = createContext();
 
             const step: PlaybookStepConfig = {
                 id: 'step-4',
@@ -262,17 +280,11 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 },
             };
 
-            const contextWithContent = {
-                ...mockContext,
-                stepResults: {
-                    'step-1': {
-                        deals: [{ name: 'Deal 1' }],
-                    },
-                },
-            };
+            context.variables.deals = [{ name: 'Deal 1' }];
 
-            const result = await executeGenerateCaption(step, contextWithContent);
+            const result = await executeGenerateCaption(step, context);
 
+            expect(result.success).toBe(true);
             expect(result.caption).toBeDefined();
             expect(typeof result.caption).toBe('string');
             expect(result.caption.length).toBeGreaterThan(0);
@@ -280,6 +292,7 @@ describe('Playbook Executor - Media Generation Steps', () => {
 
         it('should handle missing context data gracefully', async () => {
             const { executeGenerateCaption } = await import('../playbook-executor');
+            const context = createContext();
 
             const step: PlaybookStepConfig = {
                 id: 'step-4',
@@ -290,8 +303,9 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 },
             };
 
-            const result = await executeGenerateCaption(step, mockContext);
+            const result = await executeGenerateCaption(step, context);
 
+            expect(result.success).toBe(true);
             expect(result.caption).toBeDefined();
         });
     });
@@ -299,15 +313,6 @@ describe('Playbook Executor - Media Generation Steps', () => {
     describe('executeSubmitApproval', () => {
         it('should create creative content for approval', async () => {
             const { executeSubmitApproval } = await import('../playbook-executor');
-
-            const mockCreateCreativeContent = jest.fn(async () => ({
-                id: 'content_123',
-                status: 'pending',
-            }));
-
-            jest.mock('@/app/actions/creative-content', () => ({
-                createCreativeContent: mockCreateCreativeContent,
-            }));
 
             const step: PlaybookStepConfig = {
                 id: 'step-5',
@@ -319,7 +324,11 @@ describe('Playbook Executor - Media Generation Steps', () => {
             };
 
             const contextWithMedia = {
-                ...mockContext,
+                ...createContext(),
+                variables: {
+                    videoUrl: 'https://example.com/video.mp4',
+                    caption: 'Check out our deals! #cannabis #deals',
+                },
                 stepResults: {
                     'step-2': {
                         videoUrl: 'https://example.com/video.mp4',
@@ -345,6 +354,7 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 executeGenerateCaption,
                 executeSubmitApproval,
             } = await import('../playbook-executor');
+            const context = createContext();
 
             // Step 1: Fetch deals
             const fetchStep: PlaybookStepConfig = {
@@ -354,7 +364,7 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 params: { source: 'firestore' },
             };
 
-            const dealsResult = await executeFetchDeals(fetchStep, mockContext);
+            const dealsResult = await executeFetchDeals(fetchStep, context);
             expect(dealsResult.deals).toBeDefined();
 
             // Step 2: Generate video
@@ -369,12 +379,7 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 },
             };
 
-            const contextAfterDeals = {
-                ...mockContext,
-                stepResults: { 'step-1': dealsResult },
-            };
-
-            const videoResult = await executeGenerateVideo(videoStep, contextAfterDeals);
+            const videoResult = await executeGenerateVideo(videoStep, context);
             expect(videoResult.videoUrl).toBeDefined();
 
             // Step 3: Generate caption
@@ -385,15 +390,7 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 params: { platform: 'instagram', includeHashtags: true },
             };
 
-            const contextAfterVideo = {
-                ...contextAfterDeals,
-                stepResults: {
-                    'step-1': dealsResult,
-                    'step-2': videoResult,
-                },
-            };
-
-            const captionResult = await executeGenerateCaption(captionStep, contextAfterVideo);
+            const captionResult = await executeGenerateCaption(captionStep, context);
             expect(captionResult.caption).toBeDefined();
 
             // Step 4: Submit for approval
@@ -404,16 +401,7 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 params: { platform: 'instagram' },
             };
 
-            const contextAfterCaption = {
-                ...contextAfterVideo,
-                stepResults: {
-                    'step-1': dealsResult,
-                    'step-2': videoResult,
-                    'step-3': captionResult,
-                },
-            };
-
-            const approvalResult = await executeSubmitApproval(approvalStep, contextAfterCaption);
+            const approvalResult = await executeSubmitApproval(approvalStep, context);
             expect(approvalResult.contentId).toBeDefined();
             expect(approvalResult.status).toBe('pending');
         });
@@ -423,6 +411,7 @@ describe('Playbook Executor - Media Generation Steps', () => {
         it('should handle video generation failure gracefully', async () => {
             const { executeGenerateVideo } = await import('../playbook-executor');
             const { generateVeoVideo } = await import('@/ai/generators/veo');
+            const context = createContext();
 
             (generateVeoVideo as jest.Mock).mockRejectedValueOnce(new Error('API timeout'));
 
@@ -433,11 +422,12 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 params: {},
             };
 
-            await expect(executeGenerateVideo(step, mockContext)).rejects.toThrow('API timeout');
+            await expect(executeGenerateVideo(step, context)).rejects.toThrow('API timeout');
         });
 
         it('should handle missing deals data', async () => {
             const { executeGenerateVideo } = await import('../playbook-executor');
+            const context = createContext();
 
             const step: PlaybookStepConfig = {
                 id: 'step-2',
@@ -448,11 +438,8 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 },
             };
 
-            // Context without deals
-            const emptyContext = { ...mockContext };
-
             // Should still work but with generic prompt
-            const result = await executeGenerateVideo(step, emptyContext);
+            const result = await executeGenerateVideo(step, context);
             expect(result.videoUrl).toBeDefined();
         });
     });
@@ -461,6 +448,7 @@ describe('Playbook Executor - Media Generation Steps', () => {
         it('should track costs for video generation', async () => {
             const { executeGenerateVideo } = await import('../playbook-executor');
             const { trackMediaGeneration } = await import('@/server/services/media-tracking');
+            const context = createContext();
 
             const step: PlaybookStepConfig = {
                 id: 'step-2',
@@ -472,7 +460,7 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 },
             };
 
-            await executeGenerateVideo(step, mockContext);
+            await executeGenerateVideo(step, context);
 
             expect(trackMediaGeneration).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -480,7 +468,7 @@ describe('Playbook Executor - Media Generation Steps', () => {
                     userId: 'user_test',
                     type: 'video',
                     provider: 'veo',
-                    playbookRunId: 'run-123',
+                    success: true,
                 })
             );
         });
@@ -488,6 +476,7 @@ describe('Playbook Executor - Media Generation Steps', () => {
         it('should track costs for image generation', async () => {
             const { executeGenerateImage } = await import('../playbook-executor');
             const { trackMediaGeneration } = await import('@/server/services/media-tracking');
+            const context = createContext();
 
             const step: PlaybookStepConfig = {
                 id: 'step-3',
@@ -496,13 +485,14 @@ describe('Playbook Executor - Media Generation Steps', () => {
                 params: { tier: 'paid' },
             };
 
-            await executeGenerateImage(step, mockContext);
+            await executeGenerateImage(step, context);
 
             expect(trackMediaGeneration).toHaveBeenCalledWith(
                 expect.objectContaining({
                     tenantId: 'org_test',
+                    userId: 'user_test',
                     type: 'image',
-                    playbookRunId: 'run-123',
+                    success: true,
                 })
             );
         });

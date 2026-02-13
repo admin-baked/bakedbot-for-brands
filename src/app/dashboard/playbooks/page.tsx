@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ActivityFeed } from './components/activity-feed';
 import { UsageMeter } from './components/usage-meter';
 import { AgentChat } from './components/agent-chat';
+import { CreatePlaybookDialog } from './components/create-playbook-dialog';
 import DispensaryDashboardClient from '../dispensary/dashboard-client';
 import { BrandPlaybooksView } from '../brand/components/brand-playbooks-view';
 import { PLAYBOOKS, Playbook } from './data';
@@ -20,6 +21,10 @@ import { PlaybooksHeader, PlaybookFilterCategory } from './components/playbooks-
 import { PlaybookCardModern } from './components/playbook-card-modern';
 import { CreatePlaybookBanner } from './components/create-playbook-banner';
 import { InboxCTABanner } from '@/components/inbox';
+import { savePlaybookDraft } from './actions';
+import type { PlaybookCategory } from '@/types/playbook';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 
 export default function PlaybooksPage() {
     const { role, user } = useUserRole();
@@ -99,6 +104,94 @@ export default function PlaybooksPage() {
         // TODO: Implement delete via server action
     };
 
+    const handleCreateFromScratch = async (data: {
+        name: string;
+        description: string;
+        agent: string;
+        category: PlaybookCategory;
+    }) => {
+        try {
+            await savePlaybookDraft({
+                name: data.name,
+                description: data.description,
+                agent: data.agent,
+                category: data.category,
+                steps: [],
+                triggers: [],
+            });
+
+            toast({
+                title: 'Playbook Draft Created',
+                description: `"${data.name}" has been saved. Use chat to refine steps and triggers.`,
+            });
+
+            setSelectedPrompt(
+                `Create a playbook named "${data.name}".\n\nDescription: ${data.description || '(none)'}\nAgent: ${data.agent}\nCategory: ${data.category}\n\nStart by proposing triggers and the first 3 steps.`
+            );
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: error instanceof Error ? error.message : 'Failed to create playbook draft',
+            });
+        }
+    };
+
+    const handleCloneTemplate = async (templateId: string) => {
+        const templates: Record<
+            string,
+            { name: string; description: string; agent: string; category: PlaybookCategory }
+        > = {
+            daily_intel: {
+                name: 'Daily Intelligence Snapshot',
+                description:
+                    'Morning report on market activity, competitor moves, and key metrics',
+                agent: 'ezal',
+                category: 'intel',
+            },
+            lead_followup: {
+                name: 'Lead Follow-up',
+                description: 'Automated follow-up email sequence for new leads',
+                agent: 'craig',
+                category: 'marketing',
+            },
+            weekly_kpi: {
+                name: 'Weekly KPI Report',
+                description: 'Executive summary of key performance indicators',
+                agent: 'pops',
+                category: 'reporting',
+            },
+            low_stock_alert: {
+                name: 'Low Stock Alert',
+                description: 'Monitor inventory and alert when items are running low',
+                agent: 'smokey',
+                category: 'ops',
+            },
+        };
+
+        const template = templates[templateId];
+        if (!template) {
+            toast({
+                variant: 'destructive',
+                title: 'Template Not Found',
+                description: 'That template is not available yet.',
+            });
+            return;
+        }
+
+        await handleCreateFromScratch(template);
+    };
+
+    const handleCreateFromNaturalLanguage = async (prompt: string) => {
+        setSelectedPrompt(prompt);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        toast({
+            title: 'Playbook Prompt Ready',
+            description: 'Agent chat is ready to build your playbook from this description.',
+        });
+    };
+
     const handleNewPlaybook = () => {
         // Scroll to AgentChat and set prompt for new playbook
         setSelectedPrompt('Create a new playbook for my brand');
@@ -127,6 +220,19 @@ export default function PlaybooksPage() {
                 activeFilter={activeFilter}
                 onFilterChange={setActiveFilter}
                 onNewPlaybook={handleNewPlaybook}
+                newPlaybookButton={
+                    <CreatePlaybookDialog
+                        onCreateFromScratch={handleCreateFromScratch}
+                        onCloneTemplate={handleCloneTemplate}
+                        onCreateFromNaturalLanguage={handleCreateFromNaturalLanguage}
+                        trigger={
+                            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-2">
+                                <Plus className="w-5 h-5" />
+                                New Playbook
+                            </Button>
+                        }
+                    />
+                }
             />
 
             {/* Inbox CTA Banner */}

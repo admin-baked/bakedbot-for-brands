@@ -140,7 +140,7 @@ export const executiveAgents: AgentDefinition[] = [
     status: 'online',
     primaryMetricLabel: 'Tasks delegated',
     primaryMetricValue: '—',
-    href: '/dashboard/ceo?tab=boardroom',
+    href: '/dashboard/ceo?tab=boardroom&agent=leo',
     icon: Briefcase,
     tag: 'Executive'
   },
@@ -152,7 +152,7 @@ export const executiveAgents: AgentDefinition[] = [
     status: 'online',
     primaryMetricLabel: 'Pipeline value',
     primaryMetricValue: '—',
-    href: '/dashboard/ceo?tab=boardroom',
+    href: '/dashboard/ceo?tab=boardroom&agent=jack',
     icon: Rocket,
     tag: 'Executive'
   },
@@ -164,7 +164,7 @@ export const executiveAgents: AgentDefinition[] = [
     status: 'online',
     primaryMetricLabel: 'Build status',
     primaryMetricValue: '—',
-    href: '/dashboard/ceo?tab=boardroom',
+    href: '/dashboard/ceo?tab=boardroom&agent=linus',
     icon: Wrench,
     tag: 'Executive'
   },
@@ -176,7 +176,7 @@ export const executiveAgents: AgentDefinition[] = [
     status: 'online',
     primaryMetricLabel: 'Traffic growth',
     primaryMetricValue: '—',
-    href: '/dashboard/ceo?tab=boardroom',
+    href: '/dashboard/ceo?tab=boardroom&agent=glenda',
     icon: Sparkles,
     tag: 'Executive'
   },
@@ -188,7 +188,7 @@ export const executiveAgents: AgentDefinition[] = [
     status: 'online',
     primaryMetricLabel: 'Burn rate',
     primaryMetricValue: '—',
-    href: '/dashboard/ceo?tab=boardroom',
+    href: '/dashboard/ceo?tab=boardroom&agent=mike-exec',
     icon: DollarSign,
     tag: 'Executive'
   },

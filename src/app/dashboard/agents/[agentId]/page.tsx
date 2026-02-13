@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Settings, Activity, Zap } from 'lucide-react';
 import Link from 'next/link';
 
+import { AgentConfigSheet } from '@/components/dashboard/agents/agent-config-sheet';
+import { getAgentConfigOverride } from '@/app/actions/agent-config';
+
 interface PageProps {
     params: Promise<{
         agentId: string;
@@ -16,9 +19,10 @@ interface PageProps {
 
 export default async function AgentDetailsPage({ params }: PageProps) {
     const { agentId } = await params;
+    let user;
 
     try {
-        await requireUser(['brand', 'super_user']);
+        user = await requireUser(['brand', 'super_user']);
     } catch (error) {
         redirect('/dashboard');
     }
@@ -29,7 +33,18 @@ export default async function AgentDetailsPage({ params }: PageProps) {
         notFound();
     }
 
+    const orgId = (user as any).orgId || (user as any).locationId || 'default';
+    const configOverride = await getAgentConfigOverride(agentId, orgId);
+
     const Icon = agent.icon;
+
+    // Apply overrides to local agent object for display
+    const displayAgent = {
+        ...agent,
+        name: configOverride?.name || agent.name,
+        title: configOverride?.title || agent.title,
+        status: configOverride?.status || agent.status,
+    };
 
     return (
         <main className="flex flex-col gap-6 px-4 py-6 md:px-8">
@@ -41,20 +56,17 @@ export default async function AgentDetailsPage({ params }: PageProps) {
                 </Button>
                 <div className="space-y-1">
                     <h1 className="text-2xl font-semibold tracking-tight auth-header flex items-center gap-2">
-                        {agent.name}
-                        <Badge variant={agent.status === 'online' ? 'default' : 'secondary'} className="text-sm font-normal normal-case">
-                            {agent.status}
+                        {displayAgent.name}
+                        <Badge variant={displayAgent.status === 'online' ? 'default' : 'secondary'} className="text-sm font-normal normal-case">
+                            {displayAgent.status}
                         </Badge>
                     </h1>
                     <p className="text-sm text-muted-foreground">
-                        {agent.title} · {agent.description}
+                        {displayAgent.title} · {displayAgent.description}
                     </p>
                 </div>
                 <div className="ml-auto flex gap-2">
-                    <Button variant="outline">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Configure
-                    </Button>
+                    <AgentConfigSheet agent={agent} initialConfig={configOverride} />
                 </div>
             </div>
 

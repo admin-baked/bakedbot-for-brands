@@ -119,6 +119,18 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
     throw new Error('Unauthorized: Invalid session cookie.');
   }
 
+  // --- ROLE NORMALIZATION (Legacy Custom Claims) ---
+  // Some older accounts still have legacy platform-level roles in custom claims.
+  // Normalize them here so server actions/pages don't incorrectly redirect to login.
+  const rawRole = (decodedToken.role as string | undefined) || undefined;
+  const normalizedPlatformRole =
+    rawRole && ['owner', 'executive', 'superuser', 'admin'].includes(rawRole)
+      ? 'super_user'
+      : rawRole;
+  if (normalizedPlatformRole && normalizedPlatformRole !== rawRole) {
+    decodedToken = { ...decodedToken, role: normalizedPlatformRole } as any as DecodedIdToken;
+  }
+
   // --- ROLE SIMULATION LOGIC ---
   // Only allow simulation if the REAL user has the 'super_user' role.
   if (decodedToken.role === 'super_user' || decodedToken.role === 'super_admin') {

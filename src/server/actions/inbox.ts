@@ -852,7 +852,7 @@ export async function runInboxAgentChat(
             jack: 'jack',
             linus: 'linus',
             glenda: 'glenda',
-            mike: 'mike',
+            mike: 'mike_exec',
             // Auto-routing
             auto: 'puff', // Auto routes through Puff for intelligent routing
         };

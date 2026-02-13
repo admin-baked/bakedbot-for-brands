@@ -36,6 +36,8 @@ export interface SmokeyTools {
     searchMenu(query: string): Promise<any>;
     // Get upsell suggestions for a product
     suggestUpsells(productId: string, orgId: string): Promise<any>;
+    // Trigger checkout action for the user
+    triggerCheckout(productIds: string[]): Promise<any>;
 }
 
 // --- Smokey Agent Implementation ---
@@ -133,14 +135,14 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
     async orient(brandMemory, agentMemory, stimulus) {
         // 0. Chat / User Request
         if (stimulus && typeof stimulus === 'string') return 'user_request';
-        
+
         // Priority 1: Running UX Experiment near decision
         const runningExp = agentMemory.ux_experiments.find(e => e.status === 'running');
         if (runningExp) {
             // Check if we have enough sessions (Stub: > 100)
             const totalSessions = runningExp.variants.reduce((sum, v) => sum + v.sessions, 0);
             if (totalSessions > 100) {
-                return runningExp.id; 
+                return runningExp.id;
             }
         }
 
@@ -156,14 +158,14 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             if (queuedExp) return queuedExp.id;
         }
 
-        return null; 
+        return null;
     },
 
     async act(brandMemory, agentMemory, targetId, tools: SmokeyTools, stimulus?: string) {
         // === SCENARIO A: User Request (The "Planner" Flow) ===
         if (targetId === 'user_request' && stimulus) {
-             const userQuery = stimulus;
-        
+            const userQuery = stimulus;
+
             // Get delegatable agent IDs dynamically from registry
             const delegatableAgents = getDelegatableAgentIds('smokey');
 
@@ -208,6 +210,13 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                         productId: z.string().describe("The product ID to find pairings for"),
                         orgId: z.string().describe("The organization/tenant ID"),
                     })
+                },
+                {
+                    name: "triggerCheckout",
+                    description: "Initiate the checkout flow for the customer. Use this when the user explicitly says they want to buy, order, or checkout with specific products.",
+                    schema: z.object({
+                        productIds: z.array(z.string()).describe("List of product IDs to add to cart/checkout")
+                    })
                 }
             ];
 
@@ -224,26 +233,26 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                     model: 'claude',
                     maxIterations: 5,
                     onStepComplete: async (step, toolName, res) => {
-                         // Optional: persist if needed, though harness logs usually cover it.
-                         // Keeping logic simple as Smokey usually logs via result.
-                         if (toolName === 'lettaSaveFact' && (tools as any).lettaSaveFact) {
-                             // Double log? Or just trust the tool?
-                             // Trust the tool side effects.
-                         }
+                        // Optional: persist if needed, though harness logs usually cover it.
+                        // Keeping logic simple as Smokey usually logs via result.
+                        if (toolName === 'lettaSaveFact' && (tools as any).lettaSaveFact) {
+                            // Double log? Or just trust the tool?
+                            // Trust the tool side effects.
+                        }
                     }
                 });
 
                 return {
-                     updatedMemory: agentMemory,
-                     logEntry: {
-                         action: 'task_completed',
-                         result: result.finalResult,
-                         metadata: { steps: result.steps }
-                     }
+                    updatedMemory: agentMemory,
+                    logEntry: {
+                        action: 'task_completed',
+                        result: result.finalResult,
+                        metadata: { steps: result.steps }
+                    }
                 };
 
             } catch (e: any) {
-                 return {
+                return {
                     updatedMemory: agentMemory,
                     logEntry: { action: 'error', result: `Planning failed: ${e.message}`, metadata: { error: e.message } }
                 };

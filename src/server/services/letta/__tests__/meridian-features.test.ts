@@ -51,17 +51,39 @@ jest.mock('../block-manager', () => ({
     },
 }));
 
+jest.mock('@/ai/genkit', () => ({
+    ai: {
+        generate: jest.fn(),
+    },
+}));
+
 function getAiMock(): { generate: jest.Mock } {
-    // Jest's module mapper for `@/ai/genkit` can return either `{ ai }` or `{ default: { ai } }`
-    // depending on ESM/CJS interop for the mapped mock file.
+    // `@/ai/genkit` is moduleNameMapped to `tests/__mocks__/ai-genkit.ts` in Jest config.
+    // Depending on how SWC/Jest interop wraps that file, `require()` can yield:
+    // - `{ ai, genkit }` (CJS)
+    // - `{ default: { ai, genkit } }` (ESM namespace wrapper)
+    // - `{ default: ai }` (rare, but seen with some transforms)
     // Normalize to the actual `ai` object so tests can configure `ai.generate`.
+
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const mod = require('@/ai/genkit');
-    const ai = mod?.ai ?? mod?.default?.ai;
+    const candidates = [mod?.ai, mod?.default?.ai, mod?.default, mod].filter(Boolean);
+
+    const ai = candidates.find(
+        (c: any) => c && typeof c === 'object' && typeof c.generate === 'function'
+    );
+
     if (!ai) {
         throw new Error('Failed to load ai mock from @/ai/genkit');
     }
-    return ai;
+
+    if (!jest.isMockFunction((ai as any).generate)) {
+        throw new Error(
+            'Expected ai.generate to be a Jest mock. Check @/ai/genkit moduleNameMapper.'
+        );
+    }
+
+    return ai as { generate: jest.Mock };
 }
 
 // Require AFTER mocks so singletons are created with mocked deps.
@@ -194,6 +216,7 @@ describe('Completeness Doctrine', () => {
                 "What's the best strain for sleep? Also, do you have any deals this week?"
             );
 
+            expect(ai.generate).toHaveBeenCalled();
             expect(intents).toHaveLength(2);
             expect(intents[0].text).toContain('sleep');
             expect(intents[1].text).toContain('deals');
@@ -216,6 +239,7 @@ describe('Completeness Doctrine', () => {
                 'What are your store hours?'
             );
 
+            expect(ai.generate).toHaveBeenCalled();
             expect(intents).toHaveLength(1);
             expect(intents[0].type).toBe('question');
         });
@@ -315,7 +339,8 @@ describe('Memory Gardening Service', () => {
         it('should identify contradictory facts', async () => {
             // Mock Letta client to return conflicting memories
             const { lettaClient } = require('../client');
-            lettaClient.getArchivalMemory.mockResolvedValueOnce([
+            // Called in both `calculateHealthScore()` and the main scan.
+            lettaClient.getArchivalMemory.mockResolvedValue([
                 {
                     id: 'mem-1',
                     content: 'The store opens at 9am',
@@ -343,6 +368,8 @@ describe('Memory Gardening Service', () => {
 
             const report = await memoryGardeningService.gardenAgentMemory('agent-123', 'tenant-123');
 
+            expect(report.memoriesScanned).toBeGreaterThan(0);
+            expect(ai.generate).toHaveBeenCalled();
             expect(report.conflictsDetected).toBeGreaterThan(0);
         });
     });

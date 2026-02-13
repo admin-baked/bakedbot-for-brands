@@ -4,20 +4,59 @@
  * Tests end-to-end flows across multiple systems
  */
 
-import { describe, expect, it, jest, beforeEach } from '@jest/globals';
-import { submitChallenge, getMyTrainingProgress } from '../training';
-import { assignPeerReviewers, submitPeerReview, getMyPeerReviews } from '../peer-review';
-import { generateCertificate, checkMyCertificateEligibility } from '../certificates';
+import { beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { Timestamp } from '@google-cloud/firestore';
 
-// Mock all dependencies
-jest.mock('@/server/auth/auth');
-jest.mock('@/firebase/admin');
-jest.mock('@/server/services/training/linus-review');
-jest.mock('@/lib/certificates/generator');
-jest.mock('@/lib/logger');
+// Mock all dependencies (must run before importing server actions)
+jest.mock('next/cache', () => ({
+    revalidatePath: jest.fn(),
+}));
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn(),
+}));
+jest.mock('@/firebase/admin', () => ({
+    getAdminFirestore: jest.fn(),
+}));
+jest.mock('@/server/services/training/linus-review', () => ({
+    submitForReview: jest.fn(),
+}));
+jest.mock('firebase-admin/storage', () => ({
+    getStorage: jest.fn(),
+}));
+jest.mock('@/lib/certificates/generator', () => ({
+    generateCertificatePDF: jest.fn(),
+    checkCertificateEligibility: jest.fn(),
+    createCertificateMetadata: jest.fn(),
+}));
+jest.mock('@/lib/logger', () => ({
+    logger: {
+        error: jest.fn(),
+        warn: jest.fn(),
+        info: jest.fn(),
+        debug: jest.fn(),
+    },
+}));
+
+let submitChallenge: typeof import('../training').submitChallenge;
+let getMyTrainingProgress: typeof import('../training').getMyTrainingProgress;
+let assignPeerReviewers: typeof import('../peer-review').assignPeerReviewers;
+let generateCertificate: typeof import('../certificates').generateCertificate;
+let checkMyCertificateEligibility: typeof import('../certificates').checkMyCertificateEligibility;
 
 describe('Training Platform Integration Tests', () => {
+    beforeAll(async () => {
+        const training = await import('../training');
+        submitChallenge = training.submitChallenge;
+        getMyTrainingProgress = training.getMyTrainingProgress;
+
+        const peerReview = await import('../peer-review');
+        assignPeerReviewers = peerReview.assignPeerReviewers;
+
+        const certificates = await import('../certificates');
+        generateCertificate = certificates.generateCertificate;
+        checkMyCertificateEligibility = certificates.checkMyCertificateEligibility;
+    });
+
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -61,14 +100,17 @@ describe('Training Platform Integration Tests', () => {
                 size: 0, // No previous submissions
             });
 
+            const mockSubmissionsQuery = {
+                where: jest.fn().mockReturnThis(),
+                get: mockSubmissionsGet,
+            };
+
             (getAdminFirestore as jest.Mock).mockReturnValue({
                 collection: jest.fn((name: string) => {
                     if (name === 'trainingSubmissions') {
                         return {
                             doc: jest.fn(() => mockSubmissionRef),
-                            where: jest.fn().mockReturnValue({
-                                get: mockSubmissionsGet,
-                            }),
+                            where: jest.fn().mockReturnValue(mockSubmissionsQuery),
                         };
                     }
                     if (name === 'trainingChallenges') {
@@ -136,7 +178,7 @@ describe('Training Platform Integration Tests', () => {
                     userId: 'author-user',
                     cohortId: 'test-cohort',
                     code: 'test code',
-                    status: 'pending',
+                    status: 'approved',
                     peerReviewsAssigned: 0,
                 }),
                 ref: {
@@ -172,6 +214,16 @@ describe('Training Platform Integration Tests', () => {
                 set: jest.fn().mockResolvedValue(undefined),
             };
 
+            const mockPeerReviewsCountGet = jest.fn().mockResolvedValue({
+                data: () => ({ count: 0 }),
+            });
+            const mockPeerReviewsQuery = {
+                where: jest.fn().mockReturnThis(),
+                count: jest.fn().mockReturnValue({ get: mockPeerReviewsCountGet }),
+            };
+
+            const mockReviewerProgressUpdate = jest.fn().mockResolvedValue(undefined);
+
             (getAdminFirestore as jest.Mock).mockReturnValue({
                 collection: jest.fn((name: string) => {
                     if (name === 'trainingSubmissions') {
@@ -184,6 +236,18 @@ describe('Training Platform Integration Tests', () => {
                     if (name === 'peerReviews') {
                         return {
                             doc: jest.fn(() => mockReviewRef),
+                            where: jest.fn().mockReturnValue(mockPeerReviewsQuery),
+                        };
+                    }
+                    if (name === 'users') {
+                        return {
+                            doc: jest.fn().mockReturnValue({
+                                collection: jest.fn().mockReturnValue({
+                                    doc: jest.fn().mockReturnValue({
+                                        update: mockReviewerProgressUpdate,
+                                    }),
+                                }),
+                            }),
                         };
                     }
                     return {};
@@ -230,9 +294,15 @@ describe('Training Platform Integration Tests', () => {
                 get: jest.fn().mockResolvedValue({
                     exists: true,
                     data: () => mockProgress,
+                    ref: undefined as any, // set below
                 }),
                 update: jest.fn().mockResolvedValue(undefined),
             };
+            (mockProgressRef.get as jest.Mock).mockResolvedValue({
+                exists: true,
+                data: () => mockProgress,
+                ref: mockProgressRef,
+            });
 
             const mockCohortGet = jest.fn().mockResolvedValue({
                 exists: true,
@@ -446,9 +516,11 @@ describe('Training Platform Integration Tests', () => {
                     id: 'sub-123',
                     userId: 'author-user',
                     cohortId: 'test-cohort',
+                    challengeId: 'week1-ch1',
+                    status: 'approved',
                     peerReviewsAssigned: 0,
                 }),
-                ref: { update: jest.fn() },
+                ref: { update: jest.fn().mockResolvedValue(undefined) },
             };
 
             const mockProgressSnapshot = {
@@ -462,6 +534,16 @@ describe('Training Platform Integration Tests', () => {
                     },
                 })),
             };
+
+            const mockPeerReviewsCountGet = jest.fn().mockResolvedValue({
+                data: () => ({ count: 0 }),
+            });
+            const mockPeerReviewsQuery = {
+                where: jest.fn().mockReturnThis(),
+                count: jest.fn().mockReturnValue({ get: mockPeerReviewsCountGet }),
+            };
+
+            const mockReviewerProgressUpdate = jest.fn().mockResolvedValue(undefined);
 
             (getAdminFirestore as jest.Mock).mockReturnValue({
                 collection: jest.fn((name: string) => {
@@ -478,6 +560,18 @@ describe('Training Platform Integration Tests', () => {
                                 id: `review-${Math.random()}`,
                                 set: jest.fn(),
                             })),
+                            where: jest.fn().mockReturnValue(mockPeerReviewsQuery),
+                        };
+                    }
+                    if (name === 'users') {
+                        return {
+                            doc: jest.fn().mockReturnValue({
+                                collection: jest.fn().mockReturnValue({
+                                    doc: jest.fn().mockReturnValue({
+                                        update: mockReviewerProgressUpdate,
+                                    }),
+                                }),
+                            }),
                         };
                     }
                     return {};

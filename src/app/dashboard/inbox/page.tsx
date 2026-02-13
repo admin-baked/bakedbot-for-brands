@@ -33,13 +33,15 @@ function InboxContent() {
     const viewMode = useInboxStore((state) => state.viewMode);
     const { role } = useUserRole();
 
+    const isSuper = role === 'super_user' || role === 'super_admin';
+
     // Determine role for chat component
     const chatRole = role === 'brand' || role === 'brand_admin' || role === 'brand_member'
         ? 'brand'
         : role === 'dispensary' || role === 'dispensary_admin' || role === 'dispensary_staff'
         ? 'dispensary'
-        : role === 'super_user'
-        ? 'super_user'
+        : isSuper
+        ? 'super_admin'
         : 'customer';
 
     return (
@@ -87,7 +89,7 @@ function InboxContent() {
                                 showHeader={true}
                                 height="h-full"
                                 isAuthenticated={true}
-                                isSuperUser={role === 'super_user'}
+                                isSuperUser={isSuper}
                             />
                         </motion.div>
                     )}

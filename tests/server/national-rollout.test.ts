@@ -63,12 +63,17 @@ jest.mock('next/headers', () => ({
 }));
 
 // Mock pricing config
-jest.mock('@/lib/config/pricing', () => ({
-    PRICING_PLANS: [
+jest.mock('@/lib/config/pricing', () => {
+    const PRICING_PLANS = [
         { id: 'claim-pro', name: 'Claim Pro', price: 99, features: [] },
         { id: 'founders-claim', name: 'Founders Claim', price: 79, features: [] }
-    ]
-}));
+    ];
+
+    return {
+        PRICING_PLANS,
+        findPricingPlan: (planId: string) => PRICING_PLANS.find(p => p.id === planId),
+    };
+});
 
 // Setup global fetch mock
 global.fetch = jest.fn();

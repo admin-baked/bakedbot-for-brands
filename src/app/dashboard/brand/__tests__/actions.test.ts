@@ -81,7 +81,7 @@ describe('getBrandDashboardData', () => {
         });
 
         // Mock Dispensaries (coverage count)
-        (dispensaryActions.getBrandDispensaries as jest.Mock).mockResolvedValue([{ id: 'r1' }, { id: 'r2' }]);
+        (dispensaryActions.getBrandDispensaries as jest.Mock).mockResolvedValue({ partners: [{ id: 'r1' }, { id: 'r2' }] });
 
         const result = await getBrandDashboardData('brand1');
 
@@ -119,7 +119,7 @@ describe('getBrandDashboardData', () => {
         });
 
         // Mock empty dispensaries
-        (dispensaryActions.getBrandDispensaries as jest.Mock).mockResolvedValue([]);
+        (dispensaryActions.getBrandDispensaries as jest.Mock).mockResolvedValue({ partners: [] });
 
         const result = await getBrandDashboardData('brand1');
 
@@ -148,7 +148,7 @@ describe('getNextBestActions', () => {
         });
         
         // Mock dispensaries exist
-        (dispensaryActions.getBrandDispensaries as jest.Mock).mockResolvedValue([{ id: 'd1' }]);
+        (dispensaryActions.getBrandDispensaries as jest.Mock).mockResolvedValue({ partners: [{ id: 'd1' }] });
         
         // Mock Firestore for competitors and playbooks
         mockFirestore.collection.mockImplementation((collectionName: string) => {
@@ -186,7 +186,7 @@ describe('getNextBestActions', () => {
         });
         
         // Mock no dispensaries
-        (dispensaryActions.getBrandDispensaries as jest.Mock).mockResolvedValue([]);
+        (dispensaryActions.getBrandDispensaries as jest.Mock).mockResolvedValue({ partners: [] });
         
         mockFirestore.collection.mockImplementation(() => ({
             doc: jest.fn().mockReturnValue({
@@ -217,7 +217,7 @@ describe('getNextBestActions', () => {
         });
         
         // Mock dispensaries exist
-        (dispensaryActions.getBrandDispensaries as jest.Mock).mockResolvedValue([{ id: 'd1' }]);
+        (dispensaryActions.getBrandDispensaries as jest.Mock).mockResolvedValue({ partners: [{ id: 'd1' }] });
         
         // Mock everything is set up
         mockFirestore.collection.mockImplementation((collectionName: string) => {
@@ -258,7 +258,7 @@ describe('getNextBestActions', () => {
         });
         
         // Mock no dispensaries (high priority)
-        (dispensaryActions.getBrandDispensaries as jest.Mock).mockResolvedValue([]);
+        (dispensaryActions.getBrandDispensaries as jest.Mock).mockResolvedValue({ partners: [] });
         
         // Mock no competitors (medium priority)
         mockFirestore.collection.mockImplementation(() => ({
@@ -290,7 +290,7 @@ describe('getNextBestActions', () => {
         (productRepo.makeProductRepo as jest.Mock).mockReturnValue({
             getAllByBrand: jest.fn().mockResolvedValue([])
         });
-        (dispensaryActions.getBrandDispensaries as jest.Mock).mockResolvedValue([]);
+        (dispensaryActions.getBrandDispensaries as jest.Mock).mockResolvedValue({ partners: [] });
         
         mockFirestore.collection.mockImplementation((collectionName: string) => {
             if (collectionName === 'organizations') {

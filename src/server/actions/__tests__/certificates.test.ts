@@ -2,19 +2,48 @@
  * Certificate Server Actions - Unit Tests
  */
 
-import { describe, expect, it, jest, beforeEach } from '@jest/globals';
-import { generateCertificate, verifyCertificate, checkMyCertificateEligibility, getMyCertificate } from '../certificates';
+import { beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { UserTrainingProgress, CertificateMetadata } from '@/types/training';
 import { Timestamp } from '@google-cloud/firestore';
 
 // Mock dependencies
-jest.mock('@/server/auth/auth');
-jest.mock('@/firebase/admin');
-jest.mock('firebase-admin/storage');
-jest.mock('@/lib/certificates/generator');
-jest.mock('@/lib/logger');
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn(),
+}));
+jest.mock('@/firebase/admin', () => ({
+    getAdminFirestore: jest.fn(),
+}));
+jest.mock('firebase-admin/storage', () => ({
+    getStorage: jest.fn(),
+}));
+jest.mock('@/lib/certificates/generator', () => ({
+    generateCertificatePDF: jest.fn(),
+    checkCertificateEligibility: jest.fn(),
+    createCertificateMetadata: jest.fn(),
+}));
+jest.mock('@/lib/logger', () => ({
+    logger: {
+        error: jest.fn(),
+        warn: jest.fn(),
+        info: jest.fn(),
+        debug: jest.fn(),
+    },
+}));
+
+let generateCertificate: typeof import('../certificates').generateCertificate;
+let verifyCertificate: typeof import('../certificates').verifyCertificate;
+let checkMyCertificateEligibility: typeof import('../certificates').checkMyCertificateEligibility;
+let getMyCertificate: typeof import('../certificates').getMyCertificate;
 
 describe('Certificate Server Actions', () => {
+    beforeAll(async () => {
+        const mod = await import('../certificates');
+        generateCertificate = mod.generateCertificate;
+        verifyCertificate = mod.verifyCertificate;
+        checkMyCertificateEligibility = mod.checkMyCertificateEligibility;
+        getMyCertificate = mod.getMyCertificate;
+    });
+
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -170,7 +199,8 @@ describe('Certificate Server Actions', () => {
                 totalSubmissions: 40,
                 acceptedSubmissions: 35,
                 weeklyProgress: [],
-                certificateEarned: false,
+                certificateEarned: true,
+                certificateUrl: 'https://storage.googleapis.com/bucket/cert-other.pdf',
                 lastActivityAt: Timestamp.now(),
                 status: 'completed',
                 reviewsCompleted: 10,
@@ -194,12 +224,6 @@ describe('Certificate Server Actions', () => {
                         }),
                     }),
                 }),
-            });
-
-            const { checkCertificateEligibility } = await import('@/lib/certificates/generator');
-            (checkCertificateEligibility as jest.Mock).mockReturnValue({
-                eligible: true,
-                reasons: [],
             });
 
             const result = await generateCertificate('other-user');

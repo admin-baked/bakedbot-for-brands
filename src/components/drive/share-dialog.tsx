@@ -38,7 +38,8 @@ export function ShareDialog() {
   const { isShareDialogOpen, closeShareDialog, selectedItems, files, folders } = useDriveStore();
   const { toast } = useToast();
 
-  const [accessControl, setAccessControl] = useState<DriveAccessControl>('link-only');
+  // Default to "Specific people" so Super Users can immediately invite by email.
+  const [accessControl, setAccessControl] = useState<DriveAccessControl>('users-only');
   const [accessLevel, setAccessLevel] = useState<DriveAccessLevel>('view');
   const [inviteInput, setInviteInput] = useState('');
   const [allowedUsers, setAllowedUsers] = useState<Array<{ email: string; accessLevel: DriveAccessLevel }>>([]);
@@ -146,7 +147,7 @@ export function ShareDialog() {
   };
 
   const handleClose = () => {
-    setAccessControl('link-only');
+    setAccessControl('users-only');
     setAccessLevel('view');
     setInviteInput('');
     setAllowedUsers([]);

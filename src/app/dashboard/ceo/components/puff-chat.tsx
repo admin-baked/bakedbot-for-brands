@@ -474,8 +474,16 @@ export function PuffChat({
     } as any));
 
     const hasMessages = displayMessages.length > 0;
-    // Use prop or fallback
-    const suggestions = promptSuggestions || ["Draft a New Drop", "Audit my Brand", "Pricing Plans", "Check System Health"];
+    // Use role-aware defaults unless explicitly overridden.
+    const defaultSuggestions = isSuperUser
+        ? [
+            "Show platform health metrics",
+            "Generate weekly KPI report (MRR, ARR, WAU)",
+            "List recent signups + plan mix",
+            "Run a compliance scan across active orgs",
+        ]
+        : ["Draft a New Drop", "Audit my Brand", "Pricing Plans", "Check System Health"];
+    const suggestions = promptSuggestions || defaultSuggestions;
 
     // Input Area JSX
     const InputArea = (

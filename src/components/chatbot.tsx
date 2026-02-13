@@ -174,7 +174,7 @@ const ChatWindow = ({
   setIsBotTyping: (value: boolean) => void;
   botName?: string;
 }) => {
-  const { chatExperience } = useStore();
+  const { chatExperience, addToCart, setCartSheetOpen } = useStore();
   const pathname = usePathname();
 
   return (
@@ -350,7 +350,7 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [hasStartedChat, setHasStartedChat] = useState(false);
-  const { chatExperience, addToCart, selectedRetailerId } = useStore();
+  const { chatExperience, addToCart, selectedRetailerId, setCartSheetOpen } = useStore();
   const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -576,6 +576,29 @@ export default function Chatbot({ products = [], brandId = "", dispensaryId, ent
       // Store session ID from response
       if (data.sessionId) {
         setSessionId(data.sessionId);
+      }
+
+      // Handle Client Actions (e.g. Quick Checkout)
+      if (data.clientAction && data.clientAction.type === 'checkout') {
+        // 1. Add products to cart
+        if (data.clientAction.products && Array.isArray(data.clientAction.products)) {
+          data.clientAction.products.forEach((p: any) => {
+            addToCart({
+              id: p.id || p.cann_sku_id,
+              name: p.name || p.product_name,
+              price: p.price || p.latest_price,
+              imageUrl: p.imageUrl || p.image_url,
+              category: p.category,
+              brandId: p.brandId || effectiveBrandId || 'unknown',
+              description: p.description,
+              thcPercent: p.thcPercent,
+              cbdPercent: p.cbdPercent,
+            } as Product, effectiveDispensaryId || 'unknown');
+          });
+        }
+
+        // 2. Open Cart Sheet
+        setCartSheetOpen(true);
       }
 
       if (data.ok && data.products && data.products.length > 0) {

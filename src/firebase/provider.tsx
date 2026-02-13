@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, ReactNode, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, ReactNode, useEffect, useState, useMemo, useRef } from 'react';
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth, User } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
@@ -33,6 +33,43 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
   const [isUserLoading, setIsUserLoading] = useState(true);
   const [userError, setUserError] = useState<Error | null>(null);
   const setFavoriteRetailerId = useStore(state => state.setFavoriteRetailerId);
+  const isEnsuringServerSessionRef = useRef(false);
+
+  const ensureServerSessionCookie = async (firebaseUser: User) => {
+    // Only run in the browser.
+    if (typeof document === 'undefined') return;
+
+    // __session is httpOnly, so we use a companion flag cookie set by /api/auth/session.
+    const hasActiveServerSession = document.cookie.split('; ').some((c) => c.startsWith('__session_is_active=true'));
+    if (hasActiveServerSession) return;
+
+    // Prevent concurrent calls (onIdTokenChanged can fire multiple times).
+    if (isEnsuringServerSessionRef.current) return;
+    isEnsuringServerSessionRef.current = true;
+
+    try {
+      const idToken = await firebaseUser.getIdToken();
+      const response = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const details = await response.text().catch(() => '');
+        logger.warn('[FirebaseProvider] Failed to create server session cookie', {
+          status: response.status,
+          details: details?.slice?.(0, 200) || details,
+        });
+      }
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      logger.warn('[FirebaseProvider] Failed to ensure server session cookie', error);
+    } finally {
+      isEnsuringServerSessionRef.current = false;
+    }
+  };
 
   useEffect(() => {
     if (!auth) {
@@ -45,6 +82,10 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
       async (user) => {
         try {
           if (user) {
+            // Ensure the server-side session cookie exists so Server Components/Actions don't
+            // unexpectedly redirect authenticated users to login when the cookie expires.
+            await ensureServerSessionCookie(user);
+
             // Don't force refresh on initial token change - can cause auth/internal-error
             // with custom tokens immediately after login
             let idTokenResult;

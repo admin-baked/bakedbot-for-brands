@@ -6,6 +6,7 @@
  * Header with title, search, category filter tabs, and new playbook button.
  */
 
+import type { ReactNode } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Plus } from 'lucide-react';
@@ -18,7 +19,8 @@ interface PlaybooksHeaderProps {
     onSearchChange: (query: string) => void;
     activeFilter: PlaybookFilterCategory;
     onFilterChange: (filter: PlaybookFilterCategory) => void;
-    onNewPlaybook: () => void;
+    onNewPlaybook?: () => void;
+    newPlaybookButton?: ReactNode;
 }
 
 const FILTERS: PlaybookFilterCategory[] = ['All', 'Intel', 'SEO', 'Ops', 'Finance', 'Compliance'];
@@ -29,6 +31,7 @@ export function PlaybooksHeader({
     activeFilter,
     onFilterChange,
     onNewPlaybook,
+    newPlaybookButton,
 }: PlaybooksHeaderProps) {
     return (
         <div className="space-y-6">
@@ -71,13 +74,16 @@ export function PlaybooksHeader({
                 </div>
 
                 {/* New Playbook Button */}
-                <Button
-                    onClick={onNewPlaybook}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-2"
-                >
-                    <Plus className="w-5 h-5" />
-                    New Playbook
-                </Button>
+                {newPlaybookButton ?? (
+                    <Button
+                        onClick={onNewPlaybook}
+                        disabled={!onNewPlaybook}
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-2"
+                    >
+                        <Plus className="w-5 h-5" />
+                        New Playbook
+                    </Button>
+                )}
             </div>
         </div>
     );

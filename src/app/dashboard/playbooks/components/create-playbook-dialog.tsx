@@ -76,6 +76,7 @@ interface CreatePlaybookDialogProps {
     onCloneTemplate: (templateId: string) => void;
     onCreateFromNaturalLanguage?: (prompt: string) => Promise<void>;
     existingPlaybooks?: Playbook[];
+    trigger?: React.ReactElement;
 }
 
 export function CreatePlaybookDialog({
@@ -83,6 +84,7 @@ export function CreatePlaybookDialog({
     onCloneTemplate,
     onCreateFromNaturalLanguage,
     existingPlaybooks = [],
+    trigger,
 }: CreatePlaybookDialogProps) {
     const [open, setOpen] = useState(false);
     const [tab, setTab] = useState<'scratch' | 'template' | 'ai'>('scratch');
@@ -132,10 +134,12 @@ export function CreatePlaybookDialog({
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Playbook
-                </Button>
+                {trigger ?? (
+                    <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Playbook
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>

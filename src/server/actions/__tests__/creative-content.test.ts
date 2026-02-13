@@ -48,6 +48,15 @@ jest.mock('@/server/agents/deebo', () => ({
     }
 }));
 
+jest.mock('@/lib/qr/creative-qr', () => ({
+    generateCreativeQR: jest.fn().mockResolvedValue({
+        success: true,
+        qrDataUrl: 'data:image/png;base64,MOCK_QR',
+        qrSvg: '<svg><!-- mock qr --></svg>',
+        contentUrl: 'https://bakedbot.ai/creative/mock-content',
+    }),
+}));
+
 jest.mock('@/lib/logger', () => ({
     logger: {
         info: jest.fn(),

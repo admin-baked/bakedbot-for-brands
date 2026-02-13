@@ -308,7 +308,7 @@ async function executeGenerate(
  * Fetch deals from POS or dynamic pricing rules
  * Action: fetch_deals
  */
-async function executeFetchDeals(
+export async function executeFetchDeals(
     step: any,
     context: ExecutionContext
 ): Promise<any> {
@@ -357,7 +357,7 @@ async function executeFetchDeals(
  * Generate a video using Veo or Sora with cost tracking
  * Action: generate_video
  */
-async function executeGenerateVideo(
+export async function executeGenerateVideo(
     step: any,
     context: ExecutionContext
 ): Promise<any> {
@@ -472,7 +472,7 @@ async function executeGenerateVideo(
  * Generate a caption for social media content
  * Action: generate_caption
  */
-async function executeGenerateCaption(
+export async function executeGenerateCaption(
     step: any,
     context: ExecutionContext
 ): Promise<any> {
@@ -530,7 +530,7 @@ async function executeGenerateCaption(
  * Generate an image using Nano Banana with cost tracking
  * Action: generate_image
  */
-async function executeGenerateImage(
+export async function executeGenerateImage(
     step: any,
     context: ExecutionContext
 ): Promise<any> {
@@ -618,7 +618,7 @@ async function executeGenerateImage(
  * Submit content to approval queue
  * Action: submit_approval
  */
-async function executeSubmitApproval(
+export async function executeSubmitApproval(
     step: any,
     context: ExecutionContext
 ): Promise<any> {

@@ -9,7 +9,7 @@ jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn()
 }));
 
-// ai usage is mocked via tests/__mocks__/genkit.ts (mapped in jest.config.js)
+// ai usage is mocked via tests/__mocks__/ai-genkit.ts (mapped in jest.config.js)
 // BUT we also mock it here to control behavior for this test?
 // If we mock it here, it overrides the global mock.
 jest.mock('@/ai/genkit', () => ({

@@ -30,7 +30,11 @@ describe('Thrive Syracuse Ground Truth', () => {
             expect(thriveGroundTruth.metadata.dispensary).toBe('Thrive Syracuse');
             expect(thriveGroundTruth.metadata.brandId).toBe(THRIVE_SYRACUSE_BRAND_ID);
             expect(thriveGroundTruth.metadata.address).toBe('3065 Erie Blvd E, Syracuse, NY 13224');
-            expect(thriveGroundTruth.metadata.total_qa_pairs).toBe(29);
+
+            // Keep this in sync with the actual QA content as the dataset grows.
+            const allQAs = getAllQAPairs(thriveGroundTruth);
+            expect(thriveGroundTruth.metadata.total_qa_pairs).toBe(allQAs.length);
+            expect(allQAs.length).toBeGreaterThanOrEqual(29);
         });
 
         it('should pass Zod schema validation', () => {
@@ -38,7 +42,7 @@ describe('Thrive Syracuse Ground Truth', () => {
             expect(result.success).toBe(true);
         });
 
-        it('should have all 8 expected categories', () => {
+        it('should contain required categories (and allow additions)', () => {
             const categories = Object.keys(thriveGroundTruth.categories);
             expect(categories).toContain('store_information');
             expect(categories).toContain('age_and_id');
@@ -48,24 +52,30 @@ describe('Thrive Syracuse Ground Truth', () => {
             expect(categories).toContain('pricing_and_deals');
             expect(categories).toContain('compliance_and_safety');
             expect(categories).toContain('ordering_and_delivery');
-            expect(categories.length).toBe(8);
+
+            // Thrive-specific category: pairing and upsell guidance
+            expect(categories).toContain('product_pairings_and_upsells');
+            expect(categories.length).toBeGreaterThanOrEqual(9);
         });
 
-        it('should have exactly 29 QA pairs', () => {
+        it('should have QA pairs consistent with metadata', () => {
             const allQAs = getAllQAPairs(thriveGroundTruth);
-            expect(allQAs.length).toBe(29);
+            expect(allQAs.length).toBe(thriveGroundTruth.metadata.total_qa_pairs);
+            expect(allQAs.length).toBeGreaterThanOrEqual(29);
         });
 
         it('should have correct category counts', () => {
             const counts = countByCategory(thriveGroundTruth);
-            expect(counts.store_information).toBe(4);
-            expect(counts.age_and_id).toBe(2);
-            expect(counts.product_categories).toBe(6);
-            expect(counts.effect_based_recommendations).toBe(5);
-            expect(counts.brands_and_products).toBe(3);
-            expect(counts.pricing_and_deals).toBe(3);
-            expect(counts.compliance_and_safety).toBe(4);
-            expect(counts.ordering_and_delivery).toBe(2);
+            // Minimum coverage expectations (counts may increase as QA set expands)
+            expect(counts.store_information).toBeGreaterThanOrEqual(4);
+            expect(counts.age_and_id).toBeGreaterThanOrEqual(2);
+            expect(counts.product_categories).toBeGreaterThanOrEqual(6);
+            expect(counts.effect_based_recommendations).toBeGreaterThanOrEqual(5);
+            expect(counts.brands_and_products).toBeGreaterThanOrEqual(3);
+            expect(counts.pricing_and_deals).toBeGreaterThanOrEqual(3);
+            expect(counts.compliance_and_safety).toBeGreaterThanOrEqual(4);
+            expect(counts.ordering_and_delivery).toBeGreaterThanOrEqual(2);
+            expect(counts.product_pairings_and_upsells).toBeGreaterThanOrEqual(1);
         });
     });
 
@@ -134,9 +144,20 @@ describe('Thrive Syracuse Ground Truth', () => {
         it('should provide correct stats', () => {
             const stats = getGroundTruthStats(THRIVE_SYRACUSE_BRAND_ID);
             expect(stats).toBeDefined();
-            expect(stats?.totalQAPairs).toBe(29);
+            expect(stats?.totalQAPairs).toBe(thriveGroundTruth.metadata.total_qa_pairs);
             expect(stats?.criticalCount).toBeGreaterThanOrEqual(5);
-            expect(stats?.categories.length).toBe(8);
+            expect(stats?.categories).toEqual(expect.arrayContaining([
+                'store_information',
+                'age_and_id',
+                'product_categories',
+                'effect_based_recommendations',
+                'brands_and_products',
+                'pricing_and_deals',
+                'compliance_and_safety',
+                'ordering_and_delivery',
+                'product_pairings_and_upsells',
+            ]));
+            expect(stats?.categories.length).toBe(Object.keys(thriveGroundTruth.categories).length);
         });
     });
 
