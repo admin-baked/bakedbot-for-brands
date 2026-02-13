@@ -8,7 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { verifySuperAdmin } from '@/server/utils/auth-check';
-import { runAgentChat } from '@/app/dashboard/ceo/agents/actions';
+import { linusAgent } from '@/server/agents/linus';
+import { runAgent } from '@/server/agents/harness';
 import { z } from 'zod';
 
 // Force dynamic rendering - prevents build-time evaluation of agent dependencies
@@ -70,11 +71,15 @@ export async function POST(request: NextRequest) {
             autoFix: data.autoFix
         });
 
-        // Dispatch to Linus
-        const result = await runAgentChat(prompt, 'linus', {
-            source: 'api_fix',
-            priority: data.priority,
-            modelLevel: data.priority === 'critical' ? 'genius' : 'standard'
+        // Dispatch to Linus using agent harness directly
+        const result = await runAgent({
+            agent: linusAgent,
+            userId: 'system',
+            userMessage: prompt,
+            options: {
+                source: 'api_fix',
+                priority: data.priority === 'critical' ? 'high' : 'medium'
+            }
         });
 
         return NextResponse.json({
