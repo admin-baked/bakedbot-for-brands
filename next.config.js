@@ -13,6 +13,18 @@ const nextConfig = {
   },
   output: 'standalone',
   reactStrictMode: true,
+
+  // Build performance optimizations
+  productionBrowserSourceMaps: false,  // Disable source maps - saves memory and time
+  swcMinify: true,                     // Use fast SWC minifier (default in Next.js 13+)
+
+  // Reduce compilation overhead
+  modularizeImports: {
+    // Tree-shake large libraries more aggressively
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{member}}',
+    },
+  },
   images: {
     remotePatterns: [
       {
@@ -73,6 +85,10 @@ const nextConfig = {
     // Reduce concurrent page compilations to prevent memory spikes
     workerThreads: false,
     cpus: 1,
+    // Optimize CSS handling
+    optimizeCss: false,  // Skip CSS optimization to save memory
+    // Improve build performance
+    optimizeServerReact: true,  // Optimize React server components
   },
   // Turbopack configuration (required in Next.js 16 if webpack config is present)
   // Empty config acknowledges we're using Turbopack with default settings
@@ -130,8 +146,14 @@ const nextConfig = {
     // With 204 pages, parallel compilation causes OOM
     config.parallelism = 1;
 
-    // Disable caching during build to reduce memory usage
-    config.cache = false;
+    // Re-enable filesystem cache with memory limits to speed up builds
+    // Use conservative memory budget to prevent OOM while getting cache benefits
+    config.cache = {
+      type: 'filesystem',
+      compression: 'gzip',  // Compress cache to save memory
+      maxMemoryGenerations: 1,  // Only keep 1 generation in memory
+      maxAge: 1000 * 60 * 60 * 24 * 7,  // 7 days
+    };
 
     return config;
   },
