@@ -58,6 +58,9 @@ interface AgentChatState {
     currentRole: string | null;
     currentProjectId: string | null; // Active project context
 
+    // Ephemeral cross-navigation prompt queue (do not persist).
+    queuedPrompt: string | null;
+
     // Artifact State
     currentArtifacts: Artifact[];
     activeArtifactId: string | null;
@@ -66,6 +69,8 @@ interface AgentChatState {
     // Actions
     setCurrentRole: (role: string) => void;
     setCurrentProject: (projectId: string | null) => void;
+    queuePrompt: (prompt: string) => void;
+    clearQueuedPrompt: () => void;
     createSession: (firstMessage?: ChatMessage, role?: string) => void;
     setActiveSession: (sessionId: string) => void;
     addMessage: (message: ChatMessage) => void;
@@ -89,12 +94,15 @@ export const useAgentChatStore = create<AgentChatState>()(
             currentMessages: [],
             currentRole: null,
             currentProjectId: null,
+            queuedPrompt: null,
             currentArtifacts: [] as Artifact[],
             activeArtifactId: null,
             isArtifactPanelOpen: false,
 
             setCurrentRole: (role) => set({ currentRole: role }),
             setCurrentProject: (projectId) => set({ currentProjectId: projectId }),
+            queuePrompt: (prompt) => set({ queuedPrompt: prompt }),
+            clearQueuedPrompt: () => set({ queuedPrompt: null }),
 
             // Artifact Actions
             addArtifact: (artifact: Artifact) => {
