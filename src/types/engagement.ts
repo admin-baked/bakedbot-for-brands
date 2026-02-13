@@ -322,6 +322,7 @@ export const DEFAULT_AUTORESPONDER_EMAILS: Partial<AutoresponderEmail>[] = [
 
 export const DEFAULT_BADGES: Partial<Badge>[] = [
     {
+        id: 'first_chat',
         name: 'First Steps',
         description: 'Made your first agent request',
         category: 'usage',
@@ -330,6 +331,7 @@ export const DEFAULT_BADGES: Partial<Badge>[] = [
         pointsAwarded: 10
     },
     {
+        id: 'automation_wizard',
         name: 'Automation Wizard',
         description: 'Created 5 playbooks',
         category: 'mastery',
@@ -338,6 +340,7 @@ export const DEFAULT_BADGES: Partial<Badge>[] = [
         pointsAwarded: 50
     },
     {
+        id: 'social_butterfly',
         name: 'Social Butterfly',
         description: 'Referred 3 friends',
         category: 'social',
@@ -346,6 +349,7 @@ export const DEFAULT_BADGES: Partial<Badge>[] = [
         pointsAwarded: 100
     },
     {
+        id: 'streak_master',
         name: 'Streak Master',
         description: 'Used BakedBot 30 days in a row',
         category: 'milestone',
@@ -354,6 +358,7 @@ export const DEFAULT_BADGES: Partial<Badge>[] = [
         pointsAwarded: 200
     },
     {
+        id: 'influencer',
         name: 'Influencer',
         description: 'Shared an artifact that got 100+ views',
         category: 'social',

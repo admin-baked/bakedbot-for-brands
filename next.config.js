@@ -67,13 +67,9 @@ const nextConfig = {
     // This avoids duplicate TS compilation and memory issues in Firebase builds
     ignoreBuildErrors: true,
   },
-  // Explicitly disable Turbopack - force webpack for production builds
-  turbo: false,
   experimental: {
     // Reduce webpack memory usage during builds (helps avoid OOM on Firebase App Hosting)
     webpackMemoryOptimizations: true,
-    // Explicitly disable Turbopack experimental features
-    turbo: false,
   },
   webpack: (config, { isServer }) => {
     // Webpack-specific optimizations for large codebases

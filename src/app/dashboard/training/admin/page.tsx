@@ -34,7 +34,7 @@ export default async function TrainingAdminPage() {
                 } : error,
                 timestamp: new Date().toISOString(),
             });
-            redirect('/dashboard');
+            redirect('/super-admin');
         }
 
         const db = getAdminFirestore();

@@ -109,7 +109,7 @@ describe('GamificationService', () => {
             mockDb.get = jest.fn().mockResolvedValue(mockUserBadgeDoc);
             mockDb.set = jest.fn().mockResolvedValue(undefined);
 
-            const result = await GamificationService.checkBadges('user123', 'chat_count', 1);
+            const result = await GamificationService.checkBadges('user123', 'agent_calls', 1);
 
             expect(result.length).toBeGreaterThan(0);
             expect(result[0].id).toBe('first_chat');
@@ -119,7 +119,7 @@ describe('GamificationService', () => {
             const mockUserBadgeDoc = { exists: true };
             mockDb.get = jest.fn().mockResolvedValue(mockUserBadgeDoc);
 
-            const result = await GamificationService.checkBadges('user123', 'chat_count', 1);
+            const result = await GamificationService.checkBadges('user123', 'agent_calls', 1);
 
             expect(result.length).toBe(0);
         });

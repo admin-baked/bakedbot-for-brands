@@ -165,11 +165,12 @@ export async function proxy(request: NextRequest) {
     if (isCeoDashboard) {
         if (!sessionCookie) {
             const url = request.nextUrl.clone();
-            url.pathname = '/brand-login';
-            url.searchParams.set('redirect', pathname);
+            // CEO dashboard is a platform-level workspace; send to Super Admin login.
+            url.pathname = '/super-admin';
+            url.searchParams.set('redirect', pathname + request.nextUrl.search);
             return NextResponse.redirect(url);
         }
-        // Note: Actual role verification will happen in the page component via requireUser(['owner'])
+        // Note: Actual role verification happens in the /dashboard/ceo layout via requireSuperUser().
     }
 
     // Redirect to login if no session cookie on other protected routes
