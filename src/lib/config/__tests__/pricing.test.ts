@@ -118,6 +118,10 @@ describe('Legacy Plan Aliases', () => {
         expect(LEGACY_PLAN_ALIASES['pro_25']).toBe('growth');
     });
 
+    it('maps custom_25 to custom_25', () => {
+        expect(LEGACY_PLAN_ALIASES['custom_25']).toBe('custom_25');
+    });
+
     it('maps enterprise to empire', () => {
         expect(LEGACY_PLAN_ALIASES['enterprise']).toBe('empire');
     });
@@ -191,6 +195,13 @@ describe('findPricingPlan', () => {
             const plan = findPricingPlan('enterprise');
             expect(plan).toBeDefined();
             expect(plan?.id).toBe('empire');
+        });
+
+        it('resolves custom_25 to custom_25 plan', () => {
+            const plan = findPricingPlan('custom_25');
+            expect(plan).toBeDefined();
+            expect(plan?.id).toBe('custom_25');
+            expect(plan?.price).toBe(25);
         });
     });
 

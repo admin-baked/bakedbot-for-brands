@@ -2,9 +2,9 @@
 
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue, DocumentReference, type DocumentData } from 'firebase-admin/firestore';
-import { createTransaction } from '@/lib/authorize-net';
 import { logger } from '@/lib/logger';
 import { PRICING_PLANS } from '@/lib/config/pricing';
+import { createCustomerProfile, createSubscriptionFromProfile } from '@/lib/payments/authorize-net';
 
 type CreateSubscriptionInput = {
     planId: string;
@@ -17,6 +17,24 @@ type CreateSubscriptionInput = {
     couponCode?: string;
 };
 
+function normalizeExpiry(expirationDate?: string): string | undefined {
+    if (!expirationDate) return undefined;
+    const trimmed = expirationDate.trim();
+
+    // Already in YYYY-MM format
+    if (/^\d{4}-\d{2}$/.test(trimmed)) return trimmed;
+
+    // Convert MM/YY -> YYYY-MM for Authorize.Net
+    const mmYy = trimmed.match(/^(\d{2})\/(\d{2})$/);
+    if (mmYy) {
+        const month = mmYy[1];
+        const year = `20${mmYy[2]}`;
+        return `${year}-${month}`;
+    }
+
+    return trimmed;
+}
+
 function asDate(value: any): Date | null {
     if (!value) return null;
     if (value instanceof Date) return value;
@@ -28,7 +46,29 @@ function asDate(value: any): Date | null {
 
 export async function createSubscription(input: CreateSubscriptionInput) {
     try {
-        const { firestore } = await createServerClient();
+        let firestore: any = null;
+        // In local/dev we default to bypassing Firebase Admin unless explicitly enabled.
+        // Set LOCAL_CHECKOUT_USE_FIREBASE=true to force real Firestore writes locally.
+        let localDevNoFirestore =
+            process.env.NODE_ENV !== 'production' &&
+            process.env.LOCAL_CHECKOUT_USE_FIREBASE !== 'true';
+
+        if (!localDevNoFirestore) {
+            try {
+                const serverClient = await createServerClient();
+                firestore = serverClient.firestore;
+            } catch (firebaseError) {
+                // Local/dev fallback: allow checkout flow testing without Firebase Admin credentials.
+                if (process.env.NODE_ENV !== 'production') {
+                    localDevNoFirestore = true;
+                    logger.warn('createSubscription: Firebase unavailable in local/dev, using mock subscription fallback', {
+                        error: firebaseError instanceof Error ? firebaseError.message : String(firebaseError),
+                    });
+                } else {
+                    throw firebaseError;
+                }
+            }
+        }
 
         // 1. Validate Plan
         const plan = PRICING_PLANS.find(p => p.id === input.planId);
@@ -49,7 +89,7 @@ export async function createSubscription(input: CreateSubscriptionInput) {
         } | null = null;
         let couponRef: DocumentReference<DocumentData> | null = null;
 
-        if (input.couponCode) {
+        if (input.couponCode && !localDevNoFirestore) {
             const normalizedCode = input.couponCode.toUpperCase().trim();
             // Admin SDK uses fluent API: collection().where().limit().get()
             const couponsSnap = await firestore.collection('coupons')
@@ -86,7 +126,9 @@ export async function createSubscription(input: CreateSubscriptionInput) {
             }
 
             // Calculate discounted price
-            if (coupon.type === 'percentage') {
+            if (typeof coupon.overridePrice === 'number' && coupon.overridePrice >= 0 && plan.price > 0) {
+                finalPrice = Number(coupon.overridePrice.toFixed(2));
+            } else if (coupon.type === 'percentage') {
                 finalPrice = finalPrice - (finalPrice * (coupon.value / 100));
             } else {
                 finalPrice = Math.max(0, finalPrice - coupon.value);
@@ -97,13 +139,36 @@ export async function createSubscription(input: CreateSubscriptionInput) {
             discountApplied = {
                 code: coupon.code,
                 type: coupon.type,
-                value: coupon.value,
+                value: (typeof coupon.overridePrice === 'number' && coupon.overridePrice >= 0 && plan.price > 0)
+                    ? Math.max(0, Number((plan.price - finalPrice).toFixed(2)))
+                    : coupon.value,
                 originalPrice: plan.price,
             };
+        } else if (input.couponCode && localDevNoFirestore) {
+            const normalizedCode = input.couponCode.toUpperCase().trim();
+            if (normalizedCode === 'LAUNCH25' && plan.price > 0) {
+                finalPrice = 25;
+                discountApplied = {
+                    code: normalizedCode,
+                    type: 'fixed',
+                    value: Math.max(0, Number((plan.price - finalPrice).toFixed(2))),
+                    originalPrice: plan.price,
+                };
+            } else {
+                return { success: false, error: 'Invalid coupon code.' };
+            }
         }
 
+        const subscriptionRef = localDevNoFirestore
+            ? { id: `local_sub_${Date.now()}` }
+            : firestore.collection('subscriptions').doc();
+
         let transactionId = null;
-        let subscriptionStatus = 'active'; // Default to active for free plans
+        let providerSubscriptionId: string | null = null;
+        let customerProfileId: string | null = null;
+        let customerPaymentProfileId: string | null = null;
+        let subscriptionStartDate: string | null = null;
+        let subscriptionStatus = 'active';
 
         // 2. Process Initial Payment (if price > 0)
         if (finalPrice > 0 && !input.paymentData) {
@@ -111,36 +176,71 @@ export async function createSubscription(input: CreateSubscriptionInput) {
         }
 
         if (finalPrice > 0 && input.paymentData) {
-            logger.info('Processing subscription payment', { plan: plan.id, amount: finalPrice });
+            logger.info('Processing recurring subscription setup', { plan: plan.id, amount: finalPrice });
 
-            const paymentResult = await createTransaction({
-                amount: finalPrice,
-                // Opaque Data from Accept.js
-                opaqueData: input.paymentData.opaqueData,
-                // Fallback for raw card data (testing/backend)
-                cardNumber: input.paymentData.cardNumber,
-                expirationDate: input.paymentData.expirationDate,
-                cvv: input.paymentData.cvv,
-                customer: {
-                    email: input.customer.email,
-                    firstName: input.customer.name.split(' ')[0],
-                    lastName: input.customer.name.split(' ').slice(1).join(' '),
+            const hasAuthNetCreds = !!(process.env.AUTHNET_API_LOGIN_ID && process.env.AUTHNET_TRANSACTION_KEY);
+            const isProduction = process.env.NODE_ENV === 'production';
+            const shouldMock = process.env.AUTHNET_FORCE_MOCK === 'true' || (!isProduction && !hasAuthNetCreds);
+
+            if (shouldMock) {
+                providerSubscriptionId = `mock_sub_${Date.now()}`;
+                transactionId = providerSubscriptionId;
+                subscriptionStartDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+                logger.warn('Using mock recurring subscription (non-production)', {
+                    plan: plan.id,
+                    amount: finalPrice,
+                    providerSubscriptionId,
+                });
+            } else {
+                const firstName = input.customer.name.split(' ')[0] || input.customer.name;
+                const lastName = input.customer.name.split(' ').slice(1).join(' ') || '';
+                const billTo = {
+                    firstName,
+                    lastName,
                     zip: input.paymentData.zip,
-                },
-                description: `Subscription: ${plan.name} Plan`
-            });
-
-            if (!paymentResult.success) {
-                logger.warn('Subscription payment failed', { errors: paymentResult.errors });
-                return {
-                    success: false,
-                    error: paymentResult.message || 'Payment declined. Please check your card details.'
                 };
-            }
 
-            transactionId = paymentResult.transactionId;
-            logger.info('Subscription initial payment successful', { transactionId });
-            subscriptionStatus = 'active_manual_setup_required';
+                const paymentProfile = {
+                    cardNumber: input.paymentData.cardNumber,
+                    expirationDate: normalizeExpiry(input.paymentData.expirationDate),
+                    cardCode: input.paymentData.cvv,
+                    opaqueData: input.paymentData.opaqueData,
+                };
+
+                const profile = await createCustomerProfile(
+                    subscriptionRef.id,
+                    input.customer.email,
+                    billTo,
+                    paymentProfile,
+                    `Subscription: ${plan.name} Plan`
+                );
+
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                subscriptionStartDate = tomorrow.toISOString().slice(0, 10);
+
+                const recurring = await createSubscriptionFromProfile(
+                    {
+                        name: `BakedBot ${plan.name} (${subscriptionRef.id})`,
+                        amount: finalPrice,
+                        startDate: subscriptionStartDate,
+                        intervalMonths: 1,
+                    },
+                    profile.customerProfileId,
+                    profile.customerPaymentProfileId,
+                    subscriptionRef.id
+                );
+
+                customerProfileId = profile.customerProfileId;
+                customerPaymentProfileId = profile.customerPaymentProfileId;
+                providerSubscriptionId = recurring.subscriptionId;
+                transactionId = recurring.subscriptionId;
+                logger.info('Recurring subscription created', {
+                    providerSubscriptionId,
+                    plan: plan.id,
+                    amount: finalPrice,
+                });
+            }
         }
 
         // 3. Create Subscription Record in Firestore
@@ -153,14 +253,16 @@ export async function createSubscription(input: CreateSubscriptionInput) {
             customer: input.customer,
             status: subscriptionStatus,
             transactionId: transactionId || 'free_plan',
+            providerSubscriptionId,
+            customerProfileId,
+            customerPaymentProfileId,
+            subscriptionStartDate,
             startDate: FieldValue.serverTimestamp(),
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
         };
 
-        const subscriptionRef = firestore.collection('subscriptions').doc();
-
-        if (couponRef) {
+        if (couponRef && !localDevNoFirestore) {
             try {
                 await firestore.runTransaction(async (transaction) => {
                     const liveCouponSnap = await transaction.get(couponRef!);
@@ -194,18 +296,19 @@ export async function createSubscription(input: CreateSubscriptionInput) {
                     error: couponError instanceof Error ? couponError.message : 'Failed to redeem coupon.',
                 };
             }
-        } else {
+        } else if (!localDevNoFirestore) {
             await subscriptionRef.set(subscription);
         }
 
         const subscriptionId = subscriptionRef.id;
 
         // 4. Send Confirmation (Log for now)
-        logger.info('Subscription created', { subscriptionId, plan: plan.id });
+        logger.info('Subscription created', { subscriptionId, plan: plan.id, mocked: localDevNoFirestore });
 
         return { success: true, subscriptionId };
     } catch (error: any) {
         logger.error('Failed to create subscription:', error);
-        return { success: false, error: 'Failed to process subscription. Please try again.' };
+        const message = error instanceof Error ? error.message : 'Failed to process subscription. Please try again.';
+        return { success: false, error: message };
     }
 }

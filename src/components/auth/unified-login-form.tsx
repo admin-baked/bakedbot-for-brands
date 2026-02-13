@@ -14,6 +14,7 @@ import {
     createUserWithEmailAndPassword,
     GoogleAuthProvider,
     signInWithPopup,
+    signInWithRedirect,
     getAdditionalUserInfo,
     type UserCredential
 } from 'firebase/auth';
@@ -32,6 +33,29 @@ export function UnifiedLoginForm() {
     const [isLoading, setIsLoading] = useState(false);
 
     const toggleMode = () => setMode(mode === 'signin' ? 'signup' : 'signin');
+    const mapFirebaseError = (error: any): string => {
+        const code = typeof error?.code === 'string' ? error.code : '';
+
+        if (code === 'auth/invalid-api-key') {
+            return 'Firebase API key is invalid. Please contact support.';
+        }
+        if (code === 'auth/unauthorized-domain') {
+            return 'This domain is not authorized for Google sign-in.';
+        }
+        if (code === 'auth/popup-blocked') {
+            return 'Popup was blocked. We will try redirect sign-in instead.';
+        }
+        if (code === 'auth/popup-closed-by-user') {
+            return 'Sign-in was canceled.';
+        }
+        if (code === 'auth/network-request-failed') {
+            return 'Network error during sign-in. Please check your connection.';
+        }
+
+        return String(error?.message || 'Authentication failed.')
+            .replace('Firebase:', '')
+            .trim();
+    };
 
     const handleAuthSuccess = async (userCredential: UserCredential) => {
         try {
@@ -123,11 +147,7 @@ export function UnifiedLoginForm() {
                 }
             }
 
-            toast({
-                variant: 'destructive',
-                title: "Authentication Failed",
-                description: error.message.replace('Firebase:', '').trim()
-            });
+            toast({ variant: 'destructive', title: "Authentication Failed", description: mapFirebaseError(error) });
             setIsLoading(false);
         }
     };
@@ -141,9 +161,21 @@ export function UnifiedLoginForm() {
             const result = await signInWithPopup(auth, provider);
             await handleAuthSuccess(result);
         } catch (error: any) {
-            if (error.code !== 'auth/popup-closed-by-user') {
-                toast({ variant: 'destructive', title: "Google Sign-In Failed", description: error.message });
+            if (error?.code === 'auth/popup-closed-by-user') {
+                setIsLoading(false);
+                return;
             }
+
+            if (error?.code === 'auth/popup-blocked') {
+                toast({
+                    title: "Continuing with Google",
+                    description: "Popup was blocked, switching to redirect sign-in."
+                });
+                await signInWithRedirect(auth, provider);
+                return;
+            }
+
+            toast({ variant: 'destructive', title: "Google Sign-In Failed", description: mapFirebaseError(error) });
             setIsLoading(false);
         }
     };

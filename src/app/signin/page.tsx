@@ -20,9 +20,7 @@ export default function SignInPage() {
 
             {/* Simple Header */}
             <header className="relative z-10 p-6 flex justify-between items-center max-w-7xl mx-auto w-full">
-                <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
-                    <Logo height={32} />
-                </Link>
+                <Logo height={32} className="transition-opacity hover:opacity-80" />
                 <Link href="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                     Need Help?
                 </Link>
