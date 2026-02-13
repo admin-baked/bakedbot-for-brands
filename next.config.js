@@ -70,10 +70,76 @@ const nextConfig = {
   experimental: {
     // Reduce webpack memory usage during builds (helps avoid OOM on Firebase App Hosting)
     webpackMemoryOptimizations: true,
+    // CRITICAL FIX: Disable static optimization for all pages during build
+    // With 204 pages (108 in dashboard alone), building them all at once causes OOM at 64GB
+    // This forces on-demand generation instead of build-time pre-rendering
+    isrMemory: 0,
+    // Reduce concurrent page compilations to prevent memory spikes
+    workerThreads: false,
+    cpus: 1,
   },
   // Turbopack configuration (required in Next.js 16 if webpack config is present)
   // Empty config acknowledges we're using Turbopack with default settings
   turbopack: {},
+
+  // Webpack configuration for aggressive memory optimization (when not using Turbopack)
+  webpack: (config, { isServer }) => {
+    // Aggressive code splitting to reduce chunk sizes and memory usage during compilation
+    if (!isServer) {
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            // Split large dependencies into separate chunks to reduce per-chunk compilation memory
+            framework: {
+              name: 'framework',
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler|next)[\\/]/,
+              priority: 40,
+              enforce: true,
+            },
+            firebase: {
+              name: 'firebase',
+              test: /[\\/]node_modules[\\/](firebase|@google-cloud|@firebase|googleapis)[\\/]/,
+              priority: 30,
+              enforce: true,
+            },
+            ui: {
+              name: 'ui',
+              test: /[\\/]node_modules[\\/](@radix-ui|@tanstack|framer-motion|lucide-react)[\\/]/,
+              priority: 25,
+              enforce: true,
+            },
+            lib: {
+              test: /[\\/]node_modules[\\/]/,
+              name(module) {
+                const packageName = module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/)?.[1];
+                return `npm.${packageName?.replace('@', '')}`;
+              },
+              priority: 20,
+              minSize: 50000,
+            },
+          },
+          // Limit chunk sizes to prevent memory spikes during compilation
+          maxSize: 400000,
+        },
+        // Disable module concatenation - saves memory during build
+        concatenateModules: false,
+      };
+    }
+
+    // CRITICAL: Reduce parallelism to 1 to prevent memory spikes
+    // With 204 pages, parallel compilation causes OOM
+    config.parallelism = 1;
+
+    // Disable caching during build to reduce memory usage
+    config.cache = false;
+
+    return config;
+  },
+
   async headers() {
     const isProd = process.env.NODE_ENV === 'production';
 
