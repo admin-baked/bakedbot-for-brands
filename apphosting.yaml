@@ -3,10 +3,10 @@
 
 env:
   # Build-time memory allocation - increased for large Next.js build
-  # Using 48GB for V8 heap to handle Turbopack + large codebase (18k+ files)
+  # Using 64GB for V8 heap to handle Turbopack + large codebase (18k+ files)
   # Turbopack is forced by Firebase buildpack and needs more memory than webpack
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=49152"
+    value: "--max-old-space-size=65536"
     availability: [ BUILD ]
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"
