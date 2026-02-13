@@ -719,16 +719,6 @@
                     "order": "DESCENDING"
                 }
             ]
-        },
-        {
-            "collectionGroup": "training",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "status",
-                    "order": "ASCENDING"
-                }
-            ]
         }
     ],
     "fieldOverrides": []
