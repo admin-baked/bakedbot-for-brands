@@ -429,7 +429,16 @@ export function PuffChat({
         }, [isMobile])
     });
 
-    const { currentMessages, setActiveArtifact, setArtifactPanelOpen, currentArtifacts, activeArtifactId, isArtifactPanelOpen } = useAgentChatStore();
+    const {
+        currentMessages,
+        setActiveArtifact,
+        setArtifactPanelOpen,
+        currentArtifacts,
+        activeArtifactId,
+        isArtifactPanelOpen,
+        queuedPrompt,
+        clearQueuedPrompt,
+    } = useAgentChatStore();
 
     // --- Legacy UI Effects (Scrolling) ---
     const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
@@ -457,6 +466,15 @@ export function PuffChat({
         }
         return () => clearInterval(intervalId);
     }, [streamingMessageId, scrollToBottom]);
+
+    // Consume queued prompts from quick actions / cross-navigation triggers.
+    useEffect(() => {
+        if (!queuedPrompt) return;
+
+        // Clear first to avoid double-submit in React StrictMode dev re-mounts.
+        clearQueuedPrompt();
+        submitMessage(queuedPrompt);
+    }, [queuedPrompt, clearQueuedPrompt, submitMessage]);
 
     const handleSubmit = () => submitMessage(input);
     const handleStop = () => setIsProcessing(false); 
