@@ -1,7 +1,7 @@
 'use server';
 
 import { createServerClient } from '@/firebase/server-client';
-import { FieldValue, DocumentReference, type DocumentData } from 'firebase-admin/firestore';
+import { FieldValue, DocumentReference, type DocumentData, type Transaction } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
 import { PRICING_PLANS } from '@/lib/config/pricing';
 import { createCustomerProfile, createSubscriptionFromProfile } from '@/lib/payments/authorize-net';
@@ -293,7 +293,7 @@ export async function createSubscription(input: CreateSubscriptionInput) {
 
         if (couponRef && !localDevNoFirestore) {
             try {
-                await firestore.runTransaction(async (transaction) => {
+                await firestore.runTransaction(async (transaction: Transaction) => {
                     const liveCouponSnap = await transaction.get(couponRef!);
                     if (!liveCouponSnap.exists) {
                         throw new Error('Coupon no longer exists.');
