@@ -158,6 +158,7 @@
     "@types/react-dom": "^18",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.18.1",
+    "autoprefixer": "^10.4.24",
     "dotenv": "^16.6.1",
     "esbuild-plugin-alias": "^0.2.1",
     "eslint": "^8.57.1",
