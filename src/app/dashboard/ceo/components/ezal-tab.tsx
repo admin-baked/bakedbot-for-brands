@@ -11,7 +11,7 @@ import { getEzalCompetitors, getEzalInsights } from '../actions';
 import type { Competitor, EzalInsight } from "@/types/ezal-discovery";
 
 export default function EzalTab() {
-    const defaultTenantId = 'admin-baked'; // Default for Super Admin view
+    const defaultTenantId = 'system'; // Platform-wide tenant scope for Super Users
     const { isMock, isLoading: isMockLoading } = useMockData();
     const [stats, setStats] = useState({
         activeSources: 12,

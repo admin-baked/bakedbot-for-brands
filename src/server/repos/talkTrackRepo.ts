@@ -2267,14 +2267,34 @@ export async function getAllTalkTracks(): Promise<TalkTrack[]> {
 export async function findTalkTrackByTrigger(prompt: string, role: TalkTrack['role']): Promise<TalkTrack | null> {
     const tracks = await getAllTalkTracks();
     const normalize = (s: string) => s.toLowerCase().trim();
+    const normalizeForWords = (s: string) => normalize(s).replace(/[^a-z0-9]+/g, ' ').trim();
     const p = normalize(prompt);
+    const pWords = ` ${normalizeForWords(prompt)} `;
+
+    const matchesKeyword = (keyword: string): boolean => {
+        const kNorm = normalize(keyword);
+        const kWords = normalizeForWords(keyword);
+        if (!kNorm || !kWords) return false;
+
+        const tokens = kWords.split(/\s+/).filter(t => t.length > 1);
+        if (tokens.length === 0) return false;
+
+        // Single token: require word-boundary match to avoid substring false positives.
+        if (tokens.length === 1) {
+            return pWords.includes(` ${tokens[0]} `);
+        }
+
+        // Multi-token phrase: prefer exact phrase match, then fallback to "all tokens present".
+        if (p.includes(kNorm)) return true;
+        return tokens.every(t => pWords.includes(` ${t} `));
+    };
 
     // 1. Try to find a specific Step match first (Deep Linking)
     for (const track of tracks) {
         if (track.role !== 'all' && track.role !== role) continue;
 
         const matchedStep = track.steps.find(step => 
-            step.triggerKeywords?.some(k => p.includes(normalize(k)))
+            step.triggerKeywords?.some(matchesKeyword)
         );
 
         if (matchedStep) {
@@ -2290,7 +2310,7 @@ export async function findTalkTrackByTrigger(prompt: string, role: TalkTrack['ro
     // 2. Fallback to Track-level match
     const roleMatches = tracks.filter(t => t.role === 'all' || t.role === role);
     return roleMatches.find(t => 
-        t.triggerKeywords.some(k => p.includes(normalize(k)))
+        t.triggerKeywords.some(matchesKeyword)
     ) || null;
 }
 

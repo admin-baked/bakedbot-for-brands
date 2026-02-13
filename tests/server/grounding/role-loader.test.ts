@@ -77,6 +77,7 @@ const mockRoleGroundTruth: RoleGroundTruth = {
     role: 'brand',
     metadata: {
         dispensary: 'Brand Ground Truth',
+        address: 'N/A',
         version: '2.0',
         created: '2026-01-29T00:00:00Z',
         last_updated: '2026-01-29T00:00:00Z',

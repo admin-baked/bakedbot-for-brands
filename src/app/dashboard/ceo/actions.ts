@@ -644,13 +644,18 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
     const payingOrgIds = new Set<string>();
 
     subsSnapshot.docs.forEach((doc) => {
+      // Only count current organization subscriptions (avoid accidental other `subscription/*` docs).
+      if (doc.id !== 'current') return;
+
+      const orgId = extractOrgId(doc.ref.path);
+      if (!orgId) return;
+
       const data = doc.data() as any;
       const amount = typeof data.amount === 'number' ? data.amount : Number(data.amount || 0);
-      if (Number.isFinite(amount)) {
+      if (Number.isFinite(amount) && amount > 0) {
         mrr += amount;
+        payingOrgIds.add(orgId);
       }
-      const orgId = extractOrgId(doc.ref.path);
-      if (orgId) payingOrgIds.add(orgId);
     });
 
     // Normalize to cents-safe precision (we store USD dollars as a number)
@@ -867,6 +872,7 @@ export async function getEzalInsights(tenantId: string, limitVal: number = 20): 
 
 export async function getEzalCompetitors(tenantId: string): Promise<Competitor[]> {
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const snapshot = await firestore
       .collection('competitors')
@@ -885,6 +891,7 @@ export async function getEzalCompetitors(tenantId: string): Promise<Competitor[]
 
 export async function createEzalCompetitor(tenantId: string, data: any): Promise<ActionResult> {
   try {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
 
     // Basic validation
@@ -2670,6 +2677,7 @@ export type CoverageStatus = {
 export async function getCoverageStatusAction(): Promise<CoverageStatus> {
   try {
     const user = await requireUser(['super_user']);
+    const superAccess = await isSuperUser();
     // Use organization ID from user session or metadata
     // Assuming user.orgId exists, or we use user.uid as proxy for now if single-tenant per user
     // In `requireUser`, it returns the user object.
@@ -2683,8 +2691,8 @@ export async function getCoverageStatusAction(): Promise<CoverageStatus> {
     // For now, using user.uid as orgId to match 'owner' pattern
     const orgId = user.uid;
 
-    // Bypass for Super Admin
-    if (user.role === 'super_user') {
+    // Super User/Admin bypass for internal usage
+    if (superAccess) {
       return {
         planName: 'Super Admin (Unlimited)',
         limit: 999999,

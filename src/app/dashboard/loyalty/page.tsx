@@ -8,6 +8,7 @@ import { getLoyaltySettings } from '@/app/actions/loyalty';
 import { LoyaltySettings } from '@/types/customers';
 import { useToast } from '@/hooks/use-toast';
 import { LoyaltySettingsForm } from '@/components/dashboard/loyalty/loyalty-settings-form';
+import { BadgeGrid } from '@/components/dashboard/loyalty/badge-grid';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -185,6 +186,14 @@ export default function LoyaltyPage() {
                                 <Database className="h-5 w-5 text-muted-foreground" />
                                 <h3 className="font-medium">Sync Status</h3>
                             </div>
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xl font-semibold tracking-tight">Customer Engagement Badges</h2>
+                                    <Award className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                                <BadgeGrid />
+                            </div>
+
                             <div className="space-y-3 text-sm">
                                 <div className="flex items-center justify-between">
                                     <span className="text-muted-foreground">Last Sync:</span>

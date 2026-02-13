@@ -2,17 +2,40 @@
  * Analytics Server Actions - Unit Tests
  */
 
-import { describe, expect, it, jest, beforeEach } from '@jest/globals';
-import { getCohortAnalytics, getChallengeAnalytics, getAtRiskInterns } from '../analytics';
+import { beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { UserTrainingProgress, TrainingSubmission } from '@/types/training';
 import { Timestamp } from '@google-cloud/firestore';
 
-// Mock dependencies
-jest.mock('@/server/auth/auth');
-jest.mock('@/firebase/admin');
-jest.mock('@/lib/logger');
+// Mock dependencies.
+// IMPORTANT: These mocks must be registered before importing `../analytics`, otherwise
+// the actions will capture the real `requireUser()` which calls Next's `cookies()`.
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn(),
+}));
+jest.mock('@/firebase/admin', () => ({
+    getAdminFirestore: jest.fn(),
+}));
+jest.mock('@/lib/logger', () => ({
+    logger: {
+        error: jest.fn(),
+        warn: jest.fn(),
+        info: jest.fn(),
+        debug: jest.fn(),
+    },
+}));
+
+let getCohortAnalytics: typeof import('../analytics').getCohortAnalytics;
+let getChallengeAnalytics: typeof import('../analytics').getChallengeAnalytics;
+let getAtRiskInterns: typeof import('../analytics').getAtRiskInterns;
 
 describe('Analytics Server Actions', () => {
+    beforeAll(async () => {
+        const mod = await import('../analytics');
+        getCohortAnalytics = mod.getCohortAnalytics;
+        getChallengeAnalytics = mod.getChallengeAnalytics;
+        getAtRiskInterns = mod.getAtRiskInterns;
+    });
+
     beforeEach(() => {
         jest.clearAllMocks();
     });

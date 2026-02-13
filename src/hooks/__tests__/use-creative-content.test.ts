@@ -78,7 +78,7 @@ const mockContent: CreativeContent[] = [
 describe('useCreativeContent', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        mockGetPendingContent.mockResolvedValue(mockContent);
+        mockGetPendingContent.mockResolvedValue({ content: mockContent, hasMore: false });
     });
 
     describe('initialization', () => {
@@ -120,7 +120,10 @@ describe('useCreativeContent', () => {
                 expect(result.current.loading).toBe(false);
             });
 
-            expect(mockGetPendingContent).toHaveBeenCalledWith('tenant-123');
+            expect(mockGetPendingContent).toHaveBeenCalledWith(
+                'tenant-123',
+                expect.objectContaining({ limit: 50 })
+            );
         });
 
         it('sets content after fetch', async () => {
@@ -336,13 +339,20 @@ describe('useCreativeContent', () => {
         });
 
         it('does not call server action if tenantId is missing', async () => {
-            // Mock no tenant ID
-            jest.doMock('@/firebase/auth/use-user', () => ({
-                useUser: jest.fn().mockReturnValue({
-                    user: { uid: 'user-123' }, // No tenantId
-                    isUserLoading: false
-                })
-            }));
+            const { useUser } = await import('@/firebase/auth/use-user');
+            const { useBrandId } = await import('../use-brand-id');
+
+            // Force tenantId to be missing:
+            // - user has no tenantId/brandId/locationId
+            // - brandId hook returns undefined
+            (useUser as jest.Mock).mockReturnValue({
+                user: { uid: 'user-123' },
+                isUserLoading: false,
+            });
+            (useBrandId as jest.Mock).mockReturnValue({
+                brandId: undefined,
+                loading: false,
+            });
 
             const { result } = renderHook(() => useCreativeContent({ realtime: false }));
 
@@ -354,8 +364,21 @@ describe('useCreativeContent', () => {
                 await result.current.editCaption('content-1', 'New caption');
             });
 
-            // Should set error about missing tenant ID (depending on implementation)
-            // The important thing is it shouldn't crash
+            expect(mockUpdateCaption).not.toHaveBeenCalled();
+
+            await waitFor(() => {
+                expect(result.current.error).toBe('Missing tenant ID');
+            });
+
+            // Restore defaults for subsequent tests
+            (useUser as jest.Mock).mockReturnValue({
+                user: { uid: 'user-123', tenantId: 'tenant-123' },
+                isUserLoading: false,
+            });
+            (useBrandId as jest.Mock).mockReturnValue({
+                brandId: 'brand-123',
+                loading: false,
+            });
         });
     });
 

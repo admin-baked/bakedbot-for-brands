@@ -378,12 +378,26 @@ describe('TaskScheduler', () => {
         data: () => mockTask,
       });
 
-      (browserSessionManager.createSession as jest.Mock).mockResolvedValueOnce({
+      // Session creation retries (2s + 4s backoff). Use fake timers to avoid slow tests.
+      jest.useFakeTimers();
+
+      (browserSessionManager.createSession as jest.Mock).mockResolvedValue({
         success: false,
         error: 'Failed to create session',
       });
 
-      await expect(taskScheduler.executeTask('task-123')).rejects.toThrow('Failed to create session');
+      try {
+        const promise = taskScheduler.executeTask('task-123');
+        const expectation = expect(promise).rejects.toThrow('Failed to create session');
+
+        // attempt 1 -> wait 2s -> attempt 2 -> wait 4s -> attempt 3 -> throw
+        await jest.runAllTimersAsync();
+
+        await expectation;
+        expect(browserSessionManager.createSession).toHaveBeenCalledTimes(3);
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('should mark one-time task as completed after execution', async () => {

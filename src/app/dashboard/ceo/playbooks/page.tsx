@@ -19,11 +19,13 @@ import { Switch } from '@/components/ui/switch';
 import { Search, Bot, Zap, Clock, TrendingUp, Users, Mail, BarChart3, Target, Database, Loader2, CheckCircle } from 'lucide-react';
 import { SuperUserAgentChat } from './components/super-user-agent-chat';
 import { InternalPlaybooksGrid } from './components/internal-playbooks-grid';
+import { CreateInternalPlaybookDialog } from './components/create-internal-playbook-dialog';
 import { seedPlaybookTemplates, type SeedResult } from '@/server/actions/seed-playbooks';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SuperUserPlaybooksPage() {
     const [searchQuery, setSearchQuery] = useState('');
+    const [refreshNonce, setRefreshNonce] = useState(0);
     const [isSeeding, setIsSeeding] = useState(false);
     const [seedResult, setSeedResult] = useState<SeedResult | null>(null);
     const { toast } = useToast();
@@ -75,28 +77,31 @@ export default function SuperUserPlaybooksPage() {
                         Internal agent commands and automation playbooks for BakedBot operations.
                     </p>
                 </div>
-                <Button
-                    variant="outline"
-                    onClick={handleSeedTemplates}
-                    disabled={isSeeding}
-                >
-                    {isSeeding ? (
-                        <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Seeding...
-                        </>
-                    ) : seedResult?.success ? (
-                        <>
-                            <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
-                            Seeded
-                        </>
-                    ) : (
-                        <>
-                            <Database className="h-4 w-4 mr-2" />
-                            Seed Templates
-                        </>
-                    )}
-                </Button>
+                <div className="flex items-center gap-2">
+                    <CreateInternalPlaybookDialog onCreated={() => setRefreshNonce(v => v + 1)} />
+                    <Button
+                        variant="outline"
+                        onClick={handleSeedTemplates}
+                        disabled={isSeeding}
+                    >
+                        {isSeeding ? (
+                            <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Seeding...
+                            </>
+                        ) : seedResult?.success ? (
+                            <>
+                                <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                Seeded
+                            </>
+                        ) : (
+                            <>
+                                <Database className="h-4 w-4 mr-2" />
+                                Seed Templates
+                            </>
+                        )}
+                    </Button>
+                </div>
             </div>
 
             {/* Stats Row */}
@@ -202,7 +207,7 @@ export default function SuperUserPlaybooksPage() {
                         />
                     </div>
                 </div>
-                <InternalPlaybooksGrid searchQuery={searchQuery} />
+                <InternalPlaybooksGrid searchQuery={searchQuery} refreshNonce={refreshNonce} />
             </section>
         </div>
     );

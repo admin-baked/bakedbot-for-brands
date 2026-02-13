@@ -5,10 +5,10 @@ import { FieldValue } from "firebase-admin/firestore";
 import { deeboCheckMessage } from "./deebo";
 import { blackleafService } from "@/lib/notifications/blackleaf-service";
 import { logger } from '@/lib/logger';
-import { AgentImplementation } from './harness';
-import { MrsParkerMemory } from './schemas';
+import type { AgentImplementation } from '@/server/agents/harness';
+import { runMultiStepTask } from '@/server/agents/harness';
+import type { MrsParkerMemory } from './schemas';
 import { deebo } from './deebo';
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 import { mrsParkerCrmToolDefs } from '../tools/crm-tools';
@@ -40,12 +40,17 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
   async initialize(brandMemory, agentMemory) {
     logger.info('[MrsParker] Initializing. Syncing segments...');
 
+    const brandName = (brandMemory as any)?.brand_profile?.name || 'your brand';
+    if (!(brandMemory as any)?.brand_profile?.name) {
+        logger.warn('[MrsParker] Missing brand_profile.name in brand memory; using fallback.');
+    }
+
     // Build dynamic context from agent-definitions (source of truth)
     const squadRoster = buildSquadRoster('mrs_parker');
     const integrationStatus = buildIntegrationStatusSummary();
 
     agentMemory.system_instructions = `
-        You are Mrs. Parker, the Customer Retention Manager for ${brandMemory.brand_profile.name}.
+        You are Mrs. Parker, the Customer Retention Manager for ${brandName}.
         Your job is to make every customer feel like a VIP and bring them back.
 
         CORE PRINCIPLES:
@@ -142,8 +147,6 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Gemini 3) ===
-            const { runMultiStepTask } = await import('./harness');
-            
             const result = await runMultiStepTask({
                 userQuery,
                 systemInstructions: (agentMemory.system_instructions as string) || '',

@@ -4,10 +4,7 @@ import { useAgentChatStore } from '@/lib/store/agent-chat-store';
 import { useUser } from '@/firebase/auth/use-user';
 import * as actions from '../../agents/actions';
 
-// Polyfill Fetch
-if (!global.fetch) {
-    global.fetch = jest.fn() as any;
-}
+// Ensure Fetch is mockable (Node 18+ provides a real `fetch` which isn't a Jest mock).
 
 // Mock dependencies
 jest.mock('@/lib/store/agent-chat-store', () => ({
@@ -91,6 +88,9 @@ describe('usePuffChatLogic', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         jest.useFakeTimers();
+
+        // Always override with a Jest mock so `.mockResolvedValue(...)` works even when Node provides real fetch.
+        (global as any).fetch = jest.fn();
         
         // Setup store mock
         (useAgentChatStore as unknown as jest.Mock).mockReturnValue({

@@ -20,10 +20,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 
 const formSchema = z.object({
     pointsPerDollar: z.coerce.number().min(0.1).max(100),
     equityMultiplier: z.coerce.number().min(1).max(5),
+    enableGamification: z.boolean().default(true),
 });
 
 interface LoyaltySettingsFormProps {
@@ -40,6 +42,7 @@ export function LoyaltySettingsForm({ initialData, orgId }: LoyaltySettingsFormP
         defaultValues: {
             pointsPerDollar: initialData.pointsPerDollar,
             equityMultiplier: initialData.equityMultiplier,
+            enableGamification: initialData.enableGamification ?? true,
         },
     });
 
@@ -124,6 +127,30 @@ export function LoyaltySettingsForm({ initialData, orgId }: LoyaltySettingsFormP
                     />
                 </div>
 
+                <div className="space-y-6">
+                    <h3 className="text-lg font-medium">Customer Engagement</h3>
+                    <FormField
+                        control={form.control}
+                        name="enableGamification"
+                        render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
+                                <div className="space-y-0.5">
+                                    <FormLabel>Gamification Mode</FormLabel>
+                                    <FormDescription>
+                                        Enable daily streaks and unlockable badges for customers.
+                                    </FormDescription>
+                                </div>
+                                <FormControl>
+                                    <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                </FormControl>
+                            </FormItem>
+                        )}
+                    />
+                </div>
+
                 <div className="space-y-4">
                     <h3 className="text-lg font-medium">Tiers (Read Only)</h3>
                     <div className="grid gap-4 md:grid-cols-3">
@@ -148,7 +175,7 @@ export function LoyaltySettingsForm({ initialData, orgId }: LoyaltySettingsFormP
                         Save Changes
                     </Button>
                 </div>
-            </form>
-        </Form>
+            </form >
+        </Form >
     );
 }

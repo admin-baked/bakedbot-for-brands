@@ -2,44 +2,58 @@
  * Slack Bot Service - Unit Tests
  */
 
-import { describe, expect, it, jest, beforeEach } from '@jest/globals';
-import {
-    sendNotification,
-    notifyPeerReviewAssigned,
-    notifyPeerReviewReceived,
-    notifyChallengeCompleted,
-    sendWeeklyDigest,
-    formatProgress,
-    formatPendingReviews,
-    formatLeaderboard,
-} from '../bot';
+import { beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { UserTrainingProgress, PeerReview } from '@/types/training';
 import { Timestamp } from '@google-cloud/firestore';
 
 // Mock Slack Web API
+const mockPostMessage = jest.fn().mockResolvedValue({ ok: true });
+
 jest.mock('@slack/web-api', () => ({
     WebClient: jest.fn().mockImplementation(() => ({
         chat: {
-            postMessage: jest.fn().mockResolvedValue({ ok: true }),
+            postMessage: mockPostMessage,
         },
     })),
 }));
 
-jest.mock('@/lib/logger');
+jest.mock('@/lib/logger', () => ({
+    logger: {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+        debug: jest.fn(),
+    },
+}));
+
+let sendNotification: typeof import('../bot').sendNotification;
+let notifyPeerReviewAssigned: typeof import('../bot').notifyPeerReviewAssigned;
+let notifyPeerReviewReceived: typeof import('../bot').notifyPeerReviewReceived;
+let notifyChallengeCompleted: typeof import('../bot').notifyChallengeCompleted;
+let sendWeeklyDigest: typeof import('../bot').sendWeeklyDigest;
+let formatProgress: typeof import('../bot').formatProgress;
+let formatPendingReviews: typeof import('../bot').formatPendingReviews;
+let formatLeaderboard: typeof import('../bot').formatLeaderboard;
 
 describe('Slack Bot Service', () => {
+    beforeAll(async () => {
+        const mod = await import('../bot');
+        sendNotification = mod.sendNotification;
+        notifyPeerReviewAssigned = mod.notifyPeerReviewAssigned;
+        notifyPeerReviewReceived = mod.notifyPeerReviewReceived;
+        notifyChallengeCompleted = mod.notifyChallengeCompleted;
+        sendWeeklyDigest = mod.sendWeeklyDigest;
+        formatProgress = mod.formatProgress;
+        formatPendingReviews = mod.formatPendingReviews;
+        formatLeaderboard = mod.formatLeaderboard;
+    });
+
     beforeEach(() => {
         jest.clearAllMocks();
     });
 
     describe('sendNotification', () => {
         it('should send notification via Slack API', async () => {
-            const { WebClient } = await import('@slack/web-api');
-            const mockPostMessage = jest.fn().mockResolvedValue({ ok: true });
-            (WebClient as jest.Mock).mockImplementation(() => ({
-                chat: { postMessage: mockPostMessage },
-            }));
-
             await sendNotification({
                 channel: 'U123456',
                 text: 'Test message',
@@ -53,12 +67,6 @@ describe('Slack Bot Service', () => {
         });
 
         it('should include blocks if provided', async () => {
-            const { WebClient } = await import('@slack/web-api');
-            const mockPostMessage = jest.fn().mockResolvedValue({ ok: true });
-            (WebClient as jest.Mock).mockImplementation(() => ({
-                chat: { postMessage: mockPostMessage },
-            }));
-
             const blocks = [
                 {
                     type: 'section',
@@ -85,12 +93,6 @@ describe('Slack Bot Service', () => {
 
     describe('notifyPeerReviewAssigned', () => {
         it('should format peer review assignment notification', async () => {
-            const { WebClient } = await import('@slack/web-api');
-            const mockPostMessage = jest.fn().mockResolvedValue({ ok: true });
-            (WebClient as jest.Mock).mockImplementation(() => ({
-                chat: { postMessage: mockPostMessage },
-            }));
-
             await notifyPeerReviewAssigned(
                 'U123456',
                 'John Doe',
@@ -106,12 +108,6 @@ describe('Slack Bot Service', () => {
         });
 
         it('should include review URL in notification', async () => {
-            const { WebClient } = await import('@slack/web-api');
-            const mockPostMessage = jest.fn().mockResolvedValue({ ok: true });
-            (WebClient as jest.Mock).mockImplementation(() => ({
-                chat: { postMessage: mockPostMessage },
-            }));
-
             await notifyPeerReviewAssigned(
                 'U123456',
                 'John Doe',
@@ -127,12 +123,6 @@ describe('Slack Bot Service', () => {
 
     describe('notifyPeerReviewReceived', () => {
         it('should format peer feedback notification with stars', async () => {
-            const { WebClient } = await import('@slack/web-api');
-            const mockPostMessage = jest.fn().mockResolvedValue({ ok: true });
-            (WebClient as jest.Mock).mockImplementation(() => ({
-                chat: { postMessage: mockPostMessage },
-            }));
-
             await notifyPeerReviewReceived(
                 'U123456',
                 'Test Challenge',
@@ -148,12 +138,6 @@ describe('Slack Bot Service', () => {
 
     describe('notifyChallengeCompleted', () => {
         it('should congratulate on challenge completion', async () => {
-            const { WebClient } = await import('@slack/web-api');
-            const mockPostMessage = jest.fn().mockResolvedValue({ ok: true });
-            (WebClient as jest.Mock).mockImplementation(() => ({
-                chat: { postMessage: mockPostMessage },
-            }));
-
             await notifyChallengeCompleted(
                 'U123456',
                 'Week 2 - Firestore Basics',
@@ -170,12 +154,6 @@ describe('Slack Bot Service', () => {
 
     describe('sendWeeklyDigest', () => {
         it('should format weekly progress digest', async () => {
-            const { WebClient } = await import('@slack/web-api');
-            const mockPostMessage = jest.fn().mockResolvedValue({ ok: true });
-            (WebClient as jest.Mock).mockImplementation(() => ({
-                chat: { postMessage: mockPostMessage },
-            }));
-
             const mockProgress: UserTrainingProgress = {
                 cohortId: 'test-cohort',
                 programId: 'test-program',

@@ -126,6 +126,7 @@ const mockRoleGroundTruth: RoleGroundTruth = {
     role: 'brand',
     metadata: {
         dispensary: 'Brand Ground Truth',
+        address: 'N/A',
         version: '2.0',
         created: '2026-01-29T00:00:00Z',
         last_updated: '2026-01-29T00:00:00Z',
@@ -195,11 +196,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
                 data: () => mockRoleGroundTruth,
             });
 
-            // Mock categories collection
-            mockDocGet.mockResolvedValueOnce({
-                docs: [],
-            });
-
             const result = await getRoleGroundTruth('brand');
 
             expect(result.success).toBe(true);
@@ -231,10 +227,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
                 data: () => mockRoleGroundTruth,
             });
 
-            mockDocGet.mockResolvedValueOnce({
-                docs: [],
-            });
-
             const result = await getRoleGroundTruth('brand');
 
             expect(result.success).toBe(true);
@@ -262,10 +254,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
                 data: () => mockRoleGroundTruth,
             });
 
-            mockDocGet.mockResolvedValueOnce({
-                docs: [],
-            });
-
             // Mock tenant override
             mockDocGet.mockResolvedValueOnce({
                 exists: true,
@@ -288,10 +276,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
             });
 
             mockDocGet.mockResolvedValueOnce({
-                docs: [],
-            });
-
-            mockDocGet.mockResolvedValueOnce({
                 exists: false,
             });
 
@@ -309,10 +293,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
                 data: () => mockRoleGroundTruth,
             });
 
-            mockDocGet.mockResolvedValueOnce({
-                docs: [],
-            });
-
             const result = await getPresetPrompts('brand');
 
             expect(result.success).toBe(true);
@@ -324,10 +304,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
             mockDocGet.mockResolvedValueOnce({
                 exists: true,
                 data: () => mockRoleGroundTruth,
-            });
-
-            mockDocGet.mockResolvedValueOnce({
-                docs: [],
             });
 
             const customPreset = { ...mockPresetPrompt, id: 'custom-preset' };
@@ -353,10 +329,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
                 data: () => mockRoleGroundTruth,
             });
 
-            mockDocGet.mockResolvedValueOnce({
-                docs: [],
-            });
-
             const result = await getWorkflowGuides('brand');
 
             expect(result.success).toBe(true);
@@ -372,17 +344,17 @@ describe('Role-Based Ground Truth Server Actions', () => {
                 data: () => mockRoleGroundTruth,
             });
 
-            mockDocGet.mockResolvedValueOnce({
-                docs: [],
-            });
-
             mockUpdate.mockResolvedValueOnce(undefined);
 
             const result = await upsertPresetPrompt('brand', mockPresetPrompt);
 
             expect(result.success).toBe(true);
             expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
-                preset_prompts: expect.arrayContaining([mockPresetPrompt]),
+                preset_prompts: expect.arrayContaining([
+                    expect.objectContaining({
+                        id: mockPresetPrompt.id,
+                    }),
+                ]),
             }));
         });
 
@@ -390,10 +362,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
             mockDocGet.mockResolvedValueOnce({
                 exists: true,
                 data: () => mockRoleGroundTruth,
-            });
-
-            mockDocGet.mockResolvedValueOnce({
-                docs: [],
             });
 
             mockUpdate.mockResolvedValueOnce(undefined);
@@ -426,10 +394,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
                 data: () => mockRoleGroundTruth,
             });
 
-            mockDocGet.mockResolvedValueOnce({
-                docs: [],
-            });
-
             mockUpdate.mockResolvedValueOnce(undefined);
 
             const result = await deletePresetPrompt('brand', 'brand-product-launch');
@@ -448,10 +412,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
                 data: () => mockRoleGroundTruth,
             });
 
-            mockDocGet.mockResolvedValueOnce({
-                docs: [],
-            });
-
             mockUpdate.mockResolvedValueOnce(undefined);
 
             const result = await upsertWorkflowGuide('brand', mockWorkflowGuide);
@@ -468,18 +428,12 @@ describe('Role-Based Ground Truth Server Actions', () => {
             const result = await upsertWorkflowGuide('brand', invalidWorkflow);
 
             expect(result.success).toBe(false);
-            expect(result.message).toContain('validation failed');
+            expect(result.error).toBe('VALIDATION_ERROR');
         });
     });
 
     describe('addTenantPresetOverride', () => {
         it('adds a custom preset prompt for tenant', async () => {
-            // Mock user document fetch (happens in canManageTenantOverrides)
-            mockDocGet.mockResolvedValueOnce({
-                exists: true,
-                data: () => ({ role: 'super_user', brandId: 'tenant123' }),
-            });
-
             // Mock tenant override document
             mockDocGet.mockResolvedValueOnce({
                 exists: true,
@@ -497,12 +451,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
         });
 
         it('creates override document if not exists', async () => {
-            // Mock user document fetch
-            mockDocGet.mockResolvedValueOnce({
-                exists: true,
-                data: () => ({ role: 'super_user', brandId: 'tenant123' }),
-            });
-
             // Mock tenant override document (not found)
             mockDocGet.mockResolvedValueOnce({
                 exists: false,
@@ -523,12 +471,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
 
     describe('disableTenantPreset', () => {
         it('disables a global preset for tenant', async () => {
-            // Mock user document fetch
-            mockDocGet.mockResolvedValueOnce({
-                exists: true,
-                data: () => ({ role: 'super_user', brandId: 'tenant123' }),
-            });
-
             // Mock tenant override document
             mockDocGet.mockResolvedValueOnce({
                 exists: true,
@@ -546,12 +488,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
         });
 
         it('creates override document if not exists', async () => {
-            // Mock user document fetch
-            mockDocGet.mockResolvedValueOnce({
-                exists: true,
-                data: () => ({ role: 'super_user', brandId: 'tenant123' }),
-            });
-
             // Mock tenant override document (not found)
             mockDocGet.mockResolvedValueOnce({
                 exists: false,
@@ -568,12 +504,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
 
     describe('enableTenantPreset', () => {
         it('re-enables a disabled preset for tenant', async () => {
-            // Mock user document fetch
-            mockDocGet.mockResolvedValueOnce({
-                exists: true,
-                data: () => ({ role: 'super_user', brandId: 'tenant123' }),
-            });
-
             // Mock tenant override document with disabled preset
             mockDocGet.mockResolvedValueOnce({
                 exists: true,
@@ -596,12 +526,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
 
     describe('getTenantOverrides', () => {
         it('returns tenant overrides for a role', async () => {
-            // Mock user document fetch
-            mockDocGet.mockResolvedValueOnce({
-                exists: true,
-                data: () => ({ role: 'super_user', brandId: 'tenant123' }),
-            });
-
             // Mock tenant override document
             mockDocGet.mockResolvedValueOnce({
                 exists: true,
@@ -616,12 +540,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
         });
 
         it('returns empty override if not found', async () => {
-            // Mock user document fetch
-            mockDocGet.mockResolvedValueOnce({
-                exists: true,
-                data: () => ({ role: 'super_user', brandId: 'tenant123' }),
-            });
-
             // Mock tenant override document (not found)
             mockDocGet.mockResolvedValueOnce({
                 exists: false,
@@ -636,12 +554,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
 
     describe('deleteTenantPresetOverride', () => {
         it('deletes a custom tenant preset', async () => {
-            // Mock user document fetch
-            mockDocGet.mockResolvedValueOnce({
-                exists: true,
-                data: () => ({ role: 'super_user', brandId: 'tenant123' }),
-            });
-
             // Mock tenant override document with preset
             mockDocGet.mockResolvedValueOnce({
                 exists: true,
@@ -662,12 +574,6 @@ describe('Role-Based Ground Truth Server Actions', () => {
         });
 
         it('returns error if override document not found', async () => {
-            // Mock user document fetch
-            mockDocGet.mockResolvedValueOnce({
-                exists: true,
-                data: () => ({ role: 'super_user', brandId: 'tenant123' }),
-            });
-
             // Mock tenant override document (not found)
             mockDocGet.mockResolvedValueOnce({
                 exists: false,

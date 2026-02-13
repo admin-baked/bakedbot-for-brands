@@ -16,7 +16,10 @@ const customJestConfig = {
   modulePathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/usr/', '<rootDir>/.firebase', '<rootDir>/coverage/', '<rootDir>/dist/'],
   moduleNameMapper: {
     // Specific mocks (Must come before generic aliases)
-    '^@/ai/genkit$': '<rootDir>/tests/__mocks__/genkit.ts',
+    '^@/ai/genkit$': '<rootDir>/tests/__mocks__/ai-genkit.ts',
+    // next/jest + SWC can rewrite `@/ai/genkit` imports to relative paths in output (e.g. "../../../ai/genkit").
+    // Map those forms too so tests can consistently mock `ai.generate`.
+    '^(?:\\.\\./)+(?:src/)?ai/genkit$': '<rootDir>/tests/__mocks__/ai-genkit.ts',
     '^@/ai/model-selector$': '<rootDir>/tests/__mocks__/model-selector.ts',
     '^@genkit-ai/vertexai$': '<rootDir>/tests/__mocks__/genkit-vertexai.js',
     '^uuid$': '<rootDir>/tests/__mocks__/uuid.js',

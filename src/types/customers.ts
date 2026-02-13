@@ -181,6 +181,7 @@ export interface LoyaltySettings {
     tiers: LoyaltyTier[];
     equityMultiplier: number; // e.g. 1.2x points for equity applicants
     redemptionTiers?: RedemptionTier[];
+    enableGamification?: boolean;
 }
 
 export interface RedemptionTier {

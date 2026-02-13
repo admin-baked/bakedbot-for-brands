@@ -38,7 +38,7 @@ const commonMemoryTools = {
             if (!agent) {
                 agent = await lettaClient.createAgent('BakedBot Research Memory', 'Long-term memory for BakedBot.');
             }
-            const message = category 
+            const message = category
                 ? `Remember this fact under category '${category}': ${fact}`
                 : `Remember this fact: ${fact}`;
             await lettaClient.sendMessage(agent.id, message);
@@ -55,15 +55,15 @@ const commonMemoryTools = {
             if (!agent) return { response: "Memory is empty or not initialized." };
             const result: any = await lettaClient.sendMessage(agent.id, question);
             if (result.messages && Array.isArray(result.messages)) {
-                 const last = result.messages.filter((m:any) => m.role === 'assistant').pop();
-                 return { response: last ? last.content : "No recall." };
+                const last = result.messages.filter((m: any) => m.role === 'assistant').pop();
+                return { response: last ? last.content : "No recall." };
             }
             return { response: "No clear memory found." };
         } catch (e: any) {
             return { error: `Letta Ask Failed: ${e.message}` };
         }
     },
-    
+
     // Inter-Agent Async Messaging
     sendMessageToAgent: async (toAgentName: string, message: string) => {
         try {
@@ -79,7 +79,7 @@ const commonMemoryTools = {
             return { delivered: false, error: e.message };
         }
     },
-    
+
     // Shared Memory Block Tools
     writeToSharedBlock: async (tenantId: string, blockLabel: string, content: string, agentName: string) => {
         try {
@@ -91,7 +91,7 @@ const commonMemoryTools = {
             return { success: false, error: e.message };
         }
     },
-    
+
     readFromSharedBlock: async (tenantId: string, blockLabel: string) => {
         try {
             const { lettaBlockManager, BLOCK_LABELS } = await import('@/server/services/letta/block-manager');
@@ -114,7 +114,7 @@ const commonDynamicMemoryTools = {
             // We'll trust the agent runner injects currentAgentId into global or we pass it.
             // Fallback: use 'default_agent' if missing for safety in dev
             const agentId = (global as any).currentAgentId || 'default_agent';
-            
+
             const result = await dynamicMemoryService.attachBlock(
                 agentId,
                 'project',
@@ -125,24 +125,24 @@ const commonDynamicMemoryTools = {
             return { success: false, error: e.message };
         }
     },
-    
+
     detachMemoryBlock: async (blockId: string, deleteBlock: boolean = false) => {
         try {
             const { dynamicMemoryService } = await import('@/server/services/letta/dynamic-memory');
             const agentId = (global as any).currentAgentId || 'default_agent';
-            
+
             await dynamicMemoryService.detachBlock(agentId, blockId, deleteBlock);
             return { success: true, message: 'Block detached' };
         } catch (e: any) {
             return { success: false, error: e.message };
         }
     },
-    
+
     listAttachedBlocks: async () => {
         try {
             const { dynamicMemoryService } = await import('@/server/services/letta/dynamic-memory');
             const agentId = (global as any).currentAgentId || 'default_agent';
-            
+
             const blocks = await dynamicMemoryService.getAttachedBlocks(agentId);
             return { success: true, blocks: blocks.map(b => ({ id: b.id, label: b.label, size: b.value.length })) };
         } catch (e: any) {
@@ -156,7 +156,7 @@ const commonRAGTools = {
         try {
             const { ragService } = await import('@/server/services/vector-search/rag-service');
             const tenantId = (global as any).currentTenantId;
-            
+
             const collectionMap = {
                 products: 'products/catalog',
                 customers: 'customers/interactions',
@@ -164,14 +164,14 @@ const commonRAGTools = {
                 compliance: 'compliance/policies',
                 general: 'knowledge/docs'
             };
-            
+
             const results = await ragService.search({
                 collection: collectionMap[scope],
                 query,
                 limit: 5,
                 tenantId: scope !== 'compliance' ? tenantId : undefined
             });
-            
+
             return {
                 success: true,
                 results: results.map(r => ({
@@ -184,12 +184,12 @@ const commonRAGTools = {
             return { success: false, error: e.message };
         }
     },
-    
+
     indexContent: async (content: string, category: string, metadata: any = {}) => {
         try {
             const { ragService } = await import('@/server/services/vector-search/rag-service');
             const tenantId = (global as any).currentTenantId;
-            
+
             await ragService.indexDocument(
                 `knowledge/${category}`,
                 `doc_${Date.now()}`,
@@ -197,7 +197,7 @@ const commonRAGTools = {
                 { ...metadata, indexed_at: new Date().toISOString(), tenant: tenantId },
                 tenantId
             );
-            
+
             return { success: true, message: 'Content indexed for future RAG search' };
         } catch (e: any) {
             return { success: false, error: e.message };
@@ -217,7 +217,7 @@ const commonDigitalWorkerTools = {
             return { success: false, error: e.message };
         }
     },
-    
+
     // Blackleaf Order Notifications
     sendOrderReadySms: async (orderId: string, dispensaryName: string, phoneNumber: string) => {
         try {
@@ -229,7 +229,7 @@ const commonDigitalWorkerTools = {
             return { success: false, error: e.message };
         }
     },
-    
+
     sendPromotionalSms: async (message: string, phoneNumber: string, imageUrl?: string) => {
         try {
             const { blackleafService } = await import('@/lib/notifications/blackleaf-service');
@@ -239,24 +239,24 @@ const commonDigitalWorkerTools = {
             return { success: false, error: e.message };
         }
     },
-    
+
     // Mailjet Email
     sendEmailMailjet: async (to: string, subject: string, htmlBody: string, fromEmail?: string, fromName?: string) => {
         try {
             const { sendGenericEmail } = await import('@/lib/email/mailjet');
-            const result = await sendGenericEmail({ 
-                to, 
-                subject, 
-                htmlBody, 
-                fromEmail, 
-                fromName 
+            const result = await sendGenericEmail({
+                to,
+                subject,
+                htmlBody,
+                fromEmail,
+                fromName
             });
             return result;
         } catch (e: any) {
             return { success: false, error: e.message };
         }
     },
-    
+
     sendOrderConfirmationEmail: async (orderData: {
         orderId: string;
         customerName: string;
@@ -274,7 +274,7 @@ const commonDigitalWorkerTools = {
             return { success: false, error: e.message };
         }
     },
-    
+
     // Marketing Email (with compliance check)
     sendMarketingEmail: async (to: string, subject: string, htmlBody: string) => {
         try {
@@ -296,11 +296,11 @@ const commonDigitalWorkerTools = {
             return {
                 ...result,
                 qualityScore,
-                recommendation: result.safe_to_send 
-                    ? 'Safe to send' 
-                    : result.disposable 
-                        ? 'Disposable email - do not send' 
-                        : result.result === 'invalid' 
+                recommendation: result.safe_to_send
+                    ? 'Safe to send'
+                    : result.disposable
+                        ? 'Disposable email - do not send'
+                        : result.result === 'invalid'
                             ? 'Invalid email - do not send'
                             : 'Proceed with caution'
             };
@@ -446,11 +446,12 @@ export const defaultSmokeyTools = {
     searchMenu: async (query: string) => {
         try {
             const { firestore } = await createServerClient();
-            const user = await requireUser();
+            const user = await requireUser().catch(() => null); // Allow guest users
 
             // Use orgId resolution: check orgId first, then currentOrgId, then locationId
-            const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId;
-            let locationId = user.locationId;
+            // For guests, we might need a fallback or passed context, but for now relying on what's available
+            const orgId = (user as any)?.orgId || (user as any)?.currentOrgId || (user as any)?.locationId;
+            let locationId = (user as any)?.locationId;
 
             // Fallback logic similar to syncMenu - try orgId first, then brandId
             if (!locationId && orgId) {
@@ -462,38 +463,81 @@ export const defaultSmokeyTools = {
             }
 
             const productRepo = makeProductRepo(firestore);
+            let products: any[] = [];
 
-            // Try getAllByLocation first
-            let products = locationId ? await productRepo.getAllByLocation(locationId) : [];
-
-            // If no products found with locationId, try orgId as dispensaryId
+            // 1. Try Firestore First (Pilot/Synced Customers)
+            if (locationId) {
+                products = await productRepo.getAllByLocation(locationId);
+            }
             if (products.length === 0 && orgId && orgId !== locationId) {
                 products = await productRepo.getAllByLocation(orgId);
             }
-
-            // If still no products, try getAllByBrand with orgId (handles tenant catalog)
             if (products.length === 0 && orgId) {
-                products = await productRepo.getAllByBrand(orgId);
+                try {
+                    products = await productRepo.getAllByBrand(orgId);
+                } catch (e) {
+                    // Ignore - might not be a valid brand ID format for repo
+                }
+            }
+
+            // 2. Fallback to CannMenus (Standard Customers) if Firestore empty
+            if (products.length === 0) {
+                const { CannMenusService } = await import('@/server/services/cannmenus');
+                const cms = new CannMenusService();
+
+                // Construct search params
+                // Note: CannMenus 'near' param or 'retailers' param would be ideal if we had context.
+                // For now, we search broadly or rely on strict string match if possible
+                // Ideally we'd have the dispensary's CannMenus ID.
+                // Assuming 'orgId' might be a CannMenus ID or we search general:
+
+                try {
+                    const searchParams: any = { search: query, limit: 15 };
+                    // If we have a retailer ID in env or config, use it (e.g. Bayside)
+                    if (process.env.NEXT_PUBLIC_BAYSIDE_RETAILER_ID) {
+                        searchParams.retailers = process.env.NEXT_PUBLIC_BAYSIDE_RETAILER_ID;
+                    }
+
+                    const cmResult = await cms.searchProducts(searchParams);
+                    if (cmResult.products) {
+                        // Transform to simple shape
+                        return {
+                            success: true,
+                            count: cmResult.products.length,
+                            products: cmResult.products.map(p => ({
+                                name: p.product_name,
+                                brand: p.brand_name,
+                                price: p.latest_price,
+                                thc: p.percentage_thc,
+                                stock: 100, // Assumed in stock if listed
+                                category: p.category,
+                                url: p.url
+                            }))
+                        };
+                    }
+                } catch (cmsError) {
+                    console.warn('CannMenus search failed:', cmsError);
+                }
             }
 
             if (products.length === 0) {
-                return { success: false, error: "No products found. Menu may need to be synced." };
+                return { success: false, error: "No products found in menu." };
             }
 
-            // In-memory simplistic fuzzy search
+            // In-memory simplistic fuzzy search for Firestore results
             const lowerQ = query.toLowerCase();
             const results = products.filter(p => {
                 const content = `${p.name} ${p.brandId} ${p.category} ${p.description || ''}`.toLowerCase();
-                return content.includes(lowerQ) && (p.stock && p.stock > 0);
+                return content.includes(lowerQ) && (p.stock === undefined || p.stock > 0);
             }).slice(0, 15);
 
-            return { 
-                success: true, 
-                count: results.length, 
+            return {
+                success: true,
+                count: results.length,
                 products: results.map(p => ({
                     name: p.name,
                     brand: p.brandId,
-                    price: p.price, 
+                    price: p.price,
                     thc: p.thcPercent,
                     stock: p.stock,
                     category: p.category
@@ -533,6 +577,11 @@ export const defaultSmokeyTools = {
             return { success: false, error: e.message };
         }
     },
+    triggerCheckout: async (productIds: string[]) => {
+        // This is a signaling tool. The ConsumerAgentAdapter will listen for this tool call
+        // and trigger the actual client-side checkout action.
+        return { success: true, message: `Checkout signaled for ${productIds.length} items.`, productIds };
+    },
 };
 
 export const defaultPopsTools = {
@@ -563,21 +612,21 @@ export const defaultEzalTools = {
     discoverMenu: async (url: string, context?: any) => {
         try {
             const { discovery } = await import('@/server/services/firecrawl');
-            
+
             // Check if BakedBot Discovery is configured
             if (discovery.isConfigured()) {
                 const result = await discovery.discoverUrl(url, ['markdown']);
-                
+
                 // Persistence: Save specific menu discovery
                 await commonMemoryTools.lettaSaveFact(`Menu discovered for ${url}. Sample: ${(result.data || '').substring(0, 100)}...`, 'competitor_menu');
 
-                return { 
-                    success: true, 
-                    data: result.data || result, 
-                    message: "Successfully discovered menu data." 
+                return {
+                    success: true,
+                    data: result.data || result,
+                    message: "Successfully discovered menu data."
                 };
             }
-            
+
             return { message: "Discovery service unavailable. Please check configuration." };
         } catch (e: any) {
             console.error('Discovery failed:', e);
@@ -594,7 +643,7 @@ export const defaultEzalTools = {
         try {
             // Import dynamically to avoid circular dependencies
             const { getRetailersByZipCode, getZipCodeCoordinates } = await import('@/server/services/geo-discovery');
-            
+
             let retailers: any[] = [];
             let marketLocation = city ? `${city}, ${state}` : state;
 
@@ -604,32 +653,32 @@ export const defaultEzalTools = {
                 retailers = await getRetailersByZipCode(city, 15);
                 marketLocation = `Zip Code ${city}`;
             } else if (city) {
-                 // Try to resolve city to lat/long/zip if possible, or search by text
-                 // For now, fast path: use a central zip for the city if known, or fallback to generic search
-                 // We will simply try to "search nearby" a known point if we had one, but strict city search is harder without a geocoder for city names.
-                 // Fallback to simple stub for city-only if not a zip, OR use a known zip map.
-                 // Actually, let's use the basic CannMenusService directly for city text search if we can't geocode.
-                 const { CannMenusService } = await import('@/server/services/cannmenus');
-                 const cms = new CannMenusService();
-                 // CannMenus 'near' param supports "City, State"
-                 const results = await cms.searchProducts({ near: `${city}, ${state}`, limit: 12 });
-                 if (results.products) {
-                     // We need to extract retailers from products, which is imperfect but works for discovery
-                     // Or use findRetailers with lat/lng if we could geocode.
-                     // Let's stick to the tool spec: return a summary string.
-                     return {
+                // Try to resolve city to lat/long/zip if possible, or search by text
+                // For now, fast path: use a central zip for the city if known, or fallback to generic search
+                // We will simply try to "search nearby" a known point if we had one, but strict city search is harder without a geocoder for city names.
+                // Fallback to simple stub for city-only if not a zip, OR use a known zip map.
+                // Actually, let's use the basic CannMenusService directly for city text search if we can't geocode.
+                const { CannMenusService } = await import('@/server/services/cannmenus');
+                const cms = new CannMenusService();
+                // CannMenus 'near' param supports "City, State"
+                const results = await cms.searchProducts({ near: `${city}, ${state}`, limit: 12 });
+                if (results.products) {
+                    // We need to extract retailers from products, which is imperfect but works for discovery
+                    // Or use findRetailers with lat/lng if we could geocode.
+                    // Let's stick to the tool spec: return a summary string.
+                    return {
                         market: marketLocation,
                         retailers_found: results.products.length > 0 ? "Multiple" : 0,
-                        sample_data: results.products.slice(0,3).map(p => ({
-                             name: p.retailer_name || "Unknown Dispensary",
-                             address: "Verified via CannMenus"
+                        sample_data: results.products.slice(0, 3).map(p => ({
+                            name: p.retailer_name || "Unknown Dispensary",
+                            address: "Verified via CannMenus"
                         })),
                         insight: `Found products listed in ${marketLocation}.`
-                     };
-                 }
+                    };
+                }
             } else {
-                 // State-wide is too broad, just return a sample
-                 return { market: state, retailers_found: "Many", insight: "Please specify a City or Zip Code for detailed intel." };
+                // State-wide is too broad, just return a sample
+                return { market: state, retailers_found: "Many", insight: "Please specify a City or Zip Code for detailed intel." };
             }
 
             const result = {
@@ -641,13 +690,13 @@ export const defaultEzalTools = {
 
             // Persistence: Save competitive snapshot
             await commonMemoryTools.lettaSaveFact(
-                `Market Intel for ${marketLocation}: Found ${retailers.length} retailers. Top 3: ${retailers.slice(0,3).map(r => r.name).join(', ')}.`, 
+                `Market Intel for ${marketLocation}: Found ${retailers.length} retailers. Top 3: ${retailers.slice(0, 3).map(r => r.name).join(', ')}.`,
                 'competitive_intel'
             );
 
             return result;
         } catch (e: any) {
-             return `Intel retrieval failed: ${e.message}`;
+            return `Intel retrieval failed: ${e.message}`;
         }
     },
     searchWeb: async (query: string) => {
@@ -669,9 +718,9 @@ export const defaultEzalTools = {
             const { CannMenusService } = await import('@/server/services/cannmenus');
             const cms = new CannMenusService();
             const result = await cms.searchProducts(params);
-            
+
             if (result.products && result.products.length > 0) {
-                 return {
+                return {
                     success: true,
                     count: result.products.length,
                     products: result.products.map(p => ({
@@ -681,11 +730,11 @@ export const defaultEzalTools = {
                         retailer: p.retailer_name,
                         url: p.url
                     }))
-                 };
+                };
             }
             return { success: true, count: 0, message: "No products found matching criteria." };
         } catch (e: any) {
-             return { success: false, error: e.message };
+            return { success: false, error: e.message };
         }
     },
     // NEW: Browser Tool for visual auditing and navigation
@@ -695,28 +744,28 @@ export const defaultEzalTools = {
             // Check if action matches BrowserStep type, otherwise map simpler args to BrowserStep
             // The tool definition says: browse(url, action, selector)
             // But browserAction takes: steps: BrowserStep[]
-            
+
             const steps: any[] = [];
-            
+
             if (action === 'goto') {
                 steps.push({ action: 'goto', url });
             } else if (action === 'screenshot') {
                 steps.push({ action: 'goto', url }); // Ensure we go there first
                 steps.push({ action: 'screenshot' });
             } else if (action === 'discover') {
-                 steps.push({ action: 'goto', url });
-                 steps.push({ action: 'discover', selector }); // selector optional
+                steps.push({ action: 'goto', url });
+                steps.push({ action: 'discover', selector }); // selector optional
             }
-            
+
             const result = await browserAction({ steps, headless: true });
-            
+
             if (result.success) {
                 if (action === 'screenshot') return { success: true, screenshot: result.screenshot };
                 return { success: true, data: result.data || result.logs.join('\n') };
             }
             return { success: false, error: result.error };
         } catch (e: any) {
-             return { success: false, error: e.message };
+            return { success: false, error: e.message };
         }
     }
 };
@@ -893,10 +942,10 @@ export const defaultDayDayTools = {
     },
     generateMetaTags: async (contentSample: string) => {
         try {
-           return {
-               title: "Optimized Title | Brand Name",
-               description: "Optimized description generated from content sample."
-           };
+            return {
+                title: "Optimized Title | Brand Name",
+                description: "Optimized description generated from content sample."
+            };
         } catch (e: any) {
             return { title: 'Error', description: 'Could not generate tags' };
         }
@@ -971,16 +1020,16 @@ export const defaultFelishaTools = {
 export const defaultUniversalTools = {
     // Memory & Persistence
     ...commonMemoryTools,
-    
+
     // Delegation
     ...commonDelegationTools,
-    
+
     // Digital Worker (SMS, Email, Notifications)
     ...commonDigitalWorkerTools,
-    
+
     // Dynamic Memory (Projects, Campaigns)
     ...commonDynamicMemoryTools,
-    
+
     // RAG (Knowledge Base, Search)
     ...commonRAGTools,
 
@@ -1185,14 +1234,14 @@ export const defaultExecutiveBoardTools = {
     rtrvrAgent: defaultExecutiveTools.rtrvrAgent,
     rtrvrScrape: defaultExecutiveTools.rtrvrScrape,
     rtrvrMcp: defaultExecutiveTools.rtrvrMcp,
-    
+
     // new Universal Bridges
     // Note: We need to import these at top level or handle dynamic loading in actual agent runner registry
     // For this file def, we map them if they were imported. 
     // Since we just created them, we'll assume dynamic mapping in the agent loading layer 
     // OR we add them here if we can import.
     // Let's add placeholders that use dynamic imports to be safe in this file structure.
-    
+
     mcpListServers: async () => {
         const { mcpListServers } = await import('@/server/tools/mcp-tools');
         // This is a bit of a hack since tools are usually defined as Genkit tools, 
@@ -1209,28 +1258,28 @@ export const defaultExecutiveBoardTools = {
         // So mcp-tools.ts defined real tools, but here we need raw functions.
         // I should have defined RAW functions in mcp-tools.ts and then wrapped them.
         // Let's simple inline the logic here to match the pattern, referencing the client directly.
-        
+
         // RE-IMPLEMENTING AS RAW FUNCTION
         const { getMcpClient } = await import('@/server/services/mcp/client');
         // Mock list for now as discussed
         return {
-             servers: [
+            servers: [
                 { id: 'brave-search', status: 'connected', tools: [{ name: 'brave.search', description: 'Search' }] }
             ]
         };
     },
-    
+
     mcpCallTool: async (serverId: string, toolName: string, args: any) => {
         const { getMcpClient } = await import('@/server/services/mcp/client');
         const client = getMcpClient(serverId);
         if (!client) return { error: `Server ${serverId} not found` };
         try {
             return await client.callTool(toolName, args);
-        } catch(e: any) {
+        } catch (e: any) {
             return { error: e.message };
         }
     },
-    
+
     // Python Sidecar Wrapper
     pythonSidecarExec: async (action: string, data: any) => {
         const { sidecar } = await import('@/server/services/python-sidecar');
@@ -1240,7 +1289,7 @@ export const defaultExecutiveBoardTools = {
             return { error: e.message };
         }
     },
-    
+
     // NEW: Spawn Agent Capability (Super User / Executive)
     spawnAgent: superUserTools.spawnAgent,
 

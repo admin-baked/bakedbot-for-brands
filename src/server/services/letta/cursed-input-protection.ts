@@ -50,7 +50,11 @@ export interface InputSafetyConfig {
 const CURSED_PATTERNS = {
     // Prompt injection attempts
     prompt_injection: [
-        /ignore (previous|all|your) (instructions|prompts|rules)/i,
+        // Match common variants like:
+        // - "Ignore previous instructions"
+        // - "Ignore all previous instructions"
+        // - "Ignore your instructions"
+        /ignore\s+(?:all\s+)?(?:your\s+)?(?:previous\s+)?(?:instructions|prompts|rules)/i,
         /you are now (a|an) (different|new)/i,
         /forget (your|everything|all|the) (previous|above|instructions)/i,
         /disregard (previous|all|your) (instructions|context)/i,
@@ -61,7 +65,10 @@ const CURSED_PATTERNS = {
 
     // Infinite loop triggers
     infinite_loop: [
-        /repeat (this|the following) (\d+|infinite|forever|endless)/i,
+        // Match common variants like:
+        // - "Repeat this 1000 times"
+        // - "Repeat this message 1000 times"
+        /repeat\s+(?:this|the following)(?:\s+\w+){0,3}\s+(?:\d+|infinite|forever|endless)(?:\s+times)?/i,
         /loop (this|until|while|forever)/i,
         /keep (saying|repeating|doing) (this|that)/i,
         /never stop (saying|repeating)/i,
@@ -79,7 +86,8 @@ const CURSED_PATTERNS = {
     role_confusion: [
         /you are (not|no longer) (smokey|craig|ezal|linus|leo)/i,
         /(change|switch|become) (your|the) (role|agent|identity)/i,
-        /access (admin|executive|super_user|ceo) (mode|panel|dashboard)/i,
+        /you\s+are\s+now\s+(?:in\s+)?(admin|executive|super[_ ]?user|ceo)(?:\s+mode)?/i,
+        /access\s+(?:the\s+)?(admin|executive|super[_ ]?user|ceo)\s+(mode|panel|dashboard)/i,
         /elevate (my|your) (privileges|permissions|access)/i,
     ],
 
@@ -293,7 +301,7 @@ Return JSON:
             case 'role_confusion':
                 // Remove instruction-like phrases
                 sanitized = sanitized.replace(
-                    /ignore (previous|all|your) (instructions|prompts|rules)/gi,
+                    /ignore\s+(?:all\s+)?(?:your\s+)?(?:previous\s+)?(?:instructions|prompts|rules)/gi,
                     '[removed]'
                 );
                 sanitized = sanitized.replace(/you are now (a|an) (different|new)/gi, '[removed]');
@@ -306,7 +314,7 @@ Return JSON:
             case 'infinite_loop':
                 // Remove loop triggers
                 sanitized = sanitized.replace(
-                    /repeat (this|the following) (\d+|infinite|forever|endless)/gi,
+                    /repeat\s+(?:this|the following)(?:\s+\w+){0,3}\s+(?:\d+|infinite|forever|endless)(?:\s+times)?/gi,
                     '[removed]'
                 );
                 sanitized = sanitized.replace(/loop (this|until|while|forever)/gi, '[removed]');

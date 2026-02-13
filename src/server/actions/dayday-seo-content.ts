@@ -10,6 +10,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { ai } from '@/ai/genkit';
 // import { gemini20Flash } from '@genkit-ai/vertexai';
 import { z } from 'zod';
+import { requireUser } from '@/server/auth/auth';
 
 // Content templates by page type
 const CONTENT_TEMPLATES = {
@@ -86,6 +87,7 @@ export async function optimizePageContent(
     pageId: string,
     pageType: 'zip' | 'dispensary' | 'brand'
 ): Promise<OptimizeResult> {
+    await requireUser(['super_user']);
     const { firestore } = await createServerClient();
     
     // 1. Fetch page data
@@ -198,31 +200,28 @@ export async function batchOptimizePages(
     pageType: 'zip' | 'dispensary' | 'brand',
     limit: number = 20
 ): Promise<{ optimized: number; errors: number }> {
+    await requireUser(['super_user']);
     const { firestore } = await createServerClient();
     
-    let collection: string;
-    let query;
-    
-    if (pageType === 'zip') {
-        query = firestore.collection('foot_traffic').doc('config').collection('zip_pages')
-            .where('seoOptimized', '!=', true)
-            .limit(limit);
-    } else if (pageType === 'dispensary') {
-        query = firestore.collection('seo_pages_dispensary')
-            .where('seoOptimized', '!=', true)
-            .limit(limit);
-    } else {
-        query = firestore.collection('seo_pages_brand')
-            .where('seoOptimized', '!=', true)
-            .limit(limit);
-    }
-    
+    // NOTE: Firestore `!=` queries do not match documents missing the field, which made
+    // Day Day appear "broken" for older pages that never had `seoOptimized` set.
+    // We scan a larger window and filter client-side instead.
+    const scanLimit = Math.max(limit * 5, 50);
+
+    const query =
+        pageType === 'zip'
+            ? firestore.collection('foot_traffic').doc('config').collection('zip_pages').limit(scanLimit)
+            : pageType === 'dispensary'
+                ? firestore.collection('seo_pages_dispensary').limit(scanLimit)
+                : firestore.collection('seo_pages_brand').limit(scanLimit);
+
     const snapshot = await query.get();
+    const candidates = snapshot.docs.filter(doc => doc.data()?.seoOptimized !== true).slice(0, limit);
     
     let optimized = 0;
     let errors = 0;
     
-    for (const doc of snapshot.docs) {
+    for (const doc of candidates) {
         try {
             console.log(`[DayDay] Optimizing ${pageType} page: ${doc.id}`);
             await optimizePageContent(doc.id, pageType);
@@ -247,6 +246,7 @@ export async function runDayDayOptimization(): Promise<{
     dispensary: { optimized: number; errors: number };
     brand: { optimized: number; errors: number };
 }> {
+    await requireUser(['super_user']);
     console.log('[DayDay] Starting SEO content optimization...');
     
     const zipResult = await batchOptimizePages('zip', 20);

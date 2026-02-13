@@ -9,6 +9,7 @@ import {
     isBrandAdmin, 
     isDispensaryRole, 
     isDispensaryAdmin,
+    normalizeRole,
     DASHBOARD_ROLES,
     ALL_ROLES
 } from '@/types/roles';
@@ -28,13 +29,15 @@ export function useUserRole() {
 
     const realRole = useMemo(() => {
         if (!user) return null;
-        return (user as any).role as Role | null;
+        const raw = (user as any).role as string | null | undefined;
+        return raw ? (normalizeRole(raw) as Role) : null;
     }, [user]);
 
     // Base role from user object (safe for SSR)
     const baseRole = useMemo(() => {
         if (user && (user as any).role) {
-            return (user as any).role as Role;
+            const raw = (user as any).role as string;
+            return normalizeRole(raw) as Role;
         }
         return null;
     }, [user]);

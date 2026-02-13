@@ -13,17 +13,21 @@ interface FirebaseClientProviderProps {
 }
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
-  const [firebaseServices, setFirebaseServices] = useState<FirebaseSdks | null>(null);
-
-  // Initialize Firebase on the client side, once per component mount.
-  useEffect(() => {
-    // CRITICAL: Set App Check debug token BEFORE any Firebase initialization
-    // CRITICAL: Set App Check debug token BEFORE any Firebase initialization
-    // if (process.env.NODE_ENV === 'development') {
-    //   (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    // }
-    setFirebaseServices(initializeFirebase());
-  }, []);
+  // Initialize Firebase synchronously on first client render.
+  // This avoids an auth race where `auth` is null on initial mount and protected routes redirect.
+  const [firebaseServices] = useState<FirebaseSdks | null>(() => {
+    try {
+      // CRITICAL: Set App Check debug token BEFORE any Firebase initialization
+      // if (process.env.NODE_ENV === 'development') {
+      //   (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      // }
+      return initializeFirebase();
+    } catch (e) {
+      const error = e instanceof Error ? e : new Error(String(e));
+      logger.error('[FirebaseClientProvider] Firebase initialization failed', error);
+      return null;
+    }
+  });
 
   // Effect to initialize App Check on the client after the app is available.
   useEffect(() => {

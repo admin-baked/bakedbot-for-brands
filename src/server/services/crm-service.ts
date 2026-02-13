@@ -1,7 +1,10 @@
 'use server';
 
 import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
-import { FieldValue, Query } from 'firebase-admin/firestore';
+import { FieldPath, FieldValue, Query } from 'firebase-admin/firestore';
+import { requireUser } from '@/server/auth/auth';
+import { isBrandRole, isDispensaryRole, normalizeRole } from '@/types/roles';
+import { PLANS } from '@/lib/plans';
 import type { CRMLifecycleStage, CRMUser } from './crm-types';
 
 export interface CRMBrand {
@@ -71,6 +74,111 @@ function createSlug(name: string): string {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '');
+}
+
+const VALID_LIFECYCLE_STAGES: readonly CRMLifecycleStage[] = [
+    'prospect',
+    'contacted',
+    'demo_scheduled',
+    'trial',
+    'customer',
+    'vip',
+    'churned',
+    'winback',
+] as const;
+
+function normalizeLifecycleStage(value: unknown): CRMLifecycleStage | null {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    return (VALID_LIFECYCLE_STAGES as readonly string[]).includes(trimmed)
+        ? (trimmed as CRMLifecycleStage)
+        : null;
+}
+
+function coerceDate(value: any): Date | null {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (typeof value?.toDate === 'function') {
+        try {
+            const d = value.toDate();
+            return d instanceof Date ? d : null;
+        } catch {
+            return null;
+        }
+    }
+    if (typeof value === 'string') {
+        const parsed = Date.parse(value);
+        return Number.isFinite(parsed) ? new Date(parsed) : null;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return new Date(value);
+    }
+    return null;
+}
+
+function coerceNumber(value: any): number {
+    const n = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(n) ? n : 0;
+}
+
+function resolveOrgIdFromUserDoc(data: any): string | null {
+    const candidates: unknown[] = [
+        data?.currentOrgId,
+        Array.isArray(data?.organizationIds) ? data.organizationIds[0] : null,
+        data?.brandId,
+        data?.locationId,
+        data?.orgId,
+        data?.tenantId,
+    ];
+
+    for (const candidate of candidates) {
+        if (typeof candidate === 'string' && candidate.trim()) {
+            return candidate;
+        }
+    }
+
+    return null;
+}
+
+function planNameFromId(planId: unknown): string | null {
+    if (typeof planId !== 'string' || !planId.trim()) return null;
+    return planId in PLANS ? PLANS[planId as keyof typeof PLANS].name : planId;
+}
+
+async function loadSubscriptionCurrentByOrgIds(
+    firestore: FirebaseFirestore.Firestore,
+    orgIds: Set<string>
+): Promise<Map<string, any>> {
+    const results = new Map<string, any>();
+    const ids = Array.from(orgIds).filter(Boolean);
+
+    // Keep request fanout bounded.
+    const chunkSize = 25;
+    for (let i = 0; i < ids.length; i += chunkSize) {
+        const chunk = ids.slice(i, i + chunkSize);
+        const snaps = await Promise.all(
+            chunk.map(async (orgId) => {
+                try {
+                    return await firestore
+                        .collection('organizations')
+                        .doc(orgId)
+                        .collection('subscription')
+                        .doc('current')
+                        .get();
+                } catch {
+                    return null;
+                }
+            })
+        );
+
+        snaps.forEach((snap, idx) => {
+            if (snap && snap.exists) {
+                results.set(chunk[idx], snap.data());
+            }
+        });
+    }
+
+    return results;
 }
 
 /**
@@ -210,6 +318,7 @@ export async function upsertDispensary(
  * Get brands with optional filtering
  */
 export async function getBrands(filters: CRMFilters = {}): Promise<CRMBrand[]> {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     let query = firestore
         .collection('crm_brands')
@@ -254,6 +363,7 @@ export async function getBrands(filters: CRMFilters = {}): Promise<CRMBrand[]> {
  * Get dispensaries with optional filtering
  */
 export async function getDispensaries(filters: CRMFilters = {}): Promise<CRMDispensary[]> {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     let query = firestore
         .collection('crm_dispensaries')
@@ -304,6 +414,7 @@ export async function getCRMStats(): Promise<{
     claimedDispensaries: number;
     totalPlatformLeads: number;
 }> {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
 
     const brandsSnap = await firestore
@@ -345,6 +456,7 @@ export interface CRMLead {
  * Get platform leads (inbound B2B)
  */
 export async function getPlatformLeads(filters: CRMFilters = {}): Promise<CRMLead[]> {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     let query = firestore
         .collection('leads')
@@ -391,6 +503,7 @@ export async function getPlatformLeads(filters: CRMFilters = {}): Promise<CRMLea
  * Get all platform users with lifecycle tracking and MRR
  */
 export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUser[]> {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     let query: Query = firestore
         .collection('users');
@@ -404,41 +517,76 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
 
     const snapshot = await query.get();
 
-    let users = snapshot.docs.map(doc => {
-        const data = doc.data();
+    const rawUsers = snapshot.docs.map(doc => ({ id: doc.id, data: doc.data() as any }));
 
-        // Determine account type from role
+    const orgIds = new Set<string>();
+    for (const { data } of rawUsers) {
+        const resolvedOrgId = resolveOrgIdFromUserDoc(data);
+        if (resolvedOrgId) orgIds.add(resolvedOrgId);
+    }
+
+    const subscriptionByOrgId = await loadSubscriptionCurrentByOrgIds(firestore, orgIds);
+
+    let users = rawUsers.map(({ id, data }) => {
+        const normalizedRole = normalizeRole(typeof data.role === 'string' ? data.role : null);
+
+        // Determine account type from role (source of truth) with org context fallback.
         let accountType: CRMUser['accountType'] = 'customer';
-        if (data.role === 'superuser' || data.role === 'admin') accountType = 'superuser';
-        else if (data.orgType === 'brand') accountType = 'brand';
-        else if (data.orgType === 'dispensary') accountType = 'dispensary';
+        if (normalizedRole === 'super_user' || normalizedRole === 'super_admin') accountType = 'superuser';
+        else if (isBrandRole(normalizedRole)) accountType = 'brand';
+        else if (isDispensaryRole(normalizedRole)) accountType = 'dispensary';
 
-        // Determine lifecycle stage
-        let lifecycleStage: CRMLifecycleStage = data.lifecycleStage || 'prospect';
+        const resolvedOrgId = resolveOrgIdFromUserDoc(data);
+        const subscription = resolvedOrgId ? subscriptionByOrgId.get(resolvedOrgId) : null;
 
-        // Auto-detect based on data if not set
-        if (!data.lifecycleStage) {
-            if (data.subscription?.status === 'active') {
-                lifecycleStage = data.plan === 'scale' ? 'vip' : 'customer';
-            } else if (data.claimedAt || data.orgId) {
+        const subscriptionStatus = typeof subscription?.status === 'string' ? subscription.status : null;
+        const subscriptionAmount = coerceNumber(subscription?.amount);
+        const isPaying = subscriptionStatus === 'active' && subscriptionAmount > 0;
+
+        const subscriptionPlanName = planNameFromId(subscription?.planId);
+        const userPlanName = planNameFromId(data?.billing?.planId) ||
+            planNameFromId(data?.planId) ||
+            planNameFromId(data?.plan) ||
+            null;
+
+        const plan = subscriptionPlanName || userPlanName || 'Free';
+        const mrr = isPaying ? Math.round(subscriptionAmount * 100) / 100 : 0;
+
+        // Determine lifecycle stage (prefer explicit, otherwise infer from billing/subscription state)
+        const explicitStage = normalizeLifecycleStage(data.lifecycleStage);
+        let lifecycleStage: CRMLifecycleStage = explicitStage || 'prospect';
+
+        if (!explicitStage) {
+            if (subscriptionStatus === 'canceled') {
+                lifecycleStage = 'churned';
+            } else if (subscriptionStatus === 'past_due') {
+                lifecycleStage = 'winback';
+            } else if (isPaying) {
+                // Treat higher tiers as VIP (simple heuristic); otherwise a standard customer.
+                const isVip = mrr >= 349 || String(subscription?.planId || '').toLowerCase().includes('empire');
+                lifecycleStage = isVip ? 'vip' : 'customer';
+            } else if (resolvedOrgId || data.claimedAt) {
                 lifecycleStage = 'trial';
             } else if (data.createdAt) {
                 lifecycleStage = 'prospect';
             }
         }
 
+        const signupAt = coerceDate(data.createdAt) || coerceDate(data.signupAt) || new Date(0);
+        const lastLoginAt = coerceDate(data.lastLoginAt) || coerceDate(data.lastLogin) || null;
+
         return {
-            id: doc.id,
+            id,
             email: data.email || '',
             displayName: data.displayName || data.name || 'Unknown',
             photoUrl: data.photoURL || data.photoUrl || null,
             accountType,
             lifecycleStage,
-            signupAt: data.createdAt?.toDate?.() || new Date(0), // Default to old date if missing
-            lastLoginAt: data.lastLoginAt?.toDate?.() || null,
-            plan: data.plan || data.subscription?.plan || 'free',
-            mrr: data.mrr || 0, // Will be enriched from Authorize.net
-            orgId: data.orgId || data.tenantId || null,
+            signupAt,
+            lastLoginAt,
+            plan,
+            mrr,
+            orgId: resolvedOrgId,
             orgName: data.orgName || null,
             notes: data.crmNotes || null,
             approvalStatus: data.approvalStatus || 'approved', // Default to approved for legacy/existing
@@ -480,13 +628,35 @@ export async function getCRMUserStats(): Promise<{
     totalMRR: number;
     byLifecycle: Record<CRMLifecycleStage, number>;
 }> {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
     const snapshot = await firestore.collection('users').get();
+
+    // Revenue source of truth: organizations/{orgId}/subscription/current
+    let totalMRR = 0;
+    try {
+        const subsSnapshot = await firestore
+            .collectionGroup('subscription')
+            .where(FieldPath.documentId(), '==', 'current')
+            .where('status', '==', 'active')
+            .get();
+
+        subsSnapshot.docs.forEach((doc) => {
+            // Ensure we're only counting organization subscriptions.
+            if (doc.ref.parent.parent?.parent?.id !== 'organizations') return;
+            const amount = coerceNumber(doc.data()?.amount);
+            if (amount > 0) totalMRR += amount;
+        });
+
+        totalMRR = Math.round(totalMRR * 100) / 100;
+    } catch (error) {
+        console.error('[CRM] Failed to aggregate MRR from subscriptions:', error);
+        totalMRR = 0;
+    }
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    let totalMRR = 0;
     let activeUsers = 0;
     const byLifecycle: Record<CRMLifecycleStage, number> = {
         prospect: 0,
@@ -503,16 +673,13 @@ export async function getCRMUserStats(): Promise<{
         const data = doc.data();
 
         // Count active users
-        const lastLogin = data.lastLoginAt?.toDate?.();
+        const lastLogin = coerceDate(data.lastLoginAt) || coerceDate(data.lastLogin);
         if (lastLogin && lastLogin >= sevenDaysAgo) {
             activeUsers++;
         }
 
-        // Sum MRR
-        totalMRR += data.mrr || 0;
-
         // Count by lifecycle
-        const stage = (data.lifecycleStage || 'prospect') as CRMLifecycleStage;
+        const stage = normalizeLifecycleStage(data.lifecycleStage) || 'prospect';
         if (byLifecycle[stage] !== undefined) {
             byLifecycle[stage]++;
         }
@@ -534,6 +701,7 @@ export async function updateUserLifecycle(
     stage: CRMLifecycleStage,
     note?: string
 ): Promise<void> {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
 
     const updateData: any = {
@@ -556,6 +724,7 @@ export async function addCRMNote(
     note: string,
     authorId: string
 ): Promise<void> {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
 
     await firestore.collection('users').doc(userId).collection('crm_notes').add({
@@ -573,6 +742,7 @@ export async function deleteCrmEntity(
     id: string,
     type: 'brand' | 'dispensary' | 'user'
 ): Promise<void> {
+    await requireUser(['super_user']);
     const firestore = getAdminFirestore();
 
     if (type === 'user') {
@@ -597,6 +767,7 @@ export async function deleteCrmEntity(
  * Force delete a user by email (useful for cleanup of zombie users)
  */
 export async function deleteUserByEmail(email: string): Promise<string> {
+    await requireUser(['super_user']);
     const auth = getAdminAuth();
     const firestore = getAdminFirestore();
     let result = '';

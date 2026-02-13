@@ -34,6 +34,7 @@ import { getPlatformAnalytics, type PlatformAnalyticsData } from '../actions';
 import { useEffect } from 'react';
 import { AgentDebugPanel, useAgentDebug } from './agent-debug-panel';
 import { InboxThreadType } from '@/types/inbox';
+import { useSearchParams } from 'next/navigation';
 
 // Mock KPI Widgets
 function BoardroomWidget({ title, value, subtext, icon: Icon, trend, color }: any) {
@@ -78,6 +79,7 @@ const SUPPORT_STAFF = [
 
 export default function BoardroomTab() {
     const { user } = useUser();
+    const searchParams = useSearchParams();
     const [selectedAgent, setSelectedAgent] = useState('leo');
     const [analytics, setAnalytics] = useState<PlatformAnalyticsData | null>(null);
 
@@ -87,6 +89,22 @@ export default function BoardroomTab() {
     useEffect(() => {
         getPlatformAnalytics().then(setAnalytics).catch(console.error);
     }, []);
+
+    // Allow deep-linking from /dashboard/ceo/agents via ?agent=...
+    useEffect(() => {
+        const agentParam = searchParams?.get('agent');
+        if (!agentParam) return;
+
+        const normalized = agentParam.replace(/-/g, '_');
+        const allowed = new Set<string>([
+            ...EXECUTIVE_TEAM.map(a => a.id),
+            ...SUPPORT_STAFF.map(a => a.id),
+        ]);
+
+        if (allowed.has(normalized) && normalized !== selectedAgent) {
+            setSelectedAgent(normalized);
+        }
+    }, [searchParams, selectedAgent]);
 
     const [initialPermissions, setInitialPermissions] = useState<any[]>([]);
 

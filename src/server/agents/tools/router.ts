@@ -625,7 +625,7 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
     // AI Adoption Tracker - Submit to WordPress API
     if (def.name === 'tracker.submit') {
         // Restricted to Super User (Owner) only
-        if (request.actor.role !== 'super_user') {
+        if (request.actor.role !== 'super_user' && request.actor.role !== 'super_admin') {
             return { status: 'failed', error: 'Unauthorized: Tool restricted to Super Users' };
         }
 
@@ -645,7 +645,7 @@ async function dispatchExecution(def: ToolDefinition, inputs: any, request: Tool
     // AI Signal Scanner - Discovery Tool
     if (def.name === 'discovery.scan') {
         // Restricted to Super User (Owner) only
-        if (request.actor.role !== 'super_user') {
+        if (request.actor.role !== 'super_user' && request.actor.role !== 'super_admin') {
             return { status: 'failed', error: 'Unauthorized: Tool restricted to Super Users' };
         }
 

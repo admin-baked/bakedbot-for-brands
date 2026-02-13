@@ -8,6 +8,7 @@
 
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
+import { requireUser } from '@/server/auth/auth';
 import {
     getMediaUsage,
     getRecentMediaEvents,
@@ -169,6 +170,7 @@ export async function getGlobalMediaCosts(
     byProvider: { provider: string; costUsd: number; count: number }[];
     dailyTrend: { date: string; costUsd: number; count: number }[];
 }> {
+    await requireUser(['super_user']);
     const db = getFirestore();
     const now = new Date();
     let startDate: Date;
@@ -257,6 +259,7 @@ export async function getMonthlyProjection(orgId: string): Promise<{
     dailyAverage: number;
     daysRemaining: number;
 }> {
+    await requireUser(['super_user']);
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);

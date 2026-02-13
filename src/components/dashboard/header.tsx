@@ -6,6 +6,7 @@ import { useBrandId } from '@/hooks/use-brand-id';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { NotificationBell } from '@/components/dashboard/notification-bell';
+import { UserStreakComponent } from '@/components/gamification/user-streak';
 
 export function DashboardHeader() {
   const { current } = useDashboardConfig();
@@ -24,7 +25,10 @@ export function DashboardHeader() {
         <p className="text-sm md:text-base text-muted-foreground">{current.description}</p>
         {brandId && <ImportProgress brandId={brandId} />}
       </div>
-      <NotificationBell />
+      <div className="flex items-center gap-3">
+        <UserStreakComponent />
+        <NotificationBell />
+      </div>
     </div>
   );
 }

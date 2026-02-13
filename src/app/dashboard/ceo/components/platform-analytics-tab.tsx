@@ -99,9 +99,11 @@ export default function PlatformAnalyticsTab() {
     const [data, setData] = useState<PlatformAnalyticsData | null>(null);
     const [seoKpis, setSeoKpis] = useState<SeoKpis | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchMetrics = async () => {
         setLoading(true);
+        setError(null);
         if (isMock) {
             // Use local mock data structure
             setData({
@@ -134,6 +136,7 @@ export default function PlatformAnalyticsTab() {
             setSeoKpis(remoteSeoKpis);
         } catch (error) {
             console.error('Failed to fetch metrics', error);
+            setError(error instanceof Error ? error.message : 'Failed to load analytics.');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -151,8 +154,27 @@ export default function PlatformAnalyticsTab() {
         fetchMetrics();
     };
 
-    if (loading || isMockLoading || !data) {
+    if (loading || isMockLoading) {
         return <div className="p-8 text-center text-muted-foreground">Loading analytics...</div>;
+    }
+
+    if (error) {
+        return (
+            <div className="p-8 text-center">
+                <p className="text-sm text-muted-foreground">Failed to load analytics.</p>
+                <p className="mt-2 text-xs text-muted-foreground">{error}</p>
+                <div className="mt-4">
+                    <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+                        <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                        Retry
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
+    if (!data) {
+        return <div className="p-8 text-center text-muted-foreground">No analytics data available.</div>;
     }
 
     return (

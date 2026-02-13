@@ -108,9 +108,13 @@ const AGENT_MAP = {
     leo: leoAgent, // COO - Operations & Orchestration
     jack: jackAgent, // CRO - Revenue & Sales
     glenda: glendaAgent, // CMO - Marketing & Brand
-    mike: executiveAgent, // CFO
+    // CFO (canonical) + legacy alias
+    mike_exec: executiveAgent,
+    mike: executiveAgent,
     linus: linusAgent, // CTO
     deebo: deeboAgent, // Regulation Enforcement
+    // Big Worm (canonical) + legacy alias
+    big_worm: bigWormAgent,
     bigworm: bigWormAgent,
     // Autonomous Work Agent
     openclaw: openclawAgent, // Multi-channel communication & task automation
@@ -120,12 +124,12 @@ const AGENT_MAP = {
 // Since I cannot modify all agent files to export their tools in this step, I reuse the patterns.
 // NOTE: For brevity and reliability, I'm calling the defaults where possible or using the simplified versions.
 
-import { 
-    defaultCraigTools, 
-    defaultSmokeyTools, 
-    defaultPopsTools, 
-    defaultEzalTools, 
-    defaultMoneyMikeTools, 
+import {
+    defaultCraigTools,
+    defaultSmokeyTools,
+    defaultPopsTools,
+    defaultEzalTools,
+    defaultMoneyMikeTools,
     defaultMrsParkerTools,
     defaultDayDayTools,
     defaultFelishaTools,
@@ -146,7 +150,9 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
     // Universal Tool Access: All agents get defaultUniversalTools
     // Executive Board (leo, jack, glenda, mike, linus) get RTRVR access
     const EXECUTIVE_BOARD = ['executive_base', 'leo', 'jack', 'glenda', 'mike', 'linus'];
-    
+    // NOTE: Keep legacy 'mike' but treat canonical 'mike_exec' as exec too.
+    if (!EXECUTIVE_BOARD.includes('mike_exec')) EXECUTIVE_BOARD.push('mike_exec');
+
     if (EXECUTIVE_BOARD.includes(agentName)) {
         tools = defaultExecutiveBoardTools;
     } else {
@@ -156,12 +162,12 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
     // --- SKILL INJECTION ---
     const personaConfig = PERSONAS[agentName as AgentPersona];
     let skillInstructions = '';
-    
+
     if (personaConfig?.skills && personaConfig.skills.length > 0) {
         try {
             const { loadSkills } = await import('@/skills/loader');
             const loadedSkills = await loadSkills(personaConfig.skills);
-            
+
             // 1. Append Tools
             if (Array.isArray(tools)) {
                 const newTools = loadedSkills.flatMap(s => s.tools.map(t => t.definition));
@@ -170,7 +176,7 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
 
             // 2. Append Instructions
             skillInstructions = loadedSkills.map(s => `\n[SKILL: ${s.name}]\n${s.instructions}`).join('\n');
-            
+
         } catch (error) {
             console.error('[AgentRunner] Failed to inject skills:', error);
         }
@@ -202,14 +208,14 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
     } : {};
 
     const evaluators = AGENT_EVALUATORS[agentName];
-    const MAX_RETRIES = evaluators ? 3 : 1; 
+    const MAX_RETRIES = evaluators ? 3 : 1;
 
-    
+
     // --- CONTEXT INJECTION (Skills & Talk Tracks) ---
     // We inject these into the stimulus (User Prompt) so the Agent sees them as "System Context" or "Training Data"
-    
+
     let trainingContext = '';
-    
+
     // 1. Inject Skills (if loaded)
     if (skillInstructions) {
         trainingContext += `\n\n[ENABLED SKILLS]\nThe following specialized skills are enabled for this session:\n${skillInstructions}\n`;
@@ -219,7 +225,7 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
     try {
         const allTracks = await getAllTalkTracks();
         // Filter for relevant tracks (Role-based + Keywords matching stimulus)
-        const relevantTracks = allTracks.filter(t => 
+        const relevantTracks = allTracks.filter(t =>
             ((t.role as string) === 'all' || (t.role as string) === (personaConfig?.id || 'assistant')) &&
             t.isActive &&
             t.triggerKeywords.some(k => (stimulus || '').toLowerCase().includes(k.toLowerCase()))
@@ -243,11 +249,11 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
 
     while (attempts < MAX_RETRIES) {
         attempts++;
-        
+
         // A. Generate (Run Agent)
         const logEntry = await runAgent(brandId, persistence, agentImpl as any, tools, currentStimulus);
         const resultText = logEntry?.result || '';
-        
+
         // B. Verify (Run Gauntlet)
         if (evaluators && evaluators.length > 0) {
             const gauntlet = new Gauntlet(evaluators);
@@ -262,20 +268,20 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
 
             if (verdict.passed) {
                 // Success!
-                return { 
-                    success: true, 
-                    message: resultText, 
-                    log: logEntry 
+                return {
+                    success: true,
+                    message: resultText,
+                    log: logEntry
                 };
             }
 
             // Failure - Loop back
             // If we hit max retries, we return the failure (or the last attempt with a warning)
             if (attempts >= MAX_RETRIES) {
-                return { 
-                    success: false, 
+                return {
+                    success: false,
                     message: `Agent failed verification after ${attempts} attempts. Last feedback: ${verdict.issues.join('; ')}`,
-                    log: logEntry 
+                    log: logEntry
                 };
             }
 
@@ -287,7 +293,7 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
         // No evaluators, just return result
         return { success: true, message: `Ran ${agentName} successfully.`, log: logEntry };
     }
-    
+
     return { success: false, message: "Loop terminated unexpectedly." };
 }
 
@@ -336,7 +342,7 @@ const PLAYBOOK_REGISTRY: Record<string, () => Promise<PlaybookResult>> = {
     },
     'competitor-scan': async () => {
         const logs = ["Starting 'Competitor Price Scan'..."];
-        
+
         // 1. Gather Intel
         logs.push("Triggering Ezal for market discovery (Detroit/MI)...");
         // In a real scenario, params would be passed or retrieved from context
@@ -363,7 +369,7 @@ const PLAYBOOK_REGISTRY: Record<string, () => Promise<PlaybookResult>> = {
         try {
             const user = await requireUser();
             if (user.email) userEmail = user.email;
-        } catch (e) {}
+        } catch (e) { }
 
         const emailResult = await sendGenericEmail({
             to: userEmail,
@@ -545,22 +551,22 @@ All agents are online and ready. Type an agent name or describe your task to get
         for (const file of extraOptions.attachments) {
             if (file.type.includes('text') || file.type.includes('json') || file.type.includes('javascript')) {
                 try {
-                     const content = Buffer.from(file.base64.split(',')[1], 'base64').toString('utf-8');
-                     finalMessage += `\n\n--- File: ${file.name} ---\n${content.substring(0, 2000)}\n--- End File ---\n`;
+                    const content = Buffer.from(file.base64.split(',')[1], 'base64').toString('utf-8');
+                    finalMessage += `\n\n--- File: ${file.name} ---\n${content.substring(0, 2000)}\n--- End File ---\n`;
                 } catch (e) { console.error('Failed to decode file', e); }
             } else {
-                 finalMessage += `\n- ${file.name} (${file.type})`;
+                finalMessage += `\n- ${file.name} (${file.type})`;
             }
         }
     }
-    
+
     if (extraOptions?.audioInput) {
         finalMessage += `\n\n[AUDIO INPUT RECEIVED] (Voice processing enabled)`;
     }
 
     userMessage = finalMessage;
 
-    const activePersona = personaId && PERSONAS[personaId as AgentPersona]
+    let activePersona = personaId && PERSONAS[personaId as AgentPersona]
         ? PERSONAS[personaId as AgentPersona]
         : PERSONAS.puff;
 
@@ -569,6 +575,7 @@ All agents are online and ready. Type an agent name or describe your task to get
     try {
         await emitThought(jobId, 'Authenticating', 'Verifying user context...');
         // Dependency Injection for User
+        // ... (rest of the code moves down or stays same)
         let user = injectedUser;
         if (!user) {
             const { requireUser } = await import('@/server/auth/auth');
@@ -589,6 +596,18 @@ All agents are online and ready. Type an agent name or describe your task to get
             || 'general';
 
         const userBrandName = isPaidUser ? 'Your Organization' : 'BakedBot';
+
+        // === AGENT CONFIG OVERRIDES ===
+        // Load custom personality/instructions for this agent+brand
+        try {
+            const { getAgentConfigOverride } = await import('@/app/actions/agent-config');
+            const configOverride = personaId ? await getAgentConfigOverride(personaId, userBrandId) : null;
+            if (configOverride) {
+                activePersona = { ...activePersona, ...configOverride };
+            }
+        } catch (e) {
+            logger.warn('[AgentRunner] Overrides fetch failed', { error: e, agentId: personaId });
+        }
 
         // === CONTEXT INJECTION (Fix for Generic Placeholders) ===
         // Fetch Brand/Tenant Profile to inject Name, State, City, etc.
@@ -662,33 +681,33 @@ All agents are online and ready. Type an agent name or describe your task to get
 
         // Free users: guest, customer, or undefined role (isPaidUser already declared above)
         const isFreeUser = !isSuperUser && !isPaidUser;
-        
+
         if (!isSuperUser) {
-             // Free user restrictions
-             if (role === 'guest' || role === 'user') {
-                 // Force 2.5 Lite for everything
-                 if (effectiveModelLevel !== 'lite') {
-                     await emitThought(jobId, 'Downgrading', 'Free tier limited to Gemini 2.5 Flash Lite.');
-                     effectiveModelLevel = 'lite';
-                 }
-                 
-                 // Block Deep Research entirely
-                 if (extraOptions?.modelLevel === 'deep_research') {
-                     const isHomepage = !user; // If no user, assumed homepage/public
-                     const message = isHomepage 
+            // Free user restrictions
+            if (role === 'guest' || role === 'user') {
+                // Force 2.5 Lite for everything
+                if (effectiveModelLevel !== 'lite') {
+                    await emitThought(jobId, 'Downgrading', 'Free tier limited to Gemini 2.5 Flash Lite.');
+                    effectiveModelLevel = 'lite';
+                }
+
+                // Block Deep Research entirely
+                if (extraOptions?.modelLevel === 'deep_research') {
+                    const isHomepage = !user; // If no user, assumed homepage/public
+                    const message = isHomepage
                         ? "**Deep Research is a Pro feature.**\n\nPlease [User Login](/login) or [Sign Up](/signup) to access comprehensive web research agents."
                         : "**Upgrade Required**\n\nDeep Research requires a paid plan. Please [Upgrade](/dashboard/settings/billing) to unlock.";
-                     
-                     return { content: message, toolCalls: [] };
-                 }
-             }
+
+                    return { content: message, toolCalls: [] };
+                }
+            }
         }
 
         // === DEEP RESEARCH ROUTING ===
         // Auto-detect complex research intent for Paid users
-        const isDeepResearchRequested = extraOptions?.modelLevel === 'deep_research' || 
+        const isDeepResearchRequested = extraOptions?.modelLevel === 'deep_research' ||
             (!isFreeUser && (
-                /analyze\s+.*vs.*/i.test(userMessage) || 
+                /analyze\s+.*vs.*/i.test(userMessage) ||
                 /competitive\s+analysis/i.test(userMessage) ||
                 /market\s+report/i.test(userMessage) ||
                 /deep\s+dive/i.test(userMessage)
@@ -698,26 +717,26 @@ All agents are online and ready. Type an agent name or describe your task to get
         if (isDeepResearchRequested) {
 
             executedTools.push({ id: `research-${Date.now()}`, name: 'Deep Research', status: 'running', result: 'Starting research task...' });
-            
+
             try {
                 const { researchService } = await import('@/server/services/research-service');
                 const { createResearchTaskAction } = await import('@/app/dashboard/research/actions');
-                
+
                 await emitThought(jobId, 'Creating Task', 'Queueing research task for processing...');
-                
+
                 // Create the research task
                 const result = await createResearchTaskAction(
                     user?.uid || 'anonymous',
                     userBrandId,
                     userMessage
                 );
-                
+
                 if (result.success && result.taskId) {
                     executedTools[executedTools.length - 1].status = 'success';
                     executedTools[executedTools.length - 1].result = `Task created: ${result.taskId}`;
-                    
+
                     await emitThought(jobId, 'Research Queued', 'Your research task has been created and is processing in the background.');
-                    
+
                     return {
                         content: `**🔬 Deep Research Task Created**\n\nYour research query has been queued for comprehensive analysis:\n\n> "${userMessage}"\n\n**Task ID:** \`${result.taskId}\`\n\nThe research agent is now:\n1. Searching multiple web sources\n2. Analyzing and cross-referencing data\n3. Compiling a comprehensive report\n\n📊 **View progress:** [Deep Research Dashboard](/dashboard/research)\n\nYou'll be notified when the report is ready. Complex queries may take 2-5 minutes.\n\n**🤖 Automate this?**\nReply with "Create a playbook for this" to turn this analysis into a recurring Daily Report.`,
                         toolCalls: executedTools,
@@ -738,7 +757,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 executedTools[executedTools.length - 1].status = 'error';
                 executedTools[executedTools.length - 1].result = e.message;
                 await emitThought(jobId, 'Error', `Research task creation failed: ${e.message}`);
-                
+
                 return {
                     content: `**❌ Deep Research Failed**\n\n${e.message}\n\nPlease try again or use the [Deep Research page](/dashboard/research) directly.`,
                     toolCalls: executedTools,
@@ -763,10 +782,10 @@ All agents are online and ready. Type an agent name or describe your task to get
         // This is critical for Executive Boardroom to work correctly.
         const SKIP_ROUTING_PERSONAS = ['leo', 'linus', 'jack', 'glenda', 'mike_exec', 'roach', 'craig', 'ezal', 'pops', 'smokey', 'money_mike', 'mrs_parker', 'deebo', 'day_day', 'felisha', 'big_worm'];
         const useForcePersona = personaId && SKIP_ROUTING_PERSONAS.includes(personaId);
-        
+
         let routing: RoutingResult;
         let agentInfo;
-        
+
         if (useForcePersona) {
             // Force the specified persona - skip auto-routing
             await emitThought(jobId, 'Agent Selected', `Using explicitly selected agent: ${personaId}`);
@@ -821,7 +840,7 @@ All agents are online and ready. Type an agent name or describe your task to get
         const metadata = {
             brandId: userBrandId,
             brandName: userBrandName,
-            agentName: agentInfo?.name || 'General',
+            agentName: activePersona.name || agentInfo?.name || 'General',
             role
         };
 
@@ -836,23 +855,23 @@ All agents are online and ready. Type an agent name or describe your task to get
             /make\s+(?:a\s+)?playbook/i,
             /new\s+playbook\s+(?:that|to|for)/i,
         ];
-        
-            if (playbookCreationPatterns.some(p => p.test(userMessage))) {
-            
+
+        if (playbookCreationPatterns.some(p => p.test(userMessage))) {
+
             // Tier Check for Playbook Creation
             if (!isSuperUser && (role === 'guest' || role === 'user')) {
-                 // Check existing playbook count for free users
-                 const { listBrandPlaybooks } = await import('@/server/actions/playbooks');
-                 const existingPlaybooks = await listBrandPlaybooks(userBrandId);
-                 const customPlaybooks = existingPlaybooks.filter(pb => pb.isCustom); // or just count total if that's the limit
+                // Check existing playbook count for free users
+                const { listBrandPlaybooks } = await import('@/server/actions/playbooks');
+                const existingPlaybooks = await listBrandPlaybooks(userBrandId);
+                const customPlaybooks = existingPlaybooks.filter(pb => pb.isCustom); // or just count total if that's the limit
 
-                 if (customPlaybooks.length >= 1) {
-                     const isHomepage = !user;
-                     const message = isHomepage
+                if (customPlaybooks.length >= 1) {
+                    const isHomepage = !user;
+                    const message = isHomepage
                         ? "Building custom playbooks is a Pro feature. Please [Sign Up](/signup) to build agents."
                         : "You have reached the limit of 1 custom playbook on the Free plan. Please [Upgrade](/dashboard/settings/billing) to build unlimited workflows.";
-                     return { content: message, toolCalls: [] };
-                 }
+                    return { content: message, toolCalls: [] };
+                }
             }
 
             await emitThought(jobId, 'Playbook Creation', 'Parsing your request into a playbook configuration...');
@@ -927,10 +946,10 @@ All agents are online and ready. Type an agent name or describe your task to get
 
             try {
                 const { generateImageFromPrompt } = await import('@/ai/flows/generate-social-image');
-                
+
                 await emitThought(jobId, 'Generating', 'Creating image assets...');
                 const imageUrl = await generateImageFromPrompt(userMessage);
-                
+
                 executedTools[executedTools.length - 1].status = 'success';
                 executedTools[executedTools.length - 1].result = 'Image generated successfully';
 
@@ -944,9 +963,9 @@ All agents are online and ready. Type an agent name or describe your task to get
                     }
                 };
             } catch (e: any) {
-                 executedTools[executedTools.length - 1].status = 'error';
-                 executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
-                 return { content: `**Image Generation Failed**: ${e.message}`, toolCalls: executedTools };
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+                return { content: `**Image Generation Failed**: ${e.message}`, toolCalls: executedTools };
             }
         }
 
@@ -956,10 +975,10 @@ All agents are online and ready. Type an agent name or describe your task to get
 
             try {
                 const { generateVideoFromPrompt } = await import('@/ai/flows/generate-video');
-                
+
                 await emitThought(jobId, 'Generating', 'Creating video assets (this may take a moment)...');
                 const videoUrl = await generateVideoFromPrompt(userMessage);
-                
+
                 executedTools[executedTools.length - 1].status = 'success';
                 executedTools[executedTools.length - 1].result = 'Video generated successfully';
 
@@ -973,28 +992,28 @@ All agents are online and ready. Type an agent name or describe your task to get
                     }
                 };
             } catch (e: any) {
-                 executedTools[executedTools.length - 1].status = 'error';
-                 executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
-                 return { content: `**Video Generation Failed**: ${e.message}`, toolCalls: executedTools };
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+                return { content: `**Video Generation Failed**: ${e.message}`, toolCalls: executedTools };
             }
         }
 
         // 3. Specialized Agents (only for non-media requests)
         // SECURITY: Check role restrictions before handoff
         const canAccessAgent = agentInfo ? canRoleAccessAgent(role, agentInfo.id as any) : false;
-        
+
         if (agentInfo && routing.confidence > 0.6 && agentInfo.id !== 'general' && agentInfo.id !== 'puff' && canAccessAgent) {
             try {
                 await emitThought(jobId, 'Handing off', `Transferring control to specialized agent: ${agentInfo.name}`);
                 const res = await triggerAgentRun(agentInfo.id, userMessage, userBrandId);
-                executedTools.push({ 
-                    id: `agent-${Date.now()}`, 
-                    name: agentInfo.name, 
-                    status: res.success ? 'success' : 'error', 
-                    result: res.message 
+                executedTools.push({
+                    id: `agent-${Date.now()}`,
+                    name: agentInfo.name,
+                    status: res.success ? 'success' : 'error',
+                    result: res.message
                 });
                 return { content: res.log?.result || res.message, toolCalls: executedTools };
-            } catch (e) {}
+            } catch (e) { }
         } else if (agentInfo && !canAccessAgent && agentInfo.id !== 'general' && agentInfo.id !== 'puff') {
             // Log blocked access attempt for security auditing
             console.warn(`[Security] Role '${role}' attempted to access restricted agent '${agentInfo.id}'`);
@@ -1003,37 +1022,37 @@ All agents are online and ready. Type an agent name or describe your task to get
         // 3. Web Search (Explicit Triggers Only)
         // Prevent aggressive matching on words like "Search Console"
         const isExplicitSearch = /^(?:please\s+)?(?:web\s+)?search\s+(?:for\s+)?|google\s+/i.test(userMessage) && !userMessage.toLowerCase().includes('console');
-        
+
         let searchContext = '';
 
         if (isExplicitSearch) {
-             await emitThought(jobId, 'Web Search', 'Searching the internet for real-time data...');
-             executedTools.push({ id: `search-${Date.now()}`, name: 'Web Search', status: 'running', result: 'Searching...' });
-             
-             try {
+            await emitThought(jobId, 'Web Search', 'Searching the internet for real-time data...');
+            executedTools.push({ id: `search-${Date.now()}`, name: 'Web Search', status: 'running', result: 'Searching...' });
+
+            try {
                 const searchRes = await searchWeb(userMessage.replace(/search|google/gi, ''));
                 const formatted = formatSearchResults(searchRes);
-                executedTools[executedTools.length-1].status = 'success';
-                executedTools[executedTools.length-1].result = `Found ${searchRes.results.length} results.`;
+                executedTools[executedTools.length - 1].status = 'success';
+                executedTools[executedTools.length - 1].result = `Found ${searchRes.results.length} results.`;
 
                 // SECURITY: Wrap external web results in structured tags
                 const sanitizedResults = sanitizeForPrompt(JSON.stringify(searchRes.results), 3000);
                 searchContext = `\n\n${wrapUserData(sanitizedResults, 'web_search_results', false)}\n`;
-             } catch (e: any) {
-                executedTools[executedTools.length-1].status = 'error';
-                executedTools[executedTools.length-1].result = e.message;
-             }
+            } catch (e: any) {
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = e.message;
+            }
         }
 
         // 5. Ezal Intelligence Detection
         if (routing.primaryAgent === 'ezal' || lowerMessage.includes('competitor') || lowerMessage.includes('price match')) {
             await emitThought(jobId, 'Intelligence Scan', 'Performing competitive analysis...');
             const res = await triggerAgentRun('ezal', userMessage, userBrandId);
-            executedTools.push({ 
-                id: `ezal-${Date.now()}`, 
-                name: 'Ezal Intelligence', 
-                status: res.success ? 'success' : 'error', 
-                result: res.message 
+            executedTools.push({
+                id: `ezal-${Date.now()}`,
+                name: 'Ezal Intelligence',
+                status: res.success ? 'success' : 'error',
+                result: res.message
             });
 
             if (res.success) {
@@ -1060,7 +1079,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 📊 NEXT STEPS:
                 ...
                 `;
-                
+
                 const synthesized = await synthesizeSnapshot(res.log?.result || res.message, format, effectiveModelLevel);
                 return { content: synthesized, toolCalls: executedTools, metadata: { ...metadata, jobId } };
             }
@@ -1069,33 +1088,33 @@ All agents are online and ready. Type an agent name or describe your task to get
         // 4. Integrations
         // Gmail - Use structured extraction instead of LLM (faster & cheaper)
         if (lowerMessage.includes('gmail') || lowerMessage.includes('email') || lowerMessage.includes('inbox') || lowerMessage.includes('send message')) {
-             // Avoid triggering if it's just "what is your email"
-             if (!(lowerMessage.includes('YOUR email') || lowerMessage.includes('login'))) {
-                 await emitThought(jobId, 'Tool Detected', 'Gmail Integration triggered');
-                 executedTools.push({ id: `gmail-${Date.now()}`, name: 'Gmail', status: 'running', result: 'Processing...' });
+            // Avoid triggering if it's just "what is your email"
+            if (!(lowerMessage.includes('YOUR email') || lowerMessage.includes('login'))) {
+                await emitThought(jobId, 'Tool Detected', 'Gmail Integration triggered');
+                executedTools.push({ id: `gmail-${Date.now()}`, name: 'Gmail', status: 'running', result: 'Processing...' });
 
-                 try {
-                     // Structured extraction (no LLM needed)
-                     const params = extractGmailParams(userMessage);
-                     executedTools[executedTools.length - 1].result = `${params.action.toUpperCase()} email`;
+                try {
+                    // Structured extraction (no LLM needed)
+                    const params = extractGmailParams(userMessage);
+                    executedTools[executedTools.length - 1].result = `${params.action.toUpperCase()} email`;
 
-                     // PASS USER CONTEXT
-                     await emitThought(jobId, 'Executing Tool', `Connecting to Gmail API as ${user?.email}...`);
-                     const result = await gmailAction(params, user || undefined);
-                     await emitThought(jobId, 'Tool Complete', result.success ? 'Action successful' : 'Action failed');
+                    // PASS USER CONTEXT
+                    await emitThought(jobId, 'Executing Tool', `Connecting to Gmail API as ${user?.email}...`);
+                    const result = await gmailAction(params, user || undefined);
+                    await emitThought(jobId, 'Tool Complete', result.success ? 'Action successful' : 'Action failed');
 
-                     executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
-                     executedTools[executedTools.length - 1].result = result.success ? (params.action === 'list' ? `Found ${(result.data || []).length} emails` : 'Success') : result.error || 'Error';
+                    executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
+                    executedTools[executedTools.length - 1].result = result.success ? (params.action === 'list' ? `Found ${(result.data || []).length} emails` : 'Success') : result.error || 'Error';
 
-                     return {
-                         content: result.success ? `✅ **Gmail Action Complete**\n\n${JSON.stringify(result.data, null, 2)}` : `⚠️ **Gmail Error**: ${result.error}`,
-                         toolCalls: executedTools
-                     };
-                 } catch (e: any) {
-                     executedTools[executedTools.length - 1].status = 'error';
-                     executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
-                 }
-             }
+                    return {
+                        content: result.success ? `✅ **Gmail Action Complete**\n\n${JSON.stringify(result.data, null, 2)}` : `⚠️ **Gmail Error**: ${result.error}`,
+                        toolCalls: executedTools
+                    };
+                } catch (e: any) {
+                    executedTools[executedTools.length - 1].status = 'error';
+                    executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+                }
+            }
         }
 
         // Calendar - Use structured extraction instead of LLM (faster & cheaper)
@@ -1111,16 +1130,16 @@ All agents are online and ready. Type an agent name or describe your task to get
                 const result = await calendarAction(params, user || undefined);
                 await emitThought(jobId, 'Tool Complete', result.success ? 'Action successful' : 'Action failed');
 
-                executedTools[executedTools.length-1].status = result.success ? 'success' : 'error';
-                executedTools[executedTools.length-1].result = result.success ? (params.action === 'list' ? `Found ${result.data?.length} events` : 'Event created') : result.error || 'Error';
+                executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
+                executedTools[executedTools.length - 1].result = result.success ? (params.action === 'list' ? `Found ${result.data?.length} events` : 'Event created') : result.error || 'Error';
 
-                 return {
-                     content: result.success ? `✅ **Calendar Action Complete**` : `⚠️ **Calendar Error**: ${result.error}`,
-                     toolCalls: executedTools
-                 };
+                return {
+                    content: result.success ? `✅ **Calendar Action Complete**` : `⚠️ **Calendar Error**: ${result.error}`,
+                    toolCalls: executedTools
+                };
             } catch (e: any) {
-                executedTools[executedTools.length-1].status='error';
-                executedTools[executedTools.length-1].result=e.message;
+                executedTools[executedTools.length - 1].status = 'error';
+                executedTools[executedTools.length - 1].result = e.message;
             }
         }
 
@@ -1133,7 +1152,7 @@ All agents are online and ready. Type an agent name or describe your task to get
         const allowClaudeTools = isSuperUser || extraOptions?.source === 'inbox';
         if (isClaudeAvailable() && shouldUseClaudeTools(userMessage) && allowClaudeTools) {
             await emitThought(jobId, 'Claude Mode', 'Routing to Claude for enhanced tool calling...');
-            
+
             try {
                 const tools = getUniversalClaudeTools((role as any) || 'guest');
                 const executor = createToolExecutor({
@@ -1142,13 +1161,13 @@ All agents are online and ready. Type an agent name or describe your task to get
                     role,
                     email: user?.email,
                 });
-                
+
                 const claudeResult = await executeWithTools(
                     `${activePersona.systemPrompt}${customInstructionsBlock}\n\nUser Request: ${userMessage}${knowledgeContext}`,
                     tools,
                     executor
                 );
-                
+
                 // Convert Claude tool executions to our format
                 for (const exec of claudeResult.toolExecutions) {
                     executedTools.push({
@@ -1158,9 +1177,9 @@ All agents are online and ready. Type an agent name or describe your task to get
                         result: typeof exec.output === 'string' ? exec.output : JSON.stringify(exec.output),
                     });
                 }
-                
+
                 await emitThought(jobId, 'Complete', `Claude executed ${claudeResult.toolExecutions.length} tool(s).`);
-                
+
                 return {
                     content: claudeResult.content || 'Task completed.',
                     toolCalls: executedTools,
@@ -1176,7 +1195,7 @@ All agents are online and ready. Type an agent name or describe your task to get
         // Fallback Generation (Gemini)
 
         await emitThought(jobId, 'Generating Response', 'Formulating final answer...');
-        
+
         // Construct Multimodal Prompt
         let promptParts: any[] = [
             { text: `${activePersona.systemPrompt}${customInstructionsBlock}\nUser: ${userMessage}\nContext: ${knowledgeContext}${searchContext}` }
@@ -1194,9 +1213,9 @@ All agents are online and ready. Type an agent name or describe your task to get
                 // Actually, the previous code MODIFIED `finalMessage`. 
                 // So text files are already in `userMessage`.
                 // We only need to handle NON-text files (Images, PDFs, Videos) here.
-                
+
                 const isText = file.type.includes('text') || file.type.includes('json') || file.type.includes('javascript') || file.type.includes('xml');
-                
+
                 if (!isText) {
                     // Convert to Data URI for Genkit
                     const dataUri = `data:${file.type};base64,${file.base64}`;
@@ -1244,11 +1263,11 @@ All agents are online and ready. Type an agent name or describe your task to get
             await emitThought(jobId, 'Running Evals', 'Verifying result against compliance gate...');
             // In a real scenario, we'd parse the 'content' or 'tool results' to find cart items
             // For now, we simulate a check if a cart was mentioned or just run the engine.
-            evalResults = await engine.runCategory('security', { 
+            evalResults = await engine.runCategory('security', {
                 cart: [], // Prototype: Needs to be parsed from response if applicable
                 state: 'CA' // Default state for eval check
             });
-            
+
             if (evalResults.some(r => !r.passed)) {
                 await emitThought(jobId, 'Eval Warning', 'Result failed compliance gate checks.');
             }
@@ -1276,7 +1295,7 @@ All agents are online and ready. Type an agent name or describe your task to get
     } catch (e: any) {
         await emitThought(jobId, 'Error', `Failed: ${e.message}`);
         console.error("Runner Error:", e);
-         return {
+        return {
             content: `Error: ${e.message}`,
             toolCalls: executedTools
         };

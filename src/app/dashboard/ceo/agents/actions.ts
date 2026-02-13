@@ -50,6 +50,7 @@ const AGENT_MAP = {
     mrs_parker: mrsParkerAgent,
     deebo: deeboAgent,
     bigworm: bigWormAgent,
+    big_worm: bigWormAgent, // Alias used by routing/threads
     leo: executiveAgent,
     jack: executiveAgent,
     linus: linusAgent,  // CTO uses Claude API exclusively
@@ -90,7 +91,7 @@ export async function triggerAgentRun(agentName: string, stimulus?: string, bran
     else if (agentName === 'money_mike') tools = defaultMoneyMikeTools;
     else if (agentName === 'mrs_parker') tools = defaultMrsParkerTools;
     else if (agentName === 'deebo') tools = defaultDeeboTools;
-    else if (agentName === 'bigworm') tools = defaultBigWormTools;
+    else if (agentName === 'bigworm' || agentName === 'big_worm') tools = defaultBigWormTools;
     else if (['leo', 'jack', 'linus', 'glenda', 'mike_exec'].includes(agentName)) {
         const { defaultExecutiveTools } = await import('./default-tools');
         tools = defaultExecutiveTools;

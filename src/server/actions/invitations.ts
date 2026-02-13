@@ -20,10 +20,10 @@ export async function createInvitationAction(input: z.infer<typeof CreateInvitat
         const firestore = getAdminFirestore();
 
         // Security Checks
-        if (input.role === 'super_admin') {
+        if (input.role === 'super_user' || input.role === 'super_admin' || input.role === 'intern') {
             const isSuper = await isSuperUser();
             if (!isSuper) {
-                throw new Error('Unauthorized: Only Super Admins can invite other Super Admins.');
+                throw new Error('Unauthorized: Only Super Users can invite platform-level roles.');
             }
         } else if (isBrandRole(input.role)) {
             // Must be admin of that brand
@@ -135,11 +135,7 @@ export async function getInvitationsAction(orgId?: string) {
         } else {
             // If no orgId, only Super Admin can query all (or filtered by system role)
              const isSuper = await isSuperUser();
-             if (isSuper) {
-                 query = query.where('role', '==', 'super_admin');
-             } else {
-                 return []; // Unauthorized
-             }
+             if (!isSuper) return []; // Unauthorized
         }
 
         const snapshot = await query.orderBy('createdAt', 'desc').get();

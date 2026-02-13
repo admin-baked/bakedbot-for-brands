@@ -204,7 +204,7 @@ export default function UnifiedAdminConsole() {
                                         </CardDescription>
                                     </div>
                                     <InviteUserDialog
-                                        allowedRoles={['super_admin']}
+                                        allowedRoles={['intern', 'super_user']}
                                         trigger={
                                             <Button>
                                                 <UserPlus className="h-4 w-4 mr-2" />
@@ -214,7 +214,7 @@ export default function UnifiedAdminConsole() {
                                     />
                                 </CardHeader>
                                 <CardContent>
-                                    <InvitationsList allowedRoles={['super_admin']} />
+                                    <InvitationsList allowedRoles={['intern', 'super_user']} />
                                 </CardContent>
                             </Card>
                         </TabsContent>

@@ -111,7 +111,7 @@ export function Header() {
                         </div>
                     )}
                     <Separator orientation="vertical" className="h-6 hidden md:block" />
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" onClick={() => router.push('/product-locator')}>
                         <Search className="h-5 w-5" />
                     </Button>
 

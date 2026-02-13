@@ -5,24 +5,23 @@
  * daily trends, top pairings, and quick stats.
  */
 
-import { describe, it, expect, vi, beforeEach } from '@jest/globals';
+import { beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { UpsellPlacement, UpsellStrategy } from '@/types/upsell';
 
 // Mock Firestore
-const mockGet = vi.fn();
-const mockWhere = vi.fn(() => ({ where: mockWhere, orderBy: mockOrderBy, limit: mockLimit, get: mockGet }));
-const mockOrderBy = vi.fn(() => ({ where: mockWhere, orderBy: mockOrderBy, limit: mockLimit, get: mockGet }));
-const mockLimit = vi.fn(() => ({ where: mockWhere, orderBy: mockOrderBy, limit: mockLimit, get: mockGet }));
-const mockCollection = vi.fn(() => ({ where: mockWhere, orderBy: mockOrderBy, limit: mockLimit, get: mockGet }));
+const mockGet = jest.fn();
+const mockWhere = jest.fn(() => ({ where: mockWhere, orderBy: mockOrderBy, limit: mockLimit, get: mockGet }));
+const mockOrderBy = jest.fn(() => ({ where: mockWhere, orderBy: mockOrderBy, limit: mockLimit, get: mockGet }));
+const mockLimit = jest.fn(() => ({ where: mockWhere, orderBy: mockOrderBy, limit: mockLimit, get: mockGet }));
+const mockCollection = jest.fn(() => ({ where: mockWhere, orderBy: mockOrderBy, limit: mockLimit, get: mockGet }));
 
-vi.mock('@/firebase/admin', () => ({
+jest.mock('@/firebase/admin', () => ({
     getAdminFirestore: () => ({
         collection: mockCollection,
     }),
 }));
 
-// Import after mocks are set up
-import { getUpsellAnalytics } from '../upsell-analytics';
+let getUpsellAnalytics: typeof import('../upsell-analytics').getUpsellAnalytics;
 
 // Test data
 const mockEvents = [
@@ -151,8 +150,12 @@ const mockEvents = [
 ];
 
 describe('Upsell Analytics', () => {
+    beforeAll(async () => {
+        ({ getUpsellAnalytics } = await import('../upsell-analytics'));
+    });
+
     beforeEach(() => {
-        vi.clearAllMocks();
+        jest.clearAllMocks();
         mockGet.mockResolvedValue({
             docs: mockEvents.map((event) => ({
                 id: event.id,
