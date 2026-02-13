@@ -16,6 +16,7 @@ interface CheckoutLayoutProps {
 
 async function getCheckoutData() {
     let locations: Retailer[] = [];
+    const isProduction = process.env.NODE_ENV === 'production';
 
     try {
         let isDemo = false;
@@ -48,13 +49,23 @@ async function getCheckoutData() {
                     } as Retailer;
                 });
             } catch (error) {
-                logger.error(`[CheckoutLayout] Failed to fetch Firestore data:`, error instanceof Error ? error : new Error(String(error)));
+                const normalizedError = error instanceof Error ? error : new Error(String(error || 'unknown'));
+                if (isProduction) {
+                    logger.error(`[CheckoutLayout] Failed to fetch Firestore data:`, normalizedError);
+                } else {
+                    logger.warn(`[CheckoutLayout] Firestore unavailable in local/dev, using demo data fallback.`, { error: normalizedError.message });
+                }
                 locations = demoRetailers;
             }
         }
     } catch (error) {
         // If any operation fails, gracefully fallback to demo data
-        logger.error(`[CheckoutLayout] getCheckoutData failed:`, error instanceof Error ? error : new Error(String(error)));
+        const normalizedError = error instanceof Error ? error : new Error(String(error || 'unknown'));
+        if (isProduction) {
+            logger.error(`[CheckoutLayout] getCheckoutData failed:`, normalizedError);
+        } else {
+            logger.warn(`[CheckoutLayout] getCheckoutData fallback in local/dev.`, { error: normalizedError.message });
+        }
         locations = demoRetailers;
     }
 

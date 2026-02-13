@@ -28,7 +28,15 @@ export async function validateCoupon(code: string, planId: string): Promise<Vali
     }
 
     try {
-        const { firestore } = await createServerClient();
+        let firestore: any = null;
+        const localDevNoFirestore =
+            process.env.NODE_ENV !== 'production' &&
+            process.env.LOCAL_CHECKOUT_USE_FIREBASE !== 'true';
+
+        if (!localDevNoFirestore) {
+            const serverClient = await createServerClient();
+            firestore = serverClient.firestore;
+        }
 
         // Find the plan to calculate potential new price
         const plan = PRICING_PLANS.find(p => p.id === planId);
@@ -37,8 +45,25 @@ export async function validateCoupon(code: string, planId: string): Promise<Vali
         }
 
         const basePrice = plan.price || 0;
+        if (basePrice <= 0) {
+            return { isValid: false, message: 'Coupon can only be applied to paid plans.' };
+        }
 
         const normalizedCode = code.trim().toUpperCase();
+
+        // Local/dev fallback: allow rapid testing without Firestore.
+        if (localDevNoFirestore && normalizedCode === 'LAUNCH25') {
+            const newPrice = 25;
+            const discountValue = Math.max(0, Number((basePrice - newPrice).toFixed(2)));
+            return {
+                isValid: true,
+                message: 'Coupon applied!',
+                discountType: 'fixed',
+                discountValue,
+                couponId: 'local_launch25',
+                newPrice,
+            };
+        }
 
         // Query coupon by code using Admin SDK fluent API
         const couponsSnap = await firestore.collection('coupons')
@@ -77,21 +102,32 @@ export async function validateCoupon(code: string, planId: string): Promise<Vali
 
         // Calculate new price
         let newPrice = basePrice;
+        let discountType: 'percentage' | 'fixed' = coupon.type;
+        let discountValue: number = coupon.value;
 
-        if (coupon.type === 'percentage') {
-            newPrice = basePrice - (basePrice * (coupon.value / 100));
-        } else if (coupon.type === 'fixed') {
-            newPrice = Math.max(0, basePrice - coupon.value);
+        // Override mode: force paid plans to a specific monthly amount (e.g. $25/mo)
+        if (typeof coupon.overridePrice === 'number' && coupon.overridePrice >= 0) {
+            newPrice = Number(coupon.overridePrice.toFixed(2));
+            discountType = 'fixed';
+            discountValue = Math.max(0, Number((basePrice - newPrice).toFixed(2)));
+        } else {
+            if (coupon.type === 'percentage') {
+                newPrice = basePrice - (basePrice * (coupon.value / 100));
+            } else if (coupon.type === 'fixed') {
+                newPrice = Math.max(0, basePrice - coupon.value);
+            }
         }
+
+        newPrice = Math.max(0, Number(newPrice.toFixed(2)));
 
         // Return number, not possibly null/undefined
         return {
             isValid: true,
             message: 'Coupon applied!',
-            discountType: coupon.type,
-            discountValue: coupon.value,
+            discountType,
+            discountValue,
             couponId: couponDoc.id,
-            newPrice: Math.max(0, Number(newPrice.toFixed(2)))
+            newPrice
         };
 
     } catch (error: any) {

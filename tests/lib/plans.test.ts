@@ -31,23 +31,28 @@ describe('Pricing Logic Check', () => {
     });
 
     test('Growth plan with extra locations', () => {
-        // Growth: $350 (includes 5 locs). Extra: $25
+        // Growth: $249 (includes 5 locs). Extra: $25
         // 7 locations = 2 extra
-        // $350 + (2 * 25) = $400
+        // $249 + (2 * 25) = $299
         const cost = computeMonthlyAmount('growth_5', 7);
-        expect(cost).toBe(400);
+        expect(cost).toBe(299);
     });
 
     test('Growth plan with extra locations AND coverage packs', () => {
-        // Growth (7 locs): $400
+        // Growth (7 locs): $299
         // + Pack 500: $149
-        // Total: $549
+        // Total: $448
         const cost = computeMonthlyAmount('growth_5', 7, ['pack_500']);
-        expect(cost).toBe(549);
+        expect(cost).toBe(448);
     });
 
     test('Enterprise should throw error', () => {
         expect(() => computeMonthlyAmount('enterprise', 100))
             .toThrow("Enterprise pricing is handled via custom agreement.");
+    });
+
+    test('Custom 25 plan should cost $25', () => {
+        const cost = computeMonthlyAmount('custom_25', 1);
+        expect(cost).toBe(25);
     });
 });

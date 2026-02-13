@@ -9,6 +9,11 @@ export async function PricingSection() {
     const foundersCount = await getFoundersClaimCount();
     const totalSlots = 75; // Per user request
     const remainingSlots = Math.max(0, totalSlots - foundersCount);
+    const getPlanCtaHref = (planId: string) => {
+        if (planId === 'free') return '/get-started?plan=free';
+        if (planId === 'empire') return '/contact';
+        return `/checkout/subscription?plan=${planId}`;
+    };
 
     return (
         <section id="pricing" className={styles.section}>
@@ -54,7 +59,7 @@ export async function PricingSection() {
                         <div style={{ fontSize: '13px', opacity: 0.9 }}>Lock in <strong>$79/mo for life</strong> (same features as Claim Pro).</div>
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <Link href="/pricing?plan=founders" style={{
+                        <Link href="/checkout/subscription?plan=founders_claim" style={{
                             background: 'white',
                             color: '#16a34a',
                             padding: '8px 16px',
@@ -110,7 +115,7 @@ export async function PricingSection() {
                             {plan.features.map(f => <li key={f}>{f}</li>)}
                         </ul>
 
-                        <Link href={`/pricing?plan=${plan.id}`} className={styles.planCta} style={{
+                        <Link href={getPlanCtaHref(plan.id)} className={styles.planCta} style={{
                             background: plan.highlight || plan.scarcity ? '#020617' : 'transparent',
                             color: plan.highlight || plan.scarcity ? 'white' : '#020617',
                             border: plan.highlight || plan.scarcity ? 'none' : '1px solid #e2e8f0',

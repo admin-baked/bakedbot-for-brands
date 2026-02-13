@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useFirebase } from '@/firebase/provider';
 import { useToast } from '@/hooks/use-toast';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo, type UserCredential } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getAdditionalUserInfo, type UserCredential } from 'firebase/auth';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -27,6 +27,16 @@ export default function CustomerLoginPage() {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const mapFirebaseError = (error: any): string => {
+    const code = typeof error?.code === 'string' ? error.code : '';
+
+    if (code === 'auth/invalid-api-key') return 'Firebase API key is invalid. Please contact support.';
+    if (code === 'auth/unauthorized-domain') return 'This domain is not authorized for Google sign-in.';
+    if (code === 'auth/popup-blocked') return 'Popup was blocked. We will continue with redirect sign-in.';
+    if (code === 'auth/network-request-failed') return 'Network error during sign-in. Please check your connection.';
+
+    return String(error?.message || 'Authentication failed.').replace('Firebase:', '').trim();
+  };
 
   const handleAuthSuccess = async (userCredential: UserCredential) => {
     // Get ID token
@@ -88,7 +98,12 @@ export default function CustomerLoginPage() {
       if (error.code === 'auth/popup-closed-by-user') {
         return;
       }
-      toast({ variant: 'destructive', title: 'Google Sign-In Error', description: error.message });
+      if (error.code === 'auth/popup-blocked') {
+        toast({ title: 'Continuing with Google', description: 'Popup blocked; switching to redirect sign-in.' });
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      toast({ variant: 'destructive', title: 'Google Sign-In Error', description: mapFirebaseError(error) });
     }
   };
 
@@ -116,7 +131,7 @@ export default function CustomerLoginPage() {
       logger.error(`${isSignUp ? 'Sign up' : 'Login'} error`, error);
       const friendlyMessage = error.message.includes('auth/invalid-credential')
         ? 'Invalid email or password.'
-        : error.message;
+        : mapFirebaseError(error);
       toast({ variant: 'destructive', title: 'Authentication Error', description: friendlyMessage });
     } finally {
       setIsSubmitting(false);

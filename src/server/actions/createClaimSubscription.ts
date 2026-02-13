@@ -58,7 +58,13 @@ export async function getFoundersClaimCount(): Promise<number> {
 
         return snapshot.data().count;
     } catch (error: unknown) {
-        logger.error('Error getting founders claim count:', error as Record<string, unknown>);
+        if (process.env.NODE_ENV === 'production') {
+            logger.error('Error getting founders claim count:', error as Record<string, unknown>);
+        } else {
+            logger.warn('Error getting founders claim count (local/dev fallback to 0):', {
+                error: error instanceof Error ? error.message : String(error ?? 'unknown')
+            });
+        }
         return 0;
     }
 }

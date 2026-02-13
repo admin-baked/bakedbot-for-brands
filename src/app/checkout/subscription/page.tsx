@@ -20,9 +20,8 @@ function SubscriptionCheckoutContent() {
     const router = useRouter();
     const { toast } = useToast();
 
-    // Get plan from URL or default to Growth (supports legacy plan IDs like claim_pro)
-    const planId = searchParams?.get('plan') || 'growth';
-    const plan = findPricingPlan(planId);
+    const planId = searchParams?.get('plan') || '';
+    const plan = planId ? findPricingPlan(planId) : undefined;
 
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState<'details' | 'payment'>('details');
@@ -37,6 +36,32 @@ function SubscriptionCheckoutContent() {
     const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
     const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountValue: number; discountType: 'percentage' | 'fixed' } | null>(null);
     const [finalPrice, setFinalPrice] = useState(plan?.price);
+
+    useEffect(() => {
+        if (plan?.price !== null && plan?.price !== undefined) {
+            setFinalPrice(plan.price);
+            return;
+        }
+        setFinalPrice(undefined);
+    }, [plan?.id, plan?.price]);
+
+    if (!planId) {
+        if (typeof window !== 'undefined') {
+            router.replace('/pricing');
+        }
+        return (
+            <div className="max-w-3xl mx-auto text-center py-16">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                <h1 className="text-2xl font-semibold">Redirecting to pricing...</h1>
+                <p className="text-muted-foreground mt-2">Select a plan first, then continue to checkout.</p>
+                <div className="mt-6">
+                    <Button asChild>
+                        <Link href="/pricing">Go to Pricing</Link>
+                    </Button>
+                </div>
+            </div>
+        );
+    }
 
     if (!plan) {
         return (
@@ -59,10 +84,6 @@ function SubscriptionCheckoutContent() {
             </div>
         );
     }
-
-    useEffect(() => {
-        setFinalPrice(plan.price);
-    }, [plan.id, plan.price]);
 
     const handleValidateCoupon = async () => {
         if (!couponCode.trim()) return;
