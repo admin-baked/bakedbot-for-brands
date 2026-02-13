@@ -1,5 +1,7 @@
 // src/ai/chat-query-handler.ts
-'use server';
+// Note: Removed 'use server' to allow imports from API routes (Turbopack compatibility)
+// These functions are already called from server-side contexts (API routes, Server Actions)
+// so they don't need the 'use server' directive
 
 import { ai } from './genkit';
 import { z } from 'zod';
