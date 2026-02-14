@@ -10,10 +10,15 @@ import {
     getTenantByDomain,
 } from '@/server/actions/domain-management';
 import { createServerClient } from '@/firebase/server-client';
+import { requireUser } from '@/server/auth/auth';
 
 // Mock modules
 jest.mock('@/firebase/server-client', () => ({
     createServerClient: jest.fn(),
+}));
+
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: jest.fn(),
 }));
 
 jest.mock('@/lib/dns-verify', () => ({
@@ -54,12 +59,19 @@ describe('domain-management', () => {
     beforeEach(() => {
         jest.clearAllMocks();
 
+        (requireUser as jest.Mock).mockResolvedValue({
+            uid: 'test-user',
+            email: 'owner@bakedbot.ai',
+            role: 'super_user',
+        });
+
         // Setup Firestore chain
         mockDoc.mockReturnValue({
             get: mockGet,
             set: mockSet,
             update: mockUpdate,
             delete: mockDelete,
+            collection: mockCollection,
         });
 
         mockCollection.mockReturnValue({

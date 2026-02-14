@@ -25,6 +25,7 @@ export interface CreatePlaybookParams {
     steps: PlaybookStep[];
     schedule?: string; // CRON expression
     agentId?: string; // Owner agent
+    orgId?: string;
     active?: boolean;
 }
 
@@ -43,6 +44,9 @@ export async function createPlaybook(params: CreatePlaybookParams) {
             steps: params.steps,
             active: params.active ?? true,
             status: (params.active ?? true) ? 'active' : 'draft', // Ensure status reflects active state
+            agentId: params.agentId || 'system',
+            agent: params.agentId || 'system',
+            orgId: params.orgId || 'global',
             createdAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
             schedule: params.schedule || null

@@ -71,19 +71,34 @@ export default function CustomerLoginPage() {
       return;
     }
 
-    // Check if user has appropriate role for customer login
+    // Route by role
     if (userRole === 'customer') {
       window.location.href = '/account';
-    } else if (userRole === 'brand' || userRole === 'dispensary' || userRole === 'super_user') {
+      return;
+    }
+
+    // Platform admins should never land in the customer flow after auth.
+    if (userRole === 'super_user' || userRole === 'super_admin' || userRole === 'owner' || userRole === 'executive') {
+      toast({
+        variant: 'default',
+        title: 'Super User',
+        description: 'Redirecting to the CEO dashboard.'
+      });
+      window.location.href = '/dashboard/ceo?tab=boardroom';
+      return;
+    }
+
+    if (userRole === 'brand' || userRole === 'dispensary') {
       toast({
         variant: 'default',
         title: 'Business Account',
         description: 'Redirecting to your dashboard.'
       });
       window.location.href = '/dashboard';
-    } else {
-      window.location.href = '/account';
+      return;
     }
+
+    window.location.href = '/account';
   };
 
   const handleGoogleSignIn = async () => {

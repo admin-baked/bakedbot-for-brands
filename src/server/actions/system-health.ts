@@ -29,17 +29,17 @@ import { getAlertThresholds, saveAlertThresholds, processAlertNotifications } fr
  * Try to get real GCP metrics, fallback to simulated
  */
 async function getCurrentMetrics(memoryAllocatedMB: number): Promise<{
-  memoryUsedMB: number;
-  memoryUsagePercent: number;
-  cpuUsagePercent: number;
-  instanceCount: number;
-  requestsPerSecond: number;
-  avgLatencyMs: number;
-  p95LatencyMs: number;
-  p99LatencyMs: number;
-  errorRate: number;
-  errorCount: number;
-  source: 'gcp' | 'simulated';
+  memoryUsedMB: number | null;
+  memoryUsagePercent: number | null;
+  cpuUsagePercent: number | null;
+  instanceCount: number | null;
+  requestsPerSecond: number | null;
+  avgLatencyMs: number | null;
+  p95LatencyMs: number | null;
+  p99LatencyMs: number | null;
+  errorRate: number | null;
+  errorCount: number | null;
+  source: 'gcp' | 'simulated' | 'not_instrumented';
 }> {
   // Try GCP Monitoring first
   try {
@@ -67,7 +67,24 @@ async function getCurrentMetrics(memoryAllocatedMB: number): Promise<{
     // GCP Monitoring not available
   }
 
-  // Simulated metrics
+  // In production, never invent telemetry.
+  if (process.env.NODE_ENV === 'production') {
+    return {
+      memoryUsedMB: null,
+      memoryUsagePercent: null,
+      cpuUsagePercent: null,
+      instanceCount: null,
+      requestsPerSecond: null,
+      avgLatencyMs: null,
+      p95LatencyMs: null,
+      p99LatencyMs: null,
+      errorRate: null,
+      errorCount: null,
+      source: 'not_instrumented',
+    };
+  }
+
+  // Simulated metrics (dev/test only)
   const memoryUsedMB = Math.floor(memoryAllocatedMB * (0.4 + Math.random() * 0.3));
   const memoryUsagePercent = Math.round((memoryUsedMB / memoryAllocatedMB) * 100);
   const cpuUsagePercent = Math.round(20 + Math.random() * 40);
@@ -122,10 +139,18 @@ export async function getSystemHealth(includeComparison: boolean = false): Promi
   // Load custom thresholds
   const thresholds = await getAlertThresholds();
 
-  let deploymentStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
-  if (metrics.errorRate > thresholds.errorRate.critical || metrics.memoryUsagePercent > thresholds.memory.critical) {
+  let deploymentStatus: SystemHealthMetrics['deploymentStatus'] = 'healthy';
+  if (metrics.source === 'not_instrumented') {
+    deploymentStatus = 'unknown';
+  } else if (
+    (metrics.errorRate != null && metrics.errorRate > thresholds.errorRate.critical) ||
+    (metrics.memoryUsagePercent != null && metrics.memoryUsagePercent > thresholds.memory.critical)
+  ) {
     deploymentStatus = 'unhealthy';
-  } else if (metrics.errorRate > thresholds.errorRate.warning || metrics.memoryUsagePercent > thresholds.memory.warning) {
+  } else if (
+    (metrics.errorRate != null && metrics.errorRate > thresholds.errorRate.warning) ||
+    (metrics.memoryUsagePercent != null && metrics.memoryUsagePercent > thresholds.memory.warning)
+  ) {
     deploymentStatus = 'degraded';
   }
 
@@ -154,11 +179,17 @@ export async function getSystemHealth(includeComparison: boolean = false): Promi
   // Get historical timeseries
   let timeseries: SystemHealthTimeseries[] = [];
   try {
-    timeseries = await getHistoricalMetrics(24);
+    if (metrics.source === 'gcp') {
+      const { getGCPTimeseries } = await import('@/server/services/gcp-monitoring');
+      timeseries = await getGCPTimeseries(24);
+    }
+    if (timeseries.length === 0) {
+      timeseries = await getHistoricalMetrics(24);
+    }
   } catch {
     // No data
   }
-  if (timeseries.length === 0) {
+  if (timeseries.length === 0 && process.env.NODE_ENV !== 'production') {
     for (let i = 23; i >= 0; i--) {
       timeseries.push({
         timestamp: new Date(now.getTime() - i * 60 * 60 * 1000),
@@ -193,22 +224,58 @@ function generateAlerts(
 ): SystemHealthAlert[] {
   const alerts: SystemHealthAlert[] = [];
   const now = current.timestamp;
+  if (current.source === 'not_instrumented') return alerts;
 
   const checks: Array<{
     type: SystemHealthAlert['type'];
-    value: number;
+    value: number | null;
     warning: number;
     critical: number;
     label: string;
     detail: string;
   }> = [
-    { type: 'memory', value: current.memoryUsagePercent, warning: thresholds.memory.warning, critical: thresholds.memory.critical, label: 'Memory usage', detail: `${current.memoryUsagePercent}% (${current.memoryUsedMB}MB / ${current.memoryAllocatedMB}MB)` },
-    { type: 'cpu', value: current.cpuUsagePercent, warning: thresholds.cpu.warning, critical: thresholds.cpu.critical, label: 'CPU usage', detail: `${current.cpuUsagePercent}%` },
-    { type: 'latency', value: current.p95LatencyMs, warning: thresholds.latency.warning, critical: thresholds.latency.critical, label: 'P95 latency', detail: `${current.p95LatencyMs}ms` },
-    { type: 'errors', value: current.errorRate, warning: thresholds.errorRate.warning, critical: thresholds.errorRate.critical, label: 'Error rate', detail: `${current.errorRate.toFixed(2)}% (${current.errorCount} errors/min)` },
+    {
+      type: 'memory',
+      value: current.memoryUsagePercent,
+      warning: thresholds.memory.warning,
+      critical: thresholds.memory.critical,
+      label: 'Memory usage',
+      detail:
+        current.memoryUsagePercent == null || current.memoryUsedMB == null
+          ? 'No data'
+          : `${current.memoryUsagePercent}% (${current.memoryUsedMB}MB / ${current.memoryAllocatedMB}MB)`,
+    },
+    {
+      type: 'cpu',
+      value: current.cpuUsagePercent,
+      warning: thresholds.cpu.warning,
+      critical: thresholds.cpu.critical,
+      label: 'CPU usage',
+      detail: current.cpuUsagePercent == null ? 'No data' : `${current.cpuUsagePercent}%`,
+    },
+    {
+      type: 'latency',
+      value: current.p95LatencyMs,
+      warning: thresholds.latency.warning,
+      critical: thresholds.latency.critical,
+      label: 'P95 latency',
+      detail: current.p95LatencyMs == null ? 'No data' : `${current.p95LatencyMs}ms`,
+    },
+    {
+      type: 'errors',
+      value: current.errorRate,
+      warning: thresholds.errorRate.warning,
+      critical: thresholds.errorRate.critical,
+      label: 'Error rate',
+      detail:
+        current.errorRate == null || current.errorCount == null
+          ? 'No data'
+          : `${current.errorRate.toFixed(2)}% (${current.errorCount} errors/min)`,
+    },
   ];
 
   for (const c of checks) {
+    if (c.value == null || !Number.isFinite(c.value)) continue;
     if (c.value >= c.critical) {
       alerts.push({ id: `${c.type}-critical-${now.getTime()}`, severity: 'critical', type: c.type, message: `${c.label} critical: ${c.detail}`, timestamp: now, resolved: false });
     } else if (c.value >= c.warning) {

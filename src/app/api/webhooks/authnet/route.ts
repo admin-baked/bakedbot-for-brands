@@ -301,18 +301,56 @@ export async function POST(req: NextRequest) {
     if (eventType.toLowerCase().includes('net.authorize.customer.subscription.') && entityId) {
       const outcome = mapSubscriptionWebhookOutcome(eventType);
 
-      const subscriptionSnapshot = await db
-        .collectionGroup('subscription')
-        .where('providerSubscriptionId', '==', entityId)
-        .limit(20)
-        .get();
+      const [subscriptionSnapshot, topLevelByProviderSnapshot, topLevelByAuthNetSnapshot] = await Promise.all([
+        db
+          .collectionGroup('subscription')
+          .where('providerSubscriptionId', '==', entityId)
+          .limit(20)
+          .get(),
+        db
+          .collection('subscriptions')
+          .where('providerSubscriptionId', '==', entityId)
+          .limit(20)
+          .get(),
+        // Legacy: some subscription records stored the provider id under this field.
+        db
+          .collection('subscriptions')
+          .where('authorizeNetSubscriptionId', '==', entityId)
+          .limit(20)
+          .get(),
+      ]);
 
-      if (subscriptionSnapshot.empty) {
+      const topLevelDocs: FirebaseFirestore.DocumentSnapshot[] = [];
+      const topLevelPaths = new Set<string>();
+      for (const doc of topLevelByProviderSnapshot.docs) {
+        if (!topLevelPaths.has(doc.ref.path)) {
+          topLevelPaths.add(doc.ref.path);
+          topLevelDocs.push(doc);
+        }
+      }
+      for (const doc of topLevelByAuthNetSnapshot.docs) {
+        if (!topLevelPaths.has(doc.ref.path)) {
+          topLevelPaths.add(doc.ref.path);
+          topLevelDocs.push(doc);
+        }
+      }
+
+      // Legacy fallback: some records use providerSubscriptionId as the document id.
+      if (topLevelDocs.length === 0) {
+        const directDoc = await db.collection('subscriptions').doc(entityId).get();
+        if (directDoc.exists) {
+          topLevelDocs.push(directDoc);
+        }
+      }
+
+      if (subscriptionSnapshot.empty && topLevelDocs.length === 0) {
         logger.warn('[AUTHNET_WEBHOOK] Subscription event received with no matching subscription', {
           providerSubscriptionId: entityId,
           eventType,
         });
       }
+
+      const emittedOrgIds = new Set<string>();
 
       await Promise.all(
         subscriptionSnapshot.docs.map(async (doc) => {
@@ -331,6 +369,7 @@ export async function POST(req: NextRequest) {
 
           const orgId = extractOrgIdFromSubscriptionPath(doc.ref.path);
           if (orgId && outcome.emittedEvent) {
+            emittedOrgIds.add(orgId);
             await emitEvent({
               orgId,
               type: outcome.emittedEvent,
@@ -345,6 +384,48 @@ export async function POST(req: NextRequest) {
           }
         })
       );
+
+      // Also update the normalized top-level subscriptions collection used by CEO analytics/CRM.
+      if (topLevelDocs.length > 0) {
+        await Promise.all(
+          topLevelDocs.map(async (doc) => {
+            const data = doc.data() as any;
+            const updatePayload: Record<string, unknown> = {
+              updatedAt: FieldValue.serverTimestamp(),
+              providerLastEventType: eventType,
+              providerLastEventAt: eventDate || FieldValue.serverTimestamp(),
+            };
+
+            if (outcome.subscriptionStatus) {
+              updatePayload.status = outcome.subscriptionStatus;
+            }
+
+            await doc.ref.set(updatePayload, { merge: true });
+            processedSubscriptions += 1;
+
+            const orgId = typeof data?.orgId === 'string'
+              ? data.orgId
+              : typeof data?.organizationId === 'string'
+                ? data.organizationId
+                : null;
+
+            if (orgId && outcome.emittedEvent && !emittedOrgIds.has(orgId)) {
+              emittedOrgIds.add(orgId);
+              await emitEvent({
+                orgId,
+                type: outcome.emittedEvent,
+                agent: 'money_mike',
+                refId: doc.id,
+                data: {
+                  providerSubscriptionId: entityId,
+                  status: outcome.subscriptionStatus || null,
+                  eventType,
+                },
+              });
+            }
+          })
+        );
+      }
     }
 
     await webhookLogRef.set(

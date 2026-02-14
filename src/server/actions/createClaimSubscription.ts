@@ -178,8 +178,21 @@ export async function createClaimWithSubscription(
 
                 // Link org if applicable (provisional, until claimed)
                 if (input.orgId) {
-                    if (input.role === 'brand') userData.brandId = input.orgId;
-                    if (input.role === 'dispensary') userData.dispensaryId = input.orgId; // Assuming dispensaryId is used
+                    // Keep these fields aligned with the onboarding flow so CEO CRM can resolve org context.
+                    userData.currentOrgId = input.orgId;
+                    userData.orgId = input.orgId;
+                    userData.tenantId = input.orgId;
+
+                    if (input.role === 'brand') {
+                        userData.brandId = input.orgId;
+                    }
+
+                    if (input.role === 'dispensary') {
+                        // Legacy field (some older code paths expect it)
+                        userData.dispensaryId = input.orgId;
+                        // Canonical field used across most dashboard logic
+                        userData.locationId = input.orgId;
+                    }
                 }
 
                 await userRef.set(userData, { merge: true });
@@ -365,6 +378,48 @@ export async function createClaimWithSubscription(
                         updatedAt: FieldValue.serverTimestamp()
                     });
                 }
+            }
+
+            // 8. Record subscription in top-level `subscriptions` so CEO analytics/CRM can count revenue.
+            // Auth.Net subscription webhooks currently update org subscription docs; we also persist a
+            // normalized record here for claim-based billing flows.
+            try {
+                const providerSubscriptionId = String(sub.subscriptionId);
+                if (providerSubscriptionId) {
+                    const subDocRef = firestore.collection('subscriptions').doc(providerSubscriptionId);
+                    await subDocRef.set({
+                        planId: input.planId,
+                        planName: plan?.name || (input.planId === 'founders_claim' ? 'Founders Claim' : 'Claim Pro'),
+                        price,
+                        amount: price,
+                        intervalMonths: 1,
+                        billingPeriod: 'monthly',
+                        status: 'active',
+                        transactionId: providerSubscriptionId,
+                        providerSubscriptionId,
+                        customerProfileId: profile.customerProfileId,
+                        customerPaymentProfileId: profile.customerPaymentProfileId,
+                        subscriptionStartDate: startDate,
+                        customer: {
+                            email: input.contactEmail,
+                            name: input.contactName,
+                            company: input.businessName,
+                            phone: input.contactPhone,
+                        },
+                        orgId: input.orgId || null,
+                        userId: userId || null,
+                        claimId,
+                        source: 'claim_wizard',
+                        createdAt: FieldValue.serverTimestamp(),
+                        updatedAt: FieldValue.serverTimestamp(),
+                    }, { merge: true });
+                }
+            } catch (error) {
+                logger.warn('Failed to persist claim subscription record (non-blocking)', {
+                    claimId,
+                    providerSubscriptionId: sub?.subscriptionId,
+                    error: error instanceof Error ? error.message : String(error ?? 'unknown'),
+                });
             }
 
             logger.info('Claim subscription created successfully', {

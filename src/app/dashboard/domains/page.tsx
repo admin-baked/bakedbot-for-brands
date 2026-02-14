@@ -110,11 +110,37 @@ interface VibeProject {
 
 export default function DomainsPage() {
   const { user, loading } = useAuth();
-  const { orgId: tenantId } = useUserRole();
+  const { orgId: claimedTenantId, role } = useUserRole();
   const { toast } = useToast();
 
+  const isSuperUser = role === 'super_user' || role === 'super_admin';
+
+  // Super Users don't have a tenant-scoped orgId by default. Allow selecting a tenant to manage domains.
+  const [tenantId, setTenantId] = useState('');
+  const [tenantDraft, setTenantDraft] = useState('');
+
+  useEffect(() => {
+    if (claimedTenantId) {
+      setTenantId(claimedTenantId);
+      setTenantDraft(claimedTenantId);
+      return;
+    }
+
+    if (!isSuperUser) return;
+
+    try {
+      const saved = localStorage.getItem('bakedbot_domains_tenantId') || '';
+      if (saved) {
+        setTenantId(saved);
+        setTenantDraft(saved);
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  }, [claimedTenantId, isSuperUser]);
+
   const [domains, setDomains] = useState<DomainListItem[]>([]);
-  const [loadingDomains, setLoadingDomains] = useState(true);
+  const [loadingDomains, setLoadingDomains] = useState(false);
   const [vibeProjects, setVibeProjects] = useState<VibeProject[]>([]);
 
   // Add domain form
@@ -142,6 +168,13 @@ export default function DomainsPage() {
       const result = await listDomains(tenantId);
       if (result.success && result.domains) {
         setDomains(result.domains);
+      } else {
+        setDomains([]);
+        toast({
+          title: 'Failed to Load Domains',
+          description: result.error || 'Unable to load domains for this tenant.',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Failed to load domains:', error);
@@ -229,7 +262,7 @@ export default function DomainsPage() {
     if (!tenantId) return;
     setVerifyingDomain(domain);
     try {
-      const result = await verifyCustomDomain(tenantId);
+      const result = await verifyCustomDomain(tenantId, domain);
       if (result.success) {
         toast({
           title: 'Domain Verified!',
@@ -357,13 +390,87 @@ export default function DomainsPage() {
           </p>
         </div>
         <Button
-          onClick={() => setShowAddForm(true)}
+          onClick={() => {
+            if (!tenantId) {
+              toast({
+                title: isSuperUser ? 'Select a Tenant' : 'Organization Not Found',
+                description: isSuperUser
+                  ? 'Enter a tenantId to manage domains.'
+                  : 'Unable to resolve your organization. Please sign out and sign back in.',
+                variant: 'destructive',
+              });
+              return;
+            }
+            setShowAddForm(true);
+          }}
           className="gap-2"
         >
           <Plus className="w-4 h-4" />
           Add Domain
         </Button>
       </div>
+
+      {isSuperUser && !claimedTenantId && (
+        <Alert className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Super User: Select Tenant</AlertTitle>
+          <AlertDescription>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <Label className="text-xs">Tenant ID</Label>
+                <Input
+                  value={tenantDraft}
+                  onChange={(e) => setTenantDraft(e.target.value)}
+                  placeholder="e.g., thrive-syracuse"
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Current: <span className="font-mono">{tenantId || 'none'}</span>
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const next = tenantDraft.trim();
+                    if (!next) {
+                      toast({
+                        title: 'Tenant ID Required',
+                        description: 'Enter a tenantId to manage domains.',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
+                    setTenantId(next);
+                    try {
+                      localStorage.setItem('bakedbot_domains_tenantId', next);
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                >
+                  Load
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setTenantDraft('');
+                    setTenantId('');
+                    setDomains([]);
+                    try {
+                      localStorage.removeItem('bakedbot_domains_tenantId');
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Add Domain Dialog */}
       <Dialog open={showAddForm} onOpenChange={setShowAddForm}>

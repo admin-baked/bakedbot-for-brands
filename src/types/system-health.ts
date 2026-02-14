@@ -12,35 +12,35 @@ export interface SystemHealthMetrics {
 
   // Memory
   memoryAllocatedMB: number;
-  memoryUsedMB: number;
-  memoryUsagePercent: number;
+  memoryUsedMB: number | null;
+  memoryUsagePercent: number | null;
 
   // CPU
   cpuCores: number;
-  cpuUsagePercent: number;
+  cpuUsagePercent: number | null;
 
   // Instances
-  instanceCount: number;
+  instanceCount: number | null;
   minInstances: number;
   maxInstances: number;
 
   // Requests
-  requestsPerSecond: number;
-  avgLatencyMs: number;
-  p95LatencyMs: number;
-  p99LatencyMs: number;
+  requestsPerSecond: number | null;
+  avgLatencyMs: number | null;
+  p95LatencyMs: number | null;
+  p99LatencyMs: number | null;
 
   // Errors
-  errorRate: number; // Percentage
-  errorCount: number;
+  errorRate: number | null; // Percentage
+  errorCount: number | null;
 
   // Deployment
-  deploymentStatus: 'healthy' | 'degraded' | 'unhealthy';
+  deploymentStatus: 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
   lastDeployment: Date | null;
   currentVersion: string | null;
 
   // Data source
-  source: 'gcp' | 'simulated';
+  source: 'gcp' | 'simulated' | 'not_instrumented';
 }
 
 export interface SystemHealthTimeseries {
