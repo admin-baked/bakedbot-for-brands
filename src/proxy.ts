@@ -27,6 +27,16 @@ export async function proxy(request: NextRequest) {
         || '';
 
     // ============================
+    // LEAD MAGNET REDIRECTS
+    // ============================
+    // Redirect lead magnets to separate magnets subdomain
+    const MAGNETS_URL = 'https://bakedbot-magnets--studio-567050101-bc6e8.us-central1.hosted.app';
+
+    if (pathname.startsWith('/academy') || pathname.startsWith('/vibe') || pathname.startsWith('/training')) {
+        return NextResponse.redirect(`${MAGNETS_URL}${pathname}`);
+    }
+
+    // ============================
     // SUBDOMAIN ROUTING (*.bakedbot.ai)
     // ============================
     // Check for subdomains like ecstaticedibles.bakedbot.ai
