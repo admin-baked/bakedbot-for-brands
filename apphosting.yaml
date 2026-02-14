@@ -2,11 +2,11 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 env:
-  # Build-time memory allocation - Firebase recommended limit
-  # Using 30GB for V8 heap (Firebase build containers have ~32GB physical RAM)
-  # Setting 64GB caused OOM as it exceeded container capacity
+  # Build-time memory allocation - Reduced after extracting lead magnets
+  # Using 20GB for V8 heap (reduced from 201 to ~175 pages)
+  # Firebase build containers have ~32GB physical RAM
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=30000"
+    value: "--max-old-space-size=20000"
     availability: [ BUILD ]
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"
