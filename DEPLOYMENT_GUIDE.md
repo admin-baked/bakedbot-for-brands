@@ -226,6 +226,23 @@ If any build fails with OOM (exit code 137):
 
 ## 🚨 Troubleshooting
 
+### Secret Access Errors (FIXED)
+If you see "Misconfigured secret" errors, the backends need explicit permission:
+
+**✅ ALREADY FIXED**: All secrets have been granted access to all backends.
+
+Secrets granted:
+- **SEO**: FIREBASE_SERVICE_ACCOUNT_KEY, NEXT_PUBLIC_FIREBASE_API_KEY
+- **Operations**: FIREBASE_SERVICE_ACCOUNT_KEY, NEXT_PUBLIC_FIREBASE_API_KEY, CLAUDE_API_KEY, GEMINI_API_KEY
+- **Shop**: FIREBASE_SERVICE_ACCOUNT_KEY, NEXT_PUBLIC_FIREBASE_API_KEY
+
+To grant additional secrets in the future:
+```bash
+firebase apphosting:secrets:grantaccess SECRET_NAME \
+  --backend BACKEND_NAME \
+  --project studio-567050101-bc6e8
+```
+
 ### Build Fails with OOM
 ```yaml
 # Increase memory in apphosting.yaml
