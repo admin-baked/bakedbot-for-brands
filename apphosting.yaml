@@ -2,11 +2,11 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 env:
-  # Build-time memory allocation - Core app with shop pages restored
-  # 80 pages total (55 core + 25 shop) after SEO/Operations extraction
+  # Build-time memory allocation - Full app (magnets extracted only)
+  # ~175 pages total after extracting lead magnets (Academy, Vibe, Training)
   # Firebase build containers have ~32GB physical RAM
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=16384"
+    value: "--max-old-space-size=20000"
     availability: [ BUILD ]
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"

@@ -37,26 +37,6 @@ export async function proxy(request: NextRequest) {
     }
 
     // ============================
-    // LOCAL SEO REDIRECTS
-    // ============================
-    // Redirect local/zip code pages to SEO app
-    const SEO_URL = 'https://bakedbot-seo--studio-567050101-bc6e8.us-central1.hosted.app';
-
-    if (pathname.startsWith('/local/')) {
-        return NextResponse.rewrite(`${SEO_URL}${pathname}`);
-    }
-
-    // ============================
-    // OPERATIONS (CEO DASHBOARD) REDIRECTS
-    // ============================
-    // Redirect CEO dashboard to operations app
-    const OPERATIONS_URL = 'https://bakedbot-operations--studio-567050101-bc6e8.us-central1.hosted.app';
-
-    if (pathname.startsWith('/dashboard/ceo')) {
-        return NextResponse.rewrite(`${OPERATIONS_URL}${pathname}`);
-    }
-
-    // ============================
     // SUBDOMAIN ROUTING (*.bakedbot.ai)
     // ============================
     // Check for subdomains like ecstaticedibles.bakedbot.ai
