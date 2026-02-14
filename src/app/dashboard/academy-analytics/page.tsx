@@ -35,6 +35,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { getAcademyAnalytics } from '@/server/actions/academy-analytics';
 import type { AcademyAnalytics } from '@/types/academy';
+import { normalizeRole } from '@/types/roles';
 
 export default function AcademyAnalyticsPage() {
   const { user } = useAuth();
@@ -49,8 +50,9 @@ export default function AcademyAnalyticsPage() {
     async function checkRole() {
       if (user) {
         const token = await user.getIdTokenResult();
-        const role = token.claims.role || token.claims.customRole;
-        setIsSuperUser(role === 'super_user');
+        const rawRole = (token.claims.role || token.claims.customRole) as string | undefined;
+        const normalized = normalizeRole(rawRole ?? null);
+        setIsSuperUser(normalized === 'super_user');
       }
     }
     checkRole();

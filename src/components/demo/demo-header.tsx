@@ -245,7 +245,7 @@ export function DemoHeader({
                 {onAccountClick ? (
                   <span><User className="h-5 w-5" /></span>
                 ) : (
-                  <Link href="/customer-login">
+                  <Link href="/signin">
                     <User className="h-5 w-5" />
                   </Link>
                 )}

@@ -54,8 +54,18 @@ export async function loadTreasuryMemory(): Promise<TreasuryDomainMemory> {
         const content = await fs.readFile(filePath, 'utf-8');
         return JSON.parse(content) as TreasuryDomainMemory;
     } catch (error) {
-        // If not found, create default
-        await saveTreasuryMemory(INITIAL_TREASURY_MEMORY);
+        // In production environments the filesystem may be read-only/ephemeral.
+        // Return defaults without attempting to write anything.
+        if (process.env.NODE_ENV === 'production') {
+            return INITIAL_TREASURY_MEMORY;
+        }
+
+        // If not found in dev/test, create default on disk.
+        try {
+            await saveTreasuryMemory(INITIAL_TREASURY_MEMORY);
+        } catch {
+            // Non-blocking.
+        }
         return INITIAL_TREASURY_MEMORY;
     }
 }
@@ -64,6 +74,10 @@ export async function loadTreasuryMemory(): Promise<TreasuryDomainMemory> {
  * Saves the global Treasury Domain Memory.
  */
 export async function saveTreasuryMemory(memory: TreasuryDomainMemory): Promise<void> {
+    if (process.env.NODE_ENV === 'production') {
+        console.warn('[TreasuryMemory] saveTreasuryMemory is disabled in production (paper mode).');
+        return;
+    }
     await fs.mkdir(DATA_DIR, { recursive: true });
     const filePath = path.join(DATA_DIR, 'domain_memory.json');
     await fs.writeFile(filePath, JSON.stringify(memory, null, 2));
@@ -86,6 +100,10 @@ export async function loadStrategyMemory<TConfig, TState>(strategyId: string): P
  * Saves memory for a specific strategy.
  */
 export async function saveStrategyMemory(strategyId: string, memory: StrategyMemory): Promise<void> {
+    if (process.env.NODE_ENV === 'production') {
+        console.warn('[TreasuryMemory] saveStrategyMemory is disabled in production (paper mode).');
+        return;
+    }
     const dirPath = path.join(DATA_DIR, 'strategies');
     await fs.mkdir(dirPath, { recursive: true });
     const filePath = path.join(dirPath, `${strategyId}.json`);

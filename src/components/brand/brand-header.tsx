@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useUser } from '@/firebase/auth/use-user';
+import { useUserRole } from '@/hooks/use-user-role';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
@@ -20,6 +21,7 @@ interface BrandHeaderProps {
 
 export function BrandHeader({ brandName, logoUrl, verified }: BrandHeaderProps) {
     const { user } = useUser();
+    const { loginRoute } = useUserRole();
     const router = useRouter();
     const [zipCode, setZipCode] = useState('');
 
@@ -110,7 +112,7 @@ export function BrandHeader({ brandName, logoUrl, verified }: BrandHeaderProps) 
                     </Button>
 
                     <Button variant="ghost" size="icon" asChild>
-                        <Link href={user ? "/account" : "/customer-login"}>
+                        <Link href={user ? "/account" : loginRoute}>
                             <User className="h-6 w-6" />
                         </Link>
                     </Button>

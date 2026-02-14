@@ -269,9 +269,11 @@ export interface InboxQuickAction {
 }
 
 /** Role constants for cleaner action definitions */
-const BRAND_ROLES = ['super_user', 'brand', 'brand_admin', 'brand_member'];
-const DISPENSARY_ROLES = ['super_user', 'dispensary', 'dispensary_admin', 'dispensary_staff'];
-const ALL_BUSINESS_ROLES = [...BRAND_ROLES, ...DISPENSARY_ROLES.filter(r => r !== 'super_user')];
+// NOTE: Super Users have their own executive presets and should not inherit
+// brand/dispensary quick actions unless they're explicitly operating in that role context.
+const BRAND_ROLES = ['brand', 'brand_admin', 'brand_member'];
+const DISPENSARY_ROLES = ['dispensary', 'dispensary_admin', 'dispensary_staff'];
+const ALL_BUSINESS_ROLES = [...BRAND_ROLES, ...DISPENSARY_ROLES];
 
 /**
  * Default quick actions by role
@@ -422,12 +424,12 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
     // ============ Super User Only - Executive Marketing ============
     {
         id: 'retail-pitch',
-        label: 'Retail Pitch',
-        description: 'Find dispensaries to carry your products and draft outreach',
+        label: 'Outbound Pitch',
+        description: 'Draft outbound outreach to high-fit brands/dispensaries for BakedBot',
         icon: 'Presentation',
-        threadType: 'retail_partner',
+        threadType: 'partnership_outreach',
         defaultAgent: 'glenda',
-        promptTemplate: 'Find dispensaries that would be a good fit for my brand and help me draft an intro email',
+        promptTemplate: 'Build an outbound pitch pack for BakedBot. Identify 10 high-fit brands/dispensaries, write a short cold email + follow-up, and list the key hook, ICP fit, and likely objections for each.',
         roles: ['super_user'],  // Glenda restricted to Boardroom (super_user) level
     },
 
@@ -503,7 +505,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'TrendingUp',
         threadType: 'growth_review',
         defaultAgent: 'jack',
-        promptTemplate: 'Help me review our growth metrics and identify opportunities',
+        promptTemplate: 'Run a weekly growth review for BakedBot: MRR, net new MRR, churn, expansion, pipeline, activation, WAU/MAU, and top bottlenecks. End with 5 concrete next actions.',
         roles: ['super_user'],
     },
     {
@@ -513,7 +515,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'UserMinus',
         threadType: 'churn_risk',
         defaultAgent: 'jack',
-        promptTemplate: 'Help me identify at-risk customers and plan retention strategies',
+        promptTemplate: 'Analyze churn risk for BakedBot customers: who is at risk, why, and what win-back actions we should run this week. Include a prioritized list and recommended playbooks.',
         roles: ['super_user'],
     },
     {
@@ -523,7 +525,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'Calculator',
         threadType: 'revenue_forecast',
         defaultAgent: 'money_mike',
-        promptTemplate: 'Help me forecast revenue and model different scenarios',
+        promptTemplate: 'Forecast BakedBot revenue for the next 3 months. Provide best/base/worst scenarios using assumptions for pipeline conversion, churn, and pricing, and list what to measure to validate assumptions.',
         roles: ['super_user'],
     },
     {
@@ -533,7 +535,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'Funnel',
         threadType: 'pipeline',
         defaultAgent: 'jack',
-        promptTemplate: 'Help me review our sales pipeline and deal progress',
+        promptTemplate: 'Review the BakedBot sales pipeline: stage totals, top deals, next steps, risks, and what to do today to unblock revenue. Summarize in an exec-ready format.',
         roles: ['super_user'],
     },
     {
@@ -543,17 +545,17 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'HeartPulse',
         threadType: 'customer_health',
         defaultAgent: 'jack',
-        promptTemplate: 'Help me assess customer health across segments',
+        promptTemplate: 'Assess customer health for BakedBot: segment accounts by lifecycle stage and usage, flag red accounts, and recommend retention + activation actions. Focus on preventing churn.',
         roles: ['super_user'],
     },
     {
         id: 'market-intel',
         label: 'Market Intel',
-        description: 'Spy on competitor pricing and market positioning',
+        description: 'Competitive landscape and positioning for BakedBot',
         icon: 'Target',
         threadType: 'market_intel',
         defaultAgent: 'ezal',
-        promptTemplate: 'Spy on competitor pricing near me and show me market opportunities',
+        promptTemplate: 'Analyze BakedBot competitors (POS, menus/marketplaces, CRM/marketing automation, AI agents). Produce a concise battlecard: pricing, positioning, strengths/weaknesses, and our recommended counter-moves.',
         roles: ['super_user'],
     },
     {
@@ -563,7 +565,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'Handshake',
         threadType: 'bizdev',
         defaultAgent: 'glenda',
-        promptTemplate: 'Help me plan partnership outreach and expansion strategies',
+        promptTemplate: 'Plan BizDev for BakedBot: top partner categories, target list, partnership offers, and outreach messaging. Include a 30-day action plan.',
         roles: ['super_user'],
     },
     {
@@ -573,7 +575,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'FlaskConical',
         threadType: 'experiment',
         defaultAgent: 'linus',
-        promptTemplate: 'Help me plan a growth experiment or analyze test results',
+        promptTemplate: 'Design a growth experiment for BakedBot (activation, conversion, or retention). Define hypothesis, success metrics, rollout plan, and what data we need to collect.',
         roles: ['super_user'],
     },
 
@@ -585,7 +587,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'Coffee',
         threadType: 'daily_standup',
         defaultAgent: 'leo',
-        promptTemplate: 'Run our daily standup: What shipped? What\'s blocked? What\'s next?',
+        promptTemplate: 'Run the BakedBot daily standup: what shipped, what\'s blocked, incidents, revenue/pipeline highlights, and priorities for today. End with owners + next steps.',
         roles: ['super_user'],
     },
     {
@@ -625,7 +627,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'UserPlus',
         threadType: 'customer_onboarding',
         defaultAgent: 'mrs_parker',
-        promptTemplate: 'Review our customer onboarding: welcome emails, drip sequences, activation rates.',
+        promptTemplate: 'Review BakedBot customer onboarding: signup flow, activation checklist, welcome sequences, and where users drop. Suggest improvements and a 7-day activation playbook.',
         roles: ['super_user'],
     },
     {
@@ -635,7 +637,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'HeartHandshake',
         threadType: 'customer_feedback',
         defaultAgent: 'jack',
-        promptTemplate: 'Give me a pulse check on our customers: health scores, recent feedback, escalations.',
+        promptTemplate: 'Give me a customer pulse for BakedBot: recent feedback themes, escalations, top requests, and accounts at risk. Recommend what to do this week.',
         roles: ['super_user'],
     },
     {
@@ -645,7 +647,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'FileEdit',
         threadType: 'content_calendar',
         defaultAgent: 'glenda',
-        promptTemplate: 'Help me create a content brief for our next piece of content.',
+        promptTemplate: 'Create a content brief for BakedBot: topic, angle, target persona, key points, CTA, and distribution plan. Keep it crisp and actionable.',
         roles: ['super_user'],
     },
     {
@@ -655,7 +657,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'Users',
         threadType: 'weekly_sync',
         defaultAgent: 'leo',
-        promptTemplate: 'Run our weekly executive sync. Gather updates from all departments.',
+        promptTemplate: 'Run the weekly exec sync for BakedBot. Collect updates (growth, product, ops, finance), decisions needed, and action items with owners/dates.',
         roles: ['super_user'],
     },
     {
@@ -665,7 +667,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'Banknote',
         threadType: 'budget_planning',
         defaultAgent: 'mike',
-        promptTemplate: 'Review our cash flow: current position, burn rate, and runway.',
+        promptTemplate: 'Review BakedBot cash flow: burn, runway, upcoming vendor/API costs, and where to cut or optimize. Include a simple risk register.',
         roles: ['super_user'],
     },
     {
@@ -675,7 +677,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'Presentation',
         threadType: 'board_prep',
         defaultAgent: 'mike',
-        promptTemplate: 'Help me draft our monthly investor/board update.',
+        promptTemplate: 'Draft the monthly BakedBot investor update: wins, metrics (MRR, churn, pipeline), product progress, risks, and next month goals. Keep it board-ready.',
         roles: ['super_user'],
     },
     {
@@ -685,7 +687,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'ShieldCheck',
         threadType: 'compliance_audit',
         defaultAgent: 'deebo',
-        promptTemplate: 'Scan my site and content for compliance risks - cannabis regulations, health claims, age-gating',
+        promptTemplate: 'Audit BakedBot for compliance risks: cannabis marketing claims, age-gating, privacy/security basics, and high-risk copy patterns. Output prioritized fixes.',
         roles: ['super_user'],
     },
     {
@@ -695,7 +697,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'UserSearch',
         threadType: 'hiring',
         defaultAgent: 'leo',
-        promptTemplate: 'Help me with hiring: open roles, candidate pipeline, interview feedback.',
+        promptTemplate: 'Help with hiring for BakedBot: define roles needed, write job specs, and create an interview loop + scorecard. If given candidates, summarize strengths/risks.',
         roles: ['super_user'],
     },
 
@@ -707,7 +709,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'BookOpen',
         threadType: 'deep_research',
         defaultAgent: 'big_worm',
-        promptTemplate: 'I need deep research on...',
+        promptTemplate: 'I need deep research for BakedBot on:',
         roles: ['super_user'],
     },
     {
@@ -717,7 +719,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'Scale',
         threadType: 'compliance_research',
         defaultAgent: 'roach',
-        promptTemplate: 'Research compliance requirements for...',
+        promptTemplate: 'Research compliance requirements for BakedBot regarding:',
         roles: ['super_user'],
     },
     {
@@ -727,7 +729,7 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'BarChart3',
         threadType: 'market_research',
         defaultAgent: 'big_worm',
-        promptTemplate: 'Analyze the market for...',
+        promptTemplate: 'Analyze the market for BakedBot around:',
         roles: ['super_user'],
     },
 
@@ -1217,8 +1219,7 @@ export async function getQuickActionsForRoleAsync(
         const result = await getPresetPrompts(roleContext, tenantId);
 
         if (result.success && result.data) {
-            // Convert PresetPromptTemplate to InboxQuickAction
-            return result.data.map(preset => ({
+            const actions = result.data.map(preset => ({
                 id: preset.id,
                 label: preset.label,
                 description: preset.description,
@@ -1227,7 +1228,60 @@ export async function getQuickActionsForRoleAsync(
                 defaultAgent: preset.defaultAgent,
                 promptTemplate: preset.promptTemplate,
                 roles: preset.roles,
-            }));
+            })) as InboxQuickAction[];
+
+            // Guardrail: if DB presets were migrated incorrectly, Super Users can end up
+            // with brand/dispensary quick actions. Filter to executive thread types and
+            // fall back to hardcoded presets when none remain.
+            if (roleContext === 'super_user') {
+                const allowed = new Set<InboxThreadType>([
+                    // Growth management
+                    'growth_review',
+                    'churn_risk',
+                    'revenue_forecast',
+                    'pipeline',
+                    'customer_health',
+                    'market_intel',
+                    'bizdev',
+                    'experiment',
+
+                    // Company ops
+                    'daily_standup',
+                    'sprint_planning',
+                    'incident_response',
+                    'feature_spec',
+                    'code_review',
+                    'release',
+                    'customer_onboarding',
+                    'customer_feedback',
+                    'support_escalation',
+                    'content_calendar',
+                    'launch_campaign',
+                    'seo_sprint',
+                    'partnership_outreach',
+                    'billing_review',
+                    'budget_planning',
+                    'vendor_management',
+                    'compliance_audit',
+                    'weekly_sync',
+                    'quarterly_planning',
+                    'board_prep',
+                    'hiring',
+
+                    // Research
+                    'deep_research',
+                    'compliance_research',
+                    'market_research',
+                ]);
+
+                const filtered = actions.filter((a) => allowed.has(a.threadType as InboxThreadType));
+                if (filtered.length > 0) {
+                    return filtered;
+                }
+                return getQuickActionsForRole(role);
+            }
+
+            return actions;
         }
 
         // Fallback to hardcoded if database load fails

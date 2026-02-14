@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useStore } from '@/hooks/use-store';
 import { useUser } from '@/firebase/auth/use-user';
+import { useUserRole } from '@/hooks/use-user-role';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
@@ -19,6 +20,7 @@ interface DispensaryHeaderProps {
 export function DispensaryHeader({ brandName = 'Dispensary', logoUrl }: DispensaryHeaderProps) {
     const { getItemCount, setCartSheetOpen } = useStore();
     const { user } = useUser();
+    const { loginRoute } = useUserRole();
     const itemCount = getItemCount();
 
     const [orderType, setOrderType] = useState<'pickup' | 'delivery'>('pickup');
@@ -89,7 +91,7 @@ export function DispensaryHeader({ brandName = 'Dispensary', logoUrl }: Dispensa
                     {/* Icons */}
                     <div className="flex items-center gap-1 md:gap-2">
                         <Button variant="ghost" size="icon" className="hidden sm:flex" asChild>
-                            <Link href={user ? "/account" : "/customer-login"}>
+                            <Link href={user ? "/account" : loginRoute}>
                                 <User className="h-6 w-6" />
                             </Link>
                         </Button>

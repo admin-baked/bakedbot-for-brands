@@ -163,7 +163,7 @@ export function Header() {
                         ) : hydrated && !user ? (
                             <>
                                 <Button variant="ghost" asChild>
-                                    <Link href="/customer-login">
+                                    <Link href={loginRoute}>
                                         Login
                                     </Link>
                                 </Button>
@@ -203,14 +203,14 @@ export function Header() {
                                         <DropdownMenuItem onClick={() => router.push('/account')}>Account Details</DropdownMenuItem>
                                         <DropdownMenuItem onClick={handleSignOut}>Sign Out</DropdownMenuItem>
                                     </>
-                                ) : hydrated && !user ? (
-                                    <>
-                                        <DropdownMenuItem onClick={() => router.push('/customer-login')}>Login</DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => router.push('/onboarding')}>Get Started</DropdownMenuItem>
-                                    </>
-                                ) : null}
-                                <DropdownMenuSeparator />
-                                <div className="p-2">
+                                 ) : hydrated && !user ? (
+                                     <>
+                                         <DropdownMenuItem onClick={() => router.push(loginRoute)}>Login</DropdownMenuItem>
+                                         <DropdownMenuItem onClick={() => router.push('/onboarding')}>Get Started</DropdownMenuItem>
+                                     </>
+                                 ) : null}
+                                 <DropdownMenuSeparator />
+                                 <div className="p-2">
                                     <div className="flex items-center justify-between gap-2">
                                         <Label htmlFor="demo-mode-switch-mobile" className="text-sm font-medium">Demo</Label>
                                         <Switch

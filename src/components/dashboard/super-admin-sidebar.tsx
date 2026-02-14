@@ -250,8 +250,16 @@ export function SuperAdminSidebar() {
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive("ezal") || isActive("competitor-intel") || isActive("research")}>
-                                <Link href="/dashboard/ceo?tab=ezal">
+                            <SidebarMenuButton
+                                asChild
+                                isActive={
+                                    isActive("ezal") ||
+                                    isActive("competitor-intel") ||
+                                    isActive("research") ||
+                                    (currentTabParam === 'analytics' && searchParams?.get('sub') === 'intelligence')
+                                }
+                            >
+                                <Link href="/dashboard/ceo?tab=analytics&sub=intelligence&intel=insights">
                                     <Search />
                                     <span>Intel & Research</span>
                                 </Link>

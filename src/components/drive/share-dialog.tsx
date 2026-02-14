@@ -34,6 +34,23 @@ import { Separator } from '@/components/ui/separator';
 import { Copy, Link, Trash2, Loader2, CheckCircle, Plus, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+function parseEmails(raw: string): { valid: string[]; invalid: string[] } {
+  const trimmed = (raw || '').trim();
+  if (!trimmed) return { valid: [], invalid: [] };
+
+  const emails = trimmed
+    .split(/[\s,;]+/g)
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+  const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+
+  return {
+    valid: emails.filter(isValidEmail),
+    invalid: emails.filter((e) => !isValidEmail(e)),
+  };
+}
+
 export function ShareDialog() {
   const { isShareDialogOpen, closeShareDialog, selectedItems, files, folders } = useDriveStore();
   const { toast } = useToast();
@@ -51,7 +68,6 @@ export function ShareDialog() {
   const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
 
   const requiresAllowedUsers = accessControl === 'users-only';
-  const canCreateShare = !requiresAllowedUsers || allowedUsers.length > 0;
 
   useEffect(() => {
     if (accessControl !== 'users-only') {
@@ -59,6 +75,8 @@ export function ShareDialog() {
       setAllowedUsers([]);
     }
   }, [accessControl]);
+
+  const pendingInvites = useMemo(() => parseEmails(inviteInput), [inviteInput]);
 
   const normalizedAllowedUsers = useMemo(() => {
     const seen = new Set<string>();
@@ -71,6 +89,8 @@ export function ShareDialog() {
     }
     return result;
   }, [allowedUsers]);
+
+  const canCreateShare = !requiresAllowedUsers || normalizedAllowedUsers.length > 0 || pendingInvites.valid.length > 0;
 
   // Get selected item details
   const selectedItem = selectedItems[0];
@@ -103,11 +123,35 @@ export function ShareDialog() {
     if (!canCreateShare) {
       toast({
         title: 'Add at least one email',
-        description: 'Select "Specific people" and add emails before creating a share link.',
+        description: 'Select "Specific people" and enter at least one valid email before creating a share link.',
         variant: 'destructive',
       });
       return;
     }
+
+    const parsed = parseEmails(inviteInput);
+    if (requiresAllowedUsers && parsed.invalid.length > 0) {
+      toast({
+        title: 'Invalid email(s)',
+        description: parsed.invalid.slice(0, 3).join(', '),
+        variant: 'destructive',
+      });
+    }
+
+    const allowedUsersForShare = (() => {
+      if (!requiresAllowedUsers) return undefined;
+
+      const next = [...normalizedAllowedUsers];
+      const seen = new Set(next.map((u) => u.email.toLowerCase()));
+
+      for (const email of parsed.valid) {
+        if (seen.has(email)) continue;
+        seen.add(email);
+        next.push({ email, accessLevel });
+      }
+
+      return next;
+    })();
 
     setIsCreating(true);
     const result = await createShare({
@@ -115,7 +159,7 @@ export function ShareDialog() {
       targetId: selectedItem.id,
       accessControl,
       accessLevel,
-      allowedUsers: requiresAllowedUsers ? normalizedAllowedUsers : undefined,
+      allowedUsers: allowedUsersForShare,
       password: usePassword && password ? password : undefined,
     });
 
@@ -158,17 +202,7 @@ export function ShareDialog() {
   };
 
   const addInvites = () => {
-    const raw = inviteInput.trim();
-    if (!raw) return;
-
-    // Allow comma/space/newline separated emails
-    const emails = raw
-      .split(/[\s,;]+/g)
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
-
-    const valid = emails.filter((e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
-    const invalid = emails.filter((e) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+    const { valid, invalid } = parseEmails(inviteInput);
 
     if (invalid.length > 0) {
       toast({

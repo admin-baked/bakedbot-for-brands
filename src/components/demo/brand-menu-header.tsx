@@ -380,7 +380,7 @@ export function BrandMenuHeader({
 
             {/* User Account */}
             <Button variant="ghost" size="icon" asChild>
-              <Link href="/customer-login">
+              <Link href="/signin">
                 <User className="h-5 w-5" />
               </Link>
             </Button>

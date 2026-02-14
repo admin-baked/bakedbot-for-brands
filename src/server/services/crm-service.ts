@@ -127,6 +127,8 @@ function resolveOrgIdFromUserDoc(data: any): string | null {
         Array.isArray(data?.organizationIds) ? data.organizationIds[0] : null,
         data?.brandId,
         data?.locationId,
+        data?.dispensaryId,
+        data?.organizationId,
         data?.orgId,
         data?.tenantId,
     ];
@@ -560,7 +562,7 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
         if (providerId) orgProviderSubscriptionIds.add(providerId);
     }
 
-    const topLevelSubsByEmail = new Map<string, TopLevelSub[]>();
+    const topLevelSubsByEmail = new Map<string, Map<string, TopLevelSub>>();
     try {
         const subsSnapshot = await firestore.collection('subscriptions').get();
         subsSnapshot.docs.forEach((doc) => {
@@ -570,7 +572,12 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
             // Keep this list small; we only need enough to infer lifecycle + revenue.
             if (!['active', 'trialing', 'past_due', 'canceled', 'cancelled'].includes(status)) return;
 
-            const providerId = typeof data?.providerSubscriptionId === 'string' ? data.providerSubscriptionId.trim() : '';
+            const providerId =
+                typeof data?.providerSubscriptionId === 'string'
+                    ? data.providerSubscriptionId.trim()
+                    : typeof data?.authorizeNetSubscriptionId === 'string'
+                        ? data.authorizeNetSubscriptionId.trim()
+                        : '';
             if (providerId && orgProviderSubscriptionIds.has(providerId)) return;
 
             const rawEmail =
@@ -598,8 +605,12 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
                 providerSubscriptionId: providerId || null,
             };
 
-            const existing = topLevelSubsByEmail.get(email) || [];
-            existing.push(entry);
+            const key = providerId || doc.id;
+            const existing = topLevelSubsByEmail.get(email) || new Map<string, TopLevelSub>();
+            const prev = existing.get(key);
+            if (!prev || entry.monthlyAmount > prev.monthlyAmount) {
+                existing.set(key, entry);
+            }
             topLevelSubsByEmail.set(email, existing);
         });
     } catch (error) {
@@ -630,7 +641,7 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
             null;
 
         const emailKey = typeof data?.email === 'string' ? data.email.trim().toLowerCase() : '';
-        const topSubs = emailKey ? (topLevelSubsByEmail.get(emailKey) || []) : [];
+        const topSubs = emailKey ? Array.from((topLevelSubsByEmail.get(emailKey) || new Map()).values()) : [];
         const activeTopSubs = topSubs.filter((s) => s.status === 'active' && s.monthlyAmount > 0);
         const trialTopSubs = topSubs.filter((s) => s.status === 'trialing' && s.monthlyAmount > 0);
 
@@ -760,7 +771,12 @@ export async function getCRMUserStats(): Promise<{
             if (doc.ref.parent.parent?.parent?.id !== 'organizations') return;
 
             const data = doc.data() as any;
-            const providerId = typeof data?.providerSubscriptionId === 'string' ? data.providerSubscriptionId.trim() : '';
+            const providerId =
+                typeof data?.providerSubscriptionId === 'string'
+                    ? data.providerSubscriptionId.trim()
+                    : typeof data?.authorizeNetSubscriptionId === 'string'
+                        ? data.authorizeNetSubscriptionId.trim()
+                        : '';
             if (providerId) orgProviderSubscriptionIds.add(providerId);
 
             const amount = coerceAmount(data?.amount);
@@ -770,13 +786,21 @@ export async function getCRMUserStats(): Promise<{
         // 2) Add-ons / legacy: top-level subscriptions collection
         const subsDocs = await firestore.collection('subscriptions').get();
 
+        // Dedupe within the top-level collection too to avoid double counting legacy duplicates.
+        const topLevelByKey = new Map<string, number>();
+
         subsDocs.docs.forEach((doc) => {
             const data = doc.data() as any;
             const status = String(data?.status || '').toLowerCase();
             // MRR should reflect revenue from active subscriptions only (exclude trialing).
             if (status !== 'active') return;
 
-            const providerId = typeof data?.providerSubscriptionId === 'string' ? data.providerSubscriptionId.trim() : '';
+            const providerId =
+                typeof data?.providerSubscriptionId === 'string'
+                    ? data.providerSubscriptionId.trim()
+                    : typeof data?.authorizeNetSubscriptionId === 'string'
+                        ? data.authorizeNetSubscriptionId.trim()
+                        : '';
             if (providerId && orgProviderSubscriptionIds.has(providerId)) return;
 
             const amount = coerceAmount(data?.price ?? data?.amount);
@@ -786,8 +810,16 @@ export async function getCRMUserStats(): Promise<{
             const monthly = amount / intervalMonths;
             if (!Number.isFinite(monthly) || monthly <= 0) return;
 
-            totalMRR += monthly;
+            const key = providerId || doc.id;
+            const existing = topLevelByKey.get(key);
+            if (existing === undefined || monthly > existing) {
+                topLevelByKey.set(key, monthly);
+            }
         });
+
+        for (const monthly of topLevelByKey.values()) {
+            totalMRR += monthly;
+        }
 
         totalMRR = Math.round(totalMRR * 100) / 100;
     } catch (error) {

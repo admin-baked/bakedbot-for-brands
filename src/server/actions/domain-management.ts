@@ -13,6 +13,9 @@
 import { createServerClient } from '@/firebase/server-client';
 import { FieldValue } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
+import { requireUser } from '@/server/auth/auth';
+import { isBrandAdmin, isDispensaryAdmin, normalizeRole } from '@/types/roles';
+import { isSuperAdminEmail } from '@/lib/super-admin-config';
 import type {
     CustomDomainConfig,
     DomainMapping,
@@ -38,6 +41,51 @@ interface DomainOperationResult {
     data?: unknown;
 }
 
+async function authorizeDomainManagement(tenantId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+    try {
+        const user = await requireUser();
+        const email = typeof user.email === 'string' ? user.email.toLowerCase() : '';
+        const role = normalizeRole(typeof user.role === 'string' ? user.role : null);
+
+        const isSuper =
+            role === 'super_user' ||
+            role === 'super_admin' ||
+            (email ? isSuperAdminEmail(email) : false);
+        if (isSuper) return { ok: true };
+
+        // Domain management is an owner-level action; require an admin on the tenant.
+        if (!isBrandAdmin(role) && !isDispensaryAdmin(role)) {
+            return { ok: false, error: 'Forbidden: Domain management requires an admin account.' };
+        }
+
+        const allowedTenantIds = new Set<string>();
+        const add = (value: unknown) => {
+            if (typeof value === 'string' && value.trim()) allowedTenantIds.add(value.trim());
+        };
+
+        add((user as any).currentOrgId);
+        add((user as any).tenantId);
+        add((user as any).orgId);
+        add((user as any).organizationId);
+        add((user as any).brandId);
+        add((user as any).locationId);
+        add((user as any).dispensaryId);
+
+        const orgIds = (user as any).organizationIds;
+        if (Array.isArray(orgIds)) {
+            for (const id of orgIds) add(id);
+        }
+
+        if (!allowedTenantIds.has(tenantId)) {
+            return { ok: false, error: 'Forbidden: You do not have access to this tenant.' };
+        }
+
+        return { ok: true };
+    } catch {
+        return { ok: false, error: 'Unauthorized: Please sign in again.' };
+    }
+}
+
 /**
  * Add a custom domain to a tenant (unified: supports menu, vibe_site, hybrid)
  * Generates verification token and stores pending domain config
@@ -60,6 +108,11 @@ export async function addCustomDomain(
                 success: false,
                 error: 'Invalid account. Please log out and log back in.',
             };
+        }
+
+        const authz = await authorizeDomainManagement(tenantId);
+        if (!authz.ok) {
+            return { success: false, error: authz.error };
         }
 
         // Validate domain input
@@ -191,8 +244,13 @@ export async function addCustomDomain(
  * Verify domain ownership via DNS
  * Checks TXT record and connection-specific records (CNAME or NS)
  */
-export async function verifyCustomDomain(tenantId: string): Promise<DomainOperationResult> {
+export async function verifyCustomDomain(tenantId: string, domain?: string): Promise<DomainOperationResult> {
     try {
+        const authz = await authorizeDomainManagement(tenantId);
+        if (!authz.ok) {
+            return { success: false, error: authz.error };
+        }
+
         const { firestore } = await createServerClient();
 
         // Get tenant's domain config
@@ -202,23 +260,80 @@ export async function verifyCustomDomain(tenantId: string): Promise<DomainOperat
         }
 
         const tenant = tenantDoc.data();
-        const domainConfig = tenant?.customDomain as CustomDomainConfig | undefined;
 
-        if (!domainConfig?.domain) {
+        const normalizedDomain = typeof domain === 'string' && domain.trim() ? domain.toLowerCase().trim() : null;
+
+        // Multi-domain tenants store configs in subcollection. If a domain is provided,
+        // verify that specific domain. Otherwise, fall back to legacy tenant.customDomain.
+        const domainDoc =
+            normalizedDomain
+                ? await firestore
+                    .collection('tenants')
+                    .doc(tenantId)
+                    .collection('domains')
+                    .doc(normalizedDomain)
+                    .get()
+                : null;
+
+        const legacyDomainConfig = tenant?.customDomain as CustomDomainConfig | undefined;
+
+        let domainConfig: any | undefined;
+        let domainToVerify: string | null = null;
+
+        if (normalizedDomain) {
+            if (domainDoc?.exists) {
+                domainConfig = domainDoc.data();
+                domainToVerify = normalizedDomain;
+            } else if (legacyDomainConfig?.domain && legacyDomainConfig.domain.toLowerCase().trim() === normalizedDomain) {
+                domainConfig = legacyDomainConfig;
+                domainToVerify = normalizedDomain;
+            } else {
+                return { success: false, error: 'Domain not found for this account.' };
+            }
+        } else if (legacyDomainConfig?.domain) {
+            domainConfig = legacyDomainConfig;
+            domainToVerify = legacyDomainConfig.domain.toLowerCase().trim();
+        } else {
             return { success: false, error: 'No domain configured for this account.' };
         }
 
-        const { domain, verificationToken, connectionType } = domainConfig;
+        const verificationToken = domainConfig?.verificationToken;
+        const connectionType = domainConfig?.connectionType;
+
+        if (!verificationToken || !connectionType) {
+            return { success: false, error: 'Domain configuration is incomplete. Please remove and re-add the domain.' };
+        }
 
         // Step 1: Verify TXT record for ownership proof
-        const txtResult = await verifyDomainTXT(domain, verificationToken);
+        const txtResult = await verifyDomainTXT(domainToVerify, verificationToken);
         if (!txtResult.success) {
             // Update last check timestamp
-            await firestore.collection('tenants').doc(tenantId).update({
-                'customDomain.lastCheckAt': FieldValue.serverTimestamp(),
-                'customDomain.verificationStatus': 'pending',
-                'customDomain.verificationError': txtResult.error,
-            });
+            const now = FieldValue.serverTimestamp();
+
+            // Legacy field (single-domain menu)
+            if (String(tenant?.customDomain?.domain || '').toLowerCase().trim() === domainToVerify) {
+                await firestore.collection('tenants').doc(tenantId).update({
+                    'customDomain.lastCheckAt': now,
+                    'customDomain.verificationStatus': 'pending',
+                    'customDomain.verificationError': txtResult.error,
+                });
+            }
+
+            // Unified multi-domain doc
+            await firestore
+                .collection('tenants')
+                .doc(tenantId)
+                .collection('domains')
+                .doc(domainToVerify)
+                .set({
+                    domain: domainToVerify,
+                    connectionType,
+                    verificationToken,
+                    verificationStatus: 'pending',
+                    verificationError: txtResult.error,
+                    lastCheckAt: now,
+                    updatedAt: now,
+                }, { merge: true });
 
             return {
                 success: false,
@@ -230,17 +345,36 @@ export async function verifyCustomDomain(tenantId: string): Promise<DomainOperat
         let connectionResult: { success: boolean; error?: string };
 
         if (connectionType === 'cname') {
-            connectionResult = await verifyCNAME(domain);
+            connectionResult = await verifyCNAME(domainToVerify);
         } else {
-            connectionResult = await verifyNameservers(domain);
+            connectionResult = await verifyNameservers(domainToVerify);
         }
 
         if (!connectionResult.success) {
-            await firestore.collection('tenants').doc(tenantId).update({
-                'customDomain.lastCheckAt': FieldValue.serverTimestamp(),
-                'customDomain.verificationStatus': 'pending',
-                'customDomain.verificationError': connectionResult.error,
-            });
+            const now = FieldValue.serverTimestamp();
+
+            if (String(tenant?.customDomain?.domain || '').toLowerCase().trim() === domainToVerify) {
+                await firestore.collection('tenants').doc(tenantId).update({
+                    'customDomain.lastCheckAt': now,
+                    'customDomain.verificationStatus': 'pending',
+                    'customDomain.verificationError': connectionResult.error,
+                });
+            }
+
+            await firestore
+                .collection('tenants')
+                .doc(tenantId)
+                .collection('domains')
+                .doc(domainToVerify)
+                .set({
+                    domain: domainToVerify,
+                    connectionType,
+                    verificationToken,
+                    verificationStatus: 'pending',
+                    verificationError: connectionResult.error,
+                    lastCheckAt: now,
+                    updatedAt: now,
+                }, { merge: true });
 
             return {
                 success: false,
@@ -252,18 +386,20 @@ export async function verifyCustomDomain(tenantId: string): Promise<DomainOperat
         const now = FieldValue.serverTimestamp();
 
         // Update tenant document
-        await firestore.collection('tenants').doc(tenantId).update({
-            'customDomain.verificationStatus': 'verified',
-            'customDomain.verifiedAt': now,
-            'customDomain.lastCheckAt': now,
-            'customDomain.verificationError': FieldValue.delete(),
-            'customDomain.updatedAt': now,
-            'customDomain.sslStatus': 'pending', // SSL will be provisioned
-        });
+        if (String(tenant?.customDomain?.domain || '').toLowerCase().trim() === domainToVerify) {
+            await firestore.collection('tenants').doc(tenantId).update({
+                'customDomain.verificationStatus': 'verified',
+                'customDomain.verifiedAt': now,
+                'customDomain.lastCheckAt': now,
+                'customDomain.verificationError': FieldValue.delete(),
+                'customDomain.updatedAt': now,
+                'customDomain.sslStatus': 'pending', // SSL will be provisioned
+            });
+        }
 
         // Create domain mapping for fast lookups (include target info)
         const mapping: Record<string, unknown> = {
-            domain,
+            domain: domainToVerify,
             tenantId,
             connectionType,
             targetType: domainConfig.targetType || 'menu',
@@ -281,23 +417,31 @@ export async function verifyCustomDomain(tenantId: string): Promise<DomainOperat
             mapping.routingConfig = domainConfig.routingConfig;
         }
 
-        await firestore.collection('domain_mappings').doc(domain).set(mapping);
+        await firestore.collection('domain_mappings').doc(domainToVerify).set(mapping);
 
-        // Also update the tenant's domains subcollection
+        // Also update the tenant's domains subcollection (unified)
         await firestore
             .collection('tenants')
             .doc(tenantId)
             .collection('domains')
-            .doc(domain)
-            .update({
+            .doc(domainToVerify)
+            .set({
+                domain: domainToVerify,
+                connectionType,
+                ...(domainConfig.targetType ? { targetType: domainConfig.targetType } : {}),
+                ...(domainConfig.targetId ? { targetId: domainConfig.targetId } : {}),
+                ...(domainConfig.targetName ? { targetName: domainConfig.targetName } : {}),
+                ...(domainConfig.routingConfig ? { routingConfig: domainConfig.routingConfig } : {}),
+                verificationToken,
                 verificationStatus: 'verified',
                 verifiedAt: now,
                 lastCheckAt: now,
                 updatedAt: now,
                 sslStatus: 'pending',
-            });
+                verificationError: FieldValue.delete(),
+            }, { merge: true });
 
-        logger.info('[Domain] Domain verified successfully', { tenantId, domain });
+        logger.info('[Domain] Domain verified successfully', { tenantId, domain: domainToVerify });
 
         return { success: true };
     } catch (error) {
@@ -314,6 +458,11 @@ export async function verifyCustomDomain(tenantId: string): Promise<DomainOperat
  */
 export async function removeCustomDomain(tenantId: string): Promise<DomainOperationResult> {
     try {
+        const authz = await authorizeDomainManagement(tenantId);
+        if (!authz.ok) {
+            return { success: false, error: authz.error };
+        }
+
         const { firestore } = await createServerClient();
 
         // Get current domain config to find the domain
@@ -350,6 +499,11 @@ export async function getDomainStatus(
     tenantId: string
 ): Promise<DomainOperationResult & { config?: CustomDomainConfig | null }> {
     try {
+        const authz = await authorizeDomainManagement(tenantId);
+        if (!authz.ok) {
+            return { success: false, error: authz.error, config: null };
+        }
+
         const { firestore } = await createServerClient();
 
         const tenantDoc = await firestore.collection('tenants').doc(tenantId).get();
@@ -424,6 +578,11 @@ export async function listDomains(
     tenantId: string
 ): Promise<DomainOperationResult & { domains?: DomainListItem[] }> {
     try {
+        const authz = await authorizeDomainManagement(tenantId);
+        if (!authz.ok) {
+            return { success: false, error: authz.error };
+        }
+
         const { firestore } = await createServerClient();
 
         // Get domains from subcollection
@@ -495,6 +654,11 @@ export async function updateDomainTarget(
     }
 ): Promise<DomainOperationResult> {
     try {
+        const authz = await authorizeDomainManagement(tenantId);
+        if (!authz.ok) {
+            return { success: false, error: authz.error };
+        }
+
         const { firestore } = await createServerClient();
         const normalizedDomain = domain.toLowerCase().trim();
 
@@ -594,6 +758,11 @@ export async function removeDomain(
     domain: string
 ): Promise<DomainOperationResult> {
     try {
+        const authz = await authorizeDomainManagement(tenantId);
+        if (!authz.ok) {
+            return { success: false, error: authz.error };
+        }
+
         const { firestore } = await createServerClient();
         const normalizedDomain = domain.toLowerCase().trim();
 
