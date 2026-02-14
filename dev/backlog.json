@@ -1,6 +1,21 @@
 {
     "features": [
         {
+            "id": "refactor_ceo_actions_oom_fix",
+            "title": "Refactor CEO Actions & Build OOM Resolution",
+            "status": "completed",
+            "priority": "critical",
+            "description": "Decomposed the monolithic 3,000-line actions.ts file into a modular structure and optimized build configuration to resolve OOM errors on Firebase App Hosting.",
+            "acceptance_tests": [
+                "Local production build passes with memory limits",
+                "CEO dashboard components correctly use modular imports"
+            ],
+            "owner": "antigravity",
+            "area": "dx_infrastructure",
+            "created_at": "2026-02-14T17:00:00Z",
+            "completed_at": "2026-02-14T19:15:00Z"
+        },
+        {
             "id": "task_fix_support_service_tests",
             "title": "Fix Unit Tests: Support Service",
             "status": "completed",
@@ -70,7 +85,6 @@
         {
             "id": "task_test_super_admin_sidebar_invite",
             "title": "Unit Test: Super Admin Sidebar Invitation",
-            "status": "pending",
             "priority": "medium",
             "description": "Fix unit tests for SuperAdminSidebar invitation feature. The test is currently crashing with a React error related to missing context providers or hooks. Need to properly mock the Sidebar context or wrap the component in a provider during testing.",
             "acceptance_tests": [
