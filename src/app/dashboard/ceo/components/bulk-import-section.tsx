@@ -44,7 +44,7 @@ import {
     importBrandPagesAction,
     validateDispensaryPagesCSV,
     importDispensaryPagesAction
-} from '../actions';
+} from '../actions/seo-actions';
 import type { CSVPreview, BulkImportResult } from '@/types/foot-traffic';
 
 interface BulkImportSectionProps {

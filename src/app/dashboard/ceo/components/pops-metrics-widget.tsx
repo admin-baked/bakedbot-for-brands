@@ -5,7 +5,8 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Activity, DollarSign, Users, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getPlatformAnalytics, type PlatformAnalyticsData } from '../actions';
+import { getPlatformAnalytics } from '../actions/data-actions';
+import type { PlatformAnalyticsData } from '../actions/types';
 
 function formatMoney(amount: number): string {
     return amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });

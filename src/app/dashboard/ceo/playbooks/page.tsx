@@ -28,7 +28,7 @@ import { InternalPlaybooksGrid } from './components/internal-playbooks-grid';
 import { CreateInternalPlaybookDialog } from './components/create-internal-playbook-dialog';
 import { seedPlaybookTemplates, type SeedResult } from '@/server/actions/seed-playbooks';
 import { useToast } from '@/hooks/use-toast';
-import { listSuperUserPlaybooks } from './actions';
+import { listSuperUserPlaybooks } from './playbook-actions';
 
 export default function SuperUserPlaybooksPage() {
     const [searchQuery, setSearchQuery] = useState('');

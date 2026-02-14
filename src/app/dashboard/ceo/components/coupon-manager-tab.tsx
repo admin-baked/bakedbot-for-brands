@@ -6,7 +6,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { createCoupon, getBrands, getDispensaries, getCoupons, type ActionResult } from '../actions';
+import { createCoupon } from '../actions/system-actions';
+import { getBrands, getDispensaries, getCoupons } from '../actions/data-actions';
+import { type ActionResult } from '../actions/types';
 import { SubmitButton } from './submit-button';
 import { useEffect, useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';

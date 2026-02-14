@@ -9,7 +9,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Search, Check } from 'lucide-react';
-import { searchBrandsAction } from '../actions';
+import { searchBrandsAction } from '../actions/data-actions';
 
 type Brand = {
     id: string;

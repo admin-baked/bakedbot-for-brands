@@ -57,8 +57,8 @@ jest.mock('@/lib/mrr-ladder', () => ({
 
 // Mock auth and other dash deps
 jest.mock('@/server/auth/auth', () => ({
-  requireUser: jest.fn(),
-  isSuperUser: jest.fn(),
+    requireUser: jest.fn(),
+    isSuperUser: jest.fn(),
 }));
 
 jest.mock('next/headers', () => ({
@@ -80,14 +80,15 @@ jest.mock('firebase-admin/firestore', () => ({
 }), { virtual: true });
 
 // Import actions after mocks
-import { getPlatformAnalytics, getSystemPlaybooks } from '../actions';
+import { getPlatformAnalytics } from '../actions/data-actions';
+import { getSystemPlaybooks } from '../actions/system-actions';
 
 describe('Super User Server Actions', () => {
     let mockFirestore: any;
 
     beforeEach(() => {
         jest.clearAllMocks();
-        
+
         mockFirestore = {
             collection: jest.fn().mockReturnThis(),
             doc: jest.fn().mockReturnThis(),
@@ -106,7 +107,7 @@ describe('Super User Server Actions', () => {
     describe('getPlatformAnalytics', () => {
         it('should fetch counts and recent logs correctly', async () => {
             (requireUser as jest.Mock).mockResolvedValue({ uid: 'admin-123' });
-            
+
             // Mock counts
             mockFirestore.get.mockResolvedValueOnce({ data: () => ({ count: 10 }) }); // users
             mockFirestore.get.mockResolvedValueOnce({ data: () => ({ count: 5 }) });  // brands
@@ -137,17 +138,17 @@ describe('Super User Server Actions', () => {
     describe('getSystemPlaybooks', () => {
         it('should fetch playbooks from Firestore', async () => {
             (requireUser as jest.Mock).mockResolvedValue({ uid: 'admin-123' });
-            
+
             mockFirestore.get.mockResolvedValueOnce({
                 docs: [
-                    { 
-                        id: 'pb-1', 
-                        data: () => ({ 
-                            name: 'Test PB', 
-                            active: true, 
-                            runsToday: 1, 
-                            category: 'ops' 
-                        }) 
+                    {
+                        id: 'pb-1',
+                        data: () => ({
+                            name: 'Test PB',
+                            active: true,
+                            runsToday: 1,
+                            category: 'ops'
+                        })
                     }
                 ]
             });

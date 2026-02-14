@@ -15,8 +15,8 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Loader2, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { seedSeoPageAction } from '../actions';
-import type { ActionResult } from '../actions';
+import { seedSeoPageAction } from '../actions/seo-actions';
+import type { ActionResult } from '../actions/types';
 
 interface QuickGeneratorDialogProps {
     open: boolean;
@@ -57,14 +57,14 @@ export function QuickGeneratorDialog({
         setIsGenerating(true);
         setProgress(0);
         setLogs([]);
-        
+
         const results: { zip: string; success: boolean; message: string }[] = [];
 
         // Process sequentially to be safe, or concurrent clumps if robust
         for (let i = 0; i < zips.length; i++) {
             const zip = zips[i];
             setLogs(prev => [`Generating ${zip}...`, ...prev]);
-            
+
             try {
                 const result = await seedSeoPageAction({ zipCode: zip });
                 if (result.error) {
@@ -134,7 +134,7 @@ export function QuickGeneratorDialog({
                                 </div>
                                 <Progress value={progress} />
                             </div>
-                            
+
                             <div className="bg-slate-950 text-slate-50 font-mono text-xs p-4 rounded-md h-64 overflow-y-auto space-y-1">
                                 {logs.map((log, i) => (
                                     <div key={i} className={log.startsWith('❌') ? 'text-red-400' : 'text-green-400'}>

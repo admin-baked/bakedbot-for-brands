@@ -12,16 +12,16 @@ import { InviteUserDialog } from '@/components/dashboard/admin/invite-user-dialo
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableHead, 
-    TableHeader, 
-    TableRow 
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { getAllUsers, promoteToSuperUser } from '../actions';
+import { getAllUsers, promoteToSuperUser } from '../actions/user-actions';
 import { Loader2, ShieldAlert, CheckCircle } from 'lucide-react';
 
 export default function SuperAdminUsersPage() {
@@ -128,9 +128,9 @@ export default function SuperAdminUsersPage() {
                                                         Super User
                                                     </div>
                                                 ) : (
-                                                    <Button 
-                                                        variant="ghost" 
-                                                        size="sm" 
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
                                                         className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                                                         onClick={() => handlePromote(user.id, user.email)}
                                                     >

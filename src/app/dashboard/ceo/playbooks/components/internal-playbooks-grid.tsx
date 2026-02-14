@@ -27,7 +27,7 @@ import {
     Plus,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { listSuperUserPlaybooks, toggleSuperUserPlaybook, runSuperUserPlaybook } from '../actions';
+import { listSuperUserPlaybooks, toggleSuperUserPlaybook, runSuperUserPlaybook } from '../playbook-actions';
 
 interface InternalPlaybook {
     id: string;

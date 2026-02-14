@@ -67,9 +67,10 @@ import {
     refreshSeoPageDataAction,
     getDispensaryPagesAction,
     deleteDispensaryPageAction,
-    toggleDispensaryPagePublishAction,
-    getDiscoveryJobStatusAction
-} from '../actions';
+    toggleDispensaryPagePublishAction
+} from '../actions/seo-actions';
+import { getDiscoveryJobStatusAction, runNationalSeedAction } from '../actions/pilot-actions';
+
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
@@ -95,7 +96,8 @@ import { BrandPageCreatorDialog } from './brand-page-creator-dialog';
 import { BulkImportSection } from './bulk-import-section';
 import { QuickGeneratorDialog } from './quick-generator-dialog';
 import { DiscoveryPilotDialog } from './discovery-pilot-dialog';
-import { runNationalSeedAction } from '../actions';
+// runNationalSeedAction imported above from pilot-actions
+
 import { runDayDayOptimization } from '@/server/actions/dayday-seo-content';
 
 // Types
@@ -135,14 +137,14 @@ export default function FootTrafficTab() {
     // Filter Logic (Moved up to be used in Sorted ZIPs)
     const filteredPages = useMemo(() => {
         return seoPages.filter(page => {
-            const matchesSearch = 
-                page.zipCode.includes(searchQuery) || 
+            const matchesSearch =
+                page.zipCode.includes(searchQuery) ||
                 (page.city || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (page.state || '').toLowerCase().includes(searchQuery.toLowerCase());
-            
-            const matchesStatus = 
-                statusFilter === 'all' || 
-                (statusFilter === 'published' && page.published) || 
+
+            const matchesStatus =
+                statusFilter === 'all' ||
+                (statusFilter === 'published' && page.published) ||
                 (statusFilter === 'draft' && !page.published);
 
             return matchesSearch && matchesStatus;
@@ -238,8 +240,8 @@ export default function FootTrafficTab() {
 
     const SortIcon = ({ column, currentSort }: { column: string, currentSort: { key: string, direction: 'asc' | 'desc' } }) => {
         if (currentSort.key !== column) return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
-        return currentSort.direction === 'asc' ? 
-            <TrendingUp className="ml-2 h-4 w-4 text-primary rotate-0" /> : 
+        return currentSort.direction === 'asc' ?
+            <TrendingUp className="ml-2 h-4 w-4 text-primary rotate-0" /> :
             <TrendingUp className="ml-2 h-4 w-4 text-primary rotate-180" />;
     };
 
@@ -257,7 +259,7 @@ export default function FootTrafficTab() {
     // Results & Indicators
     const totalSelected = selectedPages.size;
     const [isAllSelected, setIsAllSelected] = useState(false);
-    
+
     // Pagination (Simple)
     const [pageTypeCallback, setPageTypeCallback] = useState<'zip' | 'brand'>('zip');
 
@@ -271,13 +273,13 @@ export default function FootTrafficTab() {
         const interval = setInterval(async () => {
             const status = await getDiscoveryJobStatusAction();
             setJobStatus(status);
-            
+
             // Auto-refresh when job completes
             if (status?.status === 'completed' && status?.endTime) {
                 const endTime = new Date(status.endTime).getTime();
                 const now = Date.now();
                 if (now - endTime < 10000) { // Only refresh if it completed recently (last 10s)
-                   // We could verify strictness but essentially we want to catch the transition
+                    // We could verify strictness but essentially we want to catch the transition
                 }
             }
         }, 5000);
@@ -287,9 +289,9 @@ export default function FootTrafficTab() {
     useEffect(() => {
         // Separate effect to handle completion refresh to avoid interval complexity
         if (jobStatus?.status === 'completed' && !isLoading) {
-             // Maybe explicitly trigger refresh if we see a change?
-             // For now let's just rely on global "Refresh" or user action, OR
-             // simple logic: if itemsFound > itemsProcessed (running) -> fine.
+            // Maybe explicitly trigger refresh if we see a change?
+            // For now let's just rely on global "Refresh" or user action, OR
+            // simple logic: if itemsFound > itemsProcessed (running) -> fine.
         }
     }, [jobStatus?.status]);
 
@@ -353,7 +355,7 @@ export default function FootTrafficTab() {
         try {
             if (type === 'zip') await deleteSeoPageAction(id);
             else await deleteBrandPageAction(id);
-            
+
             toast({ title: 'Deleted', description: 'Page removed successfully.' });
             fetchData();
         } catch (error) {
@@ -376,7 +378,7 @@ export default function FootTrafficTab() {
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Refresh
                     </Button>
-                    <Button 
+                    <Button
                         variant="secondary"
                         onClick={() => setIsBrandCreatorOpen(true)}
                     >
@@ -384,7 +386,7 @@ export default function FootTrafficTab() {
                         New Brand Page
                     </Button>
                     {/* Custom Discovery Button */}
-                    <Button 
+                    <Button
                         variant="outline"
                         onClick={() => setIsPilotOpen(true)}
                     >
@@ -392,7 +394,7 @@ export default function FootTrafficTab() {
                         Custom Discovery
                     </Button>
                     {/* Seed All Markets - Creates all 3 page types */}
-                    <Button 
+                    <Button
                         onClick={async () => {
                             toast({ title: 'Starting National Seed...', description: 'Creating Dispensary + Brand + Location pages for Chicago & Detroit' });
                             const result = await runNationalSeedAction();
@@ -409,7 +411,7 @@ export default function FootTrafficTab() {
                         Seed All Markets
                     </Button>
                     {/* Run Day Day SEO - Optimizes page content with AI */}
-                    <Button 
+                    <Button
                         variant="outline"
                         className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
                         onClick={async () => {
@@ -417,9 +419,9 @@ export default function FootTrafficTab() {
                             try {
                                 const result = await runDayDayOptimization();
                                 const total = result.zip.optimized + result.dispensary.optimized + result.brand.optimized;
-                                toast({ 
-                                    title: 'Day Day Complete ✨', 
-                                    description: `Optimized ${total} pages (ZIP: ${result.zip.optimized}, Dispensary: ${result.dispensary.optimized}, Brand: ${result.brand.optimized})` 
+                                toast({
+                                    title: 'Day Day Complete ✨',
+                                    description: `Optimized ${total} pages (ZIP: ${result.zip.optimized}, Dispensary: ${result.dispensary.optimized}, Brand: ${result.brand.optimized})`
                                 });
                                 fetchData();
                             } catch (e: any) {
@@ -436,15 +438,15 @@ export default function FootTrafficTab() {
             {/* Job Status Banner */}
             {jobStatus && jobStatus.status === 'running' && (
                 <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-4 rounded-md flex items-center justify-between animate-pulse">
-                     <div className="flex items-center">
+                    <div className="flex items-center">
                         <Loader2 className="h-5 w-5 text-indigo-600 animate-spin mr-3" />
-                         <div>
+                        <div>
                             <p className="font-medium text-indigo-700">Discovery Engine Running...</p>
-                             <p className="text-sm text-indigo-600">
+                            <p className="text-sm text-indigo-600">
                                 Found {jobStatus.itemsFound || 0} items. Processing {jobStatus.itemsProcessed || 0}...
-                             </p>
+                            </p>
                         </div>
-                   </div>
+                    </div>
                 </div>
             )}
 
@@ -480,8 +482,8 @@ export default function FootTrafficTab() {
                     <div className="flex items-center justify-between gap-4 bg-background p-1 rounded-lg border">
                         <div className="flex items-center gap-2 flex-1 px-2">
                             <Search className="h-4 w-4 text-muted-foreground" />
-                            <Input 
-                                placeholder="Search ZIP, City, State..." 
+                            <Input
+                                placeholder="Search ZIP, City, State..."
                                 className="border-0 focus-visible:ring-0 shadow-none"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -496,7 +498,7 @@ export default function FootTrafficTab() {
                                 </>
                             )}
                             <div className="h-6 w-px bg-border mx-2" />
-                            <select 
+                            <select
                                 className="text-sm bg-transparent border-none outline-none text-muted-foreground hover:text-foreground cursor-pointer"
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value as any)}
@@ -521,12 +523,12 @@ export default function FootTrafficTab() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="w-[50px]">
-                                            <Checkbox 
+                                            <Checkbox
                                                 checked={isAllSelected}
                                                 onCheckedChange={handleSelectAll}
                                             />
                                         </TableHead>
-                                        <TableHead 
+                                        <TableHead
                                             className="cursor-pointer hover:text-primary transition-colors"
                                             onClick={() => toggleZipSort('city')}
                                         >
@@ -535,7 +537,7 @@ export default function FootTrafficTab() {
                                                 <SortIcon column="city" currentSort={zipSort} />
                                             </div>
                                         </TableHead>
-                                        <TableHead 
+                                        <TableHead
                                             className="cursor-pointer hover:text-primary transition-colors"
                                             onClick={() => toggleZipSort('published')}
                                         >
@@ -544,7 +546,7 @@ export default function FootTrafficTab() {
                                                 <SortIcon column="published" currentSort={zipSort} />
                                             </div>
                                         </TableHead>
-                                        <TableHead 
+                                        <TableHead
                                             className="cursor-pointer hover:text-primary transition-colors"
                                             onClick={() => toggleZipSort('metrics.pageViews')}
                                         >
@@ -553,7 +555,7 @@ export default function FootTrafficTab() {
                                                 <SortIcon column="metrics.pageViews" currentSort={zipSort} />
                                             </div>
                                         </TableHead>
-                                        <TableHead 
+                                        <TableHead
                                             className="cursor-pointer hover:text-primary transition-colors"
                                             onClick={() => toggleZipSort('lastRefreshed')}
                                         >
@@ -569,7 +571,7 @@ export default function FootTrafficTab() {
                                     {paginatedZips.map((page) => (
                                         <TableRow key={page.id}>
                                             <TableCell>
-                                                <Checkbox 
+                                                <Checkbox
                                                     checked={selectedPages.has(page.id)}
                                                     onCheckedChange={(c) => handleSelectPage(page.id, c as boolean)}
                                                 />
@@ -577,14 +579,13 @@ export default function FootTrafficTab() {
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     {/* SEO Optimization Status Indicator */}
-                                                    <span 
-                                                        className={`h-2.5 w-2.5 rounded-full shrink-0 ${
-                                                            !page.published 
+                                                    <span
+                                                        className={`h-2.5 w-2.5 rounded-full shrink-0 ${!page.published
                                                                 ? 'bg-red-500'     // Red = Draft
-                                                                : (page as any).seoOptimized 
+                                                                : (page as any).seoOptimized
                                                                     ? 'bg-emerald-500' // Green = Optimized
                                                                     : 'bg-amber-400'   // Yellow = Seeder
-                                                        }`}
+                                                            }`}
                                                         title={!page.published ? 'Draft' : ((page as any).seoOptimized ? 'Day Day Optimized' : 'Awaiting Optimization')}
                                                     />
                                                     <div>
@@ -652,7 +653,7 @@ export default function FootTrafficTab() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead 
+                                        <TableHead
                                             className="cursor-pointer hover:text-primary transition-colors"
                                             onClick={() => toggleBrandPSort('brandName')}
                                         >
@@ -661,7 +662,7 @@ export default function FootTrafficTab() {
                                                 <SortIcon column="brandName" currentSort={brandPSort} />
                                             </div>
                                         </TableHead>
-                                        <TableHead 
+                                        <TableHead
                                             className="cursor-pointer hover:text-primary transition-colors"
                                             onClick={() => toggleBrandPSort('city')}
                                         >
@@ -670,7 +671,7 @@ export default function FootTrafficTab() {
                                                 <SortIcon column="city" currentSort={brandPSort} />
                                             </div>
                                         </TableHead>
-                                        <TableHead 
+                                        <TableHead
                                             className="cursor-pointer hover:text-primary transition-colors"
                                             onClick={() => toggleBrandPSort('published')}
                                         >
@@ -688,12 +689,11 @@ export default function FootTrafficTab() {
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     {/* Status Dot */}
-                                                    <span 
-                                                        className={`h-2.5 w-2.5 rounded-full shrink-0 ${
-                                                            !page.published 
+                                                    <span
+                                                        className={`h-2.5 w-2.5 rounded-full shrink-0 ${!page.published
                                                                 ? 'bg-red-500'
                                                                 : (page.contentBlock ? 'bg-emerald-500' : 'bg-amber-400') // Heuristic for brands
-                                                        }`}
+                                                            }`}
                                                     />
                                                     <Link href={`/brands/${page.brandSlug}`} target="_blank" className="font-medium hover:underline hover:text-primary">
                                                         {page.brandName}
@@ -760,7 +760,7 @@ export default function FootTrafficTab() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead 
+                                        <TableHead
                                             className="cursor-pointer hover:text-primary transition-colors"
                                             onClick={() => toggleDispPSort('dispensaryName')}
                                         >
@@ -769,7 +769,7 @@ export default function FootTrafficTab() {
                                                 <SortIcon column="dispensaryName" currentSort={dispPSort} />
                                             </div>
                                         </TableHead>
-                                        <TableHead 
+                                        <TableHead
                                             className="cursor-pointer hover:text-primary transition-colors"
                                             onClick={() => toggleDispPSort('city')}
                                         >
@@ -778,7 +778,7 @@ export default function FootTrafficTab() {
                                                 <SortIcon column="city" currentSort={dispPSort} />
                                             </div>
                                         </TableHead>
-                                        <TableHead 
+                                        <TableHead
                                             className="cursor-pointer hover:text-primary transition-colors"
                                             onClick={() => toggleDispPSort('zipCode')}
                                         >
@@ -787,7 +787,7 @@ export default function FootTrafficTab() {
                                                 <SortIcon column="zipCode" currentSort={dispPSort} />
                                             </div>
                                         </TableHead>
-                                        <TableHead 
+                                        <TableHead
                                             className="cursor-pointer hover:text-primary transition-colors"
                                             onClick={() => toggleDispPSort('published')}
                                         >
@@ -796,7 +796,7 @@ export default function FootTrafficTab() {
                                                 <SortIcon column="published" currentSort={dispPSort} />
                                             </div>
                                         </TableHead>
-                                        <TableHead 
+                                        <TableHead
                                             className="cursor-pointer hover:text-primary transition-colors"
                                             onClick={() => toggleDispPSort('updatedAt')}
                                         >
@@ -814,20 +814,19 @@ export default function FootTrafficTab() {
                                             <TableCell className="font-medium">
                                                 <div className="flex items-center gap-2">
                                                     {/* SEO Optimization Status Indicator */}
-                                                    <span 
-                                                        className={`h-2.5 w-2.5 rounded-full shrink-0 ${
-                                                            !page.published
+                                                    <span
+                                                        className={`h-2.5 w-2.5 rounded-full shrink-0 ${!page.published
                                                                 ? 'bg-red-500' // Red = Unpublished
-                                                                : (page as any).seoOptimized 
+                                                                : (page as any).seoOptimized
                                                                     ? 'bg-emerald-500' // Green = Optimized
                                                                     : 'bg-amber-400'   // Yellow = Basic
-                                                        }`}
+                                                            }`}
                                                         title={!page.published ? 'Draft' : ((page as any).seoOptimized ? 'Day Day Optimized' : 'Awaiting Day Day Optimization')}
                                                     />
                                                     {page.logoUrl && (
-                                                        <img 
-                                                            src={page.logoUrl} 
-                                                            alt={page.dispensaryName} 
+                                                        <img
+                                                            src={page.logoUrl}
+                                                            alt={page.dispensaryName}
                                                             className="h-8 w-8 rounded object-cover"
                                                         />
                                                     )}
@@ -864,9 +863,9 @@ export default function FootTrafficTab() {
                                                 </span>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <Button 
-                                                    variant="ghost" 
-                                                    size="icon" 
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
                                                     onClick={() => deleteDispensaryPageAction(page.id).then(fetchData)}
                                                 >
                                                     <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
@@ -904,20 +903,20 @@ export default function FootTrafficTab() {
             </Tabs>
 
             {/* Dialogs */}
-            <BrandPageCreatorDialog 
-                open={isBrandCreatorOpen} 
+            <BrandPageCreatorDialog
+                open={isBrandCreatorOpen}
                 onOpenChange={setIsBrandCreatorOpen}
                 onSuccess={fetchData}
             />
 
-            <QuickGeneratorDialog 
-                open={isQuickGeneratorOpen} 
+            <QuickGeneratorDialog
+                open={isQuickGeneratorOpen}
                 onOpenChange={setIsQuickGeneratorOpen}
                 onSuccess={fetchData}
             />
 
-            <DiscoveryPilotDialog 
-                open={isPilotOpen} 
+            <DiscoveryPilotDialog
+                open={isPilotOpen}
                 onOpenChange={setIsPilotOpen}
                 onSuccess={fetchData}
             />

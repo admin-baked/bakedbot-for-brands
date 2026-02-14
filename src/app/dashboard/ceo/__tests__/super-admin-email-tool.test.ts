@@ -1,5 +1,5 @@
 
-import { testEmailDispatch } from '../actions';
+import { testEmailDispatch } from '../actions/system-actions';
 import { requireUser, isSuperUser } from '@/server/auth/auth';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
 
@@ -59,12 +59,12 @@ jest.mock('@/lib/mrr-ladder', () => ({
 
 // Mock auth and email
 jest.mock('@/server/auth/auth', () => ({
-  requireUser: jest.fn(),
-  isSuperUser: jest.fn(),
+    requireUser: jest.fn(),
+    isSuperUser: jest.fn(),
 }));
 
 jest.mock('@/lib/email/dispatcher', () => ({
-  sendGenericEmail: jest.fn(),
+    sendGenericEmail: jest.fn(),
 }));
 
 describe('Super User Email Tool', () => {

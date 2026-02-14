@@ -23,27 +23,27 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-    getBrands, 
-    getDispensaries, 
-    getPlatformLeads, 
+import {
+    getBrands,
+    getDispensaries,
+    getPlatformLeads,
     getPlatformUsers,
     getCRMUserStats,
     getCRMStats,
     deleteCrmEntity,
     deleteUserByEmail,
-    type CRMBrand, 
-    type CRMDispensary, 
-    type CRMLead, 
+    type CRMBrand,
+    type CRMDispensary,
+    type CRMLead,
     type CRMFilters
 } from '@/server/services/crm-service';
-import { 
+import {
     LIFECYCLE_STAGE_CONFIG,
     type CRMUser,
     type CRMLifecycleStage
 } from '@/server/services/crm-types';
 import { Pagination, usePagination } from '@/components/ui/pagination';
-import { inviteToClaimAction, approveUser, rejectUser } from '../actions';
+import { inviteToClaimAction, approveUser, rejectUser } from '../actions/user-actions';
 
 const US_STATES = [
     'All States',
@@ -64,9 +64,9 @@ export default function CRMTab() {
     const [stats, setStats] = useState<{ totalBrands: number; totalDispensaries: number; claimedBrands: number; claimedDispensaries: number; totalPlatformLeads: number } | null>(null);
 
     // ... (rest of state items are standard hooks initialized inside component, keeping code flow minimal)
-    
+
     // ... [Inside component]
-    
+
     // Handler for Approve
     const handleApproveUser = async (uid: string, name: string) => {
         try {
@@ -331,7 +331,7 @@ export default function CRMTab() {
         if (!email) return;
 
         if (!confirm(`DANGER: Are you sure you want to FORCE DELETE ${email} from Auth and Firestore? This bypasses standard checks.`)) {
-             return;
+            return;
         }
 
         try {
@@ -345,8 +345,8 @@ export default function CRMTab() {
 
     const SortIcon = ({ column, currentSort }: { column: string, currentSort: { key: string, direction: 'asc' | 'desc' } }) => {
         if (currentSort.key !== column) return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />;
-        return currentSort.direction === 'asc' ? 
-            <TrendingUp className="ml-2 h-4 w-4 text-primary rotate-0" /> : 
+        return currentSort.direction === 'asc' ?
+            <TrendingUp className="ml-2 h-4 w-4 text-primary rotate-0" /> :
             <TrendingUp className="ml-2 h-4 w-4 text-primary rotate-180" />;
     };
 
@@ -625,7 +625,7 @@ export default function CRMTab() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead 
+                                            <TableHead
                                                 className="cursor-pointer hover:text-primary transition-colors"
                                                 onClick={() => toggleBrandSort('name')}
                                             >
@@ -635,7 +635,7 @@ export default function CRMTab() {
                                                 </div>
                                             </TableHead>
                                             <TableHead>States</TableHead>
-                                            <TableHead 
+                                            <TableHead
                                                 className="cursor-pointer hover:text-primary transition-colors"
                                                 onClick={() => toggleBrandSort('isNational')}
                                             >
@@ -644,7 +644,7 @@ export default function CRMTab() {
                                                     <SortIcon column="isNational" currentSort={brandSort} />
                                                 </div>
                                             </TableHead>
-                                            <TableHead 
+                                            <TableHead
                                                 className="cursor-pointer hover:text-primary transition-colors"
                                                 onClick={() => toggleBrandSort('source')}
                                             >
@@ -653,7 +653,7 @@ export default function CRMTab() {
                                                     <SortIcon column="source" currentSort={brandSort} />
                                                 </div>
                                             </TableHead>
-                                            <TableHead 
+                                            <TableHead
                                                 className="cursor-pointer hover:text-primary transition-colors"
                                                 onClick={() => toggleBrandSort('claimStatus')}
                                             >
@@ -662,7 +662,7 @@ export default function CRMTab() {
                                                     <SortIcon column="claimStatus" currentSort={brandSort} />
                                                 </div>
                                             </TableHead>
-                                            <TableHead 
+                                            <TableHead
                                                 className="cursor-pointer hover:text-primary transition-colors"
                                                 onClick={() => toggleBrandSort('discoveredAt')}
                                             >
@@ -729,9 +729,9 @@ export default function CRMTab() {
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end items-center gap-2">
                                                         {brand.claimStatus !== 'claimed' && (
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="sm" 
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
                                                                 className="h-8 gap-1 text-primary hover:text-primary hover:bg-primary/10"
                                                                 onClick={() => handleInvite('brand', brand)}
                                                             >
@@ -746,7 +746,7 @@ export default function CRMTab() {
                                                             onClick={() => handleDelete('brand', brand.id, brand.name)}
                                                             title="Delete"
                                                         >
-                                                             <Trash2 className="h-4 w-4" />
+                                                            <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </div>
                                                 </TableCell>
@@ -816,7 +816,7 @@ export default function CRMTab() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead 
+                                            <TableHead
                                                 className="cursor-pointer hover:text-primary transition-colors"
                                                 onClick={() => toggleDispSort('name')}
                                             >
@@ -825,7 +825,7 @@ export default function CRMTab() {
                                                     <SortIcon column="name" currentSort={dispSort} />
                                                 </div>
                                             </TableHead>
-                                            <TableHead 
+                                            <TableHead
                                                 className="cursor-pointer hover:text-primary transition-colors"
                                                 onClick={() => toggleDispSort('state')}
                                             >
@@ -834,7 +834,7 @@ export default function CRMTab() {
                                                     <SortIcon column="state" currentSort={dispSort} />
                                                 </div>
                                             </TableHead>
-                                            <TableHead 
+                                            <TableHead
                                                 className="cursor-pointer hover:text-primary transition-colors"
                                                 onClick={() => toggleDispSort('address')}
                                             >
@@ -843,7 +843,7 @@ export default function CRMTab() {
                                                     <SortIcon column="address" currentSort={dispSort} />
                                                 </div>
                                             </TableHead>
-                                            <TableHead 
+                                            <TableHead
                                                 className="cursor-pointer hover:text-primary transition-colors"
                                                 onClick={() => toggleDispSort('source')}
                                             >
@@ -852,7 +852,7 @@ export default function CRMTab() {
                                                     <SortIcon column="source" currentSort={dispSort} />
                                                 </div>
                                             </TableHead>
-                                            <TableHead 
+                                            <TableHead
                                                 className="cursor-pointer hover:text-primary transition-colors"
                                                 onClick={() => toggleDispSort('claimStatus')}
                                             >
@@ -861,7 +861,7 @@ export default function CRMTab() {
                                                     <SortIcon column="claimStatus" currentSort={dispSort} />
                                                 </div>
                                             </TableHead>
-                                            <TableHead 
+                                            <TableHead
                                                 className="cursor-pointer hover:text-primary transition-colors"
                                                 onClick={() => toggleDispSort('discoveredAt')}
                                             >
@@ -910,9 +910,9 @@ export default function CRMTab() {
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end items-center gap-2">
                                                         {disp.claimStatus !== 'claimed' && (
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="sm" 
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
                                                                 className="h-8 gap-1 text-primary hover:text-primary hover:bg-primary/10"
                                                                 onClick={() => handleInvite('dispensary', disp)}
                                                             >
@@ -927,7 +927,7 @@ export default function CRMTab() {
                                                             onClick={() => handleDelete('dispensary', disp.id, disp.name)}
                                                             title="Delete"
                                                         >
-                                                             <Trash2 className="h-4 w-4" />
+                                                            <Trash2 className="h-4 w-4" />
                                                         </Button>
                                                     </div>
                                                 </TableCell>

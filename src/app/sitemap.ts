@@ -79,6 +79,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
       const brandsSnapshot = await firestore
         .collection('brands')
+        .select('slug', 'updatedAt')
         .limit(1000)
         .get();
 
@@ -117,6 +118,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const retailersSnapshot = await firestore
         .collection('retailers')
         .where('status', '==', 'active')
+        .select('slug', 'updatedAt')
         .limit(1000)
         .get();
 
@@ -142,7 +144,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       console.error('[Sitemap] Failed to fetch retailers:', e);
     }
 
-      // 7. Location Discovery Pages (National Rollout Layer)
+    // 7. Location Discovery Pages (National Rollout Layer)
     let locationRoutes: MetadataRoute.Sitemap = [];
     try {
       // States
@@ -161,18 +163,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // Cities (top 500 by population or presence)
       const citiesSnapshot = await firestore
         .collection('cities')
+        .select('slug')
         .limit(500)
         .get();
       if (!citiesSnapshot.empty) {
         locationRoutes = locationRoutes.concat(
           citiesSnapshot.docs.map((doc) => {
-             const data = doc.data();
-             return {
-               url: `${BASE_URL}/cities/${data.slug || doc.id}`,
-               lastModified: new Date(),
-               changeFrequency: 'weekly' as const,
-               priority: 0.7,
-             };
+            const data = doc.data();
+            return {
+              url: `${BASE_URL}/cities/${data.slug || doc.id}`,
+              lastModified: new Date(),
+              changeFrequency: 'weekly' as const,
+              priority: 0.7,
+            };
           })
         );
       }
@@ -183,6 +186,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .doc('config')
         .collection('zip_pages')
         .where('published', '==', true)
+        .select() // Only need doc ID
         .limit(2000)
         .get();
 
@@ -207,6 +211,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const seoDispSnapshot = await firestore
         .collection('seo_pages_dispensary')
         .where('published', '==', true)
+        .select() // Only need doc ID
         .limit(2000)
         .get();
 

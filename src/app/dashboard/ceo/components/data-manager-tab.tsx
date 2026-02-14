@@ -1,6 +1,8 @@
 import { useRef, useEffect, useState, useActionState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { importDemoData, clearAllData, type ActionResult } from '../actions';
+import { importDemoData, clearAllData } from '../actions/data-actions';
+import { type ActionResult } from '../actions/types';
+
 import { SubmitButton } from './submit-button';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';

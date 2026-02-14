@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { AlertCircle, CheckCircle2, Send, Loader2, Mail } from 'lucide-react';
-import { testEmailDispatch } from '../actions';
+import { testEmailDispatch } from '../actions/system-actions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function EmailTesterTab() {
@@ -61,8 +61,8 @@ export default function EmailTesterTab() {
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="sender">From Address</Label>
-                            <select 
-                                id="sender" 
+                            <select
+                                id="sender"
                                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                                 value={fromEmail}
                                 onChange={(e) => setFromEmail(e.target.value)}
@@ -73,37 +73,37 @@ export default function EmailTesterTab() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="to">To Address</Label>
-                            <Input 
-                                id="to" 
-                                placeholder="name@example.com" 
-                                value={to} 
-                                onChange={(e) => setTo(e.target.value)} 
+                            <Input
+                                id="to"
+                                placeholder="name@example.com"
+                                value={to}
+                                onChange={(e) => setTo(e.target.value)}
                             />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="subject">Subject</Label>
-                            <Input 
-                                id="subject" 
-                                placeholder="Email Subject" 
-                                value={subject} 
-                                onChange={(e) => setSubject(e.target.value)} 
+                            <Input
+                                id="subject"
+                                placeholder="Email Subject"
+                                value={subject}
+                                onChange={(e) => setSubject(e.target.value)}
                             />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="body">HTML Body</Label>
-                            <Textarea 
-                                id="body" 
-                                placeholder="<p>Email content...</p>" 
-                                value={body} 
-                                onChange={(e) => setBody(e.target.value)} 
+                            <Textarea
+                                id="body"
+                                placeholder="<p>Email content...</p>"
+                                value={body}
+                                onChange={(e) => setBody(e.target.value)}
                                 rows={6}
                                 className="font-mono text-sm"
                             />
                         </div>
 
-                        <Button 
-                            className="w-full" 
-                            onClick={handleSend} 
+                        <Button
+                            className="w-full"
+                            onClick={handleSend}
                             disabled={loading}
                         >
                             {loading ? (
@@ -140,14 +140,14 @@ export default function EmailTesterTab() {
                                 Ready to send. Log will appear here.
                             </div>
                         )}
-                        
+
                         <div className="mt-6 rounded-md bg-slate-950 p-4 text-xs text-slate-300">
-                             <p className="font-semibold text-slate-100 mb-2">Technical Info:</p>
-                             <ul className="list-disc pl-4 space-y-1">
+                            <p className="font-semibold text-slate-100 mb-2">Technical Info:</p>
+                            <ul className="list-disc pl-4 space-y-1">
                                 <li>Provider: <code>src/lib/email/dispatcher.ts</code></li>
                                 <li>Action: <code>testEmailDispatch</code></li>
                                 <li>Role Required: <code>super_admin</code></li>
-                             </ul>
+                            </ul>
                         </div>
                     </CardContent>
                 </Card>
