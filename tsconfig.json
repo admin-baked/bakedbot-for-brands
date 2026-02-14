@@ -41,6 +41,7 @@
     "playwright-report",
     "seed-dispensaries-40tons-ny.js",
     "src/**/__tests__",
+    "src/tests",
     "**/*.test.ts",
     "**/*.test.tsx"
   ]

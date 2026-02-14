@@ -154,7 +154,9 @@ export function useUserRole() {
     }, [role]);
 
     const loginRoute = useMemo(() => {
-        if (!role) return '/customer-login';
+        // When role is unknown (e.g. not signed in yet), default to unified sign-in.
+        // This prevents internal dashboards from redirecting to the customer login flow.
+        if (!role) return '/signin';
 
         // Platform admins have a dedicated login entrypoint
         if (role === 'super_user' || role === 'super_admin') {
@@ -173,7 +175,7 @@ export function useUserRole() {
             return '/customer-login';
         }
         
-        return '/customer-login';
+        return '/signin';
     }, [role]);
 
     // Organization IDs from claims

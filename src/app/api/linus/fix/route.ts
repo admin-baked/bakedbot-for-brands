@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger';
 import { verifySuperAdmin } from '@/server/utils/auth-check';
 import { linusAgent } from '@/server/agents/linus';
 import { runAgent } from '@/server/agents/harness';
+import { persistence } from '@/server/agents/persistence';
 import { z } from 'zod';
 
 // Force dynamic rendering - prevents build-time evaluation of agent dependencies
@@ -71,23 +72,18 @@ export async function POST(request: NextRequest) {
             autoFix: data.autoFix
         });
 
-        // Dispatch to Linus using agent harness directly
-        const result = await runAgent({
-            agent: linusAgent,
-            userId: 'system',
-            userMessage: prompt,
-            options: {
-                source: 'api_fix',
-                priority: data.priority === 'critical' ? 'high' : 'medium'
-            }
-        });
+        // Execute Linus via the standard harness signature (brandId, adapter, agent, tools, stimulus).
+        // This endpoint is super-admin only; we run synchronously and return the harness log entry.
+        // Linus does not require the injected toolset here.
+        const logEntry = await runAgent('system', persistence, linusAgent as any, {}, prompt);
 
         return NextResponse.json({
             success: true,
-            jobId: result.metadata?.jobId,
-            message: `Linus fix job dispatched for ${data.type}`,
+            jobId: logEntry?.id ?? null,
+            message: `Linus fix request executed for ${data.type}`,
             type: data.type,
-            priority: data.priority
+            priority: data.priority,
+            log: logEntry ?? null,
         });
 
     } catch (error) {

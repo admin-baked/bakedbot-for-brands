@@ -27,6 +27,10 @@ interface ContextualPresetResult {
     suggestion: string;
 }
 
+function isSuperRole(role: string): boolean {
+    return role === 'super_user' || role === 'super_admin' || role === 'owner';
+}
+
 /**
  * Determine time of day bucket
  */
@@ -168,6 +172,51 @@ const CONTEXTUAL_PRIORITIES: Record<
 };
 
 /**
+ * Super User presets should focus on platform ops, growth, intel, and research by default.
+ * (Business marketing presets are still available elsewhere in the UI.)
+ */
+const SUPER_CONTEXTUAL_PRIORITIES: Record<
+    string,
+    {
+        presetIds: string[];
+        suggestion: string;
+    }
+> = {
+    'morning:monday': {
+        presetIds: ['daily-standup', 'growth-review', 'pipeline-review'],
+        suggestion: 'Kick off the week with a standup and growth/pipeline review.',
+    },
+    'morning:weekday': {
+        presetIds: ['daily-standup', 'growth-review', 'incident-response'],
+        suggestion: 'Start with a standup, then review growth and any incidents.',
+    },
+    'afternoon:weekday': {
+        presetIds: ['customer-pulse', 'market-intel', 'content-brief'],
+        suggestion: 'Midday check-in: customer pulse, market intel, and content planning.',
+    },
+    'afternoon:friday': {
+        presetIds: ['weekly-sync', 'board-update', 'cash-flow'],
+        suggestion: 'Friday wrap: exec sync, board update, and cash flow.',
+    },
+    'evening:weekday': {
+        presetIds: ['revenue-forecast', 'compliance-audit', 'deep-research'],
+        suggestion: 'Review numbers, run a compliance scan, or go deep on research.',
+    },
+    'night:weekday': {
+        presetIds: ['incident-response', 'deep-research', 'market-analysis'],
+        suggestion: 'Late-night mode: incidents, deep research, or market analysis.',
+    },
+    'morning:weekend': {
+        presetIds: ['deep-research', 'market-analysis', 'sprint-planning'],
+        suggestion: 'Weekend: research and planning time.',
+    },
+    'afternoon:weekend': {
+        presetIds: ['market-intel', 'growth-review', 'sprint-planning'],
+        suggestion: 'Weekend check: market intel, growth, and sprint planning.',
+    },
+};
+
+/**
  * Generate contextual presets based on current context
  */
 export function generateContextualPresets(options: ContextualPresetOptions): ContextualPresetResult {
@@ -177,8 +226,17 @@ export function generateContextualPresets(options: ContextualPresetOptions): Con
     const dayType = getDayType(currentDate);
     const seasonalEvent = getSeasonalContext(currentDate);
 
-    // Get all available presets for this role
+    const roleIsSuper = isSuperRole(role);
+
+    // Get all available presets for this role.
+    // For Super Users, prefer "super_user only" presets so they don't see brand/dispensary defaults.
     const allPresets = getQuickActionsForRole(role);
+    const superOnlyPresets = roleIsSuper
+        ? allPresets.filter((p) => p.roles.length === 1 && p.roles[0] === 'super_user')
+        : [];
+    const rolePresets = roleIsSuper && superOnlyPresets.length > 0 ? superOnlyPresets : allPresets;
+
+    const priorities = roleIsSuper ? SUPER_CONTEXTUAL_PRIORITIES : CONTEXTUAL_PRIORITIES;
 
     let prioritizedIds: string[] = [];
     let suggestion = 'What would you like to work on today?';
@@ -186,24 +244,24 @@ export function generateContextualPresets(options: ContextualPresetOptions): Con
     // Check seasonal first (highest priority)
     if (seasonalEvent) {
         const seasonalKey = `seasonal:${seasonalEvent}`;
-        if (CONTEXTUAL_PRIORITIES[seasonalKey]) {
-            prioritizedIds = CONTEXTUAL_PRIORITIES[seasonalKey].presetIds;
-            suggestion = CONTEXTUAL_PRIORITIES[seasonalKey].suggestion;
+        if (priorities[seasonalKey]) {
+            prioritizedIds = priorities[seasonalKey].presetIds;
+            suggestion = priorities[seasonalKey].suggestion;
         }
     }
 
     // Fall back to time + day based
     if (prioritizedIds.length === 0) {
         const contextKey = `${timeOfDay}:${dayType}`;
-        if (CONTEXTUAL_PRIORITIES[contextKey]) {
-            prioritizedIds = CONTEXTUAL_PRIORITIES[contextKey].presetIds;
-            suggestion = CONTEXTUAL_PRIORITIES[contextKey].suggestion;
+        if (priorities[contextKey]) {
+            prioritizedIds = priorities[contextKey].presetIds;
+            suggestion = priorities[contextKey].suggestion;
         } else {
             // Generic time-based fallback
             const timeKey = `${timeOfDay}:weekday`;
-            if (CONTEXTUAL_PRIORITIES[timeKey]) {
-                prioritizedIds = CONTEXTUAL_PRIORITIES[timeKey].presetIds;
-                suggestion = CONTEXTUAL_PRIORITIES[timeKey].suggestion;
+            if (priorities[timeKey]) {
+                prioritizedIds = priorities[timeKey].presetIds;
+                suggestion = priorities[timeKey].suggestion;
             }
         }
     }
@@ -214,7 +272,7 @@ export function generateContextualPresets(options: ContextualPresetOptions): Con
 
         // If they've been creating carousels, suggest bundles
         if (recentTypes.has('carousel') && !recentTypes.has('bundle')) {
-            const bundleAction = allPresets.find((p) => p.id === 'new-bundle');
+            const bundleAction = rolePresets.find((p) => p.id === 'new-bundle');
             if (bundleAction && !prioritizedIds.includes('new-bundle')) {
                 prioritizedIds.unshift('new-bundle');
                 suggestion = 'You\'ve created carousels - pair them with a bundle?';
@@ -226,7 +284,7 @@ export function generateContextualPresets(options: ContextualPresetOptions): Con
             (recentTypes.has('creative') || recentTypes.has('carousel')) &&
             !recentTypes.has('outreach')
         ) {
-            const outreachAction = allPresets.find((p) => p.id === 'customer-blast');
+            const outreachAction = rolePresets.find((p) => p.id === 'customer-blast');
             if (outreachAction && !prioritizedIds.includes('customer-blast')) {
                 prioritizedIds.push('customer-blast');
             }
@@ -234,7 +292,7 @@ export function generateContextualPresets(options: ContextualPresetOptions): Con
 
         // If they've been doing bundles, suggest clearance/inventory
         if (recentTypes.has('bundle') && !recentTypes.has('inventory_promo')) {
-            const inventoryAction = allPresets.find((p) => p.id === 'move-inventory');
+            const inventoryAction = rolePresets.find((p) => p.id === 'move-inventory');
             if (inventoryAction && !prioritizedIds.includes('move-inventory')) {
                 prioritizedIds.push('move-inventory');
             }
@@ -243,11 +301,11 @@ export function generateContextualPresets(options: ContextualPresetOptions): Con
 
     // Build final preset list
     const prioritized = prioritizedIds
-        .map((id) => allPresets.find((p) => p.id === id))
+        .map((id) => rolePresets.find((p) => p.id === id))
         .filter((p): p is InboxQuickAction => p !== undefined);
 
     // Fill remaining slots with role defaults (excluding already-included)
-    const remaining = allPresets
+    const remaining = rolePresets
         .filter((p) => !prioritizedIds.includes(p.id))
         .slice(0, 4 - prioritized.length);
 
@@ -267,9 +325,12 @@ export function getRotatingPresets(
 ): InboxQuickAction[] {
     const { role } = options;
     const allPresets = getQuickActionsForRole(role);
+    const rolePresets = isSuperRole(role)
+        ? allPresets.filter((p) => p.roles.length === 1 && p.roles[0] === 'super_user')
+        : allPresets;
 
     // Shuffle and return 4 that aren't in exclude list
-    const available = allPresets.filter((p) => !exclude.includes(p.id));
+    const available = rolePresets.filter((p) => !exclude.includes(p.id));
 
     // Fisher-Yates shuffle
     for (let i = available.length - 1; i > 0; i--) {

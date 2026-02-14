@@ -80,12 +80,27 @@ export async function getPlaybook(playbookId: string) {
     return { id: doc.id, ...doc.data() } as any;
 }
 
-export async function executePlaybook(playbookId: string) {
+export interface ExecutePlaybookOptions {
+    /**
+     * Allows execution even if the playbook is paused/draft (manual run).
+     */
+    force?: boolean;
+    /**
+     * Metadata hint for analytics/logging (e.g. 'pulse', 'super_user_playbooks').
+     */
+    source?: string;
+}
+
+export async function executePlaybook(playbookId: string, options: ExecutePlaybookOptions = {}) {
     try {
         const playbook = await getPlaybook(playbookId);
         if (!playbook) throw new Error(`Playbook ${playbookId} not found`);
 
-        if (!playbook.active) throw new Error(`Playbook ${playbookId} is not active`);
+        const status = String(playbook.status || '').toLowerCase();
+        const isActive = playbook.active === true || status === 'active';
+        if (!isActive && !options.force) {
+            throw new Error(`Playbook ${playbookId} is not active`);
+        }
 
         const stepsPrompt = playbook.steps.map((s: any, i: number) => 
             `${i + 1}. ${s.action} ${JSON.stringify(s.params || {})}`
@@ -93,11 +108,12 @@ export async function executePlaybook(playbookId: string) {
 
         const prompt = `CORE DIRECTIVE: Execute the following playbook "${playbook.name}" immediately.\n\nDescription: ${playbook.description}\n\nSteps:\n${stepsPrompt}\n\nReport status upon completion.`;
 
-        const targetAgent = playbook.agentId || 'linus'; 
+        const targetAgent = playbook.agentId || playbook.agent || 'linus'; 
 
         const { runAgentChat } = await import('@/app/dashboard/ceo/agents/actions');
         
-        const result = await runAgentChat(prompt, targetAgent as any, { source: 'pulse' });
+        const source = options.source || (options.force ? 'super_user_playbooks' : 'pulse');
+        const result = await runAgentChat(prompt, targetAgent as any, { source });
 
         return { success: true, agentResponse: result };
 

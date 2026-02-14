@@ -527,6 +527,85 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
 
     const subscriptionByOrgId = await loadSubscriptionCurrentByOrgIds(firestore, orgIds);
 
+    // Top-level subscriptions are created via /checkout and some legacy flows.
+    // Without these, the CEO CRM will show "Free" for paying users who didn't
+    // go through organizations/{orgId}/subscription/current.
+    type TopLevelSub = {
+        status: string;
+        monthlyAmount: number;
+        planName: string | null;
+        providerSubscriptionId: string | null;
+    };
+
+    const normalizeIntervalMonths = (data: any): number => {
+        const raw = data?.intervalMonths;
+        if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) return raw;
+
+        const billingPeriod = String(data?.billingPeriod || '').toLowerCase();
+        if (billingPeriod === 'annual' || billingPeriod === 'yearly') return 12;
+
+        return 1;
+    };
+
+    const pickBestPlanName = (subs: TopLevelSub[]): string | null => {
+        const withPlan = subs.filter((s) => typeof s.planName === 'string' && s.planName.trim());
+        if (withPlan.length === 0) return null;
+        withPlan.sort((a, b) => (b.monthlyAmount || 0) - (a.monthlyAmount || 0));
+        return withPlan[0].planName || null;
+    };
+
+    const orgProviderSubscriptionIds = new Set<string>();
+    for (const sub of subscriptionByOrgId.values()) {
+        const providerId = typeof sub?.providerSubscriptionId === 'string' ? sub.providerSubscriptionId.trim() : '';
+        if (providerId) orgProviderSubscriptionIds.add(providerId);
+    }
+
+    const topLevelSubsByEmail = new Map<string, TopLevelSub[]>();
+    try {
+        const subsSnapshot = await firestore.collection('subscriptions').get();
+        subsSnapshot.docs.forEach((doc) => {
+            const data = doc.data() as any;
+
+            const status = String(data?.status || '').toLowerCase();
+            // Keep this list small; we only need enough to infer lifecycle + revenue.
+            if (!['active', 'trialing', 'past_due', 'canceled', 'cancelled'].includes(status)) return;
+
+            const providerId = typeof data?.providerSubscriptionId === 'string' ? data.providerSubscriptionId.trim() : '';
+            if (providerId && orgProviderSubscriptionIds.has(providerId)) return;
+
+            const rawEmail =
+                (typeof data?.customer?.email === 'string' ? data.customer.email : null) ??
+                (typeof data?.email === 'string' ? data.email : null) ??
+                (typeof data?.userEmail === 'string' ? data.userEmail : null);
+            const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : '';
+            if (!email) return;
+
+            const amount = coerceNumber(data?.price ?? data?.amount);
+            const intervalMonths = normalizeIntervalMonths(data);
+            const monthly = amount > 0 ? amount / intervalMonths : 0;
+            if (!Number.isFinite(monthly) || monthly <= 0) return;
+
+            const planName =
+                (typeof data?.planName === 'string' ? data.planName : null) ||
+                planNameFromId(data?.planId) ||
+                planNameFromId(data?.plan) ||
+                null;
+
+            const entry: TopLevelSub = {
+                status,
+                monthlyAmount: Math.round(monthly * 100) / 100,
+                planName,
+                providerSubscriptionId: providerId || null,
+            };
+
+            const existing = topLevelSubsByEmail.get(email) || [];
+            existing.push(entry);
+            topLevelSubsByEmail.set(email, existing);
+        });
+    } catch (error) {
+        console.error('[CRM] Failed to load top-level subscriptions:', error);
+    }
+
     let users = rawUsers.map(({ id, data }) => {
         const normalizedRole = normalizeRole(typeof data.role === 'string' ? data.role : null);
 
@@ -539,9 +618,10 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
         const resolvedOrgId = resolveOrgIdFromUserDoc(data);
         const subscription = resolvedOrgId ? subscriptionByOrgId.get(resolvedOrgId) : null;
 
-        const subscriptionStatus = typeof subscription?.status === 'string' ? subscription.status : null;
-        const subscriptionAmount = coerceNumber(subscription?.amount);
-        const isPaying = subscriptionStatus === 'active' && subscriptionAmount > 0;
+        const orgStatus = typeof subscription?.status === 'string' ? String(subscription.status).toLowerCase() : null;
+        const orgAmount = coerceNumber(subscription?.amount);
+        const orgIsPaying = orgStatus === 'active' && orgAmount > 0;
+        const orgMrr = orgIsPaying ? Math.round(orgAmount * 100) / 100 : 0;
 
         const subscriptionPlanName = planNameFromId(subscription?.planId);
         const userPlanName = planNameFromId(data?.billing?.planId) ||
@@ -549,23 +629,34 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
             planNameFromId(data?.plan) ||
             null;
 
-        const plan = subscriptionPlanName || userPlanName || 'Free';
-        const mrr = isPaying ? Math.round(subscriptionAmount * 100) / 100 : 0;
+        const emailKey = typeof data?.email === 'string' ? data.email.trim().toLowerCase() : '';
+        const topSubs = emailKey ? (topLevelSubsByEmail.get(emailKey) || []) : [];
+        const activeTopSubs = topSubs.filter((s) => s.status === 'active' && s.monthlyAmount > 0);
+        const trialTopSubs = topSubs.filter((s) => s.status === 'trialing' && s.monthlyAmount > 0);
+
+        const topMrr = Math.round(activeTopSubs.reduce((sum, s) => sum + s.monthlyAmount, 0) * 100) / 100;
+        const topPlanName = pickBestPlanName(activeTopSubs) || pickBestPlanName(trialTopSubs) || null;
+
+        const plan = subscriptionPlanName || topPlanName || userPlanName || 'Free';
+        const mrr = Math.round((orgMrr + topMrr) * 100) / 100;
+        const isPaying = mrr > 0 && (orgIsPaying || activeTopSubs.length > 0);
 
         // Determine lifecycle stage (prefer explicit, otherwise infer from billing/subscription state)
         const explicitStage = normalizeLifecycleStage(data.lifecycleStage);
         let lifecycleStage: CRMLifecycleStage = explicitStage || 'prospect';
 
         if (!explicitStage) {
-            if (subscriptionStatus === 'canceled') {
+            const hasTopStatus = (status: string) => topSubs.some((s) => s.status === status);
+
+            if (orgStatus === 'canceled' || orgStatus === 'cancelled' || hasTopStatus('canceled') || hasTopStatus('cancelled')) {
                 lifecycleStage = 'churned';
-            } else if (subscriptionStatus === 'past_due') {
+            } else if (orgStatus === 'past_due' || hasTopStatus('past_due')) {
                 lifecycleStage = 'winback';
             } else if (isPaying) {
                 // Treat higher tiers as VIP (simple heuristic); otherwise a standard customer.
                 const isVip = mrr >= 349 || String(subscription?.planId || '').toLowerCase().includes('empire');
                 lifecycleStage = isVip ? 'vip' : 'customer';
-            } else if (resolvedOrgId || data.claimedAt) {
+            } else if (orgStatus === 'trialing' || trialTopSubs.length > 0 || resolvedOrgId || data.claimedAt) {
                 lifecycleStage = 'trial';
             } else if (data.createdAt) {
                 lifecycleStage = 'prospect';
@@ -632,20 +723,70 @@ export async function getCRMUserStats(): Promise<{
     const firestore = getAdminFirestore();
     const snapshot = await firestore.collection('users').get();
 
-    // Revenue source of truth: organizations/{orgId}/subscription/current
+    // Revenue source of truth: subscriptions collection (normalized to MRR)
+    // Fallback: organizations/{orgId}/subscription/current (legacy billing)
     let totalMRR = 0;
     try {
-        const subsSnapshot = await firestore
+        const coerceAmount = (value: unknown): number => {
+            if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+            if (typeof value === 'string') {
+                const n = Number(value);
+                return Number.isFinite(n) ? n : 0;
+            }
+            return 0;
+        };
+
+        const normalizeIntervalMonths = (data: any): number => {
+            const raw = data?.intervalMonths;
+            if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) return raw;
+
+            const billingPeriod = String(data?.billingPeriod || '').toLowerCase();
+            if (billingPeriod === 'annual' || billingPeriod === 'yearly') return 12;
+
+            return 1;
+        };
+
+        const orgProviderSubscriptionIds = new Set<string>();
+
+        // 1) Primary: org subscription docs
+        const orgSubsSnapshot = await firestore
             .collectionGroup('subscription')
             .where(FieldPath.documentId(), '==', 'current')
             .where('status', '==', 'active')
             .get();
 
-        subsSnapshot.docs.forEach((doc) => {
+        orgSubsSnapshot.docs.forEach((doc) => {
             // Ensure we're only counting organization subscriptions.
             if (doc.ref.parent.parent?.parent?.id !== 'organizations') return;
-            const amount = coerceNumber(doc.data()?.amount);
+
+            const data = doc.data() as any;
+            const providerId = typeof data?.providerSubscriptionId === 'string' ? data.providerSubscriptionId.trim() : '';
+            if (providerId) orgProviderSubscriptionIds.add(providerId);
+
+            const amount = coerceAmount(data?.amount);
             if (amount > 0) totalMRR += amount;
+        });
+
+        // 2) Add-ons / legacy: top-level subscriptions collection
+        const subsDocs = await firestore.collection('subscriptions').get();
+
+        subsDocs.docs.forEach((doc) => {
+            const data = doc.data() as any;
+            const status = String(data?.status || '').toLowerCase();
+            // MRR should reflect revenue from active subscriptions only (exclude trialing).
+            if (status !== 'active') return;
+
+            const providerId = typeof data?.providerSubscriptionId === 'string' ? data.providerSubscriptionId.trim() : '';
+            if (providerId && orgProviderSubscriptionIds.has(providerId)) return;
+
+            const amount = coerceAmount(data?.price ?? data?.amount);
+            if (!(amount > 0)) return;
+
+            const intervalMonths = normalizeIntervalMonths(data);
+            const monthly = amount / intervalMonths;
+            if (!Number.isFinite(monthly) || monthly <= 0) return;
+
+            totalMRR += monthly;
         });
 
         totalMRR = Math.round(totalMRR * 100) / 100;

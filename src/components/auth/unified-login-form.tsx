@@ -99,10 +99,17 @@ export function UnifiedLoginForm() {
 
         switch (role) {
             case 'owner':
+            case 'super_user':
+            case 'super_admin':
                 window.location.href = '/dashboard/ceo';
                 break;
             case 'brand':
+            case 'brand_admin':
+            case 'brand_member':
             case 'dispensary':
+            case 'dispensary_admin':
+            case 'dispensary_staff':
+            case 'budtender':
                 window.location.href = '/dashboard';
                 break;
             case 'customer':

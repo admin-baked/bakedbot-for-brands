@@ -104,13 +104,13 @@ export default function EzalTab() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Insights (24h)</CardTitle>
+                        <CardTitle className="text-sm font-medium">Recent Insights</CardTitle>
                         <Globe className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{stats.insights ?? '—'}</div>
                         <p className="text-xs text-muted-foreground">
-                            {isMock ? '8 price drops detected' : 'Latest updates'}
+                            {isMock ? '8 price drops detected' : 'Latest updates (not time-windowed yet)'}
                         </p>
                     </CardContent>
                 </Card>
