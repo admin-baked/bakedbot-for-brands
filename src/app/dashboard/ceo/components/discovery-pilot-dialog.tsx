@@ -15,7 +15,8 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Loader2, Rocket, MapPin, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { runDispensaryPilotAction, runBrandPilotAction, runNationalSeedAction } from '../actions';
+import { runDispensaryPilotAction, runBrandPilotAction } from '../actions/seo-actions';
+import { runNationalSeedAction } from '../actions/pilot-actions';
 import { Textarea } from '@/components/ui/textarea';
 
 interface DiscoveryPilotDialogProps {
@@ -31,7 +32,7 @@ export function DiscoveryPilotDialog({
 }: DiscoveryPilotDialogProps) {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
+
     // Form State
     const [mode, setMode] = useState<'dispensary' | 'brand' | 'national'>('dispensary');
     const [city, setCity] = useState('Chicago');
@@ -45,7 +46,7 @@ export function DiscoveryPilotDialog({
         }
 
         setIsSubmitting(true);
-        
+
         try {
             let result;
             if (mode === 'national') {
@@ -80,7 +81,7 @@ export function DiscoveryPilotDialog({
                         Run Discovery Pilot
                     </DialogTitle>
                     <DialogDescription>
-                        {mode === 'national' 
+                        {mode === 'national'
                             ? 'Launch national seeding for Chicago + Detroit (Brands & Dispensaries).'
                             : `Launch a mass scraping job to discover ${mode === 'dispensary' ? 'dispensaries' : 'brands'}.`
                         }
@@ -156,10 +157,10 @@ export function DiscoveryPilotDialog({
                     {mode === 'dispensary' && (
                         <div className="space-y-2">
                             <Label htmlFor="zips">Target ZIPs (Optional)</Label>
-                            <Textarea 
-                                id="zips" 
-                                value={zipCodes} 
-                                onChange={e => setZipCodes(e.target.value)} 
+                            <Textarea
+                                id="zips"
+                                value={zipCodes}
+                                onChange={e => setZipCodes(e.target.value)}
                                 placeholder="60601, 60611 (Leave empty to search entire city)"
                                 className="h-20"
                             />
@@ -170,9 +171,9 @@ export function DiscoveryPilotDialog({
 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
-                    <Button 
-                        onClick={handleRun} 
-                        disabled={isSubmitting} 
+                    <Button
+                        onClick={handleRun}
+                        disabled={isSubmitting}
                         className={mode === 'national' ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-indigo-600 hover:bg-indigo-700 text-white"}
                     >
                         {isSubmitting ? (

@@ -21,7 +21,8 @@ import Chatbot from '@/components/chatbot';
 import { cn } from '@/lib/utils';
 import { useOptionalFirebase } from '@/firebase/use-optional-firebase';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { searchCannMenusRetailers } from '../actions';
+import { searchCannMenusRetailers } from '../actions/data-actions';
+
 import type { CannMenusResult } from '@/server/actions/cannmenus';
 import { useMockData } from '@/hooks/use-mock-data';
 
@@ -102,8 +103,9 @@ export default function AIAgentEmbedTab() {
 
     const fetchPreviewProducts = async () => {
       try {
-        const { getLivePreviewProducts } = await import('../actions'); // Dynamically import to avoid circular dep if any
+        const { getLivePreviewProducts } = await import('../actions/data-actions'); // Dynamically import to avoid circular dep if any
         const products = await getLivePreviewProducts(cannMenusId);
+
         setPreviewProducts(products);
       } catch (error) {
         console.error('Error fetching preview products:', error);

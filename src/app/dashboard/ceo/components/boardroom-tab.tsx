@@ -30,7 +30,8 @@ import {
 import { cn } from '@/lib/utils';
 import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
 import { useUser } from '@/firebase/auth/use-user';
-import { getPlatformAnalytics, type PlatformAnalyticsData } from '../actions';
+import { getPlatformAnalytics } from '../actions/data-actions';
+import type { PlatformAnalyticsData } from '../actions/types';
 import { useEffect } from 'react';
 import { AgentDebugPanel, useAgentDebug } from './agent-debug-panel';
 import { InboxThreadType } from '@/types/inbox';
@@ -178,7 +179,7 @@ export default function BoardroomTab() {
                 {/* Executive Team */}
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
                     {EXECUTIVE_TEAM.map((agent) => (
-                        <Card 
+                        <Card
                             key={agent.id}
                             className={cn(
                                 "cursor-pointer transition-all hover:scale-105 active:scale-95",
@@ -201,13 +202,13 @@ export default function BoardroomTab() {
 
                 {/* Support Staff */}
                 <div className="flex items-center gap-4 mt-2">
-                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest shrink-0">Support Staff</p>
-                     <div className="h-px bg-border flex-1" />
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest shrink-0">Support Staff</p>
+                    <div className="h-px bg-border flex-1" />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:flex sm:flex-wrap">
                     {SUPPORT_STAFF.map((agent) => (
-                        <Card 
+                        <Card
                             key={agent.id}
                             className={cn(
                                 "cursor-pointer transition-all hover:bg-accent/50 active:scale-95 sm:w-48",
@@ -287,21 +288,21 @@ export default function BoardroomTab() {
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1 p-0 overflow-visible relative min-h-0">
-                            <PuffChat
-                                persona={selectedAgent as any}
-                                hideHeader={true}
-                                isSuperUser={true}
-                                isHired={true}
-                                initialPermissions={initialPermissions}
-                                promptSuggestions={[
-                                    "Run Weekly KPI Report",
-                                    "Check System Health Status",
-                                    "Review Recent Signups",
-                                    "Generate Competitive Intel Summary",
-                                    "Draft Weekly Team Update Email"
-                                ]}
-                                className="h-full border-0 shadow-none"
-                            />
+                        <PuffChat
+                            persona={selectedAgent as any}
+                            hideHeader={true}
+                            isSuperUser={true}
+                            isHired={true}
+                            initialPermissions={initialPermissions}
+                            promptSuggestions={[
+                                "Run Weekly KPI Report",
+                                "Check System Health Status",
+                                "Review Recent Signups",
+                                "Generate Competitive Intel Summary",
+                                "Draft Weekly Team Update Email"
+                            ]}
+                            className="h-full border-0 shadow-none"
+                        />
                     </CardContent>
                 </Card>
             </div>

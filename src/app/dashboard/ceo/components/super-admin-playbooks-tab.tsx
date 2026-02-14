@@ -163,12 +163,12 @@ const categoryColors: Record<string, string> = {
 };
 
 
-import { 
-    getSystemPlaybooks, 
-    toggleSystemPlaybook, 
-    syncSystemPlaybooks, 
-    type SystemPlaybook 
-} from '../actions';
+import {
+    getSystemPlaybooks,
+    toggleSystemPlaybook,
+    syncSystemPlaybooks,
+    type SystemPlaybook
+} from '../actions/system-actions';
 
 export default function SuperAdminPlaybooksTab() {
     const [playbooks, setPlaybooks] = useState<SystemPlaybook[]>([]);

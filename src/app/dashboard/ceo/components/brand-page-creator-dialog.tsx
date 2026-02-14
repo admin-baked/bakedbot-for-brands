@@ -29,7 +29,7 @@ import {
 import { Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { BrandSearchInput } from './brand-search-input';
-import { createBrandPageAction } from '../actions';
+import { createBrandPageAction } from '../actions/seo-actions';
 import type { BrandCTAType, CreateBrandPageInput } from '@/types/foot-traffic';
 
 interface BrandPageCreatorDialogProps {

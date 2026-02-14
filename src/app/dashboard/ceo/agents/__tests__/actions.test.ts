@@ -105,7 +105,7 @@ jest.mock('../default-tools', () => ({
 }));
 
 // Import after mocks
-import { runAgentChat } from '../actions';
+import { runAgentChat } from '../actions/pilot-actions';
 import { requireUser } from '@/server/auth/auth';
 import { dispatchAgentJob } from '@/server/jobs/dispatch';
 import { getFirestore } from 'firebase-admin/firestore';

@@ -89,6 +89,13 @@ const nextConfig = {
     optimizeCss: false,  // Skip CSS optimization to save memory
     // Improve build performance
     optimizeServerReact: true,  // Optimize React server components
+    optimizePackageImports: [
+      'lucide-react',
+      'framer-motion',
+      '@radix-ui/react-icons',
+      'date-fns',
+      'recharts',
+    ],
   },
   // Turbopack configuration (required in Next.js 16 if webpack config is present)
   // Empty config acknowledges we're using Turbopack with default settings
