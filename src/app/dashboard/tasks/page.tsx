@@ -1,5 +1,12 @@
 // Task Dashboard Page - main interface for creating and viewing tasks
 
+// EMERGENCY BUILD FIX: Force dynamic rendering to prevent OOM during build
+// With 204 pages, pre-rendering all at once requires >64GB memory
+// This line forces on-demand generation instead
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+export const revalidate = 0;
+
 'use client';
 
 import { useState } from 'react';

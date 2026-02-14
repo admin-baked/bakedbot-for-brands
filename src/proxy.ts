@@ -179,17 +179,13 @@ export async function proxy(request: NextRequest) {
     const isDev = process.env.NODE_ENV === 'development';
 
     if (!sessionCookie && !activeSimulation) {
-        // PRODUCTION ENFORCEMENT: Redirect to appropriate login page
-        let loginUrl = '/customer-login';
-
-        if (isDashboardRoute || isOnboardingRoute) {
-            // For dashboard and onboarding routes, default to brand login
-            loginUrl = '/brand-login';
-        }
+        // PRODUCTION ENFORCEMENT: Redirect to unified sign-in for protected internal routes.
+        // Avoid sending internal users to the customer login flow by default.
+        const loginUrl = '/signin';
 
         const url = request.nextUrl.clone();
         url.pathname = loginUrl;
-        url.searchParams.set('redirect', pathname);
+        url.searchParams.set('redirect', pathname + request.nextUrl.search);
         return NextResponse.redirect(url);
     }
 

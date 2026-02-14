@@ -102,14 +102,14 @@ describe('useUserRole', () => {
     });
 
     describe('loginRoute', () => {
-        it('returns /customer-login for users with no role', () => {
+        it('returns /signin for users with no role', () => {
             (useUser as jest.Mock).mockReturnValue({
                 user: null,
                 isUserLoading: false,
             });
 
             const { result } = renderHook(() => useUserRole());
-            expect(result.current.loginRoute).toBe('/customer-login');
+            expect(result.current.loginRoute).toBe('/signin');
         });
 
         it('returns /brand-login for brand roles', () => {

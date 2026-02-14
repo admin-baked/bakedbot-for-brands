@@ -1,3 +1,10 @@
+// EMERGENCY BUILD FIX: Force dynamic rendering to prevent OOM during build
+// With 204 pages, pre-rendering all at once requires >64GB memory
+// This line forces on-demand generation instead
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+export const revalidate = 0;
+
 'use client';
 import { InvitationsList } from '@/components/invitations/invitations-list';
 
@@ -9,42 +16,42 @@ import { InvitationsList } from '@/components/invitations/invitations-list';
 
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import { getChatSessions } from '@/server/actions/chat-persistence'; // Added for global hydration
 
 const TabLoader = () => <div className="flex h-[400px] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
-const DataManagerTab = dynamic(() => import("./components/data-manager-tab"), { loading: TabLoader });
-const AISearchIndexTab = dynamic(() => import("./components/ai-search-index-tab"), { loading: TabLoader });
-const CouponManagerTab = dynamic(() => import("./components/coupon-manager-tab"), { loading: TabLoader });
-const AIAgentEmbedTab = dynamic(() => import("./components/ai-agent-embed-tab"), { loading: TabLoader });
-const CannMenusTestTab = dynamic(() => import("./components/cannmenus-test-tab"), { loading: TabLoader });
-const TicketsTab = dynamic(() => import("./components/tickets-tab"), { loading: TabLoader });
-const FootTrafficTab = dynamic(() => import("./components/foot-traffic-tab"), { loading: TabLoader });
-const SuperAdminAgentChat = dynamic(() => import("./components/super-admin-agent-chat"), { loading: TabLoader, ssr: false });
+const DataManagerTab = nextDynamic(() => import("./components/data-manager-tab"), { loading: TabLoader });
+const AISearchIndexTab = nextDynamic(() => import("./components/ai-search-index-tab"), { loading: TabLoader });
+const CouponManagerTab = nextDynamic(() => import("./components/coupon-manager-tab"), { loading: TabLoader });
+const AIAgentEmbedTab = nextDynamic(() => import("./components/ai-agent-embed-tab"), { loading: TabLoader });
+const CannMenusTestTab = nextDynamic(() => import("./components/cannmenus-test-tab"), { loading: TabLoader });
+const TicketsTab = nextDynamic(() => import("./components/tickets-tab"), { loading: TabLoader });
+const FootTrafficTab = nextDynamic(() => import("./components/foot-traffic-tab"), { loading: TabLoader });
+const SuperAdminAgentChat = nextDynamic(() => import("./components/super-admin-agent-chat"), { loading: TabLoader, ssr: false });
 // Canonical Super User playbooks/ops experience lives at /dashboard/ceo/playbooks.
 // We render it inside the CEO tab to keep navigation consistent for Super Users.
-const SuperUserPlaybooksPage = dynamic(() => import("./playbooks/page"), { loading: TabLoader, ssr: false });
-const OperationsTab = dynamic(() => import("./components/operations-tab"), { loading: TabLoader });
-const UnifiedAnalyticsPage = dynamic(() => import("./components/unified-analytics-page"), { loading: TabLoader });
-const CRMTab = dynamic(() => import("./components/crm-tab"), { loading: TabLoader });
-const AccountManagementTab = dynamic(() => import("@/components/admin/account-management-tab").then(mod => mod.AccountManagementTab), { loading: TabLoader });
-const SystemKnowledgeBase = dynamic(() => import("./components/system-knowledge-base").then(mod => mod.SystemKnowledgeBase), { loading: TabLoader, ssr: false });
-const CeoSettingsTab = dynamic(() => import("./components/ceo-settings-tab"), { loading: TabLoader });
-const AgentSandbox = dynamic(() => import("./components/agent-sandbox").then(mod => mod.AgentSandbox), { loading: TabLoader, ssr: false });
-const EmailTesterTab = dynamic(() => import("./components/email-tester-tab"), { loading: TabLoader });
-const BoardroomTab = dynamic(() => import("./components/boardroom-tab"), { loading: TabLoader, ssr: false });
-const CodeEvalsTab = dynamic(() => import("./components/code-evals-tab"), { loading: TabLoader, ssr: false });
-const TalkTracksTab = dynamic(() => import("./components/talk-tracks-tab"), { loading: TabLoader, ssr: false });
-const BakedBotBrowserTab = dynamic(() => import("./components/bakedbot-browser-tab"), { loading: TabLoader, ssr: false });
-const PilotSetupTab = dynamic(() => import("./components/pilot-setup-tab"), { loading: TabLoader, ssr: false });
-const GroundTruthTab = dynamic(() => import("./components/ground-truth-tab"), { loading: TabLoader, ssr: false });
-const UnifiedAdminConsole = dynamic(() => import("./components/unified-admin-console"), { loading: TabLoader, ssr: false });
-const LeadsTab = dynamic(() => import("./components/leads-tab"), { loading: TabLoader });
-const WhatsAppTab = dynamic(() => import("./components/whatsapp-tab"), { loading: TabLoader, ssr: false });
-const DriveTab = dynamic(() => import("./components/drive-tab"), { loading: TabLoader, ssr: false });
-const CostsTab = dynamic(() => import("./components/costs-tab"), { loading: TabLoader, ssr: false });
-const SystemHealthTab = dynamic(() => import("./components/system-health-tab"), { loading: TabLoader, ssr: false });
+const SuperUserPlaybooksPage = nextDynamic(() => import("./playbooks/page"), { loading: TabLoader, ssr: false });
+const OperationsTab = nextDynamic(() => import("./components/operations-tab"), { loading: TabLoader });
+const UnifiedAnalyticsPage = nextDynamic(() => import("./components/unified-analytics-page"), { loading: TabLoader });
+const CRMTab = nextDynamic(() => import("./components/crm-tab"), { loading: TabLoader });
+const AccountManagementTab = nextDynamic(() => import("@/components/admin/account-management-tab").then(mod => mod.AccountManagementTab), { loading: TabLoader });
+const SystemKnowledgeBase = nextDynamic(() => import("./components/system-knowledge-base").then(mod => mod.SystemKnowledgeBase), { loading: TabLoader, ssr: false });
+const CeoSettingsTab = nextDynamic(() => import("./components/ceo-settings-tab"), { loading: TabLoader });
+const AgentSandbox = nextDynamic(() => import("./components/agent-sandbox").then(mod => mod.AgentSandbox), { loading: TabLoader, ssr: false });
+const EmailTesterTab = nextDynamic(() => import("./components/email-tester-tab"), { loading: TabLoader });
+const BoardroomTab = nextDynamic(() => import("./components/boardroom-tab"), { loading: TabLoader, ssr: false });
+const CodeEvalsTab = nextDynamic(() => import("./components/code-evals-tab"), { loading: TabLoader, ssr: false });
+const TalkTracksTab = nextDynamic(() => import("./components/talk-tracks-tab"), { loading: TabLoader, ssr: false });
+const BakedBotBrowserTab = nextDynamic(() => import("./components/bakedbot-browser-tab"), { loading: TabLoader, ssr: false });
+const PilotSetupTab = nextDynamic(() => import("./components/pilot-setup-tab"), { loading: TabLoader, ssr: false });
+const GroundTruthTab = nextDynamic(() => import("./components/ground-truth-tab"), { loading: TabLoader, ssr: false });
+const UnifiedAdminConsole = nextDynamic(() => import("./components/unified-admin-console"), { loading: TabLoader, ssr: false });
+const LeadsTab = nextDynamic(() => import("./components/leads-tab"), { loading: TabLoader });
+const WhatsAppTab = nextDynamic(() => import("./components/whatsapp-tab"), { loading: TabLoader, ssr: false });
+const DriveTab = nextDynamic(() => import("./components/drive-tab"), { loading: TabLoader, ssr: false });
+const CostsTab = nextDynamic(() => import("./components/costs-tab"), { loading: TabLoader, ssr: false });
+const SystemHealthTab = nextDynamic(() => import("./components/system-health-tab"), { loading: TabLoader, ssr: false });
 
 
 import { useUserRole } from '@/hooks/use-user-role';

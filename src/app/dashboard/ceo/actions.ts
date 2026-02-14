@@ -627,41 +627,99 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
     const activeTrend = calcTrendPct(wau, prevWau);
 
     // ======================================================================
-    // REVENUE (Source of truth: organizations/{orgId}/subscription/current)
+    // REVENUE (Org subscriptions + add-ons, normalized to MRR)
     // ======================================================================
 
-    const extractOrgId = (path: string): string | null => {
-      const match = path.match(/^organizations\/([^/]+)\/subscription\/[^/]+$/);
-      return match?.[1] ?? null;
+    const coerceAmount = (value: unknown): number => {
+      if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+      if (typeof value === 'string') {
+        const n = Number(value);
+        return Number.isFinite(n) ? n : 0;
+      }
+      return 0;
     };
 
-    const subsSnapshot = await firestore
-      .collectionGroup('subscription')
-      .where('status', '==', 'active')
-      .get();
+    const normalizeIntervalMonths = (data: any): number => {
+      const raw = data?.intervalMonths;
+      if (typeof raw === 'number' && Number.isFinite(raw) && raw > 0) return raw;
+
+      const billingPeriod = String(data?.billingPeriod || '').toLowerCase();
+      if (billingPeriod === 'annual' || billingPeriod === 'yearly') return 12;
+
+      return 1;
+    };
 
     let mrr = 0;
-    const payingOrgIds = new Set<string>();
+    const payerKeys = new Set<string>();
+    const orgProviderSubscriptionIds = new Set<string>();
 
-    subsSnapshot.docs.forEach((doc) => {
-      // Only count current organization subscriptions (avoid accidental other `subscription/*` docs).
-      if (doc.id !== 'current') return;
+    // 1) Organization subscriptions: organizations/{orgId}/subscription/current
+    // These are the primary SaaS subscriptions created via /api/billing/authorize-net.
+    try {
+      const extractOrgId = (path: string): string | null => {
+        const match = path.match(/^organizations\/([^/]+)\/subscription\/[^/]+$/);
+        return match?.[1] ?? null;
+      };
 
-      const orgId = extractOrgId(doc.ref.path);
-      if (!orgId) return;
+      const orgSubsSnapshot = await firestore
+        .collectionGroup('subscription')
+        .where('status', '==', 'active')
+        .get();
 
-      const data = doc.data() as any;
-      const amount = typeof data.amount === 'number' ? data.amount : Number(data.amount || 0);
-      if (Number.isFinite(amount) && amount > 0) {
-        mrr += amount;
-        payingOrgIds.add(orgId);
-      }
-    });
+      orgSubsSnapshot.docs.forEach((doc) => {
+        if (doc.id !== 'current') return;
+
+        const orgId = extractOrgId(doc.ref.path);
+        if (!orgId) return;
+
+        const data = doc.data() as any;
+
+        const providerId = typeof data?.providerSubscriptionId === 'string' ? data.providerSubscriptionId.trim() : '';
+        if (providerId) orgProviderSubscriptionIds.add(providerId);
+
+        const amount = coerceAmount(data?.amount);
+        if (amount > 0) {
+          mrr += amount;
+          payerKeys.add(`org:${orgId}`);
+        }
+      });
+    } catch (error) {
+      console.error('[PlatformAnalytics] Failed to aggregate org MRR:', error);
+    }
+
+     // 2) Additional subscriptions: top-level subscriptions collection (legacy checkout + add-ons)
+     // Deduplicate by providerSubscriptionId when it overlaps with org subscriptions.
+     try {
+       const subscriptionDocs = await firestore.collection('subscriptions').get();
+ 
+       subscriptionDocs.docs.forEach((doc) => {
+         const data = doc.data() as any;
+         const status = String(data?.status || '').toLowerCase();
+         // MRR should reflect revenue from active subscriptions only (exclude trialing).
+         if (status !== 'active') return;
+
+        const providerId = typeof data?.providerSubscriptionId === 'string' ? data.providerSubscriptionId.trim() : '';
+        if (providerId && orgProviderSubscriptionIds.has(providerId)) return;
+
+        const amount = coerceAmount(data?.price ?? data?.amount);
+        if (!(amount > 0)) return;
+
+        const intervalMonths = normalizeIntervalMonths(data);
+        const monthly = amount / intervalMonths;
+        if (!Number.isFinite(monthly) || monthly <= 0) return;
+
+        mrr += monthly;
+        const payerKey = (data?.userId || data?.customer?.email || doc.id) as string;
+        payerKeys.add(`sub:${String(payerKey)}`);
+      });
+    } catch (error) {
+      console.error('[PlatformAnalytics] Failed to aggregate top-level subscription MRR:', error);
+    }
 
     // Normalize to cents-safe precision (we store USD dollars as a number)
     mrr = Math.round(mrr * 100) / 100;
     const arr = Math.round(mrr * 12 * 100) / 100;
-    const arpu = payingOrgIds.size > 0 ? Math.round((mrr / payingOrgIds.size) * 100) / 100 : 0;
+    const arpu = payerKeys.size > 0 ? Math.round((mrr / payerKeys.size) * 100) / 100 : 0;
 
     // ======================================================================
     // RECENT SIGNUPS (Source: Firestore users collection)

@@ -4,6 +4,7 @@ import { logger } from '@/lib/logger';
 import { verifySession, verifySuperAdmin } from '@/server/utils/auth-check';
 import { createTicketSchema } from '@/app/api/schemas';
 import { runAgent } from '@/server/agents/harness';
+import { persistence } from '@/server/agents/persistence';
 import { linusAgent } from '@/server/agents/linus';
 import { sanitizeForPrompt, wrapUserData, buildSystemDirectives } from '@/server/security';
 
@@ -93,15 +94,13 @@ ${wrapUserData(String(data.errorStack || 'No stack trace available'), 'stack_tra
 
 ${wrapUserData(String(data.errorDigest || 'N/A'), 'error_digest', true, 100)}
 
-${directives}`;
+                ${directives}`;
 
                 // Fire-and-forget dispatch to Linus (don't block ticket creation)
-                runAgent({
-                    agent: linusAgent,
-                    userId: user?.uid || 'guest',
-                    userMessage: linusPrompt,
-                    options: { source: 'interrupt', priority: 'high' }
-                })
+                // NOTE: This uses the standard harness signature (brandId, adapter, agent, tools, stimulus).
+                // Linus doesn't use the injected toolset here (it runs via Claude + internal tooling),
+                // so we pass an empty object for tools.
+                runAgent('system', persistence, linusAgent as any, {}, linusPrompt)
                     .then(result => logger.info('[Tickets API] Linus dispatched', { ticketId: docRef.id }))
                     .catch(err => logger.warn('[Tickets API] Linus dispatch failed (non-blocking)', { error: err }));
 
