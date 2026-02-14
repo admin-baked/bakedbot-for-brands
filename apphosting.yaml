@@ -2,11 +2,11 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 env:
-  # Build-time memory allocation - increased for large Next.js build
-  # Using 64GB for V8 heap to handle Turbopack + large codebase (18k+ files)
-  # Turbopack is forced by Firebase buildpack and needs more memory than webpack
+  # Build-time memory allocation - Firebase recommended limit
+  # Using 30GB for V8 heap (Firebase build containers have ~32GB physical RAM)
+  # Setting 64GB caused OOM as it exceeded container capacity
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=65536"
+    value: "--max-old-space-size=30000"
     availability: [ BUILD ]
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"
