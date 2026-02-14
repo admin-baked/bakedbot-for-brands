@@ -2,11 +2,11 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 env:
-  # Build-time memory allocation - Reduced after extracting lead magnets
-  # Using 20GB for V8 heap (reduced from 201 to ~175 pages)
+  # Build-time memory allocation - Core app with shop pages restored
+  # 80 pages total (55 core + 25 shop) after SEO/Operations extraction
   # Firebase build containers have ~32GB physical RAM
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=20000"
+    value: "--max-old-space-size=16384"
     availability: [ BUILD ]
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"

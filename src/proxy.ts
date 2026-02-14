@@ -57,16 +57,6 @@ export async function proxy(request: NextRequest) {
     }
 
     // ============================
-    // E-COMMERCE REDIRECTS
-    // ============================
-    // Redirect shop/checkout to shop app
-    const SHOP_URL = 'https://bakedbot-shop--studio-567050101-bc6e8.us-central1.hosted.app';
-
-    if (pathname.startsWith('/checkout') || pathname.startsWith('/menu') || pathname.startsWith('/products')) {
-        return NextResponse.rewrite(`${SHOP_URL}${pathname}`);
-    }
-
-    // ============================
     // SUBDOMAIN ROUTING (*.bakedbot.ai)
     // ============================
     // Check for subdomains like ecstaticedibles.bakedbot.ai
