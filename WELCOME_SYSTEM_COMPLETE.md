@@ -156,21 +156,39 @@ await handlePlatformSignup({
 
 ---
 
-### ⏳ Weekly Nurture (Needs Cloud Scheduler Setup)
-**Location:** `src/app/api/jobs/weekly-nurture/route.ts`
-**Flow:** Cloud Scheduler → POST /api/jobs/weekly-nurture → Query users by segment → Generate AI emails → Send via Mailjet
-**Status:** **READY** (endpoint created, needs scheduler setup)
+### ✅ Invitation Acceptance (Wired In)
+**Location:** `src/server/actions/invitations.ts`
+**Flow:** User accepts invitation → acceptInvitationAction() → Update user role → handlePlatformSignup() → Mrs. Parker sends AI email
+**Status:** **ACTIVE** (integrated into `acceptInvitationAction()`)
 
-**To Deploy:**
-```bash
-# Set CRON_SECRET first
-export CRON_SECRET=$(gcloud secrets versions access latest --secret=CRON_SECRET)
-
-# Run setup script
-bash scripts/setup-weekly-nurture-schedulers.sh
+**Code Added:**
+```typescript
+// Trigger AI-powered welcome email for invited user
+try {
+    const { handlePlatformSignup } = await import('./platform-signup');
+    await handlePlatformSignup({
+        userId: user.uid,
+        email: invite.email,
+        firstName: userName?.split(' ')[0],
+        lastName: userName?.split(' ').slice(1).join(' '),
+        role: invite.role as any,
+        orgId: invite.targetOrgId,
+        brandId: invite.role === 'brand' ? invite.targetOrgId : undefined,
+        dispensaryId: invite.role === 'dispensary' ? invite.targetOrgId : undefined,
+    });
+} catch (welcomeError) {
+    logger.error('[Invitations] Failed to trigger welcome email', { error: welcomeError });
+}
 ```
 
-**Schedulers Created:**
+---
+
+### ✅ Weekly Nurture (Cloud Schedulers Active)
+**Location:** `src/app/api/jobs/weekly-nurture/route.ts`
+**Flow:** Cloud Scheduler → POST /api/jobs/weekly-nurture → Query users by segment → Generate AI emails → Send via Mailjet
+**Status:** **ACTIVE** (all 5 schedulers deployed and running)
+
+**Schedulers Deployed:**
 - 🌿 **Customer:** Every Monday 9am EST
 - 🚀 **Super User:** Every Monday 8am EST
 - 💼 **Dispensary:** Every Monday 10am EST
@@ -191,11 +209,12 @@ bash scripts/setup-weekly-nurture-schedulers.sh
 | `scripts/seed-welcome-playbooks.ts` | 150 | Playbook seed script (already run ✅) |
 | `scripts/setup-weekly-nurture-schedulers.sh` | N/A | Cloud Scheduler setup |
 
-### Modified Files (2 files)
+### Modified Files (3 files)
 | File | Change |
 |------|--------|
 | `src/server/services/mrs-parker-welcome.ts` | Replaced static templates with AI generation |
 | `src/app/onboarding/actions.ts` | Added `handlePlatformSignup()` call |
+| `src/server/actions/invitations.ts` | Added `handlePlatformSignup()` call to `acceptInvitationAction()` |
 
 ---
 
@@ -300,11 +319,12 @@ bash scripts/setup-weekly-nurture-schedulers.sh
 
 ## Summary
 
-✅ **AI-Powered Welcome Emails** - Live for age gate + platform signups
+✅ **AI-Powered Welcome Emails** - Live for age gate + platform signups + invitation acceptance
 ✅ **5 Default Playbooks** - Seeded to Firestore
 ✅ **Platform Integration** - Wired into onboarding flow
-✅ **Weekly Nurture Processor** - Endpoint ready
-⏳ **Cloud Schedulers** - Need to run setup script
+✅ **Invitation Integration** - Wired into invitation acceptance flow
+✅ **Weekly Nurture Processor** - All 5 Cloud Schedulers active and running
+✅ **Cloud Schedulers** - Deployed (5 jobs: customer, super_user, dispensary, brand, lead)
 
 **Cost Efficiency:** Sonnet 4 (~$0.01/email generation) vs manual copywriting ($50-100/email)
 
@@ -312,8 +332,14 @@ bash scripts/setup-weekly-nurture-schedulers.sh
 
 **Impact:** 2-3x improvement in engagement expected (from 18% to 35-45% open rates)
 
+**Signup Coverage:**
+- ✅ Age gate leads (dispensary customers)
+- ✅ Platform signups (onboarding flow)
+- ✅ Invited users (invitation acceptance)
+- ✅ Weekly nurture (all segments)
+
 ---
 
-**System Status:** 🟢 **READY FOR PRODUCTION**
+**System Status:** 🟢 **FULLY OPERATIONAL**
 
-Just need to run the Cloud Scheduler setup script to complete weekly nurture automation!
+All integration points complete. System is sending AI-powered welcome emails to all user types!
