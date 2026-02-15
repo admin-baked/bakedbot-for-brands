@@ -16,6 +16,9 @@ Detailed documentation for AI agents working in this codebase.
 | Browser automation/RTRVR | `autonomous-browsing.md` |
 | Auth, login, sessions | `authentication.md` |
 | Roles, permissions, RBAC | `roles.md` |
+| **Lead magnets, CEO Dashboard, analytics** | **`lead-magnets.md`** |
+| Academy, email automation, scoring | `academy.md` |
+| Super User dashboard, BakedBot Drive | `super-users.md` |
 | API routes | `api.md` |
 | Server actions, services | `backend.md` |
 | React components, UI | `frontend.md` |
@@ -70,7 +73,8 @@ Detailed documentation for AI agents working in this codebase.
 ### Lead Generation
 | File | What's Inside |
 |------|---------------|
-| `academy.md` | Cannabis Marketing AI Academy - curriculum, email automation, video tracking |
+| `lead-magnets.md` | **INTEGRATION ARCHITECTURE** - Unified lead system (Academy, Vibe, Training), CEO Dashboard, Firestore collections, scoring |
+| `academy.md` | Cannabis Marketing AI Academy - curriculum, email automation, video tracking, analytics dashboard |
 | (see prime.md) | Vibe Studio lead magnet documentation |
 
 ### Development

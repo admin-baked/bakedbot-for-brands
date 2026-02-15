@@ -4,7 +4,7 @@ import { AppDefinition } from './actions';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Store, Heart, Mail, FileCheck, Plug, Settings } from 'lucide-react';
+import { Store, Heart, Mail, FileCheck, Plug, Settings, Banknote, Building } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -12,7 +12,9 @@ const ICON_MAP: any = {
     Store: Store,
     Heart: Heart,
     Mail: Mail,
-    FileCheck: FileCheck
+    FileCheck: FileCheck,
+    Banknote: Banknote,
+    Building: Building
 };
 
 export default function AppsPageClient({ apps }: { apps: AppDefinition[] }) {

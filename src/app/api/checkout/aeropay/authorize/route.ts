@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
         email: user.email || '',
         firstName: user.displayName?.split(' ')[0] || 'Customer',
         lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
-        phoneNumber: user.phoneNumber,
+        phoneNumber: (user as any).phoneNumber || '+1234567890',
       });
 
       // Save to Firestore
@@ -119,11 +119,11 @@ export async function POST(request: NextRequest) {
         phoneNumber: newAeropayUser.phoneNumber,
         bankAccounts: [],
         status: 'active',
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
+        createdAt: Timestamp.now() as any,
+        updatedAt: Timestamp.now() as any,
       };
 
-      await aeropayUserRef.set(aeropayUser);
+      await aeropayUserRef.set(aeropayUser as any);
 
       logger.info('[AEROPAY] Aeropay user created and saved', {
         userId: user.uid,
@@ -132,6 +132,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Check if user has linked bank account
+    if (!aeropayUser) {
+      return NextResponse.json({ error: 'Failed to create or retrieve Aeropay user' }, { status: 500 });
+    }
+
     const hasBankAccount =
       aeropayUser.bankAccounts && aeropayUser.bankAccounts.length > 0;
 

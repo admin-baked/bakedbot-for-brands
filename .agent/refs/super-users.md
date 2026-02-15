@@ -95,6 +95,93 @@ Google Drive-like file storage system for super users.
 
 ---
 
+## Lead Management Dashboard
+
+**Path**: `/dashboard/ceo?tab=leads`
+
+Unified lead aggregation system combining all lead magnets (Academy, Vibe Studio, Training, age gates).
+
+### Architecture
+
+```
+Public Lead Magnets → Firestore Collections → Admin Dashboards → CEO Unified View
+```
+
+### Leads Tab Features
+- **Stats Cards**: Total leads, Email opt-ins, SMS opt-ins, Age verified
+- **Source Filter**: Dropdown to filter by source (academy, vibe-generator, training, menu, chatbot)
+- **CSV Export**: Export filtered leads with full data (name, email, phone, state, consent, source, timestamp)
+- **Lead Table**: Real-time lead data with consent tracking
+
+### Key Files
+| File | Purpose |
+|------|---------|
+| `src/app/dashboard/ceo/components/leads-tab.tsx` | Leads tab component |
+| `src/server/actions/email-capture.ts` | `getLeads()`, `getLeadStats()` server actions |
+
+### Data Sources
+
+**1. General Leads (`email_leads` collection)**
+- Sources: menu, demo-shop, homepage, chatbot, age gates
+- Captures: email, phone, firstName, emailConsent, smsConsent, ageVerified, state
+- Written by: `captureEmailLead()` in `src/server/actions/email-capture.ts`
+
+**2. Academy Leads (`academy_leads` collection)**
+- Public: `/academy` - Email gate after 3 video views
+- Admin: `/dashboard/academy-analytics` - Analytics dashboard
+- Collections: `academy_leads`, `academy_views`
+- Features: Lead scoring (0-100), video completion tracking, resource downloads, demo requests
+- Written by: `captureAcademyLead()` in `src/server/actions/academy.ts`
+- Read by: `getAcademyAnalytics()` in `src/server/actions/academy-analytics.ts`
+- Sidebar: Super Admin → "Content & Growth" → "Academy Analytics"
+
+**3. Vibe Studio Leads (`vibe_leads` collection)**
+- Public: `/vibe` - Email gate after 3 web vibes
+- Admin: `/dashboard/vibe-admin` - Vibe admin dashboard
+- Features: Platform interest (web/mobile/both), intent signals, refinement tracking
+- Intent Signals: multiple_vibes, heavy_refinement, mobile_interest, downloaded_package
+- Written by: `captureEmail()` in `src/server/actions/leads.ts`
+- Read by: `getVibeLeads()` in `src/server/actions/leads.ts`
+- Sidebar: Super Admin → "Content & Growth" → "Vibe Admin"
+
+**4. Training Enrollments**
+- Public: `/training` - Auto-enrollment with intern role
+- Dashboard: `/dashboard/training` - Student curriculum
+- Admin: `/dashboard/training/admin` - Cohort management
+- Collections: `training_cohorts`, `users/{userId}/training/progress`
+- Features: Zero-touch enrollment, cohort assignment (max 50 students)
+- Written by: `selfEnrollInTraining()` in `src/server/actions/training.ts`
+- Sidebar: Super Admin → "Content & Growth" → "Training Program" + "Training Admin"
+
+### Lead Scoring Formula
+
+| Feature | Base Score | Multipliers |
+|---------|-----------|-------------|
+| **Academy** | 25 | Videos watched ×10, Resources downloaded ×5, Demo requested ×25 |
+| **Vibe Studio** | 20 | Vibes generated ×5, Refinements ×2, Mobile interest ×15 |
+| **Training** | 30 | Weeks completed ×10, Challenges submitted ×5 |
+
+High-intent threshold: **Score > 75**
+
+### Integration Pattern
+
+```typescript
+// 1. Public page captures lead
+await captureFeatureLead({ email, ...metadata });
+
+// 2. Lead stored in feature-specific collection
+// academy_leads | vibe_leads | training_cohorts
+
+// 3. Feature admin dashboard reads collection
+const analytics = await getFeatureAnalytics();
+
+// 4. CEO Leads Tab aggregates all sources
+const allLeads = await getLeads(); // Reads email_leads
+const stats = await getLeadStats(); // Groups by source
+```
+
+---
+
 ## Super Admin Login
 
 **Component**: `src/components/super-admin-login.tsx`
@@ -107,3 +194,7 @@ Special login flow for super admin access.
 - `src/server/services/permissions.ts`
 - `src/components/super-admin-login.tsx`
 - `src/app/dashboard/ceo/` — Boardroom pages
+- `src/app/dashboard/ceo/components/leads-tab.tsx` — Unified leads dashboard
+- `src/app/dashboard/academy-analytics/` — Academy analytics
+- `src/app/dashboard/vibe-admin/` — Vibe Studio admin
+- `src/app/dashboard/training/admin/` — Training admin
