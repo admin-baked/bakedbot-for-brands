@@ -26,7 +26,7 @@ import {
 import { Loader2, Plus, RefreshCw, Trash2, ExternalLink, Search } from 'lucide-react';
 import { Competitor } from '@/types/ezal-discovery';
 import { useToast } from "@/hooks/use-toast";
-import { getEzalCompetitors, createEzalCompetitor } from '../actions/intuition-actions';
+import { getEzalCompetitors, createEzalCompetitor } from '../actions/system-actions';
 
 export interface EzalCompetitorListProps {
     tenantId: string;

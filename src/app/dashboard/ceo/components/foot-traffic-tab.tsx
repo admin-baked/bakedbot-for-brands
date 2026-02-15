@@ -62,13 +62,13 @@ import {
     getBrandPagesAction,
     deleteBrandPageAction,
     toggleBrandPagePublishAction,
-    bulkSeoPageStatusAction,
     setTop25PublishedAction,
     refreshSeoPageDataAction,
     getDispensaryPagesAction,
     deleteDispensaryPageAction,
     toggleDispensaryPagePublishAction
 } from '../actions/seo-actions';
+import { bulkSeoPageStatusAction } from '../actions/user-actions';
 import { getDiscoveryJobStatusAction, runNationalSeedAction } from '../actions/pilot-actions';
 
 import { Checkbox } from '@/components/ui/checkbox';

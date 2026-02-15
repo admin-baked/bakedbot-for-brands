@@ -28,7 +28,7 @@ const MOCK_INSIGHTS: EzalInsight[] = [
 ];
 
 import { useMockData } from '@/hooks/use-mock-data';
-import { getEzalInsights } from '../actions/intuition-actions';
+import { getEzalInsights } from '../actions/system-actions';
 
 export function EzalInsightsFeed({ tenantId }: EzalInsightsFeedProps) {
     const [insights, setInsights] = useState<EzalInsight[]>([]);
