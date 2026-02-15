@@ -74,6 +74,6 @@ try {
     Write-Host "✅ Secret copied to clipboard!" -ForegroundColor Green
     Write-Host ""
 } catch {
-    Write-Host "ℹ️  Could not copy to clipboard (copy manually from above)" -ForegroundColor Yellow
+    Write-Host "INFO: Could not copy to clipboard (copy manually from above)" -ForegroundColor Yellow
     Write-Host ""
 }
