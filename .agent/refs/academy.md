@@ -266,8 +266,149 @@ Added `'academy'` to `RESERVED_PATHS` in `src/app/[brand]/page.tsx` to prevent r
 
 ---
 
+## Analytics Dashboard
+
+**Path**: `/dashboard/academy-analytics` (Super User only)
+
+Comprehensive analytics dashboard for Academy performance and lead quality.
+
+### Features
+
+**1. Overview Metrics**
+- Total leads with lead score distribution
+- Total video views by episode
+- Total resource downloads
+- Total demo requests (high-intent signal)
+- Growth percentages (week/month/all-time)
+
+**2. Conversion Funnel**
+```
+Visitors → Video Views → Email Captures → Demo Requests → Conversions
+```
+- Tracks drop-off rates at each stage
+- Estimated visitor count (40% capture rate assumption)
+
+**3. Popular Episodes**
+- Top 5 episodes by view count
+- Average watch time per episode
+- Completion rates (75%+ = engaged)
+- Ranked by views
+
+**4. Popular Resources**
+- Top 5 downloaded resources
+- Download counts by resource ID
+- Resource type (PDF, Excel, template, checklist)
+
+**5. High-Intent Leads**
+- Leads with score > 75
+- Sorted by lead score descending
+- Shows: email, firstName, leadScore, videosWatched, resourcesDownloaded, intentSignals[]
+- Limit: Top 10 for quick review
+
+**6. Lead Score Distribution**
+- Bucketed: 0-24, 25-49, 50-74, 75-100
+- Visual breakdown of lead quality
+
+### Key Files
+| File | Purpose |
+|------|---------|
+| `src/app/dashboard/academy-analytics/page.tsx` | Analytics dashboard page |
+| `src/server/actions/academy-analytics.ts` | `getAcademyAnalytics()` server action |
+| `src/types/academy.ts` | `AcademyAnalytics` type definition |
+
+### Server Action
+
+```typescript
+export async function getAcademyAnalytics(
+  input: { timeRange: 'week' | 'month' | 'all' }
+): Promise<{ success: boolean; data?: AcademyAnalytics; error?: string }>
+```
+
+**Access Control**: Requires `super_user` role via `requireSuperUser()`
+
+### Firestore Collections Read
+- `academy_leads` - Lead data with scoring
+- `academy_views` - Video views (type: 'video') and resource downloads (type: 'resource')
+
+### Analytics Type
+
+```typescript
+interface AcademyAnalytics {
+  totalLeads: number;
+  totalVideoViews: number;
+  totalDownloads: number;
+  totalDemoRequests: number;
+  leadGrowth: number; // Percentage
+  videoGrowth: number;
+  downloadGrowth: number;
+  demoGrowth: number;
+  funnel: {
+    visitors: number;
+    videoViews: number;
+    emailCaptures: number;
+    demoRequests: number;
+    conversions: number;
+  };
+  popularEpisodes: {
+    episodeId: string;
+    title: string;
+    views: number;
+    avgWatchTime: number;
+    completionRate: number;
+  }[];
+  popularResources: {
+    resourceId: string;
+    title: string;
+    downloads: number;
+    type: string;
+  }[];
+  highIntentLeads: {
+    id: string;
+    email: string;
+    firstName: string;
+    leadScore: number;
+    videosWatched: number;
+    resourcesDownloaded: number;
+    intentSignals: string[];
+  }[];
+  leadScoreDistribution: {
+    '0-24': number;
+    '25-49': number;
+    '50-74': number;
+    '75-100': number;
+  };
+}
+```
+
+### Integration with CEO Dashboard
+
+Academy leads are also aggregated in the CEO Dashboard Leads Tab (`/dashboard/ceo?tab=leads`) alongside other lead sources. This provides:
+
+1. **Unified View**: All leads across all sources (academy, vibe, training, age gates)
+2. **Source Filtering**: Filter dropdown includes "academy" option
+3. **Comparative Analysis**: Compare academy lead volume vs other sources
+4. **CSV Export**: Export academy leads for CRM import
+
+### Sidebar Navigation
+
+**Super Admin Sidebar:**
+```
+📚 Content & Growth
+  ├── Academy Dashboard (/dashboard/academy) - User-facing
+  ├── Academy Analytics (/dashboard/academy-analytics) - Admin analytics ← HERE
+  ├── Vibe Admin (/dashboard/vibe-admin)
+  ├── Training Program (/dashboard/training)
+  └── Training Admin (/dashboard/training/admin)
+
+📊 Analytics (CEO Dashboard)
+  └── Leads (/dashboard/ceo?tab=leads) ← Unified view
+```
+
+---
+
 ## Related Documentation
 
 - **Prime.md** - Recent updates overview
 - **MEMORY.md** - Quick reference
+- **super-users.md** - Lead Management Dashboard section
 - **Plan File** - `C:\Users\admin\.claude\plans\reactive-strolling-moonbeam.md` (full implementation plan)

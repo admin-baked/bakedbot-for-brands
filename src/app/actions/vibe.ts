@@ -539,7 +539,11 @@ export async function refineVibeWithPrompt(
 
         // Import and call the generator with current config
         const { refineVibe } = await import('@/server/services/vibe-generator');
-        const result = await refineVibe(vibeResult.data, refinementPrompt, orgId);
+        const result = await refineVibe({
+            prompt: refinementPrompt,
+            currentConfig: vibeResult.data,
+            orgId
+        });
 
         if (!result.success || !result.config) {
             return { success: false, error: result.error || 'Failed to refine vibe' };

@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
       last4: linkResult.bankAccount.last4,
       status: linkResult.bankAccount.status,
       isDefault: aeropayUser.bankAccounts.length === 0, // First account is default
-      linkedAt: Timestamp.now(),
+      linkedAt: Timestamp.now() as any,
     };
 
     // 7. Update Firestore with bank account
