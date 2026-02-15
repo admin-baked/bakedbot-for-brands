@@ -2,7 +2,7 @@ name: ALWAYS ON - Pulse Heartbeat
 
 on:
   schedule:
-    # Run every 10 minutes (Approximate, GitHub doesn't guarantee exact times)
+    # Run every 10 minutes - The heartbeat of the entire system
     - cron: '*/10 * * * *'
   workflow_dispatch: # Allow manual triggering
 
@@ -10,11 +10,31 @@ jobs:
   pulse:
     runs-on: ubuntu-latest
     steps:
+      - name: Check CRON_SECRET
+        run: |
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "ERROR: CRON_SECRET is not set"
+            exit 1
+          fi
+
       - name: Send Heartbeat Pulse
         run: |
-          # Replace with your actual deployed URL
-          curl -X GET https://bakedbot-for-brands.vercel.app/api/cron/tick \
-          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
-          
-      - name: Clean Start Log
-        run: echo "Pulse sent at $(date)"
+          echo "💓 Sending heartbeat pulse at $(date)"
+
+          response=$(curl -s -w "\n%{http_code}" -X GET \
+            https://bakedbot.ai/api/cron/tick \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" != "200" ]; then
+            echo "ERROR: Heartbeat failed with status $http_code"
+            exit 1
+          fi
+
+      - name: Log Success
+        run: echo "✅ Heartbeat pulse successful - System is alive at $(date)"

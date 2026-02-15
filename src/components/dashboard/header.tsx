@@ -7,6 +7,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { NotificationBell } from '@/components/dashboard/notification-bell';
 import { UserStreakComponent } from '@/components/gamification/user-streak';
+import { HeartbeatIndicator } from '@/components/system/heartbeat-indicator';
 
 export function DashboardHeader() {
   const { current } = useDashboardConfig();
@@ -26,6 +27,8 @@ export function DashboardHeader() {
         {brandId && <ImportProgress brandId={brandId} />}
       </div>
       <div className="flex items-center gap-3">
+        <HeartbeatIndicator showTooltip={true} />
+        <Separator orientation="vertical" className="h-4" />
         <UserStreakComponent />
         <NotificationBell />
       </div>

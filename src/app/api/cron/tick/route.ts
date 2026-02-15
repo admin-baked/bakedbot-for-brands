@@ -101,15 +101,53 @@ export async function GET(req: NextRequest) {
             logger.warn('[Pulse] Failed to process browser tasks', { error: err });
         }
 
+        // 7. Record Heartbeat Status
+        const heartbeatData = {
+            timestamp: FieldValue.serverTimestamp(),
+            status: 'healthy',
+            schedulesProcessed: results.length,
+            schedulesExecuted: results.filter(r => r.status === 'executed').length,
+            browserTasksProcessed: browserTaskResults.length,
+            browserTasksExecuted: browserTaskResults.filter(r => r.status === 'executed').length,
+            errors: [
+                ...results.filter(r => r.status === 'error'),
+                ...browserTaskResults.filter(r => r.status === 'error')
+            ],
+            nextPulseExpected: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes from now
+        };
+
+        // Update system heartbeat document
+        await db.collection('system').doc('heartbeat').set(heartbeatData, { merge: true });
+
+        logger.info('[Pulse] Heartbeat recorded', heartbeatData);
+
         return NextResponse.json({
             success: true,
+            pulse: 'alive',
             processed: results.length,
             details: results,
             browserTasks: browserTaskResults,
+            heartbeat: {
+                timestamp: new Date().toISOString(),
+                nextExpected: heartbeatData.nextPulseExpected.toISOString(),
+            },
         });
 
     } catch (error: any) {
         logger.error('[Pulse] Error', { error });
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+
+        // Record failed heartbeat
+        try {
+            await db.collection('system').doc('heartbeat').set({
+                timestamp: FieldValue.serverTimestamp(),
+                status: 'error',
+                error: error.message,
+                nextPulseExpected: new Date(Date.now() + 10 * 60 * 1000),
+            }, { merge: true });
+        } catch (dbError) {
+            logger.error('[Pulse] Failed to record error heartbeat', { error: dbError });
+        }
+
+        return NextResponse.json({ success: false, pulse: 'error', error: error.message }, { status: 500 });
     }
 }
