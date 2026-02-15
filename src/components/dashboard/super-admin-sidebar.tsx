@@ -47,6 +47,7 @@ import {
     HardDrive,
     Palette,
     DollarSign,
+    Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams, usePathname } from "next/navigation";
@@ -348,10 +349,34 @@ export function SuperAdminSidebar() {
 
                                 {/* Lead Magnets */}
                                 <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/lead-magnets'}>
+                                        <Link href="/dashboard/lead-magnets">
+                                            <Sparkles />
+                                            <span>Lead Magnets</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={pathname === '/dashboard/academy'}>
                                         <Link href="/dashboard/academy">
                                             <Rocket />
                                             <span>Academy</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/academy-analytics'}>
+                                        <Link href="/dashboard/academy-analytics">
+                                            <BarChart3 />
+                                            <span>Academy Analytics</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/vibe-admin'}>
+                                        <Link href="/dashboard/vibe-admin">
+                                            <Palette />
+                                            <span>Vibe Admin</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
