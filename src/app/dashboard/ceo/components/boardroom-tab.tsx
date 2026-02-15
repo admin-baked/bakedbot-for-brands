@@ -180,7 +180,7 @@ export default function BoardroomTab() {
                                 }
                             `}</style>
                             <span className="hidden sm:inline">•</span>
-                            <span className="text-sm sm:text-base">Collaborative alignment for $100k MRR target (Jan 2027)</span>
+                            <span className="text-sm sm:text-base line-clamp-2">Collaborative alignment for $100k MRR target (Jan 2027)</span>
                         </div>
                     </div>
                 </div>
