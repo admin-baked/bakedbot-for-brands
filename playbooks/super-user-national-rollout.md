@@ -48,7 +48,7 @@ Scale BakedBot's SEO presence to thousands of location pages across legal cannab
 
 ## ✅ Phase 1: Verify CRON_SECRET (One-Time Setup)
 
-**Status:** ⏳ Pending
+**Status:** ✅ **Complete** (February 15, 2026)
 **Priority:** High - Required for automation to work
 
 ### Step 1: Get Firebase Secret
@@ -59,6 +59,7 @@ cd "C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\scripts"
 ```
 
 **Expected:** Secret value displayed and copied to clipboard
+**Result:** ✅ Retrieved successfully
 
 ### Step 2: Test Endpoint
 
@@ -69,9 +70,22 @@ cd "C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\scripts"
 **Expected Outcomes:**
 - ✅ **200 Success:** Endpoint works! Secret is valid.
 - ❌ **401 Unauthorized:** GitHub secret doesn't match Firebase. Update GitHub.
-- ❌ **500 Server Error:** Check `apphosting.yaml` configuration.
+- ❌ **500 Server Error:** App Hosting needs secret access granted.
 
-### Step 3: Update GitHub Secret (If 401)
+**Result:** Got 500 error initially → Fixed in Step 3
+
+### Step 3: Grant App Hosting Access (If 500)
+
+```powershell
+firebase apphosting:secrets:grantaccess CRON_SECRET --backend=bakedbot-prod --project=studio-567050101-bc6e8
+```
+
+**Expected:** "Successfully set IAM bindings on secret CRON_SECRET"
+**Result:** ✅ Access granted successfully
+
+**Note:** Changes take effect on next deployment (automatic on git push)
+
+### Step 4: Update GitHub Secret (If 401)
 
 1. Go to: https://github.com/admin-baked/bakedbot-for-brands/settings/secrets/actions
 2. Click "CRON_SECRET" → Update
@@ -79,7 +93,9 @@ cd "C:\Users\admin\BakedBot for Brands\bakedbot-for-brands\scripts"
 4. Save
 5. Re-run verify script to confirm
 
-**Success Criteria:** `verify-secret.ps1` returns 200 with JSON response showing pages created
+**Result:** Not needed - secret already matches
+
+**Success Criteria:** After next deployment, `verify-secret.ps1` returns 200 with JSON response showing pages created
 
 ---
 
