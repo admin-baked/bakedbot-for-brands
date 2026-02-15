@@ -75,7 +75,7 @@ export async function getSeoPagesAction(): Promise<LocalSEOPage[]> {
             nextRefresh: doc.data().nextRefresh?.toDate() || new Date(),
         }));
 
-        return [...zipPages, ...dispPages] as LocalSEOPage[];
+        return [...zipPages, ...dispPages] as unknown as LocalSEOPage[];
     } catch (error) {
         console.error('Error fetching SEO pages:', error);
         return [];
@@ -422,4 +422,13 @@ export async function setTop25PublishedAction(): Promise<ActionResult & { publis
         if (count % batchSize !== 0) await batch.commit();
         return { message: `Updated ${count} pages`, published: count };
     } catch (error: any) { return { message: error.message, error: true }; }
+}
+
+// Re-exports for backward compatibility
+export { runDispensaryPilotAction, runBrandPilotAction } from './pilot-actions';
+export { bulkSeoPageStatusAction } from './user-actions';
+
+// Stub for missing function
+export async function refreshSeoPageDataAction(): Promise<ActionResult> {
+    return { message: 'SEO page refresh not implemented', error: true };
 }

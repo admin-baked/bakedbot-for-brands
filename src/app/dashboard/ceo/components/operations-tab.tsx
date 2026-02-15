@@ -368,7 +368,7 @@ export default function OperationsTab() {
                             <div className="bg-muted/30 p-3 rounded-lg text-sm space-y-2 border">
                                 <div className="flex justify-between items-center">
                                     <span className="font-medium text-muted-foreground">Current Plan</span>
-                                    <span className="font-semibold">{coverage.planName} {coverage.packCount > 0 && `(+${coverage.packCount} Packs)`}</span>
+                                    <span className="font-semibold">{coverage.planName} {(coverage.packCount ?? 0) > 0 && `(+${coverage.packCount} Packs)`}</span>
                                 </div>
                                 <div className="space-y-1">
                                     <div className="flex justify-between text-xs">

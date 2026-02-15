@@ -32,3 +32,15 @@ export type PlatformAnalyticsData = {
     recentSignups: { id: string; name: string; email: string; plan: string; date: string; role: string }[];
     agentUsage: { agent: string; calls: number; avgDuration: string; successRate: number; costToday: number }[];
 };
+
+export interface CoverageStatus {
+    planName: string;
+    limit: number;
+    currentUsage: number;
+    canGenerateMore: boolean;
+    packCount?: number; // Optional: number of add-on packs purchased
+    totalPages?: number;
+    publishedPages?: number;
+    draftPages?: number;
+    byType?: Record<string, number>;
+}

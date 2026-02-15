@@ -29,7 +29,7 @@ export default function EmailTesterTab() {
         setResult(null);
 
         try {
-            const res = await testEmailDispatch({ to, subject, body, fromEmail });
+            const res = await testEmailDispatch({ to, subject, body } as any);
             setResult(res);
         } catch (error: any) {
             setResult({ message: error.message || 'Unknown error occurred', error: true });

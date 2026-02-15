@@ -143,7 +143,7 @@ function generateCertificateHtml(params: {
 }): string {
   const { userName, trackId, completionDate } = params;
 
-  const trackInfo = trackId ? AGENT_TRACKS[trackId] : null;
+  const trackInfo = trackId ? (AGENT_TRACKS as any)[trackId] : null;
   const certificateTitle = trackInfo
     ? `${trackInfo.name} Track Certificate`
     : 'Master Certificate of Completion';

@@ -410,7 +410,7 @@ export default function SuperAdminPlaybooksTab() {
                                     <div className="flex items-center gap-2">
                                         <span className="text-muted-foreground">Agents:</span>
                                         <div className="flex gap-1">
-                                            {playbook.agents.map(agent => (
+                                            {playbook.agents.map((agent: string) => (
                                                 <Badge key={agent} variant="secondary" className="text-xs">
                                                     {agent}
                                                 </Badge>
@@ -498,7 +498,7 @@ export default function SuperAdminPlaybooksTab() {
                                         <div className="space-y-2">
                                             <p className="text-sm font-medium text-muted-foreground">Participating Agents</p>
                                             <div className="flex flex-wrap gap-2">
-                                                {selectedPlaybook.agents.map(agent => (
+                                                {selectedPlaybook.agents.map((agent: string) => (
                                                     <div key={agent} className="flex items-center gap-2 rounded-md border p-2 bg-muted/50">
                                                         <Bot className="h-4 w-4 text-primary" />
                                                         <span className="text-sm font-medium">{agent}</span>
@@ -516,7 +516,7 @@ name: ${selectedPlaybook.name}
 type: ${selectedPlaybook.category}
 schedule: "${selectedPlaybook.schedule}"
 agents:
-${selectedPlaybook.agents.map(a => `  - ${a}`).join('\n')}
+${selectedPlaybook.agents.map((a: string) => `  - ${a}`).join('\n')}
 
 # Steps
 1. Initialize environment

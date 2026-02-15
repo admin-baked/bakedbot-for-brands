@@ -123,3 +123,6 @@ export async function generateDailyReport(tenantId: string) {
         return { success: false, message: 'Failed to generate daily report.' };
     }
 }
+
+// Re-exports for backward compatibility
+export { getEzalCompetitors, createEzalCompetitor, getEzalInsights } from './system-actions';
