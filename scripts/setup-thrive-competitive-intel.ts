@@ -10,8 +10,26 @@
  * Run with: npx tsx scripts/setup-thrive-competitive-intel.ts
  */
 
-import { getAdminFirestore } from '../src/firebase/admin';
-import { logger } from '../src/lib/logger';
+// Direct Firebase Admin imports (avoid server-only modules)
+import { initializeApp, getApps, applicationDefault } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+
+// Initialize Firebase Admin with Application Default Credentials
+// Requires: gcloud auth application-default login --project=studio-567050101-bc6e8
+if (!getApps().length) {
+    initializeApp({
+        credential: applicationDefault(),
+        projectId: 'studio-567050101-bc6e8',
+    });
+}
+
+const firestore = getFirestore();
+
+// Simple logger for scripts
+const logger = {
+    info: (msg: string, data?: any) => console.log(`[INFO] ${msg}`, data || ''),
+    error: (msg: string, data?: any) => console.error(`[ERROR] ${msg}`, data || ''),
+};
 
 const THRIVE_ORG_ID = 'org_thrive_syracuse';
 const REPORT_EMAIL = 'martez@bakedbot.ai';
@@ -54,8 +72,6 @@ const SYRACUSE_COMPETITORS = [
 
 async function main() {
     logger.info('[Setup] Starting Thrive Syracuse Competitive Intelligence setup...');
-
-    const firestore = getAdminFirestore();
 
     try {
         // 1. Create the playbook in tenants/{orgId}/playbooks collection
