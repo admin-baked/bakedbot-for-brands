@@ -27,14 +27,15 @@ export async function proxy(request: NextRequest) {
         || '';
 
     // ============================
-    // LEAD MAGNET REDIRECTS
+    // LEAD MAGNET SUBDOMAINS
     // ============================
-    // Redirect lead magnets to separate magnets subdomain
-    const MAGNETS_URL = 'https://bakedbot-magnets--studio-567050101-bc6e8.us-central1.hosted.app';
-
-    if (pathname.startsWith('/academy') || pathname.startsWith('/vibe') || pathname.startsWith('/training')) {
-        return NextResponse.redirect(`${MAGNETS_URL}${pathname}`);
-    }
+    // Lead magnets use dedicated custom subdomains pointing to separate backends:
+    // - academy.bakedbot.ai → bakedbot-magnets backend
+    // - vibe.bakedbot.ai → bakedbot-magnets backend
+    // - training.bakedbot.ai → bakedbot-training backend
+    //
+    // DNS CNAME records route traffic directly to the correct backend.
+    // No redirects needed in this proxy.
 
     // ============================
     // SUBDOMAIN ROUTING (*.bakedbot.ai)
@@ -57,8 +58,8 @@ export async function proxy(request: NextRequest) {
         if (hasSubdomain) {
             const subdomain = hostParts[0].toLowerCase();
 
-            // Skip reserved subdomains
-            const reservedSubdomains = ['www', 'api', 'app', 'dashboard', 'admin', 'mail', 'cdn', 'static'];
+            // Skip reserved subdomains (including lead magnets with custom backends)
+            const reservedSubdomains = ['www', 'api', 'app', 'dashboard', 'admin', 'mail', 'cdn', 'static', 'academy', 'vibe', 'training'];
             if (!reservedSubdomains.includes(subdomain)) {
                 // For subdomain requests, resolve to the brand's storefront
                 // If hitting root, rewrite to /{subdomain}
