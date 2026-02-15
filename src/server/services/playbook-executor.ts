@@ -678,6 +678,413 @@ export async function executeSubmitApproval(
     };
 }
 
+// =============================================================================
+// COMPETITIVE INTELLIGENCE STEP EXECUTORS
+// =============================================================================
+
+/**
+ * Scan competitor websites for pricing and product data
+ * Action: scan_competitors
+ */
+export async function executeScanCompetitors(
+    step: any,
+    context: ExecutionContext
+): Promise<any> {
+    const competitors = step.params?.competitors || [];
+    const { firestore } = await createServerClient();
+
+    logger.info('[PlaybookExecutor] Scanning competitors:', { count: competitors.length });
+
+    if (competitors.length === 0) {
+        throw new Error('No competitors specified in step params');
+    }
+
+    try {
+        // Import Ezal Lite service
+        const { runLiteSnapshot, addEzalCompetitor } = await import('@/server/services/ezal-lite-connector');
+
+        const results = [];
+
+        for (const competitor of competitors) {
+            const { name, url, state, city } = competitor;
+
+            logger.info('[PlaybookExecutor] Scanning competitor:', { name, url });
+
+            try {
+                // Ensure competitor exists in database
+                await addEzalCompetitor(name, url, state, city, context.userId);
+
+                // Run snapshot
+                const snapshot = await runLiteSnapshot(
+                    url.replace(/https?:\/\//, '').replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 50),
+                    name,
+                    url,
+                    false // Don't force refresh (use cache if fresh)
+                );
+
+                results.push({
+                    name,
+                    url,
+                    status: snapshot.status,
+                    priceRange: snapshot.priceRange,
+                    promoCount: snapshot.promoCount,
+                    promoSignals: snapshot.promoSignals,
+                    categorySignals: snapshot.categorySignals,
+                    discoveredAt: snapshot.discoveredAt,
+                    freshness: snapshot.freshness,
+                    errorMessage: snapshot.errorMessage,
+                });
+            } catch (error) {
+                logger.error('[PlaybookExecutor] Competitor scan failed:', { name, error });
+                results.push({
+                    name,
+                    url,
+                    status: 'failed',
+                    errorMessage: error instanceof Error ? error.message : 'Unknown error',
+                });
+            }
+        }
+
+        // Store in context for next steps
+        context.variables.competitorData = results;
+        context.previousResults.competitors = results;
+
+        logger.info('[PlaybookExecutor] Competitor scan complete:', {
+            total: competitors.length,
+            successful: results.filter(r => r.status === 'success').length,
+            failed: results.filter(r => r.status === 'failed').length,
+        });
+
+        return {
+            success: true,
+            competitors: results,
+            scannedAt: new Date().toISOString(),
+        };
+    } catch (error) {
+        logger.error('[PlaybookExecutor] Failed to scan competitors:', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        };
+    }
+}
+
+/**
+ * Generate competitor intelligence report using Claude
+ * Action: generate_competitor_report
+ */
+export async function executeGenerateCompetitorReport(
+    step: any,
+    context: ExecutionContext
+): Promise<any> {
+    const competitorData = context.variables.competitorData || [];
+    const format = step.params?.format || 'markdown';
+    const dispensaryName = step.params?.dispensaryName || 'Our Dispensary';
+
+    logger.info('[PlaybookExecutor] Generating competitor report:', { format, dataCount: competitorData.length });
+
+    if (competitorData.length === 0) {
+        throw new Error('No competitor data available. Run scan_competitors first.');
+    }
+
+    try {
+        // Import Claude service
+        const Anthropic = await import('@anthropic-ai/sdk');
+        const client = new Anthropic.default({
+            apiKey: process.env.ANTHROPIC_API_KEY,
+        });
+
+        const reportPrompt = `You are a competitive intelligence analyst for ${dispensaryName}, a cannabis dispensary.
+
+Generate a comprehensive daily competitive intelligence report based on the following competitor data:
+
+${JSON.stringify(competitorData, null, 2)}
+
+The report should include:
+
+## Executive Summary
+- 2-3 sentence overview of key insights and competitive threats
+- Price positioning assessment
+
+## Competitor Analysis
+For each competitor, provide:
+- **Name & URL**
+- **Price Range**: Min, median, max
+- **Promotional Activity**: Number of active promotions and signals (e.g., "20% off", "BOGO")
+- **Product Categories**: Categories detected on their menu
+- **Competitive Threat Level**: Low / Medium / High
+- **Key Insights**: 2-3 bullet points
+
+## Market Insights
+- **Average Market Prices**: Calculate average min/median/max across all competitors
+- **Promotional Trends**: Common promotion types and patterns
+- **Product Mix**: Categories competitors are focusing on
+- **Pricing Opportunities**: Where we can be more competitive
+
+## Recommendations
+- **Immediate Actions**: 2-3 tactical pricing or promotion recommendations
+- **Strategic Considerations**: Longer-term competitive positioning
+- **Product Gaps**: Categories or price points we should consider
+
+Format: ${format === 'html' ? 'HTML with proper headings and styling' : 'Clean markdown with proper headers'}
+
+Keep it professional, data-driven, and actionable.`;
+
+        const response = await client.messages.create({
+            model: 'claude-sonnet-4-20250514', // Use Sonnet for cost efficiency
+            max_tokens: 4096,
+            temperature: 0.3, // Low temperature for consistent, factual output
+            messages: [
+                {
+                    role: 'user',
+                    content: reportPrompt,
+                },
+            ],
+        });
+
+        const report = response.content[0].type === 'text' ? response.content[0].text : '';
+
+        // Store in context
+        context.variables.competitorReport = report;
+        context.previousResults.report = report;
+
+        logger.info('[PlaybookExecutor] Report generated:', { length: report.length });
+
+        return {
+            success: true,
+            report,
+            format,
+            generatedAt: new Date().toISOString(),
+        };
+    } catch (error) {
+        logger.error('[PlaybookExecutor] Failed to generate report:', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        };
+    }
+}
+
+/**
+ * Save report to BakedBot Drive
+ * Action: save_to_drive
+ */
+export async function executeSaveToDrive(
+    step: any,
+    context: ExecutionContext
+): Promise<any> {
+    const report = context.variables.competitorReport;
+    const category = step.params?.category || 'documents';
+    const filename = step.params?.filename || `competitive-intelligence-${new Date().toISOString().split('T')[0]}.md`;
+
+    logger.info('[PlaybookExecutor] Saving report to Drive:', { filename, category });
+
+    if (!report) {
+        throw new Error('No report available. Run generate_competitor_report first.');
+    }
+
+    try {
+        // Import Drive service
+        const { getDriveStorageService } = await import('@/server/services/drive-storage');
+        const { initializeSystemFolders } = await import('@/server/actions/drive');
+        const { firestore } = await createServerClient();
+
+        // Initialize system folders if needed
+        const foldersResult = await initializeSystemFolders();
+        if (!foldersResult.success) {
+            throw new Error('Failed to initialize Drive folders');
+        }
+
+        // Find the documents folder
+        const documentsFolder = foldersResult.data?.find(f => f.category === category);
+        if (!documentsFolder) {
+            throw new Error(`Folder not found: ${category}`);
+        }
+
+        // Create a buffer from the report string
+        const buffer = Buffer.from(report, 'utf-8');
+        const size = buffer.length;
+
+        // Upload to Firebase Storage
+        const storage = getDriveStorageService();
+        const uploadResult = await storage.uploadFile({
+            userId: context.userId,
+            userEmail: '', // Will be populated by the system
+            file: {
+                buffer,
+                originalName: filename,
+                mimeType: 'text/markdown',
+                size,
+            },
+            category,
+            folderId: documentsFolder.id,
+            description: `Competitive intelligence report generated ${new Date().toLocaleDateString()}`,
+            tags: ['competitive-intel', 'automated', 'ezal'],
+        });
+
+        if (!uploadResult.success) {
+            throw new Error(uploadResult.error || 'Upload failed');
+        }
+
+        // Create file document in Firestore
+        const fileDoc = {
+            name: filename,
+            path: uploadResult.storagePath!,
+            downloadUrl: uploadResult.downloadUrl,
+            size,
+            mimeType: 'text/markdown',
+            folderId: documentsFolder.id,
+            ownerId: context.userId,
+            ownerEmail: '',
+            category,
+            isShared: false,
+            shareIds: [],
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+        };
+
+        const fileRef = await firestore.collection('drive_files').add(fileDoc);
+
+        // Store in context
+        context.variables.driveFileId = fileRef.id;
+        context.variables.driveFilePath = uploadResult.storagePath;
+        context.previousResults.driveFile = { id: fileRef.id, path: uploadResult.storagePath };
+
+        logger.info('[PlaybookExecutor] Report saved to Drive:', { fileId: fileRef.id });
+
+        return {
+            success: true,
+            fileId: fileRef.id,
+            path: uploadResult.storagePath,
+        };
+    } catch (error) {
+        logger.error('[PlaybookExecutor] Failed to save to Drive:', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        };
+    }
+}
+
+/**
+ * Send email with report
+ * Action: send_email
+ */
+export async function executeSendEmail(
+    step: any,
+    context: ExecutionContext
+): Promise<any> {
+    const to = resolveVariables(step.params?.to || '{{user.email}}', context.variables);
+    const subject = resolveVariables(step.params?.subject || 'Daily Competitive Intelligence Report', context.variables);
+    const report = context.variables.competitorReport;
+    const driveUrl = context.variables.driveFilePath;
+
+    logger.info('[PlaybookExecutor] Sending email:', { to, subject });
+
+    if (!report) {
+        throw new Error('No report available. Run generate_competitor_report first.');
+    }
+
+    try {
+        // Import email service
+        const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+
+        // Build HTML email from markdown report
+        const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${subject}</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1 { color: #2c5530; border-bottom: 3px solid #4ade80; padding-bottom: 10px; }
+        h2 { color: #15803d; margin-top: 30px; }
+        h3 { color: #166534; }
+        code { background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; }
+        pre { background: #f9fafb; padding: 15px; border-left: 4px solid #4ade80; overflow-x: auto; }
+        ul { padding-left: 20px; }
+        li { margin: 8px 0; }
+        .header { background: linear-gradient(135deg, #15803d 0%, #4ade80 100%); color: white; padding: 30px; border-radius: 8px; margin-bottom: 30px; }
+        .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px; }
+        a { color: #15803d; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 style="margin: 0; color: white; border: none;">🔍 Daily Competitive Intelligence Report</h1>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">Generated ${new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' })}</p>
+    </div>
+
+    <div class="content">
+        ${markdownToHtml(report)}
+    </div>
+
+    ${driveUrl ? `
+    <p style="margin-top: 30px; padding: 15px; background: #f0fdf4; border-left: 4px solid #4ade80; border-radius: 4px;">
+        📁 <strong>Full Report:</strong> View in BakedBot Drive (path: ${driveUrl})
+    </p>
+    ` : ''}
+
+    <div class="footer">
+        <p>This report was automatically generated by BakedBot AI.<br>
+        Questions? Reply to this email or visit <a href="https://bakedbot.ai">bakedbot.ai</a></p>
+    </div>
+</body>
+</html>`;
+
+        const result = await sendGenericEmail({
+            to,
+            name: to.split('@')[0],
+            fromEmail: 'reports@bakedbot.ai',
+            fromName: 'BakedBot Intelligence',
+            subject,
+            htmlBody,
+            textBody: report,
+            orgId: context.orgId,
+            communicationType: 'campaign',
+            agentName: 'ezal',
+        });
+
+        if (!result.success) {
+            throw new Error(result.error || 'Email send failed');
+        }
+
+        logger.info('[PlaybookExecutor] Email sent:', { to });
+
+        return {
+            success: true,
+            sentTo: to,
+            subject,
+        };
+    } catch (error) {
+        logger.error('[PlaybookExecutor] Failed to send email:', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        };
+    }
+}
+
+/**
+ * Simple markdown to HTML converter (basic)
+ */
+function markdownToHtml(markdown: string): string {
+    return markdown
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+        .replace(/^\- (.*$)/gim, '<li>$1</li>')
+        .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/^(?!<[hul])/gim, '<p>')
+        .replace(/$/gim, '</p>');
+}
+
 /**
  * Build a video prompt from deals data
  */
@@ -971,6 +1378,19 @@ export async function executePlaybook(
                         break;
                     case 'submit_approval':
                         output = await executeSubmitApproval(step, context);
+                        break;
+                    // Competitive Intelligence Actions
+                    case 'scan_competitors':
+                        output = await executeScanCompetitors(step, context);
+                        break;
+                    case 'generate_competitor_report':
+                        output = await executeGenerateCompetitorReport(step, context);
+                        break;
+                    case 'save_to_drive':
+                        output = await executeSaveToDrive(step, context);
+                        break;
+                    case 'send_email':
+                        output = await executeSendEmail(step, context);
                         break;
                     default:
                         logger.warn('[PlaybookExecutor] Unknown action:', step.action);
