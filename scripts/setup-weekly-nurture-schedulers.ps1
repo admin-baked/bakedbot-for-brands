@@ -54,7 +54,7 @@ Create-SchedulerJob `
     -JobName "customer-weekly-nurture" `
     -Schedule "0 9 * * 1" `
     -Body '{"segment":"customer","playbookId":"welcome_customer"}' `
-    -Description "Weekly nurture emails for customers (deals, education, loyalty)" `
+    -Description "Weekly nurture emails for customers - deals and education and loyalty" `
     -Emoji "📧"
 
 # 2. Super User Weekly Update (Every Monday 8am EST)
@@ -62,7 +62,7 @@ Create-SchedulerJob `
     -JobName "super-user-weekly-update" `
     -Schedule "0 8 * * 1" `
     -Body '{"segment":"super_user","playbookId":"welcome_super_user"}' `
-    -Description "Weekly company updates for BakedBot team (growth, wins, competitive intel)" `
+    -Description "Weekly company updates for BakedBot team - growth and wins and competitive intel" `
     -Emoji "🚀"
 
 # 3. Dispensary Weekly Insights (Every Monday 10am EST)
@@ -70,7 +70,7 @@ Create-SchedulerJob `
     -JobName "dispensary-weekly-insights" `
     -Schedule "0 10 * * 1" `
     -Body '{"segment":"dispensary_owner","playbookId":"welcome_dispensary"}' `
-    -Description "Weekly insights for dispensaries (inventory, compliance, retention)" `
+    -Description "Weekly insights for dispensaries - inventory and compliance and retention" `
     -Emoji "💼"
 
 # 4. Brand Weekly Marketing Tips (Every Monday 11am EST)
@@ -78,7 +78,7 @@ Create-SchedulerJob `
     -JobName "brand-weekly-marketing" `
     -Schedule "0 11 * * 1" `
     -Body '{"segment":"brand_marketer","playbookId":"welcome_brand"}' `
-    -Description "Weekly marketing tips for brands (campaigns, content ideas, competitive intel)" `
+    -Description "Weekly marketing tips for brands - campaigns and content ideas and competitive intel" `
     -Emoji "🎨"
 
 # 5. Lead Weekly Value Emails (Every Wednesday 10am EST)
@@ -86,7 +86,7 @@ Create-SchedulerJob `
     -JobName "lead-weekly-value" `
     -Schedule "0 10 * * 3" `
     -Body '{"segment":"lead","playbookId":"welcome_lead"}' `
-    -Description "Weekly value emails for leads (education, case studies, demo invites)" `
+    -Description "Weekly value emails for leads - education and case studies and demo invites" `
     -Emoji "🧲"
 
 Write-Host ""
