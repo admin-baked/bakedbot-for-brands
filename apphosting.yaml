@@ -185,6 +185,27 @@ env:
     value: "1.4.0"
     availability:
       - RUNTIME
+  # Aeropay
+  - variable: AEROPAY_ENVIRONMENT
+    value: "sandbox"
+    availability:
+      - RUNTIME
+  - variable: AEROPAY_CLIENT_ID
+    secret: AEROPAY_CLIENT_ID
+    availability:
+      - RUNTIME
+  - variable: AEROPAY_CLIENT_SECRET
+    secret: AEROPAY_CLIENT_SECRET
+    availability:
+      - RUNTIME
+  - variable: AEROPAY_MERCHANT_ID
+    secret: AEROPAY_MERCHANT_ID
+    availability:
+      - RUNTIME
+  - variable: AEROPAY_WEBHOOK_SECRET
+    secret: AEROPAY_WEBHOOK_SECRET
+    availability:
+      - RUNTIME
   # Stripe
   # - variable: STRIPE_SECRET_KEY
   #   secret: STRIPE_SECRET_KEY

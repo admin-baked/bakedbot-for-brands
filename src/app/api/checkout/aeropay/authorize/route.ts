@@ -1,0 +1,289 @@
+/**
+ * Aeropay Payment Authorization Endpoint
+ *
+ * POST /api/checkout/aeropay/authorize
+ *
+ * Authorizes an Aeropay payment - creates user if needed, checks for linked bank,
+ * and either returns bank linking URL or creates transaction.
+ *
+ * Flow:
+ * 1. Client calls this endpoint with order details
+ * 2. Server checks if user has Aeropay account (Firestore: aeropay_users)
+ * 3a. If NO account → Create Aeropay user → Save to Firestore
+ * 3b. If YES account → Check if bank account linked
+ * 4a. If NO bank → Return aggregator URL for Aerosync widget (one-time bank linking)
+ * 4b. If YES bank → Create transaction → Return transaction ID
+ *
+ * AI-THREAD: [Claude @ 2026-02-15] AEROPAY-INTEGRATION
+ * Created authorization endpoint for Aeropay payments with user/bank management.
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import {
+  createAeropayUser,
+  getAggregatorCredentials,
+  createTransaction,
+  AEROPAY_TRANSACTION_FEE_CENTS,
+} from '@/lib/payments/aeropay';
+import { getUserFromRequest } from '@/server/auth/auth-helpers';
+import { createServerClient } from '@/firebase/server-client';
+import { logger } from '@/lib/logger';
+import type { AeropayUserDoc } from '@/types/aeropay';
+import { Timestamp } from 'firebase-admin/firestore';
+
+export const dynamic = 'force-dynamic';
+
+interface AuthorizeRequest {
+  orderId: string;
+  amount: number; // in cents
+  organizationId?: string;
+  bankAccountId?: string; // Optional: use specific bank account
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    // 1. Authenticate user
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // 2. Parse request body
+    const body: AuthorizeRequest = await request.json();
+    const { orderId, amount, organizationId, bankAccountId } = body;
+
+    if (!orderId || !amount || amount <= 0) {
+      return NextResponse.json(
+        { error: 'Missing or invalid orderId or amount' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Verify order exists and belongs to user
+    const { firestore } = await createServerClient();
+    const orderRef = firestore.collection('orders').doc(orderId);
+    const orderSnap = await orderRef.get();
+
+    if (!orderSnap.exists) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    const orderData = orderSnap.data();
+
+    // Verify order ownership
+    if (orderData?.customerId !== user.uid && orderData?.userId !== user.uid) {
+      return NextResponse.json(
+        { error: 'You do not have permission to pay for this order' },
+        { status: 403 }
+      );
+    }
+
+    // Verify order hasn't already been paid
+    if (orderData?.paymentStatus === 'paid') {
+      return NextResponse.json(
+        { error: 'Order has already been paid' },
+        { status: 400 }
+      );
+    }
+
+    // 4. Check if user has Aeropay account in Firestore
+    const aeropayUserRef = firestore.collection('aeropay_users').doc(user.uid);
+    const aeropayUserSnap = await aeropayUserRef.get();
+    let aeropayUser: AeropayUserDoc | null = null;
+
+    if (aeropayUserSnap.exists) {
+      aeropayUser = aeropayUserSnap.data() as AeropayUserDoc;
+    }
+
+    // 5. If NO Aeropay account → Create one
+    if (!aeropayUser) {
+      logger.info('[AEROPAY] Creating new Aeropay user', {
+        userId: user.uid,
+        email: user.email,
+      });
+
+      const newAeropayUser = await createAeropayUser({
+        email: user.email || '',
+        firstName: user.displayName?.split(' ')[0] || 'Customer',
+        lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
+        phoneNumber: user.phoneNumber,
+      });
+
+      // Save to Firestore
+      aeropayUser = {
+        userId: user.uid,
+        aeropayUserId: newAeropayUser.userId,
+        email: newAeropayUser.email,
+        firstName: newAeropayUser.firstName,
+        lastName: newAeropayUser.lastName,
+        phoneNumber: newAeropayUser.phoneNumber,
+        bankAccounts: [],
+        status: 'active',
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
+
+      await aeropayUserRef.set(aeropayUser);
+
+      logger.info('[AEROPAY] Aeropay user created and saved', {
+        userId: user.uid,
+        aeropayUserId: newAeropayUser.userId,
+      });
+    }
+
+    // 6. Check if user has linked bank account
+    const hasBankAccount =
+      aeropayUser.bankAccounts && aeropayUser.bankAccounts.length > 0;
+
+    // Determine which bank account to use
+    let selectedBankAccountId: string | undefined;
+    if (hasBankAccount) {
+      if (bankAccountId) {
+        // Use specified bank account
+        const bankAccount = aeropayUser.bankAccounts.find((ba) => ba.id === bankAccountId);
+        if (!bankAccount) {
+          return NextResponse.json(
+            { error: 'Specified bank account not found' },
+            { status: 400 }
+          );
+        }
+        selectedBankAccountId = bankAccountId;
+      } else {
+        // Use default bank account
+        selectedBankAccountId =
+          aeropayUser.defaultBankAccountId ||
+          aeropayUser.bankAccounts.find((ba) => ba.isDefault)?.id ||
+          aeropayUser.bankAccounts[0]?.id;
+      }
+    }
+
+    // 7a. If NO bank account → Return aggregator URL for bank linking
+    if (!hasBankAccount || !selectedBankAccountId) {
+      logger.info('[AEROPAY] User needs to link bank account', {
+        userId: user.uid,
+        aeropayUserId: aeropayUser.aeropayUserId,
+      });
+
+      const aggregatorCreds = await getAggregatorCredentials({
+        userId: aeropayUser.aeropayUserId,
+      });
+
+      // Update order to indicate Aeropay payment in progress
+      await orderRef.update({
+        paymentMethod: 'aeropay',
+        paymentStatus: 'pending',
+        updatedAt: new Date().toISOString(),
+      });
+
+      return NextResponse.json({
+        requiresBankLink: true,
+        aerosyncUrl: aggregatorCreds.aggregatorUrl,
+        linkToken: aggregatorCreds.linkToken,
+        aeropayUserId: aeropayUser.aeropayUserId,
+        expiresAt: aggregatorCreds.expiresAt,
+      });
+    }
+
+    // 7b. If YES bank account → Create transaction
+    logger.info('[AEROPAY] Creating transaction with linked bank account', {
+      userId: user.uid,
+      aeropayUserId: aeropayUser.aeropayUserId,
+      bankAccountId: selectedBankAccountId,
+      amount,
+    });
+
+    const merchantId = process.env.AEROPAY_MERCHANT_ID!;
+
+    const transaction = await createTransaction({
+      userId: aeropayUser.aeropayUserId,
+      bankAccountId: selectedBankAccountId,
+      amount: amount + AEROPAY_TRANSACTION_FEE_CENTS, // Include fee
+      merchantId,
+      merchantOrderId: orderId,
+      description: `Order ${orderId}`,
+    });
+
+    // 8. Update order with transaction details
+    await orderRef.update({
+      paymentMethod: 'aeropay',
+      paymentStatus: 'pending',
+      paymentProvider: 'aeropay',
+      paymentIntentId: transaction.transactionId,
+      transactionId: transaction.transactionId,
+      'aeropay.transactionId': transaction.transactionId,
+      'aeropay.userId': aeropayUser.aeropayUserId,
+      'aeropay.bankAccountId': selectedBankAccountId,
+      'aeropay.status': transaction.status,
+      'aeropay.amount': amount + AEROPAY_TRANSACTION_FEE_CENTS,
+      'aeropay.fee': AEROPAY_TRANSACTION_FEE_CENTS,
+      'aeropay.authorizedAt': new Date().toISOString(),
+      'aeropay.merchantOrderId': orderId,
+      updatedAt: new Date().toISOString(),
+    });
+
+    // 9. Save transaction to Firestore for audit trail
+    const transactionRef = firestore
+      .collection('aeropay_transactions')
+      .doc(transaction.transactionId);
+
+    await transactionRef.set({
+      transactionId: transaction.transactionId,
+      orderId,
+      userId: user.uid,
+      aeropayUserId: aeropayUser.aeropayUserId,
+      bankAccountId: selectedBankAccountId,
+      merchantId,
+      amount: amount + AEROPAY_TRANSACTION_FEE_CENTS,
+      fee: AEROPAY_TRANSACTION_FEE_CENTS,
+      status: transaction.status,
+      merchantOrderId: orderId,
+      description: `Order ${orderId}`,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+      webhookEvents: [],
+    });
+
+    logger.info('[AEROPAY] Transaction created successfully', {
+      orderId,
+      transactionId: transaction.transactionId,
+      amount: amount + AEROPAY_TRANSACTION_FEE_CENTS,
+      fee: AEROPAY_TRANSACTION_FEE_CENTS,
+      userId: user.uid,
+    });
+
+    // 10. Return transaction details to client
+    return NextResponse.json({
+      requiresBankLink: false,
+      transactionId: transaction.transactionId,
+      status: transaction.status,
+      totalAmount: amount + AEROPAY_TRANSACTION_FEE_CENTS,
+      transactionFee: AEROPAY_TRANSACTION_FEE_CENTS,
+    });
+  } catch (error) {
+    logger.error('[AEROPAY] Authorization failed', error instanceof Error ? error : new Error(String(error)));
+
+    // Return appropriate error
+    if (error instanceof Error) {
+      // Aeropay API errors
+      if (error.message.includes('AEROPAY')) {
+        return NextResponse.json(
+          { error: 'Payment authorization failed. Please try again.' },
+          { status: 502 }
+        );
+      }
+
+      // Configuration errors (missing secrets)
+      if (error.message.includes('environment variable')) {
+        return NextResponse.json(
+          { error: 'Payment system not configured. Please contact support.' },
+          { status: 500 }
+        );
+      }
+    }
+
+    return NextResponse.json(
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
+    );
+  }
+}

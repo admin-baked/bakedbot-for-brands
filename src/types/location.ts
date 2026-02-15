@@ -1,3 +1,5 @@
+import { PaymentConfig } from './aeropay';
+
 export interface Location {
     id: string;
     orgId: string;
@@ -30,6 +32,9 @@ export interface Location {
         pin?: string;
         locationId?: string;
     };
+
+    // Payment Configuration (Location Specific)
+    paymentConfig?: PaymentConfig;
 
     // CannMenus Mapping
     cannMenusId?: string;
