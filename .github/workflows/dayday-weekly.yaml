@@ -4,14 +4,38 @@ on:
   schedule:
     # Run at 9:00 AM UTC every Monday
     - cron: '0 9 * * 1'
-  workflow_dispatch:
+  workflow_dispatch: # Allow manual triggering
 
 jobs:
   weekly-growth-review:
     runs-on: ubuntu-latest
     steps:
+      - name: Check CRON_SECRET
+        run: |
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "ERROR: CRON_SECRET is not set in GitHub Actions secrets"
+            echo "Please set it in: Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+
       - name: Trigger Day Day Weekly Review
         run: |
-          curl -X GET ${{ secrets.SEARCH_CONSOLE_SITE_URL }}/api/cron/dayday-review \
-          -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
-          --fail
+          echo "Triggering Day Day Weekly Review at $(date)"
+
+          response=$(curl -s -w "\n%{http_code}" -X GET \
+            https://bakedbot.ai/api/cron/dayday-review \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "HTTP Status: $http_code"
+          echo "Response: $body"
+
+          if [ "$http_code" != "200" ]; then
+            echo "ERROR: Day Day Weekly Review failed with status $http_code"
+            exit 1
+          fi
+
+      - name: Log Success
+        run: echo "✅ Day Day Weekly Review completed successfully at $(date)"
