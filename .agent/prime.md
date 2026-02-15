@@ -20,11 +20,44 @@ npm run check:types
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
 **Current Status:** 🟢 Passing (verified 2026-02-15)
-**Recent Updates:** Aeropay payment integration (Thrive Syracuse) + Campaign Management + Training auto-enrollment + Firebase build fixes
+**Recent Updates:** Payment App Store (Smokey Pay & Aeropay) + Aeropay integration (Thrive Syracuse) + Campaign Management + Training auto-enrollment + Firebase build fixes
 
 ---
 
 ## 🆕 Recent Updates
+
+### Payment App Store Integration (2026-02-15)
+**Status:** ✅ Production-ready — Unified payment processor management UI
+
+Smokey Pay (CannPay) and Aeropay payment processors now available in App Store (`/dashboard/apps`) with full configuration dashboard at `/dashboard/admin/payment-config`.
+
+**Features:**
+- **Real-time Toggle Switches:** Enable/disable payment methods with instant Firestore updates
+- **Dynamic Status Badges:** Active/Inactive badges reflect actual `paymentConfig.enabledMethods[]` from Firestore
+- **Payment Method Comparison:** Side-by-side feature comparison table (integration type, fees, bank linking)
+- **Webhook Management:** Copy-to-clipboard for webhook URLs, external documentation links
+- **Toast Notifications:** Success/error feedback for all configuration changes
+
+**Key Files:**
+- `src/app/dashboard/admin/payment-config/page.tsx` (455 lines) — Full dashboard with Overview/Smokey Pay/Aeropay/Transactions tabs
+- `src/server/actions/payment-config.ts` (244 lines) — Server actions: `getPaymentConfig()`, `updatePaymentMethod()`, `getCurrentUserLocationId()`
+- `src/app/dashboard/apps/actions.ts` — Added Smokey Pay & Aeropay to `getApps()` with features/pricing/provider metadata
+
+**Payment Config Flow:**
+```
+Load → getCurrentUserLocationId() (resolves orgId → locationId)
+    → getPaymentConfig(locationId) (reads locations/{id}/paymentConfig)
+    → Display status + toggles
+    → User toggles switch
+    → updatePaymentMethod({ locationId, method, enabled })
+    → Update Firestore enabledMethods[] array
+    → Reload config → Update UI
+```
+
+**App Store Integration:**
+- AppDefinition extended with `category: 'payment'`, `features[]`, `pricing{}`, `provider{}`
+- Payment processors show "Active"/"Inactive" badges based on `paymentConfig?.cannpay?.enabled`
+- "Configure" button links to `/dashboard/admin/payment-config?method=smokey-pay`
 
 ### Aeropay Payment Integration (2026-02-15)
 **Status:** ✅ Production-ready — Deployed to Thrive Syracuse pilot customer

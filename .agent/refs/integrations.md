@@ -465,6 +465,258 @@ const places = await gmaps.findPlaces('dispensary near me', coords);
 
 ---
 
+## Payment Processors
+
+### Payment App Store System
+**Files**:
+- `src/app/dashboard/apps/actions.ts` - App Store backend with payment processors
+- `src/app/dashboard/apps/page-client.tsx` - App Store UI
+- `src/app/dashboard/admin/payment-config/page.tsx` - Payment configuration dashboard
+- `src/server/actions/payment-config.ts` - Server actions for payment management
+
+**Status**: Production-ready
+**Access**: `/dashboard/apps` (App Store) OR `/dashboard/admin/payment-config` (Full Dashboard)
+
+**Architecture:**
+```
+App Store → getApps() → Fetch paymentConfig from locations/{id}
+         → Display payment processor cards with install status
+         → Click "Configure" → Payment Config Dashboard
+         → Toggle switches → updatePaymentMethod() → Update Firestore
+```
+
+**AppDefinition Interface:**
+```typescript
+interface AppDefinition {
+  id: string;
+  name: string;
+  description: string;
+  category: 'pos' | 'marketing' | 'compliance' | 'utility' | 'payment';
+  icon: string;
+  installed: boolean;
+  configUrl?: string;
+  status?: 'active' | 'inactive' | 'error';
+  features?: string[];  // NEW for payment processors
+  pricing?: {
+    setup: string;
+    transaction?: string;
+    monthly?: string;
+  };
+  provider?: {
+    name: string;
+    website: string;
+    support: string;
+  };
+}
+```
+
+**Payment Config Flow:**
+```typescript
+// Load config
+const { locationId } = await getCurrentUserLocationId();
+const { data: config } = await getPaymentConfig(locationId);
+
+// Update method
+await updatePaymentMethod({
+  locationId,
+  method: 'cannpay' | 'aeropay' | 'credit_card' | 'dispensary_direct',
+  enabled: true
+});
+
+// Config structure in Firestore: locations/{id}/paymentConfig
+{
+  enabledMethods: ['dispensary_direct', 'cannpay', 'aeropay'],
+  defaultMethod: undefined,  // Force explicit selection
+  cannpay: {
+    enabled: true,
+    integratorId: 'xxx',
+    environment: 'sandbox'
+  },
+  aeropay: {
+    enabled: true,
+    merchantId: 'yyy',
+    environment: 'sandbox'
+  }
+}
+```
+
+---
+
+### Smokey Pay (CannPay RemotePay)
+**File**: `src/lib/payments/cannpay.ts`
+**Webhook**: `src/app/api/webhooks/cannpay/route.ts`
+**Widget**: `src/components/checkout/cannpay-widget.tsx`
+**Agent**: Money Mike
+
+| Attribute | Value |
+|-----------|-------|
+| **Purpose** | Cannabis-compliant bank-to-bank payment |
+| **Status** | Production (Thrive Syracuse) |
+| **Env Vars** | `CANPAY_INTEGRATOR_ID`, `CANPAY_ENVIRONMENT` |
+| **Transaction Fee** | Fixed $0.50 |
+| **Integration Type** | Stateless (per-transaction widget) |
+
+**Features:**
+- Bank-to-bank transfer (no credit cards)
+- Guest checkout support
+- Tip handling
+- Instant settlement
+- Cannabis compliance (SAFE Banking Act compliant)
+
+**Implementation:**
+```typescript
+import { authorizePayment, reverseTransaction } from '@/lib/payments/cannpay';
+
+// Authorize payment
+const result = await authorizePayment({
+  orderId: 'order_123',
+  amount: 100.50,
+  customerEmail: 'customer@example.com'
+});
+// Returns: { sessionToken, widgetUrl }
+
+// Show CannPay widget in iframe
+<CannPayWidget
+  sessionToken={sessionToken}
+  onSuccess={(transactionId) => { /* Update order */ }}
+  onError={(error) => { /* Handle error */ }}
+/>
+
+// Void transaction (if needed)
+await reverseTransaction(transactionId);
+```
+
+**Webhook Events:**
+- `transaction.completed` → Update order to `paid`
+- `transaction.declined` → Update order to `failed`
+- `transaction.voided` → Update order to `voided`
+
+**Signature Verification:** HMAC-SHA256 with `crypto.timingSafeEqual()` for constant-time comparison
+
+---
+
+### Aeropay
+**File**: `src/lib/payments/aeropay.ts`
+**Webhook**: `src/app/api/webhooks/aeropay/route.ts`
+**Widget**: `src/components/checkout/aeropay-bank-link.tsx`
+**Agent**: Money Mike
+
+| Attribute | Value |
+|-----------|-------|
+| **Purpose** | Cannabis-compliant bank transfer with persistent accounts |
+| **Status** | Production (Thrive Syracuse) |
+| **Env Vars** | `AEROPAY_CLIENT_ID`, `AEROPAY_CLIENT_SECRET`, `AEROPAY_MERCHANT_ID`, `AEROPAY_WEBHOOK_SECRET` |
+| **Transaction Fee** | Fixed $0.50 |
+| **Integration Type** | Stateful (persistent user/bank management) |
+
+**Key Difference from CannPay:** Aeropay requires creating user accounts and linking banks once, then reusing for future transactions. CannPay is stateless (bank linking per transaction).
+
+**OAuth Flow:**
+```typescript
+// 1. Get OAuth token
+const token = await getOAuthToken('merchant');
+
+// 2. Create Aeropay user (first time only)
+const user = await createAeropayUser({
+  email: 'customer@example.com',
+  firstName: 'John',
+  lastName: 'Doe'
+});
+
+// 3. Get bank linking URL (Aerosync widget)
+const { aggregatorUrl } = await getAggregatorCredentials(user.userId);
+
+// 4. Show Aerosync widget, customer links bank
+<AeropayBankLink
+  aerosyncUrl={aggregatorUrl}
+  onLinked={(accountId) => { /* Save to Firestore */ }}
+/>
+
+// 5. Create transaction (reuse linked bank)
+const transaction = await createTransaction({
+  userId: user.userId,
+  bankAccountId: accountId,
+  amount: 100.50,
+  merchantOrderId: 'order_123'
+});
+
+// 6. Poll transaction status
+const status = await getTransactionDetails(transaction.transactionId);
+```
+
+**Firestore Collections:**
+```typescript
+// aeropay_users/{userId}
+{
+  userId: 'user_123',  // BakedBot user ID
+  aeropayUserId: 'aero_xxx',
+  email: 'customer@example.com',
+  firstName: 'John',
+  lastName: 'Doe',
+  bankAccounts: [
+    { id: 'bank_xxx', bankName: 'Wells Fargo', last4: '1234', accountType: 'checking' }
+  ],
+  defaultBankAccountId: 'bank_xxx',
+  status: 'active',
+  createdAt: '2026-02-15T...',
+  updatedAt: '2026-02-15T...'
+}
+
+// aeropay_transactions/{transactionId}
+{
+  transactionId: 'txn_xxx',
+  orderId: 'order_123',
+  userId: 'user_123',
+  aeropayUserId: 'aero_xxx',
+  bankAccountId: 'bank_xxx',
+  amount: 100.50,
+  fee: 0.50,
+  status: 'completed',
+  merchantOrderId: 'order_123',
+  webhookEvents: [
+    { type: 'transaction_completed', receivedAt: '...' }
+  ],
+  createdAt: '2026-02-15T...',
+  updatedAt: '2026-02-15T...'
+}
+```
+
+**Webhook Events:**
+- `transaction_completed` → Update order to `paid`
+- `transaction_declined` → Update order to `failed`
+- `transaction_voided` → Update order to `voided`
+- `transaction_refunded` → Update order to `refunded`
+- `preauthorized_transaction_created` → Pre-authorization created
+- `user_suspended` → User account suspended
+- `user_active` → User account reactivated
+- `merchant_reputation_updated` → Merchant reputation changed
+
+**OAuth Token Caching:**
+```typescript
+// In-memory Map with expiration
+const tokenCache = new Map<string, { token: string; expiresAt: number }>();
+
+// Cache with 30-second safety margin
+const expiresAt = Date.now() + (response.expires_in * 1000) - 30000;
+tokenCache.set(scope, { token: response.access_token, expiresAt });
+```
+
+---
+
+### Authorize.net (Credit Card)
+**File**: `src/lib/payments/authorize-net.ts`
+**Agent**: Money Mike
+
+| Attribute | Value |
+|-----------|-------|
+| **Purpose** | Credit card processing |
+| **Status** | Available (not primary for cannabis) |
+| **Env Vars** | `AUTHORIZE_NET_LOGIN_ID`, `AUTHORIZE_NET_TRANSACTION_KEY` |
+
+**Note:** Credit card processing is limited for cannabis businesses due to federal regulations. Most customers use Smokey Pay or Aeropay instead.
+
+---
+
 ## Data Hydration Waterfall
 
 When onboarding new brands/dispensaries, data is hydrated in priority order:
