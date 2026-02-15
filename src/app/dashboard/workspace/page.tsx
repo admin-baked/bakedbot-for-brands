@@ -1,10 +1,3 @@
-// EMERGENCY BUILD FIX: Force dynamic rendering to prevent OOM during build
-// With 204 pages, pre-rendering all at once requires >64GB memory
-// This line forces on-demand generation instead
-export const dynamic = 'force-dynamic';
-export const dynamicParams = true;
-export const revalidate = 0;
-
 'use client';
 
 /**
@@ -12,7 +5,7 @@ export const revalidate = 0;
  * Chat is the cockpit. Everything else is an instrument panel.
  */
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { SetupHealth } from '@/components/dashboard/setup-health';
 import { QuickStartCards } from '@/components/dashboard/quick-start-cards';
 import { TaskFeed } from '@/components/dashboard/task-feed';

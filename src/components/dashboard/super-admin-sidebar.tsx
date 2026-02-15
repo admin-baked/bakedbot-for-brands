@@ -92,13 +92,13 @@ export function SuperAdminSidebar() {
 
     return (
         <>
-             {/* Assistant / Chat Group */}
-             <SidebarGroup>
+            {/* Assistant / Chat Group */}
+            <SidebarGroup>
                 <SidebarGroupLabel>Assistant</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <SidebarMenuItem>
-                            <SidebarMenuButton 
+                            <SidebarMenuButton
                                 onClick={() => {
                                     clearCurrentSession();
                                     toast({ title: 'New Chat', description: 'Started a new chat session' });
@@ -109,7 +109,7 @@ export function SuperAdminSidebar() {
                                 <span>New Chat</span>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                        
+
                         {/* Recent Chats Collapsible */}
                         {sessions.length > 0 && (
                             <Collapsible defaultOpen className="group/collapsible">
@@ -125,7 +125,7 @@ export function SuperAdminSidebar() {
                                         <SidebarMenuSub>
                                             {sessions.slice(0, 5).map((session) => (
                                                 <SidebarMenuSubItem key={session.id}>
-                                                    <SidebarMenuSubButton 
+                                                    <SidebarMenuSubButton
                                                         isActive={activeSessionId === session.id}
                                                         onClick={() => setActiveSession(session.id)}
                                                     >
@@ -134,7 +134,7 @@ export function SuperAdminSidebar() {
                                                 </SidebarMenuSubItem>
                                             ))}
                                             <SidebarMenuSubItem>
-                                                 <SidebarMenuSubButton 
+                                                <SidebarMenuSubButton
                                                     onClick={() => {
                                                         localStorage.removeItem('agent-chat-storage');
                                                         window.location.reload();
@@ -342,24 +342,6 @@ export function SuperAdminSidebar() {
                                         <Link href="/dashboard/ceo?tab=ground-truth">
                                             <BookOpen />
                                             <span>Ground Truth</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-
-                                {/* Academy Sections */}
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton asChild isActive={pathname === '/dashboard/academy' || pathname?.startsWith('/dashboard/academy/presenter')}>
-                                        <Link href="/dashboard/academy">
-                                            <GraduationCap />
-                                            <span>Academy</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/academy-analytics')}>
-                                        <Link href="/dashboard/academy-analytics">
-                                            <BarChart3 />
-                                            <span>Academy Analytics</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

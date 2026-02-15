@@ -2,11 +2,9 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 env:
-  # Build-time memory allocation - Final attempt at 28GB
-  # ~175 pages. 20GB=OOM @4min, 24GB=OOM @24min
-  # 28GB = ~4GB headroom in 32GB container (Firebase limit)
+  # Build-time memory allocation - 12GB is stable for 32GB containers
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=28672"
+    value: "--max-old-space-size=12288"
     availability: [ BUILD ]
   - variable: NEXT_TELEMETRY_DISABLED
     value: "1"
@@ -21,9 +19,9 @@ env:
   - variable: __NEXT_EXPERIMENTAL_TURBOPACK
     value: "false"
     availability: [ BUILD ]
-  # Runtime memory allocation - can be higher since we control runtime resources
+  # Runtime memory allocation
   - variable: NODE_OPTIONS
-    value: "--max-old-space-size=24576"
+    value: "--max-old-space-size=12288"
     availability: [ RUNTIME ]
   # Skip Next.js Node version check (Firebase App Hosting uses Node 18)
   - variable: NEXT_SKIP_NODE_VERSION_CHECK
@@ -277,4 +275,4 @@ runConfig:
 
 build:
   installCommand: npm install --legacy-peer-deps
-  buildCommand: npm run build:embed && npm run check:structure && next build --no-turbopack
+  buildCommand: npm run build:embed && npm run check:structure && next build --webpack

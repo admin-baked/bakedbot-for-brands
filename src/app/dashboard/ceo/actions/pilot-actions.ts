@@ -1,7 +1,10 @@
+'use server';
+
 import { runChicagoPilotJob } from '@/server/jobs/seo-generator';
 import { runBrandPilotJob } from '@/server/jobs/brand-discovery-job';
 import { ragService } from '@/server/services/vector-search/rag-service';
 import { cookies } from 'next/headers';
+import { requireUser } from '@/server/auth/auth';
 import { createServerClient } from '@/firebase/server-client';
 import { updateProductEmbeddings } from '@/ai/flows/update-product-embeddings';
 import { getAdminFirestore } from '@/firebase/admin';
