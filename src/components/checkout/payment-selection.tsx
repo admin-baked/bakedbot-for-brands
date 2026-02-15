@@ -1,16 +1,21 @@
 /**
  * Payment Selection Component
  *
- * Allows customers to choose between three payment methods:
+ * Allows customers to choose between four payment methods:
  * 1. Dispensary Direct (default) - Pay at pickup
  * 2. Smokey Pay - Cannabis-specific payment processor (+$0.50 fee) [powered by CannPay internally]
- * 3. Stripe - Traditional payment processor (optional)
+ * 3. Aeropay - Bank transfer payment processor (+$0.50 fee)
+ * 4. Stripe - Traditional payment processor (optional)
  *
  * AI-THREAD: [Dev1-Claude @ 2025-11-30] P0-PAY-CANNPAY-INTEGRATION
  * Created payment selection UI with three options.
  * Default selection is "dispensary_direct" per user requirements.
  * Smokey Pay transaction fee ($0.50) displayed clearly to customer.
  * NOTE: "CannPay" is internal integration name; customers see "Smokey Pay" branding.
+ *
+ * AI-THREAD: [Claude @ 2026-02-15] AEROPAY-INTEGRATION
+ * Added Aeropay as 4th payment option with same $0.50 fee as Smokey Pay.
+ * No default payment method - customers must explicitly select.
  */
 
 'use client';
@@ -20,9 +25,9 @@ import { Card } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Banknote, CreditCard, Store } from 'lucide-react';
+import { Banknote, Building, CreditCard, Store } from 'lucide-react';
 
-export type PaymentMethod = 'dispensary_direct' | 'cannpay' | 'credit_card';
+export type PaymentMethod = 'dispensary_direct' | 'cannpay' | 'aeropay' | 'credit_card';
 
 export interface PaymentSelectionProps {
   /** Selected payment method */
@@ -34,11 +39,15 @@ export interface PaymentSelectionProps {
   /** Order subtotal in cents */
   subtotal: number;
 
+  /** Whether Aeropay is enabled (optional payment method) */
+  aeropayEnabled?: boolean;
+
   /** Whether Credit Card is enabled (optional payment method) */
   creditCardEnabled?: boolean;
 }
 
 const SMOKEY_PAY_FEE_CENTS = 50; // $0.50 transaction fee (internal: cannpay)
+const AEROPAY_FEE_CENTS = 50; // $0.50 transaction fee
 
 /**
  * Format cents to dollar string
@@ -51,9 +60,11 @@ export function PaymentSelection({
   value,
   onChange,
   subtotal,
+  aeropayEnabled = false,
   creditCardEnabled = true,
 }: PaymentSelectionProps) {
   const smokeyPayTotal = subtotal + SMOKEY_PAY_FEE_CENTS;
+  const aeropayTotal = subtotal + AEROPAY_FEE_CENTS;
 
   return (
     <div className="space-y-4">
@@ -112,7 +123,32 @@ export function PaymentSelection({
           </div>
         </Card>
 
-        {/* Option 3: Credit Card (Authorize.Net) */}
+        {/* Option 3: Aeropay (Bank Transfer) */}
+        {aeropayEnabled && (
+          <Card className="p-4 cursor-pointer hover:border-primary transition-colors">
+            <div className="flex items-start space-x-4">
+              <RadioGroupItem value="aeropay" id="aeropay" />
+              <Label htmlFor="aeropay" className="flex-1 cursor-pointer space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Building className="h-5 w-5 text-emerald-600" />
+                    <span className="font-semibold">Aeropay</span>
+                    <Badge variant="outline" className="text-xs">
+                      +$0.50 fee
+                    </Badge>
+                  </div>
+                  <span className="font-semibold">{formatCurrency(aeropayTotal)}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Secure bank transfer powered by Aeropay. Fast and reliable payment
+                  processing.
+                </p>
+              </Label>
+            </div>
+          </Card>
+        )}
+
+        {/* Option 4: Credit Card (Authorize.Net) */}
         {creditCardEnabled && (
           <Card className="p-4 cursor-pointer hover:border-primary transition-colors">
             <div className="flex items-start space-x-4">
@@ -140,6 +176,15 @@ export function PaymentSelection({
           <p className="text-sm text-blue-900">
             <strong>Transaction Fee:</strong> A ${formatCurrency(SMOKEY_PAY_FEE_CENTS)}{' '}
             processing fee will be added to your total when paying with Smokey Pay.
+          </p>
+        </div>
+      )}
+
+      {value === 'aeropay' && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+          <p className="text-sm text-emerald-900">
+            <strong>Transaction Fee:</strong> A ${formatCurrency(AEROPAY_FEE_CENTS)}{' '}
+            processing fee will be added to your total when paying with Aeropay.
           </p>
         </div>
       )}

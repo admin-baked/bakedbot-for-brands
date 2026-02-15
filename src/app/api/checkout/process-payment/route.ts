@@ -13,6 +13,12 @@
 //
 // [BUILDER-MODE @ 2025-12-06]:
 //   Added Zod validation with withProtection middleware for type safety and security.
+//
+// [AI-THREAD: AEROPAY-INTEGRATION]
+// [Claude @ 2026-02-15]:
+//   Added Aeropay payment method support for bank transfer payments.
+//   Aeropay follows similar pattern to CannPay with authorization/webhook flow.
+//   Payment methods now: dispensary_direct, cannpay, aeropay, credit_card.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createTransaction, PaymentRequest } from '@/lib/authorize-net';
@@ -173,7 +179,49 @@ export const POST = withProtection(
                 });
             }
 
-            // Option 3: Credit Card (Authorize.Net)
+            // Option 3: Aeropay (Bank Transfer)
+            if (paymentMethod === 'aeropay') {
+                // Aeropay payment is handled via webhook after transaction completion
+                // This endpoint confirms the frontend callback was received
+                const aeropayData = paymentData as any; // Type assertion for Aeropay-specific data
+                const { transactionId, status } = aeropayData;
+
+                if (!transactionId) {
+                    return NextResponse.json(
+                        { error: 'Missing Aeropay transaction details' },
+                        { status: 400 }
+                    );
+                }
+
+                // Update order with Aeropay transaction details
+                if (orderId) {
+                    const { firestore } = await createServerClient();
+                    await firestore.collection('orders').doc(orderId).update({
+                        paymentMethod: 'aeropay',
+                        paymentStatus: status === 'completed' ? 'paid' : 'failed',
+                        'aeropay.transactionId': transactionId,
+                        'aeropay.status': status,
+                        'aeropay.completedAt': new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    });
+                }
+
+                logger.info('[AEROPAY-INTEGRATION] Aeropay payment completed', {
+                    orderId,
+                    transactionId,
+                    status
+                });
+
+                return NextResponse.json({
+                    success: status === 'completed',
+                    paymentMethod: 'aeropay',
+                    transactionId,
+                    message: status === 'completed' ? 'Payment successful' : 'Payment failed',
+                    complianceValidated: true
+                });
+            }
+
+            // Option 4: Credit Card (Authorize.Net)
             if (paymentMethod === 'credit_card') {
                 const cardData = paymentData as any; // Type assertion for Credit Card-specific data
                 const paymentRequest: PaymentRequest = {

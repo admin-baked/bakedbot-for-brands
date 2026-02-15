@@ -1,5 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
 import { Product } from './products';
+import { OrderAeropayData } from './aeropay';
 
 export type Order = {
     id: string;
@@ -12,6 +13,10 @@ export type Order = {
 export type CartItem = Product & { quantity: number };
 
 export type OrderStatus = 'pending' | 'submitted' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled';
+
+// Payment method types
+export type PaymentMethod = 'dispensary_direct' | 'cannpay' | 'credit_card' | 'aeropay';
+export type PaymentStatus = 'pending_pickup' | 'pending' | 'paid' | 'failed' | 'voided' | 'refunded';
 
 // Shipping address for e-commerce orders
 export type ShippingAddress = {
@@ -63,6 +68,31 @@ export type OrderDoc = {
     status: OrderStatus;
     mode: 'demo' | 'live';
     updatedAt?: Timestamp;
+
+    // Payment fields
+    paymentMethod?: PaymentMethod;
+    paymentStatus?: PaymentStatus;
+    paymentProvider?: 'authorize_net' | 'cannpay' | 'aeropay';
+    paymentIntentId?: string;
+    transactionId?: string;
+    lastPaymentEvent?: any;
+
+    // CannPay payment data
+    canpay?: {
+        intentId: string;
+        transactionNumber?: string;
+        status: string;
+        amount: number;
+        tipAmount?: number;
+        deliveryFee?: number;
+        passthrough?: string;
+        merchantOrderId?: string;
+        authorizedAt?: string;
+        completedAt?: string;
+    };
+
+    // Aeropay payment data
+    aeropay?: OrderAeropayData;
 
     // Shipping fields for e-commerce orders
     purchaseModel?: PurchaseModel;
