@@ -11,6 +11,7 @@
  *
  * AI-THREAD: [Claude @ 2026-02-15] PAYMENT-APP-STORE-INTEGRATION
  * Created unified payment configuration dashboard for Smokey Pay and Aeropay.
+ * Enhanced with functional toggle switches and real-time updates.
  */
 
 'use client';
@@ -23,20 +24,137 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Banknote, Building, Copy, CheckCircle2, XCircle, ExternalLink, AlertCircle } from 'lucide-react';
-import { useState } from 'react';
+import { Banknote, Building, Copy, CheckCircle2, XCircle, ExternalLink, AlertCircle, Loader2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { getPaymentConfig, updatePaymentMethod, getCurrentUserLocationId, PaymentConfig } from '@/server/actions/payment-config';
+import { useToast } from '@/hooks/use-toast';
 
 export default function PaymentConfigPage() {
   const searchParams = useSearchParams();
   const method = searchParams?.get('method') || 'overview';
+  const { toast } = useToast();
+
+  // State
   const [copiedWebhook, setCopiedWebhook] = useState<string | null>(null);
+  const [locationId, setLocationId] = useState<string | null>(null);
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState<string | null>(null);
+
+  // Load initial data
+  useEffect(() => {
+    loadPaymentConfig();
+  }, []);
+
+  const loadPaymentConfig = async () => {
+    try {
+      setLoading(true);
+
+      // Get user's location ID
+      const locationResult = await getCurrentUserLocationId();
+      if (!locationResult.success || !locationResult.locationId) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: locationResult.error || 'Could not find location for user',
+        });
+        return;
+      }
+
+      setLocationId(locationResult.locationId);
+
+      // Get payment config
+      const configResult = await getPaymentConfig(locationResult.locationId);
+      if (!configResult.success || !configResult.data) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: configResult.error || 'Could not load payment configuration',
+        });
+        return;
+      }
+
+      setPaymentConfig(configResult.data);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to load payment configuration',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTogglePaymentMethod = async (
+    method: 'cannpay' | 'aeropay' | 'credit_card' | 'dispensary_direct',
+    enabled: boolean
+  ) => {
+    if (!locationId) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Location ID not found',
+      });
+      return;
+    }
+
+    try {
+      setUpdating(method);
+
+      const result = await updatePaymentMethod({
+        locationId,
+        method,
+        enabled,
+      });
+
+      if (!result.success) {
+        toast({
+          variant: 'destructive',
+          title: 'Update Failed',
+          description: result.error || 'Could not update payment method',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Success',
+        description: `${method === 'cannpay' ? 'Smokey Pay' : method === 'aeropay' ? 'Aeropay' : method === 'credit_card' ? 'Credit Card' : 'Dispensary Direct'} ${enabled ? 'enabled' : 'disabled'} successfully`,
+      });
+
+      // Reload config
+      await loadPaymentConfig();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to update payment method',
+      });
+    } finally {
+      setUpdating(null);
+    }
+  };
 
   const copyWebhookUrl = (url: string, processor: string) => {
     navigator.clipboard.writeText(url);
     setCopiedWebhook(processor);
     setTimeout(() => setCopiedWebhook(null), 2000);
   };
+
+  // Helper to check if payment method is enabled
+  const isMethodEnabled = (method: string) => {
+    return paymentConfig?.enabledMethods?.includes(method) || false;
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -75,7 +193,11 @@ export default function PaymentConfigPage() {
                     <Banknote className="h-5 w-5 text-blue-600" />
                     <CardTitle>Smokey Pay</CardTitle>
                   </div>
-                  <Badge variant="default">Active</Badge>
+                  {isMethodEnabled('cannpay') ? (
+                    <Badge variant="default">Active</Badge>
+                  ) : (
+                    <Badge variant="secondary">Inactive</Badge>
+                  )}
                 </div>
                 <CardDescription>
                   Cannabis industry's trusted payment solution
@@ -86,8 +208,17 @@ export default function PaymentConfigPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Status</span>
                     <span className="flex items-center gap-1">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      Connected
+                      {isMethodEnabled('cannpay') ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          <span>Connected</span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-4 w-4 text-muted-foreground" />
+                          <span>Disabled</span>
+                        </>
+                      )}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -128,7 +259,11 @@ export default function PaymentConfigPage() {
                     <Building className="h-5 w-5 text-emerald-600" />
                     <CardTitle>Aeropay</CardTitle>
                   </div>
-                  <Badge variant="default">Active</Badge>
+                  {isMethodEnabled('aeropay') ? (
+                    <Badge variant="default">Active</Badge>
+                  ) : (
+                    <Badge variant="secondary">Inactive</Badge>
+                  )}
                 </div>
                 <CardDescription>
                   Fast bank transfer payment processor
@@ -139,8 +274,17 @@ export default function PaymentConfigPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Status</span>
                     <span className="flex items-center gap-1">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      Connected
+                      {isMethodEnabled('aeropay') ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          <span>Connected</span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-4 w-4 text-muted-foreground" />
+                          <span>Disabled</span>
+                        </>
+                      )}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -243,7 +387,16 @@ export default function PaymentConfigPage() {
                     Allow customers to pay with Smokey Pay at checkout
                   </p>
                 </div>
-                <Switch defaultChecked />
+                <div className="flex items-center gap-2">
+                  {updating === 'cannpay' && (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                  <Switch
+                    checked={isMethodEnabled('cannpay')}
+                    onCheckedChange={(checked) => handleTogglePaymentMethod('cannpay', checked)}
+                    disabled={updating === 'cannpay'}
+                  />
+                </div>
               </div>
 
               {/* Environment */}
@@ -338,7 +491,16 @@ export default function PaymentConfigPage() {
                     Allow customers to pay with Aeropay at checkout
                   </p>
                 </div>
-                <Switch defaultChecked />
+                <div className="flex items-center gap-2">
+                  {updating === 'aeropay' && (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                  <Switch
+                    checked={isMethodEnabled('aeropay')}
+                    onCheckedChange={(checked) => handleTogglePaymentMethod('aeropay', checked)}
+                    disabled={updating === 'aeropay'}
+                  />
+                </div>
               </div>
 
               {/* Environment */}
