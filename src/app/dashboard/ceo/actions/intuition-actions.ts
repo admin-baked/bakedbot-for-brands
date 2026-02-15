@@ -124,5 +124,5 @@ export async function generateDailyReport(tenantId: string) {
     }
 }
 
-// Re-exports for backward compatibility
-export { getEzalCompetitors, createEzalCompetitor, getEzalInsights } from './system-actions';
+// Re-exports removed - import directly from './system-actions'
+// export { getEzalCompetitors, createEzalCompetitor, getEzalInsights } from './system-actions';

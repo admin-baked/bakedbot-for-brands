@@ -424,9 +424,9 @@ export async function setTop25PublishedAction(): Promise<ActionResult & { publis
     } catch (error: any) { return { message: error.message, error: true }; }
 }
 
-// Re-exports for backward compatibility
-export { runDispensaryPilotAction, runBrandPilotAction } from './pilot-actions';
-export { bulkSeoPageStatusAction } from './user-actions';
+// Re-exports removed - import directly from './pilot-actions' or './user-actions'
+// export { runDispensaryPilotAction, runBrandPilotAction } from './pilot-actions';
+// export { bulkSeoPageStatusAction } from './user-actions';
 
 // Stub for missing function
 export async function refreshSeoPageDataAction(): Promise<ActionResult> {

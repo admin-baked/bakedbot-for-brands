@@ -244,6 +244,6 @@ export async function getLivePreviewProducts(cannMenusId: string) {
     }
 }
 
-// Re-exports for backward compatibility
-export { getRagIndexStats } from './pilot-actions';
-export { getCoupons } from './system-actions';
+// Re-exports removed - import directly from './pilot-actions' or './system-actions'
+// export { getRagIndexStats } from './pilot-actions';
+// export { getCoupons } from './system-actions';
