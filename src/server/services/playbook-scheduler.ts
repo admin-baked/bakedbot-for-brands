@@ -72,7 +72,7 @@ export async function autoSchedulePlaybook(
                     break;
 
                 default:
-                    logger.warn('[PlaybookScheduler] Unknown trigger type:', trigger.type);
+                    logger.warn('[PlaybookScheduler] Unknown trigger type:', { type: trigger.type });
             }
         }
 
