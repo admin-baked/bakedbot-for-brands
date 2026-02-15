@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Database, Globe } from 'lucide-react';
 import { useMockData } from '@/hooks/use-mock-data';
 import { useState, useEffect } from 'react';
-import { getEzalCompetitors, getEzalInsights } from '../actions/intuition-actions';
+import { getEzalCompetitors, getEzalInsights } from '../actions/system-actions';
 
 export default function EzalTab() {
     const defaultTenantId = 'system'; // Platform-wide tenant scope for Super Users

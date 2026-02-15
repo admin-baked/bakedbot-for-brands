@@ -4,14 +4,33 @@
  * Usage:
  * 1. Log into https://bakedbot.ai as super user
  * 2. Open DevTools → Console
- * 3. Run: localStorage.getItem('firebase:authUser:AIzaSyBcF5nXDfTzC8MZCEYbqOE6_Jj9r9zQ9kI:[DEFAULT]')
- * 4. Copy the "stsTokenManager.accessToken" value
- * 5. Run: node scripts/manual-trigger.js YOUR_TOKEN_HERE
+ * 3. Run: JSON.parse(localStorage.getItem('firebase:authUser:AIzaSyBcF5nXDfTzC8MZCEYbqOE6_Jj9r9zQ9kI:[DEFAULT]')).stsTokenManager.accessToken
+ * 4. Copy the token
+ * 5. Run: node scripts/manual-trigger.js <playbookId> <orgId> <token>
+ *
+ * Shortcuts:
+ * - node scripts/manual-trigger.js test <token>          → System test playbook
+ * - node scripts/manual-trigger.js competitive <token>   → Thrive competitive intel
  */
 
-const playbookId = process.argv[2] || 'mZVlcDru5iZRqWTlBHIF';
-const orgId = process.argv[3] || 'org_thrive_syracuse';
-const token = process.argv[4];
+// Quick test shortcuts
+const SHORTCUTS = {
+    'test': { id: 'SLtofEY4zrJELhtvIcqb', orgId: 'system', name: '🧪 System Test' },
+    'competitive': { id: 'mZVlcDru5iZRqWTlBHIF', orgId: 'org_thrive_syracuse', name: '🔍 Competitive Intelligence' },
+};
+
+let playbookId = process.argv[2] || 'mZVlcDru5iZRqWTlBHIF';
+let orgId = process.argv[3] || 'org_thrive_syracuse';
+let token = process.argv[4];
+
+// Check if first arg is a shortcut
+if (SHORTCUTS[process.argv[2]]) {
+    const shortcut = SHORTCUTS[process.argv[2]];
+    console.log(`[Shortcut] Using ${shortcut.name} playbook`);
+    playbookId = shortcut.id;
+    orgId = shortcut.orgId;
+    token = process.argv[3]; // Token is now 3rd arg
+}
 
 if (!token) {
     console.error('❌ Missing token. Usage: node scripts/manual-trigger.js <playbookId> <orgId> <token>');

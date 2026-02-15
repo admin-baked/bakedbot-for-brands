@@ -166,10 +166,19 @@ export default function BoardroomTab() {
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight">Executive Boardroom</h2>
                         <div className="text-muted-foreground flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-0.5">
-                            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1 animate-pulse w-fit">
-                                <Zap className="h-3 w-3 fill-primary" />
-                                Roundtable Active
+                            <Badge variant="outline" className="bg-green-500/5 text-green-600 border-green-500/20 gap-1 w-fit">
+                                <Zap className="h-3 w-3 fill-green-600 animate-[heartbeat_1.5s_ease-in-out_infinite]" />
+                                <span className="animate-pulse">Roundtable Active</span>
                             </Badge>
+                            <style jsx>{`
+                                @keyframes heartbeat {
+                                    0%, 100% { transform: scale(1); opacity: 1; }
+                                    10% { transform: scale(1.3); opacity: 0.7; }
+                                    20% { transform: scale(1); opacity: 1; }
+                                    30% { transform: scale(1.3); opacity: 0.7; }
+                                    40% { transform: scale(1); opacity: 1; }
+                                }
+                            `}</style>
                             <span className="hidden sm:inline">•</span>
                             <span className="text-sm sm:text-base">Collaborative alignment for $100k MRR target (Jan 2027)</span>
                         </div>

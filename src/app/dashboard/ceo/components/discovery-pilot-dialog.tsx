@@ -15,8 +15,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Loader2, Rocket, MapPin, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { runDispensaryPilotAction, runBrandPilotAction } from '../actions/seo-actions';
-import { runNationalSeedAction } from '../actions/pilot-actions';
+import { runDispensaryPilotAction, runBrandPilotAction, runNationalSeedAction } from '../actions/pilot-actions';
 import { Textarea } from '@/components/ui/textarea';
 
 interface DiscoveryPilotDialogProps {
