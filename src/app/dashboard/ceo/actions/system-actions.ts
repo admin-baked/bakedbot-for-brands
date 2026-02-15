@@ -199,3 +199,6 @@ export async function testEmailDispatch(data: { to: string, subject: string, bod
         return { message: error.message, error: true };
     }
 }
+
+// Re-export types for backward compatibility
+export type { SystemPlaybook } from './types';

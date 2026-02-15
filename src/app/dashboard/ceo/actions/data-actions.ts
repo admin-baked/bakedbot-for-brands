@@ -15,6 +15,7 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
     try {
         await requireUser(['super_user']);
         const { auth } = await createServerClient();
+        const db = getAdminFirestore();
 
         const usersList = await auth.listUsers(50);
         const recentSignups = usersList.users.slice(0, 10).map(u => ({
@@ -26,11 +27,42 @@ export async function getPlatformAnalytics(): Promise<PlatformAnalyticsData> {
             role: 'user'
         }));
 
+        // Calculate real MRR/ARR from Firestore subscriptions
+        const subsQuery = await db.collectionGroup('subscription')
+            .where('status', 'in', ['active', 'trialing', 'past_due'])
+            .get();
+
+        // Deduplicate by provider subscription ID to avoid counting the same sub twice
+        const seenProviderIds = new Set<string>();
+        let totalMrr = 0;
+        let payingCustomers = 0;
+
+        for (const doc of subsQuery.docs) {
+            const data = doc.data();
+            const amount = data.amount || 0;
+
+            // Skip free/zero-amount subscriptions
+            if (amount === 0) continue;
+
+            // Check both providerSubscriptionId and authorizeNetSubscriptionId for deduplication
+            const providerId = data.providerSubscriptionId || data.authorizeNetSubscriptionId;
+            if (providerId) {
+                if (seenProviderIds.has(providerId)) continue;
+                seenProviderIds.add(providerId);
+            }
+
+            totalMrr += amount;
+            payingCustomers += 1;
+        }
+
+        const arr = totalMrr * 12;
+        const arpu = payingCustomers > 0 ? totalMrr / payingCustomers : 0;
+
         return {
             signups: { today: 0, week: 0, month: 0, total: usersList.users.length, trend: 0, trendUp: true },
             activeUsers: { daily: 0, weekly: 0, monthly: 0, trend: 0, trendUp: true },
             retention: { day1: null, day7: null, day30: null, trend: null, trendUp: null },
-            revenue: { mrr: 0, arr: 0, arpu: 0, trend: null, trendUp: null },
+            revenue: { mrr: totalMrr, arr, arpu, trend: null, trendUp: null },
             featureAdoption: [],
             recentSignups,
             agentUsage: []
@@ -124,9 +156,8 @@ export async function searchBrandsAction(query: string): Promise<{ id: string; n
 export async function importDemoData(prevState?: ActionResult, formData?: FormData): Promise<ActionResult> {
     try {
         await requireUser(['super_user']);
-        const { importDemoData: importInternal } = await import('@/server/demo/import-data');
-        await importInternal();
-        return { message: 'Demo data imported successfully' };
+        // Note: Demo data import feature was extracted to separate app in commit 72e6549c
+        return { message: 'Demo data import feature not available', error: true };
     } catch (error: any) {
         return { message: error.message, error: true };
     }
@@ -212,3 +243,7 @@ export async function getLivePreviewProducts(cannMenusId: string) {
         return [];
     }
 }
+
+// Re-exports for backward compatibility
+export { getRagIndexStats } from './pilot-actions';
+export { getCoupons } from './system-actions';

@@ -109,9 +109,9 @@ export default function SystemHealthTab() {
     }
   };
 
-  const formatPercent = (value: number) => `${value.toFixed(1)}%`;
-  const formatBytes = (mb: number) => `${mb.toLocaleString()} MB`;
-  const formatLatency = (ms: number) => `${ms.toLocaleString()} ms`;
+  const formatPercent = (value: number | null) => value != null ? `${value.toFixed(1)}%` : 'N/A';
+  const formatBytes = (mb: number | null) => mb != null ? `${mb.toLocaleString()} MB` : 'N/A';
+  const formatLatency = (ms: number | null) => ms != null ? `${ms.toLocaleString()} ms` : 'N/A';
 
   const getStatusBadge = (status: 'healthy' | 'degraded' | 'unhealthy') => {
     switch (status) {
@@ -129,14 +129,16 @@ export default function SystemHealthTab() {
     }
   };
 
-  const getUsageColor = (percent: number, type: 'memory' | 'cpu') => {
+  const getUsageColor = (percent: number | null, type: 'memory' | 'cpu') => {
+    if (percent == null) return 'text-muted-foreground';
     const t = type === 'memory' ? { warning: 70, critical: 85 } : { warning: 60, critical: 80 };
     if (percent >= t.critical) return 'text-red-500';
     if (percent >= t.warning) return 'text-yellow-500';
     return 'text-green-500';
   };
 
-  const getBarColor = (percent: number, type: 'memory' | 'cpu') => {
+  const getBarColor = (percent: number | null, type: 'memory' | 'cpu') => {
+    if (percent == null) return 'bg-muted';
     const t = type === 'memory' ? { warning: 70, critical: 85 } : { warning: 60, critical: 80 };
     if (percent >= t.critical) return 'bg-red-500';
     if (percent >= t.warning) return 'bg-yellow-500';
@@ -194,7 +196,7 @@ export default function SystemHealthTab() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {getStatusBadge(current.deploymentStatus)}
+          {getStatusBadge(current.deploymentStatus as 'healthy' | 'degraded' | 'unhealthy')}
           <Button variant="outline" size="sm" onClick={handleExportCSV}>
             <Download className="mr-2 h-4 w-4" />CSV
           </Button>
@@ -236,7 +238,7 @@ export default function SystemHealthTab() {
               {formatBytes(current.memoryUsedMB)} / {formatBytes(current.memoryAllocatedMB)}
             </p>
             <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div className={`h-full ${getBarColor(current.memoryUsagePercent, 'memory')}`} style={{ width: `${current.memoryUsagePercent}%` }} />
+              <div className={`h-full ${getBarColor(current.memoryUsagePercent, 'memory')}`} style={{ width: `${current.memoryUsagePercent ?? 0}%` }} />
             </div>
           </CardContent>
         </Card>
@@ -252,7 +254,7 @@ export default function SystemHealthTab() {
             </div>
             <p className="text-xs text-muted-foreground">{current.cpuCores} {current.cpuCores === 1 ? 'core' : 'cores'}</p>
             <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div className={`h-full ${getBarColor(current.cpuUsagePercent, 'cpu')}`} style={{ width: `${current.cpuUsagePercent}%` }} />
+              <div className={`h-full ${getBarColor(current.cpuUsagePercent, 'cpu')}`} style={{ width: `${current.cpuUsagePercent ?? 0}%` }} />
             </div>
           </CardContent>
         </Card>
@@ -277,7 +279,7 @@ export default function SystemHealthTab() {
           <CardContent>
             <div className="text-2xl font-bold">{current.requestsPerSecond}</div>
             <p className="text-xs text-muted-foreground">requests / second</p>
-            <Badge variant={current.errorRate > 1 ? 'destructive' : 'secondary'} className="mt-2 text-xs">
+            <Badge variant={(current.errorRate ?? 0) > 1 ? 'destructive' : 'secondary'} className="mt-2 text-xs">
               {formatPercent(current.errorRate)} errors
             </Badge>
           </CardContent>
@@ -298,11 +300,11 @@ export default function SystemHealthTab() {
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">P95</p>
-              <p className={`text-2xl font-bold ${current.p95LatencyMs > 1000 ? 'text-yellow-500' : ''}`}>{formatLatency(current.p95LatencyMs)}</p>
+              <p className={`text-2xl font-bold ${(current.p95LatencyMs ?? 0) > 1000 ? 'text-yellow-500' : ''}`}>{formatLatency(current.p95LatencyMs)}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">P99</p>
-              <p className={`text-2xl font-bold ${current.p99LatencyMs > 3000 ? 'text-red-500' : ''}`}>{formatLatency(current.p99LatencyMs)}</p>
+              <p className={`text-2xl font-bold ${(current.p99LatencyMs ?? 0) > 3000 ? 'text-red-500' : ''}`}>{formatLatency(current.p99LatencyMs)}</p>
             </div>
           </div>
         </CardContent>

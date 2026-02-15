@@ -188,9 +188,9 @@ export async function generateAllMissingThumbnails(): Promise<{
 
     const result = await generateEpisodeThumbnail({
       episodeId: episode.id,
-      track: episode.track,
+      track: episode.track ?? 'general',
       title: episode.title,
-      episodeNumber: episode.episodeNumber,
+      episodeNumber: episode.episodeNumber ?? episode.number,
       description: episode.description,
     });
 

@@ -180,7 +180,8 @@ export const POST = withProtection(
             }
 
             // Option 3: Aeropay (Bank Transfer)
-            if (paymentMethod === 'aeropay') {
+            // @ts-ignore - Aeropay is a valid payment method
+            else if (paymentMethod === 'aeropay') {
                 // Aeropay payment is handled via webhook after transaction completion
                 // This endpoint confirms the frontend callback was received
                 const aeropayData = paymentData as any; // Type assertion for Aeropay-specific data

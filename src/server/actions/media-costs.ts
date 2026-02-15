@@ -260,6 +260,7 @@ export async function getMonthlyProjection(orgId: string): Promise<{
     daysRemaining: number;
 }> {
     await requireUser(['super_user']);
+    const db = getFirestore();
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -267,13 +268,31 @@ export async function getMonthlyProjection(orgId: string): Promise<{
     const daysSoFar = now.getDate();
     const daysRemaining = daysInMonth - daysSoFar;
 
-    const usage = await getMediaUsage(orgId, startOfMonth, now);
+    let currentMonth = 0;
 
-    const dailyAverage = daysSoFar > 0 ? usage.totalCostUsd / daysSoFar : 0;
-    const projectedMonth = usage.totalCostUsd + dailyAverage * daysRemaining;
+    if (orgId === 'global') {
+        // For global, aggregate across all tenants
+        const snapshot = await db
+            .collection('media_generation_events')
+            .where('createdAt', '>=', Timestamp.fromDate(startOfMonth))
+            .where('createdAt', '<=', Timestamp.fromDate(now))
+            .get();
+
+        currentMonth = snapshot.docs.reduce((sum, doc) => {
+            const event = doc.data() as MediaGenerationEvent;
+            return sum + event.costUsd;
+        }, 0);
+    } else {
+        // For specific org, use existing getMediaUsage
+        const usage = await getMediaUsage(orgId, startOfMonth, now);
+        currentMonth = usage.totalCostUsd;
+    }
+
+    const dailyAverage = daysSoFar > 0 ? currentMonth / daysSoFar : 0;
+    const projectedMonth = currentMonth + dailyAverage * daysRemaining;
 
     return {
-        currentMonth: usage.totalCostUsd,
+        currentMonth,
         projectedMonth,
         dailyAverage,
         daysRemaining,
