@@ -1,6 +1,3 @@
-'use server';
-
-export * from './types';
 export * from './pilot-actions';
 export * from './user-actions';
 export * from './seo-actions';

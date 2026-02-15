@@ -1,11 +1,6 @@
-// EMERGENCY BUILD FIX: Force dynamic rendering to prevent OOM during build
-// With 204 pages, pre-rendering all at once requires >64GB memory
-// This line forces on-demand generation instead
-export const dynamic = 'force-dynamic';
-export const dynamicParams = true;
-export const revalidate = 0;
-
 'use client';
+
+
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

@@ -16,15 +16,8 @@ const nextConfig = {
 
   // Build performance optimizations
   productionBrowserSourceMaps: false,  // Disable source maps - saves memory and time
-  swcMinify: true,                     // Use fast SWC minifier (default in Next.js 13+)
 
   // Reduce compilation overhead
-  modularizeImports: {
-    // Tree-shake large libraries more aggressively
-    'lucide-react': {
-      transform: 'lucide-react/dist/esm/icons/{{member}}',
-    },
-  },
   images: {
     remotePatterns: [
       {
@@ -70,6 +63,15 @@ const nextConfig = {
     '@opentelemetry/instrumentation',
     'google-auth-library',
     '@google-cloud/monitoring',
+    'firebase-admin',
+    'googleapis',
+    'resend',
+    'stripe',
+    'twilio',
+    'adm-zip',
+    'archiver',
+    'jszip',
+    'xlsx',
     'fs',
     'path',
     'os',
@@ -97,9 +99,6 @@ const nextConfig = {
       'recharts',
     ],
   },
-  // Turbopack configuration (required in Next.js 16 if webpack config is present)
-  // Empty config acknowledges we're using Turbopack with default settings
-  turbopack: {},
 
   // Webpack configuration for aggressive memory optimization (when not using Turbopack)
   webpack: (config, { isServer }) => {
@@ -153,14 +152,8 @@ const nextConfig = {
     // With 204 pages, parallel compilation causes OOM
     config.parallelism = 1;
 
-    // Re-enable filesystem cache with memory limits to speed up builds
-    // Use conservative memory budget to prevent OOM while getting cache benefits
-    config.cache = {
-      type: 'filesystem',
-      compression: 'gzip',  // Compress cache to save memory
-      maxMemoryGenerations: 1,  // Only keep 1 generation in memory
-      maxAge: 1000 * 60 * 60 * 24 * 7,  // 7 days
-    };
+    // Disable filesystem cache to save memory at the cost of build time
+    config.cache = false;
 
     return config;
   },

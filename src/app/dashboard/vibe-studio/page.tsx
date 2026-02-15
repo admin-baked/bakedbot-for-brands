@@ -1,20 +1,6 @@
-// EMERGENCY BUILD FIX: Force dynamic rendering to prevent OOM during build
-// With 204 pages, pre-rendering all at once requires >64GB memory
-// This line forces on-demand generation instead
-export const dynamic = 'force-dynamic';
-export const dynamicParams = true;
-export const revalidate = 0;
-
 'use client';
 
-/**
- * Vibe Studio Dashboard
- *
- * AI-powered menu/website customization.
- * Let users describe their vibe and generate custom themes.
- */
-
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -849,7 +835,7 @@ export default function VibeStudioPage() {
                                             {selectedMobileVibe.name}
                                             <Badge variant="outline" className="ml-2">
                                                 {selectedMobileVibe.platform === 'both' ? 'iOS & Android' :
-                                                 selectedMobileVibe.platform === 'ios' ? 'iOS' : 'Android'}
+                                                    selectedMobileVibe.platform === 'ios' ? 'iOS' : 'Android'}
                                             </Badge>
                                         </CardTitle>
                                         <CardDescription>{selectedMobileVibe.description || selectedMobileVibe.prompt}</CardDescription>
@@ -991,8 +977,8 @@ export default function VibeStudioPage() {
                                                 <div className="flex-1 min-w-0">
                                                     <CardTitle className="text-base truncate flex items-center gap-2">
                                                         {vibe.platform === 'ios' ? <Apple className="h-4 w-4" /> :
-                                                         vibe.platform === 'android' ? <Smartphone className="h-4 w-4" /> :
-                                                         <TabletSmartphone className="h-4 w-4" />}
+                                                            vibe.platform === 'android' ? <Smartphone className="h-4 w-4" /> :
+                                                                <TabletSmartphone className="h-4 w-4" />}
                                                         {vibe.name}
                                                     </CardTitle>
                                                     <CardDescription className="text-xs line-clamp-2">
@@ -1055,7 +1041,7 @@ export default function VibeStudioPage() {
                                                 <Badge
                                                     variant={
                                                         vibe.status === 'published' ? 'default' :
-                                                        vibe.status === 'draft' ? 'secondary' : 'outline'
+                                                            vibe.status === 'draft' ? 'secondary' : 'outline'
                                                     }
                                                 >
                                                     {vibe.status === 'published' && <Star className="h-3 w-3 mr-1" />}
@@ -1161,7 +1147,7 @@ export default function VibeStudioPage() {
                                             <Badge
                                                 variant={
                                                     vibe.status === 'published' ? 'default' :
-                                                    vibe.status === 'draft' ? 'secondary' : 'outline'
+                                                        vibe.status === 'draft' ? 'secondary' : 'outline'
                                                 }
                                             >
                                                 {vibe.status === 'published' && <Star className="h-3 w-3 mr-1" />}
