@@ -848,6 +848,48 @@ Keep it professional, data-driven, and actionable.`;
         context.variables.competitorReport = report;
         context.previousResults.report = report;
 
+        // NEW: Analyze competitive intelligence and trigger automated actions
+        try {
+            const { analyzeCompetitiveIntelligence } = await import('@/server/services/competitive-actions');
+
+            const triggers = competitorData.map((c: any) => ({
+                competitorId: c.url?.replace(/https?:\/\//, '').replace(/[^a-z0-9]/gi, '_').toLowerCase().slice(0, 50) || 'unknown',
+                competitorName: c.name,
+                snapshot: {
+                    id: c.url || 'unknown',
+                    competitorId: c.url || 'unknown',
+                    competitorName: c.name,
+                    url: c.url || '',
+                    discoveredAt: new Date(),
+                    expiresAt: new Date(),
+                    priceRange: c.priceRange || { min: 0, max: 0, median: 0, count: 0 },
+                    promoCount: c.promoCount || 0,
+                    promoSignals: c.promoSignals || [],
+                    categorySignals: c.categorySignals || [],
+                    costCents: 0,
+                    proxyType: 'none' as const,
+                    freshness: 'fresh' as const,
+                    status: c.status || 'success' as const,
+                    contentHash: '',
+                },
+                ourPricing: context.variables.ourPricing, // Optional: pass our pricing if available
+            }));
+
+            const actions = await analyzeCompetitiveIntelligence(context.orgId, triggers);
+
+            context.variables.competitiveActions = actions;
+            context.previousResults.competitiveActions = actions;
+
+            logger.info('[PlaybookExecutor] Competitive actions triggered:', {
+                total: actions.length,
+                critical: actions.filter(a => a.priority === 'critical').length,
+                high: actions.filter(a => a.priority === 'high').length,
+            });
+        } catch (error) {
+            logger.warn('[PlaybookExecutor] Failed to analyze competitive actions:', { error });
+            // Don't fail the whole step if action analysis fails
+        }
+
         logger.info('[PlaybookExecutor] Report generated:', { length: report.length });
 
         return {
@@ -975,11 +1017,24 @@ export async function executeSendEmail(
     context: ExecutionContext
 ): Promise<any> {
     const to = resolveVariables(step.params?.to || '{{user.email}}', context.variables);
-    const subject = resolveVariables(step.params?.subject || 'Daily Competitive Intelligence Report', context.variables);
     const report = context.variables.competitorReport;
     const driveUrl = context.variables.driveFilePath;
+    const actions = context.variables.competitiveActions || [];
 
-    logger.info('[PlaybookExecutor] Sending email:', { to, subject });
+    // Build dynamic subject line with threat count
+    const criticalCount = actions.filter((a: any) => a.priority === 'critical').length;
+    const highCount = actions.filter((a: any) => a.priority === 'high').length;
+
+    let defaultSubject = '📊 Daily Competitive Intelligence Report';
+    if (criticalCount > 0) {
+        defaultSubject = `🚨 ${criticalCount} Critical Competitive Threat${criticalCount > 1 ? 's' : ''} Detected`;
+    } else if (highCount > 0) {
+        defaultSubject = `⚠️ ${highCount} High-Priority Competitive Alert${highCount > 1 ? 's' : ''}`;
+    }
+
+    const subject = resolveVariables(step.params?.subject || defaultSubject, context.variables);
+
+    logger.info('[PlaybookExecutor] Sending email:', { to, subject, actions: actions.length });
 
     if (!report) {
         throw new Error('No report available. Run generate_competitor_report first.');
@@ -1035,13 +1090,33 @@ export async function executeSendEmail(
 </body>
 </html>`;
 
+        // Add action summary to email if competitive actions were triggered
+        let actionSummary = '';
+        if (actions.length > 0) {
+            actionSummary = `
+    <div style="margin: 30px 0; padding: 20px; background: #fef2f2; border-left: 4px solid #dc2626; border-radius: 4px;">
+        <h2 style="margin: 0 0 15px 0; color: #991b1b; font-size: 18px;">⚡ Automated Actions Triggered (${actions.length})</h2>
+        ${actions.map((action: any) => `
+        <div style="margin: 10px 0; padding: 10px; background: white; border-radius: 4px;">
+            <strong style="color: ${action.priority === 'critical' ? '#dc2626' : action.priority === 'high' ? '#ea580c' : '#65a30d'}">
+                ${action.priority.toUpperCase()}: ${action.competitorName}
+            </strong>
+            <p style="margin: 5px 0; font-size: 14px;">${action.trigger}</p>
+            <p style="margin: 5px 0; font-size: 14px; color: #059669;">
+                ✓ ${action.type === 'price_adjustment' ? 'Money Mike' : action.type === 'counter_campaign' ? 'Craig' : action.type === 'inventory_alert' ? 'Pops' : 'System'} created ${action.type.replace('_', ' ')} (pending review)
+            </p>
+        </div>
+        `).join('')}
+    </div>`;
+        }
+
         const result = await sendGenericEmail({
             to,
             name: to.split('@')[0],
-            fromEmail: 'reports@bakedbot.ai',
-            fromName: 'BakedBot Intelligence',
+            fromEmail: 'hello@bakedbot.ai',
+            fromName: 'BakedBot',
             subject,
-            htmlBody,
+            htmlBody: htmlBody.replace('</div>\n\n    <div class="footer">', `${actionSummary}</div>\n\n    <div class="footer"`),
             textBody: report,
             orgId: context.orgId,
             communicationType: 'campaign',
@@ -1061,6 +1136,92 @@ export async function executeSendEmail(
         };
     } catch (error) {
         logger.error('[PlaybookExecutor] Failed to send email:', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+        };
+    }
+}
+
+/**
+ * Create inbox notification for competitive intelligence report
+ * Action: create_inbox_notification
+ */
+export async function executeCreateInboxNotification(
+    step: any,
+    context: ExecutionContext
+): Promise<any> {
+    const report = context.variables.competitorReport;
+    const actions = context.variables.competitiveActions || [];
+
+    if (!report) {
+        throw new Error('No report available. Run generate_competitor_report first.');
+    }
+
+    try {
+        const { firestore } = await createServerClient();
+
+        // Build notification title based on actions
+        const criticalCount = actions.filter((a: any) => a.priority === 'critical').length;
+        const highCount = actions.filter((a: any) => a.priority === 'high').length;
+
+        let title = '📊 Daily Competitive Intelligence Report';
+        let priority: 'normal' | 'high' | 'urgent' = 'normal';
+
+        if (criticalCount > 0) {
+            title = `🚨 ${criticalCount} Critical Competitive Threat${criticalCount > 1 ? 's' : ''}`;
+            priority = 'urgent';
+        } else if (highCount > 0) {
+            title = `⚠️ ${highCount} High-Priority Competitive Alert${highCount > 1 ? 's' : ''}`;
+            priority = 'high';
+        }
+
+        // Build notification message with action summary
+        let message = report.split('\n').slice(0, 10).join('\n') + '\n\n...';
+
+        if (actions.length > 0) {
+            message = `**${actions.length} Automated Actions Triggered:**\n\n` +
+                actions.slice(0, 3).map((a: any) =>
+                    `• **${a.competitorName}**: ${a.trigger} → ${a.type.replace('_', ' ')} created`
+                ).join('\n') +
+                (actions.length > 3 ? `\n\n...and ${actions.length - 3} more` : '');
+        }
+
+        // Create inbox notification
+        const notification = await firestore.collection('notifications').add({
+            tenantId: context.orgId,
+            recipientId: context.orgId,
+            type: 'competitive_intel',
+            title,
+            message,
+            priority,
+            read: false,
+            createdAt: new Date(),
+            metadata: {
+                source: 'playbook',
+                playbookType: 'competitive_intelligence',
+                competitorCount: context.variables.competitorData?.length || 0,
+                actionsTriggered: actions.length,
+                criticalActions: criticalCount,
+                highActions: highCount,
+                reportLength: report.length,
+            },
+        });
+
+        logger.info('[PlaybookExecutor] Inbox notification created:', {
+            notificationId: notification.id,
+            priority,
+            actions: actions.length,
+        });
+
+        return {
+            success: true,
+            notificationId: notification.id,
+            title,
+            priority,
+        };
+    } catch (error) {
+        logger.error('[PlaybookExecutor] Failed to create inbox notification:', { error });
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -1391,6 +1552,9 @@ export async function executePlaybook(
                         break;
                     case 'send_email':
                         output = await executeSendEmail(step, context);
+                        break;
+                    case 'create_inbox_notification':
+                        output = await executeCreateInboxNotification(step, context);
                         break;
                     default:
                         logger.warn('[PlaybookExecutor] Unknown action:', step.action);
