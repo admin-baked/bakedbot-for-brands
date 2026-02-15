@@ -119,12 +119,14 @@ ${SYRACUSE_COMPETITORS.map(c => `        - name: "${c.name}"
       category: "documents"
       filename: "competitive-intel-{{date}}.md"
 
+  - action: create_inbox_notification
+    label: "Create Inbox Notification"
+    params: {}
+
   - action: send_email
-    label: "Email Daily Summary"
+    label: "Email Daily Summary (from hello@bakedbot.ai)"
     params:
       to: "${REPORT_EMAIL}"
-      subject: "🔍 Daily Competitive Intel: {{date}}"
-      body: "{{competitorReport}}"
 `,
 
             triggers: [
@@ -154,7 +156,7 @@ ${SYRACUSE_COMPETITORS.map(c => `        - name: "${c.name}"
                 {
                     id: 'step-2',
                     action: 'generate_competitor_report',
-                    label: 'Generate Intelligence Report',
+                    label: 'Generate Intelligence Report (with automated actions)',
                     params: {
                         format: 'markdown',
                         dispensaryName: 'Thrive Syracuse',
@@ -173,11 +175,16 @@ ${SYRACUSE_COMPETITORS.map(c => `        - name: "${c.name}"
                 },
                 {
                     id: 'step-4',
+                    action: 'create_inbox_notification',
+                    label: 'Create Inbox Notification',
+                    params: {},
+                },
+                {
+                    id: 'step-5',
                     action: 'send_email',
                     label: 'Email Daily Summary',
                     params: {
                         to: REPORT_EMAIL,
-                        subject: `🔍 Daily Competitive Intel: Syracuse - ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
                     },
                 },
             ],

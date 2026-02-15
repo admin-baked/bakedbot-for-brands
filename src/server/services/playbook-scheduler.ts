@@ -133,7 +133,7 @@ async function createCloudSchedulerJob(
                     'Content-Type': 'application/json',
                 },
                 body: Buffer.from(JSON.stringify({
-                    triggeredBy: 'schedule',
+                    triggeredBy: 'schedule' as const,
                     orgId: playbook.orgId,
                     userId: playbook.ownerId,
                 })).toString('base64'),
@@ -160,13 +160,14 @@ async function createCloudSchedulerJob(
 
         // Store job reference in playbook metadata
         const { firestore } = await createServerClient();
+        const existingJobs = (playbook.metadata?.scheduledJobs as string[]) || [];
         await firestore
             .collection('tenants')
             .doc(playbook.orgId)
             .collection('playbooks')
             .doc(playbookId)
             .update({
-                'metadata.scheduledJobs': [...(playbook.metadata?.scheduledJobs || []), fullJobName],
+                'metadata.scheduledJobs': [...existingJobs, fullJobName],
                 updatedAt: new Date(),
             });
 
@@ -298,7 +299,7 @@ export async function onPlaybookStatusChange(
  */
 export async function executePlaybookManually(
     playbookId: string,
-    triggeredBy: 'manual' | 'schedule' | 'event' | 'agent',
+    triggeredBy: 'manual' | 'schedule' | 'event',
     userId: string,
     eventData?: Record<string, any>
 ): Promise<{ success: boolean; executionId?: string; error?: string }> {
