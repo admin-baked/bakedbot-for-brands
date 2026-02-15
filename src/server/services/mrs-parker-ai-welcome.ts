@@ -203,16 +203,26 @@ HTML_BODY:
 [Closing - warm and supportive]
 
 Mrs. Parker 💜
-[Role context]
+Customer Happiness Manager
+BakedBot Family
 
 TEXT_BODY:
 [Plain text version - same content without HTML formatting]
+
+# Formatting Requirements - CRITICAL
+- Use DOUBLE LINE BREAKS (blank lines) between ALL paragraphs
+- Each paragraph should be 2-4 sentences maximum
+- DO NOT write one long block of text
+- Break up content into distinct, scannable sections
+- Think: greeting paragraph, then body paragraph, then offer paragraph, then closing
+- Each section should be visually separated with blank lines
 
 # Important
 - Never mention "AI" or "automation" - you're a real person
 - Never use corporate jargon like "leverage", "synergy", "ecosystem"
 - Never overwhelm with too many links or CTAs
 - Always make it feel like you personally wrote it just for them
+- READABILITY IS KEY - short paragraphs with clear spacing
 `.trim();
 
 /**
@@ -318,17 +328,62 @@ function parseGeneratedEmail(generated: string): {
 
     // Extract HTML body (between "HTML_BODY:" and "TEXT_BODY:")
     const htmlMatch = generated.match(/HTML_BODY:\s*([\s\S]+?)(?=TEXT_BODY:|$)/i);
-    const htmlBody = htmlMatch?.[1]?.trim() || generated;
+    const rawHtmlBody = htmlMatch?.[1]?.trim() || generated;
 
     // Extract text body (after "TEXT_BODY:")
     const textMatch = generated.match(/TEXT_BODY:\s*([\s\S]+)/i);
-    const textBody = textMatch?.[1]?.trim() || htmlBody.replace(/<[^>]+>/g, '');
+    const textBody = textMatch?.[1]?.trim() || rawHtmlBody.replace(/<[^>]+>/g, '');
+
+    // Format HTML body with proper paragraph spacing
+    const htmlBody = formatHtmlBody(rawHtmlBody);
 
     return {
         subject: subject.replace(/^["']|["']$/g, ''), // Remove quotes if present
         htmlBody,
         textBody,
     };
+}
+
+/**
+ * Format HTML body with proper paragraph tags and spacing
+ */
+function formatHtmlBody(rawHtml: string): string {
+    // If already has HTML tags, just ensure proper styling
+    if (rawHtml.includes('<p>') || rawHtml.includes('<div>')) {
+        // Add inline styles to existing <p> tags if they don't have them
+        return rawHtml.replace(
+            /<p>/gi,
+            '<p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px; color: #333;">'
+        );
+    }
+
+    // Otherwise, convert plain text paragraphs to HTML
+    const paragraphs = rawHtml
+        .split(/\n\n+/) // Split on double line breaks
+        .map(p => p.trim())
+        .filter(p => p.length > 0);
+
+    return paragraphs
+        .map(paragraph => {
+            // Check if it's a signature line (starts with name or title)
+            if (
+                paragraph.startsWith('Mrs. Parker') ||
+                paragraph.startsWith('With love') ||
+                paragraph.includes('💜') ||
+                paragraph.includes('Customer Happiness')
+            ) {
+                return `<p style="font-size: 16px; line-height: 1.8; margin-top: 30px; margin-bottom: 10px; color: #667eea; font-style: italic;">${paragraph}</p>`;
+            }
+
+            // Check if it's a greeting (Hey/Hi + name)
+            if (paragraph.match(/^(Hey|Hi|Hello|Welcome)\s+\w+[!,]/)) {
+                return `<p style="font-size: 18px; line-height: 1.8; margin-bottom: 20px; color: #333; font-weight: 500;">${paragraph}</p>`;
+            }
+
+            // Regular paragraph
+            return `<p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px; color: #333;">${paragraph}</p>`;
+        })
+        .join('\n');
 }
 
 /**

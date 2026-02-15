@@ -8,6 +8,7 @@ import type { Invitation, InvitationRole, InvitationStatus } from '@/types/invit
 import { CreateInvitationSchema, AcceptInvitationSchema } from '@/types/invitation';
 import { FieldValue } from 'firebase-admin/firestore';
 import { requireBrandAccess, requireDispensaryAccess, requirePermission, isBrandRole, isDispensaryRole, isBrandAdmin, isDispensaryAdmin } from '@/server/auth/rbac';
+import { logger } from '@/lib/logger';
 
 // --- ACTIONS ---
 
@@ -258,9 +259,14 @@ export async function acceptInvitationAction(token: string) {
         // Update User Profile based on Role
         const userRef = firestore.collection('users').doc(user.uid);
         
+        let userName: string | undefined;
+
         await firestore.runTransaction(async (t) => {
             const userDoc = await t.get(userRef);
             if (!userDoc.exists) throw new Error('User profile not found.');
+
+            // Store user name for welcome email
+            userName = userDoc.data()?.name;
 
             // Update Invite Status
             t.update(firestore.collection('invitations').doc(invite.id), {
@@ -271,7 +277,7 @@ export async function acceptInvitationAction(token: string) {
 
             // Update User Roles
             const updates: any = {};
-            
+
             if (invite.role === 'super_admin') {
                 // TODO: Update custom claims or role field
                 // For now, assume this logic is handled via claims or a specific 'roles' field
@@ -283,9 +289,35 @@ export async function acceptInvitationAction(token: string) {
                  updates.role = invite.role; // Set primary role?
                  updates.currentOrgId = invite.targetOrgId;
             }
-            
+
             t.update(userRef, updates);
         });
+
+        // Trigger AI-powered welcome email for invited user
+        try {
+            const { handlePlatformSignup } = await import('./platform-signup');
+            await handlePlatformSignup({
+                userId: user.uid,
+                email: invite.email,
+                firstName: userName?.split(' ')[0],
+                lastName: userName?.split(' ').slice(1).join(' '),
+                role: invite.role as any,
+                orgId: invite.targetOrgId,
+                brandId: invite.role === 'brand' ? invite.targetOrgId : undefined,
+                dispensaryId: invite.role === 'dispensary' ? invite.targetOrgId : undefined,
+            });
+            logger.info('[Invitations] Welcome email triggered for invited user', {
+                userId: user.uid,
+                email: invite.email,
+                role: invite.role,
+            });
+        } catch (welcomeError) {
+            logger.error('[Invitations] Failed to trigger welcome email', {
+                userId: user.uid,
+                error: welcomeError instanceof Error ? welcomeError.message : String(welcomeError),
+            });
+            // Non-fatal, continue with invitation acceptance
+        }
 
         return { success: true, message: 'Invitation accepted!' };
 
