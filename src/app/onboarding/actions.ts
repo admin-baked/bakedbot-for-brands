@@ -425,6 +425,31 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       logger.error('Failed to trigger notifications', { error: emailError });
     }
 
+    // === TRIGGER AI-POWERED WELCOME EMAIL + NURTURE PLAYBOOK ===
+    try {
+      const { handlePlatformSignup } = await import('@/server/actions/platform-signup');
+      await handlePlatformSignup({
+        userId: uid,
+        email: user.email || '',
+        firstName: user.name?.split(' ')[0],
+        lastName: user.name?.split(' ').slice(1).join(' '),
+        role: finalRole as any,
+        orgId: orgId || undefined,
+        brandId: finalBrandId || undefined,
+        dispensaryId: locationId || undefined,
+      });
+      logger.info('[Onboarding] Platform signup triggered - AI welcome email + playbook queued', {
+        userId: uid,
+        role: finalRole,
+        orgId,
+      });
+    } catch (welcomeError) {
+      // Don't fail onboarding if welcome email fails
+      logger.error('[Onboarding] Failed to trigger platform signup handler', {
+        error: welcomeError instanceof Error ? welcomeError.message : String(welcomeError)
+      });
+    }
+
     revalidatePath('/dashboard');
     revalidatePath('/account');
 
