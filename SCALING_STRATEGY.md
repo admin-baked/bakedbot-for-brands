@@ -235,42 +235,61 @@ GitHub Action getting "Unauthorized" when calling `/api/cron/dayday-discovery`
 
 ### Root Cause
 
-`CRON_SECRET` not set in GitHub Actions secrets or doesn't match Firebase secret
+`CRON_SECRET` exists in Firebase Secret Manager but either:
+1. Doesn't match the GitHub Actions secret
+2. App doesn't have access to the secret
 
-### Solution
+### Verification Steps
 
-**1. Generate Secure Secret:**
-```bash
+**1. Retrieve Firebase Secret:**
+```powershell
 cd scripts
-chmod +x setup-cron-secret.sh
-./setup-cron-secret.sh
+.\get-firebase-secret.ps1
 ```
 
 This will:
-- Generate a secure 64-character hex secret
-- Show GitHub Actions setup instructions
-- Show Firebase Secret Manager commands
-- Provide test curl command
+- Authenticate to gcloud (if needed)
+- Retrieve current CRON_SECRET from Firebase
+- Copy to clipboard
+- Show full secret value
 
-**2. Add to GitHub:**
-1. Go to: https://github.com/admin-baked/bakedbot-for-brands/settings/secrets/actions
-2. Add `CRON_SECRET` with the generated value
-
-**3. Add to Firebase:**
-```bash
-echo 'YOUR_SECRET_HERE' | gcloud secrets create CRON_SECRET \
-  --project=studio-567050101-bc6e8 \
-  --data-file=-
-
-firebase apphosting:secrets:grantaccess CRON_SECRET
+**2. Test the Secret:**
+```powershell
+.\verify-cron-secret.ps1 -Secret "paste-secret-here"
 ```
 
-**4. Test:**
-```bash
-curl -X GET https://bakedbot.ai/api/cron/dayday-discovery \
-  -H "Authorization: Bearer YOUR_SECRET_HERE"
+This will:
+- Test `/api/cron/dayday-discovery` endpoint
+- Show detailed error messages if fails
+- Display results if successful
+- Verify authentication flow
 
-# Expected: {"success": true, "result": {...}}
+**3. If Verification Fails (401 Unauthorized):**
+
+Option A - Update GitHub to match Firebase:
+1. Run `.\get-firebase-secret.ps1` to get Firebase secret
+2. Go to: https://github.com/admin-baked/bakedbot-for-brands/settings/secrets/actions
+3. Update `CRON_SECRET` to match Firebase value
+
+Option B - Generate new secret for both:
+1. Run `.\setup-cron-secret.ps1` (generates new random secret)
+2. Update both GitHub Actions AND Firebase Secret Manager
+3. Grant access: `firebase apphosting:secrets:grantaccess CRON_SECRET`
+
+**4. If Verification Fails (500 Server Error):**
+
+Check `apphosting.yaml` includes:
+```yaml
+env:
+  - variable: CRON_SECRET
+    secret: projects/studio-567050101-bc6e8/secrets/CRON_SECRET/versions/latest
+    availability:
+      - RUNTIME
+```
+
+Grant access if needed:
+```bash
+firebase apphosting:secrets:grantaccess CRON_SECRET --project=studio-567050101-bc6e8
 ```
 
 ### Enhanced Workflow
@@ -295,6 +314,56 @@ New GitHub Action checks for secret and shows better errors:
       exit 1
     fi
 ```
+
+---
+
+## 📊 Current Day Day Page Generation
+
+### Daily Output
+
+**Runs:** Daily at 5:00 AM UTC (Midnight CST)
+**Markets per run:** 5 cities
+**Total target markets:** 14 cities (IL, MI, CO, CA, NY/NJ)
+
+| Page Type | Per Market | Total Daily |
+|-----------|-----------|-------------|
+| Location (ZIP) pages | ~3 | 15 pages |
+| Dispensary pages | ~5 | 25 pages |
+| Brand pages | ~3 | 15 pages |
+| **TOTAL** | **~11** | **~55 pages/day** |
+
+### Market Coverage Cycle
+
+- 14 markets ÷ 5 per day = **2.8 days per full cycle**
+- After all markets processed, cycles through again (infinite loop)
+- Tracks processed markets in `dayday_discovery_log` collection
+
+### With On-Demand ISR (New Strategy)
+
+**What happens at build time:**
+- 0 pages pre-rendered (instant builds, no timeouts)
+
+**What happens daily (5am cron):**
+- Firestore metadata created for ~55 pages
+- Day Day job can optionally "warm cache" by visiting pages
+- Pages remain cached for 4 hours
+
+**What happens on user visits:**
+- First visit: Page generated on-demand (~2s), then cached
+- Subsequent visits: Instant (served from cache)
+- After 4 hours: Revalidates in background, serves stale while regenerating
+
+### Scaling Math
+
+| Timeframe | Pages Created | Total Pages | Build Time |
+|-----------|--------------|-------------|------------|
+| **Day 1** | 55 | 55 | ~5 min (0 pre-rendered) |
+| **Week 1** | 385 | 385 | ~5 min |
+| **Month 1** | 1,650 | 1,650 | ~5 min |
+| **Month 3** | 4,950 | 4,950 | ~5 min |
+| **Year 1** | 20,075 | 20,075 | ~5 min |
+
+**Key insight:** Build time stays constant regardless of page count, thanks to on-demand ISR.
 
 ---
 
