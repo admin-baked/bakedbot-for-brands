@@ -60,27 +60,46 @@ try {
     Write-Host $response.Content -ForegroundColor White
     Write-Host ""
 
-    # Parse JSON if possible
+    # Try to parse and display JSON results
     try {
         $json = $response.Content | ConvertFrom-Json
-        if ($json.success) {
+        if ($json.success -and $json.result) {
             Write-Host "================================================" -ForegroundColor Cyan
             Write-Host "📊 Day Day Discovery Results" -ForegroundColor Yellow
             Write-Host "================================================" -ForegroundColor Cyan
             Write-Host ""
-            Write-Host "Markets Processed: $($json.result.marketsProcessed)" -ForegroundColor White
-            Write-Host "Pages Created:" -ForegroundColor White
-            Write-Host "  - Location: $($json.result.pagesCreated.location)" -ForegroundColor White
-            Write-Host "  - Dispensary: $($json.result.pagesCreated.dispensary)" -ForegroundColor White
-            Write-Host "  - Brand: $($json.result.pagesCreated.brand)" -ForegroundColor White
-            Write-Host "Pages Optimized: $($json.result.pagesOptimized)" -ForegroundColor White
-            Write-Host ""
-            Write-Host "Low Competition Markets:" -ForegroundColor White
-            foreach ($market in $json.result.lowCompetitionMarkets) {
-                Write-Host "  ✓ $market" -ForegroundColor Green
+
+            if ($json.result.marketsProcessed) {
+                Write-Host "Markets Processed: $($json.result.marketsProcessed)" -ForegroundColor White
             }
 
-            if ($json.result.errors.Count -gt 0) {
+            if ($json.result.pagesCreated) {
+                Write-Host "Pages Created:" -ForegroundColor White
+                if ($json.result.pagesCreated.location) {
+                    Write-Host "  - Location: $($json.result.pagesCreated.location)" -ForegroundColor White
+                }
+                if ($json.result.pagesCreated.dispensary) {
+                    Write-Host "  - Dispensary: $($json.result.pagesCreated.dispensary)" -ForegroundColor White
+                }
+                if ($json.result.pagesCreated.brand) {
+                    Write-Host "  - Brand: $($json.result.pagesCreated.brand)" -ForegroundColor White
+                }
+            }
+
+            if ($json.result.pagesOptimized) {
+                Write-Host "Pages Optimized: $($json.result.pagesOptimized)" -ForegroundColor White
+            }
+
+            Write-Host ""
+
+            if ($json.result.lowCompetitionMarkets -and $json.result.lowCompetitionMarkets.Count -gt 0) {
+                Write-Host "Low Competition Markets:" -ForegroundColor White
+                foreach ($market in $json.result.lowCompetitionMarkets) {
+                    Write-Host "  ✓ $market" -ForegroundColor Green
+                }
+            }
+
+            if ($json.result.errors -and $json.result.errors.Count -gt 0) {
                 Write-Host ""
                 Write-Host "Errors:" -ForegroundColor Red
                 foreach ($error in $json.result.errors) {
@@ -88,8 +107,9 @@ try {
                 }
             }
         }
-    } catch {
-        # JSON parsing failed, that's okay
+    }
+    catch {
+        # JSON parsing failed, that's okay - we already showed the raw response
     }
 
     Write-Host ""
@@ -97,13 +117,16 @@ try {
     Write-Host "✅ Verification Complete - CRON_SECRET is valid!" -ForegroundColor Green
     Write-Host "================================================" -ForegroundColor Cyan
     Write-Host ""
-
-} catch {
+}
+catch {
     Write-Host ""
     Write-Host "❌ FAILED" -ForegroundColor Red
     Write-Host ""
 
-    $statusCode = $_.Exception.Response.StatusCode.value__
+    $statusCode = 0
+    if ($_.Exception.Response) {
+        $statusCode = [int]$_.Exception.Response.StatusCode
+    }
 
     if ($statusCode -eq 401) {
         Write-Host "HTTP Status: 401 Unauthorized" -ForegroundColor Red
@@ -122,8 +145,8 @@ try {
         Write-Host "  3. Verify Firebase App Hosting has access to the secret:" -ForegroundColor White
         Write-Host "     firebase apphosting:secrets:grantaccess CRON_SECRET --project=studio-567050101-bc6e8" -ForegroundColor Gray
         Write-Host ""
-
-    } elseif ($statusCode -eq 500) {
+    }
+    elseif ($statusCode -eq 500) {
         Write-Host "HTTP Status: 500 Internal Server Error" -ForegroundColor Red
         Write-Host ""
         Write-Host "This might mean:" -ForegroundColor Yellow
@@ -133,13 +156,15 @@ try {
         Write-Host "Check apphosting.yaml:" -ForegroundColor Yellow
         Write-Host "  env:" -ForegroundColor Gray
         Write-Host "    - variable: CRON_SECRET" -ForegroundColor Gray
-        Write-Host '      secret: projects/studio-567050101-bc6e8/secrets/CRON_SECRET/versions/latest' -ForegroundColor Gray
+        Write-Host "      secret: projects/studio-567050101-bc6e8/secrets/CRON_SECRET/versions/latest" -ForegroundColor Gray
         Write-Host "      availability:" -ForegroundColor Gray
         Write-Host "        - RUNTIME" -ForegroundColor Gray
         Write-Host ""
-
-    } else {
-        Write-Host "HTTP Status: $statusCode" -ForegroundColor Red
+    }
+    else {
+        if ($statusCode -gt 0) {
+            Write-Host "HTTP Status: $statusCode" -ForegroundColor Red
+        }
         Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host ""
     }
@@ -151,7 +176,7 @@ try {
     exit 1
 }
 
-# Step 3: Test Firebase Secret Manager access (optional)
+# Step 3: Additional checks
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host "🔧 Additional Checks" -ForegroundColor Yellow
 Write-Host "================================================" -ForegroundColor Cyan
@@ -162,12 +187,11 @@ try {
     $gcloudVersion = gcloud --version 2>&1 | Select-Object -First 1
     Write-Host "✅ gcloud CLI installed: $gcloudVersion" -ForegroundColor Green
     Write-Host ""
-
     Write-Host "To view the Firebase secret:" -ForegroundColor Yellow
     Write-Host "  gcloud secrets versions access latest --secret=CRON_SECRET --project=studio-567050101-bc6e8" -ForegroundColor White
     Write-Host ""
-
-} catch {
+}
+catch {
     Write-Host "INFO: gcloud CLI not found (optional)" -ForegroundColor Yellow
     Write-Host "Install: https://cloud.google.com/sdk/docs/install" -ForegroundColor Gray
     Write-Host ""
