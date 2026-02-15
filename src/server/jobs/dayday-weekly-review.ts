@@ -96,20 +96,189 @@ export async function runDayDayWeeklyReview() {
     }
 
     logger.info('[DayDay] Weekly Review Complete.', results);
-    
+
+    // Format date for subject line
+    const date = new Date().toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+
     // Email Notification
     await sendEmail({
         to: 'martez@bakedbot.ai',
-        subject: `Day Day Weekly Review: ${results.optimized} Pages Optimized`,
-        text: `Weekly review complete.\n\nAnalyzed: ${results.analyzed}\nOptimized: ${results.optimized}\nErrors: ${results.errors}\n\nDetails:\n${results.details.map(d => `- ${d.page}: ${d.query}`).join('\n')}`,
+        from: 'hello@bakedbot.ai',
+        subject: `📊 Day Day Weekly SEO Review - ${date}`,
+        text: `
+Day Day Weekly SEO Review
+${date}
+
+SUMMARY
+-------
+✅ Pages Optimized: ${results.optimized}
+📊 Pages Analyzed: ${results.analyzed}
+${results.errors > 0 ? `⚠️  Errors: ${results.errors}` : '✅ No Errors'}
+
+${results.details.length > 0 ? `OPTIMIZATIONS
+-------------
+${results.details.map(d => `• ${d.page}\n  Query: "${d.query}"`).join('\n\n')}` : 'No pages needed optimization this week.'}
+
+${results.optimized === 0 ? `
+NOTE: First runs may show 0 optimizations until Search Console data is available.
+The system analyzes pages with high impressions but low CTR for improvement opportunities.
+` : ''}
+
+---
+BakedBot AI - Automated SEO Growth
+https://bakedbot.ai
+        `.trim(),
         html: `
-            <h1>Day Day Weekly Review</h1>
-            <p><strong>Optimized:</strong> ${results.optimized}</p>
-            <p><strong>Analyzed:</strong> ${results.analyzed}</p>
-            <ul>
-                ${results.details.map(d => `<li><strong>${d.page}</strong>: Optimized for "${d.query}"</li>`).join('')}
-            </ul>
-        `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .content {
+            background: #ffffff;
+            padding: 30px;
+            border: 1px solid #e1e4e8;
+            border-top: none;
+        }
+        .metrics {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f6f8fa;
+            border-radius: 6px;
+        }
+        .metric {
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+        .optimization {
+            background: #f6f8fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+        .optimization-page {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .optimization-query {
+            color: #666;
+            font-size: 14px;
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .footer {
+            background: #f6f8fa;
+            padding: 20px;
+            text-align: center;
+            border-radius: 0 0 8px 8px;
+            border: 1px solid #e1e4e8;
+            border-top: none;
+            font-size: 12px;
+            color: #666;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Day Day Weekly SEO Review</h1>
+        <p>${date}</p>
+    </div>
+
+    <div class="content">
+        <div class="metrics">
+            <div class="metric">
+                <div class="metric-value ${results.optimized > 0 ? 'success' : ''}">${results.optimized}</div>
+                <div class="metric-label">Pages Optimized</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value">${results.analyzed}</div>
+                <div class="metric-label">Pages Analyzed</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value ${results.errors > 0 ? 'error' : 'success'}">${results.errors}</div>
+                <div class="metric-label">Errors</div>
+            </div>
+        </div>
+
+        ${results.details.length > 0 ? `
+            <h2>Optimizations This Week</h2>
+            ${results.details.map(d => `
+                <div class="optimization">
+                    <div class="optimization-page">${d.page}</div>
+                    <div class="optimization-query">Optimized for: "${d.query}"</div>
+                </div>
+            `).join('')}
+        ` : `
+            <p>No pages needed optimization this week.</p>
+        `}
+
+        ${results.optimized === 0 ? `
+            <div class="note">
+                <strong>📝 Note:</strong> First runs may show 0 optimizations until Search Console data is available.
+                The system analyzes pages with high impressions but low CTR for improvement opportunities.
+            </div>
+        ` : ''}
+    </div>
+
+    <div class="footer">
+        <p><strong>BakedBot AI</strong> - Automated SEO Growth</p>
+        <p><a href="https://bakedbot.ai" style="color: #667eea;">bakedbot.ai</a></p>
+    </div>
+</body>
+</html>
+        `.trim()
     });
 
     return results;
