@@ -32,17 +32,13 @@ export interface WelcomeSmsContext {
 
 /**
  * Send personalized welcome email via Mrs. Parker
- * Uses Letta to remember customer preferences and personalize message
+ * Uses AI-powered content generation + Letta memory for deep personalization
  */
 export async function sendWelcomeEmail(context: WelcomeEmailContext): Promise<{ success: boolean; error?: string }> {
     try {
         const { email, firstName, brandId, leadId, dispensaryId, state } = context;
 
-        // Get brand information for personalization
-        const brandName = await getBrandName(brandId);
-        const displayName = firstName || 'Friend';
-
-        logger.info('[MrsParker:Welcome] Sending welcome email', {
+        logger.info('[MrsParker:Welcome] Sending AI-generated welcome email', {
             leadId,
             email,
             brandId,
@@ -67,32 +63,41 @@ export async function sendWelcomeEmail(context: WelcomeEmailContext): Promise<{ 
             });
         }
 
-        // Generate personalized email content
-        const subject = `Welcome to ${brandName}, ${displayName}! 🌿`;
-        const htmlContent = generateWelcomeEmailHtml({
-            displayName,
-            brandName,
+        // === AI-POWERED CONTENT GENERATION ===
+        // Import AI welcome service
+        const { generateWelcomeEmail } = await import('./mrs-parker-ai-welcome');
+
+        // Build rich context for AI generation
+        const aiContext = {
+            leadId,
+            email,
+            firstName,
+            brandId,
+            dispensaryId,
             state,
-        });
-        const textContent = generateWelcomeEmailText({
-            displayName,
-            brandName,
-            state,
-        });
+            segment: 'customer' as const,
+            signupContext: 'age_gate' as const,
+            source: 'age_verification',
+            signupTimestamp: Date.now(),
+        };
+
+        // Generate personalized content with Claude
+        const { subject, htmlBody, textBody, fromName, fromEmail } = await generateWelcomeEmail(aiContext);
 
         // Send email via Mailjet
         await sendGenericEmail({
             to: email,
             subject,
-            textBody: textContent,
-            htmlBody: htmlContent,
-            fromName: 'Mrs. Parker',
-            fromEmail: 'hello@bakedbot.ai',
+            textBody,
+            htmlBody,
+            fromName,
+            fromEmail,
         });
 
-        logger.info('[MrsParker:Welcome] Welcome email sent successfully', {
+        logger.info('[MrsParker:Welcome] AI-generated welcome email sent successfully', {
             leadId,
             email,
+            subject,
         });
 
         return { success: true };
