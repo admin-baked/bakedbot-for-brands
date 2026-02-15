@@ -9,7 +9,8 @@ Write-Host ""
 # Check if gcloud is installed
 try {
     $null = gcloud --version 2>&1
-} catch {
+}
+catch {
     Write-Host "❌ gcloud CLI not installed" -ForegroundColor Red
     Write-Host ""
     Write-Host "Install gcloud CLI:" -ForegroundColor Yellow
@@ -30,7 +31,8 @@ try {
     }
     Write-Host "✅ Authenticated as: $account" -ForegroundColor Green
     Write-Host ""
-} catch {
+}
+catch {
     Write-Host "❌ Not authenticated to gcloud" -ForegroundColor Red
     Write-Host ""
     Write-Host "Run:" -ForegroundColor Yellow
@@ -67,7 +69,8 @@ try {
         Set-Clipboard -Value $secret
         Write-Host "✅ Copied to clipboard!" -ForegroundColor Green
         Write-Host ""
-    } catch {
+    }
+    catch {
         Write-Host "INFO: Could not copy to clipboard (copy manually above)" -ForegroundColor Yellow
         Write-Host ""
     }
@@ -77,17 +80,15 @@ try {
     Write-Host "================================================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "1. Test this secret with the verification script:" -ForegroundColor White
-    Write-Host '   .\verify-cron-secret.ps1 -Secret "' -NoNewline -ForegroundColor Gray
-    Write-Host $secret -NoNewline -ForegroundColor White
-    Write-Host '"' -ForegroundColor Gray
+    Write-Host "   .\verify-cron-secret.ps1 -Secret `"$secret`"" -ForegroundColor Gray
     Write-Host ""
     Write-Host "2. If verification fails, update GitHub Actions secret:" -ForegroundColor White
     Write-Host "   https://github.com/admin-baked/bakedbot-for-brands/settings/secrets/actions" -ForegroundColor Gray
     Write-Host ""
     Write-Host "3. Make sure apphosting.yaml includes CRON_SECRET in env section" -ForegroundColor White
     Write-Host ""
-
-} catch {
+}
+catch {
     Write-Host "❌ Failed to retrieve secret" -ForegroundColor Red
     Write-Host ""
     Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
