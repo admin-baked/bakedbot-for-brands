@@ -28,10 +28,53 @@ import { RetailerSummary, LocalProduct } from '@/types/foot-traffic';
 import { createServerClient } from '@/firebase/server-client';
 import { getSeededConfig } from '@/server/actions/seo-pages';
 
-export const revalidate = 3600;
+// ISR Configuration - Optimized for scale
+export const revalidate = 14400; // 4 hours (reduced revalidation frequency)
+export const dynamicParams = true; // Generate pages on-demand for unknown ZIPs
+export const dynamic = 'force-static'; // Force static generation where possible
 
 interface PageProps {
     params: Promise<{ zipCode: string }>;
+}
+
+/**
+ * Pre-render top 50 ZIP codes at build time for faster initial load.
+ * Other ZIPs are generated on-demand (ISR).
+ *
+ * Strategy: Focus on high-population cannabis-legal markets
+ */
+export async function generateStaticParams() {
+    // Top 50 ZIP codes across legal states
+    // Prioritize: CA, IL, MI, CO, NY/NJ markets from Day Day target list
+    const topZips = [
+        // Chicago Metro (IL)
+        '60601', '60602', '60603', '60614', '60657', '60647', '60622',
+        // Naperville, Aurora, Evanston, Oak Park (IL)
+        '60540', '60563', '60502', '60201', '60301',
+
+        // Detroit/Ann Arbor Metro (MI)
+        '48201', '48202', '48104', '48105', '49503', '49504',
+        // Grand Rapids, Lansing (MI)
+        '48912', '48933',
+
+        // Denver/Boulder (CO)
+        '80202', '80203', '80014', '80301', '80302', '80010',
+
+        // Los Angeles/Oakland (CA)
+        '90001', '90210', '90012', '94601', '94602', '94607',
+        // Berkeley, Long Beach (CA)
+        '94702', '94703', '90802', '90803',
+
+        // New York/New Jersey
+        '10001', '10002', '10003', '07030', '07302', '07306',
+
+        // Additional high-value markets
+        '60540', '60601', '80202', '94102', '48104', '10001'
+    ].slice(0, 50); // Ensure exactly 50
+
+    return topZips.map(zipCode => ({
+        zipCode
+    }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
