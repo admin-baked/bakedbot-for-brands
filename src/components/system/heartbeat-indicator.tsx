@@ -16,10 +16,12 @@ export function HeartbeatIndicator({
     showLabel = false,
     showTooltip = true,
     className = '',
+    size = 'default',
 }: {
     showLabel?: boolean;
     showTooltip?: boolean;
     className?: string;
+    size?: 'small' | 'default' | 'large';
 }) {
     const [status, setStatus] = useState<HeartbeatStatus>({
         pulse: 'unknown',
@@ -95,6 +97,32 @@ export function HeartbeatIndicator({
 
     const colors = getColor();
 
+    // Get size classes
+    const getSizeClasses = () => {
+        switch (size) {
+            case 'small':
+                return {
+                    dot: 'w-2 h-2',
+                    label: 'text-xs',
+                    container: 'gap-2',
+                };
+            case 'large':
+                return {
+                    dot: 'w-6 h-6',
+                    label: 'text-base font-semibold',
+                    container: 'gap-3',
+                };
+            default:
+                return {
+                    dot: 'w-3 h-3',
+                    label: 'text-sm',
+                    container: 'gap-2',
+                };
+        }
+    };
+
+    const sizeClasses = getSizeClasses();
+
     // Format timestamp
     const getTimeAgo = () => {
         if (!status.timestamp) return 'Never';
@@ -115,19 +143,19 @@ export function HeartbeatIndicator({
 
     if (isLoading) {
         return (
-            <div className={`flex items-center gap-2 ${className}`}>
-                <div className="w-2 h-2 bg-gray-300 rounded-full animate-pulse" />
-                {showLabel && <span className="text-xs text-gray-500">Loading...</span>}
+            <div className={`flex items-center ${sizeClasses.container} ${className}`}>
+                <div className={`${sizeClasses.dot} bg-gray-300 rounded-full animate-pulse`} />
+                {showLabel && <span className={`${sizeClasses.label} text-gray-500`}>Loading...</span>}
             </div>
         );
     }
 
     return (
-        <div className={`flex items-center gap-2 ${className}`}>
+        <div className={`flex items-center ${sizeClasses.container} ${className}`}>
             {/* Pulsing dot */}
             <div className="relative">
                 <motion.div
-                    className={`w-2 h-2 rounded-full ${colors.bg}`}
+                    className={`${sizeClasses.dot} rounded-full ${colors.bg}`}
                     animate={{
                         opacity: [1, 0.4, 1],
                         scale: [1, 1.1, 1],
@@ -158,7 +186,7 @@ export function HeartbeatIndicator({
 
             {/* Label */}
             {showLabel && (
-                <span className={`text-xs font-medium ${colors.text}`}>
+                <span className={`${sizeClasses.label} font-medium ${colors.text}`}>
                     {colors.label}
                 </span>
             )}
