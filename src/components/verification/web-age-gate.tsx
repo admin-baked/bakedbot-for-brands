@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldCheck, ScanFace, FileText } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export function WebAgeGate() {
@@ -45,25 +45,13 @@ export function WebAgeGate() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="bg-muted p-4 rounded-lg flex items-center gap-4">
-                        <ScanFace className="w-6 h-6 text-muted-foreground" />
-                        <div className="text-sm">
-                            <p className="font-semibold">Enhanced Verification</p>
-                            <p className="text-muted-foreground">We use biometric age estimation to ensure compliance.</p>
-                        </div>
-                    </div>
-
-                    <div className="bg-muted p-4 rounded-lg flex items-center gap-4">
-                        <FileText className="w-6 h-6 text-muted-foreground" />
-                        <div className="text-sm">
-                            <p className="font-semibold">ID Scan (Alternative)</p>
-                            <p className="text-muted-foreground">Upload your driver's license.</p>
-                        </div>
-                    </div>
+                    <p className="text-center text-sm text-muted-foreground">
+                        To comply with state cannabis regulations, we must verify that all visitors are 21 years of age or older.
+                    </p>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-2">
                     <Button className="w-full" size="lg" onClick={handleVerify} disabled={scanning}>
-                        {scanning ? "Verifying..." : "Verify with FaceID / Camera"}
+                        {scanning ? "Verifying..." : "I am 21 or Older"}
                     </Button>
                     <p className="text-xs text-center text-muted-foreground mt-2">
                         By entering, you agree to our Terms of Service and Privacy Policy.

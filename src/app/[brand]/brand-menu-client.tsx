@@ -434,6 +434,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         <DemoHeader
           brandName={brand.name}
           brandLogo={brand.logoUrl}
+          brandSlug={brandSlug}
           useLogoInHeader={brand.useLogoInHeader}
           brandColors={brandColors}
           location={brand.location ? `${brand.location.city}, ${brand.location.state}` : `${brand.city || ''}, ${brand.state || ''}`}
