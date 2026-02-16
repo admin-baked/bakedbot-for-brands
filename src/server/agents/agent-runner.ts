@@ -1303,9 +1303,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 ...metadata,
                 jobId,
                 evalResults: evalResults.length > 0 ? evalResults : undefined,
-                media: {
-                    model: options?.genaiModel || 'gemini-2.0-flash-001', // Track which AI model was used
-                } as any
+                model: options?.genaiModel || 'gemini-2.0-flash-001', // Track which AI model was used
             }
         };
 
