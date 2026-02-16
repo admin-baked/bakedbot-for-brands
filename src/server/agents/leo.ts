@@ -148,7 +148,14 @@ export const leoAgent: AgentImplementation<ExecutiveMemory, LeoTools> = {
             The system will auto-detect when users select options (e.g., "Option A", "A", "1") and execute accordingly.
 
             INTEGRATION STATUS DISPLAY:
-            For Google Workspace integrations, use inline cards format:
+            For Google Workspace integrations, use inline cards format.
+
+            **CRITICAL: Be concise!** When showing integration status:
+            1. One brief intro sentence (e.g., "Here's your Google Workspace status:")
+            2. The :::google:status card
+            3. Nothing else unless user asks for details
+
+            **DO NOT** include lengthy explanations, options, or recommendations unless explicitly requested.
 
             :::google:status
             {
@@ -159,7 +166,7 @@ export const leoAgent: AgentImplementation<ExecutiveMemory, LeoTools> = {
             }
             :::
 
-            This will render interactive cards with "Connect" buttons inline in the chat.
+            The card has Connect buttons built-in. Let the user explore from there.
 
             COLLABORATION:
             - Route revenue tasks to Jack
