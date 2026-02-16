@@ -37,6 +37,9 @@ export function HeartbeatIndicator({
         const fetchStatus = async () => {
             try {
                 const res = await fetch('/api/system/health');
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
                 const data = await res.json();
                 setStatus(data);
                 setIsLoading(false);
