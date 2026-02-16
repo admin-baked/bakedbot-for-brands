@@ -255,7 +255,7 @@ export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
                     tools: allTools,
-                    model: 'claude-sonnet-4-20250514',
+                    model: 'claude-sonnet-4-5-20250929',
                     maxIterations: 5
                 });
 

@@ -157,7 +157,7 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
                 systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
                 tools,
-                model: 'claude-sonnet-4-20250514', // Triggers harness routing to Claude 4.5 Opus
+                model: 'claude-sonnet-4-5-20250929', // Triggers harness routing to Claude 4.5 Opus
                 maxIterations: 5
             });
 

@@ -231,7 +231,7 @@ export const jackAgent: AgentImplementation<ExecutiveMemory, JackTools> = {
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
                     tools,
-                    model: 'claude-sonnet-4-20250514',
+                    model: 'claude-sonnet-4-5-20250929',
                     maxIterations: 5
                 });
 

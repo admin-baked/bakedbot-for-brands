@@ -85,7 +85,7 @@ describe('InboxConversation - Thinking Steps', () => {
                     plan: ['Find products', 'Score them'],
                 },
                 metadata: {
-                    media: { model: 'claude-sonnet-4-20250514' },
+                    media: { model: 'claude-sonnet-4-5-20250929' },
                 },
             };
 

@@ -245,7 +245,7 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
                 systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
                 tools,
-                model: 'claude-sonnet-4-20250514', // Use Claude for high-quality copy & compliance
+                model: 'claude-sonnet-4-5-20250929', // Use Claude for high-quality copy & compliance
                 maxIterations: 5
             });
 

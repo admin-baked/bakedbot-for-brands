@@ -41,7 +41,7 @@ export async function generateWelcomeEmail(
         const generated = await callClaude({
             systemPrompt: MRS_PARKER_SYSTEM_PROMPT,
             userMessage: prompt,
-            model: 'claude-sonnet-4-20250514', // Sonnet for cost efficiency
+            model: 'claude-sonnet-4-5-20250929', // Sonnet for cost efficiency
             temperature: 0.8, // Higher creativity for warm, personal tone
             autoRouteModel: false, // Don't auto-route to Opus (we want Sonnet)
         });

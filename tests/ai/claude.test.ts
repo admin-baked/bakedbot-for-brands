@@ -23,7 +23,7 @@ describe('Claude Service', () => {
 
     describe('CLAUDE_TOOL_MODEL', () => {
         it('should be Claude Sonnet 4', () => {
-            expect(CLAUDE_TOOL_MODEL).toBe('claude-sonnet-4-20250514');
+            expect(CLAUDE_TOOL_MODEL).toBe('claude-sonnet-4-5-20250929');
         });
     });
 
