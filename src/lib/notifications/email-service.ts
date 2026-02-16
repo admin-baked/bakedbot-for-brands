@@ -138,7 +138,7 @@ export class EmailService {
                 <p><strong>Role:</strong> ${user.role}</p>
                 <p><strong>Company:</strong> ${user.company || 'N/A'}</p>
                 <br/>
-                <a href="https://bakedbot.ai/dashboard/ceo?tab=account-management" style="background-color: #d32f2f; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Review in Dashboard</a>
+                <a href="https://bakedbot.ai/dashboard/ceo?tab=admin&section=users&subtab=accounts" style="background-color: #d32f2f; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Review in Dashboard</a>
             </div>
         `;
         return this.sendEmail({ to: 'martez@bakedbot.ai', subject, html });
