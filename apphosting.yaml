@@ -231,7 +231,7 @@ env:
     availability:
       - RUNTIME
   - variable: CRON_SECRET
-    secret: CRON_SECRET
+    secret: CRON_SECRET@latest
     availability:
       - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
