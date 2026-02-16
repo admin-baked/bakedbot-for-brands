@@ -81,9 +81,19 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     // Proceed with Firestore logic...
 
     const userDocRef = firestore.collection('users').doc(uid);
+
+    // Check if user document already exists to preserve createdAt
+    const existingUserDoc = await userDocRef.get();
+    const existingData = existingUserDoc.data();
+
     const userProfileData: Record<string, any> = {
+      email: user.email || null, // Store email for display in admin console
+      displayName: user.name || user.email?.split('@')[0] || null, // Store display name
+      name: user.name || user.email?.split('@')[0] || null, // Backward compatibility
       isNewUser: false, // Mark as onboarded
       onboardingCompletedAt: new Date().toISOString(),
+      // Only set createdAt if it doesn't exist (preserve original creation time)
+      createdAt: existingData?.createdAt || FieldValue.serverTimestamp(),
       role: role === 'skip' ? 'customer' : role, // Default to customer if skipped
       // Approval Status: Customers auto-approve, Brands/Dispensaries pending
       approvalStatus: (role === 'customer' || role === 'skip') ? 'approved' : 'pending',
