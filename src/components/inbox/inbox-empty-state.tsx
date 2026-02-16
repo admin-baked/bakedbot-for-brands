@@ -25,6 +25,8 @@ import {
     HelpCircle,
     Video,
     ImagePlus,
+    Maximize2,
+    X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -36,6 +38,7 @@ import type { InboxQuickAction } from '@/types/inbox';
 import { createInboxThread } from '@/server/actions/inbox';
 import { useToast } from '@/hooks/use-toast';
 import { InsightCardsGrid } from './insight-cards-grid';
+import { InboxConversation } from './inbox-conversation';
 
 // ============ Props ============
 
@@ -109,6 +112,10 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
         markThreadPending,
         markThreadPersisted,
         currentOrgId,
+        activeThreadId,
+        threads,
+        setActiveThread,
+        inboxArtifacts,
     } = useInboxStore();
     const { presets, greeting, suggestion, refresh, isLoading: presetsLoading } = useContextualPresets({
         role,
@@ -250,6 +257,73 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
         );
     }
 
+    // Get active thread and its artifacts if exists
+    const activeThread = activeThreadId ? threads.find(t => t.id === activeThreadId) : null;
+    const activeArtifacts = activeThread
+        ? inboxArtifacts.filter(a => a.threadId === activeThread.id)
+        : [];
+
+    // === INLINE CONVERSATION VIEW ===
+    // Show conversation within empty state when thread is active
+    if (activeThread) {
+        return (
+            <div className={cn('flex flex-col h-full', className)}>
+                <div className="flex-1 overflow-y-auto">
+                    <div className="max-w-4xl mx-auto p-6 space-y-6">
+                        {/* Compact Insight Cards */}
+                        <InsightCardsGrid maxCards={3} />
+
+                        {/* Quick Actions Bar */}
+                        <div className="flex items-center justify-between gap-2 p-3 bg-muted/50 rounded-lg">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="h-4 w-4 text-primary" />
+                                <span className="text-sm font-medium">Quick Chat</span>
+                                <span className="text-xs text-muted-foreground">
+                                    {activeThread.title}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setActiveThread(null)}
+                                    className="h-8 gap-2"
+                                >
+                                    <X className="h-4 w-4" />
+                                    New Query
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        // Stay on this thread but user can manually switch to full view via sidebar
+                                        toast({
+                                            title: 'Tip',
+                                            description: 'Click the thread in the sidebar to see the full conversation view',
+                                        });
+                                    }}
+                                    className="h-8 gap-2"
+                                >
+                                    <Maximize2 className="h-4 w-4" />
+                                    Full View
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Inline Conversation */}
+                        <div className="border rounded-lg bg-card">
+                            <InboxConversation
+                                thread={activeThread}
+                                artifacts={activeArtifacts}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // === EMPTY STATE (NO ACTIVE THREAD) ===
     return (
         <div className={cn('flex items-center justify-center h-full p-8', className)}>
             <div className="max-w-4xl w-full space-y-8">
