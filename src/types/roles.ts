@@ -45,7 +45,10 @@ export type UserRole =
     | 'customer'
 
     // Training
-    | 'intern';          // Training program participants
+    | 'intern'          // Training program participants
+
+    // Delivery
+    | 'delivery_driver'; // Delivery drivers
 
 /**
  * Role groups for permission checks
@@ -56,6 +59,7 @@ export const BRAND_ALL_ROLES: UserRole[] = ['brand_admin', 'brand_member', 'bran
 export const DISPENSARY_ADMIN_ROLES: UserRole[] = ['dispensary_admin', 'dispensary'];
 export const DISPENSARY_ALL_ROLES: UserRole[] = ['dispensary_admin', 'dispensary_staff', 'dispensary', 'budtender'];
 export const INTERN_ROLES: UserRole[] = ['intern'];
+export const DELIVERY_DRIVER_ROLES: UserRole[] = ['delivery_driver'];
 
 // Export as tuple for Zod schemas
 export const ROLES = [
@@ -69,7 +73,8 @@ export const ROLES = [
     'dispensary',
     'budtender',
     'customer',
-    'intern'
+    'intern',
+    'delivery_driver'
 ] as const;
 
 export const ALL_ROLES: UserRole[] = [...ROLES];

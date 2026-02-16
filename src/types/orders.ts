@@ -102,6 +102,13 @@ export type OrderDoc = {
     shippingCarrier?: string;
     shippedAt?: Timestamp;
     deliveredAt?: Timestamp;
+
+    // Delivery fields for cannabis delivery
+    fulfillmentType?: 'pickup' | 'delivery';
+    deliveryId?: string; // links to deliveries collection
+    deliveryFee?: number; // separate line item in totals
+    deliveryWindow?: { start: Timestamp; end: Timestamp };
+    deliveryInstructions?: string; // customer notes for driver
 };
 
 export type ServerOrderPayload = {
