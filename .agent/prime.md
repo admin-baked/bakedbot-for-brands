@@ -195,6 +195,78 @@ Customer → Select Aeropay → Check User (Firestore: aeropay_users)
 
 ---
 
+### Heartbeat System + Secret Manager Fix (2026-02-15 → 2026-02-16)
+**Status:** ✅ Production — System monitoring with proper secret management
+
+Proactive system monitoring inspired by OpenClaw's "alive" feeling. Cron jobs run role-specific health checks and dispatch multi-channel notifications. Fixed critical Secret Manager resolution issue with Firebase App Hosting.
+
+**The Secret Manager Challenge:**
+```
+Problem: apphosting.yaml secret references weren't resolving
+Attempts:
+  ❌ secret: CRON_SECRET → failed
+  ❌ secret: CRON_SECRET@1 → failed
+  ✅ Hardcoded value → worked (security risk)
+  ❌ secret: CRON_SECRET@6 → failed UNTIL proper IAM bindings
+
+Root Cause: Using `gcloud` directly insufficient for Firebase App Hosting
+Solution: firebase apphosting:secrets:grantaccess CRON_SECRET --backend=bakedbot-prod
+Result: Secret Manager now working with version pinning (CRON_SECRET@6)
+```
+
+**Critical Discovery:**
+Firebase App Hosting requires **Firebase CLI** to set proper IAM bindings, not raw gcloud commands. Using `gcloud secrets add-iam-policy-binding` sets generic permissions, but Firebase needs specific bindings via `firebase apphosting:secrets:grantaccess`. After granting access, a **fresh deployment** is required to pick up the new IAM bindings.
+
+**The Fix Workflow:**
+```powershell
+# 1. Create Secret Manager version with correct value
+powershell scripts/fix-cron-secret.ps1
+
+# 2. Grant Firebase App Hosting access (THE KEY STEP!)
+firebase apphosting:secrets:grantaccess CRON_SECRET --backend=bakedbot-prod
+
+# 3. Update apphosting.yaml to reference secret
+# - variable: CRON_SECRET
+#   secret: CRON_SECRET@6
+
+# 4. Force rebuild to pick up IAM bindings
+git commit --allow-empty -m "chore: Force redeploy for IAM binding propagation"
+git push origin main
+
+# 5. Test after deployment completes (5-10 min)
+powershell scripts/test-heartbeat-verbose.ps1
+```
+
+**Heartbeat Architecture:**
+- **Roles:** super_user (30min), dispensary (15min), brand (60min)
+- **Checks:** Role-specific proactive monitoring (system_errors, low_stock, campaign_performance, etc.)
+- **Channels:** dashboard, email, sms, whatsapp, push (planned)
+- **Status Indicator:** 🟢 alive (<5 errors), 🟡 warning (5-9 errors/stale), 🔴 error (10+ errors), ⚪ unknown (not initialized)
+
+**Key Files Created (8 scripts):**
+- `scripts/fix-cron-secret.ps1` — PowerShell script to add Secret Manager versions
+- `scripts/check-secret-permissions.ps1` — Verify IAM bindings are correct
+- `scripts/test-heartbeat.ps1` — Manual trigger test
+- `scripts/test-heartbeat-verbose.ps1` — Verbose error diagnostics
+- `scripts/test-secret-resolution.ps1` — Deployment status check
+- `scripts/force-redeploy.ps1` — Trigger rebuild for IAM propagation
+- `scripts/initialize-heartbeat.ts` — Create initial execution record
+- `scripts/trigger-manual-heartbeat.ts` — Manual trigger via API
+
+**Documentation:**
+- `HEARTBEAT_FIX.md` — Complete debugging journey, root cause analysis, solution steps
+- `.agent/refs/firebase-secrets.md` — (NEW) Firebase App Hosting secret management patterns
+
+**Lessons Learned:**
+1. **Always use Firebase CLI for Firebase-specific operations** (not raw gcloud)
+2. IAM binding changes require fresh deployments to take effect
+3. Secret Manager version pinning syntax: `secret: SECRET_NAME@version`
+4. Test verbose error responses to distinguish auth failures (401) from execution failures (500)
+
+**Security Status:** 🔒 No secrets in git, proper Google Cloud Secret Manager with version pinning
+
+---
+
 ### Campaign Management + Agent Notifications + CRM Intelligence (2026-02-12)
 **Status:** ✅ Production-ready with 136+ unit tests, 66 help articles
 

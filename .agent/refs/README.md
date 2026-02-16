@@ -16,6 +16,7 @@ Detailed documentation for AI agents working in this codebase.
 | Browser automation/RTRVR | `autonomous-browsing.md` |
 | Auth, login, sessions | `authentication.md` |
 | Roles, permissions, RBAC | `roles.md` |
+| **Firebase secrets, App Hosting config** | **`firebase-secrets.md`** |
 | **Lead magnets, CEO Dashboard, analytics** | **`lead-magnets.md`** |
 | Academy, email automation, scoring | `academy.md` |
 | Super User dashboard, BakedBot Drive | `super-users.md` |
@@ -89,6 +90,7 @@ Detailed documentation for AI agents working in this codebase.
 ### Operations
 | File | What's Inside |
 |------|---------------|
+| `firebase-secrets.md` | **Firebase App Hosting secret management** - IAM bindings, version pinning, debugging checklist |
 | `work-archive.md` | Historical decisions, artifact storage |
 | `session-handoff.md` | Continuing work mid-session |
 | `integrations.md` | External APIs (Blackleaf, Mailjet, CannMenus, etc.) |
