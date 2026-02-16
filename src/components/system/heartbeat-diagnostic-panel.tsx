@@ -173,7 +173,7 @@ export function HeartbeatDiagnosticPanel() {
                             )}
                             <span className="ml-2">Run Diagnostic</span>
                         </Button>
-                        {diagnostic && !diagnostic.healthy && autoFixableCount > 0 && (
+                        {diagnostic && autoFixableCount > 0 && (
                             <Button
                                 variant="default"
                                 size="sm"
