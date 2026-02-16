@@ -20,10 +20,12 @@ $headers = @{
     "Content-Type" = "application/json"
 }
 
-Write-Host "`n=== Triggering Competitive Intelligence Report ===" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "=== Triggering Competitive Intelligence Report ===" -ForegroundColor Cyan
 Write-Host "Tenant: bakedbot_super_admin" -ForegroundColor Gray
 Write-Host "User: martez@bakedbot.ai" -ForegroundColor Gray
-Write-Host "URL: https://bakedbot.ai/api/cron/heartbeat`n" -ForegroundColor Gray
+Write-Host "URL: https://bakedbot.ai/api/cron/heartbeat" -ForegroundColor Gray
+Write-Host ""
 
 try {
     $response = Invoke-RestMethod -Uri "https://bakedbot.ai/api/cron/heartbeat" `
@@ -31,19 +33,22 @@ try {
         -Headers $headers `
         -Body $body `
         -ContentType "application/json"
-    
-    Write-Host "✅ Success!" -ForegroundColor Green
-    Write-Host "`nResponse:" -ForegroundColor Cyan
+
+    Write-Host "Success!" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "Response:" -ForegroundColor Cyan
     $response | ConvertTo-Json -Depth 10 | Write-Host
-    
-    Write-Host "`n📊 Next Steps:" -ForegroundColor Yellow
+
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Yellow
     Write-Host "1. Check your email: martez@bakedbot.ai"
     Write-Host "2. View dashboard notifications"
-    Write-Host "3. Check reports at: /dashboard/ceo?tab=analytics&sub=intelligence&intel=ezal"
-    
+    Write-Host "3. Check reports at: /dashboard/ceo?tab=analytics (use browser)"
+
 } catch {
-    Write-Host "❌ Error:" -ForegroundColor Red
+    Write-Host "Error:" -ForegroundColor Red
     Write-Host $_.Exception.Message
-    Write-Host "`nFull Error:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Full Error:" -ForegroundColor Yellow
     $_ | Format-List * -Force
 }
