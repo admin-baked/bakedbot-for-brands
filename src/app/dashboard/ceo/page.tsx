@@ -218,6 +218,9 @@ function CeoDashboardContent() {
                     </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                    <Link href="?tab=health">
+                        <Button variant="ghost" size="sm" className="w-full sm:w-auto">System Health</Button>
+                    </Link>
                     <Link href="?tab=email">
                         <Button variant="ghost" size="sm" className="w-full sm:w-auto">Email Tester</Button>
                     </Link>
