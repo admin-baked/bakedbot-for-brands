@@ -831,7 +831,7 @@ Format: ${format === 'html' ? 'HTML with proper headings and styling' : 'Clean m
 Keep it professional, data-driven, and actionable.`;
 
         const response = await client.messages.create({
-            model: 'claude-sonnet-4-20250514', // Use Sonnet for cost efficiency
+            model: 'claude-sonnet-4-5-20250929', // Use Sonnet for cost efficiency
             max_tokens: 4096,
             temperature: 0.3, // Low temperature for consistent, factual output
             messages: [

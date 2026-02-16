@@ -184,7 +184,7 @@ Save important findings using lettaSaveFact.`,
     systemInstructions: ANALYZER_SYSTEM_INSTRUCTIONS,
     toolsDef,
     tools: toolsImpl,
-    model: 'claude-sonnet-4-20250514', // Claude is better for strategic analysis
+    model: 'claude-sonnet-4-5-20250929', // Claude is better for strategic analysis
     maxIterations: 5,
     agentId: 'ezal_analyzer',
   });

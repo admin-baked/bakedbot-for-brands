@@ -190,7 +190,7 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                 systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
                 tools: shimmedTools, // Use the shimmed tools
-                model: 'claude-sonnet-4-20250514', // Triggers harness routing to Claude 4.5 Opus
+                model: 'claude-sonnet-4-5-20250929', // Triggers harness routing to Claude 4.5 Opus
                 maxIterations: 5,
                 onStepComplete: async (step, toolName, result) => {
                     // Persist each step to Letta
