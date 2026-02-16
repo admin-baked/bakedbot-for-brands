@@ -8,17 +8,15 @@
  *   npx tsx scripts/initialize-heartbeat.ts
  */
 
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin if not already initialized
 if (!getApps().length) {
+    // Use Application Default Credentials (ADC) - works in Cloud environment
+    // For local dev: gcloud auth application-default login
     initializeApp({
-        credential: cert({
-            projectId: process.env.FIREBASE_PROJECT_ID || 'bakedbot-prod',
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        }),
+        projectId: 'bakedbot-prod',
     });
 }
 
