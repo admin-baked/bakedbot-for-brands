@@ -45,8 +45,8 @@ export async function getCompetitors(orgId: string): Promise<CompetitorSnapshot>
 
     // Determine update frequency based on plan
     const updateFrequency =
-        limits.frequencyMinutes <= 15 ? 'real-time' :
-        limits.frequencyMinutes <= 60 ? 'hourly' :
+        limits.frequencyMinutes <= 15 ? 'live' :
+        limits.frequencyMinutes <= 60 ? 'live' :
         limits.frequencyMinutes <= 1440 ? 'daily' : 'weekly';
 
     // Get stored competitors from BOTH old and new systems
@@ -100,7 +100,7 @@ export async function getCompetitors(orgId: string): Promise<CompetitorSnapshot>
             city: data.city,
             state: data.state,
             distance: data.distance,
-            source: 'ezal',
+            source: 'auto',
             lastUpdated: updatedAt,
             menuUrl: data.website,
         });

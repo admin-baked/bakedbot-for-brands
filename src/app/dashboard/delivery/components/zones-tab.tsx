@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { MapPin, DollarSign, Ruler } from 'lucide-react';
@@ -46,7 +46,7 @@ export function ZonesTab() {
     }, []);
 
     const handleToggleZone = async (zoneId: string, currentStatus: boolean) => {
-        const result = await updateDeliveryZone(zoneId, {
+        const result = await updateDeliveryZone(locationId, zoneId, {
             isActive: !currentStatus,
         });
 
@@ -107,11 +107,6 @@ export function ZonesTab() {
                                     <div className="flex items-start justify-between">
                                         <div>
                                             <CardTitle className="text-lg">{zone.name}</CardTitle>
-                                            {zone.description && (
-                                                <CardDescription className="mt-1">
-                                                    {zone.description}
-                                                </CardDescription>
-                                            )}
                                         </div>
                                         <Badge variant={zone.isActive ? 'default' : 'secondary'}>
                                             {zone.isActive ? 'Active' : 'Inactive'}

@@ -50,11 +50,11 @@ export function DriversTab() {
 
     const handleToggleAvailability = async (driverId: string) => {
         const result = await toggleDriverAvailability(driverId);
-        if (result.success) {
+        if (result.success && result.isAvailable !== undefined) {
             // Update local state
             setDrivers((prev) =>
                 prev.map((d) =>
-                    d.id === driverId ? { ...d, isAvailable: result.isAvailable } : d
+                    d.id === driverId ? { ...d, isAvailable: result.isAvailable! } : d
                 )
             );
             toast({

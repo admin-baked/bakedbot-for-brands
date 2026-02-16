@@ -173,12 +173,10 @@ export default function CompetitiveIntelPage() {
                                 <span>Last updated: <strong>{formatDate(snapshot?.lastUpdated || new Date(0))}</strong></span>
                             </div>
                             <Badge variant={
-                                snapshot?.updateFrequency === 'real-time' ? 'default' :
-                                snapshot?.updateFrequency === 'hourly' ? 'default' :
+                                snapshot?.updateFrequency === 'live' ? 'default' :
                                 snapshot?.updateFrequency === 'daily' ? 'default' : 'secondary'
                             }>
-                                {snapshot?.updateFrequency === 'real-time' ? '🔥 Empire: Real-time (15min)' :
-                                 snapshot?.updateFrequency === 'hourly' ? 'Pro: Hourly Updates' :
+                                {snapshot?.updateFrequency === 'live' ? '🔥 Empire: Live Updates (15min)' :
                                  snapshot?.updateFrequency === 'daily' ? 'Pro: Daily Updates' :
                                  'Free: Weekly Updates'}
                             </Badge>
