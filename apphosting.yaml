@@ -230,7 +230,9 @@ env:
     value: "false"
     availability:
       - RUNTIME
-  # CRON_SECRET - Fixed to use correct Secret Manager version (2026-02-16)
+  # CRON_SECRET - Proper Secret Manager reference with Firebase CLI IAM bindings (2026-02-16)
+  # Fixed by running: firebase apphosting:secrets:grantaccess CRON_SECRET --backend=bakedbot-prod
+  # Uses version 6 which contains Cloud Scheduler's actual value
   - variable: CRON_SECRET
     secret: CRON_SECRET@6
     availability:

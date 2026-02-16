@@ -178,15 +178,36 @@ Stale threshold: 15 minutes
 
 ---
 
-## 🔒 SECURITY FIX (2026-02-16)
+## 🔒 SECURITY FIX (2026-02-16) ✅
 
-**Status**: Moved CRON_SECRET back to Secret Manager (best practice)
+**Status**: ✅ FIXED - Secret Manager now working with proper Firebase CLI IAM bindings
 
-**What Changed**:
-1. Added Secret Manager version 6 with Cloud Scheduler's actual value
-2. Updated `apphosting.yaml` to use `CRON_SECRET@6` instead of hardcoded value
-3. Removed hardcoded secret from config file
+**Root Cause**: Using `gcloud` directly to set IAM permissions wasn't sufficient. Firebase App Hosting requires **Firebase CLI** to set proper bindings.
 
-**Script**: `scripts/fix-cron-secret.ps1` - PowerShell script to add correct value to Secret Manager
+**The Fix**:
+1. ✅ Added Secret Manager version 6 with Cloud Scheduler's actual value:
+   ```powershell
+   powershell scripts/fix-cron-secret.ps1
+   ```
 
-**Result**: ✅ Secret now properly managed via Google Cloud Secret Manager with version pinning
+2. ✅ Granted proper Firebase App Hosting permissions:
+   ```bash
+   firebase apphosting:secrets:grantaccess CRON_SECRET --backend=bakedbot-prod
+   ```
+
+3. ✅ Updated `apphosting.yaml` to use `CRON_SECRET@6`
+
+**Why Previous Attempts Failed**:
+- `gcloud secrets add-iam-policy-binding` set generic permissions
+- Firebase App Hosting needs specific IAM bindings via `firebase apphosting:secrets:grantaccess`
+- **Lesson**: Always use Firebase CLI for Firebase-specific operations, not raw gcloud
+
+**Current Status**: Using Secret Manager version 6 with proper security and version pinning.
+
+**Scripts Created**:
+- `scripts/fix-cron-secret.ps1` - Adds new Secret Manager versions
+- `scripts/test-heartbeat.ps1` - Tests manual heartbeat trigger
+- `scripts/test-secret-resolution.ps1` - Diagnoses deployment issues
+- `scripts/check-secret-permissions.ps1` - Checks IAM permissions
+
+**Security**: ✅ No secrets in git, properly managed via Google Cloud Secret Manager
