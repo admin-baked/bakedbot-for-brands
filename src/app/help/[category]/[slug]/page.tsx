@@ -16,9 +16,10 @@ import 'highlight.js/styles/atom-one-dark.css';
 export async function generateMetadata({
   params,
 }: {
-  params: { category: string; slug: string };
+  params: Promise<{ category: string; slug: string }>;
 }) {
-  const article = await getArticleBySlug(params.category, params.slug);
+  const { category, slug } = await params;
+  const article = await getArticleBySlug(category, slug);
 
   if (!article) {
     return {
@@ -40,10 +41,12 @@ export async function generateMetadata({
 export default async function ArticlePage({
   params,
 }: {
-  params: { category: string; slug: string };
+  params: Promise<{ category: string; slug: string }>;
 }) {
+  const { category, slug } = await params;
+
   // Get article
-  const article = await getArticleBySlug(params.category, params.slug);
+  const article = await getArticleBySlug(category, slug);
 
   if (!article) {
     notFound();
@@ -73,7 +76,7 @@ export default async function ArticlePage({
   if (article.roles.length > 0) {
     if (!user) {
       redirect(
-        `/login?redirect=/help/${params.category}/${params.slug}`
+        `/login?redirect=/help/${category}/${slug}`
       );
     }
 
@@ -96,7 +99,7 @@ export default async function ArticlePage({
 
   // Track view
   await trackArticleView(
-    `${params.category}/${params.slug}`,
+    `${category}/${slug}`,
     user?.uid
   );
 
@@ -110,10 +113,10 @@ export default async function ArticlePage({
           </a>
           <span>/</span>
           <a
-            href={`/help?category=${params.category}`}
+            href={`/help?category=${category}`}
             className="hover:text-gray-700 capitalize"
           >
-            {params.category.replace(/-/g, ' ')}
+            {category.replace(/-/g, ' ')}
           </a>
           <span>/</span>
           <span>{article.title}</span>
@@ -163,14 +166,14 @@ export default async function ArticlePage({
       {/* Article Footer */}
       <div className="mt-12 pt-8 border-t">
         <ArticleRating
-          articleId={`${params.category}/${params.slug}`}
+          articleId={`${category}/${slug}`}
           userId={user?.uid}
         />
       </div>
 
       {/* Related Articles */}
       <RelatedArticles
-        articleId={`${params.category}--${params.slug}`}
+        articleId={`${category}--${slug}`}
         tags={article.tags}
         userRole={user?.role}
       />

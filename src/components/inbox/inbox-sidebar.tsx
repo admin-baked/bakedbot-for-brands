@@ -334,6 +334,7 @@ function FilterButton({ collapsed }: { collapsed?: boolean }) {
         creative: 'Creative',
         campaign: 'Campaigns',
         qr_code: 'QR Codes',
+        blog: 'Blog Posts',
         retail_partner: 'Retail Partners',
         launch: 'Product Launches',
         performance: 'Performance',

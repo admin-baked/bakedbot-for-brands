@@ -11,7 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Check, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-export default function ApprovalsPage({ params }: { params: { tenantId?: string } }) {
+export default function ApprovalsPage({ params }: { params?: { tenantId?: string } }) {
     // Hardcoded tenant for now or context
     const tenantId = 'demo-tenant';
 

@@ -11,11 +11,12 @@ import * as LucideIcons from 'lucide-react';
 import { CopyButton } from './copy-button';
 
 interface Props {
-    params: { shareId: string };
+    params: Promise<{ shareId: string }>;
 }
 
 export default async function SharedArtifactPage({ params }: Props) {
-    const sharedArtifact = await getSharedArtifact(params.shareId);
+    const { shareId } = await params;
+    const sharedArtifact = await getSharedArtifact(shareId);
     
     if (!sharedArtifact) {
         notFound();

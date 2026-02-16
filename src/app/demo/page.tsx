@@ -23,8 +23,9 @@ function toQueryString(searchParams?: SearchParams): string {
   return params.toString();
 }
 
-export default function DemoPage({ searchParams }: { searchParams?: SearchParams }) {
-  const qs = toQueryString(searchParams);
+export default async function DemoPage({ searchParams }: { searchParams?: Promise<SearchParams> }) {
+  const params = searchParams ? await searchParams : undefined;
+  const qs = toQueryString(params);
   redirect(qs ? `/demo-shop?${qs}` : '/demo-shop');
 }
 

@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import { DemoHeader } from '@/components/demo/demo-header';
 import { DemoFooter } from '@/components/demo/demo-footer';
 import { Card, CardContent } from '@/components/ui/card';
-import { Building2, Users, Award, Heart } from 'lucide-react';
+import { getBrandPageBySlug } from '@/server/actions/brand-pages';
+import * as Icons from 'lucide-react';
 
 export default async function AboutPage({ params }: { params: Promise<{ brand: string }> }) {
     const { brand: brandSlug } = await params;
@@ -13,9 +14,18 @@ export default async function AboutPage({ params }: { params: Promise<{ brand: s
         notFound();
     }
 
+    // Fetch dynamic content from Firestore
+    const pageContent = await getBrandPageBySlug(brandSlug, 'about');
+    const content = pageContent?.aboutContent;
+
+    // Only show if published or content exists
+    if (!pageContent?.isPublished && !content) {
+        notFound();
+    }
+
     const brandColors = {
-        primary: brand.primaryColor || '#16a34a',
-        secondary: brand.secondaryColor || '#15803d',
+        primary: (brand as any).primaryColor || '#16a34a',
+        secondary: (brand as any).secondaryColor || '#15803d',
     };
 
     return (
@@ -34,66 +44,98 @@ export default async function AboutPage({ params }: { params: Promise<{ brand: s
                 <section className="py-16 bg-gradient-to-b from-muted/30 to-background">
                     <div className="container mx-auto px-4">
                         <div className="max-w-4xl mx-auto text-center">
-                            <h1 className="text-4xl md:text-5xl font-bold mb-6">About {brand.name}</h1>
+                            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+                                {content?.heroTitle || `About ${brand.name}`}
+                            </h1>
                             <p className="text-lg text-muted-foreground leading-relaxed">
-                                {brand.description || `Welcome to ${brand.name}. We're committed to providing the highest quality cannabis products and exceptional customer service to our community.`}
+                                {content?.heroDescription || brand.description || `Welcome to ${brand.name}. We're committed to providing the highest quality cannabis products and exceptional customer service to our community.`}
                             </p>
                         </div>
                     </div>
                 </section>
+
+                {/* Story Section (if provided) */}
+                {content?.story && (
+                    <section className="py-16 bg-muted/30">
+                        <div className="container mx-auto px-4">
+                            <div className="max-w-3xl mx-auto prose prose-lg">
+                                <p className="whitespace-pre-wrap">{content.story}</p>
+                            </div>
+                        </div>
+                    </section>
+                )}
 
                 {/* Values Section */}
                 <section className="py-16">
                     <div className="container mx-auto px-4">
                         <h2 className="text-3xl font-bold text-center mb-12">Our Values</h2>
                         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <Card>
-                                <CardContent className="p-6 text-center">
-                                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                                        <Award className="w-8 h-8" style={{ color: brandColors.primary }} />
-                                    </div>
-                                    <h3 className="font-semibold text-lg mb-2">Quality</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        Premium products tested for purity and potency
-                                    </p>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardContent className="p-6 text-center">
-                                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                                        <Users className="w-8 h-8" style={{ color: brandColors.primary }} />
-                                    </div>
-                                    <h3 className="font-semibold text-lg mb-2">Community</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        Supporting local communities and customers
-                                    </p>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardContent className="p-6 text-center">
-                                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                                        <Building2 className="w-8 h-8" style={{ color: brandColors.primary }} />
-                                    </div>
-                                    <h3 className="font-semibold text-lg mb-2">Compliance</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        Fully licensed and compliant with state regulations
-                                    </p>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardContent className="p-6 text-center">
-                                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                                        <Heart className="w-8 h-8" style={{ color: brandColors.primary }} />
-                                    </div>
-                                    <h3 className="font-semibold text-lg mb-2">Care</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        Dedicated to customer education and wellness
-                                    </p>
-                                </CardContent>
-                            </Card>
+                            {content?.values && content.values.length > 0 ? (
+                                content.values.map((value) => {
+                                    const IconComponent = (Icons as any)[value.icon] || Icons.Award;
+                                    return (
+                                        <Card key={value.id}>
+                                            <CardContent className="p-6 text-center">
+                                                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                                                    <IconComponent className="w-8 h-8" style={{ color: brandColors.primary }} />
+                                                </div>
+                                                <h3 className="font-semibold text-lg mb-2">{value.title}</h3>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {value.description}
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })
+                            ) : (
+                                // Default values if none configured
+                                <>
+                                    <Card>
+                                        <CardContent className="p-6 text-center">
+                                            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                                                <Icons.Award className="w-8 h-8" style={{ color: brandColors.primary }} />
+                                            </div>
+                                            <h3 className="font-semibold text-lg mb-2">Quality</h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                Premium products tested for purity and potency
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                    <Card>
+                                        <CardContent className="p-6 text-center">
+                                            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                                                <Icons.Users className="w-8 h-8" style={{ color: brandColors.primary }} />
+                                            </div>
+                                            <h3 className="font-semibold text-lg mb-2">Community</h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                Supporting local communities and customers
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                    <Card>
+                                        <CardContent className="p-6 text-center">
+                                            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                                                <Icons.ShieldCheck className="w-8 h-8" style={{ color: brandColors.primary }} />
+                                            </div>
+                                            <h3 className="font-semibold text-lg mb-2">Compliance</h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                Fully licensed and compliant with state regulations
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                    <Card>
+                                        <CardContent className="p-6 text-center">
+                                            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                                                <Icons.Heart className="w-8 h-8" style={{ color: brandColors.primary }} />
+                                            </div>
+                                            <h3 className="font-semibold text-lg mb-2">Care</h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                Dedicated to customer education and wellness
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                </>
+                            )}
                         </div>
                     </div>
                 </section>
@@ -116,7 +158,7 @@ export default async function AboutPage({ params }: { params: Promise<{ brand: s
                                             </a>
                                         </p>
                                     )}
-                                    {brand.location.hours && <p className="text-muted-foreground mt-4">{brand.location.hours}</p>}
+                                    {(brand.location as any)?.hours && <p className="text-muted-foreground mt-4">{(brand.location as any)?.hours}</p>}
                                 </div>
                             </div>
                         </div>

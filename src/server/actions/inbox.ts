@@ -1145,6 +1145,12 @@ Generate QR codes for products, menus, promotions, events, or loyalty programs.
 Provide the target URL, customization options (colors, logo), and tracking analytics.
 Return structured artifacts using the :::artifact:qr_code:Title format.`,
 
+        blog: `You are helping create blog posts for cannabis education and marketing.
+Generate SEO-optimized, compliant blog content about cannabis products, education, industry news, or company updates.
+Use the createBlogPostArtifact tool to generate blog post drafts.
+Return structured artifacts using the :::artifact:blog_post:Title format.
+Always follow cannabis compliance rules (no medical claims, age-appropriate content).`,
+
         retail_partner: `You are helping create materials to pitch retail partners (dispensaries).
 Generate sell sheets, pitch decks, and partnership proposals.
 Focus on margin opportunities, sell-through data, and brand story.`,
