@@ -690,6 +690,31 @@ export async function approveAndPublishArtifact(
                 });
                 break;
             }
+            case 'blog_post': {
+                // Import blog actions dynamically to avoid circular dependencies
+                const { createBlogPost } = await import('@/server/actions/blog');
+                const blogData = artifact.data as any;
+
+                const blogPost = await createBlogPost({
+                    orgId: artifact.orgId,
+                    title: blogData.title,
+                    subtitle: blogData.subtitle,
+                    excerpt: blogData.excerpt,
+                    content: blogData.content,
+                    category: blogData.category,
+                    tags: blogData.tags,
+                    seoKeywords: blogData.seoKeywords,
+                    featuredImage: blogData.featuredImageUrl ? {
+                        id: `img_${Date.now()}`,
+                        url: blogData.featuredImageUrl,
+                        alt: blogData.title,
+                        mimeType: 'image/jpeg',
+                    } : undefined,
+                    createdBy: 'agent:craig',
+                });
+                publishedId = blogPost.id;
+                break;
+            }
         }
 
         // Update artifact status

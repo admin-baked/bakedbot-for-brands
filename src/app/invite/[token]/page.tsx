@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Invitation } from '@/types/invitation';
 import { useToast } from '@/hooks/use-toast';
 
-export default function JoinPage({ params }: { params: { token: string } }) {
+export default function JoinPage({ params }: { params?: { token: string } }) {
     const router = useRouter();
     const { user, isUserLoading: authLoading } = useUser();
     const { toast } = useToast();

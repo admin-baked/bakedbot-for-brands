@@ -234,7 +234,68 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       console.log('[Sitemap] Location collections retrieval failed:', e);
     }
 
-    // 8. Cannabis Desert Indices
+    // 8. Blog Posts (High Priority Content)
+    let blogRoutes: MetadataRoute.Sitemap = [];
+    try {
+      // Fetch all brands for blog index pages
+      const brandsForBlogSnapshot = await firestore
+        .collection('brands')
+        .select('slug')
+        .limit(500)
+        .get();
+
+      for (const brandDoc of brandsForBlogSnapshot.docs) {
+        const brandData = brandDoc.data();
+        const brandSlug = brandData.slug || brandDoc.id;
+
+        // Blog index page
+        blogRoutes.push({
+          url: `${BASE_URL}/${brandSlug}/blog`,
+          lastModified: new Date(),
+          changeFrequency: 'daily' as const,
+          priority: 0.8,
+        });
+
+        // RSS feed
+        blogRoutes.push({
+          url: `${BASE_URL}/${brandSlug}/blog/rss.xml`,
+          lastModified: new Date(),
+          changeFrequency: 'daily' as const,
+          priority: 0.5,
+        });
+
+        // Individual blog posts for this brand
+        const postsSnapshot = await firestore
+          .collection('tenants')
+          .doc(brandDoc.id)
+          .collection('blog_posts')
+          .where('status', '==', 'published')
+          .select('seo', 'updatedAt', 'publishedAt')
+          .limit(100)
+          .get();
+
+        if (!postsSnapshot.empty) {
+          blogRoutes = blogRoutes.concat(
+            postsSnapshot.docs.map((postDoc) => {
+              const postData = postDoc.data();
+              return {
+                url: `${BASE_URL}/${brandSlug}/blog/${postData.seo?.slug || postDoc.id}`,
+                lastModified:
+                  typeof postData.updatedAt?.toDate === 'function'
+                    ? postData.updatedAt.toDate()
+                    : new Date(),
+                changeFrequency: 'weekly' as const,
+                priority: 0.7,
+              };
+            })
+          );
+        }
+      }
+    } catch (e) {
+      console.error('[Sitemap] Failed to fetch blog posts:', e);
+    }
+
+    // 9. Cannabis Desert Indices
     const legalStates = ['MI', 'CA', 'OK', 'MA', 'IL', 'CO', 'AZ', 'NV', 'OR', 'WA'];
     const desertRoutes = legalStates.map((state) => ({
       url: `${BASE_URL}/deserts/${state.toLowerCase()}`,
@@ -251,6 +312,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...brandRoutes,
       ...retailerRoutes,
       ...locationRoutes,
+      ...blogRoutes,
       ...desertRoutes,
     ];
   } catch (error) {

@@ -18,8 +18,9 @@ async function getPublicPassport(userId: string) {
     };
 }
 
-export default async function PublicProfilePage({ params }: { params: { userId: string } }) {
-    const profile = await getPublicPassport(params.userId);
+export default async function PublicProfilePage({ params }: { params: Promise<{ userId: string }> }) {
+    const { userId } = await params;
+    const profile = await getPublicPassport(userId);
 
     return (
         <main className="min-h-screen bg-green-50 flex items-center justify-center p-4">

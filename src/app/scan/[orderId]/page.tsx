@@ -1,11 +1,12 @@
 import ScanPageClient from './page-client';
 
 interface ScanPageProps {
-    params: { orderId: string };
+    params: Promise<{ orderId: string }>;
 }
 
-export default function ScanPage({ params }: ScanPageProps) {
-    return <ScanPageClient orderId={params.orderId} />;
+export default async function ScanPage({ params }: ScanPageProps) {
+    const { orderId } = await params;
+    return <ScanPageClient orderId={orderId} />;
 }
 
 export const metadata = {
