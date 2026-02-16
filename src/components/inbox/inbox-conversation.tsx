@@ -36,6 +36,7 @@ import {
     CampaignDraftCard, CampaignPerformanceCard,
     parseCampaignDrafts, parseCampaignPerformance,
 } from './campaign/campaign-inline-card';
+import { GoogleIntegrationStatus, parseGoogleIntegrationStatus } from './artifacts/google-integration-status';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -139,9 +140,13 @@ function MessageBubble({
     const { drafts: campaignDrafts, cleanedContent: afterCampaignDraftParse } = !isUser
         ? parseCampaignDrafts(afterSegmentParse)
         : { drafts: [], cleanedContent: afterSegmentParse };
-    const { performances: campaignPerfs, cleanedContent: displayContent } = !isUser
+    const { performances: campaignPerfs, cleanedContent: afterCampaignPerfParse } = !isUser
         ? parseCampaignPerformance(afterCampaignDraftParse)
         : { performances: [], cleanedContent: afterCampaignDraftParse };
+    // Parse Google integration status markers
+    const { status: googleIntegrationStatus, cleanedContent: displayContent } = !isUser
+        ? parseGoogleIntegrationStatus(afterCampaignPerfParse)
+        : { status: null, cleanedContent: afterCampaignPerfParse };
 
     return (
         <motion.div
@@ -210,6 +215,12 @@ function MessageBubble({
                             {campaignPerfs.map((perf, idx) => (
                                 <CampaignPerformanceCard key={`camp-perf-${idx}`} data={perf} />
                             ))}
+                            {/* Google Integration Status */}
+                            {googleIntegrationStatus && (
+                                <div className="mt-3">
+                                    <GoogleIntegrationStatus data={googleIntegrationStatus} />
+                                </div>
+                            )}
                         </>
                     )}
 
