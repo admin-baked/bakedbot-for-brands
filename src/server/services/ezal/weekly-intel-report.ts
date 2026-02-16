@@ -165,7 +165,7 @@ export async function generateWeeklyIntelReport(
         totalProductsTracked: snapshots.reduce((sum, s) => sum + s.products.length, 0),
     };
 
-    // Save report
+    // Save report to Firestore
     const docRef = await firestore
         .collection('tenants')
         .doc(orgId)
@@ -178,6 +178,15 @@ export async function generateWeeklyIntelReport(
         competitors: competitorSections.length,
         deals: allDeals.length,
     });
+
+    // Save report to BakedBot Drive for AI access
+    try {
+        await saveReportToDrive(orgId, docRef.id, report);
+        await createInboxNotification(orgId, docRef.id, report);
+    } catch (error) {
+        logger.error('[WeeklyReport] Failed to save to Drive or create inbox notification', { error, orgId });
+        // Don't fail the whole operation if Drive/Inbox fails
+    }
 
     return {
         id: docRef.id,
@@ -295,6 +304,256 @@ function generateRecommendations(
     }
 
     return recommendations.length > 0 ? recommendations : ['Continue monitoring - not enough data for specific recommendations.'];
+}
+
+// =============================================================================
+// DRIVE + INBOX INTEGRATION
+// =============================================================================
+
+/**
+ * Format weekly report as markdown and save to BakedBot Drive.
+ */
+async function saveReportToDrive(
+    orgId: string,
+    reportId: string,
+    report: Omit<WeeklyIntelReport, 'id'>
+): Promise<void> {
+    const { getDriveStorageService } = await import('@/server/services/drive-storage');
+    const driveService = getDriveStorageService();
+
+    // Format report as markdown
+    const markdown = formatReportAsMarkdown(report);
+    const buffer = Buffer.from(markdown, 'utf-8');
+
+    // Get tenant admin user for storage
+    const { firestore } = await createServerClient();
+    const tenantDoc = await firestore.collection('tenants').doc(orgId).get();
+    const tenantData = tenantDoc.data();
+    const adminUserId = tenantData?.ownerId || tenantData?.createdBy || 'system';
+
+    // Save to Drive under 'documents' category
+    const uploadResult = await driveService.uploadFile({
+        userId: adminUserId,
+        userEmail: tenantData?.email || 'system@bakedbot.ai',
+        file: {
+            buffer,
+            originalName: `competitive-intel-${reportId}.md`,
+            mimeType: 'text/markdown',
+            size: buffer.length,
+        },
+        category: 'documents',
+        description: `Weekly Competitive Intelligence Report - ${new Date().toLocaleDateString()}`,
+        tags: ['competitive-intel', 'automated', 'ezal'],
+        metadata: {
+            orgId,
+            reportId,
+            generatedAt: new Date().toISOString(),
+            competitorCount: String(report.competitors.length),
+            dealCount: String(report.totalDealsTracked),
+        },
+    });
+
+    if (!uploadResult.success) {
+        logger.error('[WeeklyReport] Failed to save to Drive', {
+            orgId,
+            reportId,
+            error: uploadResult.error,
+        });
+        throw new Error(uploadResult.error || 'Failed to save to Drive');
+    }
+
+    // Save Drive file reference to Firestore
+    await firestore
+        .collection('tenants')
+        .doc(orgId)
+        .collection('competitive_intel_drive_files')
+        .doc(reportId)
+        .set({
+            reportId,
+            storagePath: uploadResult.storagePath,
+            downloadUrl: uploadResult.downloadUrl,
+            createdAt: new Date(),
+        });
+
+    logger.info('[WeeklyReport] Saved to Drive', {
+        orgId,
+        reportId,
+        storagePath: uploadResult.storagePath,
+    });
+}
+
+/**
+ * Create inbox notification about new competitive intelligence report.
+ */
+async function createInboxNotification(
+    orgId: string,
+    reportId: string,
+    report: Omit<WeeklyIntelReport, 'id'>
+): Promise<void> {
+    const { createInboxThread } = await import('@/server/actions/inbox');
+
+    // Get tenant admin user
+    const { firestore } = await createServerClient();
+    const tenantDoc = await firestore.collection('tenants').doc(orgId).get();
+    const tenantData = tenantDoc.data();
+    const adminUserId = tenantData?.ownerId || tenantData?.createdBy;
+
+    if (!adminUserId) {
+        logger.warn('[WeeklyReport] No admin user found for tenant', { orgId });
+        return;
+    }
+
+    // Create inbox thread for the report
+    const weekStartStr = report.weekStart.toLocaleDateString();
+    const weekEndStr = report.weekEnd.toLocaleDateString();
+    const title = `📊 Weekly Competitive Intelligence - ${weekStartStr} to ${weekEndStr}`;
+
+    const summary = generateNotificationSummary(report);
+
+    const result = await createInboxThread({
+        type: 'market_intel',
+        title,
+        primaryAgent: 'ezal',
+        brandId: orgId,
+        tags: ['competitive-intel', 'automated', 'weekly-report'],
+        initialMessage: {
+            id: `msg_${Date.now()}`,
+            role: 'assistant',
+            content: summary,
+            agentPersona: 'ezal',
+            timestamp: new Date(),
+        },
+    });
+
+    if (result.success) {
+        logger.info('[WeeklyReport] Created inbox notification', {
+            orgId,
+            reportId,
+            threadId: result.thread?.id,
+        });
+    } else {
+        logger.error('[WeeklyReport] Failed to create inbox notification', {
+            orgId,
+            reportId,
+            error: result.error,
+        });
+    }
+}
+
+/**
+ * Format report as markdown for Drive storage.
+ */
+function formatReportAsMarkdown(report: Omit<WeeklyIntelReport, 'id'>): string {
+    const weekStart = report.weekStart.toLocaleDateString();
+    const weekEnd = report.weekEnd.toLocaleDateString();
+
+    let md = `# Weekly Competitive Intelligence Report\n\n`;
+    md += `**Report Period:** ${weekStart} - ${weekEnd}\n`;
+    md += `**Generated:** ${report.generatedAt.toLocaleString()}\n\n`;
+
+    md += `## Executive Summary\n\n`;
+    md += `- **Competitors Tracked:** ${report.competitors.length}\n`;
+    md += `- **Total Snapshots:** ${report.totalSnapshots}\n`;
+    md += `- **Deals Tracked:** ${report.totalDealsTracked}\n`;
+    md += `- **Products Tracked:** ${report.totalProductsTracked}\n\n`;
+
+    // Market trends
+    md += `## Market Trends\n\n`;
+    for (const trend of report.insights.marketTrends) {
+        md += `- ${trend}\n`;
+    }
+    md += `\n`;
+
+    // Top deals across market
+    md += `## Top 10 Deals This Week\n\n`;
+    md += `| Competitor | Deal | Price |\n`;
+    md += `|------------|------|-------|\n`;
+    for (const deal of report.insights.topDeals.slice(0, 10)) {
+        md += `| ${deal.competitorName} | ${deal.dealName} | $${deal.price.toFixed(2)} |\n`;
+    }
+    md += `\n`;
+
+    // Competitor breakdown
+    md += `## Competitor Analysis\n\n`;
+    for (const comp of report.competitors) {
+        md += `### ${comp.competitorName}\n\n`;
+        md += `- **Pricing Strategy:** ${comp.priceStrategy}\n`;
+        md += `- **Average Deal Price:** $${comp.avgDealPrice.toFixed(2)}\n`;
+        md += `- **Active Deals:** ${comp.dealCount}\n`;
+        md += `- **Products Tracked:** ${comp.productCount}\n\n`;
+
+        if (comp.topDeals.length > 0) {
+            md += `**Top Deals:**\n\n`;
+            for (const deal of comp.topDeals.slice(0, 5)) {
+                md += `- ${deal.dealName} - $${deal.price.toFixed(2)}`;
+                if (deal.discount) md += ` (${deal.discount})`;
+                md += `\n`;
+            }
+            md += `\n`;
+        }
+    }
+
+    // Pricing gaps
+    if (report.insights.pricingGaps.length > 0) {
+        md += `## Pricing Gaps & Opportunities\n\n`;
+        for (const gap of report.insights.pricingGaps) {
+            md += `### ${gap.category}\n\n`;
+            md += `- **Competitor Average:** $${gap.competitorAvg.toFixed(2)}\n`;
+            md += `- **Market Position:** ${gap.marketPosition}\n`;
+            md += `- **Opportunity:** ${gap.opportunity}\n\n`;
+        }
+    }
+
+    // Recommendations
+    md += `## Recommendations\n\n`;
+    for (const rec of report.insights.recommendations) {
+        md += `- ${rec}\n`;
+    }
+    md += `\n`;
+
+    md += `---\n\n`;
+    md += `*Generated by Ezal - BakedBot Competitive Intelligence*\n`;
+
+    return md;
+}
+
+/**
+ * Generate notification summary for inbox thread.
+ */
+function generateNotificationSummary(report: Omit<WeeklyIntelReport, 'id'>): string {
+    const topDeal = report.insights.topDeals[0];
+    const avgPrice = report.competitors.reduce((sum, c) => sum + c.avgDealPrice, 0) / report.competitors.length;
+
+    let summary = `Hey there! 👋 Your weekly competitive intelligence report is ready.\n\n`;
+    summary += `**Key Highlights:**\n\n`;
+    summary += `📊 Tracked ${report.competitors.length} competitors with ${report.totalDealsTracked} active deals\n\n`;
+
+    if (topDeal) {
+        summary += `🔥 **Best Deal in Market:** ${topDeal.competitorName} - ${topDeal.dealName} at $${topDeal.price.toFixed(2)}\n\n`;
+    }
+
+    summary += `💰 **Average Deal Price:** $${avgPrice.toFixed(2)}\n\n`;
+
+    if (report.insights.marketTrends.length > 0) {
+        summary += `**Market Trends:**\n`;
+        for (const trend of report.insights.marketTrends.slice(0, 3)) {
+            summary += `• ${trend}\n`;
+        }
+        summary += `\n`;
+    }
+
+    if (report.insights.recommendations.length > 0) {
+        summary += `**My Recommendations:**\n`;
+        for (const rec of report.insights.recommendations.slice(0, 3)) {
+            summary += `• ${rec}\n`;
+        }
+        summary += `\n`;
+    }
+
+    summary += `📁 The full report has been saved to your BakedBot Drive for easy access.\n\n`;
+    summary += `Need me to dig deeper into any competitor or analyze specific pricing strategies? Just ask! 🎯`;
+
+    return summary;
 }
 
 // =============================================================================

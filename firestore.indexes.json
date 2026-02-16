@@ -919,6 +919,20 @@
                     "order": "DESCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "competitive_intel_drive_files",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "reportId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []
