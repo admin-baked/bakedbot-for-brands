@@ -26,6 +26,18 @@ type CreateOrderInput = {
     paymentMethod: 'authorize_net' | 'cannpay' | 'cash' | 'smokey_pay'; // smokey_pay is legacy alias
     paymentData?: any;
     total: number;
+    // Delivery fields (optional)
+    fulfillmentType?: 'pickup' | 'delivery';
+    deliveryAddress?: {
+        street: string;
+        city: string;
+        state: string;
+        zip: string;
+        country?: string;
+    };
+    deliveryFee?: number;
+    deliveryWindow?: { start: Date; end: Date };
+    deliveryInstructions?: string;
 };
 
 export async function createOrder(input: CreateOrderInput) {
@@ -79,8 +91,9 @@ export async function createOrder(input: CreateOrderInput) {
         }
 
         const subtotalAfterDiscount = Number(Math.max(0, subtotal - discount).toFixed(2));
+        const deliveryFee = Number((input.deliveryFee || 0).toFixed(2));
         const tax = Number((subtotalAfterDiscount * 0.15).toFixed(2));
-        const serverTotal = Number((subtotalAfterDiscount + tax).toFixed(2));
+        const serverTotal = Number((subtotalAfterDiscount + tax + deliveryFee).toFixed(2));
 
         if (Math.abs(input.total - serverTotal) > 0.01) {
             logger.warn('[createOrder] Client total mismatch, using server-calculated total', {
@@ -141,12 +154,22 @@ export async function createOrder(input: CreateOrderInput) {
                 subtotal: subtotalAfterDiscount,
                 tax,
                 discount,
+                deliveryFee,
                 total: serverTotal,
             },
             coupon: appliedCoupon ? {
                 code: appliedCoupon.code,
                 discount: appliedCoupon.discountAmount,
             } : undefined,
+            // Fulfillment fields
+            fulfillmentType: input.fulfillmentType || 'pickup',
+            shippingAddress: input.deliveryAddress || undefined,
+            deliveryFee: deliveryFee > 0 ? deliveryFee : undefined,
+            deliveryWindow: input.deliveryWindow ? {
+                start: input.deliveryWindow.start,
+                end: input.deliveryWindow.end,
+            } : undefined,
+            deliveryInstructions: input.deliveryInstructions || undefined,
             transactionId,
             status: 'submitted', // Initial status
             paymentStatus,

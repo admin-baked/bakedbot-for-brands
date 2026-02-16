@@ -1,4 +1,5 @@
 import { PaymentConfig } from './aeropay';
+import { DeliveryConfig } from './delivery';
 
 export interface Location {
     id: string;
@@ -35,6 +36,9 @@ export interface Location {
 
     // Payment Configuration (Location Specific)
     paymentConfig?: PaymentConfig;
+
+    // Delivery Configuration (Location Specific)
+    deliveryConfig?: DeliveryConfig;
 
     // CannMenus Mapping
     cannMenusId?: string;

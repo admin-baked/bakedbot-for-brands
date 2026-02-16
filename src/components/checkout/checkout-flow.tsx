@@ -10,6 +10,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '@/hooks/use-store';
 import { useUser } from '@/firebase/auth/use-user';
 import { AgeVerification, isAgeVerified } from './age-verification';
+import { FulfillmentSelection } from './fulfillment-selection';
+import { DeliveryAddressForm, type DeliveryFormData } from './delivery-address-form';
 import { PaymentSmokey } from './payment-smokey';
 import { PaymentCreditCard } from './payment-credit-card';
 import { Button } from '@/components/ui/button';
@@ -29,7 +31,7 @@ import { ProductUpsellRow } from '@/components/upsell/product-upsell-row';
 import { fetchCheckoutUpsells } from '@/server/actions/upsell';
 import type { Product } from '@/types/domain';
 
-type CheckoutStep = 'details' | 'payment' | 'confirmation';
+type CheckoutStep = 'fulfillment' | 'details' | 'payment' | 'confirmation';
 
 export function CheckoutFlow() {
     const { cartItems, getCartTotal, selectedRetailerId, clearCart, addToCart, addToCartForShipping, purchaseMode, selectedBrandId } = useStore();
@@ -37,7 +39,7 @@ export function CheckoutFlow() {
     const { toast } = useToast();
     const router = useRouter();
 
-    const [step, setStep] = useState<CheckoutStep>('details');
+    const [step, setStep] = useState<CheckoutStep>('fulfillment');
     const [verified, setVerified] = useState(false);
     const [loading, setLoading] = useState(false);
     const [couponCode, setCouponCode] = useState('');
@@ -45,6 +47,10 @@ export function CheckoutFlow() {
     const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
     const [couponValidatedSubtotal, setCouponValidatedSubtotal] = useState<number | null>(null);
     const [couponValidatedBrandId, setCouponValidatedBrandId] = useState<string | null>(null);
+
+    // Fulfillment
+    const [fulfillmentType, setFulfillmentType] = useState<'pickup' | 'delivery' | null>(null);
+    const [deliveryData, setDeliveryData] = useState<DeliveryFormData | null>(null);
 
     // Customer Details
     const [customerDetails, setCustomerDetails] = useState({
@@ -106,9 +112,10 @@ export function CheckoutFlow() {
         }
     }, [purchaseMode, selectedBrandId, selectedRetailerId, addToCart, addToCartForShipping]);
     const discount = Number((appliedCoupon?.discountAmount || 0).toFixed(2));
+    const deliveryFee = fulfillmentType === 'delivery' && deliveryData ? deliveryData.deliveryFee : 0;
     const discountedSubtotal = Number(Math.max(0, subtotal - discount).toFixed(2));
     const tax = Number((discountedSubtotal * 0.15).toFixed(2));
-    const total = Number((discountedSubtotal + tax).toFixed(2));
+    const total = Number((discountedSubtotal + tax + deliveryFee).toFixed(2));
 
     useEffect(() => {
         const subtotalChanged = couponValidatedSubtotal !== null && Math.abs(subtotal - couponValidatedSubtotal) > 0.01;
@@ -235,6 +242,14 @@ export function CheckoutFlow() {
                 paymentMethod: paymentMethod === 'card' ? 'authorize_net' : 'cash',
                 paymentData,
                 total,
+                // Delivery data (if delivery selected)
+                fulfillmentType: fulfillmentType || 'pickup',
+                ...(fulfillmentType === 'delivery' && deliveryData ? {
+                    deliveryAddress: deliveryData.address,
+                    deliveryFee: deliveryData.deliveryFee,
+                    deliveryWindow: deliveryData.deliveryWindow,
+                    deliveryInstructions: deliveryData.deliveryInstructions,
+                } : {}),
             });
 
             if (result.success) {
@@ -284,20 +299,62 @@ export function CheckoutFlow() {
         <div className="space-y-8">
             {/* Progress Steps */}
             <div className="flex items-center justify-center mb-8">
-                <div className={`flex items-center ${step === 'details' ? 'text-primary' : 'text-muted-foreground'}`}>
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center border-2 ${step === 'details' || step === 'payment' || step === 'confirmation' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground'}`}>
+                <div className={`flex items-center ${step === 'fulfillment' ? 'text-primary' : 'text-muted-foreground'}`}>
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center border-2 ${step !== 'fulfillment' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground'}`}>
                         1
                     </div>
-                    <span className="ml-2 font-medium">Details</span>
+                    <span className="ml-2 font-medium hidden sm:inline">Fulfillment</span>
                 </div>
-                <div className="w-16 h-0.5 bg-muted mx-4" />
-                <div className={`flex items-center ${step === 'payment' ? 'text-primary' : 'text-muted-foreground'}`}>
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center border-2 ${step === 'payment' || step === 'confirmation' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground'}`}>
+                <div className="w-12 sm:w-16 h-0.5 bg-muted mx-2 sm:mx-4" />
+                <div className={`flex items-center ${step === 'details' ? 'text-primary' : 'text-muted-foreground'}`}>
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center border-2 ${step === 'details' || step === 'payment' || step === 'confirmation' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground'}`}>
                         2
                     </div>
-                    <span className="ml-2 font-medium">Payment</span>
+                    <span className="ml-2 font-medium hidden sm:inline">Details</span>
+                </div>
+                <div className="w-12 sm:w-16 h-0.5 bg-muted mx-2 sm:mx-4" />
+                <div className={`flex items-center ${step === 'payment' ? 'text-primary' : 'text-muted-foreground'}`}>
+                    <div className={`h-8 w-8 rounded-full flex items-center justify-center border-2 ${step === 'payment' || step === 'confirmation' ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground'}`}>
+                        3
+                    </div>
+                    <span className="ml-2 font-medium hidden sm:inline">Payment</span>
                 </div>
             </div>
+
+            {/* Fulfillment Selection Step */}
+            {step === 'fulfillment' && (
+                <>
+                    {!fulfillmentType && (
+                        <FulfillmentSelection
+                            onSelect={(type) => {
+                                setFulfillmentType(type);
+                                if (type === 'pickup') {
+                                    // Skip directly to details for pickup
+                                    setStep('details');
+                                }
+                                // For delivery, stay on fulfillment step to show address form
+                            }}
+                            selectedType={fulfillmentType || undefined}
+                            deliveryEnabled={!!selectedRetailerId} // Only enable if retailer selected
+                        />
+                    )}
+
+                    {fulfillmentType === 'delivery' && selectedRetailerId && (
+                        <DeliveryAddressForm
+                            locationId={selectedRetailerId}
+                            subtotal={subtotal}
+                            onComplete={(data) => {
+                                setDeliveryData(data);
+                                setStep('details');
+                            }}
+                            onBack={() => {
+                                setFulfillmentType(null);
+                                setDeliveryData(null);
+                            }}
+                        />
+                    )}
+                </>
+            )}
 
             {step === 'details' && (
                 <Card>
@@ -409,6 +466,12 @@ export function CheckoutFlow() {
                                 <div className="flex justify-between text-sm text-emerald-700">
                                     <span>Discount</span>
                                     <span>-${discount.toFixed(2)}</span>
+                                </div>
+                            )}
+                            {deliveryFee > 0 && (
+                                <div className="flex justify-between text-sm">
+                                    <span>Delivery Fee</span>
+                                    <span>${deliveryFee.toFixed(2)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between text-sm">
