@@ -4,20 +4,21 @@ import ProductFinderClient from './page-client';
 import type { Product } from '@/firebase/converters';
 
 interface PageProps {
-    params: {
+    params: Promise<{
         productId: string;
-    }
+    }>;
 }
 // This page is public/unauthed
 export default async function ProductFinderPage({ params }: PageProps) {
+    const { productId } = await params;
     const { firestore } = await createServerClient();
 
     // Check for synthetic/mock ID first (for demo purposes)
-    if (params.productId.startsWith('mock-')) {
+    if (productId.startsWith('mock-')) {
         // Return mock data for demo
         const mockProduct: Product & { id: string } = {
-            id: params.productId,
-            name: params.productId === 'mock-1' ? 'Blue Dream Preroll' : 'Cosmic Gummies',
+            id: productId,
+            name: productId === 'mock-1' ? 'Blue Dream Preroll' : 'Cosmic Gummies',
             description: 'A premium cannabis experience.',
             category: 'Flower',
             brandId: 'demo-brand',
@@ -31,7 +32,7 @@ export default async function ProductFinderPage({ params }: PageProps) {
         return <ProductFinderClient product={mockProduct} />;
     }
 
-    const doc = await firestore.collection('products').doc(params.productId).get();
+    const doc = await firestore.collection('products').doc(productId).get();
 
     if (!doc.exists) {
         return notFound();

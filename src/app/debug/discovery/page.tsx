@@ -7,9 +7,10 @@ export const dynamic = 'force-dynamic';
 export default async function DebugDiscoveryPage({
     searchParams,
 }: {
-    searchParams: { zip?: string };
+    searchParams: Promise<{ zip?: string }>;
 }) {
-    const zipCode = searchParams.zip || '90002';
+    const { zip } = await searchParams;
+    const zipCode = zip || '90002';
 
     // 1. Check Config
     const configStatus = {

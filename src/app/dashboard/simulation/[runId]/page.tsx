@@ -36,13 +36,15 @@ export const metadata = {
     title: 'Simulation Results | BakedBot',
 };
 
-export default async function SimulationRunPage({ params }: { params: { runId: string } }) {
+export default async function SimulationRunPage({ params }: { params: Promise<{ runId: string }> }) {
     await requireUser(['brand', 'dispensary', 'super_user']);
+
+    const { runId } = await params;
 
     // Parallel fetch
     const [run, daySummaries] = await Promise.all([
-        getRun(params.runId),
-        getDaySummaries(params.runId),
+        getRun(runId),
+        getDaySummaries(runId),
     ]);
 
     if (!run) {

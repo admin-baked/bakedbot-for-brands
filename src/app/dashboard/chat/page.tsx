@@ -7,10 +7,10 @@ export const metadata: Metadata = {
     description: 'Unified interface for all AI agents.',
 };
 
-export default function ChatPage({
+export default async function ChatPage({
     searchParams,
 }: {
-    searchParams: { q?: string; role?: string };
+    searchParams: Promise<{ q?: string; role?: string }>;
 }) {
     // If a query is provided via URL (from Homepage/Tasks), we can pass it down.
     // UnifiedAgentChat handles its own state, but we might want to pre-seed the prompt?
@@ -18,11 +18,13 @@ export default function ChatPage({
     // but relies on its internal logic or the URL if wired up.
     // For now, we render the component. Future improvement: Pass searchParams.q to PuffChat via UnifiedAgentChat.
 
+    const { role } = await searchParams;
+
     return (
         <div className="container mx-auto py-6 h-[calc(100vh-4rem)]">
             <h1 className="text-2xl font-bold mb-4">Agent Workspace</h1>
-            <UnifiedAgentChat 
-                role={searchParams.role as any || 'public'} 
+            <UnifiedAgentChat
+                role={role as any || 'public'} 
                 showHeader={true}
                 className="h-[600px] shadow-md border"
             />

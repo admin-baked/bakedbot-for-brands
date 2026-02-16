@@ -7,10 +7,11 @@ export const metadata = {
     title: 'Edit Scenario | Simulation Mode',
 };
 
-export default async function EditScenarioPage({ params }: { params: { id: string } }) {
+export default async function EditScenarioPage({ params }: { params: Promise<{ id: string }> }) {
     await requireUser(['brand', 'dispensary', 'super_user']);
 
-    const scenario = await getScenario(params.id);
+    const { id } = await params;
+    const scenario = await getScenario(id);
 
     if (!scenario) {
         notFound();

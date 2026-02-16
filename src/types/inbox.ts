@@ -27,6 +27,7 @@ export type InboxThreadType =
     | 'creative'          // Social media content
     | 'campaign'          // Multi-channel campaign
     | 'qr_code'           // Trackable QR code generation
+    | 'blog'              // Blog post creation
     | 'retail_partner'    // Retail partner outreach (brands only)
     | 'launch'            // Product launch coordination
     | 'performance'       // Performance review & analytics
@@ -180,6 +181,7 @@ export type InboxArtifactType =
     | 'bundle'            // Bundle deal
     | 'creative_content'  // Social media post
     | 'qr_code'           // Trackable QR code
+    | 'blog_post'         // Blog post
     | 'sell_sheet'        // Retail partner pitch materials
     | 'report'            // Performance/analytics report
     | 'outreach_draft'    // SMS/Email draft
@@ -867,6 +869,10 @@ export const THREAD_AGENT_MAPPING: Record<InboxThreadType, {
         primary: 'craig',
         supporting: ['linus'], // Technical implementation
     },
+    blog: {
+        primary: 'craig',
+        supporting: ['deebo'], // Compliance check
+    },
 
     // New business thread types
     retail_partner: {
@@ -1060,6 +1066,7 @@ export const InboxThreadTypeSchema = z.enum([
     'creative',
     'campaign',
     'qr_code',
+    'blog',
     'retail_partner',
     'launch',
     'performance',
@@ -1124,7 +1131,7 @@ export const InboxAgentPersonaSchema = z.enum([
 
 export const InboxArtifactTypeSchema = z.enum([
     // Business Artifacts
-    'carousel', 'bundle', 'creative_content', 'qr_code', 'sell_sheet', 'report', 'outreach_draft', 'event_promo',
+    'carousel', 'bundle', 'creative_content', 'qr_code', 'blog_post', 'sell_sheet', 'report', 'outreach_draft', 'event_promo',
     // Growth Management Artifacts
     'growth_report', 'churn_scorecard', 'revenue_model', 'pipeline_report', 'health_scorecard', 'market_analysis', 'partnership_deck', 'experiment_plan',
     // Company Operations Artifacts
@@ -1341,6 +1348,7 @@ export function getThreadTypeIcon(type: InboxThreadType): string {
         creative: 'Palette',
         campaign: 'Megaphone',
         qr_code: 'QrCode',
+        blog: 'FileText',
         retail_partner: 'Presentation',
         launch: 'Rocket',
         performance: 'TrendingUp',
@@ -1404,6 +1412,7 @@ export function getThreadTypeLabel(type: InboxThreadType): string {
         creative: 'Creative',
         campaign: 'Campaign',
         qr_code: 'QR Code',
+        blog: 'Blog Post',
         retail_partner: 'Retail Partner',
         launch: 'Product Launch',
         performance: 'Performance',
@@ -1467,6 +1476,7 @@ export function getArtifactTypesForThreadType(type: InboxThreadType): InboxArtif
         creative: ['creative_content'],
         campaign: ['carousel', 'bundle', 'creative_content'],
         qr_code: ['qr_code'],
+        blog: ['blog_post'],
         retail_partner: ['sell_sheet'],
         launch: ['carousel', 'bundle', 'creative_content'],
         performance: ['report'],
