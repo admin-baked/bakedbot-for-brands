@@ -30,7 +30,15 @@ export type BrandInsightCategory =
     | 'content'       // Craig - content performance
     | 'competitive';  // Ezal - competitive positioning
 
-export type InsightCategory = DispensaryInsightCategory | BrandInsightCategory;
+/** Super User agent categories (Platform Operations) */
+export type SuperUserInsightCategory =
+    | 'platform'      // Leo - System health, uptime, errors
+    | 'growth'        // Jack - New signups, MRR, churn
+    | 'deployment'    // Linus - Build status, deployment health
+    | 'support'       // Mrs. Parker - Open tickets, response times
+    | 'intelligence'; // Big Worm - Research queue, insights
+
+export type InsightCategory = DispensaryInsightCategory | BrandInsightCategory | SuperUserInsightCategory;
 
 // ============ Core Insight Interface ============
 
@@ -85,9 +93,19 @@ export interface BrandInsights {
     lastFetched: Date;
 }
 
+export interface SuperUserInsights {
+    platform: InsightCard[];      // Leo - System health
+    growth: InsightCard[];        // Jack - User growth, MRR
+    deployment: InsightCard[];    // Linus - Build/deploy status
+    support: InsightCard[];       // Mrs. Parker - Support queue
+    intelligence: InsightCard[];  // Big Worm - Research insights
+    lastFetched: Date;
+}
+
 export type InsightsResponse =
     | { role: 'dispensary'; data: DispensaryInsights }
-    | { role: 'brand'; data: BrandInsights };
+    | { role: 'brand'; data: BrandInsights }
+    | { role: 'super_user'; data: SuperUserInsights };
 
 // ============ Agent Color Mapping ============
 
