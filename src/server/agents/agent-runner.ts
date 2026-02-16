@@ -67,6 +67,7 @@ import { validateInput, validateOutput, sanitizeForPrompt, wrapUserData, getRisk
 import { loadAISettingsForAgent } from '@/server/actions/ai-settings';
 import { buildCustomInstructionsBlock } from '@/types/ai-settings';
 import { extractGmailParams, extractCalendarParams } from '@/server/agents/extraction-helpers';
+import { agentCache, CacheKeys, CacheTTL } from '@/lib/cache/agent-runner-cache';
 
 
 // === STRUCTURED EXTRACTION HELPERS (imported from extraction-helpers.ts) ===
@@ -603,35 +604,54 @@ All agents are online and ready. Type an agent name or describe your task to get
         const userBrandName = isPaidUser ? 'Your Organization' : 'BakedBot';
 
         // === AGENT CONFIG OVERRIDES ===
-        // Load custom personality/instructions for this agent+brand
+        // Load custom personality/instructions for this agent+brand (CACHED)
         try {
-            const { getAgentConfigOverride } = await import('@/app/actions/agent-config');
-            const configOverride = personaId ? await getAgentConfigOverride(personaId, userBrandId) : null;
-            if (configOverride) {
-                activePersona = { ...activePersona, ...configOverride };
+            if (personaId) {
+                const cacheKey = CacheKeys.agentConfig(personaId, userBrandId);
+                let configOverride = agentCache.get<any>(cacheKey);
+
+                if (!configOverride) {
+                    const { getAgentConfigOverride } = await import('@/app/actions/agent-config');
+                    configOverride = await getAgentConfigOverride(personaId, userBrandId);
+                    if (configOverride) {
+                        agentCache.set(cacheKey, configOverride, CacheTTL.AGENT_CONFIG);
+                    }
+                }
+
+                if (configOverride) {
+                    activePersona = { ...activePersona, ...configOverride };
+                }
             }
         } catch (e) {
             logger.warn('[AgentRunner] Overrides fetch failed', { error: e, agentId: personaId });
         }
 
-        // === CONTEXT INJECTION (Fix for Generic Placeholders) ===
+        // === CONTEXT INJECTION (Fix for Generic Placeholders) - CACHED ===
         // Fetch Brand/Tenant Profile to inject Name, State, City, etc.
         // Checks both 'brands' and 'tenants' collections for compatibility with all org types
         let brandContextString = '';
         if (userBrandId && userBrandId !== 'demo-brand-123' && userBrandId !== 'general') {
             try {
-                const { createServerClient } = await import('@/firebase/server-client');
-                const { firestore } = await createServerClient();
+                const cacheKey = CacheKeys.brandProfile(userBrandId);
+                let data: any = agentCache.get(cacheKey);
 
-                // Try brands collection first, then tenants (for dispensaries like Thrive Syracuse)
-                let data: any = null;
-                const brandDoc = await firestore.collection('brands').doc(userBrandId).get();
-                if (brandDoc.exists) {
-                    data = brandDoc.data();
-                } else {
-                    const tenantDoc = await firestore.collection('tenants').doc(userBrandId).get();
-                    if (tenantDoc.exists) {
-                        data = tenantDoc.data();
+                if (!data) {
+                    const { createServerClient } = await import('@/firebase/server-client');
+                    const { firestore } = await createServerClient();
+
+                    // Try brands collection first, then tenants (for dispensaries like Thrive Syracuse)
+                    const brandDoc = await firestore.collection('brands').doc(userBrandId).get();
+                    if (brandDoc.exists) {
+                        data = brandDoc.data();
+                    } else {
+                        const tenantDoc = await firestore.collection('tenants').doc(userBrandId).get();
+                        if (tenantDoc.exists) {
+                            data = tenantDoc.data();
+                        }
+                    }
+
+                    if (data) {
+                        agentCache.set(cacheKey, data, CacheTTL.BRAND_PROFILE);
                     }
                 }
 
@@ -650,7 +670,7 @@ All agents are online and ready. Type an agent name or describe your task to get
             }
         }
 
-        // === CUSTOM AI INSTRUCTIONS INJECTION ===
+        // === CUSTOM AI INSTRUCTIONS INJECTION - CACHED ===
         // Load tenant and user AI settings (ChatGPT/Claude-style custom instructions)
         let customInstructionsBlock = '';
         try {
@@ -659,16 +679,24 @@ All agents are online and ready. Type an agent name or describe your task to get
             const userId = user?.uid;
 
             if (tenantId || userId) {
-                const { tenant, user: userSettings } = await loadAISettingsForAgent(
-                    tenantId !== 'demo-brand-123' ? tenantId : undefined,
-                    userId
-                );
-                customInstructionsBlock = buildCustomInstructionsBlock(tenant, userSettings);
+                const cacheKey = CacheKeys.aiSettings(tenantId !== 'demo-brand-123' ? tenantId : '', userId);
+                let cachedSettings = agentCache.get<{ tenant: any; user: any }>(cacheKey);
+
+                if (!cachedSettings) {
+                    const settings = await loadAISettingsForAgent(
+                        tenantId !== 'demo-brand-123' ? tenantId : undefined,
+                        userId
+                    );
+                    cachedSettings = settings;
+                    agentCache.set(cacheKey, cachedSettings, CacheTTL.AI_SETTINGS);
+                }
+
+                customInstructionsBlock = buildCustomInstructionsBlock(cachedSettings.tenant, cachedSettings.user);
 
                 if (customInstructionsBlock) {
                     logger.debug('[AgentRunner] Injecting custom AI instructions', {
-                        hasTenantSettings: !!tenant?.customInstructions,
-                        hasUserSettings: !!userSettings?.customInstructions,
+                        hasTenantSettings: !!cachedSettings.tenant?.customInstructions,
+                        hasUserSettings: !!cachedSettings.user?.customInstructions,
                         tenantId,
                         userId,
                     });
@@ -813,29 +841,52 @@ All agents are online and ready. Type an agent name or describe your task to get
         let knowledgeContext = '';
         try {
             await emitThought(jobId, 'Memory Lookup', 'Searching Knowledge Base...');
-            const kbs = await getKnowledgeBasesAction(agentInfo?.id || 'general');
-            let userKbs: any[] = [];
-            // Load user-specific KBs for all paid roles (brands, dispensaries including Thrive Syracuse)
-            if (isPaidUser) {
-                userKbs = await getKnowledgeBasesAction(userBrandId);
-            }
-            const allKbs = [...kbs, ...userKbs];
 
-            if (allKbs.length > 0) {
-                const searchPromises = allKbs.map(kb => searchKnowledgeBaseAction(kb.id, userMessage, 2));
-                const results = await Promise.all(searchPromises);
-                const docs = results.flat().filter(d => d && d.similarity > 0.65).slice(0, 3);
+            // Try cache first for KB search results (1 minute TTL for freshness)
+            const kbCacheKey = CacheKeys.kbSearch(agentInfo?.id || 'general', userMessage, userBrandId);
+            let cachedKB = agentCache.get<{ context: string; docCount: number }>(kbCacheKey);
 
-                if (docs.length > 0) {
-                    // SECURITY: Wrap retrieved knowledge in structured tags
-                    const kbContent = docs.map(d => `- ${sanitizeForPrompt(d.content, 500)}`).join('\n');
-                    knowledgeContext = `\n\n${wrapUserData(kbContent, 'knowledge_base', false)}\n`;
+            if (cachedKB) {
+                knowledgeContext = cachedKB.context;
+                if (cachedKB.docCount > 0) {
                     executedTools.push({
                         id: `knowledge-${Date.now()}`,
                         name: 'Knowledge Base',
                         status: 'success',
-                        result: `Found ${docs.length} relevant documents.`
+                        result: `Found ${cachedKB.docCount} relevant documents (cached).`
                     });
+                }
+            } else {
+                const kbs = await getKnowledgeBasesAction(agentInfo?.id || 'general');
+                let userKbs: any[] = [];
+                // Load user-specific KBs for all paid roles (brands, dispensaries including Thrive Syracuse)
+                if (isPaidUser) {
+                    userKbs = await getKnowledgeBasesAction(userBrandId);
+                }
+                const allKbs = [...kbs, ...userKbs];
+
+                if (allKbs.length > 0) {
+                    const searchPromises = allKbs.map(kb => searchKnowledgeBaseAction(kb.id, userMessage, 2));
+                    const results = await Promise.all(searchPromises);
+                    const docs = results.flat().filter(d => d && d.similarity > 0.65).slice(0, 3);
+
+                    if (docs.length > 0) {
+                        // SECURITY: Wrap retrieved knowledge in structured tags
+                        const kbContent = docs.map(d => `- ${sanitizeForPrompt(d.content, 500)}`).join('\n');
+                        knowledgeContext = `\n\n${wrapUserData(kbContent, 'knowledge_base', false)}\n`;
+                        executedTools.push({
+                            id: `knowledge-${Date.now()}`,
+                            name: 'Knowledge Base',
+                            status: 'success',
+                            result: `Found ${docs.length} relevant documents.`
+                        });
+
+                        // Cache the results
+                        agentCache.set(kbCacheKey, { context: knowledgeContext, docCount: docs.length }, CacheTTL.KB_SEARCH);
+                    } else {
+                        // Cache empty result to avoid redundant searches
+                        agentCache.set(kbCacheKey, { context: '', docCount: 0 }, CacheTTL.KB_SEARCH);
+                    }
                 }
             }
         } catch (e) {
