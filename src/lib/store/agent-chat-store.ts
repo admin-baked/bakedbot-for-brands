@@ -30,6 +30,7 @@ export interface ChatMessage {
         brandName?: string;
         agentName?: string;
         role?: string;
+        model?: string; // AI model used (e.g., 'gemini-2.0-flash-001', 'claude-sonnet-4')
         media?: {
             type: 'image' | 'video';
             url: string;

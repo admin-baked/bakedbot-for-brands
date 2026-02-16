@@ -50,51 +50,53 @@ export function CategoryGrid({
           </Button>
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-4">
-          {categories.map((category) => {
-            const IconComponent = category.icon || Leaf;
-            return (
-              <Card
-                key={category.id}
-                className="group cursor-pointer hover:shadow-lg transition-all overflow-hidden"
-                onClick={() => onCategoryClick?.(category.id)}
-              >
-                <div className="p-4 flex flex-col items-center text-center">
-                  {/* Icon/Image */}
-                  <div
-                    className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"
-                    style={{ backgroundColor: `${primaryColor}15` }}
-                  >
-                    {category.image ? (
-                      <Image
-                        src={category.image}
-                        alt={category.name}
-                        width={48}
-                        height={48}
-                        className="object-contain"
-                      />
-                    ) : (
-                      <IconComponent
-                        className="w-8 h-8 md:w-10 md:h-10"
-                        style={{ color: primaryColor }}
-                      />
+        {/* Scrollable Row */}
+        <div className="overflow-x-auto pb-4 -mx-4 px-4">
+          <div className="flex gap-4 min-w-max">
+            {categories.map((category) => {
+              const IconComponent = category.icon || Leaf;
+              return (
+                <Card
+                  key={category.id}
+                  className="group cursor-pointer hover:shadow-lg transition-all overflow-hidden flex-shrink-0 w-32 md:w-36"
+                  onClick={() => onCategoryClick?.(category.id)}
+                >
+                  <div className="p-4 flex flex-col items-center text-center">
+                    {/* Icon/Image */}
+                    <div
+                      className="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform"
+                      style={{ backgroundColor: `${primaryColor}15` }}
+                    >
+                      {category.image ? (
+                        <Image
+                          src={category.image}
+                          alt={category.name}
+                          width={48}
+                          height={48}
+                          className="object-contain"
+                        />
+                      ) : (
+                        <IconComponent
+                          className="w-8 h-8 md:w-10 md:h-10"
+                          style={{ color: primaryColor }}
+                        />
+                      )}
+                    </div>
+
+                    {/* Name */}
+                    <h3 className="font-semibold text-sm md:text-base">{category.name}</h3>
+
+                    {/* Product Count */}
+                    {category.productCount && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {category.productCount} items
+                      </p>
                     )}
                   </div>
-
-                  {/* Name */}
-                  <h3 className="font-semibold text-sm md:text-base">{category.name}</h3>
-
-                  {/* Product Count */}
-                  {category.productCount && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {category.productCount} items
-                    </p>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
+                </Card>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>

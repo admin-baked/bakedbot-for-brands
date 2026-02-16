@@ -349,7 +349,7 @@ export async function POST(request: NextRequest) {
                 error: error.message,
             });
         } catch (recordError) {
-            logger.error('[PlaybookRunner] Failed to store error record', recordError);
+            logger.error('[PlaybookRunner] Failed to store error record', { error: recordError });
         }
 
         return NextResponse.json(

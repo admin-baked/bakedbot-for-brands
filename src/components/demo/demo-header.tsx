@@ -43,6 +43,7 @@ import { DealsTicker } from './deals-ticker';
 interface DemoHeaderProps {
   brandName?: string;
   brandLogo?: string;
+  brandSlug?: string; // Brand slug for customer login/signup redirect
   brandColors?: {
     primary: string;
     secondary: string;
@@ -84,6 +85,7 @@ const categories = [
 export function DemoHeader({
   brandName = 'BakedBot Demo',
   brandLogo,
+  brandSlug,
   brandColors,
   useLogoInHeader,
   location = 'San Francisco, CA',
@@ -104,6 +106,11 @@ export function DemoHeader({
   };
 
   const primaryColor = brandColors?.primary || '#16a34a';
+
+  // Customer login URL - redirects back to brand menu after login
+  const customerLoginUrl = brandSlug
+    ? `/customer-login?redirect=/${brandSlug}`
+    : '/customer-login';
 
   return (
     <header className="sticky top-0 z-50 w-full bg-background shadow-sm">
@@ -129,7 +136,7 @@ export function DemoHeader({
                 </SheetHeader>
                 <nav className="mt-6 space-y-1">
                   {/* Get Started CTA in mobile menu */}
-                  <Link href="/get-started" onClick={() => setMobileMenuOpen(false)}>
+                  <Link href={customerLoginUrl} onClick={() => setMobileMenuOpen(false)}>
                     <Button className="w-full mb-4 gap-2" style={{ backgroundColor: primaryColor }}>
                       <Rocket className="h-4 w-4" />
                       Get Started Free
@@ -219,7 +226,7 @@ export function DemoHeader({
             {/* Right Actions */}
             <div className="flex items-center gap-2">
               {/* Get Started Button (Desktop) */}
-              <Link href="/get-started" className="hidden lg:block">
+              <Link href={customerLoginUrl} className="hidden lg:block">
                 <Button
                   size="sm"
                   className="gap-2 font-semibold"
