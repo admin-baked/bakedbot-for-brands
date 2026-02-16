@@ -388,7 +388,7 @@ export const leoAgent: AgentImplementation<ExecutiveMemory, LeoTools> = {
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
                     tools,
-                    model: 'claude',
+                    model: 'claude-sonnet-4-20250514', // Use Claude Sonnet 4 for orchestration
                     maxIterations: 7, // Leo gets more iterations for complex orchestration
                     onStepComplete: async (step, toolName, result) => {
                         // Log orchestration steps to Letta for audit trail
