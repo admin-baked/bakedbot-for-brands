@@ -13,12 +13,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirestore } from 'firebase-admin/firestore';
-import { initializeFirebaseAdmin } from '@/lib/firebase-admin';
+import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
-
-initializeFirebaseAdmin();
-const firestore = getFirestore();
 
 interface PlaybookStep {
     id: string;
@@ -276,7 +272,8 @@ export async function POST(request: NextRequest) {
 
     try {
         // 3. Load playbook from Firestore
-        const playbookDoc = await firestore
+        const db = getAdminFirestore();
+        const playbookDoc = await db
             .collection('playbooks_internal')
             .doc(playbookId)
             .get();
@@ -316,7 +313,7 @@ export async function POST(request: NextRequest) {
             success: true,
         };
 
-        await firestore
+        await db
             .collection('playbook_executions')
             .add(executionRecord);
 
@@ -342,7 +339,8 @@ export async function POST(request: NextRequest) {
 
         // Store failure record
         try {
-            await firestore.collection('playbook_executions').add({
+            const db = getAdminFirestore();
+            await db.collection('playbook_executions').add({
                 playbookId,
                 startedAt: new Date(startTime),
                 completedAt: new Date(),
