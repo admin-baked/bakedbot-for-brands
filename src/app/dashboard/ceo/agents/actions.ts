@@ -376,6 +376,11 @@ export async function executePlaybook(playbookId: string): Promise<PlaybookResul
 export interface AgentResult {
     content: string;
     toolCalls?: { id: string; name: string; status: 'success' | 'error' | 'running'; result: string }[];
+    thinking?: {
+        isThinking: boolean;
+        steps: any[];
+        plan: string[];
+    };
     metadata?: {
         type?: 'compliance_report' | 'product_rec' | 'elasticity_analysis' | 'session_context' | 'hire_modal';
         data?: any;
@@ -384,6 +389,13 @@ export interface AgentResult {
         agentName?: string;
         role?: string;
         jobId?: string; // Add jobId support
+        media?: {
+            type: 'image' | 'video';
+            url: string;
+            prompt?: string;
+            duration?: number;
+            model?: string;
+        } | null;
     };
     logs?: string[];
 }
