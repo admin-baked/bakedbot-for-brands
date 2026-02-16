@@ -347,6 +347,251 @@ export async function getRecentAlerts(limit: number = 50): Promise<{
 }
 
 // =============================================================================
+// DIAGNOSTIC & FIX
+// =============================================================================
+
+/**
+ * Diagnose heartbeat issues for current tenant
+ */
+export async function diagnoseHeartbeat(): Promise<{
+    success: boolean;
+    healthy?: boolean;
+    issues?: Array<{
+        severity: 'critical' | 'warning' | 'info';
+        category: string;
+        message: string;
+        autoFixable: boolean;
+    }>;
+    info?: string[];
+    error?: string;
+}> {
+    try {
+        const user = await requireUser();
+        const tenantId = user.orgId || user.brandId || user.uid;
+        const role = determineRole(user.role);
+        const db = getAdminFirestore();
+
+        const issues: Array<{
+            severity: 'critical' | 'warning' | 'info';
+            category: string;
+            message: string;
+            autoFixable: boolean;
+        }> = [];
+        const info: string[] = [];
+
+        // Check tenant status
+        const tenantDoc = await db.collection('tenants').doc(tenantId).get();
+        const tenantData = tenantDoc.data();
+
+        if (tenantData?.status !== 'active') {
+            issues.push({
+                severity: 'critical',
+                category: 'Tenant Status',
+                message: `Tenant status is "${tenantData?.status}" (must be "active")`,
+                autoFixable: true,
+            });
+        }
+
+        // Check heartbeat config
+        const configDoc = await db
+            .collection('tenants')
+            .doc(tenantId)
+            .collection('settings')
+            .doc('heartbeat')
+            .get();
+
+        if (!configDoc.exists) {
+            issues.push({
+                severity: 'warning',
+                category: 'Configuration',
+                message: 'Heartbeat configuration not initialized',
+                autoFixable: true,
+            });
+        } else {
+            const config = configDoc.data();
+
+            if (config?.enabled === false) {
+                issues.push({
+                    severity: 'critical',
+                    category: 'Configuration',
+                    message: 'Heartbeat is disabled',
+                    autoFixable: true,
+                });
+            }
+
+            info.push(`Interval: ${config?.interval || 30} minutes`);
+            info.push(`Enabled Checks: ${config?.enabledChecks?.length || 0}`);
+
+            // Check if due for execution
+            if (config?.lastRun) {
+                const lastRun = config.lastRun.toDate();
+                const now = new Date();
+                const intervalMs = (config.interval || 30) * 60 * 1000;
+                const timeSinceLastRun = now.getTime() - lastRun.getTime();
+                const minutesSinceLastRun = Math.floor(timeSinceLastRun / 60000);
+
+                info.push(`Last Run: ${minutesSinceLastRun} min ago`);
+
+                if (timeSinceLastRun < intervalMs) {
+                    const minutesUntilDue = Math.ceil((intervalMs - timeSinceLastRun) / 60000);
+                    issues.push({
+                        severity: 'info',
+                        category: 'Timing',
+                        message: `Next heartbeat due in ${minutesUntilDue} minutes`,
+                        autoFixable: true,
+                    });
+                }
+            }
+        }
+
+        // Check recent executions
+        const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000);
+        const executionsSnapshot = await db
+            .collection('heartbeat_executions')
+            .where('tenantId', '==', tenantId)
+            .where('completedAt', '>=', fifteenMinsAgo)
+            .orderBy('completedAt', 'desc')
+            .limit(1)
+            .get();
+
+        if (executionsSnapshot.empty) {
+            issues.push({
+                severity: 'warning',
+                category: 'Executions',
+                message: 'No executions in last 15 minutes',
+                autoFixable: true,
+            });
+        } else {
+            const latest = executionsSnapshot.docs[0].data();
+            info.push(`Latest Status: ${latest.overallStatus}`);
+        }
+
+        const healthy = !issues.some(i => i.severity === 'critical');
+
+        return {
+            success: true,
+            healthy,
+            issues,
+            info,
+        };
+    } catch (error) {
+        logger.error('[Heartbeat] Diagnostic failed', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Diagnostic failed',
+        };
+    }
+}
+
+/**
+ * Magic fix - automatically resolve common heartbeat issues
+ */
+export async function fixHeartbeat(): Promise<{
+    success: boolean;
+    fixes?: string[];
+    error?: string;
+}> {
+    try {
+        const user = await requireUser();
+        const tenantId = user.orgId || user.brandId || user.uid;
+        const role = determineRole(user.role);
+        const db = getAdminFirestore();
+
+        const fixes: string[] = [];
+
+        // 1. Fix tenant status
+        const tenantDoc = await db.collection('tenants').doc(tenantId).get();
+        const tenantData = tenantDoc.data();
+
+        if (tenantData?.status !== 'active') {
+            await db.collection('tenants').doc(tenantId).update({
+                status: 'active',
+                updatedAt: new Date(),
+            });
+            fixes.push(`Set tenant status to "active"`);
+        }
+
+        // 2. Fix heartbeat configuration
+        const configRef = db
+            .collection('tenants')
+            .doc(tenantId)
+            .collection('settings')
+            .doc('heartbeat');
+
+        const configDoc = await configRef.get();
+
+        // Build default checks for role
+        const defaultChecks = getDefaultChecksForRole(role);
+
+        if (!configDoc.exists) {
+            const defaultConfig = {
+                enabled: true,
+                interval: role === 'super_user' ? 30 : role === 'dispensary' ? 15 : 60,
+                activeHours: { start: 9, end: 21 },
+                timezone: 'America/New_York',
+                enabledChecks: defaultChecks,
+                channels: ['dashboard', 'email'],
+                suppressAllClear: false,
+                tenantId,
+                role,
+                lastRun: null,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            };
+            await configRef.set(defaultConfig);
+            fixes.push('Created default heartbeat configuration');
+        } else {
+            const config = configDoc.data();
+            const updates: any = {};
+
+            if (config?.enabled === false) {
+                updates.enabled = true;
+                fixes.push('Enabled heartbeat');
+            }
+
+            if (config?.lastRun) {
+                const lastRun = config.lastRun.toDate();
+                const now = new Date();
+                const intervalMs = (config.interval || 30) * 60 * 1000;
+                const timeSinceLastRun = now.getTime() - lastRun.getTime();
+
+                if (timeSinceLastRun < intervalMs) {
+                    updates.lastRun = null;
+                    fixes.push('Reset lastRun to allow immediate execution');
+                }
+            }
+
+            if (!config?.enabledChecks || config.enabledChecks.length === 0) {
+                updates.enabledChecks = defaultChecks;
+                fixes.push(`Enabled ${defaultChecks.length} default checks`);
+            }
+
+            if (Object.keys(updates).length > 0) {
+                updates.updatedAt = new Date();
+                await configRef.update(updates);
+            }
+        }
+
+        // 3. Trigger immediate heartbeat
+        const triggerResult = await triggerHeartbeat();
+        if (triggerResult.success) {
+            fixes.push('Triggered immediate heartbeat execution');
+        }
+
+        return {
+            success: true,
+            fixes,
+        };
+    } catch (error) {
+        logger.error('[Heartbeat] Fix failed', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Fix failed',
+        };
+    }
+}
+
+// =============================================================================
 // HELPERS
 // =============================================================================
 
@@ -360,4 +605,15 @@ function determineRole(userRole: string | undefined): HeartbeatRole {
         return 'brand';
     }
     return 'dispensary';
+}
+
+function getDefaultChecksForRole(role: HeartbeatRole): HeartbeatCheckId[] {
+    if (role === 'super_user') {
+        return ['system_errors', 'deployment_status', 'new_signups', 'leads', 'gmail', 'calendar'];
+    }
+    if (role === 'dispensary') {
+        return ['low_stock', 'expiring_batches', 'margins', 'competitors', 'at_risk_customers', 'birthdays'];
+    }
+    // brand
+    return ['content_pending', 'campaign_performance', 'competitor_launches', 'partner_performance'];
 }
