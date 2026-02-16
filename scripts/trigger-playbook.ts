@@ -39,8 +39,13 @@ async function main() {
         const customToken = await getAuth().createCustomToken(userRecord.uid);
 
         // Exchange custom token for ID token
+        const firebaseApiKey = process.env.FIREBASE_API_KEY;
+        if (!firebaseApiKey) {
+            throw new Error('FIREBASE_API_KEY environment variable is required');
+        }
+
         const exchangeResponse = await fetch(
-            `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${process.env.FIREBASE_API_KEY || 'AIzaSyBcF5nXDfTzC8MZCEYbqOE6_Jj9r9zQ9kI'}`,
+            `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${firebaseApiKey}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
