@@ -39,22 +39,39 @@ export async function getCompetitors(orgId: string): Promise<CompetitorSnapshot>
     const plan = orgData.plan || 'free';
     const marketState = orgData.marketState;
 
-    // Determine update frequency based on plan
-    const updateFrequency = plan === 'free' ? 'weekly' : 'daily';
+    // Import plan limits for proper frequency calculation
+    const { getEzalLimits } = await import('@/lib/plan-limits');
+    const limits = getEzalLimits(plan as any);
 
-    // Get stored competitors
-    const competitorsSnap = await firestore
-        .collection('organizations')
-        .doc(orgId)
-        .collection('competitors')
-        .orderBy('lastUpdated', 'desc')
-        .limit(20)
-        .get();
+    // Determine update frequency based on plan
+    const updateFrequency =
+        limits.frequencyMinutes <= 15 ? 'real-time' :
+        limits.frequencyMinutes <= 60 ? 'hourly' :
+        limits.frequencyMinutes <= 1440 ? 'daily' : 'weekly';
+
+    // Get stored competitors from BOTH old and new systems
+    const [oldCompetitorsSnap, newCompetitorsSnap] = await Promise.all([
+        firestore
+            .collection('organizations')
+            .doc(orgId)
+            .collection('competitors')
+            .orderBy('lastUpdated', 'desc')
+            .limit(20)
+            .get(),
+        firestore
+            .collection('tenants')
+            .doc(orgId)
+            .collection('competitors')
+            .where('active', '==', true)
+            .limit(20)
+            .get()
+    ]);
 
     const competitors: CompetitorEntry[] = [];
     let lastUpdated = new Date(0);
 
-    competitorsSnap.forEach(doc => {
+    // Process OLD system competitors
+    oldCompetitorsSnap.forEach(doc => {
         const data = doc.data();
         competitors.push({
             id: doc.id,
@@ -72,13 +89,32 @@ export async function getCompetitors(orgId: string): Promise<CompetitorSnapshot>
         }
     });
 
-    // Calculate next update
-    const updateIntervalDays = plan === 'free' ? 7 : 1;
-    const nextUpdate = new Date(lastUpdated);
-    nextUpdate.setDate(nextUpdate.getDate() + updateIntervalDays);
+    // Process NEW system competitors (Ezal-based)
+    newCompetitorsSnap.forEach(doc => {
+        const data = doc.data();
+        const updatedAt = data.updatedAt?.toDate?.() || new Date();
+        competitors.push({
+            id: doc.id,
+            name: data.name,
+            address: data.location || data.address,
+            city: data.city,
+            state: data.state,
+            distance: data.distance,
+            source: 'ezal',
+            lastUpdated: updatedAt,
+            menuUrl: data.website,
+        });
+        if (updatedAt > lastUpdated) {
+            lastUpdated = updatedAt;
+        }
+    });
 
-    // Can refresh if paid plan OR next update is in the past
-    const canRefresh = plan !== 'free' || new Date() > nextUpdate;
+    // Calculate next update based on plan frequency
+    const updateIntervalMs = limits.frequencyMinutes * 60 * 1000;
+    const nextUpdate = new Date(lastUpdated.getTime() + updateIntervalMs);
+
+    // Can refresh if next update is in the past
+    const canRefresh = new Date() > nextUpdate;
 
     return {
         competitors,
