@@ -167,7 +167,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
             `;
 
             const plan = await ai.generate({
-                model: 'claude', // Triggers harness routing to Claude 4.5 Opus
+                model: 'claude-sonnet-4-20250514', // Triggers harness routing to Claude 4.5 Opus
                 prompt: planPrompt,
                 output: {
                     schema: z.object({
@@ -219,7 +219,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
 
             // 4. SYNTHESIZE
             const final = await ai.generate({
-                model: 'claude', // Triggers harness routing to Claude 4.5 Opus
+                model: 'claude-sonnet-4-20250514', // Triggers harness routing to Claude 4.5 Opus
                 prompt: `
                     User Request: "${userQuery}"
                     Action Taken: ${decision.thought}
