@@ -119,7 +119,7 @@ export const bigWormAgent: AgentImplementation<BigWormMemory, BigWormTools> = {
                             Tone: Authoritative, street-wise, data-rich.
                             Format: Use markdown headers and bullet points.
                         `,
-                        model: 'claude',
+                        model: 'claude-sonnet-4-20250514',
                         maxIterations: 3,
                     },
                 });

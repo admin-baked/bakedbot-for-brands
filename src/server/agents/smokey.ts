@@ -230,7 +230,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
                     tools: tools, // Harness injects 'tools'
-                    model: 'claude',
+                    model: 'claude-sonnet-4-20250514',
                     maxIterations: 5,
                     onStepComplete: async (step, toolName, res) => {
                         // Optional: persist if needed, though harness logs usually cover it.

@@ -142,7 +142,7 @@ export const deeboAgent: AgentImplementation<DeeboMemory, DeeboTools> = {
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
                     tools: tools,
-                    model: 'claude', // Use Claude for strict compliance logic
+                    model: 'claude-sonnet-4-20250514', // Use Claude for strict compliance logic
                     maxIterations: 3
                 });
 

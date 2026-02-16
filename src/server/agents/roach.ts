@@ -167,7 +167,7 @@ export const roachAgent: AgentImplementation<RoachMemory, RoachTools> = {
                             FORMAT: Use markdown headers (###) for proper rendering.
                             TONE: Academic rigor with practical business application.
                         `,
-                        model: 'claude',
+                        model: 'claude-sonnet-4-20250514',
                         maxIterations: 2,
                     },
                 });

@@ -66,7 +66,7 @@ export const felishaAgent: AgentImplementation<AgentMemory, FelishaTools> = {
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
                     tools,
-                    model: 'claude',
+                    model: 'claude-sonnet-4-20250514',
                     maxIterations: 5
                 });
 
