@@ -108,12 +108,25 @@ The heartbeat system runs role-specific proactive checks:
 2. `scripts/initialize-heartbeat.ts` - New initialization script
 3. `src/app/api/system/health/__tests__/route.test.ts` - Updated tests (Note: Tests have Next.js/Jest compatibility issues, need fixing separately)
 
+## IMPORTANT: CRON_SECRET Version Issue (2026-02-15)
+
+**Problem**: The deployed `apphosting.yaml` was using `CRON_SECRET` (no version), but this doesn't match the secret value.
+
+**Fix**: Updated `apphosting.yaml` to use `CRON_SECRET@1` explicitly (commit `3f291648`).
+
+**Why**: Google Cloud Secret Manager has multiple versions:
+- Version 1 (older): `A14mUAEMeU7964JK23i0NgImkxDbnXd5n3on6AoYnDB/KkjaFX9tDjLYuY7wfZSh`
+- Latest version (newer): `P10p6sSeoyfzkOZI5W39F7dMn2q4cawB`
+
+The Cloud Scheduler job was configured with version 1, so the app must reference `CRON_SECRET@1` explicitly.
+
 ## Next Steps
 
-1. Run initialization script OR set up Cloud Scheduler
-2. Verify heartbeat shows "alive" (green) in dashboard header
-3. Monitor `heartbeat_executions` collection to ensure cron job is running
-4. Check Super User insights dashboard for system health metrics
+1. Wait for Firebase App Hosting deployment to complete (~5-10 min)
+2. Cloud Scheduler will automatically run heartbeat cron (every 5 minutes)
+3. Verify heartbeat shows "alive" (green) in dashboard header
+4. Monitor `heartbeat_executions` collection to ensure cron job is running
+5. Check Super User insights dashboard for system health metrics
 
 ## Firestore Collections
 
