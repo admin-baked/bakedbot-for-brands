@@ -432,6 +432,7 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
         deleteThread,
         markThreadPending,
         markThreadPersisted,
+        setActiveThread,
     } = useInboxStore();
 
     const threads = getFilteredThreads();
@@ -530,7 +531,8 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                             variant="default"
                             size="icon"
                             className="w-10 h-10"
-                            title="New Thread"
+                            title="New Chat"
+                            onClick={() => setActiveThread(null)}
                         >
                             <Plus className="h-4 w-4" />
                         </Button>
@@ -540,6 +542,17 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
                     </>
                 ) : (
                     <div className="space-y-2">
+                        {/* New Chat Button */}
+                        <Button
+                            variant="default"
+                            size="sm"
+                            className="w-full justify-start gap-2 h-9"
+                            onClick={() => setActiveThread(null)}
+                        >
+                            <Plus className="h-4 w-4" />
+                            New Chat
+                        </Button>
+
                         <div className="flex items-center justify-between px-1">
                             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                 Quick Actions
