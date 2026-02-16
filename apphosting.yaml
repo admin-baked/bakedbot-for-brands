@@ -230,9 +230,9 @@ env:
     value: "false"
     availability:
       - RUNTIME
-  # Temporarily hardcoded to bypass Secret Manager resolution issues
+  # CRON_SECRET - Fixed to use correct Secret Manager version (2026-02-16)
   - variable: CRON_SECRET
-    value: "PcyrL/jzXMOniVVu15gPBQH+LPQDCTfK4yaOr0zUxhY="
+    secret: CRON_SECRET@6
     availability:
       - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
