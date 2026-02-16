@@ -31,6 +31,7 @@ import {
     Monitor,
     PackagePlus,
     ShoppingCart,
+    Truck,
     TrendingUp,
     Users,
     PieChart,
@@ -161,6 +162,14 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 <Link href="/dashboard/orders" prefetch={true}>
                                     <ShoppingCart />
                                     <span>Orders</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/delivery')}>
+                                <Link href="/dashboard/delivery" prefetch={true}>
+                                    <Truck />
+                                    <span>Delivery</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
