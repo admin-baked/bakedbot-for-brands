@@ -23,6 +23,7 @@ export type HeartbeatCheckId =
     | 'vibe_leads'
     | 'gmail_unread'
     | 'calendar_upcoming'
+    | 'competitive_intel'
     | 'platform_health'
     // Dispensary Checks
     | 'low_stock_alerts'

@@ -368,6 +368,98 @@ async function checkCalendarUpcoming(ctx: HeartbeatCheckContext) {
 }
 
 // =============================================================================
+// COMPETITIVE INTELLIGENCE WEEKLY REPORT (Ezal)
+// =============================================================================
+
+async function checkCompetitiveIntelligence(ctx: HeartbeatCheckContext) {
+    try {
+        // Only run on Mondays at 9 AM (this check runs every 30 min, so we filter)
+        const now = new Date();
+        const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday
+        const hour = now.getHours();
+
+        // Run on Mondays between 9-10 AM EST
+        if (dayOfWeek !== 1 || hour !== 9) {
+            return null; // Not time to run
+        }
+
+        const db = getAdminFirestore();
+
+        // Get all active tenants with competitors tracked
+        const tenantsSnap = await db
+            .collection('tenants')
+            .where('status', '==', 'active')
+            .where('planId', 'in', ['growth', 'empire'])
+            .get();
+
+        if (tenantsSnap.empty) {
+            return createOkResult('competitive_intel', 'ezal', 'No active tenants with competitor tracking');
+        }
+
+        const reports: any[] = [];
+
+        for (const tenantDoc of tenantsSnap.docs) {
+            const orgId = tenantDoc.id;
+
+            // Check if they have competitors
+            const competitorsSnap = await db
+                .collection('tenants')
+                .doc(orgId)
+                .collection('competitors')
+                .where('active', '==', true)
+                .limit(1)
+                .get();
+
+            if (competitorsSnap.empty) continue;
+
+            try {
+                // Generate weekly report
+                const { generateWeeklyIntelReport } = await import('@/server/services/ezal/weekly-intel-report');
+                const report = await generateWeeklyIntelReport(orgId);
+
+                reports.push({
+                    orgId,
+                    orgName: tenantDoc.data().name,
+                    reportId: report.id,
+                    competitors: report.competitors.length,
+                    deals: report.totalDealsTracked,
+                });
+
+                logger.info('[Heartbeat] Generated weekly competitive intel report', {
+                    orgId,
+                    reportId: report.id,
+                });
+            } catch (error) {
+                logger.error('[Heartbeat] Failed to generate competitive intel report', {
+                    orgId,
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            }
+        }
+
+        if (reports.length === 0) {
+            return createOkResult('competitive_intel', 'ezal', 'No competitive intelligence to report this week');
+        }
+
+        const totalDeals = reports.reduce((sum, r) => sum + r.deals, 0);
+        const totalCompetitors = reports.reduce((sum, r) => sum + r.competitors, 0);
+
+        return createCheckResult('competitive_intel', 'ezal', {
+            status: 'ok',
+            priority: 'high',
+            title: `Weekly Competitive Intelligence Report Ready 📊`,
+            message: `Generated ${reports.length} report(s): ${totalCompetitors} competitors, ${totalDeals} deals tracked`,
+            data: { reports },
+            actionUrl: '/dashboard/ceo?tab=analytics&sub=intelligence&intel=ezal',
+            actionLabel: 'View Intel Reports',
+        });
+    } catch (error) {
+        logger.error('[Heartbeat] Competitive intelligence check failed', { error });
+        return null;
+    }
+}
+
+// =============================================================================
 // PLATFORM HEALTH CHECK (Linus)
 // =============================================================================
 
@@ -443,5 +535,6 @@ export const SUPER_USER_CHECKS: HeartbeatCheckRegistry[] = [
     { checkId: 'vibe_leads', agent: 'glenda', execute: checkVibeLeads },
     { checkId: 'gmail_unread', agent: 'openclaw', execute: checkGmailUnread },
     { checkId: 'calendar_upcoming', agent: 'openclaw', execute: checkCalendarUpcoming },
+    { checkId: 'competitive_intel', agent: 'ezal', execute: checkCompetitiveIntelligence },
     { checkId: 'platform_health', agent: 'linus', execute: checkPlatformHealth },
 ];
