@@ -184,11 +184,11 @@ function MessageBubble({
                                     <div className="font-semibold text-xs uppercase text-muted-foreground">
                                         {agent.name}
                                     </div>
-                                    {(message.metadata?.media?.model || message.metadata?.agentName) && (
+                                    {(message.metadata?.model || message.metadata?.media?.model || message.metadata?.agentName) && (
                                         <div className="text-xs">
                                             <span className="text-muted-foreground">Model: </span>
                                             <code className="text-xs bg-muted px-1 rounded">
-                                                {message.metadata?.media?.model || message.metadata?.agentName || 'Unknown'}
+                                                {message.metadata?.model || message.metadata?.media?.model || message.metadata?.agentName || 'Unknown'}
                                             </code>
                                         </div>
                                     )}
@@ -937,12 +937,13 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             }
 
             setIsSubmitting(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to send message:', error);
+            const errorDetails = error?.message || error?.toString() || 'Unknown error';
             const errorMessage: ChatMessage = {
                 id: `msg-${Date.now()}`,
                 type: 'agent',
-                content: 'Sorry, I encountered an unexpected error. Please try again.',
+                content: `Sorry, I encountered an unexpected error: ${errorDetails}\n\nPlease try again or contact support if this persists.`,
                 timestamp: new Date(),
             };
             addMessageToThread(thread.id, errorMessage);
