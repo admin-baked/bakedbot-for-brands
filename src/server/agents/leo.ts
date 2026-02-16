@@ -128,6 +128,39 @@ export const leoAgent: AgentImplementation<ExecutiveMemory, LeoTools> = {
             - Use markdown tables for multi-agent coordination
             - Always cite the source of your data (tool call or database query)
 
+            PROVIDING OPTIONS TO USERS:
+            When presenting multiple paths forward, format options as:
+
+            **Option A: Short Description**
+            Detailed explanation of what this option entails.
+
+            **Option B: Another Path**
+            Detailed explanation of this alternative.
+
+            **Option C: Third Choice**
+            Detailed explanation of the third option.
+
+            Example delegation options:
+            - **Option A: Route to Technical Lead** — Delegate to Linus (AI CTO) to architect the technical implementation
+            - **Option B: Create Setup Checklist** — Generate a step-by-step implementation guide
+            - **Option C: Research Best Practices** — Have Ezal research industry standards
+
+            The system will auto-detect when users select options (e.g., "Option A", "A", "1") and execute accordingly.
+
+            INTEGRATION STATUS DISPLAY:
+            For Google Workspace integrations, use inline cards format:
+
+            :::google:status
+            {
+              "gmail": { "status": "offline", "connectUrl": "/api/auth/google?service=gmail" },
+              "calendar": { "status": "offline", "connectUrl": "/api/auth/google?service=calendar" },
+              "drive": { "status": "offline", "connectUrl": "/api/auth/google?service=drive" },
+              "sheets": { "status": "offline", "connectUrl": "/api/auth/google?service=sheets" }
+            }
+            :::
+
+            This will render interactive cards with "Connect" buttons inline in the chat.
+
             COLLABORATION:
             - Route revenue tasks to Jack
             - Route marketing/brand strategy to Glenda
@@ -176,7 +209,59 @@ export const leoAgent: AgentImplementation<ExecutiveMemory, LeoTools> = {
 
     async act(brandMemory, agentMemory, targetId, tools: LeoTools, stimulus?: string) {
         if (targetId === 'user_request' && stimulus) {
-            const userQuery = stimulus;
+            let userQuery = stimulus;
+
+            // === OPTION DETECTION: Check if user is selecting from a previous menu ===
+            const { detectOptionSelection } = await import('./utils/option-detector');
+            const lastAgentMessage = (agentMemory as any).lastResponse;
+
+            const optionDetection = detectOptionSelection(userQuery, lastAgentMessage);
+
+            if (optionDetection.detected && optionDetection.selectedOption) {
+                logger.info('[Leo] Option selection detected', {
+                    original: userQuery,
+                    expanded: optionDetection.expandedQuery,
+                    tool: optionDetection.selectedOption.toolName,
+                });
+
+                // If the option maps to a direct tool call, execute it immediately
+                if (optionDetection.selectedOption.toolName === 'delegateTask' && tools.delegateTask) {
+                    const { personaId, task } = optionDetection.selectedOption.toolArgs as {
+                        personaId: string;
+                        task: string;
+                    };
+
+                    logger.info('[Leo] Auto-delegating to agent', { personaId, task });
+
+                    try {
+                        const result = await tools.delegateTask(personaId, task);
+
+                        // Store this response for future option detection
+                        (agentMemory as any).lastResponse = `Delegated to ${personaId}: ${task}`;
+
+                        return {
+                            updatedMemory: agentMemory,
+                            logEntry: {
+                                action: 'auto_delegation',
+                                result: `Task delegated to ${personaId}`,
+                                metadata: { personaId, task, delegationResult: result }
+                            }
+                        };
+                    } catch (e: any) {
+                        return {
+                            updatedMemory: agentMemory,
+                            logEntry: {
+                                action: 'delegation_error',
+                                result: `Failed to delegate to ${personaId}: ${e.message}`,
+                                metadata: { error: e.message }
+                            }
+                        };
+                    }
+                }
+
+                // Otherwise, expand the query with full context
+                userQuery = optionDetection.expandedQuery || userQuery;
+            }
 
             // Get delegatable agent IDs dynamically from registry
             const delegatableAgents = getDelegatableAgentIds('leo');
@@ -319,6 +404,9 @@ export const leoAgent: AgentImplementation<ExecutiveMemory, LeoTools> = {
                         }
                     }
                 });
+
+                // Store the response for future option detection
+                (agentMemory as any).lastResponse = result.finalResult;
 
                 return {
                     updatedMemory: agentMemory,
