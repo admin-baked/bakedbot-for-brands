@@ -173,6 +173,10 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
 
             // Mark thread as persisted (safe to use now)
             markThreadPersisted(localThread.id);
+
+            // Set as active thread to show inline conversation
+            setActiveThread(localThread.id);
+
             setCustomText(''); // Clear input on success
         } catch (error) {
             console.error('[InboxEmptyState] Error:', error);
@@ -225,6 +229,10 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
             }
 
             markThreadPersisted(localThread.id);
+
+            // Set as active thread to show inline conversation
+            setActiveThread(localThread.id);
+
             setCustomText('');
         } catch (error) {
             if (localThread) deleteThread(localThread.id);
