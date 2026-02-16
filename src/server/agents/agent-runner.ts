@@ -80,6 +80,11 @@ export { extractGmailParams, extractCalendarParams } from '@/server/agents/extra
 export interface AgentResult {
     content: string;
     toolCalls?: { id: string; name: string; status: 'success' | 'error' | 'running'; result: string }[];
+    thinking?: {
+        isThinking: boolean;
+        steps: any[];
+        plan: string[];
+    };
     toolPerms?: any; // Added for compatibility if needed
     logs?: AgentLogEntry;
     metadata?: any;
@@ -1285,10 +1290,22 @@ All agents are online and ready. Type an agent name or describe your task to get
         return {
             content: outputValidation.sanitized,
             toolCalls: executedTools,
+            thinking: {
+                isThinking: false,
+                steps: executedTools.map(tool => ({
+                    tool: tool.name,
+                    action: tool.result?.substring(0, 100) || tool.name,
+                    status: tool.status
+                })),
+                plan: [] // Could be populated from agent's initial planning if available
+            },
             metadata: {
                 ...metadata,
                 jobId,
-                evalResults: evalResults.length > 0 ? evalResults : undefined
+                evalResults: evalResults.length > 0 ? evalResults : undefined,
+                media: {
+                    model: options?.genaiModel || 'gemini-2.0-flash-001', // Track which AI model was used
+                } as any
             }
         };
 
@@ -1297,7 +1314,16 @@ All agents are online and ready. Type an agent name or describe your task to get
         console.error("Runner Error:", e);
         return {
             content: `Error: ${e.message}`,
-            toolCalls: executedTools
+            toolCalls: executedTools,
+            thinking: {
+                isThinking: false,
+                steps: executedTools.map(tool => ({
+                    tool: tool.name,
+                    action: tool.result?.substring(0, 100) || tool.name,
+                    status: tool.status
+                })),
+                plan: []
+            }
         };
     }
 }

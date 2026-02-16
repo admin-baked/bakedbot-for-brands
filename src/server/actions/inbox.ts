@@ -1070,6 +1070,8 @@ export async function runInboxAgentChat(
             type: 'agent',
             content: cleanedContent || agentResult.content,
             timestamp: new Date(),
+            thinking: agentResult.thinking,
+            metadata: agentResult.metadata,
         };
 
         // Add message to thread
