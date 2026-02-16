@@ -48,6 +48,12 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useInboxStore } from '@/lib/store/inbox-store';
 import type { ChatMessage } from '@/lib/store/agent-chat-store';
 import type { InboxThread, InboxArtifact, InboxAgentPersona } from '@/types/inbox';
@@ -154,18 +160,88 @@ function MessageBubble({
             animate={{ opacity: 1, y: 0 }}
             className={cn('flex gap-3 py-4', isUser && 'flex-row-reverse')}
         >
-            {/* Avatar with colored ring */}
-            <div
-                className={cn(
-                    'flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-sm',
-                    'ring-2 ring-offset-2 ring-offset-background transition-all duration-200',
-                    isUser
-                        ? 'bg-primary text-primary-foreground ring-primary/50'
-                        : cn(agent.bgColor, agent.ringColor)
-                )}
-            >
-                {isUser ? <User className="h-4 w-4" /> : <span className="text-base">{agent.avatar}</span>}
-            </div>
+            {/* Avatar with colored ring and thinking steps tooltip */}
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div
+                            className={cn(
+                                'flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-sm cursor-help',
+                                'ring-2 ring-offset-2 ring-offset-background transition-all duration-200',
+                                isUser
+                                    ? 'bg-primary text-primary-foreground ring-primary/50'
+                                    : cn(agent.bgColor, agent.ringColor)
+                            )}
+                        >
+                            {isUser ? <User className="h-4 w-4" /> : <span className="text-base">{agent.avatar}</span>}
+                        </div>
+                    </TooltipTrigger>
+                    {!isUser && (message.thinking || message.metadata) && (
+                        <TooltipContent side="left" className="max-w-md">
+                            <div className="space-y-2">
+                                {/* Agent & Model Info */}
+                                <div className="space-y-1">
+                                    <div className="font-semibold text-xs uppercase text-muted-foreground">
+                                        {agent.name}
+                                    </div>
+                                    {(message.metadata?.media?.model || message.metadata?.agentName) && (
+                                        <div className="text-xs">
+                                            <span className="text-muted-foreground">Model: </span>
+                                            <code className="text-xs bg-muted px-1 rounded">
+                                                {message.metadata?.media?.model || message.metadata?.agentName || 'Unknown'}
+                                            </code>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Thinking Steps */}
+                                {message.thinking && (message.thinking.steps?.length > 0 || message.thinking.plan?.length > 0) && (
+                                    <div className="space-y-1 border-t pt-2">
+                                        <div className="font-semibold text-xs uppercase text-muted-foreground">
+                                            {message.thinking.isThinking ? '🧠 Thinking...' : '✅ Processing Complete'}
+                                        </div>
+
+                                        {/* Plan Steps */}
+                                        {message.thinking.plan && message.thinking.plan.length > 0 && (
+                                            <div className="space-y-0.5">
+                                                <div className="text-xs font-medium">Plan:</div>
+                                                <ol className="text-xs space-y-0.5 list-decimal list-inside">
+                                                    {message.thinking.plan.map((step, idx) => (
+                                                        <li key={idx} className="text-muted-foreground">
+                                                            {typeof step === 'string' ? step : JSON.stringify(step)}
+                                                        </li>
+                                                    ))}
+                                                </ol>
+                                            </div>
+                                        )}
+
+                                        {/* Execution Steps */}
+                                        {message.thinking.steps && message.thinking.steps.length > 0 && (
+                                            <div className="space-y-0.5">
+                                                <div className="text-xs font-medium">Execution:</div>
+                                                <ol className="text-xs space-y-0.5 list-decimal list-inside">
+                                                    {message.thinking.steps.map((step, idx) => (
+                                                        <li key={idx} className="text-muted-foreground">
+                                                            {typeof step === 'string' ? step : step.action || step.tool || JSON.stringify(step)}
+                                                        </li>
+                                                    ))}
+                                                </ol>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Fallback if no thinking data */}
+                                {!message.thinking && (
+                                    <div className="text-xs text-muted-foreground italic">
+                                        No processing details available
+                                    </div>
+                                )}
+                            </div>
+                        </TooltipContent>
+                    )}
+                </Tooltip>
+            </TooltipProvider>
 
             {/* Content */}
             <div className={cn('flex-1 max-w-[80%]', isUser && 'text-right')}>
