@@ -16,6 +16,7 @@ import type {
     InsightCard,
     DispensaryInsights,
     BrandInsights,
+    SuperUserInsights,
 } from '@/types/insight-cards';
 
 // ============ Mock Data ============
@@ -205,6 +206,102 @@ const MOCK_BRAND_INSIGHTS: BrandInsights = {
     lastFetched: new Date(),
 };
 
+const MOCK_SUPER_USER_INSIGHTS: SuperUserInsights = {
+    platform: [
+        {
+            id: 'mock-system-health',
+            category: 'platform',
+            agentId: 'leo',
+            agentName: 'Leo',
+            title: 'System Health',
+            headline: '99.9% uptime',
+            subtext: 'All systems operational',
+            severity: 'success',
+            actionable: true,
+            ctaLabel: 'View Details',
+            threadType: 'general',
+            threadPrompt: 'Show me detailed system health metrics',
+            lastUpdated: new Date(),
+            dataSource: 'mock',
+        },
+    ],
+    growth: [
+        {
+            id: 'mock-signups',
+            category: 'growth',
+            agentId: 'jack',
+            agentName: 'Jack',
+            title: 'New Signups',
+            headline: '12 this week',
+            subtext: 'Up from 8 last week',
+            trend: 'up',
+            trendValue: '+50%',
+            severity: 'success',
+            actionable: true,
+            ctaLabel: 'View Leads',
+            threadType: 'general',
+            threadPrompt: 'Show me new signup details and conversion funnel',
+            lastUpdated: new Date(),
+            dataSource: 'mock',
+        },
+    ],
+    deployment: [
+        {
+            id: 'mock-deployment',
+            category: 'deployment',
+            agentId: 'linus',
+            agentName: 'Linus',
+            title: 'Deployments',
+            headline: '3 today',
+            subtext: 'All successful',
+            severity: 'success',
+            actionable: true,
+            ctaLabel: 'View Logs',
+            threadType: 'general',
+            threadPrompt: 'Show me deployment history and build status',
+            lastUpdated: new Date(),
+            dataSource: 'mock',
+        },
+    ],
+    support: [
+        {
+            id: 'mock-support',
+            category: 'support',
+            agentId: 'mrs_parker',
+            agentName: 'Mrs. Parker',
+            title: 'Support Queue',
+            headline: '2 open tickets',
+            subtext: 'Avg response: 4h',
+            severity: 'info',
+            actionable: true,
+            ctaLabel: 'View Tickets',
+            threadType: 'general',
+            threadPrompt: 'Show me open support tickets and customer issues',
+            lastUpdated: new Date(),
+            dataSource: 'mock',
+        },
+    ],
+    intelligence: [
+        {
+            id: 'mock-research',
+            category: 'intelligence',
+            agentId: 'big_worm',
+            agentName: 'Big Worm',
+            title: 'Research Queue',
+            headline: '5 tasks pending',
+            subtext: '2 high priority',
+            severity: 'warning',
+            actionable: true,
+            ctaLabel: 'Prioritize',
+            threadType: 'general',
+            threadPrompt: 'Show me research queue and prioritize high-value tasks',
+            lastUpdated: new Date(),
+            dataSource: 'mock',
+        },
+    ],
+    lastFetched: new Date(),
+};
+
 // ============ Hook Options ============
 
 interface UseInsightsOptions {
@@ -268,7 +365,14 @@ export function useInsights(options: UseInsightsOptions = {}): UseInsightsReturn
                         role === 'dispensary_staff' ||
                         role === 'budtender';
 
-                    if (isDispensaryRole) {
+                    const isSuperUserRole = role === 'super_user';
+
+                    if (isSuperUserRole) {
+                        setInsights({
+                            role: 'super_user',
+                            data: MOCK_SUPER_USER_INSIGHTS,
+                        });
+                    } else if (isDispensaryRole) {
                         setInsights({
                             role: 'dispensary',
                             data: MOCK_DISPENSARY_INSIGHTS,
@@ -351,6 +455,15 @@ export function useInsights(options: UseInsightsOptions = {}): UseInsightsReturn
                 ...d.customer,
                 ...d.compliance,
                 ...d.market,
+            ];
+        } else if (insights.role === 'super_user') {
+            const s = data as SuperUserInsights;
+            return [
+                ...s.platform,
+                ...s.growth,
+                ...s.deployment,
+                ...s.support,
+                ...s.intelligence,
             ];
         } else {
             const b = data as BrandInsights;
