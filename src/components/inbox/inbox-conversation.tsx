@@ -176,7 +176,7 @@ function MessageBubble({
                             {isUser ? <User className="h-4 w-4" /> : <span className="text-base">{agent.avatar}</span>}
                         </div>
                     </TooltipTrigger>
-                    {!isUser && (message.thinking || message.metadata) && (
+                    {(message.thinking || message.metadata) && (
                         <TooltipContent side="left" className="max-w-md">
                             <div className="space-y-2">
                                 {/* Agent & Model Info */}
