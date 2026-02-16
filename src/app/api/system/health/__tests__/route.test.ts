@@ -7,43 +7,63 @@ jest.mock('@/firebase/admin', () => ({
 }));
 
 describe('GET /api/system/health', () => {
-    let mockDb: any;
-    let mockHeartbeatDoc: any;
+    let mockExecutionsSnapshot: any;
+    let mockErrorsSnapshot: any;
 
     beforeEach(() => {
         jest.clearAllMocks();
 
-        mockHeartbeatDoc = {
-            exists: true,
-            data: () => ({
-                status: 'ok',
-                timestamp: { toDate: () => new Date() },
-                nextPulseExpected: { toDate: () => new Date(Date.now() + 60000) },
-                schedulesProcessed: 5,
-                schedulesExecuted: 5,
-                browserTasksProcessed: 2,
-                browserTasksExecuted: 2,
-                errors: [],
-            }),
+        mockExecutionsSnapshot = {
+            empty: false,
+            size: 5,
+            docs: [
+                {
+                    data: () => ({
+                        executionId: 'hb_test',
+                        completedAt: { toDate: () => new Date() },
+                        overallStatus: 'all_clear',
+                        checksRun: 5,
+                        notificationsSent: 0,
+                    }),
+                },
+            ],
         };
 
-        mockDb = {
-            collection: jest.fn().mockReturnThis(),
-            doc: jest.fn().mockReturnThis(),
-            get: jest.fn().mockResolvedValue(mockHeartbeatDoc),
+        mockErrorsSnapshot = {
+            size: 0,
+            docs: [],
+        };
+    });
+
+    function setupMockDb(executionsSnapshot: any = mockExecutionsSnapshot, errorsSnapshot: any = mockErrorsSnapshot) {
+        const heartbeatQuery = {
             where: jest.fn().mockReturnThis(),
             orderBy: jest.fn().mockReturnThis(),
             limit: jest.fn().mockReturnThis(),
+            get: jest.fn().mockResolvedValue(executionsSnapshot),
+        };
+
+        const systemLogsQuery = {
+            where: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
+            get: jest.fn().mockResolvedValue(errorsSnapshot),
+        };
+
+        const mockDb = {
+            collection: jest.fn((name: string) => {
+                if (name === 'heartbeat_executions') return heartbeatQuery;
+                if (name === 'system_logs') return systemLogsQuery;
+                return { get: jest.fn().mockResolvedValue({ exists: false }) };
+            }),
         };
 
         (getAdminFirestore as jest.Mock).mockReturnValue(mockDb);
-    });
+        return { mockDb, heartbeatQuery, systemLogsQuery };
+    }
 
     describe('Pulse status determination', () => {
         it('returns alive pulse with 0 errors', async () => {
-            mockDb.get = jest.fn()
-                .mockResolvedValueOnce(mockHeartbeatDoc)
-                .mockResolvedValueOnce({ size: 0, docs: [] }); // No errors
+            setupMockDb();
 
             const response = await GET();
             const data = await response.json();
@@ -54,14 +74,10 @@ describe('GET /api/system/health', () => {
         });
 
         it('returns warning pulse with 5-9 errors', async () => {
-            mockDb.get = jest.fn()
-                .mockResolvedValueOnce(mockHeartbeatDoc)
-                .mockResolvedValueOnce({
-                    size: 7,
-                    docs: Array(7).fill({
-                        data: () => ({ level: 'error' }),
-                    }),
-                });
+            setupMockDb(mockExecutionsSnapshot, {
+                size: 7,
+                docs: Array(7).fill({ data: () => ({ level: 'error' }) }),
+            });
 
             const response = await GET();
             const data = await response.json();
@@ -73,14 +89,10 @@ describe('GET /api/system/health', () => {
         });
 
         it('returns error pulse with 10+ errors', async () => {
-            mockDb.get = jest.fn()
-                .mockResolvedValueOnce(mockHeartbeatDoc)
-                .mockResolvedValueOnce({
-                    size: 15,
-                    docs: Array(15).fill({
-                        data: () => ({ level: 'error' }),
-                    }),
-                });
+            setupMockDb(mockExecutionsSnapshot, {
+                size: 15,
+                docs: Array(15).fill({ data: () => ({ level: 'error' }) }),
+            });
 
             const response = await GET();
             const data = await response.json();
@@ -92,10 +104,10 @@ describe('GET /api/system/health', () => {
         });
 
         it('returns unknown pulse when heartbeat not initialized', async () => {
-            mockHeartbeatDoc.exists = false;
-            mockDb.get = jest.fn()
-                .mockResolvedValueOnce(mockHeartbeatDoc)
-                .mockResolvedValueOnce({ size: 0, docs: [] });
+            setupMockDb(
+                { empty: true, size: 0, docs: [] },
+                { size: 0, docs: [] }
+            );
 
             const response = await GET();
             const data = await response.json();
@@ -104,17 +116,23 @@ describe('GET /api/system/health', () => {
         });
 
         it('returns warning when heartbeat is stale (15+ min)', async () => {
-            const staleTime = new Date(Date.now() - 16 * 60 * 1000); // 16 minutes ago
-            mockHeartbeatDoc.data = () => ({
-                status: 'ok',
-                timestamp: { toDate: () => staleTime },
-                schedulesProcessed: 5,
-                schedulesExecuted: 5,
-            });
-
-            mockDb.get = jest.fn()
-                .mockResolvedValueOnce(mockHeartbeatDoc)
-                .mockResolvedValueOnce({ size: 0, docs: [] });
+            const staleTime = new Date(Date.now() - 16 * 60 * 1000);
+            setupMockDb(
+                {
+                    empty: false,
+                    size: 1,
+                    docs: [
+                        {
+                            data: () => ({
+                                executionId: 'hb_stale',
+                                completedAt: { toDate: () => staleTime },
+                                overallStatus: 'all_clear',
+                            }),
+                        },
+                    ],
+                },
+                { size: 0, docs: [] }
+            );
 
             const response = await GET();
             const data = await response.json();
@@ -125,12 +143,10 @@ describe('GET /api/system/health', () => {
 
     describe('Uptime calculation', () => {
         it('calculates 99.9% uptime for 0-4 errors', async () => {
-            mockDb.get = jest.fn()
-                .mockResolvedValueOnce(mockHeartbeatDoc)
-                .mockResolvedValueOnce({
-                    size: 2,
-                    docs: Array(2).fill({ data: () => ({}) }),
-                });
+            setupMockDb(mockExecutionsSnapshot, {
+                size: 2,
+                docs: Array(2).fill({ data: () => ({}) }),
+            });
 
             const response = await GET();
             const data = await response.json();
@@ -139,12 +155,10 @@ describe('GET /api/system/health', () => {
         });
 
         it('calculates 99.5% uptime for 5-19 errors', async () => {
-            mockDb.get = jest.fn()
-                .mockResolvedValueOnce(mockHeartbeatDoc)
-                .mockResolvedValueOnce({
-                    size: 10,
-                    docs: Array(10).fill({ data: () => ({}) }),
-                });
+            setupMockDb(mockExecutionsSnapshot, {
+                size: 10,
+                docs: Array(10).fill({ data: () => ({}) }),
+            });
 
             const response = await GET();
             const data = await response.json();
@@ -153,12 +167,10 @@ describe('GET /api/system/health', () => {
         });
 
         it('calculates 98.0% uptime for 20+ errors', async () => {
-            mockDb.get = jest.fn()
-                .mockResolvedValueOnce(mockHeartbeatDoc)
-                .mockResolvedValueOnce({
-                    size: 25,
-                    docs: Array(25).fill({ data: () => ({}) }),
-                });
+            setupMockDb(mockExecutionsSnapshot, {
+                size: 25,
+                docs: Array(25).fill({ data: () => ({}) }),
+            });
 
             const response = await GET();
             const data = await response.json();
@@ -169,9 +181,7 @@ describe('GET /api/system/health', () => {
 
     describe('Response structure', () => {
         it('returns complete health data', async () => {
-            mockDb.get = jest.fn()
-                .mockResolvedValueOnce(mockHeartbeatDoc)
-                .mockResolvedValueOnce({ size: 0, docs: [] });
+            setupMockDb();
 
             const response = await GET();
             const data = await response.json();
@@ -191,13 +201,18 @@ describe('GET /api/system/health', () => {
 
         it('includes timestamp in ISO format', async () => {
             const testTime = new Date('2026-02-15T10:00:00Z');
-            mockHeartbeatDoc.data = () => ({
-                timestamp: { toDate: () => testTime },
+            setupMockDb({
+                empty: false,
+                size: 1,
+                docs: [
+                    {
+                        data: () => ({
+                            completedAt: { toDate: () => testTime },
+                            overallStatus: 'all_clear',
+                        }),
+                    },
+                ],
             });
-
-            mockDb.get = jest.fn()
-                .mockResolvedValueOnce(mockHeartbeatDoc)
-                .mockResolvedValueOnce({ size: 0, docs: [] });
 
             const response = await GET();
             const data = await response.json();
@@ -222,9 +237,8 @@ describe('GET /api/system/health', () => {
         });
 
         it('continues with errorCount=0 if system_logs unavailable', async () => {
-            mockDb.get = jest.fn()
-                .mockResolvedValueOnce(mockHeartbeatDoc)
-                .mockRejectedValueOnce(new Error('Collection not found'));
+            const { systemLogsQuery } = setupMockDb();
+            systemLogsQuery.get.mockRejectedValueOnce(new Error('Collection not found'));
 
             const response = await GET();
             const data = await response.json();
@@ -234,11 +248,11 @@ describe('GET /api/system/health', () => {
             expect(data.errors).toBe(0);
         });
 
-        it('defaults to unknown when heartbeat doc missing and no errors', async () => {
-            mockHeartbeatDoc.exists = false;
-            mockDb.get = jest.fn()
-                .mockResolvedValueOnce(mockHeartbeatDoc)
-                .mockResolvedValueOnce({ size: 0, docs: [] });
+        it('defaults to unknown when heartbeat not initialized and no errors', async () => {
+            setupMockDb(
+                { empty: true, size: 0, docs: [] },
+                { size: 0, docs: [] }
+            );
 
             const response = await GET();
             const data = await response.json();
@@ -248,46 +262,59 @@ describe('GET /api/system/health', () => {
     });
 
     describe('System logs integration', () => {
-        it('queries system_logs with correct filters', async () => {
-            mockDb.get = jest.fn()
-                .mockResolvedValueOnce(mockHeartbeatDoc)
-                .mockResolvedValueOnce({ size: 0, docs: [] });
+        it('queries system_logs and heartbeat_executions with correct filters', async () => {
+            const { mockDb } = setupMockDb();
 
             await GET();
 
             // Verify collection calls
-            expect(mockDb.collection).toHaveBeenCalledWith('system');
+            expect(mockDb.collection).toHaveBeenCalledWith('heartbeat_executions');
             expect(mockDb.collection).toHaveBeenCalledWith('system_logs');
-
-            // Verify where clauses for system_logs
-            expect(mockDb.where).toHaveBeenCalledWith('level', '==', 'error');
-            expect(mockDb.where).toHaveBeenCalledWith(
-                'timestamp',
-                '>=',
-                expect.any(Date)
-            );
-
-            expect(mockDb.limit).toHaveBeenCalledWith(100);
         });
 
-        it('limits errors query to last 24 hours', async () => {
+        it('queries heartbeat_executions for last 15 minutes', async () => {
             const beforeCall = Date.now();
-            mockDb.get = jest.fn()
-                .mockResolvedValueOnce(mockHeartbeatDoc)
-                .mockResolvedValueOnce({ size: 0, docs: [] });
+            let capturedWhereArgs: any[] = [];
+
+            const heartbeatQuery = {
+                where: jest.fn((...args) => {
+                    if (args[0] === 'completedAt') {
+                        capturedWhereArgs = args;
+                    }
+                    return heartbeatQuery;
+                }),
+                orderBy: jest.fn().mockReturnThis(),
+                limit: jest.fn().mockReturnThis(),
+                get: jest.fn().mockResolvedValue(mockExecutionsSnapshot),
+            };
+
+            const systemLogsQuery = {
+                where: jest.fn().mockReturnThis(),
+                limit: jest.fn().mockReturnThis(),
+                get: jest.fn().mockResolvedValue({ size: 0, docs: [] }),
+            };
+
+            const mockDb = {
+                collection: jest.fn((name: string) => {
+                    if (name === 'heartbeat_executions') return heartbeatQuery;
+                    if (name === 'system_logs') return systemLogsQuery;
+                    return { get: jest.fn().mockResolvedValue({ exists: false }) };
+                }),
+            };
+
+            (getAdminFirestore as jest.Mock).mockReturnValue(mockDb);
 
             await GET();
 
-            const afterCall = Date.now();
-            const whereCall = mockDb.where.mock.calls.find(
-                (call: any) => call[0] === 'timestamp'
-            );
-            const dateArg = whereCall[2];
+            // Should have called where with completedAt filter
+            expect(capturedWhereArgs[0]).toBe('completedAt');
+            expect(capturedWhereArgs[1]).toBe('>=');
+            const dateArg = capturedWhereArgs[2];
 
-            // Should be approximately 24 hours ago
+            // Should be approximately 15 minutes ago
             const diffMs = beforeCall - dateArg.getTime();
-            expect(diffMs).toBeGreaterThan(23 * 60 * 60 * 1000);
-            expect(diffMs).toBeLessThan(25 * 60 * 60 * 1000);
+            expect(diffMs).toBeGreaterThan(14 * 60 * 1000);
+            expect(diffMs).toBeLessThan(16 * 60 * 1000);
         });
     });
 });
