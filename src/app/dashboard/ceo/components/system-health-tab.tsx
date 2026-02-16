@@ -34,6 +34,7 @@ import {
 } from '@/server/actions/system-health';
 import type { SystemHealthSummary, AlertThresholdConfig } from '@/types/system-health';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { HeartbeatDiagnosticPanel } from '@/components/system/heartbeat-diagnostic-panel';
 
 export default function SystemHealthTab() {
   const [data, setData] = useState<SystemHealthSummary | null>(null);
@@ -222,6 +223,9 @@ export default function SystemHealthTab() {
           ))}
         </div>
       )}
+
+      {/* Heartbeat Diagnostic */}
+      <HeartbeatDiagnosticPanel />
 
       {/* Metric Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
