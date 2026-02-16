@@ -609,11 +609,11 @@ function determineRole(userRole: string | undefined): HeartbeatRole {
 
 function getDefaultChecksForRole(role: HeartbeatRole): HeartbeatCheckId[] {
     if (role === 'super_user') {
-        return ['system_errors', 'deployment_status', 'new_signups', 'leads', 'gmail', 'calendar'];
+        return ['system_errors', 'deployment_status', 'new_signups', 'academy_leads', 'gmail_unread', 'calendar_upcoming'];
     }
     if (role === 'dispensary') {
-        return ['low_stock', 'expiring_batches', 'margins', 'competitors', 'at_risk_customers', 'birthdays'];
+        return ['low_stock_alerts', 'expiring_batches', 'margin_alerts', 'competitor_price_changes', 'at_risk_customers', 'birthday_today'];
     }
     // brand
-    return ['content_pending', 'campaign_performance', 'competitor_launches', 'partner_performance'];
+    return ['content_pending_approval', 'campaign_performance', 'competitor_launches', 'partner_performance'];
 }

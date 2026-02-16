@@ -68,10 +68,10 @@ async function fixHeartbeat(tenantId: string) {
 
         // Build default checks for role
         const defaultChecks = role === 'super_user'
-            ? ['system_errors', 'deployment_status', 'new_signups', 'leads', 'gmail', 'calendar']
+            ? ['system_errors', 'deployment_status', 'new_signups', 'academy_leads', 'gmail_unread', 'calendar_upcoming']
             : role === 'dispensary'
-                ? ['low_stock', 'expiring_batches', 'margins', 'competitors', 'at_risk_customers', 'birthdays']
-                : ['content_pending', 'campaign_performance', 'competitor_launches', 'partner_performance'];
+                ? ['low_stock_alerts', 'expiring_batches', 'margin_alerts', 'competitor_price_changes', 'at_risk_customers', 'birthday_today']
+                : ['content_pending_approval', 'campaign_performance', 'competitor_launches', 'partner_performance'];
 
         const defaultConfig = {
             enabled: true,
