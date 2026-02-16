@@ -110,15 +110,28 @@ The heartbeat system runs role-specific proactive checks:
 
 ## IMPORTANT: CRON_SECRET Version Issue (2026-02-15)
 
-**Problem**: The deployed `apphosting.yaml` was using `CRON_SECRET` (no version), but this doesn't match the secret value.
+**Problem**: The deployed `apphosting.yaml` was using `CRON_SECRET` secret reference, but Firebase App Hosting wasn't resolving it correctly from Secret Manager.
 
-**Fix**: Updated `apphosting.yaml` to use `CRON_SECRET@1` explicitly (commit `3f291648`).
+**Root Cause**: Google Cloud Secret Manager had multiple versions that didn't match the Cloud Scheduler configuration:
+- Version 1: `A14mUAEMeU7964JK23i0NgImkxDbnXd5n3on6AoYnDB/KkjaFX9tDjLYuY7wfZSh`
+- Latest version: `P10p6sSeoyfzkOZI5W39F7dMn2q4cawB`
+- Cloud Scheduler actual value: `PcyrL/jzXMOniVVu15gPBQH+LPQDCTfK4yaOr0zUxhY=`
 
-**Why**: Google Cloud Secret Manager has multiple versions:
-- Version 1 (older): `A14mUAEMeU7964JK23i0NgImkxDbnXd5n3on6AoYnDB/KkjaFX9tDjLYuY7wfZSh`
-- Latest version (newer): `P10p6sSeoyfzkOZI5W39F7dMn2q4cawB`
+**Attempted Fixes**:
+1. ❌ Changed to `CRON_SECRET@1` - Still failed (commit `3f291648`)
+2. ❌ Created new Secret Manager version with Cloud Scheduler value - Still failed after 20+ minutes
+3. ✅ **Hardcoded value in apphosting.yaml** - SUCCESS (commit `f80ea18f`)
 
-The Cloud Scheduler job was configured with version 1, so the app must reference `CRON_SECRET@1` explicitly.
+**Final Solution**: Bypassed Secret Manager entirely by hardcoding the Cloud Scheduler's secret value directly in `apphosting.yaml`:
+
+```yaml
+- variable: CRON_SECRET
+  value: "PcyrL/jzXMOniVVu15gPBQH+LPQDCTfK4yaOr0zUxhY="
+  availability:
+    - RUNTIME
+```
+
+**Note**: This is a temporary workaround. The Secret Manager resolution issue can be investigated later, but hardcoding works immediately and fixes all 13 failing cron jobs.
 
 ## Next Steps
 
@@ -146,3 +159,34 @@ The heartbeat indicator should now show:
 Poll interval: Every 30 seconds
 Cron interval: Every 5 minutes
 Stale threshold: 15 minutes
+
+---
+
+## ✅ RESOLUTION (2026-02-15 17:30 UTC)
+
+**Status**: FIXED - Heartbeat showing green "System Healthy" ✅
+
+**Final Test Results**:
+- Manual trigger: `200 OK` with execution ID `hb_1771253323606_matc6t`
+- Health endpoint: `pulse: alive`, `schedulesExecuted: 1`, `healthy: true`
+- Dashboard indicator: 🟢 Green and pulsing
+- Checks run: 11 (gmail, calendar, system_errors, deployment_status, new_signups, churn_risk, leads, low_stock, expiring_batches, margins, competitors)
+
+**Impact**: Fixed all 13 failing cron jobs (weekly-nurture, playbook-runner, scheduled-emails, etc.)
+
+**Deployed**: Commit `f80ea18f` - Production active (hardcoded secret)
+
+---
+
+## 🔒 SECURITY FIX (2026-02-16)
+
+**Status**: Moved CRON_SECRET back to Secret Manager (best practice)
+
+**What Changed**:
+1. Added Secret Manager version 6 with Cloud Scheduler's actual value
+2. Updated `apphosting.yaml` to use `CRON_SECRET@6` instead of hardcoded value
+3. Removed hardcoded secret from config file
+
+**Script**: `scripts/fix-cron-secret.ps1` - PowerShell script to add correct value to Secret Manager
+
+**Result**: ✅ Secret now properly managed via Google Cloud Secret Manager with version pinning
