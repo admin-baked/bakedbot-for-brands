@@ -172,14 +172,21 @@ export default function CompetitiveIntelPage() {
                                 <Clock className="h-4 w-4 text-muted-foreground" />
                                 <span>Last updated: <strong>{formatDate(snapshot?.lastUpdated || new Date(0))}</strong></span>
                             </div>
-                            <Badge variant={snapshot?.updateFrequency === 'weekly' ? 'secondary' : 'default'}>
-                                {snapshot?.updateFrequency === 'weekly' ? 'Free: Weekly Updates' : 'Pro: Daily Updates'}
+                            <Badge variant={
+                                snapshot?.updateFrequency === 'real-time' ? 'default' :
+                                snapshot?.updateFrequency === 'hourly' ? 'default' :
+                                snapshot?.updateFrequency === 'daily' ? 'default' : 'secondary'
+                            }>
+                                {snapshot?.updateFrequency === 'real-time' ? '🔥 Empire: Real-time (15min)' :
+                                 snapshot?.updateFrequency === 'hourly' ? 'Pro: Hourly Updates' :
+                                 snapshot?.updateFrequency === 'daily' ? 'Pro: Daily Updates' :
+                                 'Free: Weekly Updates'}
                             </Badge>
                         </div>
                         {snapshot?.updateFrequency === 'weekly' && (
                             <Button variant="link" size="sm" className="text-primary p-0 h-auto">
                                 <Crown className="h-4 w-4 mr-1" />
-                                Upgrade for daily updates
+                                Upgrade for real-time updates
                             </Button>
                         )}
                     </div>
