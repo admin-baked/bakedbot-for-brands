@@ -19,10 +19,10 @@ import { DtcBanner } from '@/components/foot-traffic/dtc-banner';
 import { getSeededConfig } from '@/server/actions/seo-pages';
 
 interface CategoryPageProps {
-    params: {
+    params: Promise<{
         zipCode: string;
         category: string;
-    };
+    }>;
 }
 
 // Helper to capitalize category names
@@ -31,7 +31,7 @@ function capitalize(str: string) {
 }
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
-    const { zipCode, category } = params;
+    const { zipCode, category } = await params;
     const catName = capitalize(decodeURIComponent(category));
     return {
         title: `Best ${catName} in ${zipCode} | BakedBot`,
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-    const { zipCode, category: rawCategory } = params;
+    const { zipCode, category: rawCategory } = await params;
     const category = decodeURIComponent(rawCategory);
     const catName = capitalize(category);
 

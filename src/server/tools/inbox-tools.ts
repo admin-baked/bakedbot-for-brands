@@ -157,6 +157,54 @@ The QR code will include tracking analytics (scans, locations, devices) and can 
 };
 
 // ============================================================================
+// BLOG POST ARTIFACT TOOL
+// Used by Craig to create blog content
+// ============================================================================
+
+export const createBlogPostArtifactSchema = z.object({
+    title: z.string().min(10).max(100).describe("Blog post title (SEO-optimized, 50-60 characters ideal)"),
+    subtitle: z.string().max(150).optional().describe("Optional subtitle or subheading"),
+    excerpt: z.string().min(50).max(300).describe("2-3 sentence summary for preview and meta description"),
+    content: z.string().min(200).describe("Full blog post content in Markdown format"),
+    category: z.enum([
+        'education',
+        'product_spotlight',
+        'industry_news',
+        'company_update',
+        'strain_profile',
+        'compliance',
+        'cannabis_culture',
+        'wellness',
+    ] as const).describe("Blog post category for organization and filtering"),
+    tags: z.array(z.string()).max(10).optional().describe("Tags for SEO and content discovery"),
+    seoKeywords: z.array(z.string()).max(10).optional().describe("Primary SEO keywords to target"),
+    featuredImageUrl: z.string().url().optional().describe("URL to featured image (16:9 aspect ratio recommended)"),
+    targetAudience: z.string().optional().describe("Intended audience (e.g., 'first-time users', 'connoisseurs')"),
+    tone: z.enum(['professional', 'casual', 'educational', 'playful'] as const).optional().describe("Tone of voice for the post"),
+    scheduledAt: z.string().optional().describe("Optional scheduled publish date in ISO format (YYYY-MM-DDTHH:mm:ss)"),
+    rationale: z.string().describe("Explanation of why this blog post will resonate with the audience and drive SEO/engagement"),
+});
+
+export type CreateBlogPostArtifactInput = z.infer<typeof createBlogPostArtifactSchema>;
+
+export const createBlogPostArtifactToolDef = {
+    name: "createBlogPostArtifact",
+    description: `Create a blog post draft for content marketing and SEO. Use this when the user asks for:
+- Blog articles or educational content
+- Product spotlight posts or strain profiles
+- Industry news commentary or company updates
+- SEO-focused content to drive organic traffic
+- Cannabis culture or wellness articles
+
+The blog post will go through compliance checking (Deebo) before publishing. Content should be:
+- Cannabis-compliant (no medical claims, 21+ audience)
+- SEO-optimized with target keywords
+- Valuable and engaging for the target audience
+- Well-structured with clear sections (use Markdown headers)`,
+    schema: createBlogPostArtifactSchema,
+};
+
+// ============================================================================
 // COMBINED INBOX TOOL DEFINITIONS
 // Import these into agent configurations
 // ============================================================================
@@ -166,12 +214,13 @@ export const inboxToolDefs = [
     createBundleArtifactToolDef,
     createCreativeArtifactToolDef,
     createQRCodeArtifactToolDef,
+    createBlogPostArtifactToolDef,
 ];
 
 // Per-agent tool sets
 export const smokeyInboxToolDefs = [createCarouselArtifactToolDef];
 export const moneyMikeInboxToolDefs = [createBundleArtifactToolDef];
-export const craigInboxToolDefs = [createCreativeArtifactToolDef, createQRCodeArtifactToolDef];
+export const craigInboxToolDefs = [createCreativeArtifactToolDef, createQRCodeArtifactToolDef, createBlogPostArtifactToolDef];
 
 // ============================================================================
 // TOOL IMPLEMENTATION INTERFACES

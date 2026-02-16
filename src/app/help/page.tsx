@@ -13,10 +13,10 @@ export const metadata = {
 export default async function HelpHomePage({
   searchParams,
 }: {
-  searchParams: { category?: string };
+  searchParams: Promise<{ category?: string }>;
 }) {
   const categories = getCategories();
-  const selectedCategory = searchParams.category;
+  const { category: selectedCategory } = await searchParams;
 
   // Get user role for search filtering
   const cookieStore = await cookies();
