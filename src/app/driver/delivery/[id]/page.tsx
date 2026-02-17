@@ -38,8 +38,13 @@ import {
     Loader2,
     ArrowLeft,
     CreditCard,
+    Camera,
+    PenTool,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { IDVerificationForm } from '@/components/delivery/id-verification-form';
+import { ProofPhotoCapture } from '@/components/delivery/proof-photo-capture';
+import { SignaturePad } from '@/components/delivery/signature-pad';
 
 export default function DriverDeliveryDetailsPage({
     params,
@@ -52,10 +57,16 @@ export default function DriverDeliveryDetailsPage({
     const [delivery, setDelivery] = useState<Delivery | null>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
+
+    // ID Verification state
     const [idVerified, setIdVerified] = useState(false);
-    const [idType, setIdType] = useState('drivers_license');
-    const [idNumber, setIdNumber] = useState('');
-    const [birthDate, setBirthDate] = useState('');
+    const [idType, setIdType] = useState<string | undefined>(undefined);
+    const [idNumber, setIdNumber] = useState<string | undefined>(undefined);
+    const [birthDate, setBirthDate] = useState<string | undefined>(undefined);
+
+    // Proof of Delivery state
+    const [proofPhotoUrl, setProofPhotoUrl] = useState<string | null>(null);
+    const [signatureUrl, setSignatureUrl] = useState<string | null>(null);
 
     // GPS tracking
     const [gpsEnabled, setGpsEnabled] = useState(false);
@@ -203,12 +214,32 @@ export default function DriverDeliveryDetailsPage({
             return;
         }
 
+        if (!proofPhotoUrl) {
+            toast({
+                variant: 'destructive',
+                title: 'Proof of Delivery Photo Required',
+                description: 'You must capture a proof of delivery photo',
+            });
+            return;
+        }
+
+        if (!signatureUrl) {
+            toast({
+                variant: 'destructive',
+                title: 'Customer Signature Required',
+                description: 'Customer must sign to complete delivery',
+            });
+            return;
+        }
+
         setActionLoading(true);
         const result = await completeDelivery(delivery.id, {
             idVerified: true,
             idType,
             idNumber,
             birthDate,
+            proofPhotoUrl,
+            signatureUrl,
         });
 
         if (result.success) {
@@ -390,65 +421,57 @@ export default function DriverDeliveryDetailsPage({
 
                 {/* ID Verification (shown when arrived) */}
                 {delivery.status === 'arrived' && (
+                    <IDVerificationForm
+                        onVerification={(result) => {
+                            setIdVerified(result.verified);
+                            setIdType(result.idType);
+                            setIdNumber(result.idNumber);
+                            setBirthDate(result.birthDate);
+                        }}
+                        disabled={actionLoading}
+                    />
+                )}
+
+                {/* Proof of Delivery Photo (shown when arrived) */}
+                {delivery.status === 'arrived' && (
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-lg flex items-center gap-2">
-                                <CreditCard className="h-5 w-5" />
-                                ID Verification (21+)
+                                <Camera className="h-5 w-5" />
+                                Proof of Delivery Photo
                             </CardTitle>
                             <CardDescription>
-                                NY OCM requires age verification for all deliveries
+                                NY OCM Requirement: Photographic proof of delivery
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="idType">ID Type</Label>
-                                <select
-                                    id="idType"
-                                    className="w-full p-2 border rounded-md"
-                                    value={idType}
-                                    onChange={(e) => setIdType(e.target.value)}
-                                >
-                                    <option value="drivers_license">Driver's License</option>
-                                    <option value="state_id">State ID</option>
-                                    <option value="passport">Passport</option>
-                                </select>
-                            </div>
+                        <CardContent>
+                            <ProofPhotoCapture
+                                onPhoto={(photoUrl) => setProofPhotoUrl(photoUrl)}
+                                disabled={actionLoading}
+                            />
+                        </CardContent>
+                    </Card>
+                )}
 
-                            <div className="space-y-2">
-                                <Label htmlFor="idNumber">ID Number (Last 4 digits)</Label>
-                                <Input
-                                    id="idNumber"
-                                    type="text"
-                                    maxLength={4}
-                                    placeholder="####"
-                                    value={idNumber}
-                                    onChange={(e) => setIdNumber(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="birthDate">Birth Date</Label>
-                                <Input
-                                    id="birthDate"
-                                    type="date"
-                                    value={birthDate}
-                                    onChange={(e) => setBirthDate(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                                <input
-                                    type="checkbox"
-                                    id="idVerified"
-                                    checked={idVerified}
-                                    onChange={(e) => setIdVerified(e.target.checked)}
-                                    className="h-4 w-4"
-                                />
-                                <Label htmlFor="idVerified" className="cursor-pointer">
-                                    I have verified the customer is 21+ years old
-                                </Label>
-                            </div>
+                {/* Customer Signature (shown when arrived) */}
+                {delivery.status === 'arrived' && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <PenTool className="h-5 w-5" />
+                                Customer Signature
+                            </CardTitle>
+                            <CardDescription>
+                                NY OCM Requirement: Customer must sign for proof of delivery
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <SignaturePad
+                                onSignature={(signatureDataUrl) =>
+                                    setSignatureUrl(signatureDataUrl)
+                                }
+                                disabled={actionLoading}
+                            />
                         </CardContent>
                     </Card>
                 )}
@@ -494,7 +517,12 @@ export default function DriverDeliveryDetailsPage({
                             className="w-full"
                             size="lg"
                             onClick={handleCompleteDelivery}
-                            disabled={actionLoading || !idVerified}
+                            disabled={
+                                actionLoading ||
+                                !idVerified ||
+                                !proofPhotoUrl ||
+                                !signatureUrl
+                            }
                         >
                             {actionLoading ? (
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
