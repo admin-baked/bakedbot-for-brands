@@ -552,15 +552,21 @@ async function sendReportEmail(
 
         // Use pre-loaded email or fetch from users collection
         let userEmail = preloadedEmail;
+        logger.info('[WeeklyReport] Email lookup - preloaded', { preloadedEmail, adminUserId });
+
         if (!userEmail) {
+            logger.info('[WeeklyReport] Preloaded email missing, querying users collection', { adminUserId });
             const userDoc = await firestore.collection('users').doc(adminUserId).get();
             userEmail = userDoc.data()?.email;
+            logger.info('[WeeklyReport] Email from users collection', { userEmail, adminUserId, userDocExists: userDoc.exists });
         }
 
         if (!userEmail) {
-            logger.warn('[WeeklyReport] No email found for admin user', { adminUserId, orgId });
+            logger.error('[WeeklyReport] No email found for admin user', { adminUserId, orgId, preloadedEmail });
             return;
         }
+
+        logger.info('[WeeklyReport] Email resolved', { userEmail, adminUserId, orgId });
 
         const weekStart = report.weekStart.toLocaleDateString();
         const weekEnd = report.weekEnd.toLocaleDateString();
@@ -671,6 +677,8 @@ async function sendReportEmail(
 </html>
         `.trim();
 
+        logger.info('[WeeklyReport] Calling sendGenericEmail', { to: userEmail, subject, orgId });
+
         const result = await sendGenericEmail({
             to: userEmail,
             subject,
@@ -678,14 +686,17 @@ async function sendReportEmail(
             fromName: 'Ezal — BakedBot Intelligence',
         });
 
+        logger.info('[WeeklyReport] sendGenericEmail returned', { success: result.success, error: result.error, orgId, userEmail });
+
         if (result.success) {
-            logger.info('[WeeklyReport] Email sent', { orgId, adminUserId, userEmail });
+            logger.info('[WeeklyReport] Email sent successfully', { orgId, adminUserId, userEmail });
         } else {
-            logger.error('[WeeklyReport] Failed to send email', { orgId, adminUserId });
+            logger.error('[WeeklyReport] sendGenericEmail failed', { orgId, adminUserId, error: result.error, userEmail });
         }
 
     } catch (error) {
-        logger.error('[WeeklyReport] Email notification error', { error, orgId });
+        logger.error('[WeeklyReport] Email notification error - exception caught', { error, orgId, adminUserId });
+        throw error; // Re-throw so the caller knows this failed
     }
 }
 
