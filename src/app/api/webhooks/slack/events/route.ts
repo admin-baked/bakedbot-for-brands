@@ -43,23 +43,8 @@ function verifySlackSignature(
 // ---------------------------------------------------------------------------
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-    const signingSecret = process.env.SLACK_SIGNING_SECRET;
-
-    if (!signingSecret) {
-        logger.error('[Slack/Events] SLACK_SIGNING_SECRET not configured');
-        return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
-    }
-
-    // Read raw body for signature verification
+    // Read raw body first — needed for both challenge and signature verification
     const rawBody = await req.text();
-
-    const timestamp = req.headers.get('x-slack-request-timestamp') ?? '';
-    const slackSignature = req.headers.get('x-slack-signature') ?? '';
-
-    if (!verifySlackSignature(signingSecret, rawBody, timestamp, slackSignature)) {
-        logger.warn('[Slack/Events] Signature verification failed');
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
     let body: any;
     try {
@@ -69,11 +54,30 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     // ---------------------------------------------------------------------------
-    // URL Verification Challenge (one-time, when you first set the Events URL)
+    // URL Verification Challenge — handle BEFORE signature check so initial
+    // setup works even before SLACK_SIGNING_SECRET is in the environment.
     // ---------------------------------------------------------------------------
     if (body.type === 'url_verification') {
         logger.info('[Slack/Events] URL verification challenge received');
         return NextResponse.json({ challenge: body.challenge });
+    }
+
+    // ---------------------------------------------------------------------------
+    // All real events require signature verification
+    // ---------------------------------------------------------------------------
+    const signingSecret = process.env.SLACK_SIGNING_SECRET;
+
+    if (!signingSecret) {
+        logger.error('[Slack/Events] SLACK_SIGNING_SECRET not configured — rejecting event');
+        return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+    }
+
+    const timestamp = req.headers.get('x-slack-request-timestamp') ?? '';
+    const slackSignature = req.headers.get('x-slack-signature') ?? '';
+
+    if (!verifySlackSignature(signingSecret, rawBody, timestamp, slackSignature)) {
+        logger.warn('[Slack/Events] Signature verification failed');
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // ---------------------------------------------------------------------------
