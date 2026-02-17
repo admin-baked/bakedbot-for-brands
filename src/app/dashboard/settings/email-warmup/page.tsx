@@ -13,8 +13,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useUserRole } from '@/hooks/use-user-role';
 import { getMyWarmupStatus, startEmailWarmup, pauseEmailWarmup, getEmailWarmupLogs } from '@/server/actions/email-warmup';
 import type { WarmupStatus, WarmupLog, WarmupScheduleType } from '@/server/actions/email-warmup';
-
-const WARMUP_DURATION_DAYS = 28;
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +22,8 @@ import { Label } from '@/components/ui/label';
 import { Mail, Play, Pause, Loader2, TrendingUp, Calendar, AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+
+const WARMUP_DURATION_DAYS = 28;
 
 // --------------------------------------------------------------------------
 // Schedule descriptions
