@@ -19,6 +19,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { systemHealthChecks, HealthCheckRun } from '@/server/services/system-health-checks';
 import { auditLogStreaming } from '@/server/services/audit-log-streaming';
+import { healthCheckEvents } from '@/server/services/health-check-events';
 import { logger } from '@/lib/logger';
 import { randomUUID } from 'crypto';
 
@@ -108,6 +109,23 @@ export async function POST(request: NextRequest) {
                 durationMs: run.durationMs,
             }
         );
+
+        // Emit playbook events for failures/warnings
+        try {
+            const events = await healthCheckEvents.processHealthChecks('system', results);
+            if (events.length > 0) {
+                logger.info('[Health Check] Playbook events emitted', {
+                    runId: customRunId,
+                    eventCount: events.length,
+                    events: events.map(e => e.eventName),
+                });
+            }
+        } catch (eventError) {
+            logger.error('[Health Check] Failed to emit playbook events', {
+                runId: customRunId,
+                error: eventError instanceof Error ? eventError.message : 'Unknown error',
+            });
+        }
 
         logger.info('[Health Check] Health check run completed', {
             runId: customRunId,
