@@ -158,6 +158,26 @@ export class SlackService {
         }
     }
 
+    async updateMessage(channel: string, ts: string, text: string, blocks?: any[]): Promise<any> {
+        if (!this.client) {
+            logger.warn('[Slack] Update message skipped (No Token)');
+            return { sent: false, error: 'No Token' };
+        }
+
+        try {
+            const result = await this.client.chat.update({
+                channel,
+                ts,
+                text,
+                blocks
+            });
+            return { sent: true, ts: result.ts, channel: result.channel };
+        } catch (e: any) {
+            logger.error(`[Slack] Update message failed: ${e.message}`);
+            return { sent: false, error: e.message };
+        }
+    }
+
     static formatAgentResponse(content: string, personaId: string): any[] {
         const meta = PERSONA_META[personaId] ?? PERSONA_META['puff'];
         const agentLabel = `${meta.emoji} ${meta.role}`;

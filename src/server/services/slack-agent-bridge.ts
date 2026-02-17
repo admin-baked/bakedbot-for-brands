@@ -2,6 +2,12 @@ import { logger } from '@/lib/logger';
 import { slackService, SlackService } from './communications/slack';
 import { runAgentCore } from '@/server/agents/agent-runner';
 import { archiveSlackResponse } from './slack-response-archive';
+import {
+    detectRiskyAction,
+    createApprovalRequest,
+    formatApprovalBlocks,
+    setApprovalMessageTs,
+} from './slack-approval';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
 // System-level identity injected for Slack requests.
@@ -146,6 +152,71 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
                 channel, threadTs,
                 'Sorry, I had trouble generating a response. Please try again.'
             );
+            return;
+        }
+
+        // 5. Check if action is risky and requires approval
+        const risk = detectRiskyAction(result.content, result.toolCalls);
+        if (risk.isRisky) {
+            logger.info('[SlackBridge] High-risk action detected, requesting approval', {
+                personaId,
+                riskReason: risk.riskReason,
+            });
+
+            // Create approval request in Firestore
+            const approvalId = await createApprovalRequest({
+                agentId: personaId,
+                agentName: getPersonaName(personaId),
+                tool: 'agent_response',
+                args: { content: result.content },
+                userRequest: cleanText,
+                agentResponse: result.content,
+                riskReason: risk.riskReason || 'High-risk action detected',
+                slackChannel: channel,
+                slackThreadTs: threadTs,
+                requestedBy: slackUserId,
+            });
+
+            // Format and post approval request
+            const approvalBlocks = formatApprovalBlocks(
+                getPersonaName(personaId),
+                cleanText,
+                result.content,
+                risk.riskReason || 'High-risk action detected',
+                approvalId
+            );
+
+            const approvalResult = await slackService.postInThread(
+                channel,
+                threadTs,
+                '⚠️ Approval Required',
+                approvalBlocks
+            );
+
+            // Store the message ts for later updates (approve/reject)
+            if (approvalResult.sent && approvalResult.ts) {
+                await setApprovalMessageTs(approvalId, approvalResult.ts);
+            }
+
+            // Archive that an approval was requested (not the full response)
+            archiveSlackResponse({
+                timestamp: new Date(),
+                slackUserId,
+                channel,
+                channelName: '',
+                threadTs,
+                userMessage: cleanText,
+                agent: personaId,
+                agentName: getPersonaName(personaId),
+                agentResponse: `[APPROVAL REQUESTED] ${risk.riskReason}`,
+                responseLength: 0,
+                isDm,
+                isChannelMsg,
+                requestType: 'approval_required',
+                date: new Date().toISOString().split('T')[0],
+                month: new Date().toISOString().split('T')[0].slice(0, 7),
+            }).catch((err) => logger.warn(`[SlackBridge] Archive failed: ${err}`));
+
             return;
         }
 
