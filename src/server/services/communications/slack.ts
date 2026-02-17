@@ -87,6 +87,77 @@ export class SlackService {
         }
     }
 
+    async findChannelByName(name: string): Promise<{ id: string; name: string } | null> {
+        try {
+            const channels = await this.listChannels();
+            const channel = channels.find(c => c.name === name);
+            return channel ? { id: channel.id, name: channel.name } : null;
+        } catch (e: any) {
+            logger.error(`[Slack] Find channel failed: ${e.message}`);
+            return null;
+        }
+    }
+
+    async createChannel(name: string): Promise<{ id: string; name: string } | null> {
+        if (!this.client) {
+            logger.warn('[Slack] Create channel skipped (No Token)');
+            return null;
+        }
+
+        try {
+            const result = await this.client.conversations.create({
+                name,
+                is_private: false
+            });
+            if (result.channel?.id && result.channel?.name) {
+                return { id: result.channel.id, name: result.channel.name };
+            }
+            return null;
+        } catch (e: any) {
+            // Channel already exists returns error, which is fine for idempotent operation
+            if (e.message.includes('name_taken')) {
+                logger.info(`[Slack] Channel ${name} already exists`);
+            } else {
+                logger.error(`[Slack] Create channel failed: ${e.message}`);
+            }
+            return null;
+        }
+    }
+
+    async setChannelTopic(channelId: string, topic: string): Promise<void> {
+        if (!this.client) {
+            logger.warn('[Slack] Set topic skipped (No Token)');
+            return;
+        }
+
+        try {
+            await this.client.conversations.setTopic({
+                channel: channelId,
+                topic
+            });
+        } catch (e: any) {
+            logger.error(`[Slack] Set topic failed: ${e.message}`);
+        }
+    }
+
+    async joinChannel(channelId: string): Promise<void> {
+        if (!this.client) {
+            logger.warn('[Slack] Join channel skipped (No Token)');
+            return;
+        }
+
+        try {
+            await this.client.conversations.join({
+                channel: channelId
+            });
+        } catch (e: any) {
+            // Already a member is not an error
+            if (!e.message.includes('already_in_channel')) {
+                logger.error(`[Slack] Join channel failed: ${e.message}`);
+            }
+        }
+    }
+
     static formatAgentResponse(content: string, personaId: string): any[] {
         const meta = PERSONA_META[personaId] ?? PERSONA_META['puff'];
         const agentLabel = `${meta.emoji} ${meta.role}`;
