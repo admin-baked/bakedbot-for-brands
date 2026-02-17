@@ -29,13 +29,54 @@ BakedBot integrates with numerous external services for messaging, payments, dat
 
 ## Slack Integration (2026-02-17)
 
-**Secret:** `SLACK_WEBHOOK_URL` in Secret Manager (never hardcode — learned the hard way)
+**Secrets:**
+- `SLACK_BOT_TOKEN@3` — Bot OAuth token for posting messages
+- `SLACK_SIGNING_SECRET@2` — Request signature verification (HMAC-SHA256)
+- `SLACK_WEBHOOK_URL` — Incoming webhook for heartbeat alerts
+
+### Two-Way Agent Chat (NEW)
 
 | File | Purpose |
 |------|---------|
-| `src/server/services/communications/slack.ts` | Core Slack service, sendSlackMessage() |
-| `src/server/services/slack-agent-bridge.ts` | Agent → Slack bridge (post on behalf of agents) |
-| `src/app/api/webhooks/slack/events/route.ts` | Slack Events API handler (slash commands, mentions) |
+| `src/server/services/slack-agent-bridge.ts` | Agent routing (keyword detection) + message processing |
+| `src/app/api/webhooks/slack/events/route.ts` | Slack Events API handler: DMs, @mentions, channel messages |
+| `src/server/services/communications/slack.ts` | SlackService: `postMessage()`, `postInThread()`, `formatAgentResponse()` |
+
+**Slack App:** A0AF6BKMWLT
+
+**Agent Routing:**
+1. **Keyword matching** — "linus, build status?" → routes to Linus
+2. **Channel prefix** — `#linus-bot`, `#ezal-intel` → auto-routes
+3. **DM default** — Messages in DMs → Leo (COO), unless keyword detected
+4. **New members** — `member_joined_channel` event → Mrs. Parker welcome
+
+**Response Formatting:**
+- Block Kit with emoji header, agent role, divider, body (split at 3000 chars), footer
+- Fire-and-forget async: 200 ACK immediately, processing in background
+- System identity: `SLACK_SYSTEM_USER` (super_user) injected for async context
+
+**Example Usage:**
+```typescript
+import { processSlackMessage } from '@/server/services/slack-agent-bridge';
+
+await processSlackMessage({
+    text: 'Hey linus, what\'s the build status?',
+    slackUserId: 'U123456',
+    channel: 'D789012', // DM channel
+    threadTs: '1234567890.123456',
+    isDm: true,
+    isChannelMsg: false,
+    channelName: '',
+});
+// → Routes to Linus, posts response in thread
+```
+
+### Heartbeat Alerts (Existing)
+
+| File | Purpose |
+|------|---------|
+| `src/types/heartbeat.ts` | Heartbeat event types + notifier interface |
+| `src/server/services/notifier.ts` | Routes events to Slack/email/webhooks |
 
 **Usage:**
 ```typescript
@@ -48,15 +89,23 @@ await sendSlackMessage({
 });
 ```
 
-**Heartbeat Integration:**
+**Features:**
 - Critical/high heartbeat events → Slack notification
 - Per-tenant webhook URLs stored in Firestore: `tenants/{orgId}/settings/heartbeat.slackWebhookUrl`
 - BakedBot's own workspace uses `SLACK_WEBHOOK_URL` env var
 
 **Secret Setup:**
 ```bash
-# New webhook from Slack → Secret Manager (NEVER hardcode)
-echo -n "https://hooks.slack.com/services/..." | gcloud secrets create SLACK_WEBHOOK_URL --data-file=- --project=studio-567050101-bc6e8
+# Bot token from Slack → Secret Manager
+echo -n "xoxb-..." | gcloud secrets versions add SLACK_BOT_TOKEN --data-file=- --project=studio-567050101-bc6e8
+firebase apphosting:secrets:grantaccess SLACK_BOT_TOKEN --backend=bakedbot-prod
+
+# Signing secret from Slack settings → Secret Manager
+echo -n "510dc667..." | gcloud secrets versions add SLACK_SIGNING_SECRET --data-file=- --project=studio-567050101-bc6e8
+firebase apphosting:secrets:grantaccess SLACK_SIGNING_SECRET --backend=bakedbot-prod
+
+# Webhook from Slack → Secret Manager (NEVER hardcode)
+echo -n "https://hooks.slack.com/services/..." | gcloud secrets versions add SLACK_WEBHOOK_URL --data-file=- --project=studio-567050101-bc6e8
 firebase apphosting:secrets:grantaccess SLACK_WEBHOOK_URL --backend=bakedbot-prod
 ```
 

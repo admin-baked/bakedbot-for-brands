@@ -89,11 +89,32 @@ if (!tenantDoc.exists || !adminUserId) {
 4. Competitors live in `tenants/{orgId}/competitors/`, snapshots in `tenants/{orgId}/competitor_snapshots/`
 
 ### Slack Integration (2026-02-17)
-**Status:** ✅ Active — `SLACK_WEBHOOK_URL` secret in Secret Manager
+**Status:** ✅ LIVE — Full two-way agent chat + heartbeat alerts
 
+**Two-Way Agent Chat (NEW):**
+- **Endpoint:** POST `/api/webhooks/slack/events` — Slack Events API webhook
+- **Slack App:** A0AF6BKMWLT (already created)
+- **Bot Token:** `SLACK_BOT_TOKEN@3` (Secret Manager)
+- **Signing Secret:** `SLACK_SIGNING_SECRET@2` (HMAC-SHA256 verification)
+
+**Agent Routing:**
+1. **DM messages** → Default to Leo (COO), unless message contains agent keyword
+2. **@mention in channel** → Keyword detection routes to agent (linus/cto → Linus, jack/cro → Jack, etc.)
+3. **Channel name prefix** → `#linus-*`, `#leo-*` auto-routes to that agent
+4. **member_joined_channel event** → Mrs. Parker posts personalized welcome
+
+**Response Formatting:**
+- Block Kit format: emoji header + agent role + divider + response body (split at 3000 chars) + footer
+- Fire-and-forget async: immediate 200 ACK to Slack, processing in background
+- System identity: `SLACK_SYSTEM_USER` (super_user role) injected for async context (bypasses Firebase auth)
+
+**Key Files:**
+- `src/server/services/slack-agent-bridge.ts` — Agent routing logic + message processing
+- `src/app/api/webhooks/slack/events/route.ts` — Webhook handler + signature verification
+- `src/server/services/communications/slack.ts` — SlackService: `postMessage()`, `postInThread()`, `formatAgentResponse()`
+
+**Outbound Alerts (Existing):**
 - Heartbeat notifier sends Block Kit alerts for critical/high events
-- Slack agent bridge in `src/server/services/slack-agent-bridge.ts`
-- Webhook events: `src/app/api/webhooks/slack/events/route.ts`
 - Per-tenant webhook URL stored in Firestore (heartbeat config)
 - `SLACK_WEBHOOK_URL` env var = BakedBot's own workspace webhook
 
