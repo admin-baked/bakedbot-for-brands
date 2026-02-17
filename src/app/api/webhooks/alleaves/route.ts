@@ -16,6 +16,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
 import { logger } from '@/lib/logger';
 import { revalidatePath } from 'next/cache';
+import { dispatchPlaybookEvent } from '@/server/services/playbook-event-dispatcher';
 import * as crypto from 'crypto';
 
 export const maxDuration = 30;
@@ -119,22 +120,95 @@ export async function POST(request: NextRequest) {
         // Handle different webhook events
         switch (payload.event) {
             case 'customer.created':
+                await handleCustomerEvent(orgId, payload.data, 'customer.signup');
+                // Dispatch to playbook system (fire-and-forget)
+                dispatchPlaybookEvent(orgId, 'customer.signup', {
+                    customerId: payload.data.id,
+                    customerEmail: payload.data.email,
+                    customerName: payload.data.name,
+                }).catch((err) =>
+                    logger.error('[EventDispatcher] Failed to dispatch customer.signup', {
+                        orgId,
+                        customerId: payload.data.id,
+                        error: err,
+                    })
+                );
+                break;
+
             case 'customer.updated':
-                await handleCustomerEvent(orgId, payload.data);
+                await handleCustomerEvent(orgId, payload.data, 'customer.updated');
+                // Dispatch to playbook system (fire-and-forget)
+                dispatchPlaybookEvent(orgId, 'customer.updated', {
+                    customerId: payload.data.id,
+                    customerEmail: payload.data.email,
+                    customerName: payload.data.name,
+                }).catch((err) =>
+                    logger.error('[EventDispatcher] Failed to dispatch customer.updated', { orgId, error: err })
+                );
                 break;
 
             case 'order.created':
+                await handleOrderEvent(orgId, payload.data, 'order.created');
+                // Dispatch to playbook system (fire-and-forget)
+                dispatchPlaybookEvent(orgId, 'order.created', {
+                    orderId: payload.data.id,
+                    customerId: payload.data.customer_id,
+                    customerEmail: payload.data.customer_email,
+                    totalAmount: payload.data.total,
+                    items: payload.data.items,
+                }).catch((err) =>
+                    logger.error('[EventDispatcher] Failed to dispatch order.created', { orgId, error: err })
+                );
+                break;
+
             case 'order.updated':
-                await handleOrderEvent(orgId, payload.data);
+                await handleOrderEvent(orgId, payload.data, 'order.updated');
+                // Dispatch to playbook system (fire-and-forget)
+                dispatchPlaybookEvent(orgId, 'order.updated', {
+                    orderId: payload.data.id,
+                    customerId: payload.data.customer_id,
+                    status: payload.data.status,
+                    totalAmount: payload.data.total,
+                }).catch((err) =>
+                    logger.error('[EventDispatcher] Failed to dispatch order.updated', { orgId, error: err })
+                );
                 break;
 
             case 'inventory.updated':
-            case 'product.updated':
-                await handleInventoryUpdateEvent(orgId, payload.data);
+                await handleInventoryUpdateEvent(orgId, payload.data, 'inventory.updated');
+                // Dispatch to playbook system (fire-and-forget)
+                dispatchPlaybookEvent(orgId, 'inventory.updated', {
+                    productId: payload.data.id,
+                    productName: payload.data.name,
+                    quantity: payload.data.quantity,
+                }).catch((err) =>
+                    logger.error('[EventDispatcher] Failed to dispatch inventory.updated', { orgId, error: err })
+                );
                 break;
 
             case 'inventory.low_stock':
                 await handleLowStockEvent(orgId, payload.data);
+                // Dispatch to playbook system (fire-and-forget)
+                dispatchPlaybookEvent(orgId, 'inventory.low_stock', {
+                    productId: payload.data.id,
+                    productName: payload.data.name,
+                    quantity: payload.data.quantity,
+                    threshold: payload.data.reorder_level,
+                }).catch((err) =>
+                    logger.error('[EventDispatcher] Failed to dispatch inventory.low_stock', { orgId, error: err })
+                );
+                break;
+
+            case 'product.updated':
+                await handleInventoryUpdateEvent(orgId, payload.data, 'product.updated');
+                // Dispatch to playbook system (fire-and-forget)
+                dispatchPlaybookEvent(orgId, 'product.updated', {
+                    productId: payload.data.id,
+                    productName: payload.data.name,
+                    price: payload.data.price,
+                }).catch((err) =>
+                    logger.error('[EventDispatcher] Failed to dispatch product.updated', { orgId, error: err })
+                );
                 break;
 
             case 'product.deleted':
@@ -168,10 +242,15 @@ export async function POST(request: NextRequest) {
 /**
  * Handle customer webhook events
  */
-async function handleCustomerEvent(orgId: string, customerData: any) {
+async function handleCustomerEvent(
+    orgId: string,
+    customerData: any,
+    eventName?: string
+) {
     logger.info('[WEBHOOK] Processing customer event', {
         orgId,
         customerId: customerData.id,
+        eventName,
     });
 
     // Invalidate customer cache to force refresh
@@ -187,10 +266,15 @@ async function handleCustomerEvent(orgId: string, customerData: any) {
 /**
  * Handle order webhook events
  */
-async function handleOrderEvent(orgId: string, orderData: any) {
+async function handleOrderEvent(
+    orgId: string,
+    orderData: any,
+    eventName?: string
+) {
     logger.info('[WEBHOOK] Processing order event', {
         orgId,
         orderId: orderData.id,
+        eventName,
     });
 
     // Invalidate orders cache to force refresh
@@ -209,12 +293,17 @@ async function handleOrderEvent(orgId: string, orderData: any) {
  * Handle inventory update events (inventory.updated, product.updated)
  * Updates product quantity in Firestore publicViews and invalidates cache
  */
-async function handleInventoryUpdateEvent(orgId: string, productData: any) {
+async function handleInventoryUpdateEvent(
+    orgId: string,
+    productData: any,
+    eventName?: string
+) {
     logger.info('[WEBHOOK] Processing inventory update event', {
         orgId,
         productId: productData.id,
         quantity: productData.quantity,
         name: productData.name,
+        eventName,
     });
 
     // Invalidate the orders cache (order history reflects inventory)

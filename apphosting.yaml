@@ -307,7 +307,22 @@ env:
     secret: SLACK_WEBHOOK_URL
     availability:
       - RUNTIME
-
+  # Ecommerce Webhooks (2026-02-17) — Shopify, WooCommerce, custom platform webhook signing
+  # Setup: firebase apphosting:secrets:grantaccess SHOPIFY_WEBHOOK_SECRET --backend=bakedbot-prod
+  # Setup: firebase apphosting:secrets:grantaccess WOOCOMMERCE_WEBHOOK_SECRET --backend=bakedbot-prod
+  # Setup: firebase apphosting:secrets:grantaccess ECOMMERCE_WEBHOOK_SECRET --backend=bakedbot-prod
+  - variable: SHOPIFY_WEBHOOK_SECRET
+    secret: SHOPIFY_WEBHOOK_SECRET
+    availability:
+      - RUNTIME
+  - variable: WOOCOMMERCE_WEBHOOK_SECRET
+    secret: WOOCOMMERCE_WEBHOOK_SECRET
+    availability:
+      - RUNTIME
+  - variable: ECOMMERCE_WEBHOOK_SECRET
+    secret: ECOMMERCE_WEBHOOK_SECRET
+    availability:
+      - RUNTIME
 
 runConfig:
   minInstances: 0
