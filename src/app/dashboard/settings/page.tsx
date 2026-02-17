@@ -167,12 +167,17 @@ export default function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Team Management</CardTitle>
-              <CardDescription>Invite team members to your organization.</CardDescription>
+              <CardDescription>
+                Manage team members and invitations.
+                <Button asChild variant="link" className="ml-2">
+                  <Link href="/dashboard/settings/team">Full Team Management →</Link>
+                </Button>
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Pass role context dynamically. For now assuming active org context is set in invite dialog or server action */}
+              {/* Quick view of recent invitations */}
               <InvitationsList
-                orgId={(user as any)?.brandId || (user as any)?.locationId} // Simplified context passing
+                orgId={(user as any)?.brandId || (user as any)?.locationId}
                 allowedRoles={isBrandRole ? ['brand_admin', 'brand_member'] : ['dispensary_admin', 'dispensary_staff']}
               />
             </CardContent>

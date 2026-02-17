@@ -247,11 +247,24 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
     // 3. Update User Profile with Enterprise Context
     const organizationIds = orgId ? [orgId] : [];
 
+    // Build orgMemberships for vertical integration support
+    const orgMemberships: Record<string, any> = {};
+    if (orgId) {
+      orgMemberships[orgId] = {
+        orgId,
+        orgName: finalBrandName || manualDispensaryName || 'My Organization',
+        orgType: finalRole === 'brand' ? 'brand' : 'dispensary',
+        role: finalRole,
+        joinedAt: new Date().toISOString(),
+      };
+    }
+
     // Update User Profile
     const updatedUserProfile: Record<string, any> = {
       ...userProfileData,
       organizationIds,
       currentOrgId: orgId || null,
+      orgMemberships,
       // Legacy mapping
       brandId: finalRole === 'brand' ? orgId : null,
       locationId: newLocationId || null
