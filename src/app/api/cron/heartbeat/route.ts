@@ -106,6 +106,7 @@ export async function POST(req: NextRequest) {
             role,
             config,
             force: force ?? true, // Force by default for manual triggers
+            slackWebhookUrl: (savedConfig as import('@/types/heartbeat').TenantHeartbeatConfig | null)?.slackWebhookUrl,
         });
 
         return NextResponse.json({

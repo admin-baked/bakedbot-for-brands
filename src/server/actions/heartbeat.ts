@@ -592,6 +592,51 @@ export async function fixHeartbeat(): Promise<{
 }
 
 // =============================================================================
+// SLACK WEBHOOK CONFIGURATION
+// =============================================================================
+
+/**
+ * Configure (or remove) the Slack webhook URL for a tenant's heartbeat notifications.
+ * Stores the URL in Firestore; does NOT put secrets in source code.
+ */
+export async function configureSlackWebhook(
+    webhookUrl: string | null
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const user = await requireUser();
+        const tenantId = user.orgId || user.brandId || user.uid;
+        const db = getAdminFirestore();
+
+        const configRef = db
+            .collection('tenants')
+            .doc(tenantId)
+            .collection('settings')
+            .doc('heartbeat');
+
+        await configRef.set(
+            {
+                slackWebhookUrl: webhookUrl ?? null,
+                updatedAt: new Date(),
+            },
+            { merge: true }
+        );
+
+        logger.info('[Heartbeat] Slack webhook configured', {
+            tenantId,
+            configured: webhookUrl !== null,
+        });
+
+        return { success: true };
+    } catch (error) {
+        logger.error('[Heartbeat] Failed to configure Slack webhook', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to configure Slack webhook',
+        };
+    }
+}
+
+// =============================================================================
 // HELPERS
 // =============================================================================
 

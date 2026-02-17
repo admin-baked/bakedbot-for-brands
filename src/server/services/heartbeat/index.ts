@@ -220,7 +220,8 @@ export async function executeHeartbeat(
             request.userId,
             executionId,
             notifiableResults,
-            request.config.channels
+            request.config.channels,
+            request.slackWebhookUrl
         );
         notificationsSent = notifications.filter(n => n.status === 'sent').length;
     } else if (notifiableResults.length > 0 && inQuietHours) {
@@ -232,7 +233,8 @@ export async function executeHeartbeat(
                 request.userId,
                 executionId,
                 urgentResults,
-                request.config.channels
+                request.config.channels,
+                request.slackWebhookUrl
             );
             notificationsSent = notifications.filter(n => n.status === 'sent').length;
         } else {
@@ -375,6 +377,7 @@ export async function findDueTenants(): Promise<Array<{
     userId: string;
     role: HeartbeatRole;
     config: HeartbeatConfig;
+    slackWebhookUrl?: string;
 }>> {
     const db = getAdminFirestore();
     const now = new Date();
@@ -383,6 +386,7 @@ export async function findDueTenants(): Promise<Array<{
         userId: string;
         role: HeartbeatRole;
         config: HeartbeatConfig;
+        slackWebhookUrl?: string;
     }> = [];
 
     try {
@@ -435,6 +439,7 @@ export async function findDueTenants(): Promise<Array<{
                 userId: primaryUserId,
                 role,
                 config,
+                slackWebhookUrl: (config as TenantHeartbeatConfig).slackWebhookUrl,
             });
         }
 
@@ -467,13 +472,14 @@ export async function processDueHeartbeats(): Promise<{
         const batch = dueTenants.slice(i, i + BATCH_SIZE);
 
         const results = await Promise.allSettled(
-            batch.map(async ({ tenantId, userId, role, config }) => {
+            batch.map(async ({ tenantId, userId, role, config, slackWebhookUrl }) => {
                 try {
                     await executeHeartbeat({
                         tenantId,
                         userId,
                         role,
                         config,
+                        slackWebhookUrl,
                     });
 
                     // Update lastRun

@@ -218,6 +218,85 @@ async function sendWhatsAppNotification(
 }
 
 // =============================================================================
+// SLACK DISPATCHER
+// =============================================================================
+
+async function sendSlackNotification(
+    tenantId: string,
+    results: HeartbeatCheckResult[],
+    webhookUrl: string
+): Promise<boolean> {
+    try {
+        // Only send critical, urgent, or high priority to Slack
+        const important = results.filter(r =>
+            r.priority === 'urgent' || r.priority === 'high' || r.status === 'alert' || r.status === 'error'
+        );
+        if (important.length === 0) {
+            return true; // Nothing worth pinging Slack for
+        }
+
+        const statusIcon = important.some(r => r.status === 'error' || r.priority === 'urgent')
+            ? '🔴' : important.some(r => r.priority === 'high' || r.status === 'alert') ? '🟡' : '🟢';
+
+        const blocks = [
+            {
+                type: 'header',
+                text: {
+                    type: 'plain_text',
+                    text: `${statusIcon} BakedBot Alert — ${important.length} item${important.length > 1 ? 's' : ''} need attention`,
+                    emoji: true,
+                },
+            },
+            {
+                type: 'divider',
+            },
+            ...important.map(r => {
+                const icon = r.status === 'error' ? '🔴' : r.status === 'alert' ? '🚨' : '⚠️';
+                const fields: Array<{ type: string; text: string }> = [
+                    { type: 'mrkdwn', text: `*${icon} ${r.title}*\n${r.message}` },
+                ];
+                const block: Record<string, unknown> = { type: 'section', fields };
+                if (r.actionUrl) {
+                    block.accessory = {
+                        type: 'button',
+                        text: { type: 'plain_text', text: r.actionLabel || 'View →', emoji: true },
+                        url: r.actionUrl,
+                        action_id: `heartbeat_action_${r.checkId}`,
+                    };
+                }
+                return block;
+            }),
+            {
+                type: 'context',
+                elements: [
+                    {
+                        type: 'mrkdwn',
+                        text: `Tenant: \`${tenantId}\` • <https://bakedbot.ai/dashboard|Open Dashboard>`,
+                    },
+                ],
+            },
+        ];
+
+        const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ blocks }),
+        });
+
+        if (!response.ok) {
+            logger.error('[Heartbeat] Slack webhook failed', { status: response.status, tenantId });
+            return false;
+        }
+
+        logger.info('[Heartbeat] Slack notification sent', { tenantId, alertCount: important.length });
+        return true;
+    } catch (error) {
+        logger.error('[Heartbeat] Slack notification failed', { error, tenantId });
+        return false;
+    }
+}
+
+// =============================================================================
 // MAIN DISPATCHER
 // =============================================================================
 
@@ -226,7 +305,8 @@ export async function dispatchNotifications(
     userId: string,
     executionId: string,
     results: HeartbeatCheckResult[],
-    channels: HeartbeatChannel[]
+    channels: HeartbeatChannel[],
+    slackWebhookUrl?: string
 ): Promise<HeartbeatNotification[]> {
     const notifications: HeartbeatNotification[] = [];
     const db = getAdminFirestore();
@@ -253,6 +333,14 @@ export async function dispatchNotifications(
                     // TODO: Implement push notifications
                     success = false;
                     error = 'Push notifications not yet implemented';
+                    break;
+                case 'slack':
+                    if (slackWebhookUrl) {
+                        success = await sendSlackNotification(tenantId, results, slackWebhookUrl);
+                    } else {
+                        success = false;
+                        error = 'No Slack webhook URL configured for this tenant';
+                    }
                     break;
             }
         } catch (err) {
