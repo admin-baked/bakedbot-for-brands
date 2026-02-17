@@ -32,6 +32,22 @@ import { Plus, FileText, Sparkles, Wand2, Copy } from 'lucide-react';
 import { Playbook, PlaybookCategory } from '@/types/playbook';
 
 const TEMPLATES = [
+    // Ecommerce Templates (2026-02-17)
+    {
+        id: 'ecommerce_order_welcome',
+        name: 'New Ecommerce Order',
+        description: 'Send thank-you email + award loyalty points when customer places online order',
+        agent: 'craig',
+        category: 'marketing' as PlaybookCategory,
+    },
+    {
+        id: 'ecommerce_cart_abandoned',
+        name: 'Cart Abandoned',
+        description: 'Send reminder email after 1 hour, SMS reminder after 24 hours if cart still abandoned',
+        agent: 'craig',
+        category: 'marketing' as PlaybookCategory,
+    },
+    // Existing Templates
     {
         id: 'daily_intel',
         name: 'Daily Intelligence Snapshot',

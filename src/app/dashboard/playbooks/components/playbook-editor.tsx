@@ -62,13 +62,24 @@ const TRIGGER_TYPES: { type: TriggerType; label: string; icon: React.ReactNode }
 ];
 
 const EVENT_TYPES = [
+    // Alleaves Events (POS)
+    'customer.signup',
+    'customer.updated',
+    'order.created',
+    'order.updated',
+    'inventory.low_stock',
+    'inventory.updated',
+    'product.updated',
+    // Ecommerce Events
+    'cart.abandoned',
+    'checkout.started',
+    'checkout.completed',
+    'order.completed',
+    // Legacy
     'lead.created',
     'page.claimed',
-    'order.completed',
     'review.received',
     'inventory.low',
-    'cart.abandoned',
-    'checkout.abandoned',
 ];
 
 interface PlaybookEditorProps {
