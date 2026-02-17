@@ -176,13 +176,60 @@ export interface LoyaltyTier {
     benefits: string[];
 }
 
+export interface SegmentThresholds {
+    loyal_minOrders: number;          // Default: 2
+    vip_minLifetimeValue: number;     // Default: 500
+    vip_minOrders: number;            // Default: 8
+    vip_minAOV: number;               // Default: 50
+    highValue_minAOV: number;         // Default: 75
+    highValue_maxOrders: number;      // Default: 5
+    frequent_minOrders: number;       // Default: 5
+    frequent_maxAOV: number;          // Default: 60
+    slipping_minDays: number;         // Default: 30
+    atRisk_minDays: number;           // Default: 60
+    churned_minDays: number;          // Default: 90
+    new_maxDays: number;              // Default: 30
+}
+
 export interface LoyaltySettings {
     pointsPerDollar: number;
     tiers: LoyaltyTier[];
     equityMultiplier: number; // e.g. 1.2x points for equity applicants
     redemptionTiers?: RedemptionTier[];
     enableGamification?: boolean;
+    segmentThresholds?: SegmentThresholds;
 }
+
+export const DEFAULT_LOYALTY_SETTINGS: LoyaltySettings = {
+    pointsPerDollar: 1,
+    equityMultiplier: 1.2,
+    enableGamification: false,
+    tiers: [
+        { id: 'bronze', name: 'Bronze', threshold: 0, color: '#cd7f32', benefits: ['1x points'] },
+        { id: 'silver', name: 'Silver', threshold: 200, color: '#c0c0c0', benefits: ['1.25x points', 'Early access to deals'] },
+        { id: 'gold', name: 'Gold', threshold: 500, color: '#ffd700', benefits: ['1.5x points', 'Birthday bonus', 'Free delivery'] },
+        { id: 'platinum', name: 'Platinum', threshold: 1000, color: '#e5e4e2', benefits: ['2x points', 'VIP events', 'Exclusive products'] },
+    ],
+    redemptionTiers: [
+        { id: 'small', pointsCost: 100, rewardValue: 5, description: '$5 off your order' },
+        { id: 'medium', pointsCost: 250, rewardValue: 15, description: '$15 off your order' },
+        { id: 'large', pointsCost: 500, rewardValue: 35, description: '$35 off your order' },
+    ],
+    segmentThresholds: {
+        loyal_minOrders: 2,
+        vip_minLifetimeValue: 500,
+        vip_minOrders: 8,
+        vip_minAOV: 50,
+        highValue_minAOV: 75,
+        highValue_maxOrders: 5,
+        frequent_minOrders: 5,
+        frequent_maxAOV: 60,
+        slipping_minDays: 30,
+        atRisk_minDays: 60,
+        churned_minDays: 90,
+        new_maxDays: 30,
+    },
+};
 
 export interface RedemptionTier {
     id: string;

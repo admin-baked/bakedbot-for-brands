@@ -418,20 +418,47 @@ export async function getSegmentSummary(
     const avgLTV = totalCustomers > 0 ? Math.round(totalLTV / totalCustomers) : 0;
     const activeSegments = (Object.keys(segments) as CustomerSegment[]).filter(s => segments[s].count > 0);
 
+    // Fetch last campaign date per segment (for Craig to know when each was last contacted)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    let lastCampaignBySegment: Record<string, string> = {};
+    try {
+        const recentCampaignsSnap = await firestore.collection('campaigns')
+            .where('orgId', '==', orgId)
+            .where('status', '==', 'sent')
+            .orderBy('sentAt', 'desc')
+            .limit(20)
+            .get();
+        for (const doc of recentCampaignsSnap.docs) {
+            const c = doc.data();
+            const sentDate = c.sentAt?.toDate?.() || new Date(c.sentAt);
+            const segs: string[] = c.audience?.segments || [];
+            for (const seg of segs) {
+                if (!lastCampaignBySegment[seg]) {
+                    const daysAgo = Math.floor((Date.now() - sentDate.getTime()) / (1000 * 60 * 60 * 24));
+                    lastCampaignBySegment[seg] = daysAgo === 0 ? 'today' : `${daysAgo}d ago`;
+                }
+            }
+        }
+    } catch {
+        // Non-fatal: campaigns index may not exist yet
+    }
+
     const summary = `**Customer Segment Analysis** (${totalCustomers} total, avg LTV: $${avgLTV})
 
-| Segment | Count | % | Avg Spend | Total LTV |
-|---------|-------|---|-----------|-----------|
+| Segment | Count | % | Avg Spend | Total LTV | Last Campaign |
+|---------|-------|---|-----------|-----------|---------------|
 ${activeSegments.map(seg => {
     const s = segments[seg];
     const info = getSegmentInfo(seg);
     const pct = ((s.count / totalCustomers) * 100).toFixed(1);
-    return `| ${info.label} | ${s.count} | ${pct}% | $${s.avgSpend.toLocaleString()} | $${Math.round(s.totalSpent).toLocaleString()} |`;
+    const lastCampaign = lastCampaignBySegment[seg] || 'Never';
+    return `| ${info.label} | ${s.count} | ${pct}% | $${s.avgSpend.toLocaleString()} | $${Math.round(s.totalSpent).toLocaleString()} | ${lastCampaign} |`;
 }).join('\n')}
 
 **Key Insights:**
 - At-risk revenue: $${Math.round(segments.at_risk.totalSpent + segments.slipping.totalSpent).toLocaleString()} across ${segments.at_risk.count + segments.slipping.count} customers
-- VIP concentration: ${segments.vip.count} VIPs account for $${Math.round(segments.vip.totalSpent).toLocaleString()} (${totalLTV > 0 ? ((segments.vip.totalSpent / totalLTV) * 100).toFixed(1) : 0}% of total LTV)`;
+- VIP concentration: ${segments.vip.count} VIPs account for $${Math.round(segments.vip.totalSpent).toLocaleString()} (${totalLTV > 0 ? ((segments.vip.totalSpent / totalLTV) * 100).toFixed(1) : 0}% of total LTV)
+- Dedup window: 30 days (customers contacted in last 30 days for same campaign type are automatically excluded)`;
 
     return { summary, segments: segments as unknown as Record<string, unknown> };
 }

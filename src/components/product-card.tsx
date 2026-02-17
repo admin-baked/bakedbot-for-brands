@@ -2,18 +2,23 @@
 'use client';
 
 import { useStore } from '@/hooks/use-store';
-import { ShoppingCart, Minus, Plus, Heart, Zap } from 'lucide-react';
+import { ShoppingCart, Minus, Plus, Heart, Zap, Leaf, Cookie, Droplets, Droplet, Wind, HandHeart, Pill, Coffee, Package, Cigarette } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { useToast } from '../hooks/use-toast';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { AddToCartButton } from '@/components/add-to-cart-button';
 import { useDynamicPrice } from '@/hooks/use-dynamic-price';
 import { useDispensaryId } from '@/hooks/use-dispensary-id';
 import type { Product } from '@/types/domain';
 import { cn } from '@/lib/utils';
+import { getCategoryIconName, getCategoryIconColor } from '@/lib/utils/product-image';
+
+const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  Leaf, Cookie, Droplets, Droplet, Wind, HandHeart, Pill, Coffee, Package, Cigarette,
+};
 
 interface ProductCardProps {
   product: Product;
@@ -35,6 +40,7 @@ export function ProductCard({
   isFavorite = false,
 }: ProductCardProps) {
   const { selectedRetailerId, cartItems, updateQuantity, removeFromCart } = useStore();
+  const [imgError, setImgError] = useState(false);
 
   const cartItem = cartItems.find(item => item.id === product.id);
   const quantity = cartItem ? cartItem.quantity : 0;
@@ -140,14 +146,25 @@ export function ProductCard({
       onClick={handleCardClick}
     >
       <div className={`relative ${variant === 'large' ? 'h-72' : 'h-48'} transition-all duration-300`}>
-        <Image
-          src={product.imageUrl}
-          alt={product.name}
-          fill
-          className="object-cover"
-          data-ai-hint={product.imageHint}
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
+        {product.imageUrl && !imgError ? (
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            className="object-cover"
+            data-ai-hint={product.imageHint}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-muted">
+            {(() => {
+              const iconName = getCategoryIconName(product.category);
+              const IconComponent = CATEGORY_ICONS[iconName] || Leaf;
+              return <IconComponent className={cn('h-10 w-10', getCategoryIconColor(product.category))} />;
+            })()}
+          </div>
+        )}
 
         {/* Quantity controls */}
         {quantity > 0 && (

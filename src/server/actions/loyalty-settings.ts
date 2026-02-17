@@ -1,0 +1,183 @@
+'use server';
+
+/**
+ * Loyalty Settings Server Actions
+ *
+ * CRUD for tenant-specific loyalty program configuration.
+ * Stored at: tenants/{orgId}/settings/loyalty
+ */
+
+import { getAdminFirestore } from '@/firebase/admin';
+import { logger } from '@/lib/logger';
+import { DEFAULT_LOYALTY_SETTINGS } from '@/types/customers';
+import type { LoyaltySettings, LoyaltyTier, RedemptionTier, SegmentThresholds } from '@/types/customers';
+import { requireUser } from '@/server/auth/require-user';
+
+/**
+ * Get loyalty settings for an org. Falls back to defaults if none saved.
+ */
+export async function getLoyaltySettings(orgId: string): Promise<{
+    success: boolean;
+    data?: LoyaltySettings;
+    error?: string;
+}> {
+    try {
+        if (!orgId) throw new Error('orgId is required');
+
+        const db = getAdminFirestore();
+        const doc = await db
+            .collection('tenants').doc(orgId)
+            .collection('settings').doc('loyalty')
+            .get();
+
+        if (!doc.exists) {
+            return { success: true, data: DEFAULT_LOYALTY_SETTINGS };
+        }
+
+        const saved = doc.data() as Partial<LoyaltySettings>;
+        // Merge with defaults so new fields are always present
+        const merged: LoyaltySettings = {
+            ...DEFAULT_LOYALTY_SETTINGS,
+            ...saved,
+            tiers: saved.tiers?.length ? saved.tiers : DEFAULT_LOYALTY_SETTINGS.tiers,
+            redemptionTiers: saved.redemptionTiers?.length ? saved.redemptionTiers : DEFAULT_LOYALTY_SETTINGS.redemptionTiers,
+            segmentThresholds: {
+                ...DEFAULT_LOYALTY_SETTINGS.segmentThresholds!,
+                ...(saved.segmentThresholds || {}),
+            },
+        };
+
+        return { success: true, data: merged };
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('[LOYALTY_SETTINGS] getLoyaltySettings failed', { error, orgId });
+        return { success: false, error: msg };
+    }
+}
+
+/**
+ * Update the full loyalty settings document.
+ */
+export async function updateLoyaltySettings(
+    orgId: string,
+    settings: Partial<LoyaltySettings>
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        await requireUser(['dispensary', 'super_user']);
+
+        if (!orgId) throw new Error('orgId is required');
+
+        const db = getAdminFirestore();
+        await db
+            .collection('tenants').doc(orgId)
+            .collection('settings').doc('loyalty')
+            .set({
+                ...settings,
+                updatedAt: new Date(),
+            }, { merge: true });
+
+        logger.info('[LOYALTY_SETTINGS] Settings updated', { orgId });
+        return { success: true };
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('[LOYALTY_SETTINGS] updateLoyaltySettings failed', { error, orgId });
+        return { success: false, error: msg };
+    }
+}
+
+/**
+ * Update only the segment thresholds section.
+ */
+export async function updateSegmentThresholds(
+    orgId: string,
+    thresholds: Partial<SegmentThresholds>
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        await requireUser(['dispensary', 'super_user']);
+
+        if (!orgId) throw new Error('orgId is required');
+
+        const db = getAdminFirestore();
+        const updateData: Record<string, unknown> = { updatedAt: new Date() };
+        for (const [key, value] of Object.entries(thresholds)) {
+            updateData[`segmentThresholds.${key}`] = value;
+        }
+
+        await db
+            .collection('tenants').doc(orgId)
+            .collection('settings').doc('loyalty')
+            .set(updateData, { merge: true });
+
+        logger.info('[LOYALTY_SETTINGS] Segment thresholds updated', { orgId, thresholds });
+        return { success: true };
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('[LOYALTY_SETTINGS] updateSegmentThresholds failed', { error, orgId });
+        return { success: false, error: msg };
+    }
+}
+
+/**
+ * Add or update a loyalty tier.
+ */
+export async function upsertLoyaltyTier(
+    orgId: string,
+    tier: LoyaltyTier
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        await requireUser(['dispensary', 'super_user']);
+
+        const { data: current } = await getLoyaltySettings(orgId);
+        const tiers = current?.tiers ?? [...DEFAULT_LOYALTY_SETTINGS.tiers];
+        const idx = tiers.findIndex(t => t.id === tier.id);
+        if (idx >= 0) tiers[idx] = tier;
+        else tiers.push(tier);
+
+        return updateLoyaltySettings(orgId, { tiers });
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        return { success: false, error: msg };
+    }
+}
+
+/**
+ * Delete a loyalty tier by id.
+ */
+export async function deleteLoyaltyTier(
+    orgId: string,
+    tierId: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        await requireUser(['dispensary', 'super_user']);
+
+        const { data: current } = await getLoyaltySettings(orgId);
+        const tiers = (current?.tiers ?? []).filter(t => t.id !== tierId);
+        return updateLoyaltySettings(orgId, { tiers });
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        return { success: false, error: msg };
+    }
+}
+
+/**
+ * Add or update a redemption tier.
+ */
+export async function upsertRedemptionTier(
+    orgId: string,
+    tier: RedemptionTier
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        await requireUser(['dispensary', 'super_user']);
+
+        const { data: current } = await getLoyaltySettings(orgId);
+        const tiers = current?.redemptionTiers ?? [...DEFAULT_LOYALTY_SETTINGS.redemptionTiers!];
+        const idx = tiers.findIndex(t => t.id === tier.id);
+        if (idx >= 0) tiers[idx] = tier;
+        else tiers.push(tier);
+
+        return updateLoyaltySettings(orgId, { redemptionTiers: tiers });
+    } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : 'Unknown error';
+        return { success: false, error: msg };
+    }
+}

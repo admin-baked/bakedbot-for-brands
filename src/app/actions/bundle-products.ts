@@ -108,6 +108,10 @@ export async function fetchEligibleBundleProducts(
                 unitCost,
                 // Calculate margin if cost is available
                 marginPercent: unitCost && data.price ? ((data.price - unitCost) / data.price) * 100 : undefined,
+                // Inventory age approximation (assume FIFO: low stock = old inventory)
+                daysOfInventory: quantity > 0 && data.averageDailySales
+                    ? Math.round(quantity / data.averageDailySales)
+                    : undefined,
             } as unknown as BundleEligibleProduct;
         });
 
@@ -165,11 +169,46 @@ export async function fetchEligibleBundleProducts(
             products = products.filter(p => p.price >= min && p.price <= max);
         }
 
-        // Sort by recommendation score (if available), then by name
+        // Calculate recommendation scores based on weighted factors:
+        // margin 40% + inventory urgency 30% + potency 20% + category bonus 10%
+        const maxMargin = Math.max(...products.map(p => p.marginPercent || 0), 1);
+        const maxTHC = Math.max(...products.map(p => (p as BundleEligibleProduct).thcPercentage || 0), 1);
+
+        products = products.map(p => {
+            const marginScore = maxMargin > 0 ? ((p.marginPercent || 0) / maxMargin) * 40 : 0;
+
+            // Inventory urgency: slow-moving stock (lots of days remaining) gets LOWER score
+            // so we prioritize products that need to move
+            const daysOfInventory = (p as BundleEligibleProduct).daysOfInventory;
+            const inventoryScore = daysOfInventory !== undefined
+                ? daysOfInventory > 60
+                    ? 30  // Old stock — high urgency to bundle/clear
+                    : daysOfInventory > 30
+                        ? 20
+                        : daysOfInventory > 14
+                            ? 10
+                            : 5
+                : 15; // Unknown age — neutral score
+
+            const thc = (p as BundleEligibleProduct).thcPercentage || 0;
+            const potencyScore = maxTHC > 0 ? (thc / maxTHC) * 20 : 0;
+
+            // Category popularity bonus (edibles/flower are highest-demand in cannabis)
+            const cat = (p.category || '').toLowerCase();
+            const categoryBonus = cat.includes('flower') || cat.includes('edible') ? 10
+                : cat.includes('preroll') || cat.includes('pre-roll') ? 8
+                : cat.includes('vape') || cat.includes('concentrate') ? 6
+                : 4;
+
+            const score = Math.round(Math.min(100, marginScore + inventoryScore + potencyScore + categoryBonus));
+            return { ...p, recommendationScore: score } as BundleEligibleProduct;
+        });
+
+        // Sort by recommendation score descending, then by name
         products.sort((a, b) => {
-            if (a.recommendationScore && b.recommendationScore) {
-                return b.recommendationScore - a.recommendationScore;
-            }
+            const scoreA = (a as BundleEligibleProduct).recommendationScore || 0;
+            const scoreB = (b as BundleEligibleProduct).recommendationScore || 0;
+            if (scoreA !== scoreB) return scoreB - scoreA;
             return a.name.localeCompare(b.name);
         });
 

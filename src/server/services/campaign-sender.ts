@@ -83,16 +83,51 @@ export async function resolveAudience(campaign: Campaign): Promise<ResolvedRecip
         });
     }
 
+    // Deduplication: filter out customers already contacted in the last 30 days
+    // for the same campaign type (prevents spam from repeated sends)
+    const DEDUP_LOOKBACK_DAYS = 30;
+    const lookbackDate = new Date(Date.now() - DEDUP_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+
+    const campaignType = campaign.goal === 'winback' ? 'winback'
+        : campaign.goal === 'birthday' ? 'birthday'
+        : campaign.goal === 'retention' || campaign.goal === 'loyalty' ? 'loyalty'
+        : 'campaign';
+
+    const recentCommsSnap = await firestore.collection('customer_communications')
+        .where('orgId', '==', campaign.orgId)
+        .where('type', '==', campaignType)
+        .where('sentAt', '>=', lookbackDate)
+        .get();
+
+    const recentlyContactedEmails = new Set(
+        recentCommsSnap.docs.map(d => d.data().customerEmail as string).filter(Boolean)
+    );
+
+    const deduped = recentlyContactedEmails.size > 0
+        ? recipients.filter(r => !recentlyContactedEmails.has(r.email))
+        : recipients;
+
+    if (deduped.length < recipients.length) {
+        logger.info('[CAMPAIGN_SENDER] Deduplication applied', {
+            campaignId: campaign.id,
+            original: recipients.length,
+            deduped: deduped.length,
+            removed: recipients.length - deduped.length,
+            lookbackDays: DEDUP_LOOKBACK_DAYS,
+            campaignType,
+        });
+    }
+
     logger.info('[CAMPAIGN_SENDER] Audience resolved', {
         campaignId: campaign.id,
-        total: recipients.length,
-        segmentBreakdown: recipients.reduce((acc, r) => {
+        total: deduped.length,
+        segmentBreakdown: deduped.reduce((acc, r) => {
             acc[r.segment] = (acc[r.segment] || 0) + 1;
             return acc;
         }, {} as Record<string, number>),
     });
 
-    return recipients;
+    return deduped;
 }
 
 // =============================================================================
