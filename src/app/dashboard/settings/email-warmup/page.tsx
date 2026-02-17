@@ -12,8 +12,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useUserRole } from '@/hooks/use-user-role';
 import { getMyWarmupStatus, startEmailWarmup, pauseEmailWarmup, getEmailWarmupLogs } from '@/server/actions/email-warmup';
-import { WARMUP_DURATION_DAYS } from '@/server/services/email-warmup';
 import type { WarmupStatus, WarmupLog, WarmupScheduleType } from '@/server/actions/email-warmup';
+
+const WARMUP_DURATION_DAYS = 28;
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
