@@ -51,6 +51,9 @@ import {
     Image,
     HardDrive,
     Zap,
+    QrCode,
+    SlidersHorizontal,
+    Flame,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -223,6 +226,22 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/loyalty-tablet-qr')}>
+                                <Link href="/dashboard/loyalty-tablet-qr" prefetch={true}>
+                                    <QrCode />
+                                    <span>QR Sign-up</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/settings/loyalty')}>
+                                <Link href="/dashboard/settings/loyalty" prefetch={true}>
+                                    <SlidersHorizontal />
+                                    <span>Loyalty Settings</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
@@ -353,6 +372,14 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                         <Link href="/dashboard/settings" prefetch={true}>
                                             <Settings />
                                             <span>Settings</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={isActive('/dashboard/settings/email-warmup')}>
+                                        <Link href="/dashboard/settings/email-warmup" prefetch={true}>
+                                            <Flame />
+                                            <span>Email Warm-up</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
