@@ -12,16 +12,53 @@ BakedBot integrates with numerous external services for messaging, payments, dat
 | **Blackleaf** | Craig | `blackleaf-service.ts` | Messaging | Default SMS |
 | **Mailjet** | Craig | `mailjet-service.ts` | Messaging | Default Email |
 | **WhatsApp** | Craig | `openclaw/gateway.ts` | Messaging | Production |
+| **Slack** | All Agents | `slack-agent-bridge.ts` | Notifications | Live (2026-02-17) |
 | **Alpine IQ** | Mrs. Parker | `alpine-iq.ts` | Loyalty | Live |
 | **CannMenus** | Ezal | `cannmenus.ts` | Data | Live |
 | **Headset** | Ezal | `headset.ts` | Data | Mock |
 | **Green Check** | Deebo | `green-check.ts` | Compliance | Mock |
 | **Authorize.net** | Money Mike | `authorize-net.ts` | Payments | Live |
+| **Aeropay** | Money Mike | `lib/payments/aeropay.ts` | Payments | Live (Thrive Syracuse) |
 | **Firecrawl** | Discovery | `firecrawl.ts` | Scraping | Live |
 | **Twilio** | Craig | `twilio.ts` | Messaging | Backup |
 | **Ayrshare** | Craig | `social-manager.ts` | Social | Live |
 | **Cal.com** | Felisha | `scheduling-manager.ts` | Scheduling | Live |
 | **Google Maps** | Discovery | `gmaps-connector.ts` | Geo | Live |
+
+---
+
+## Slack Integration (2026-02-17)
+
+**Secret:** `SLACK_WEBHOOK_URL` in Secret Manager (never hardcode — learned the hard way)
+
+| File | Purpose |
+|------|---------|
+| `src/server/services/communications/slack.ts` | Core Slack service, sendSlackMessage() |
+| `src/server/services/slack-agent-bridge.ts` | Agent → Slack bridge (post on behalf of agents) |
+| `src/app/api/webhooks/slack/events/route.ts` | Slack Events API handler (slash commands, mentions) |
+
+**Usage:**
+```typescript
+import { sendSlackMessage } from '@/server/services/communications/slack';
+
+await sendSlackMessage({
+    webhookUrl: process.env.SLACK_WEBHOOK_URL!,
+    blocks: [/* Block Kit blocks */],
+    text: 'Fallback text',
+});
+```
+
+**Heartbeat Integration:**
+- Critical/high heartbeat events → Slack notification
+- Per-tenant webhook URLs stored in Firestore: `tenants/{orgId}/settings/heartbeat.slackWebhookUrl`
+- BakedBot's own workspace uses `SLACK_WEBHOOK_URL` env var
+
+**Secret Setup:**
+```bash
+# New webhook from Slack → Secret Manager (NEVER hardcode)
+echo -n "https://hooks.slack.com/services/..." | gcloud secrets create SLACK_WEBHOOK_URL --data-file=- --project=studio-567050101-bc6e8
+firebase apphosting:secrets:grantaccess SLACK_WEBHOOK_URL --backend=bakedbot-prod
+```
 
 ---
 

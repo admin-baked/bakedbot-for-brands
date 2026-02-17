@@ -19,12 +19,83 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-02-15)
-**Recent Updates:** Payment App Store (Smokey Pay & Aeropay) + Aeropay integration (Thrive Syracuse) + Campaign Management + Training auto-enrollment + Firebase build fixes
+**Current Status:** 🟢 Passing (verified 2026-02-17)
+**Recent Updates:** Competitive Intel (Drive+Email+Alerts+Ezal tools) + Loyalty Tablet/QR + Slack Integration + Payment App Store + Aeropay + Campaign Management + Training auto-enrollment
+
+---
+
+## 🔒 SECURITY RULE: NEVER HARDCODE SECRETS
+
+**Secrets in code = blocked push + rotated credentials.** It happened (Slack webhook, 2026-02-17).
+
+### The Only Correct Pattern:
+```bash
+# 1. Create in Secret Manager
+echo -n "secret-value" | gcloud secrets create SECRET_NAME --data-file=- --project=studio-567050101-bc6e8
+# 2. Grant Firebase access (Firebase CLI ONLY — not raw gcloud)
+firebase apphosting:secrets:grantaccess SECRET_NAME --backend=bakedbot-prod
+# 3. Reference in apphosting.yaml — use secret:, NEVER value:
+```
+```yaml
+- variable: MY_SECRET
+  secret: MY_SECRET          # ✅ Correct
+  availability: [RUNTIME]
+
+- variable: MY_SECRET
+  value: "actual-secret"     # ❌ NEVER DO THIS
+```
+```typescript
+// In code: always from env
+const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+// In scripts: env var with fallback
+const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
+```
+
+See `.agent/refs/firebase-secrets.md` for full pattern.
 
 ---
 
 ## 🆕 Recent Updates
+
+### Competitive Intelligence System (2026-02-17)
+**Status:** ✅ Production — Full automation for Thrive Syracuse
+
+**What It Does:** Daily report at 9 AM EST scans 4 local Syracuse competitors, saves to BakedBot Drive, creates inbox notification, sends email to `thrivesyracuse@bakedbot.ai`, detects real-time price alerts.
+
+**Key Files:**
+- `src/app/api/cron/competitive-intel/route.ts` — Direct cron endpoint (reliable, bypasses playbook)
+- `src/server/services/ezal/weekly-intel-report.ts` — Core: report + Drive + Inbox + Email
+- `src/server/services/ezal/competitor-alerts.ts` — Real-time alerts (>30% price drops, strategy changes)
+- `src/server/agents/ezal.ts` — `readDriveFile()` + `listCompetitiveReports()` tools
+
+**Critical Pattern — Tenant Doc May Not Exist:**
+```typescript
+// WRONG: fails silently for orgs without tenants/{orgId} doc
+const tenantDoc = await firestore.collection('tenants').doc(orgId).get();
+const adminUserId = tenantData?.ownerId; // → undefined for Thrive Syracuse
+
+// RIGHT: fall back to users collection
+if (!tenantDoc.exists || !adminUserId) {
+    const usersSnap = await firestore.collection('users')
+        .where('orgId', '==', orgId).limit(10).get();
+    const admin = users.find(u => u.role === 'dispensary') || users[0];
+}
+```
+
+**For New Pilot Customers:**
+1. Use `playbook_templates/competitive_intel_daily` template
+2. Run `npx tsx scripts/seed-thrive-competitors.ts` pattern (adapt competitor list)
+3. Create Cloud Scheduler job pointing to `/api/cron/competitive-intel`
+4. Competitors live in `tenants/{orgId}/competitors/`, snapshots in `tenants/{orgId}/competitor_snapshots/`
+
+### Slack Integration (2026-02-17)
+**Status:** ✅ Active — `SLACK_WEBHOOK_URL` secret in Secret Manager
+
+- Heartbeat notifier sends Block Kit alerts for critical/high events
+- Slack agent bridge in `src/server/services/slack-agent-bridge.ts`
+- Webhook events: `src/app/api/webhooks/slack/events/route.ts`
+- Per-tenant webhook URL stored in Firestore (heartbeat config)
+- `SLACK_WEBHOOK_URL` env var = BakedBot's own workspace webhook
 
 ### Payment App Store Integration (2026-02-15)
 **Status:** ✅ Production-ready — Unified payment processor management UI
