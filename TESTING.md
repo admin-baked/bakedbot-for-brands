@@ -1,5 +1,5 @@
 # BakedBot Testing Guide
-**Living Document - Last Updated: 2026-02-17**
+**Living Document - Last Updated: 2026-02-18**
 
 This document tracks all testing tasks, test coverage, and quality assurance procedures for BakedBot.
 
@@ -16,7 +16,9 @@ This document tracks all testing tasks, test coverage, and quality assurance pro
 | **Slack Agent Bridge** | 34 | ✅ Pass | `tests/services/slack-agent-bridge.test.ts` |
 | **Email Service** | 7 | ✅ Pass | `tests/services/email-service.test.ts` |
 | **Email Warmup** | 20 | ✅ Pass | `tests/services/email-warmup.test.ts` |
-| **TOTAL** | **96** | ✅ **All Passing** | |
+| **System Health Checks** | 18 | ✅ Pass | `tests/services/system-health-checks.test.ts` |
+| **User Notifications** | 25 | ✅ Pass | `tests/services/user-notification.test.ts` |
+| **TOTAL** | **139** | ✅ **All Passing** | |
 
 ### Build Health
 ```bash
@@ -146,6 +148,77 @@ npm test -- tests/api/ceo/audit-logs-stream.test.ts
 
 ---
 
+## 🎯 Phase 3 Test Coverage (2026-02-18)
+
+### ✅ System Health Checks Tests (18 tests)
+**File:** `tests/services/system-health-checks.test.ts`
+
+**Covered Scenarios:**
+- ✅ Execute system_stats check (tenant/user/order counts)
+- ✅ Execute heartbeat_diagnose check (health + issues)
+- ✅ Execute platform_analytics check (service availability)
+- ✅ Execute database_latency check (query performance)
+- ✅ Return warning on stale heartbeat (>35 min)
+- ✅ Return error on failed heartbeat
+- ✅ Log health check runs to Firestore
+- ✅ Calculate health statistics (success rate, breakdown)
+- ✅ Handle unknown check types
+- ✅ Handle execution errors gracefully
+- ✅ Latency thresholds: healthy <200ms, warning 200-500ms, error >500ms
+
+**Test Command:**
+```bash
+npm test -- tests/services/system-health-checks.test.ts
+```
+
+**Expected Output:**
+```
+PASS  tests/services/system-health-checks.test.ts
+  SystemHealthChecksService
+    executeCheck
+      ✓ should execute system_stats check
+      ✓ should execute heartbeat_diagnose check
+      ✓ should return warning when heartbeat is stale
+      ✓ should return error when heartbeat last run failed
+      ... (8 more tests)
+  18 passed
+```
+
+### ✅ User Notifications Tests (25 tests)
+**File:** `tests/services/user-notification.test.ts`
+
+**Covered Scenarios:**
+- ✅ Send approval email with user context
+- ✅ Send rejection email with reason
+- ✅ Send promotion email with role info
+- ✅ Include org admin email (fallback to users collection)
+- ✅ Mailjet API integration (authentication, endpoint, headers)
+- ✅ HTML email templates (approval, rejection, promotion)
+- ✅ Handle missing user gracefully
+- ✅ Handle Mailjet failures gracefully
+- ✅ Handle missing Mailjet credentials
+- ✅ Firestore error handling
+- ✅ Network error handling
+
+**Test Command:**
+```bash
+npm test -- tests/services/user-notification.test.ts
+```
+
+**Expected Output:**
+```
+PASS  tests/services/user-notification.test.ts
+  UserNotificationService
+    notifyUserApproved
+      ✓ should send approval email to user
+      ✓ should include user and org info in email
+      ✓ should return false if user not found
+      ... (7 more tests)
+  25 passed
+```
+
+---
+
 ## 🚀 Manual Testing Checklist
 
 ### Super User Agent Tools - Manual Verification
@@ -183,6 +256,24 @@ es.onmessage = (e) => console.log(JSON.parse(e.data));
 - [ ] **Expected:** Cache hit after first call (5-min TTL)
 - [ ] **Verify:** Response latency <50ms on cache hits
 - [ ] **Command:** Ask Leo agent "What are our system stats?"
+
+#### Tool 6: System Health Checks (Phase 3a)
+- [ ] **Test:** Trigger cron endpoint with valid CRON_SECRET
+- [ ] **Expected:** 4 checks executed, results logged to Firestore
+- [ ] **Verify:** `health_check_runs` collection contains run record
+- [ ] **Command:** `curl -X POST http://localhost:3000/api/cron/system-health-checks -H "Authorization: Bearer $CRON_SECRET"`
+- [ ] **Check statuses:** system_stats (healthy), heartbeat_diagnose, platform_analytics, database_latency
+
+#### Tool 7: User Notifications (Phase 3b)
+- [ ] **Test:** Approve a pending user via agent
+- [ ] **Expected:** Approval email sent, audit logged, status → active
+- [ ] **Verify:** Check user email inbox + Firestore `users/{uid}` document
+- [ ] **Command:** Ask Linus agent "Approve user pending@example.com"
+- [ ] **Email content:** Should include "Welcome", org name, dashboard link
+- [ ] **Test rejection:** Reject user with reason
+- [ ] **Expected:** Rejection email with reason message
+- [ ] **Test promotion:** Promote user to super_user
+- [ ] **Expected:** Promotion email with feature list (Analytics, User Mgmt, etc.)
 
 ---
 
@@ -324,27 +415,44 @@ describe('MyService', () => {
 
 ---
 
-## 🚦 Testing Roadmap (Phase 3)
+## 🚦 Testing Roadmap & Status
 
-### Integration Tests (Planned)
+### Phase 3a: Scheduled System Checks ✅ Complete
+- [x] System health check service (18 tests)
+- [x] Cron endpoint for scheduled execution
+- [x] Firestore logging of check runs
+- [x] Health statistics calculations
+- [x] Manual verification checklist
+
+### Phase 3b: User Notifications ✅ Complete
+- [x] Email notification service (25 tests)
+- [x] Approval email with context
+- [x] Rejection email with reasons
+- [x] Promotion email with features
+- [x] Mailjet API integration
+- [x] HTML email templates
+- [x] Manual verification checklist
+
+### Phase 4: Integration Tests (Planned)
 - [ ] Tool caching + Firebase integration
 - [ ] Audit streaming + Firestore listeners
-- [ ] User approval + email notifications
+- [ ] Health checks + alert triggering
 - [ ] Scheduled checks + Cloud Tasks
 
-### E2E Tests (Planned)
+### Phase 5: E2E Tests (Planned)
 - [ ] Super User agent workflows
 - [ ] Dashboard audit log UI
 - [ ] Real-time streaming in browser
 - [ ] Cache invalidation on mutations
+- [ ] Health check alerts via Slack
 
-### Performance Tests (Planned)
-- [ ] Cache hit rate monitoring
+### Phase 6: Performance Tests (Planned)
+- [ ] Cache hit rate monitoring (target: >70%)
 - [ ] Response time benchmarks
 - [ ] Concurrent user load testing
 - [ ] Database query optimization
 
-### Security Tests (Planned)
+### Phase 7: Security Tests (Planned)
 - [ ] Authentication checks on all endpoints
 - [ ] Authorization (role-based access)
 - [ ] Input validation
