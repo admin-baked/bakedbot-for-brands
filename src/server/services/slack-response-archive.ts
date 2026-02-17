@@ -28,7 +28,7 @@ export interface SlackResponseRecord {
     // Context
     isDm: boolean;
     isChannelMsg: boolean;
-    requestType: 'dm' | 'mention' | 'channel' | 'slash-command' | 'thread';
+    requestType: 'dm' | 'mention' | 'channel' | 'slash-command' | 'thread' | 'approval_required';
 
     // Indexed fields for queries
     date: string; // YYYY-MM-DD for daily grouping
