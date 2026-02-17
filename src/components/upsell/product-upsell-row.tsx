@@ -13,7 +13,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Leaf, Sparkles, Tag, Zap } from 'lucide-react';
+import { Plus, Leaf, Sparkles, Tag, Zap, X } from 'lucide-react';
 import type { Product } from '@/types/domain';
 import type { UpsellSuggestion, UpsellPlacement, UpsellResult } from '@/types/upsell';
 
@@ -55,6 +55,7 @@ export function ProductUpsellRow({
 }: ProductUpsellRowProps) {
   const [suggestions, setSuggestions] = useState<UpsellSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,7 +77,8 @@ export function ProductUpsellRow({
     return () => { cancelled = true; };
   }, [fetchUpsells]);
 
-  // Don't render anything if no suggestions
+  // Don't render anything if dismissed or no suggestions
+  if (dismissed) return null;
   if (!loading && suggestions.length === 0) return null;
 
   // Loading skeleton
@@ -100,9 +102,18 @@ export function ProductUpsellRow({
 
   return (
     <div className="space-y-3">
-      <h4 className="font-semibold text-sm uppercase text-muted-foreground flex items-center gap-2">
-        <Sparkles className="h-4 w-4" />
-        {heading}
+      <h4 className="font-semibold text-sm uppercase text-muted-foreground flex items-center gap-2 justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4" />
+          {heading}
+        </div>
+        <button
+          onClick={() => setDismissed(true)}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Dismiss suggestions"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </h4>
 
       <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">

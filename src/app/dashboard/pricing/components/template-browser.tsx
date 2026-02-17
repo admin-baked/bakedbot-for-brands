@@ -35,11 +35,12 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
-import { createPricingRule } from '@/app/actions/dynamic-pricing';
+import { Sparkles, CheckCircle2, AlertCircle, Eye, TrendingUp, TrendingDown } from 'lucide-react';
+import { createPricingRule, previewPricingRuleImpact } from '@/app/actions/dynamic-pricing';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import type { DynamicPricingRule } from '@/types/dynamic-pricing';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface TemplateBrowserProps {
   orgId: string;
@@ -57,6 +58,14 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
   const [customName, setCustomName] = useState('');
   const [customDiscount, setCustomDiscount] = useState<number>(0);
   const [customMinPrice, setCustomMinPrice] = useState<number>(5.0);
+
+  // Preview state
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    affectedProductsCount: number;
+    revenueImpact: number;
+    avgDiscount: number;
+  } | null>(null);
 
   const handleSelectTemplate = (template: PricingRuleTemplate) => {
     setSelectedTemplate(template);
@@ -104,6 +113,45 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
       });
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const handlePreviewImpact = async () => {
+    if (!selectedTemplate) return;
+
+    setIsPreviewing(true);
+    setPreviewData(null);
+    try {
+      const ruleConfig: Partial<DynamicPricingRule> = {
+        ...selectedTemplate.config,
+        name: customName,
+        orgId,
+        priceAdjustment: {
+          ...selectedTemplate.config.priceAdjustment,
+          value: customDiscount / 100,
+          minPrice: customMinPrice,
+        },
+      };
+
+      const result = await previewPricingRuleImpact(orgId, ruleConfig);
+
+      if (result.success && result.data) {
+        setPreviewData({
+          affectedProductsCount: result.data.affectedProductsCount,
+          revenueImpact: result.data.revenueImpact,
+          avgDiscount: result.data.avgDiscount,
+        });
+      } else {
+        throw new Error(result.error || 'Failed to preview impact');
+      }
+    } catch (error) {
+      toast({
+        title: 'Preview Error',
+        description: error instanceof Error ? error.message : 'Failed to preview impact',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsPreviewing(false);
     }
   };
 
@@ -320,6 +368,58 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
                     {selectedTemplate.estimatedImpact}
                   </p>
                 </div>
+              </div>
+
+              {/* Preview Impact Section */}
+              <div className="space-y-3">
+                <Button
+                  onClick={handlePreviewImpact}
+                  variant="outline"
+                  className="w-full gap-2"
+                  disabled={isPreviewing || !customName}
+                >
+                  <Eye className="h-4 w-4" />
+                  {isPreviewing ? 'Calculating...' : 'Preview Impact'}
+                </Button>
+
+                {previewData && (
+                  <Alert>
+                    <AlertDescription>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Affected Products:</span>
+                          <Badge variant="secondary">{previewData.affectedProductsCount}</Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Avg Discount:</span>
+                          <span className="text-sm font-semibold text-orange-600">
+                            {previewData.avgDiscount.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Revenue Impact:</span>
+                          <div className="flex items-center gap-1">
+                            {previewData.revenueImpact < 0 ? (
+                              <>
+                                <TrendingDown className="h-4 w-4 text-red-500" />
+                                <span className="text-sm font-semibold text-red-600">
+                                  ${Math.abs(previewData.revenueImpact).toFixed(2)}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <TrendingUp className="h-4 w-4 text-green-500" />
+                                <span className="text-sm font-semibold text-green-600">
+                                  +${previewData.revenueImpact.toFixed(2)}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
             </div>
           )}

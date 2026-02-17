@@ -1275,3 +1275,140 @@ export async function publishToMenuAndPOS(
     };
   }
 }
+
+/**
+ * Preview the impact of a pricing rule without applying it
+ *
+ * @param orgId - Organization ID
+ * @param ruleConfig - Partial pricing rule configuration to preview
+ * @returns Preview data with affected products and revenue impact
+ */
+export async function previewPricingRuleImpact(
+  orgId: string,
+  ruleConfig: Partial<DynamicPricingRule>
+): Promise<{
+  success: boolean;
+  data?: {
+    affectedProductsCount: number;
+    products: Array<{
+      id: string;
+      name: string;
+      currentPrice: number;
+      newPrice: number;
+      priceDiff: number;
+      percentChange: number;
+    }>;
+    totalRevenueBefore: number;
+    totalRevenueAfter: number;
+    revenueImpact: number;
+    avgDiscount: number;
+  };
+  error?: string;
+}> {
+  try {
+    if (!orgId) {
+      throw new Error('Organization ID is required');
+    }
+
+    const db = getAdminFirestore();
+    logger.info('[DYNAMIC_PRICING] Previewing rule impact', { orgId, ruleConfig });
+
+    // Fetch all products from publicViews/products/items
+    const productsSnapshot = await db
+      .collection('publicViews')
+      .doc(orgId)
+      .collection('products')
+      .doc('menu')
+      .collection('items')
+      .get();
+
+    const allProducts: any[] = productsSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    // Filter products based on rule conditions
+    const matchingProducts = allProducts.filter((product: any) => {
+      const conditions = ruleConfig.conditions || {};
+
+      // Category filter
+      if (conditions.categories && conditions.categories.length > 0) {
+        if (!conditions.categories.includes(product.category)) return false;
+      }
+
+      // Product IDs filter
+      if (conditions.productIds && conditions.productIds.length > 0) {
+        if (!conditions.productIds.includes(product.id)) return false;
+      }
+
+      return true;
+    });
+
+    // Calculate price changes for each product
+    const productsWithPricing = matchingProducts.map((product: any) => {
+      const currentPrice = product.price || 0;
+      const adjustment = ruleConfig.priceAdjustment || { type: 'percentage' as const, value: 0 };
+
+      let newPrice = currentPrice;
+      if (adjustment.type === 'percentage') {
+        newPrice = currentPrice * (1 - (adjustment.value || 0));
+      } else if (adjustment.type === 'fixed_amount') {
+        newPrice = currentPrice - (adjustment.value || 0);
+      } else if (adjustment.type === 'set_price') {
+        newPrice = adjustment.value || 0;
+      }
+
+      // Apply min/max constraints
+      if (adjustment.minPrice) {
+        newPrice = Math.max(newPrice, adjustment.minPrice);
+      }
+      if (adjustment.maxPrice) {
+        newPrice = Math.min(newPrice, adjustment.maxPrice);
+      }
+
+      const priceDiff = currentPrice - newPrice;
+      const percentChange = currentPrice > 0 ? (priceDiff / currentPrice) * 100 : 0;
+
+      return {
+        id: product.id,
+        name: product.name || 'Unknown Product',
+        currentPrice: Math.round(currentPrice * 100) / 100,
+        newPrice: Math.round(newPrice * 100) / 100,
+        priceDiff: Math.round(priceDiff * 100) / 100,
+        percentChange: Math.round(percentChange * 10) / 10,
+      };
+    });
+
+    // Calculate revenue impact
+    const totalRevenueBefore = productsWithPricing.reduce((sum, p) => sum + p.currentPrice, 0);
+    const totalRevenueAfter = productsWithPricing.reduce((sum, p) => sum + p.newPrice, 0);
+    const revenueImpact = totalRevenueAfter - totalRevenueBefore;
+    const avgDiscount = productsWithPricing.length > 0
+      ? productsWithPricing.reduce((sum, p) => sum + p.percentChange, 0) / productsWithPricing.length
+      : 0;
+
+    logger.info('[DYNAMIC_PRICING] Preview complete', {
+      orgId,
+      affectedProducts: productsWithPricing.length,
+      revenueImpact,
+    });
+
+    return {
+      success: true,
+      data: {
+        affectedProductsCount: productsWithPricing.length,
+        products: productsWithPricing,
+        totalRevenueBefore: Math.round(totalRevenueBefore * 100) / 100,
+        totalRevenueAfter: Math.round(totalRevenueAfter * 100) / 100,
+        revenueImpact: Math.round(revenueImpact * 100) / 100,
+        avgDiscount: Math.round(avgDiscount * 10) / 10,
+      },
+    };
+  } catch (error) {
+    logger.error('[DYNAMIC_PRICING] Preview failed', { error, orgId });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to preview pricing rule impact',
+    };
+  }
+}

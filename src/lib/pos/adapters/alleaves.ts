@@ -653,51 +653,77 @@ export class ALLeavesClient implements POSClient {
      * Get orders with pagination
      *
      * @param maxOrders - Maximum number of orders to fetch (default: 100)
+     * @param startDate - Optional start date filter (YYYY-MM-DD, defaults to 2020-01-01)
+     * @param endDate - Optional end date filter (YYYY-MM-DD, defaults to today)
      * @returns Array of orders with full details
      */
-    async getAllOrders(maxOrders: number = 100): Promise<any[]> {
+    async getAllOrders(maxOrders: number = 100, startDate?: string, endDate?: string): Promise<any[]> {
         const pageSize = 100; // Alleaves API page size
         const maxPages = Math.ceil(maxOrders / pageSize);
         const allOrders: any[] = [];
 
+        // Default date range: all historical orders since 2020
+        const fromDate = startDate || '2020-01-01';
+        const toDate = endDate || new Date().toISOString().split('T')[0]; // Today
+
+        logger.info('[ALLEAVES] Starting order fetch', {
+            maxOrders,
+            maxPages,
+            dateRange: `${fromDate} to ${toDate}`,
+        });
+
         for (let page = 1; page <= maxPages; page++) {
-            // Use GET with query parameters - add date range to get ALL orders
-            // Set start date far in the past to ensure we get all historical orders
-            const startDate = '2020-01-01'; // Get orders from 2020 onwards
-            const endDate = new Date().toISOString().split('T')[0]; // Today
+            const url = `/order?page=${page}&pageSize=${pageSize}&startDate=${fromDate}&endDate=${toDate}`;
 
-            const data = await this.request<any>(
-                `/order?page=${page}&pageSize=${pageSize}&startDate=${startDate}&endDate=${endDate}`,
-                {
-                    method: 'GET',
-                }
-            );
+            logger.info('[ALLEAVES] Fetching page', { page, maxPages, url });
 
-            // Response is a direct array, not wrapped in { orders: [] }
-            const orders = Array.isArray(data) ? data : (data.orders || data.data || []);
+            const data = await this.request<any>(url, { method: 'GET' });
+
+            // Response may be a direct array or wrapped in an object
+            const orders = Array.isArray(data) ? data : (data.orders || data.data || data.results || []);
+
+            logger.info('[ALLEAVES] Page result', {
+                page,
+                returned: orders.length,
+                totalSoFar: allOrders.length + orders.length,
+                rawDataType: Array.isArray(data) ? 'array' : typeof data,
+                rawKeys: !Array.isArray(data) && data ? Object.keys(data) : [],
+            });
 
             if (orders.length > 0) {
                 allOrders.push(...orders);
 
                 // Stop if we got fewer than pageSize (last page)
                 if (orders.length < pageSize) {
-                    logger.info('[ALLEAVES] Reached last page', { page, orderCount: orders.length });
+                    logger.info('[ALLEAVES] Reached last page (partial page)', {
+                        page,
+                        pageCount: orders.length,
+                        totalFetched: allOrders.length,
+                    });
                     break;
                 }
             } else {
-                logger.info('[ALLEAVES] No orders on page, stopping pagination', { page });
+                logger.info('[ALLEAVES] Empty page, stopping pagination', {
+                    page,
+                    totalFetched: allOrders.length,
+                });
                 break;
             }
 
             // Stop if we've reached the desired limit
             if (allOrders.length >= maxOrders) {
+                logger.info('[ALLEAVES] Reached maxOrders limit', {
+                    page,
+                    maxOrders,
+                    totalFetched: allOrders.length,
+                });
                 break;
             }
         }
 
         logger.info('[ALLEAVES] Total orders fetched', {
             totalOrders: allOrders.length,
-            pages: Math.ceil(allOrders.length / pageSize)
+            dateRange: `${fromDate} to ${toDate}`,
         });
         return allOrders.slice(0, maxOrders);
     }

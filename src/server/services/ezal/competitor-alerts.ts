@@ -244,11 +244,12 @@ async function createInboxAlertNotification(alert: CompetitorAlert): Promise<voi
             tags: ['competitor-alert', 'real-time', alert.type],
             initialMessage: {
                 id: `msg_${Date.now()}`,
-                role: 'assistant',
-                content,
-                agentPersona: 'ezal',
-                timestamp: new Date(),
-            },
+                userId: 'agent_ezal',
+                userName: 'Ezal',
+                userAvatar: '/agents/ezal-avatar.png',
+                message: content,
+                timestamp: Date.now(),
+            } as any, // TODO: Fix type mismatch between ChatMessage (collaboration) and inbox message
         });
 
     } catch (error) {

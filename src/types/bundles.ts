@@ -42,6 +42,13 @@ export interface BundleDeal {
 
     // Mix & Match Configuration
     eligibleProductIds?: string[]; // IDs of products eligible for this bundle
+    criteria?: {
+        categories?: string[];
+        brands?: string[];
+        subcategories?: string[];
+        priceRange?: { min: number; max: number };
+        tags?: string[];
+    };
 
     // Tiers for tiered bundles
     tiers?: {

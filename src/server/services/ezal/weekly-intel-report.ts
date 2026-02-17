@@ -197,7 +197,7 @@ export async function generateWeeklyIntelReport(
             // Get latest snapshot for this competitor
             const latestSnapshot = snapshots
                 .filter(s => s.competitorId === summary.competitorId)
-                .sort((a, b) => b.capturedAt.getTime() - a.capturedAt.getTime())[0];
+                .sort((a, b) => b.scrapedAt.getTime() - a.scrapedAt.getTime())[0];
 
             if (!latestSnapshot) continue;
 
@@ -214,7 +214,7 @@ export async function generateWeeklyIntelReport(
                 priceStrategy: competitorSections.find(c => c.competitorId === summary.competitorId)?.priceStrategy || 'unknown',
                 avgPrice: summary.avgDealPrice,
                 dealCount: summary.totalDeals,
-                capturedAt: latestSnapshot.capturedAt,
+                capturedAt: latestSnapshot.scrapedAt,
             });
 
             // Save and notify for any alerts
