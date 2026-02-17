@@ -25,6 +25,10 @@ export interface EzalTools {
   getCompetitiveIntel(state: string, city?: string): Promise<any>;
   // NEW: Search the web for general research
   searchWeb(query: string): Promise<string>;
+  // NEW: Read competitive intelligence reports from Drive
+  readDriveFile(reportId: string): Promise<string>;
+  // NEW: List available competitive intelligence reports
+  listCompetitiveReports(orgId: string, limit?: number): Promise<any[]>;
   // NEW: Save insights to memory
   lettaSaveFact?(fact: string, category?: string): Promise<any>;
   lettaUpdateCoreMemory(section: 'persona' | 'human', content: string): Promise<any>;
@@ -54,6 +58,15 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
       1. **Price Watch**: Identify who is undercutting us on top SKUs.
       2. **Gap Analysis**: Report which popular products we are missing compared to neighbors.
       3. **Trigger**: If you see a threat, coordinate with Craig for counter-campaigns.
+      4. **Intelligence Reports**: Access weekly competitive intelligence reports from BakedBot Drive.
+
+      === COMPETITIVE INTELLIGENCE REPORTS ===
+      Weekly reports are automatically saved to BakedBot Drive. You can:
+      - Use **readDriveFile('latest')** to access the most recent competitive intelligence report
+      - Use **listCompetitiveReports(orgId)** to see available reports
+      - Reports contain: market trends, top deals, competitor pricing strategies, pricing gaps, and recommendations
+
+      When asked about competitors, pricing, or market trends, ALWAYS check the latest Drive report first.
 
       === AGENT SQUAD (For Collaboration) ===
       ${squadRoster}
@@ -151,6 +164,21 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                     threat: z.string().describe("Description of the threat (e.g., 'Selling Blue Dream for $5 less')"),
                     product: z.string().describe("The product involved")
                 })
+            },
+            {
+                name: "readDriveFile",
+                description: "Read a competitive intelligence report from BakedBot Drive. Use this to answer questions about competitor pricing, deals, market trends, and recommendations from weekly reports.",
+                schema: z.object({
+                    reportId: z.string().describe("The report ID to read (use 'latest' for most recent report)")
+                })
+            },
+            {
+                name: "listCompetitiveReports",
+                description: "List available competitive intelligence reports to see what data is available.",
+                schema: z.object({
+                    orgId: z.string().describe("Organization ID"),
+                    limit: z.number().optional().describe("Number of reports to return (default 5)")
+                })
             }
         ];
 
@@ -172,12 +200,20 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
                 logger.info(`[Ezal] Alerting Craig about ${competitorId}...`);
                 if (tools.lettaMessageAgent) {
                     await tools.lettaMessageAgent(
-                        'craig', 
+                        'craig',
                         `🚨 PRICE WAR ALERT 🚨\nCompetitor: ${competitorId}\nProduct: ${product}\nThreat: ${threat}\n\nAction: Launch 'Price Match' Campaign immediately.`
                     );
                     return true;
                 }
                 return false;
+            },
+            readDriveFile: async (reportId: string) => {
+                logger.info(`[Ezal] Reading Drive file for report ${reportId}...`);
+                return await tools.readDriveFile(reportId);
+            },
+            listCompetitiveReports: async (orgId: string, limit?: number) => {
+                logger.info(`[Ezal] Listing competitive reports for ${orgId}...`);
+                return await tools.listCompetitiveReports(orgId, limit);
             }
         };
 

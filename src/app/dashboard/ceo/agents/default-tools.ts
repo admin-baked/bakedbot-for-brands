@@ -767,6 +767,132 @@ export const defaultEzalTools = {
         } catch (e: any) {
             return { success: false, error: e.message };
         }
+    },
+    // NEW: Read competitive intelligence reports from Drive
+    readDriveFile: async (reportId: string) => {
+        try {
+            const { getDriveStorageService } = await import('@/server/services/drive-storage');
+            const { createServerClient } = await import('@/firebase/server-client');
+
+            const driveService = getDriveStorageService();
+            const { firestore } = await createServerClient();
+
+            // Get current tenant ID from global context or determine from user
+            const tenantId = (global as any).currentTenantId || (global as any).currentOrgId;
+
+            if (!tenantId) {
+                return { success: false, error: 'No organization context available' };
+            }
+
+            // Handle 'latest' special case
+            if (reportId === 'latest') {
+                const reportsSnapshot = await firestore
+                    .collection('tenants')
+                    .doc(tenantId)
+                    .collection('competitive_intel_drive_files')
+                    .orderBy('createdAt', 'desc')
+                    .limit(1)
+                    .get();
+
+                if (reportsSnapshot.empty) {
+                    return { success: false, error: 'No competitive intelligence reports found' };
+                }
+
+                const latestReport = reportsSnapshot.docs[0].data();
+                reportId = latestReport.reportId;
+            }
+
+            // Get Drive file reference from Firestore
+            const driveFileDoc = await firestore
+                .collection('tenants')
+                .doc(tenantId)
+                .collection('competitive_intel_drive_files')
+                .doc(reportId)
+                .get();
+
+            if (!driveFileDoc.exists) {
+                return { success: false, error: `Report ${reportId} not found in Drive` };
+            }
+
+            const driveFileData = driveFileDoc.data();
+            const storagePath = driveFileData?.storagePath;
+
+            if (!storagePath) {
+                return { success: false, error: 'Drive storage path not found' };
+            }
+
+            // Download file from Drive
+            const downloadResult = await driveService.downloadFile(storagePath);
+
+            if (!downloadResult.success || !downloadResult.buffer) {
+                return { success: false, error: downloadResult.error || 'Failed to download report' };
+            }
+
+            // Convert buffer to string
+            const content = downloadResult.buffer.toString('utf-8');
+
+            return {
+                success: true,
+                reportId,
+                content,
+                metadata: {
+                    createdAt: driveFileData?.createdAt,
+                    storagePath,
+                }
+            };
+        } catch (e: any) {
+            return { success: false, error: `Failed to read Drive file: ${e.message}` };
+        }
+    },
+    // NEW: List available competitive intelligence reports
+    listCompetitiveReports: async (orgId: string, limit: number = 5) => {
+        try {
+            const { createServerClient } = await import('@/firebase/server-client');
+            const { firestore } = await createServerClient();
+
+            // Use orgId parameter or fall back to global context
+            const tenantId = orgId || (global as any).currentTenantId || (global as any).currentOrgId;
+
+            if (!tenantId) {
+                return { success: false, error: 'No organization context available' };
+            }
+
+            const reportsSnapshot = await firestore
+                .collection('tenants')
+                .doc(tenantId)
+                .collection('competitive_intel_drive_files')
+                .orderBy('createdAt', 'desc')
+                .limit(limit)
+                .get();
+
+            if (reportsSnapshot.empty) {
+                return {
+                    success: true,
+                    count: 0,
+                    reports: [],
+                    message: 'No competitive intelligence reports found. Reports are generated weekly.'
+                };
+            }
+
+            const reports = reportsSnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    reportId: data.reportId,
+                    createdAt: data.createdAt?.toDate?.() || data.createdAt,
+                    storagePath: data.storagePath,
+                    downloadUrl: data.downloadUrl
+                };
+            });
+
+            return {
+                success: true,
+                count: reports.length,
+                reports,
+                message: `Found ${reports.length} competitive intelligence report(s)`
+            };
+        } catch (e: any) {
+            return { success: false, error: `Failed to list reports: ${e.message}` };
+        }
     }
 };
 
