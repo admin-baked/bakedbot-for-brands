@@ -29,23 +29,15 @@ function verifySlackSignature(
         .update(sigBasestring, 'utf8')
         .digest('hex');
 
-    logger.info(`[Slack/Events] Signature debug: computed=${mySignature.substring(0, 16)}... received=${slackSignature.substring(0, 16)}... body_len=${rawBody.length}`);
-
     try {
         const myBuf = Buffer.from(mySignature, 'utf8');
         const slackBuf = Buffer.from(slackSignature, 'utf8');
         // Must be same length for timingSafeEqual
         if (myBuf.length !== slackBuf.length) {
-            logger.warn(`[Slack/Events] Signature length mismatch: computed=${myBuf.length}, received=${slackBuf.length}`);
             return false;
         }
-        const match = timingSafeEqual(myBuf, slackBuf);
-        if (!match) {
-            logger.warn('[Slack/Events] Signature content mismatch after timingSafeEqual');
-        }
-        return match;
-    } catch (err: any) {
-        logger.error(`[Slack/Events] Signature verification exception: ${err.message}`);
+        return timingSafeEqual(myBuf, slackBuf);
+    } catch {
         return false;
     }
 }
