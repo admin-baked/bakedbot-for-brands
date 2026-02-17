@@ -247,7 +247,7 @@ env:
     availability:
       - RUNTIME
   - variable: SLACK_SIGNING_SECRET
-    secret: SLACK_SIGNING_SECRET@1
+    secret: SLACK_SIGNING_SECRET@2
     availability:
       - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
