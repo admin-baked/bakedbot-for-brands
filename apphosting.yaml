@@ -302,6 +302,11 @@ env:
     secret: ALLEAVES_LOCATION_ID
     availability:
       - RUNTIME
+  # Slack - Incoming webhook for agent notifications and heartbeat alerts
+  - variable: SLACK_WEBHOOK_URL
+    secret: SLACK_WEBHOOK_URL
+    availability:
+      - RUNTIME
 
 
 runConfig:
