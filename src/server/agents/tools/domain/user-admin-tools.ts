@@ -8,6 +8,7 @@
 import { getAdminAuth } from '@/firebase/admin';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { userNotification } from '@/server/services/user-notification';
 
 /**
  * Get all users with lifecycle stage
@@ -55,7 +56,7 @@ export const userGetAll = async (filters?: { role?: string; lifecycleStage?: str
 /**
  * Approve a pending user account
  */
-export const userApprove = async (uid: string) => {
+export const userApprove = async (uid: string, approvedBy: string = 'super_user') => {
     try {
         const db = getAdminFirestore();
         const auth = getAdminAuth();
@@ -76,11 +77,15 @@ export const userApprove = async (uid: string) => {
             lifecycleStage: 'customer',
         });
 
+        // Send approval notification email
+        await userNotification.notifyUserApproved(uid, approvedBy);
+
         logger.info(`[User Admin Tool] User ${userRecord.email} approved`);
 
         return {
             success: true,
             message: `User ${userRecord.email} approved and activated`,
+            notificationSent: true,
         };
     } catch (e: any) {
         logger.error('[User Admin Tool] Failed to approve user:', e);
@@ -91,7 +96,7 @@ export const userApprove = async (uid: string) => {
 /**
  * Reject a pending user account
  */
-export const userReject = async (uid: string, reason?: string) => {
+export const userReject = async (uid: string, reason?: string, rejectedBy: string = 'super_user') => {
     try {
         const db = getAdminFirestore();
         const auth = getAdminAuth();
@@ -107,11 +112,15 @@ export const userReject = async (uid: string, reason?: string) => {
             lifecycleStage: 'rejected',
         });
 
+        // Send rejection notification email
+        await userNotification.notifyUserRejected(uid, rejectedBy, reason);
+
         logger.info(`[User Admin Tool] User ${userRecord.email} rejected: ${reason || 'No reason provided'}`);
 
         return {
             success: true,
             message: `User ${userRecord.email} rejected`,
+            notificationSent: true,
         };
     } catch (e: any) {
         logger.error('[User Admin Tool] Failed to reject user:', e);
@@ -122,7 +131,7 @@ export const userReject = async (uid: string, reason?: string) => {
 /**
  * Promote a user to super_user (requires confirmation)
  */
-export const userPromote = async (uid: string, newRole: string) => {
+export const userPromote = async (uid: string, newRole: string, promotedBy: string = 'super_user') => {
     try {
         const db = getAdminFirestore();
         const auth = getAdminAuth();
@@ -145,11 +154,15 @@ export const userPromote = async (uid: string, newRole: string) => {
             promotedAt: new Date(),
         });
 
+        // Send promotion notification email
+        await userNotification.notifyUserPromoted(uid, promotedBy, newRole);
+
         logger.info(`[User Admin Tool] User ${userRecord.email} promoted to ${newRole}`);
 
         return {
             success: true,
             message: `User ${userRecord.email} promoted to ${newRole}`,
+            notificationSent: true,
         };
     } catch (e: any) {
         logger.error('[User Admin Tool] Failed to promote user:', e);
