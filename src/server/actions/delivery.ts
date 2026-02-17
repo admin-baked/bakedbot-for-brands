@@ -291,6 +291,75 @@ export async function createDelivery(input: CreateDeliveryInput) {
 }
 
 /**
+ * Auto-assign the first available driver to a delivery
+ * Called after createDelivery for immediate dispatch
+ */
+export async function autoAssignDriver(deliveryId: string, locationId: string) {
+    try {
+        const db = getAdminFirestore();
+
+        // Find an available active driver for this location
+        const driversSnapshot = await db
+            .collection('drivers')
+            .where('orgId', '==', locationId.replace('loc_', 'org_'))
+            .where('status', '==', 'active')
+            .where('isAvailable', '==', true)
+            .limit(1)
+            .get();
+
+        if (driversSnapshot.empty) {
+            return {
+                success: false,
+                error: 'No available drivers at this time',
+            };
+        }
+
+        const driverDoc = driversSnapshot.docs[0];
+        const driverId = driverDoc.id;
+
+        // Use transaction to assign
+        await db.runTransaction(async (transaction) => {
+            const deliveryRef = db.collection('deliveries').doc(deliveryId);
+            const driverRef = db.collection('drivers').doc(driverId);
+
+            const [deliveryDoc, freshDriverDoc] = await Promise.all([
+                transaction.get(deliveryRef),
+                transaction.get(driverRef),
+            ]);
+
+            if (!deliveryDoc.exists || !freshDriverDoc.exists) {
+                throw new Error('Delivery or driver not found');
+            }
+
+            const driver = freshDriverDoc.data() as Driver;
+            if (!driver.isAvailable) {
+                throw new Error('Driver became unavailable');
+            }
+
+            transaction.update(deliveryRef, {
+                driverId,
+                status: 'assigned',
+                assignedAt: Timestamp.now(),
+                updatedAt: Timestamp.now(),
+            });
+        });
+
+        logger.info('Driver auto-assigned', { deliveryId, driverId, locationId });
+
+        return {
+            success: true,
+            driverId,
+        };
+    } catch (error) {
+        logger.error('Auto-assign driver failed', { error, deliveryId });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Auto-assignment failed',
+        };
+    }
+}
+
+/**
  * Assign driver to delivery (manual dispatch)
  */
 export async function assignDriver(deliveryId: string, driverId: string) {

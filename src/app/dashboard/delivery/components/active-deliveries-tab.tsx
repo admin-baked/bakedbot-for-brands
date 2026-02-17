@@ -13,7 +13,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { getActiveDeliveries, reassignDriver } from '@/server/actions/delivery';
+import { getActiveDeliveries, reassignDriver, assignDriver } from '@/server/actions/delivery';
 import { getDrivers } from '@/server/actions/driver';
 import type { Delivery, Driver } from '@/types/delivery';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +35,7 @@ export function ActiveDeliveriesTab({ locationId }: { locationId: string }) {
     const [drivers, setDrivers] = useState<Driver[]>([]);
     const [loading, setLoading] = useState(true);
     const [reassigning, setReassigning] = useState<string | null>(null);
+    const [assigning, setAssigning] = useState<string | null>(null);
 
     useEffect(() => {
         loadData();
@@ -62,6 +63,18 @@ export function ActiveDeliveriesTab({ locationId }: { locationId: string }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleAssign = async (deliveryId: string, driverId: string) => {
+        setAssigning(deliveryId);
+        const result = await assignDriver(deliveryId, driverId);
+        if (result.success) {
+            toast({ title: 'Driver Assigned', description: 'Delivery has been dispatched' });
+            await loadData();
+        } else {
+            toast({ variant: 'destructive', title: 'Error', description: result.error || 'Failed to assign driver' });
+        }
+        setAssigning(null);
     };
 
     const handleReassign = async (deliveryId: string, newDriverId: string) => {
@@ -242,8 +255,24 @@ export function ActiveDeliveriesTab({ locationId }: { locationId: string }) {
                                     )}
                                 </div>
 
-                                {/* Reassignment */}
-                                {delivery.status !== 'delivered' && (
+                                {/* Assign (pending) or Reassign (active) */}
+                                {delivery.status === 'pending' ? (
+                                    <Select
+                                        disabled={assigning === delivery.id}
+                                        onValueChange={(driverId) => handleAssign(delivery.id, driverId)}
+                                    >
+                                        <SelectTrigger className="w-[150px] h-8 text-xs bg-primary/10 border-primary/30">
+                                            <SelectValue placeholder="Assign Driver" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {getAvailableDrivers().map((driver) => (
+                                                <SelectItem key={driver.id} value={driver.id}>
+                                                    {driver.firstName} {driver.lastName}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                ) : delivery.status !== 'delivered' ? (
                                     <Select
                                         disabled={reassigning === delivery.id}
                                         onValueChange={(newDriverId) =>
@@ -261,7 +290,7 @@ export function ActiveDeliveriesTab({ locationId }: { locationId: string }) {
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                )}
+                                ) : null}
                             </div>
 
                             {/* Delivery Window */}
