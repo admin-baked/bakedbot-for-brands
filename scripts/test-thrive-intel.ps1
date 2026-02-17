@@ -1,42 +1,37 @@
 # Test Thrive Syracuse Competitive Intelligence Report
-# Triggers the daily competitive intel playbook
+# Uses the direct /api/cron/competitive-intel endpoint (reliable, bypasses playbook)
 
-Write-Host "🔐 Fetching CRON_SECRET..." -ForegroundColor Cyan
 $CRON_SECRET = gcloud secrets versions access latest --secret=CRON_SECRET --project=studio-567050101-bc6e8
 
-Write-Host "📊 Triggering competitive intelligence report for Thrive Syracuse..." -ForegroundColor Cyan
+Write-Host "Triggering competitive intelligence report for Thrive Syracuse..." -ForegroundColor Cyan
 
-$body = @{
-    orgId = "org_thrive_syracuse"
-} | ConvertTo-Json
+$body = @{ orgId = "org_thrive_syracuse" } | ConvertTo-Json
 
 $headers = @{
     "Authorization" = "Bearer $CRON_SECRET"
-    "Content-Type" = "application/json"
+    "Content-Type"  = "application/json"
 }
 
 try {
     $response = Invoke-RestMethod `
-        -Uri "https://bakedbot.ai/api/playbooks/c1boBTwmKyPo23Ib1C7o/execute" `
+        -Uri "https://bakedbot.ai/api/cron/competitive-intel" `
         -Method POST `
         -Headers $headers `
         -Body $body
 
     Write-Host ""
-    Write-Host "✅ Success! Playbook execution triggered" -ForegroundColor Green
+    Write-Host "Success!" -ForegroundColor Green
+    Write-Host "Report ID:   $($response.reportId)"
+    Write-Host "Competitors: $($response.competitorsTracked)"
+    Write-Host "Deals:       $($response.totalDeals)"
+    Write-Host "Snapshots:   $($response.totalSnapshots)"
     Write-Host ""
-    Write-Host "Response:" -ForegroundColor Yellow
-    $response | ConvertTo-Json -Depth 10
-
-    Write-Host ""
-    Write-Host "📁 Check BakedBot Drive for the markdown report" -ForegroundColor Cyan
-    Write-Host "📨 Check inbox for notification from Ezal" -ForegroundColor Cyan
+    Write-Host "Check your email for the competitive intelligence report." -ForegroundColor Yellow
+    Write-Host "Check inbox at /dashboard/inbox for Ezal notification." -ForegroundColor Yellow
+    Write-Host "Check /dashboard/pricing for CompetitiveIntelCard." -ForegroundColor Yellow
 
 } catch {
     Write-Host ""
-    Write-Host "❌ Error executing playbook" -ForegroundColor Red
-    Write-Host $_.Exception.Message -ForegroundColor Red
-    if ($_.ErrorDetails) {
-        Write-Host $_.ErrorDetails.Message -ForegroundColor Red
-    }
+    Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
+    if ($_.ErrorDetails) { Write-Host $_.ErrorDetails.Message -ForegroundColor Red }
 }

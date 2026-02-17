@@ -483,6 +483,159 @@ async function createInboxNotification(
             error: result.error,
         });
     }
+
+    // Also send email notification
+    await sendReportEmail(orgId, adminUserId, reportId, report, summary);
+}
+
+/**
+ * Send email notification for weekly competitive intelligence report.
+ */
+async function sendReportEmail(
+    orgId: string,
+    adminUserId: string,
+    reportId: string,
+    report: Omit<WeeklyIntelReport, 'id'>,
+    summary: string
+): Promise<void> {
+    try {
+        const { firestore } = await createServerClient();
+        const { sendGenericEmail } = await import('@/lib/email/dispatcher');
+
+        // Get admin user email
+        const userDoc = await firestore.collection('users').doc(adminUserId).get();
+        const userEmail = userDoc.data()?.email;
+
+        if (!userEmail) {
+            logger.warn('[WeeklyReport] No email found for admin user', { adminUserId, orgId });
+            return;
+        }
+
+        const weekStart = report.weekStart.toLocaleDateString();
+        const weekEnd = report.weekEnd.toLocaleDateString();
+        const subject = `📊 Weekly Competitive Intelligence Report — ${weekStart} to ${weekEnd}`;
+
+        const topDeal = report.insights.topDeals[0];
+        const avgPrice = report.competitors.length > 0
+            ? report.competitors.reduce((sum, c) => sum + c.avgDealPrice, 0) / report.competitors.length
+            : 0;
+
+        const htmlBody = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weekly Competitive Intelligence</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+
+  <!-- Header -->
+  <div style="background: linear-gradient(135deg, #7c3aed, #4f46e5); border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 22px;">📊 Weekly Competitive Intelligence</h1>
+    <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0 0; font-size: 14px;">${weekStart} — ${weekEnd}</p>
+  </div>
+
+  <!-- Executive Summary -->
+  <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 16px; border: 1px solid #e5e7eb;">
+    <h2 style="font-size: 16px; color: #111827; margin: 0 0 16px 0;">Executive Summary</h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      <div style="background: #f3f4f6; border-radius: 6px; padding: 12px; text-align: center;">
+        <div style="font-size: 24px; font-weight: bold; color: #7c3aed;">${report.competitors.length}</div>
+        <div style="font-size: 12px; color: #6b7280;">Competitors Tracked</div>
+      </div>
+      <div style="background: #f3f4f6; border-radius: 6px; padding: 12px; text-align: center;">
+        <div style="font-size: 24px; font-weight: bold; color: #059669;">${report.totalDealsTracked}</div>
+        <div style="font-size: 12px; color: #6b7280;">Active Deals</div>
+      </div>
+    </div>
+    ${avgPrice > 0 ? `<p style="margin: 12px 0 0 0; font-size: 14px; color: #374151;">Market Avg Deal Price: <strong>$${avgPrice.toFixed(2)}</strong></p>` : ''}
+  </div>
+
+  ${topDeal ? `
+  <!-- Top Deal Alert -->
+  <div style="background: #faf5ff; border: 1px solid #e9d5ff; border-left: 4px solid #7c3aed; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+    <h3 style="font-size: 14px; color: #7c3aed; margin: 0 0 8px 0;">🔥 Best Deal in Market</h3>
+    <p style="margin: 0; font-size: 15px; color: #1f2937;"><strong>${topDeal.competitorName}</strong>: ${topDeal.dealName}</p>
+    <p style="margin: 4px 0 0 0; font-size: 18px; font-weight: bold; color: #7c3aed;">$${topDeal.price.toFixed(2)}${topDeal.discount ? ` <span style="font-size: 13px; color: #6b7280;">(${topDeal.discount})</span>` : ''}</p>
+  </div>
+  ` : ''}
+
+  <!-- Market Trends -->
+  ${report.insights.marketTrends.length > 0 ? `
+  <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 16px; border: 1px solid #e5e7eb;">
+    <h2 style="font-size: 16px; color: #111827; margin: 0 0 12px 0;">Market Trends</h2>
+    ${report.insights.marketTrends.slice(0, 3).map(trend => `
+      <div style="padding: 8px 0; border-bottom: 1px solid #f3f4f6; font-size: 14px; color: #374151;">
+        ➡️ ${trend}
+      </div>
+    `).join('')}
+  </div>
+  ` : ''}
+
+  <!-- Competitor Breakdown -->
+  ${report.competitors.length > 0 ? `
+  <div style="background: white; border-radius: 8px; padding: 20px; margin-bottom: 16px; border: 1px solid #e5e7eb;">
+    <h2 style="font-size: 16px; color: #111827; margin: 0 0 12px 0;">Competitor Breakdown</h2>
+    ${report.competitors.map(comp => `
+      <div style="padding: 12px; background: #f9fafb; border-radius: 6px; margin-bottom: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong style="font-size: 14px; color: #111827;">${comp.competitorName}</strong>
+          <span style="font-size: 12px; background: #e0e7ff; color: #4f46e5; padding: 2px 8px; border-radius: 12px;">${comp.priceStrategy}</span>
+        </div>
+        <div style="font-size: 13px; color: #6b7280; margin-top: 4px;">
+          ${comp.dealCount} deals · Avg $${comp.avgDealPrice.toFixed(2)} · ${comp.productCount} products
+        </div>
+      </div>
+    `).join('')}
+  </div>
+  ` : ''}
+
+  <!-- Recommendations -->
+  ${report.insights.recommendations.length > 0 ? `
+  <div style="background: #ecfdf5; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; margin-bottom: 16px;">
+    <h2 style="font-size: 16px; color: #065f46; margin: 0 0 12px 0;">💡 Ezal's Recommendations</h2>
+    ${report.insights.recommendations.map(rec => `
+      <div style="padding: 6px 0; font-size: 14px; color: #065f46;">
+        • ${rec}
+      </div>
+    `).join('')}
+  </div>
+  ` : ''}
+
+  <!-- CTA -->
+  <div style="text-align: center; margin: 24px 0;">
+    <a href="https://bakedbot.ai/dashboard/competitive-intel" style="background: #7c3aed; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px;">
+      View Full Report →
+    </a>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 24px;">
+    <p>Generated by Ezal — BakedBot Competitive Intelligence</p>
+    <a href="https://bakedbot.ai/dashboard/settings?tab=notifications" style="color: #9ca3af;">Manage Notification Preferences</a>
+  </div>
+
+</body>
+</html>
+        `.trim();
+
+        const result = await sendGenericEmail({
+            to: userEmail,
+            subject,
+            htmlBody,
+            fromName: 'Ezal — BakedBot Intelligence',
+        });
+
+        if (result.success) {
+            logger.info('[WeeklyReport] Email sent', { orgId, adminUserId, userEmail });
+        } else {
+            logger.error('[WeeklyReport] Failed to send email', { orgId, adminUserId });
+        }
+
+    } catch (error) {
+        logger.error('[WeeklyReport] Email notification error', { error, orgId });
+    }
 }
 
 /**
