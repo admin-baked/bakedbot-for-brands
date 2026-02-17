@@ -6,6 +6,39 @@
 
 ---
 
+## ⛔ ABSOLUTE RULE: NEVER HARDCODE SECRETS
+
+**This happened (2026-02-17):** A Slack webhook URL was hardcoded in `scripts/setup-thrive-slack-heartbeat.ts`. GitHub's Push Protection blocked the push. The webhook was rotated, git history had to be rewritten. Wasted 1 hour.
+
+**Never do this:**
+```typescript
+// ❌ SCRIPT — hardcoded secret
+const SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/T.../B.../xxx';
+const API_KEY = 'sk-1234567890abcdef';
+```
+```yaml
+# ❌ apphosting.yaml — plaintext value (also blocks push)
+- variable: MY_SECRET
+  value: "actual-secret-value"
+```
+
+**Always do this:**
+```typescript
+// ✅ SCRIPT — environment variable with graceful fallback
+const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
+if (!SLACK_WEBHOOK_URL) console.warn('[Setup] Set SLACK_WEBHOOK_URL env var first');
+```
+```yaml
+# ✅ apphosting.yaml — Secret Manager reference
+- variable: MY_SECRET
+  secret: MY_SECRET
+  availability: [RUNTIME]
+```
+
+GitHub scans every commit for: Slack webhooks, API keys, OAuth tokens, private keys, JWT secrets, etc. If found → push blocked → secret must be rotated → git history rewritten. It's not worth it.
+
+---
+
 ## The Problem
 
 Firebase App Hosting secret references in `apphosting.yaml` may fail to resolve even with correct Secret Manager permissions. This manifests as:
