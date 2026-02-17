@@ -17,7 +17,7 @@ import {
     isWarmupActive,
 } from '@/server/services/email-warmup';
 import type { WarmupStatus, WarmupLog, WarmupScheduleType } from '@/server/services/email-warmup';
-import { requireUser } from '@/server/auth/require-user';
+import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 
 export type { WarmupStatus, WarmupLog, WarmupScheduleType };
