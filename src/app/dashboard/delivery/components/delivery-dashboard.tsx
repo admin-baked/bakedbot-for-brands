@@ -6,14 +6,36 @@
  * 4 tabs: Active Deliveries, Drivers, Zones, Analytics
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useUser } from '@/firebase/auth/use-user';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Truck, Users, MapPin, BarChart3 } from 'lucide-react';
+import { Truck, Users, MapPin, BarChart3, Loader2 } from 'lucide-react';
+import { ActiveDeliveriesTab } from './active-deliveries-tab';
 import { DriversTab } from './drivers-tab';
 import { ZonesTab } from './zones-tab';
 
 export function DeliveryDashboard() {
-    const [activeTab, setActiveTab] = useState('drivers');
+    const { user, isUserLoading } = useUser();
+    const [activeTab, setActiveTab] = useState('active');
+    const [locationId, setLocationId] = useState<string>('');
+
+    useEffect(() => {
+        // Get locationId from user org (default to Thrive Syracuse for now)
+        if (user) {
+            // In production, fetch from user claims or profile
+            setLocationId('loc_thrive_syracuse');
+        }
+    }, [user]);
+
+    if (isUserLoading || !locationId) {
+        return (
+            <div className="container mx-auto py-8">
+                <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto py-8 space-y-8">
@@ -49,13 +71,7 @@ export function DeliveryDashboard() {
                 </TabsList>
 
                 <TabsContent value="active" className="space-y-4">
-                    <div className="p-8 text-center border rounded-lg bg-muted/50">
-                        <Truck className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <h3 className="text-lg font-semibold mb-2">Active Deliveries</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Coming in Phase 3: Real-time delivery tracking with live map
-                        </p>
-                    </div>
+                    <ActiveDeliveriesTab locationId={locationId} />
                 </TabsContent>
 
                 <TabsContent value="drivers" className="space-y-4">

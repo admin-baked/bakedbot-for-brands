@@ -125,6 +125,7 @@ export interface IDVerification {
 export interface DeliveryAddress extends ShippingAddress {
     lat?: number; // Geocoded latitude
     lng?: number; // Geocoded longitude
+    phone?: string; // Customer contact number
     deliveryInstructions?: string; // Gate code, apt number, etc.
 }
 
@@ -140,6 +141,7 @@ export interface Delivery {
     deliveryWindow: DeliveryWindow;
     deliveryFee: number; // $5, $8, $12 based on zone
     zoneId: string; // zone_downtown, zone_suburbs, zone_extended
+    deliveryInstructions?: string; // Convenience field (also in deliveryAddress)
 
     // NY OCM Compliance Requirements
     idVerification: IDVerification;

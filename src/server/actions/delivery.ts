@@ -10,7 +10,8 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { requireUser } from '@/server/auth/auth';
-import { Timestamp } from '@google-cloud/firestore';
+import { Timestamp, FieldValue } from '@google-cloud/firestore';
+import { DISPENSARY_ADMIN_ROLES } from '@/types/roles';
 import { revalidatePath } from 'next/cache';
 import type {
     Driver,
@@ -706,6 +707,77 @@ export async function getDeliveryStats(locationId: string): Promise<DeliveryStat
             successRate: 0,
             avgDeliveryTime: 0,
             onTimePercentage: 0,
+        };
+    }
+}
+
+/**
+ * Reassign a delivery to a different driver
+ */
+export async function reassignDriver(deliveryId: string, newDriverId: string) {
+    try {
+        const currentUser = await requireUser(DISPENSARY_ADMIN_ROLES);
+        const firestore = getAdminFirestore();
+
+        const deliveryRef = firestore.collection('deliveries').doc(deliveryId);
+        const deliveryDoc = await deliveryRef.get();
+
+        if (!deliveryDoc.exists) {
+            return {
+                success: false,
+                error: 'Delivery not found',
+            };
+        }
+
+        const delivery = deliveryDoc.data() as Delivery;
+
+        // Cannot reassign completed/failed deliveries
+        if (delivery.status === 'delivered' || delivery.status === 'failed') {
+            return {
+                success: false,
+                error: 'Cannot reassign completed or failed deliveries',
+            };
+        }
+
+        // Verify new driver exists and is available
+        const newDriverDoc = await firestore.collection('drivers').doc(newDriverId).get();
+        if (!newDriverDoc.exists) {
+            return {
+                success: false,
+                error: 'New driver not found',
+            };
+        }
+
+        const newDriver = newDriverDoc.data() as Driver;
+        if (newDriver.status !== 'active') {
+            return {
+                success: false,
+                error: 'New driver is not active',
+            };
+        }
+
+        // Update delivery
+        await deliveryRef.update({
+            driverId: newDriverId,
+            reassignedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        logger.info('Delivery reassigned', {
+            deliveryId,
+            oldDriverId: delivery.driverId,
+            newDriverId,
+            userId: currentUser.uid,
+        });
+
+        return {
+            success: true,
+        };
+    } catch (error) {
+        logger.error('Reassign driver failed', { error, deliveryId, newDriverId });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to reassign driver',
         };
     }
 }
