@@ -243,7 +243,7 @@ env:
   # Setup: firebase apphosting:secrets:grantaccess SLACK_BOT_TOKEN --backend=bakedbot-prod
   # Setup: firebase apphosting:secrets:grantaccess SLACK_SIGNING_SECRET --backend=bakedbot-prod
   - variable: SLACK_BOT_TOKEN
-    secret: SLACK_BOT_TOKEN@2
+    secret: SLACK_BOT_TOKEN@3
     availability:
       - RUNTIME
   - variable: SLACK_SIGNING_SECRET
