@@ -66,7 +66,7 @@ export type HeartbeatCheckId =
 
 export type HeartbeatPriority = 'low' | 'medium' | 'high' | 'urgent';
 
-export type HeartbeatChannel = 'dashboard' | 'email' | 'sms' | 'whatsapp' | 'push';
+export type HeartbeatChannel = 'dashboard' | 'email' | 'sms' | 'whatsapp' | 'push' | 'slack';
 
 // =============================================================================
 // CHECK DEFINITIONS
@@ -132,6 +132,8 @@ export interface TenantHeartbeatConfig extends HeartbeatConfig {
     enabled: boolean;
     lastRun?: Date;
     lastResults?: HeartbeatCheckResult[];
+    /** Slack incoming webhook URL for #channel alerts */
+    slackWebhookUrl?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -147,6 +149,8 @@ export interface HeartbeatExecutionRequest {
     config: HeartbeatConfig;
     /** Force run even outside active hours (for testing) */
     force?: boolean;
+    /** Slack incoming webhook URL for this tenant (from TenantHeartbeatConfig) */
+    slackWebhookUrl?: string;
 }
 
 export interface HeartbeatExecutionResult {
