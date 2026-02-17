@@ -10,7 +10,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { createTransaction } from '@/lib/authorize-net';
 import { sendOrderConfirmationEmail } from '@/lib/email/dispatcher';
 import { applyCoupon } from './applyCoupon';
-
+import { createDelivery, autoAssignDriver } from '@/server/actions/delivery';
 
 import { logger } from '@/lib/logger';
 type CreateOrderInput = {
@@ -218,7 +218,41 @@ export async function createOrder(input: CreateOrderInput) {
             logger.warn('Failed to fetch retailer for email', { retailerId: input.retailerId });
         }
 
-        // Send email asynchronously (don't block response)
+        // 4. Create Delivery Record (for delivery orders)
+        let deliveryId: string | undefined;
+        if (input.fulfillmentType === 'delivery' && input.deliveryAddress && input.deliveryWindow) {
+            try {
+                const deliveryResult = await createDelivery({
+                    orderId,
+                    locationId: `loc_${input.retailerId}`,
+                    deliveryAddress: {
+                        ...input.deliveryAddress,
+                        country: input.deliveryAddress.country || 'US',
+                        phone: input.customer.phone,
+                    },
+                    deliveryWindow: {
+                        start: input.deliveryWindow.start as any,
+                        end: input.deliveryWindow.end as any,
+                        type: 'scheduled',
+                    },
+                    deliveryFee: deliveryFee,
+                    zoneId: 'zone_default',
+                });
+
+                if (deliveryResult.success && deliveryResult.delivery) {
+                    deliveryId = deliveryResult.delivery.id;
+
+                    // Try to auto-assign an available driver
+                    autoAssignDriver(deliveryId, `loc_${input.retailerId}`)
+                        .catch(err => logger.warn('Auto-assign driver failed', { orderId, error: err }));
+                }
+            } catch (deliveryError) {
+                // Non-blocking: order succeeds even if delivery record fails
+                logger.error('Failed to create delivery record', { orderId, error: deliveryError });
+            }
+        }
+
+        // 5. Send Confirmation Email
         sendOrderConfirmationEmail({
             orderId,
             customerName: input.customer.name,
@@ -233,7 +267,12 @@ export async function createOrder(input: CreateOrderInput) {
             pickupAddress
         }).catch(err => logger.error('Background email send failed', err));
 
-        return { success: true, orderId };
+        return {
+            success: true,
+            orderId,
+            deliveryId,
+            trackingUrl: deliveryId ? `/track/${deliveryId}` : undefined,
+        };
     } catch (error: any) {
         logger.error('Failed to create order:', error);
         return { success: false, error: 'Failed to create order. Please try again.' };
