@@ -3,6 +3,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { executeCampaign } from '@/server/services/campaign-sender';
 import { sendAgentNotification } from '@/server/services/agent-notifier';
+import { getWarmupStatus, recordWarmupSend } from '@/server/services/email-warmup';
 
 /**
  * Campaign Sender Cron Job
@@ -56,7 +57,31 @@ export async function GET(request: NextRequest) {
             const campaignData = doc.data();
 
             try {
+                // Check email warm-up daily limit before sending
+                const orgId = campaignData.orgId as string;
+                if (orgId) {
+                    const warmup = await getWarmupStatus(orgId);
+                    if (warmup.active && warmup.remainingToday !== undefined && warmup.remainingToday <= 0) {
+                        logger.warn('[CRON:CAMPAIGN_SENDER] Warm-up daily limit reached, deferring campaign', {
+                            campaignId: doc.id,
+                            orgId,
+                            dailyLimit: warmup.dailyLimit,
+                            sentToday: warmup.sentToday,
+                        });
+                        // Leave campaign as 'scheduled' so it retries tomorrow
+                        continue;
+                    }
+                }
+
                 const result = await executeCampaign(doc.id);
+
+                // Record warm-up sends if warm-up active
+                if (orgId && result.success && result.sent > 0) {
+                    const warmup = await getWarmupStatus(orgId);
+                    if (warmup.active) {
+                        await recordWarmupSend(orgId, result.sent);
+                    }
+                }
 
                 if (result.success) {
                     processed++;
