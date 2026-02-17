@@ -45,6 +45,7 @@ import { cn } from '@/lib/utils';
 import { useDispensaryId } from '@/hooks/use-dispensary-id';
 import { getRulePerformanceData, getPricingAnalytics } from '../actions';
 import { getCompetitorPriceAlerts } from './analytics-actions';
+import { CompetitiveIntelCard } from './competitive-intel-card';
 import type { PricingAnalytics } from '@/types/dynamic-pricing';
 
 // Chart colors
@@ -367,6 +368,11 @@ export function PricingAnalyticsTab() {
             )}
           </CardContent>
         </Card>
+
+        {/* AI-Powered Competitive Intelligence */}
+        {dispensaryId && (
+          <CompetitiveIntelCard orgId={dispensaryId} />
+        )}
       </div>
 
       {/* Rule Distribution Pie Chart */}

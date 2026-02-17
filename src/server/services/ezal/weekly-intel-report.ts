@@ -188,6 +188,50 @@ export async function generateWeeklyIntelReport(
         // Don't fail the whole operation if Drive/Inbox fails
     }
 
+    // Analyze competitor changes and generate real-time alerts
+    try {
+        const { analyzeCompetitorChanges, saveAndNotifyAlerts } = await import('./competitor-alerts');
+
+        // Process each competitor snapshot to detect significant changes
+        for (const summary of summaries) {
+            // Get latest snapshot for this competitor
+            const latestSnapshot = snapshots
+                .filter(s => s.competitorId === summary.competitorId)
+                .sort((a, b) => b.capturedAt.getTime() - a.capturedAt.getTime())[0];
+
+            if (!latestSnapshot) continue;
+
+            // Analyze changes and generate alerts
+            const alerts = await analyzeCompetitorChanges(orgId, summary.competitorId, {
+                id: latestSnapshot.id,
+                competitorId: summary.competitorId,
+                deals: latestSnapshot.deals.map(d => ({
+                    dealName: d.name,
+                    price: d.price,
+                    discount: d.discount,
+                    category: d.category,
+                })),
+                priceStrategy: competitorSections.find(c => c.competitorId === summary.competitorId)?.priceStrategy || 'unknown',
+                avgPrice: summary.avgDealPrice,
+                dealCount: summary.totalDeals,
+                capturedAt: latestSnapshot.capturedAt,
+            });
+
+            // Save and notify for any alerts
+            if (alerts.length > 0) {
+                await saveAndNotifyAlerts(alerts);
+                logger.info('[WeeklyReport] Generated alerts for competitor', {
+                    orgId,
+                    competitorId: summary.competitorId,
+                    alertCount: alerts.length,
+                });
+            }
+        }
+    } catch (error) {
+        logger.error('[WeeklyReport] Failed to analyze competitor changes', { error, orgId });
+        // Don't fail the whole operation if alert detection fails
+    }
+
     return {
         id: docRef.id,
         ...report,
@@ -418,11 +462,12 @@ async function createInboxNotification(
         tags: ['competitive-intel', 'automated', 'weekly-report'],
         initialMessage: {
             id: `msg_${Date.now()}`,
-            role: 'assistant',
-            content: summary,
-            agentPersona: 'ezal',
+            userId: 'agent_ezal',
+            userName: 'Ezal',
+            userAvatar: '/agents/ezal-avatar.png',
+            message: summary,
             timestamp: new Date(),
-        },
+        } as any, // TODO: Fix type mismatch between ChatMessage (collaboration) and inbox message
     });
 
     if (result.success) {
