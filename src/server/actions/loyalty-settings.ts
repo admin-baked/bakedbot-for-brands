@@ -11,7 +11,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { DEFAULT_LOYALTY_SETTINGS } from '@/types/customers';
 import type { LoyaltySettings, LoyaltyTier, RedemptionTier, SegmentThresholds } from '@/types/customers';
-import { requireUser } from '@/server/auth/require-user';
+import { requireUser } from '@/server/auth/auth';
 
 /**
  * Get loyalty settings for an org. Falls back to defaults if none saved.
