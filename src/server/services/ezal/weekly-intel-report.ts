@@ -402,7 +402,7 @@ async function saveReportToDrive(
         file: {
             buffer,
             originalName: `competitive-intel-${reportId}.md`,
-            mimeType: 'text/markdown',
+            mimeType: 'text/plain', // Documents category doesn't support text/markdown
             size: buffer.length,
         },
         category: 'documents',
