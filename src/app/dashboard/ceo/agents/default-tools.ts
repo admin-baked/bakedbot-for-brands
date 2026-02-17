@@ -30,6 +30,40 @@ import {
     crmUpdateLifecycleTool,
     crmAddNoteTool,
 } from '@/server/agents/tools/domain/crm-full';
+import {
+    heartbeatGetStatus,
+    heartbeatGetHistory,
+    heartbeatGetAlerts,
+    heartbeatTrigger,
+    heartbeatConfigure,
+    heartbeatToggleCheck,
+    heartbeatDiagnose,
+} from '@/server/agents/tools/domain/heartbeat-tools';
+import {
+    platformGetAnalytics,
+    platformListBrands,
+    platformListDispensaries,
+    platformListPlaybooks,
+    platformTogglePlaybook,
+    platformListFeatureFlags,
+    platformToggleFeature,
+    platformListCoupons,
+} from '@/server/agents/tools/domain/platform-tools';
+import {
+    userGetAll,
+    userApprove,
+    userReject,
+    userPromote,
+    userGetPending,
+} from '@/server/agents/tools/domain/user-admin-tools';
+import {
+    systemGetConfig,
+    systemSetConfig,
+    systemListIntegrations,
+    systemGetAuditLog,
+    systemGetStats,
+    systemClearCache,
+} from '@/server/agents/tools/domain/system-control-tools';
 
 // Wrapper to avoid cirular dependency issues if any
 // but these tools mostly depend on external services or leaf nodes.
@@ -1366,7 +1400,10 @@ export const defaultExecutiveBoardTools = {
     contextLogDecision: async (decision: string, reasoning: string, category: string) => {
         try {
             const { contextLogDecision: contextLogDecisionTool } = await import('@/server/tools/context-tools');
-            return await contextLogDecisionTool({ decision, reasoning, category });
+            const validCategory = ['pricing', 'marketing', 'compliance', 'operations', 'strategy', 'other'].includes(category)
+                ? (category as 'pricing' | 'marketing' | 'compliance' | 'operations' | 'strategy' | 'other')
+                : 'other';
+            return await contextLogDecisionTool({ decision, reasoning, category: validCategory });
         } catch (e: any) {
             return { success: false, error: `Context OS unavailable: ${e.message}` };
         }
@@ -1391,28 +1428,28 @@ export const defaultExecutiveBoardTools = {
     },
 
     // === INTUITION OS TOOLS (Fixed: were declared but not wired) ===
-    intuitionEvaluateHeuristics: async (scenario: string, options: any[]) => {
+    intuitionEvaluateHeuristics: async (customerProfile?: any, products?: any[], sessionContext?: any) => {
         try {
             const { intuitionEvaluateHeuristics: intuitionTool } = await import('@/server/tools/intuition-tools');
-            return await intuitionTool({ scenario, options });
+            return await intuitionTool({ customerProfile, products, sessionContext });
         } catch (e: any) {
             return { success: false, error: `Intuition OS unavailable: ${e.message}` };
         }
     },
 
-    intuitionGetConfidence: async (prediction: string, data: any) => {
+    intuitionGetConfidence: async (interactionCount: number, heuristicsMatched: number, totalHeuristics: number, isAnomalous?: boolean) => {
         try {
             const { intuitionGetConfidence: intuitionTool } = await import('@/server/tools/intuition-tools');
-            return await intuitionTool({ prediction, data });
+            return await intuitionTool({ interactionCount, heuristicsMatched, totalHeuristics, isAnomalous });
         } catch (e: any) {
             return { success: false, error: `Intuition OS unavailable: ${e.message}` };
         }
     },
 
-    intuitionLogOutcome: async (predictionId: string, actualOutcome: any, notes?: string) => {
+    intuitionLogOutcome: async (action: string, outcome: 'positive' | 'negative' | 'neutral', heuristicId?: string, recommendedProducts?: string[], selectedProduct?: string, confidenceScore?: number) => {
         try {
             const { intuitionLogOutcome: intuitionTool } = await import('@/server/tools/intuition-tools');
-            return await intuitionTool({ predictionId, actualOutcome, notes });
+            return await intuitionTool({ heuristicId, action, outcome, recommendedProducts, selectedProduct, confidenceScore });
         } catch (e: any) {
             return { success: false, error: `Intuition OS unavailable: ${e.message}` };
         }
@@ -1421,7 +1458,10 @@ export const defaultExecutiveBoardTools = {
     // === CRM TOOLS (Fixed: Jack declared these but they weren't wired to exec toolset) ===
     crmListUsers: async (search?: string, lifecycleStage?: string, limit?: number) => {
         try {
-            const result = await crmListUsersTool({ search, lifecycleStage, limit });
+            const validLifecycleStage = lifecycleStage && ['prospect', 'contacted', 'demo_scheduled', 'trial', 'customer', 'vip', 'churned', 'winback'].includes(lifecycleStage)
+                ? (lifecycleStage as 'prospect' | 'contacted' | 'demo_scheduled' | 'trial' | 'customer' | 'vip' | 'churned' | 'winback')
+                : undefined;
+            const result = await crmListUsersTool({ search, lifecycleStage: validLifecycleStage, limit });
             return result;
         } catch (e: any) {
             return { success: false, error: `CRM lookup failed: ${e.message}`, users: [], total: 0 };
@@ -1439,7 +1479,10 @@ export const defaultExecutiveBoardTools = {
 
     crmUpdateLifecycle: async (userId: string, stage: string, note?: string) => {
         try {
-            const result = await crmUpdateLifecycleTool({ userId, stage: stage as any, note });
+            const validStage = ['prospect', 'contacted', 'demo_scheduled', 'trial', 'customer', 'vip', 'churned', 'winback'].includes(stage)
+                ? (stage as 'prospect' | 'contacted' | 'demo_scheduled' | 'trial' | 'customer' | 'vip' | 'churned' | 'winback')
+                : 'prospect';
+            const result = await crmUpdateLifecycleTool({ userId, stage: validStage, note });
             return result;
         } catch (e: any) {
             return { success: false, error: `CRM update failed: ${e.message}` };
@@ -1453,6 +1496,114 @@ export const defaultExecutiveBoardTools = {
         } catch (e: any) {
             return { success: false, error: `CRM note failed: ${e.message}` };
         }
+    },
+
+    // === HEARTBEAT SYSTEM TOOLS (New: Super User monitoring + control) ===
+    heartbeat_getStatus: async () => {
+        return await heartbeatGetStatus();
+    },
+
+    heartbeat_getHistory: async (limit?: number) => {
+        return await heartbeatGetHistory(limit || 20);
+    },
+
+    heartbeat_getAlerts: async (limit?: number) => {
+        return await heartbeatGetAlerts(limit || 50);
+    },
+
+    heartbeat_trigger: async () => {
+        return await heartbeatTrigger();
+    },
+
+    heartbeat_configure: async (updates: any) => {
+        return await heartbeatConfigure(updates);
+    },
+
+    heartbeat_toggleCheck: async (checkId: string, enabled: boolean) => {
+        return await heartbeatToggleCheck(checkId, enabled);
+    },
+
+    heartbeat_diagnose: async () => {
+        return await heartbeatDiagnose();
+    },
+
+    // === PLATFORM ANALYTICS & CONTROL TOOLS (New: Super User platform management) ===
+    platform_getAnalytics: async () => {
+        return await platformGetAnalytics();
+    },
+
+    platform_listBrands: async () => {
+        return await platformListBrands();
+    },
+
+    platform_listDispensaries: async () => {
+        return await platformListDispensaries();
+    },
+
+    platform_listPlaybooks: async () => {
+        return await platformListPlaybooks();
+    },
+
+    platform_togglePlaybook: async (playbookId: string, active: boolean) => {
+        return await platformTogglePlaybook(playbookId, active);
+    },
+
+    platform_listFeatureFlags: async () => {
+        return await platformListFeatureFlags();
+    },
+
+    platform_toggleFeature: async (featureId: string, enabled: boolean) => {
+        return await platformToggleFeature(featureId, enabled);
+    },
+
+    platform_listCoupons: async () => {
+        return await platformListCoupons();
+    },
+
+    // === USER ADMINISTRATION TOOLS (New: Super User account management) ===
+    user_getAll: async (filters?: any) => {
+        return await userGetAll(filters);
+    },
+
+    user_getPending: async (limit?: number) => {
+        return await userGetPending(limit || 50);
+    },
+
+    user_approve: async (uid: string) => {
+        return await userApprove(uid);
+    },
+
+    user_reject: async (uid: string, reason?: string) => {
+        return await userReject(uid, reason);
+    },
+
+    user_promote: async (uid: string, newRole: string) => {
+        return await userPromote(uid, newRole);
+    },
+
+    // === SYSTEM CONTROL TOOLS (New: Super User system management) ===
+    system_getConfig: async () => {
+        return await systemGetConfig();
+    },
+
+    system_setConfig: async (updates: Record<string, any>) => {
+        return await systemSetConfig(updates);
+    },
+
+    system_listIntegrations: async () => {
+        return await systemListIntegrations();
+    },
+
+    system_getAuditLog: async (limit?: number) => {
+        return await systemGetAuditLog(limit || 50);
+    },
+
+    system_getStats: async () => {
+        return await systemGetStats();
+    },
+
+    system_clearCache: async (cacheType?: string) => {
+        return await systemClearCache(cacheType);
     },
 
     // === SEND EMAIL ALIAS (Fixed: sendEmail name mismatch) ===
