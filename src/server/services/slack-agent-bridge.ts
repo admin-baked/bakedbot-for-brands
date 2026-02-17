@@ -1,6 +1,24 @@
 import { logger } from '@/lib/logger';
 import { slackService, SlackService } from './communications/slack';
 import { runAgentCore } from '@/server/agents/agent-runner';
+import type { DecodedIdToken } from 'firebase-admin/auth';
+
+// System-level identity injected for Slack requests.
+// Slack messages are already authenticated via HMAC-SHA256 signature,
+// so we bypass Firebase Auth and run as super_user.
+const SLACK_SYSTEM_USER: DecodedIdToken = {
+    uid: 'slack-system',
+    sub: 'slack-system',
+    aud: 'bakedbot',
+    auth_time: 0,
+    exp: 9_999_999_999,
+    iat: 0,
+    iss: 'bakedbot-slack',
+    firebase: { identities: {}, sign_in_provider: 'custom' } as any,
+    // Custom claims — grants full super_user access
+    role: 'super_user',
+    orgId: 'org_bakedbot_internal',
+} as unknown as DecodedIdToken;
 
 // ---------------------------------------------------------------------------
 // Agent keyword → persona ID routing map
@@ -113,10 +131,13 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         }
 
         // 3. Post a "thinking" indicator so user gets immediate feedback
-        await slackService.postInThread(channel, threadTs, `_${getPersonaName(personaId)} is thinking..._`);
+        const thinkingResult = await slackService.postInThread(channel, threadTs, `_${getPersonaName(personaId)} is thinking..._`);
+        if (!thinkingResult.sent) {
+            logger.error(`[SlackBridge] Failed to post thinking message: ${thinkingResult.error} — check SLACK_BOT_TOKEN and bot channel membership`);
+        }
 
-        // 4. Run the agent
-        const result = await runAgentCore(cleanText, personaId, {}, null);
+        // 4. Run the agent with system user (avoids requireUser() cookie lookup in async context)
+        const result = await runAgentCore(cleanText, personaId, {}, SLACK_SYSTEM_USER);
 
         if (!result.content) {
             logger.warn('[SlackBridge] Agent returned empty content');
@@ -162,7 +183,7 @@ and let them know you and the rest of the agent squad (Leo, Linus, Jack, Ezal, C
 are here to help with cannabis marketing, loyalty programs, competitive intelligence, and more.
 Keep it friendly, brief, and genuine.`;
 
-        const result = await runAgentCore(prompt, 'mrs_parker', {}, null);
+        const result = await runAgentCore(prompt, 'mrs_parker', {}, SLACK_SYSTEM_USER);
 
         if (result.content) {
             const blocks = SlackService.formatAgentResponse(result.content, 'mrs_parker');
