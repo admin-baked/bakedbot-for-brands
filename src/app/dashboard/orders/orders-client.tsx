@@ -23,10 +23,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
-import { Loader2, Package, RefreshCw, MoreVertical, CheckCircle, Clock, XCircle, Truck, Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, AlertTriangle, Crown, Mail, Trash2, Radio } from 'lucide-react';
+import { Loader2, Package, RefreshCw, MoreVertical, CheckCircle, Clock, XCircle, Truck, Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Sparkles, AlertTriangle, Crown, Mail, Trash2, Radio, Calendar } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { getOrders, updateOrderStatus, analyzeOrderWithAI, type FormState } from './actions';
+import { getOrders, updateOrderStatus, analyzeOrderWithAI, refreshOrdersCache, type FormState } from './actions';
 import type { OrderDoc, OrderStatus } from '@/types/orders';
 import { useOptionalFirebase } from '@/firebase/use-optional-firebase';
 import { collection, query, where, onSnapshot, orderBy, limit, Unsubscribe } from 'firebase/firestore';
@@ -85,12 +85,24 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
     const [autoRefresh, setAutoRefresh] = useState(false);
     const [isRealtime, setIsRealtime] = useState(false);
     const [isPOSSource, setIsPOSSource] = useState(false);
+    const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
+    const [dateRangeStart, setDateRangeStart] = useState('');
+    const [dateRangeEnd, setDateRangeEnd] = useState('');
     const unsubscribeRef = useRef<Unsubscribe | null>(null);
 
-    const loadOrders = useCallback(async () => {
+    const loadOrders = useCallback(async (overrideStartDate?: string, overrideEndDate?: string) => {
         setLoading(true);
+        // Use explicit overrides if provided (e.g., empty string = clear filter)
+        // Otherwise fall back to current state values
+        const resolvedStart = overrideStartDate !== undefined ? overrideStartDate : dateRangeStart;
+        const resolvedEnd = overrideEndDate !== undefined ? overrideEndDate : dateRangeEnd;
         try {
-            const result = await getOrders({ orgId });
+            const result = await getOrders({
+                orgId,
+                startDate: resolvedStart || undefined,
+                endDate: resolvedEnd || undefined,
+            });
             if (result.success && result.data) {
                 setOrders(result.data);
                 // Detect if orders are from POS (they have IDs starting with alleaves_ or numeric IDs)
@@ -114,11 +126,42 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
         } finally{
             setLoading(false);
         }
-    }, [orgId, toast]);
+    }, [orgId, dateRangeStart, dateRangeEnd, toast]);
+
+    // Manual refresh with cache invalidation
+    const handleManualRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            // Invalidate cache first
+            const result = await refreshOrdersCache(orgId);
+            if (result.success) {
+                setLastRefreshed(result.refreshedAt || new Date());
+                // Then reload data
+                await loadOrders();
+                toast({
+                    title: "Refreshed",
+                    description: "Orders updated with latest data from POS system.",
+                });
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: "Refresh Failed",
+                description: error instanceof Error ? error.message : "Failed to refresh orders."
+            });
+        } finally {
+            setRefreshing(false);
+        }
+    }, [orgId, loadOrders, toast]);
 
     useEffect(() => {
         if (!initialOrders) {
             loadOrders();
+        } else {
+            // Set initial last refreshed time
+            setLastRefreshed(new Date());
         }
     }, [initialOrders, loadOrders]);
 
@@ -561,10 +604,24 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                         <Download className="mr-2 h-4 w-4" />
                         Export CSV
                     </Button>
-                    <Button variant="outline" size="sm" onClick={loadOrders} disabled={loading}>
-                        <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                        Refresh
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        {lastRefreshed && (
+                            <span className="text-xs text-muted-foreground">
+                                Last synced: {(() => {
+                                    const seconds = Math.floor((new Date().getTime() - lastRefreshed.getTime()) / 1000);
+                                    if (seconds < 60) return `${seconds}s ago`;
+                                    const minutes = Math.floor(seconds / 60);
+                                    if (minutes < 60) return `${minutes}m ago`;
+                                    const hours = Math.floor(minutes / 60);
+                                    return `${hours}h ago`;
+                                })()}
+                            </span>
+                        )}
+                        <Button variant="outline" size="sm" onClick={handleManualRefresh} disabled={refreshing || loading}>
+                            <RefreshCw className={`mr-2 h-4 w-4 ${(refreshing || loading) ? 'animate-spin' : ''}`} />
+                            {refreshing ? 'Refreshing...' : 'Refresh'}
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -686,28 +743,79 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
 
             {/* Search and Filters */}
             <Card className="p-4">
-                <div className="flex flex-col lg:flex-row gap-4">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search by order ID, customer name, or email..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9"
-                        />
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-col lg:flex-row gap-4">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search by order ID, customer name, or email..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-9"
+                            />
+                        </div>
+                        <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as OrderStatus | 'all')} className="w-full lg:w-auto">
+                            <TabsList className="grid grid-cols-4 lg:grid-cols-8 w-full lg:w-auto">
+                                <TabsTrigger value="all">All</TabsTrigger>
+                                <TabsTrigger value="pending">Pending</TabsTrigger>
+                                <TabsTrigger value="submitted">New</TabsTrigger>
+                                <TabsTrigger value="confirmed">Confirmed</TabsTrigger>
+                                <TabsTrigger value="preparing">Preparing</TabsTrigger>
+                                <TabsTrigger value="ready">Ready</TabsTrigger>
+                                <TabsTrigger value="completed">Completed</TabsTrigger>
+                                <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
+                            </TabsList>
+                        </Tabs>
                     </div>
-                    <Tabs value={statusFilter} onValueChange={(value) => setStatusFilter(value as OrderStatus | 'all')} className="w-full lg:w-auto">
-                        <TabsList className="grid grid-cols-4 lg:grid-cols-8 w-full lg:w-auto">
-                            <TabsTrigger value="all">All</TabsTrigger>
-                            <TabsTrigger value="pending">Pending</TabsTrigger>
-                            <TabsTrigger value="submitted">New</TabsTrigger>
-                            <TabsTrigger value="confirmed">Confirmed</TabsTrigger>
-                            <TabsTrigger value="preparing">Preparing</TabsTrigger>
-                            <TabsTrigger value="ready">Ready</TabsTrigger>
-                            <TabsTrigger value="completed">Completed</TabsTrigger>
-                            <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-                        </TabsList>
-                    </Tabs>
+
+                    {/* Date Range Filter */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
+                            <Calendar className="h-4 w-4" />
+                            <span>Date range:</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-1">
+                            <Input
+                                type="date"
+                                value={dateRangeStart}
+                                onChange={(e) => setDateRangeStart(e.target.value)}
+                                className="w-[160px]"
+                                placeholder="Start date"
+                            />
+                            <span className="text-sm text-muted-foreground">to</span>
+                            <Input
+                                type="date"
+                                value={dateRangeEnd}
+                                onChange={(e) => setDateRangeEnd(e.target.value)}
+                                className="w-[160px]"
+                                placeholder="End date"
+                            />
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    handleManualRefresh();
+                                }}
+                                disabled={refreshing || loading}
+                            >
+                                Apply
+                            </Button>
+                            {(dateRangeStart || dateRangeEnd) && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                        setDateRangeStart('');
+                                        setDateRangeEnd('');
+                                        await loadOrders('', '');
+                                    }}
+                                    disabled={refreshing || loading}
+                                >
+                                    Clear
+                                </Button>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </Card>
 

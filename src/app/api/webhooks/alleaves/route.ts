@@ -6,6 +6,7 @@
  * - Customer information is updated
  * - New order is placed
  * - Order status changes
+ * - Inventory levels change (product.updated, inventory.updated, inventory.low_stock, product.deleted)
  *
  * This enables instant dashboard updates without waiting for cron sync
  */
@@ -14,12 +15,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
 import { logger } from '@/lib/logger';
+import { revalidatePath } from 'next/cache';
 import * as crypto from 'crypto';
 
 export const maxDuration = 30;
 
 interface AlleavesWebhookPayload {
-    event: 'customer.created' | 'customer.updated' | 'order.created' | 'order.updated';
+    event:
+        | 'customer.created' | 'customer.updated'
+        | 'order.created' | 'order.updated'
+        | 'inventory.updated' | 'inventory.low_stock'
+        | 'product.updated' | 'product.deleted';
     data: {
         id: string | number;
         orgId?: string;
@@ -122,6 +128,19 @@ export async function POST(request: NextRequest) {
                 await handleOrderEvent(orgId, payload.data);
                 break;
 
+            case 'inventory.updated':
+            case 'product.updated':
+                await handleInventoryUpdateEvent(orgId, payload.data);
+                break;
+
+            case 'inventory.low_stock':
+                await handleLowStockEvent(orgId, payload.data);
+                break;
+
+            case 'product.deleted':
+                await handleProductDeletedEvent(orgId, payload.data);
+                break;
+
             default:
                 logger.warn('[WEBHOOK] Unknown event type', { event: payload.event });
         }
@@ -187,6 +206,174 @@ async function handleOrderEvent(orgId: string, orderData: any) {
 }
 
 /**
+ * Handle inventory update events (inventory.updated, product.updated)
+ * Updates product quantity in Firestore publicViews and invalidates cache
+ */
+async function handleInventoryUpdateEvent(orgId: string, productData: any) {
+    logger.info('[WEBHOOK] Processing inventory update event', {
+        orgId,
+        productId: productData.id,
+        quantity: productData.quantity,
+        name: productData.name,
+    });
+
+    // Invalidate the orders cache (order history reflects inventory)
+    posCache.invalidate(cacheKeys.orders(orgId));
+
+    // Update product in Firestore publicViews if we have enough data
+    if (productData.id && (productData.quantity !== undefined || productData.stock !== undefined)) {
+        try {
+            const { firestore } = await createServerClient();
+            const productRef = firestore
+                .collection('publicViews')
+                .doc(orgId)
+                .collection('products')
+                .doc('menu')
+                .collection('items')
+                .doc(productData.id.toString());
+
+            const updateData: Record<string, any> = {
+                updatedAt: new Date(),
+            };
+
+            if (productData.quantity !== undefined) updateData.quantity = productData.quantity;
+            if (productData.stock !== undefined) updateData.stock = productData.stock;
+            if (productData.price !== undefined) updateData.price = productData.price;
+            if (productData.name !== undefined) updateData.name = productData.name;
+            if (productData.category !== undefined) updateData.category = productData.category;
+
+            // Only update if document exists
+            const doc = await productRef.get();
+            if (doc.exists) {
+                await productRef.update(updateData);
+                logger.info('[WEBHOOK] Updated product in publicViews', {
+                    orgId,
+                    productId: productData.id,
+                });
+            }
+        } catch (updateError: any) {
+            logger.warn('[WEBHOOK] Could not update product in publicViews', {
+                orgId,
+                productId: productData.id,
+                error: updateError.message,
+            });
+        }
+    }
+
+    // Revalidate menu pages so Next.js serves fresh data
+    try {
+        revalidatePath('/menu');
+        revalidatePath('/dashboard/pricing');
+    } catch (_) {
+        // Revalidation is best-effort outside of a request context
+    }
+
+    logger.debug('[WEBHOOK] Inventory update processed', { orgId, productId: productData.id });
+}
+
+/**
+ * Handle low stock alerts
+ * Creates a heartbeat notification for dispensary dashboard
+ */
+async function handleLowStockEvent(orgId: string, productData: any) {
+    logger.info('[WEBHOOK] Low stock alert received', {
+        orgId,
+        productId: productData.id,
+        productName: productData.name,
+        quantity: productData.quantity,
+        threshold: productData.low_stock_threshold,
+    });
+
+    // Create a heartbeat notification for the dispensary
+    try {
+        const { firestore } = await createServerClient();
+        await firestore
+            .collection('heartbeat_notifications')
+            .add({
+                orgId,
+                type: 'low_stock',
+                priority: 'high',
+                title: `Low Stock: ${productData.name || `Product #${productData.id}`}`,
+                message: `Only ${productData.quantity} units remaining${productData.low_stock_threshold ? ` (threshold: ${productData.low_stock_threshold})` : ''}`,
+                metadata: {
+                    productId: productData.id?.toString(),
+                    productName: productData.name,
+                    quantity: productData.quantity,
+                    threshold: productData.low_stock_threshold,
+                },
+                createdAt: new Date(),
+                read: false,
+                notified: false,
+            });
+
+        logger.info('[WEBHOOK] Created low stock notification', {
+            orgId,
+            productId: productData.id,
+        });
+    } catch (notifyError: any) {
+        logger.warn('[WEBHOOK] Could not create low stock notification', {
+            error: notifyError.message,
+        });
+    }
+
+    // Also invalidate product cache
+    posCache.invalidateOrg(orgId);
+}
+
+/**
+ * Handle product deletion events
+ * Marks product as deleted or removes from publicViews
+ */
+async function handleProductDeletedEvent(orgId: string, productData: any) {
+    logger.info('[WEBHOOK] Product deleted event received', {
+        orgId,
+        productId: productData.id,
+    });
+
+    if (!productData.id) return;
+
+    try {
+        const { firestore } = await createServerClient();
+        const productRef = firestore
+            .collection('publicViews')
+            .doc(orgId)
+            .collection('products')
+            .doc('menu')
+            .collection('items')
+            .doc(productData.id.toString());
+
+        const doc = await productRef.get();
+        if (doc.exists) {
+            // Soft delete: mark as deleted rather than removing
+            await productRef.update({
+                deleted: true,
+                deletedAt: new Date(),
+                stock: 0,
+                quantity: 0,
+            });
+
+            logger.info('[WEBHOOK] Soft-deleted product in publicViews', {
+                orgId,
+                productId: productData.id,
+            });
+
+            // Revalidate menu
+            try {
+                revalidatePath('/menu');
+            } catch (_) {
+                // Best effort
+            }
+        }
+    } catch (deleteError: any) {
+        logger.warn('[WEBHOOK] Could not soft-delete product', {
+            orgId,
+            productId: productData.id,
+            error: deleteError.message,
+        });
+    }
+}
+
+/**
  * GET endpoint for webhook verification/testing
  */
 export async function GET(request: NextRequest) {
@@ -206,6 +393,10 @@ export async function GET(request: NextRequest) {
             'customer.updated',
             'order.created',
             'order.updated',
+            'inventory.updated',
+            'inventory.low_stock',
+            'product.updated',
+            'product.deleted',
         ],
     });
 }

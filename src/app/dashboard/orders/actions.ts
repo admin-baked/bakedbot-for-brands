@@ -129,10 +129,17 @@ export async function updateOrderStatus(
 /**
  * Get orders from Alleaves POS if configured
  */
-async function getOrdersFromAlleaves(orgId: string, firestore: FirebaseFirestore.Firestore): Promise<OrderDoc[]> {
+async function getOrdersFromAlleaves(
+    orgId: string,
+    firestore: FirebaseFirestore.Firestore,
+    startDate?: string,
+    endDate?: string,
+): Promise<OrderDoc[]> {
     try {
-        // Check cache first
-        const cacheKey = cacheKeys.orders(orgId);
+        // Cache key includes date range if provided (date-filtered queries bypass default cache)
+        const cacheKey = startDate || endDate
+            ? `${cacheKeys.orders(orgId)}:${startDate || ''}:${endDate || ''}`
+            : cacheKeys.orders(orgId);
         const cached = posCache.get<OrderDoc[]>(cacheKey);
 
         if (cached) {
@@ -185,8 +192,8 @@ async function getOrdersFromAlleaves(orgId: string, firestore: FirebaseFirestore
 
         const client = new ALLeavesClient(alleavesConfig);
 
-        // Fetch recent orders from Alleaves (increased limit to match Firestore)
-        const alleavesOrders = await client.getAllOrders(10000);
+        // Fetch orders from Alleaves with optional date range filter
+        const alleavesOrders = await client.getAllOrders(10000, startDate, endDate);
 
         logger.info('[ORDERS] Fetched orders from Alleaves', {
             orgId,
@@ -230,8 +237,8 @@ async function getOrdersFromAlleaves(orgId: string, firestore: FirebaseFirestore
             return orderDoc;
         });
 
-        // Cache the result (3 minute TTL - orders change more frequently)
-        posCache.set(cacheKey, orders, 3 * 60 * 1000);
+        // Cache the result (1 minute TTL - reduced for fresher data)
+        posCache.set(cacheKey, orders, 1 * 60 * 1000);
 
         return orders;
     } catch (error: any) {
@@ -271,6 +278,8 @@ export interface GetOrdersParams {
     brandId?: string;
     locationId?: string;
     limit?: number;
+    startDate?: string; // YYYY-MM-DD filter for ALLeaves date range
+    endDate?: string;   // YYYY-MM-DD filter for ALLeaves date range
 }
 
 export async function getOrders(params: GetOrdersParams | string = {}): Promise<{
@@ -305,7 +314,9 @@ export async function getOrders(params: GetOrdersParams | string = {}): Promise<
         }
 
         // 1. Try to get orders from POS (Alleaves) if configured
-        const posOrders = orgId ? await getOrdersFromAlleaves(orgId, firestore) : [];
+        const posOrders = orgId
+            ? await getOrdersFromAlleaves(orgId, firestore, options.startDate, options.endDate)
+            : [];
 
         // 2. Get orders from BakedBot collection (fallback or supplement)
         let query = firestore.collection('orders') as FirebaseFirestore.Query;
@@ -396,16 +407,56 @@ export async function getOrders(params: GetOrdersParams | string = {}): Promise<
         });
 
         // 6. Sort by createdAt descending
+        // Handle Date objects, Firestore Timestamps (.toDate()), strings, and numbers
+        const toMs = (val: any): number => {
+            if (!val) return 0;
+            if (val instanceof Date) return val.getTime();
+            if (typeof val.toDate === 'function') return val.toDate().getTime();
+            if (typeof val === 'string' || typeof val === 'number') return new Date(val).getTime();
+            return 0;
+        };
         const sortedOrders = Array.from(orderMap.values()).sort((a, b) => {
-            const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
-            const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
-            return dateB - dateA;
+            return toMs(b.createdAt) - toMs(a.createdAt);
         });
 
         return { success: true, data: sortedOrders };
     } catch (error) {
         logger.error('[ORDERS_ACTION] Failed to fetch orders', { error });
         return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+}
+
+/**
+ * Manual refresh - Invalidate cache and force fresh data fetch
+ * Returns timestamp of last refresh for UI display
+ */
+export async function refreshOrdersCache(orgId: string): Promise<{
+    success: boolean;
+    refreshedAt?: Date;
+    error?: string;
+}> {
+    try {
+        await requireUser();
+
+        // Invalidate the cache
+        const cacheKey = cacheKeys.orders(orgId);
+        posCache.invalidate(cacheKey);
+
+        logger.info('[ORDERS] Manual cache refresh requested', { orgId });
+
+        // Revalidate the page to trigger fresh data fetch
+        revalidatePath('/dashboard/orders');
+
+        return {
+            success: true,
+            refreshedAt: new Date(),
+        };
+    } catch (error: any) {
+        logger.error('[ORDERS] Manual refresh failed', { error });
+        return {
+            success: false,
+            error: error.message || 'Failed to refresh orders',
+        };
     }
 }
 
