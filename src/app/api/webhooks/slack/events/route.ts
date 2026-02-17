@@ -18,7 +18,9 @@ function verifySlackSignature(
 ): boolean {
     // Reject if timestamp is more than 5 minutes old (replay attack prevention)
     const now = Math.floor(Date.now() / 1000);
-    if (Math.abs(now - parseInt(timestamp, 10)) > 300) {
+    const tsNum = parseInt(timestamp, 10);
+    if (Math.abs(now - tsNum) > 300) {
+        logger.warn(`[Slack/Events] Timestamp too old: now=${now}, ts=${tsNum}, diff=${Math.abs(now - tsNum)}`);
         return false;
     }
 
@@ -27,13 +29,23 @@ function verifySlackSignature(
         .update(sigBasestring, 'utf8')
         .digest('hex');
 
+    logger.info(`[Slack/Events] Signature debug: computed=${mySignature.substring(0, 16)}... received=${slackSignature.substring(0, 16)}... body_len=${rawBody.length}`);
+
     try {
         const myBuf = Buffer.from(mySignature, 'utf8');
         const slackBuf = Buffer.from(slackSignature, 'utf8');
         // Must be same length for timingSafeEqual
-        if (myBuf.length !== slackBuf.length) return false;
-        return timingSafeEqual(myBuf, slackBuf);
-    } catch {
+        if (myBuf.length !== slackBuf.length) {
+            logger.warn(`[Slack/Events] Signature length mismatch: computed=${myBuf.length}, received=${slackBuf.length}`);
+            return false;
+        }
+        const match = timingSafeEqual(myBuf, slackBuf);
+        if (!match) {
+            logger.warn('[Slack/Events] Signature content mismatch after timingSafeEqual');
+        }
+        return match;
+    } catch (err: any) {
+        logger.error(`[Slack/Events] Signature verification exception: ${err.message}`);
         return false;
     }
 }
