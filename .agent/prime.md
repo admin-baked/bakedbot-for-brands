@@ -19,8 +19,8 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-02-17)
-**Recent Updates:** Competitive Intel (Drive+Email+Alerts+Ezal tools) + Loyalty Tablet/QR + Slack Integration + Payment App Store + Aeropay + Campaign Management + Training auto-enrollment
+**Current Status:** 🟢 Passing (verified 2026-02-17 after Next.js 15 fixes)
+**Recent Updates:** Next.js 15 async params fixed + 61 unit tests added + Competitive Intel + Loyalty Tablet/QR + Slack Integration + Payment App Store + Aeropay
 
 ---
 
@@ -96,6 +96,24 @@ if (!tenantDoc.exists || !adminUserId) {
 - Webhook events: `src/app/api/webhooks/slack/events/route.ts`
 - Per-tenant webhook URL stored in Firestore (heartbeat config)
 - `SLACK_WEBHOOK_URL` env var = BakedBot's own workspace webhook
+
+### Next.js 15 Async Params & Unit Tests (2026-02-17)
+**Status:** ✅ Build Fixed + 61 Unit Tests Added
+
+**Build Fixes:**
+- Upgraded 4 dynamic route pages to handle `params: Promise<T>` in Next.js 15
+- **Refactored pages:** `driver/delivery/[id]`, `invite/[token]`, `track/[deliveryId]` → Split into server component (awaits params) + client component (receives resolved values)
+- Fixed `api/playbooks/[playbookId]/execute/route.ts` scope issue in error handler
+- Pattern: Server component handles async params, passes resolved values to client components
+
+**Unit Tests Added (61 tests):**
+| File | Tests | Coverage |
+|------|-------|----------|
+| `slack-agent-bridge.test.ts` | 34 | Agent routing, message processing, welcome messages |
+| `email-service.test.ts` | 7 | Email sending, format conversion, error handling |
+| `email-warmup.test.ts` | 20 | Ramp-up schedules, daily limits, status tracking |
+
+All tests are TypeScript-first, mock external dependencies (Firebase, APIs), and validate core business logic.
 
 ### Payment App Store Integration (2026-02-15)
 **Status:** ✅ Production-ready — Unified payment processor management UI
@@ -335,6 +353,93 @@ powershell scripts/test-heartbeat-verbose.ps1
 4. Test verbose error responses to distinguish auth failures (401) from execution failures (500)
 
 **Security Status:** 🔒 No secrets in git, proper Google Cloud Secret Manager with version pinning
+
+---
+
+### Multi-Org User Management + Vertical Integration (2026-02-17)
+**Status:** ✅ Production — Team management, org switching, super-user testing
+
+**Problem Solved:** marcus@andrewsdevelopments.com signed up (brand role) but was invisible in User Accounts despite his company appearing under Brands. Root cause: `users.where('organizationIds', 'array-contains', orgId)` query existed in data model but was never exposed in UI.
+
+**Solution: Complete Multi-Org System**
+- **Vertical Integration:** Users can own BOTH a brand AND a dispensary with different roles per org
+- **Org-Scoped Team Management:** Admins only see people invited to their specific org
+- **Super-User Org Impersonation:** Super users test features by impersonating specific orgs (not just role simulation)
+- **MSO Location Hierarchy:** One org → many locations (for multi-state operators, per-jurisdiction compliance)
+
+**Architecture:**
+```
+User Profile:
+  - organizationIds: string[]           # All orgs user belongs to
+  - currentOrgId: string               # Active org context
+  - orgMemberships: {                  # Per-org role + metadata
+      [orgId]: {
+        orgId, orgName, orgType (brand|dispensary),
+        role (brand|brand_admin|dispensary|dispensary_admin),
+        joinedAt: ISO string
+      }
+    }
+  - role: string                       # Role for currentOrgId (derived, synced)
+```
+
+**Key Features:**
+1. **getUsersByOrg(orgId)** — Query users.where('organizationIds', 'array-contains', orgId) + join with orgMemberships
+2. **switchOrgContext(orgId)** — Non-super users switch their active org → updates currentOrgId + role + Firebase custom claims
+3. **Org Switcher Component** — Multi-org dropdown for users with multiple orgs (auto-hidden if only 1 org)
+4. **Team Settings Page** — `/dashboard/settings/team` with 3 tabs:
+   - **Members:** List all org members, change roles, remove users (role edit via dialog with confirm)
+   - **Invitations:** Pending invites, resend, revoke
+   - **Locations:** Dispensary-only CRUD for sub-locations (name, state, POS provider, complianceConfig)
+5. **Super-User Org Impersonation** — `x-impersonated-org-id` cookie allows super-users to view org data as if they belonged to it (for testing/support)
+
+**Critical Bug Fixed:**
+```typescript
+// BEFORE: Firebase custom claims stayed stale after invitation acceptance
+acceptInvitationAction() {
+  await firestore.collection('users').doc(uid).update({ role, orgMemberships })
+  // Missing: auth.setCustomUserClaims() ← User gets Firestore data but can't access org context
+}
+
+// AFTER: Claims updated immediately after Firestore
+acceptInvitationAction() {
+  await firestore.collection('users').doc(uid).update({ role, orgMemberships })
+  await auth.setCustomUserClaims(uid, { role, orgId, brandId/locationId })
+  // ✅ User has both Firestore + Firebase context
+}
+```
+
+**Super-User Setup (rishabh@bakedbot.ai):**
+- Email added to SUPER_ADMIN_EMAILS whitelist → auto-recognized as super admin
+- Script: `node scripts/promote-super-user.mjs rishabh@bakedbot.ai` (after signup)
+  - Sets custom claims: `{ role: 'super_user' }`
+  - Updates Firestore: `roles: ['super_user']`
+- On login: auto-routed to `/dashboard/ceo` (CEO dashboard)
+- Can access: User Management → Promote other users, CEO dashboard, org impersonation
+
+**Files Created (4):**
+| File | Lines | Purpose |
+|------|-------|---------|
+| `src/types/org-membership.ts` | 40 | OrgMembership + OrgContext types |
+| `src/server/actions/team-management.ts` | 600+ | 8 functions: getUsersByOrg, removeUserFromOrg, updateUserOrgRole, switchOrgContext, getOrgsForUser, getOrgsForSuperUser, addOrgLocation, updateOrgLocation, removeOrgLocation |
+| `src/components/org/org-switcher.tsx` | 100 | Multi-org dropdown switcher |
+| `src/app/dashboard/settings/team/page.tsx` | 459 | Members/Invitations/Locations tabs |
+| `scripts/promote-super-user.mjs` | 80 | CLI script to promote users to Super User |
+
+**Files Modified (5):**
+- `src/types/users.ts` — Added `orgMemberships?: Record<string, OrgMembership>`
+- `src/server/actions/invitations.ts` — **CRITICAL:** Added `auth.setCustomUserClaims()` to acceptInvitationAction
+- `src/server/auth/auth.ts` — Added x-impersonated-org-id cookie support for super-user org testing
+- `src/components/admin/role-switcher.tsx` — Extended with org impersonation UI (dialog with org list)
+- `src/app/dashboard/settings/page.tsx` — Added Team tab linking to `/dashboard/settings/team`
+- `src/app/onboarding/actions.ts` — Write orgMemberships on signup
+
+**Verification Checklist:**
+- ✅ marcus@andrewsdevelopments.com now appears in Team > Members via getUsersByOrg query
+- ✅ Multi-org users can switch context and see correct dashboard data
+- ✅ Team admins can invite/remove/change roles for org members only
+- ✅ Super-users can impersonate orgs and test features
+- ✅ Invitation acceptance properly updates Firebase custom claims
+- ✅ rishabh@bakedbot.ai in whitelist + promotion script ready
 
 ---
 

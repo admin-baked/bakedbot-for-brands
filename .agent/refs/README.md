@@ -16,6 +16,7 @@ Detailed documentation for AI agents working in this codebase.
 | Browser automation/RTRVR | `autonomous-browsing.md` |
 | Auth, login, sessions | `authentication.md` |
 | Roles, permissions, RBAC | `roles.md` |
+| **Team management, org switching, multi-org** | **`super-users.md`** |
 | **Firebase secrets, App Hosting config** | **`firebase-secrets.md`** |
 | **Lead magnets, CEO Dashboard, analytics** | **`lead-magnets.md`** |
 | Academy, email automation, scoring | `academy.md` |

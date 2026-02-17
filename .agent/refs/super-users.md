@@ -182,6 +182,133 @@ const stats = await getLeadStats(); // Groups by source
 
 ---
 
+## Multi-Org Team Management (2026-02-17)
+
+**Status**: ✅ Production — Full vertical integration + org-scoped user management
+
+### Team Management Dashboard
+
+**Path**: `/dashboard/settings/team`
+
+Org-scoped user management where admins (brand_admin, dispensary_admin) can manage their team.
+
+#### Members Tab
+- **Query**: `users.where('organizationIds', 'array-contains', orgId)`
+- **Display**: Avatar, Name/Email, Role (editable), Joined date
+- **Actions**: Change Role (via dialog with confirm), Remove User (with soft-delete pattern)
+- **Includes**: Active members + pending invitations in single unified view
+- **Role Edit Flow**: Click role badge → Select new role → Confirm (updates `orgMemberships[orgId].role` + Firebase custom claims)
+
+#### Invitations Tab
+- **Display**: Pending invitations with email, invited date, invited by
+- **Actions**: Revoke, Resend (toggle)
+- **Component**: Reuses existing `<InvitationsList>` for consistency
+
+#### Locations Tab (Dispensary-Only)
+- **Display**: List of sub-locations with name, state/jurisdiction, POS provider, status
+- **CRUD Operations**:
+  - **Add Location**: Dialog with name, address, state, posProvider, posApiKey, posDispensaryId
+  - **Edit Location**: Inline edit dialog + complianceConfig (state, licenseNumber)
+  - **Remove Location**: Soft delete (set `isActive: false`)
+- **MSO Support**: One dispensary org can have multiple locations across different states, each with jurisdiction-specific compliance config
+
+### Super User Promotion Flow
+
+**Email Whitelist**: `src/lib/super-admin-config.ts`
+```typescript
+const SUPER_ADMIN_EMAILS = [
+  'martez@bakedbot.ai',
+  'jack@bakedbot.ai',
+  'vib@cannmenus.com',
+  'rishabh@bakedbot.ai',  // ← rishabh added here
+];
+```
+
+**Promotion Options:**
+
+#### Option 1: UI Promotion (Recommended)
+1. User signs up at `/signin`
+2. Redirected to `/onboarding` (no role yet)
+3. Existing super user goes to `/dashboard/ceo/users`
+4. Clicks "Promote" next to user's entry
+5. Confirms promotion (sets role to 'super_user')
+6. User logs back in → auto-routed to `/dashboard/ceo`
+
+#### Option 2: CLI Script
+```bash
+node scripts/promote-super-user.mjs rishabh@bakedbot.ai
+```
+
+**Script Details** (`scripts/promote-super-user.mjs`):
+- Initializes Firebase Admin SDK (uses default credentials or service account)
+- Looks up user by email (throws if not found)
+- Sets custom claims: `{ role: 'super_user' }`
+- Updates Firestore: `users/{uid}.roles = ['super_user']`
+- Pretty-printed output with status checks
+
+**Critical Flow:**
+```
+Email Whitelist        Firebase Account       Custom Claims          Access Level
+   ✅ Found       →   ✅ Signed up     →   ⏳ Not yet set     →   🟡 Auth-only
+                                                   ↓ (promotion)
+                                            ✅ role: 'super_user'   →   🟢 Full Admin
+```
+
+### Super User Org Impersonation (2026-02-17)
+
+**Feature**: Super users can test orgs without being members
+
+**How It Works:**
+1. Super user opens Admin Controls (bottom-right button in dashboard)
+2. Clicks "View as Org..." → Dialog lists all organizations (paginated, 50 per page)
+3. Selects an org → Sets `x-impersonated-org-id` cookie → Page reloads
+4. Server-side (auth.ts): Cookie checked, org data fetched, user context overridden with selected org's values
+5. Super user can now test org-scoped features, view member data, test payments, etc.
+6. Clicking "Clear Org Impersonation" removes cookie and resets context
+
+**Implementation** (`src/server/auth/auth.ts`):
+```typescript
+// After role simulation check
+const impersonatedOrgId = cookieStore.get('x-impersonated-org-id')?.value;
+if (decodedToken.role === 'super_user' && impersonatedOrgId) {
+  const org = await firestore.collection('organizations').doc(impersonatedOrgId).get();
+  // Override: currentOrgId, orgId, brandId (if brand), locationId (if dispensary)
+}
+```
+
+### Org-Scoped Invitation Acceptance
+
+**Critical Pattern**: `acceptInvitationAction` must update Firebase custom claims
+
+```typescript
+// Invitation acceptance flow
+acceptInvitationAction(token) {
+  const invite = await validateToken(token);
+
+  // 1. Update Firestore
+  await firestore.collection('users').doc(uid).update({
+    organizationIds: FieldValue.arrayUnion(invite.targetOrgId),
+    role: invite.role,  // Update current role
+    currentOrgId: invite.targetOrgId,
+    [`orgMemberships.${invite.targetOrgId}`]: {
+      orgId: invite.targetOrgId,
+      orgName, orgType, role, joinedAt
+    }
+  });
+
+  // 2. ⚠️ CRITICAL: Update Firebase custom claims
+  //    Without this, user can READ org data but can't ACCESS it (authz failures)
+  await auth.setCustomUserClaims(uid, {
+    role: invite.role,
+    orgId: invite.targetOrgId,
+    brandId: (if brand),
+    locationId: (if dispensary)
+  });
+}
+```
+
+---
+
 ## Super Admin Login
 
 **Component**: `src/components/super-admin-login.tsx`
@@ -191,6 +318,14 @@ Special login flow for super admin access.
 ---
 
 ## Related Files
+- `src/lib/super-admin-config.ts` — Email whitelist (SUPER_ADMIN_EMAILS)
+- `src/server/actions/team-management.ts` — Core multi-org actions (600+ lines)
+- `src/types/org-membership.ts` — OrgMembership type definition
+- `src/server/auth/auth.ts` — Auth logic with org impersonation support
+- `src/components/org/org-switcher.tsx` — Org context switcher component
+- `src/app/dashboard/settings/team/page.tsx` — Team management page
+- `src/app/dashboard/ceo/users/page.tsx` — User promotion UI
+- `scripts/promote-super-user.mjs` — CLI promotion script
 - `src/server/services/permissions.ts`
 - `src/components/super-admin-login.tsx`
 - `src/app/dashboard/ceo/` — Boardroom pages
