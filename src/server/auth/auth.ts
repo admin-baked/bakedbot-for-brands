@@ -147,6 +147,45 @@ export async function requireUser(requiredRoles?: Role[]): Promise<DecodedIdToke
     }
   }
 
+  // --- ORG IMPERSONATION LOGIC (Super User Only) ---
+  // Allow super users to impersonate a specific org to test/support that org's data
+  if (decodedToken.role === 'super_user' || decodedToken.role === 'super_admin') {
+    const impersonatedOrgId = cookieStore.get('x-impersonated-org-id')?.value;
+    if (impersonatedOrgId) {
+      try {
+        const { firestore } = await createServerClient();
+        const orgDoc = await firestore.collection('organizations').doc(impersonatedOrgId).get();
+        if (orgDoc.exists) {
+          const org = orgDoc.data() as any;
+          if (org) {
+            // Override org-specific fields with impersonated org context
+            decodedToken = {
+              ...decodedToken,
+              currentOrgId: impersonatedOrgId,
+              orgId: impersonatedOrgId,
+              brandId: org.type === 'brand' ? impersonatedOrgId : null,
+            };
+
+            // If dispensary, try to get first location
+            if (org.type === 'dispensary') {
+              const locSnap = await firestore
+                .collection('locations')
+                .where('orgId', '==', impersonatedOrgId)
+                .limit(1)
+                .get();
+              if (!locSnap.empty) {
+                decodedToken = { ...decodedToken, locationId: locSnap.docs[0].id };
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[AUTH_WARN] Failed to fetch impersonated org:', error);
+        // Non-fatal, continue with original context
+      }
+    }
+  }
+
   // Determine user details
   const userRole = (decodedToken.role as string) || null;
   const userEmail = (decodedToken.email as string)?.toLowerCase() || '';

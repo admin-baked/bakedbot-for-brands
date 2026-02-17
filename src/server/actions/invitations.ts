@@ -3,6 +3,7 @@
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { getAdminFirestore } from '@/firebase/admin';
+import { createServerClient } from '@/firebase/server-client';
 import { requireUser, isSuperUser } from '@/server/auth/auth';
 import type { Invitation, InvitationRole, InvitationStatus } from '@/types/invitation';
 import { CreateInvitationSchema, AcceptInvitationSchema } from '@/types/invitation';
@@ -247,18 +248,32 @@ export async function validateInvitationAction(token: string) {
 export async function acceptInvitationAction(token: string) {
     try {
         const user = await requireUser();
+        const { auth } = await createServerClient();
         const firestore = getAdminFirestore();
-        
+
         const validRes = await validateInvitationAction(token);
         if (!validRes.valid || !validRes.invitation) {
             throw new Error(validRes.message);
         }
 
         const invite = validRes.invitation;
-        
+
+        // Fetch organization details
+        let orgName = 'Unknown Org';
+        let orgType: 'brand' | 'dispensary' = invite.role === 'brand' ? 'brand' : 'dispensary';
+
+        if (invite.targetOrgId) {
+            const orgDoc = await firestore.collection('organizations').doc(invite.targetOrgId).get();
+            if (orgDoc.exists) {
+                const orgData = orgDoc.data();
+                orgName = orgData?.name || 'Unknown Org';
+                orgType = orgData?.type || orgType;
+            }
+        }
+
         // Update User Profile based on Role
         const userRef = firestore.collection('users').doc(user.uid);
-        
+
         let userName: string | undefined;
 
         await firestore.runTransaction(async (t) => {
@@ -279,19 +294,66 @@ export async function acceptInvitationAction(token: string) {
             const updates: any = {};
 
             if (invite.role === 'super_admin') {
-                // TODO: Update custom claims or role field
-                // For now, assume this logic is handled via claims or a specific 'roles' field
-                // This might need adjustment specific to your auth setup
-                updates.role = 'super_user'; // Or a specific flag?
+                updates.role = 'super_user';
             } else if (invite.role === 'brand' || invite.role === 'dispensary') {
                  // Add to organizationIds
                  updates.organizationIds = FieldValue.arrayUnion(invite.targetOrgId);
-                 updates.role = invite.role; // Set primary role?
+                 updates.role = invite.role;
                  updates.currentOrgId = invite.targetOrgId;
+
+                 // Write orgMemberships[orgId] for vertical integration
+                 if (invite.targetOrgId) {
+                     updates[`orgMemberships.${invite.targetOrgId}`] = {
+                         orgId: invite.targetOrgId,
+                         orgName: orgName,
+                         orgType: orgType,
+                         role: invite.role,
+                         joinedAt: new Date().toISOString(),
+                     };
+                 }
             }
 
             t.update(userRef, updates);
         });
+
+        // Update Firebase custom claims to reflect new org context
+        if (invite.targetOrgId && (invite.role === 'brand' || invite.role === 'dispensary')) {
+            try {
+                const claims: Record<string, any> = {
+                    role: invite.role,
+                    orgId: invite.targetOrgId,
+                    currentOrgId: invite.targetOrgId,
+                };
+
+                // Add org-specific claim
+                if (invite.role === 'brand') {
+                    claims.brandId = invite.targetOrgId;
+                } else if (invite.role === 'dispensary') {
+                    // Try to get first location for this org
+                    const locSnap = await firestore
+                        .collection('locations')
+                        .where('orgId', '==', invite.targetOrgId)
+                        .limit(1)
+                        .get();
+                    if (!locSnap.empty) {
+                        claims.locationId = locSnap.docs[0].id;
+                    }
+                }
+
+                await auth.setCustomUserClaims(user.uid, claims);
+                logger.info('[acceptInvitationAction] Custom claims updated', {
+                    userId: user.uid,
+                    role: invite.role,
+                    orgId: invite.targetOrgId,
+                });
+            } catch (claimsError) {
+                logger.error('[acceptInvitationAction] Failed to update custom claims', {
+                    userId: user.uid,
+                    error: claimsError instanceof Error ? claimsError.message : String(claimsError),
+                });
+                // Non-fatal, continue with invitation acceptance
+            }
+        }
 
         // Trigger AI-powered welcome email for invited user
         try {

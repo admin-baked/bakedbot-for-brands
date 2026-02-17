@@ -1,4 +1,5 @@
 import { UserRole } from './roles';
+import { OrgMembership } from './org-membership';
 
 export type DomainUserProfile = {
     id: string;
@@ -10,6 +11,10 @@ export type DomainUserProfile = {
     // Enterprise Context
     organizationIds: string[]; // List of IDs this user belongs to
     currentOrgId?: string; // Active Organization Context
+
+    // Per-org role mapping (vertical integration support)
+    // Maps orgId → OrgMembership for users with multiple org roles
+    orgMemberships?: Record<string, OrgMembership>;
 
     // Legacy / Convenience (Keep for backward compatibility during migration)
     brandId: string | null;
