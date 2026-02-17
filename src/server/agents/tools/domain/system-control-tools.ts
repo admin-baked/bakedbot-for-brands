@@ -7,15 +7,23 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { toolCache, TOOL_CACHE_CONFIG } from '@/server/services/tool-cache';
 
 /**
  * Get system configuration overview
+ * Uses caching with 1-hour TTL (config changes infrequently)
  */
 export const systemGetConfig = async () => {
     try {
-        const db = getAdminFirestore();
-        const configDoc = await db.collection('system_config').doc('settings').get();
-        const config = configDoc.exists ? configDoc.data() : {};
+        const config = await toolCache.withCache(
+            'system_getConfig',
+            async () => {
+                const db = getAdminFirestore();
+                const configDoc = await db.collection('system_config').doc('settings').get();
+                return configDoc.exists ? configDoc.data() : {};
+            },
+            TOOL_CACHE_CONFIG.system_getConfig
+        );
 
         return {
             success: true,
@@ -35,6 +43,7 @@ export const systemGetConfig = async () => {
 
 /**
  * Update system configuration
+ * Invalidates config cache after mutation
  */
 export const systemSetConfig = async (updates: Record<string, any>) => {
     try {
@@ -42,6 +51,9 @@ export const systemSetConfig = async (updates: Record<string, any>) => {
         await db.collection('system_config').doc('settings').set(updates, { merge: true });
 
         logger.info('[System Control] Configuration updated:', Object.keys(updates));
+
+        // Invalidate config cache after mutation
+        toolCache.invalidate('system_getConfig');
 
         return {
             success: true,
@@ -55,12 +67,19 @@ export const systemSetConfig = async (updates: Record<string, any>) => {
 
 /**
  * List all active integrations
+ * Uses caching with 30-minute TTL (integrations added/removed infrequently)
  */
 export const systemListIntegrations = async () => {
     try {
-        const db = getAdminFirestore();
-        const snapshot = await db.collection('system_config').doc('integrations').get();
-        const integrations = snapshot.exists ? snapshot.data() : {};
+        const integrations = await toolCache.withCache(
+            'system_listIntegrations',
+            async () => {
+                const db = getAdminFirestore();
+                const snapshot = await db.collection('system_config').doc('integrations').get();
+                return snapshot.exists ? snapshot.data() : {};
+            },
+            TOOL_CACHE_CONFIG.system_listIntegrations
+        );
 
         const integrationsList = Object.entries(integrations as Record<string, any>).map(([id, config]) => ({
             id,
@@ -114,35 +133,46 @@ export const systemGetAuditLog = async (limit: number = 50) => {
 
 /**
  * Get system statistics (tenants, users, orders)
+ * Uses caching with 5-minute TTL (stats are semi-live)
  */
 export const systemGetStats = async () => {
     try {
-        const db = getAdminFirestore();
+        const stats = await toolCache.withCache(
+            'system_getStats',
+            async () => {
+                const db = getAdminFirestore();
 
-        // Count tenants
-        const tenantsSnap = await db.collection('tenants').count().get();
-        const tenantCount = tenantsSnap.data().count;
+                // Count tenants
+                const tenantsSnap = await db.collection('tenants').count().get();
+                const tenantCount = tenantsSnap.data().count;
 
-        // Count users
-        const usersSnap = await db.collection('users').count().get();
-        const userCount = usersSnap.data().count;
+                // Count users
+                const usersSnap = await db.collection('users').count().get();
+                const userCount = usersSnap.data().count;
 
-        // Count active orders (today)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const ordersSnap = await db
-            .collection('orders')
-            .where('createdAt', '>=', today)
-            .count()
-            .get();
-        const ordersToday = ordersSnap.data().count;
+                // Count active orders (today)
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const ordersSnap = await db
+                    .collection('orders')
+                    .where('createdAt', '>=', today)
+                    .count()
+                    .get();
+                const ordersToday = ordersSnap.data().count;
+
+                return {
+                    tenants: tenantCount,
+                    users: userCount,
+                    ordersToday,
+                };
+            },
+            TOOL_CACHE_CONFIG.system_getStats
+        );
 
         return {
             success: true,
             stats: {
-                tenants: tenantCount,
-                users: userCount,
-                ordersToday,
+                ...stats,
                 timestamp: new Date().toISOString(),
             },
         };
@@ -153,16 +183,22 @@ export const systemGetStats = async () => {
 };
 
 /**
- * Clear cached data (if applicable)
+ * Clear cached data from tool cache service
+ * Can clear all caches or specific type (analytics, tenants, playbooks, etc.)
  */
 export const systemClearCache = async (cacheType?: string) => {
     try {
-        // This is a placeholder - actual cache clearing would depend on caching strategy
-        logger.info(`[System Control] Cache clear requested for: ${cacheType || 'all'}`);
+        const clearedCount = toolCache.clear(cacheType ? `${cacheType}_` : undefined);
+        const stats = toolCache.getStats();
 
         return {
             success: true,
-            message: `Cache cleared for: ${cacheType || 'all'}`,
+            message: `Cache cleared (${clearedCount} entries), ${stats.entries} entries remaining`,
+            stats: {
+                entriesCleared: clearedCount,
+                entriesRemaining: stats.entries,
+                hitRate: stats.hitRate.toFixed(1) + '%',
+            },
             timestamp: new Date().toISOString(),
         };
     } catch (e: any) {

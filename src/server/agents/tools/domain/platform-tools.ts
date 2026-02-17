@@ -17,13 +17,19 @@ import {
     getCoupons,
 } from '@/app/dashboard/ceo/actions/system-actions';
 import { logger } from '@/lib/logger';
+import { toolCache, TOOL_CACHE_CONFIG } from '@/server/services/tool-cache';
 
 /**
  * Get platform-wide analytics (MRR, ARR, signups, users)
+ * Uses caching with 10-minute TTL to reduce Firestore queries
  */
 export const platformGetAnalytics = async () => {
     try {
-        const result = await getPlatformAnalytics();
+        const result = await toolCache.withCache(
+            'platform_getAnalytics',
+            async () => await getPlatformAnalytics(),
+            TOOL_CACHE_CONFIG.platform_getAnalytics
+        );
         return {
             success: true,
             analytics: {
@@ -42,10 +48,15 @@ export const platformGetAnalytics = async () => {
 
 /**
  * List all brands on the platform
+ * Uses caching with 30-minute TTL (customers added infrequently)
  */
 export const platformListBrands = async () => {
     try {
-        const brands = await getBrands();
+        const brands = await toolCache.withCache(
+            'platform_listBrands',
+            async () => await getBrands(),
+            TOOL_CACHE_CONFIG.platform_listTenants  // Uses same TTL as listTenants
+        );
         return {
             success: true,
             brands,
@@ -59,10 +70,15 @@ export const platformListBrands = async () => {
 
 /**
  * List all dispensaries on the platform
+ * Uses caching with 30-minute TTL (dispensaries added infrequently)
  */
 export const platformListDispensaries = async () => {
     try {
-        const dispensaries = await getDispensaries();
+        const dispensaries = await toolCache.withCache(
+            'platform_listDispensaries',
+            async () => await getDispensaries(),
+            TOOL_CACHE_CONFIG.platform_listTenants  // Uses same TTL as listTenants
+        );
         return {
             success: true,
             dispensaries,
@@ -76,10 +92,15 @@ export const platformListDispensaries = async () => {
 
 /**
  * List all system playbooks (platform-wide automation rules)
+ * Uses caching with 30-minute TTL (playbooks rarely changed)
  */
 export const platformListPlaybooks = async () => {
     try {
-        const playbooks = await getSystemPlaybooks();
+        const playbooks = await toolCache.withCache(
+            'platform_listPlaybooks',
+            async () => await getSystemPlaybooks(),
+            TOOL_CACHE_CONFIG.platform_listPlaybooks
+        );
         return {
             success: true,
             playbooks,
@@ -94,6 +115,7 @@ export const platformListPlaybooks = async () => {
 
 /**
  * Toggle a system playbook on/off
+ * Invalidates playbook cache after mutation
  */
 export const platformTogglePlaybook = async (playbookId: string, active: boolean) => {
     try {
@@ -101,6 +123,8 @@ export const platformTogglePlaybook = async (playbookId: string, active: boolean
         if (!(result as any).success) {
             return { success: false, error: (result as any).message };
         }
+        // Invalidate playbook listings cache after mutation
+        toolCache.invalidate('platform_listPlaybooks');
         return {
             success: true,
             message: `Playbook '${playbookId}' ${active ? 'activated' : 'deactivated'}`,
@@ -113,13 +137,20 @@ export const platformTogglePlaybook = async (playbookId: string, active: boolean
 
 /**
  * List all active beta feature flags
+ * Uses caching with 1-hour TTL (feature flags change slowly)
  */
 export const platformListFeatureFlags = async () => {
     try {
-        const { getAdminFirestore } = await import('@/firebase/admin');
-        const firestore = getAdminFirestore();
-        const doc = await firestore.collection('system_config').doc('beta_features').get();
-        const flags = (doc.exists ? doc.data() : {}) || {};
+        const flags = await toolCache.withCache(
+            'platform_listFeatureFlags',
+            async () => {
+                const { getAdminFirestore } = await import('@/firebase/admin');
+                const firestore = getAdminFirestore();
+                const doc = await firestore.collection('system_config').doc('beta_features').get();
+                return (doc.exists ? doc.data() : {}) || {};
+            },
+            TOOL_CACHE_CONFIG.platform_listFeatureFlags
+        );
 
         return {
             success: true,
@@ -134,6 +165,7 @@ export const platformListFeatureFlags = async () => {
 
 /**
  * Toggle a beta feature flag
+ * Invalidates feature flags cache after mutation
  */
 export const platformToggleFeature = async (featureId: string, enabled: boolean) => {
     try {
@@ -141,6 +173,8 @@ export const platformToggleFeature = async (featureId: string, enabled: boolean)
         if ((result as any).error) {
             return { success: false, error: (result as any).message };
         }
+        // Invalidate feature flags cache after mutation
+        toolCache.invalidate('platform_listFeatureFlags');
         return {
             success: true,
             message: (result as any).message,
@@ -153,10 +187,15 @@ export const platformToggleFeature = async (featureId: string, enabled: boolean)
 
 /**
  * List all active coupons
+ * Uses caching with 5-minute TTL (coupon inventory can change)
  */
 export const platformListCoupons = async () => {
     try {
-        const coupons = await getCoupons();
+        const coupons = await toolCache.withCache(
+            'platform_listCoupons',
+            async () => await getCoupons(),
+            TOOL_CACHE_CONFIG.platform_listCoupons
+        );
         const activeCoupons = coupons.filter((c: any) => c.active);
         return {
             success: true,
