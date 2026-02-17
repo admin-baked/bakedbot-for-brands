@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { logger } from '@/lib/logger';
-import { processSlackMessage } from '@/server/services/slack-agent-bridge';
+import { processSlackMessage, welcomeNewMember } from '@/server/services/slack-agent-bridge';
 
 // Force dynamic - never cache webhook handlers
 export const dynamic = 'force-dynamic';
@@ -98,13 +98,37 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         return response;
     }
 
-    // Only handle app_mention and direct messages
+    // -------------------------------------------------------------------------
+    // member_joined_channel — Mrs. Parker welcomes new members
+    // -------------------------------------------------------------------------
+    if (event.type === 'member_joined_channel') {
+        const joinedUserId: string = event.user ?? '';
+        const channel: string = event.channel ?? '';
+        if (joinedUserId && channel) {
+            Promise.resolve().then(async () => {
+                try {
+                    await welcomeNewMember(joinedUserId, channel);
+                } catch (err: any) {
+                    logger.error('[Slack/Events] Welcome error:', err.message);
+                }
+            });
+        }
+        return response;
+    }
+
+    // -------------------------------------------------------------------------
+    // Message events: app_mention, DMs (im), and channel messages
+    // -------------------------------------------------------------------------
     if (event.type !== 'app_mention' && event.type !== 'message') {
         return response;
     }
 
-    // For message events, only handle DMs (channel type 'im')
-    if (event.type === 'message' && body.event?.channel_type !== 'im') {
+    const channelType: string = body.event?.channel_type ?? '';
+    const isDm = channelType === 'im';
+    const isChannelMsg = channelType === 'channel';
+
+    // Only handle DMs and public channel messages (not group DMs or private groups)
+    if (event.type === 'message' && !isDm && !isChannelMsg) {
         return response;
     }
 
@@ -113,7 +137,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const channel: string = event.channel ?? '';
     const threadTs: string = event.thread_ts ?? event.ts ?? '';
     const channelName: string = event.channel_name ?? '';
-    const isDm = body.event?.channel_type === 'im';
 
     if (!text || !channel) {
         return response;
@@ -122,7 +145,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Fire-and-forget: process asynchronously so we don't block the ACK
     Promise.resolve().then(async () => {
         try {
-            await processSlackMessage({ text, slackUserId, channel, threadTs, channelName, isDm });
+            await processSlackMessage({
+                text, slackUserId, channel, threadTs, channelName, isDm,
+                isChannelMsg
+            });
         } catch (err: any) {
             logger.error('[Slack/Events] Background processing error:', err.message);
         }

@@ -84,10 +84,11 @@ export interface SlackMessageContext {
     threadTs: string;       // The ts of the parent message (or the message itself)
     channelName?: string;   // Optional: resolved channel name for routing
     isDm?: boolean;         // true if this is a direct message
+    isChannelMsg?: boolean; // true if this is a public channel message (not @mention, not DM)
 }
 
 export async function processSlackMessage(ctx: SlackMessageContext): Promise<void> {
-    const { text, slackUserId, channel, threadTs, channelName = '', isDm = false } = ctx;
+    const { text, slackUserId, channel, threadTs, channelName = '', isDm = false, isChannelMsg = false } = ctx;
 
     try {
         // 1. Strip bot mention and clean up text
@@ -103,6 +104,13 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         // 2. Detect which agent to route to
         const personaId = detectAgent(cleanText, channelName, isDm);
         logger.info(`[SlackBridge] Routing to persona: ${personaId}`);
+
+        // For public channel messages (not @mentions, not DMs), only respond if a
+        // specific agent keyword was found. Avoids replying to every channel message.
+        if (isChannelMsg && personaId === 'puff') {
+            logger.info('[SlackBridge] Channel message with no agent keyword — skipping');
+            return;
+        }
 
         // 3. Post a "thinking" indicator so user gets immediate feedback
         await slackService.postInThread(channel, threadTs, `_${getPersonaName(personaId)} is thinking..._`);
@@ -137,6 +145,32 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         } catch {
             // Best effort — don't throw
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Welcome new channel members — called on member_joined_channel events
+// ---------------------------------------------------------------------------
+
+export async function welcomeNewMember(slackUserId: string, channel: string): Promise<void> {
+    try {
+        logger.info(`[SlackBridge] Welcoming new member ${slackUserId} in ${channel}`);
+
+        const prompt = `A new team member just joined — their Slack ID is <@${slackUserId}>.
+Welcome them warmly by name, introduce yourself as Mrs. Parker from the BakedBot team,
+and let them know you and the rest of the agent squad (Leo, Linus, Jack, Ezal, Craig, and others)
+are here to help with cannabis marketing, loyalty programs, competitive intelligence, and more.
+Keep it friendly, brief, and genuine.`;
+
+        const result = await runAgentCore(prompt, 'mrs_parker', {}, null);
+
+        if (result.content) {
+            const blocks = SlackService.formatAgentResponse(result.content, 'mrs_parker');
+            const fallback = `Mrs. Parker: ${result.content.slice(0, 200)}`;
+            await slackService.postMessage(channel, fallback, blocks);
+        }
+    } catch (err: any) {
+        logger.error(`[SlackBridge] welcomeNewMember failed: ${err.message}`);
     }
 }
 
