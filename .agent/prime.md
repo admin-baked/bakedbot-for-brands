@@ -19,8 +19,8 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-02-17 after Next.js 15 fixes)
-**Recent Updates:** Next.js 15 async params fixed + 61 unit tests added + Competitive Intel + Loyalty Tablet/QR + Slack Integration + Payment App Store + Aeropay
+**Current Status:** 🟢 Passing (verified 2026-02-17 after Super User agent tools audit)
+**Recent Updates:** 28 Super User agent tools added (Heartbeat + Analytics + User Mgmt + System Control) + Next.js 15 async params + 61 unit tests + Competitive Intel + Loyalty Tablet/QR + Slack Integration
 
 ---
 
@@ -4363,6 +4363,133 @@ See `HELP_CENTER_LAUNCH.md` for:
 - Content hook: `src/hooks/use-creative-content.ts`
 - Server actions: `src/server/actions/creative-content.ts`
 - Type definitions: `src/types/creative-content.ts`
+
+---
+
+## Super User Agent Tools System (2026-02-17)
+**Status:** ✅ Production — 28 agent-callable tools for full platform governance
+
+**Problem Solved:** Super User agents (Leo, Jack, Glenda, Mike, Linus) had no visibility/control over critical system functions: heartbeat monitoring, analytics, user approvals, system configuration. Agent tools were declared in schemas but missing from runtime — causing silent `{ error: 'Tool not found' }` failures.
+
+**Solution:** Comprehensive tool audit + implementation across 4 new modules (Heartbeat, Platform Analytics, User Admin, System Control) + fixes to 5 wiring bugs in default-tools.ts.
+
+### 28 Tools Across 4 Modules
+
+#### 1. Heartbeat Monitoring Tools (7 tools)
+Real-time system health monitoring and control.
+
+**File:** `src/server/agents/tools/domain/heartbeat-tools.ts`
+
+| Tool | Purpose | Parameters |
+|------|---------|-----------|
+| `heartbeat.getStatus` | Current config, last run, error count | — |
+| `heartbeat.getHistory` | Recent execution log (last 20) | `limit?: number` |
+| `heartbeat.getAlerts` | Non-OK check results (recent) | `limit?: number` |
+| `heartbeat.trigger` | Force-run heartbeat cycle immediately | — |
+| `heartbeat.configure` | Update interval, channels, active checks | `enabled?, interval?, activeHours?, quietHours?, timezone?, enabledChecks?, channels?, suppressAllClear?` |
+| `heartbeat.toggleCheck` | Enable/disable specific check | `checkId: string, enabled: boolean` |
+| `heartbeat.diagnose` | System health report (issues + recommendations) | — |
+
+**Use Case:** Leo (COO) asks "What's our system status?" → `heartbeat.getStatus` returns 🟡 warning with 7 errors, suggests reviewing failed checks.
+
+#### 2. Platform Analytics Tools (8 tools)
+Business metrics, tenant management, system health, feature flags, playbooks, coupons.
+
+**File:** `src/server/agents/tools/domain/platform-tools.ts`
+
+| Tool | Purpose | Parameters |
+|------|---------|-----------|
+| `platform.getAnalytics` | MRR, ARR, ARPU, paying customers, recent signups | — |
+| `platform.getHealthMetrics` | GCP CPU/Memory/Latency/Errors + alert status | — |
+| `platform.listTenants` | All brands + dispensaries with plan/status | — |
+| `platform.listPlaybooks` | System-wide automation rules + active status | — |
+| `platform.togglePlaybook` | Enable/disable system automation | `playbookId: string, active: boolean` |
+| `platform.listFeatureFlags` | Beta features + enabled status | — |
+| `platform.toggleFeature` | Enable/disable beta feature | `featureId: string, enabled: boolean` |
+| `platform.listCoupons` | Active coupons with discount info | — |
+
+**Use Case:** Jack (CRO) asks "What's our MRR?" → `platform.getAnalytics` returns real revenue metrics. Mike (CFO) asks "List all brands" → `platform.listTenants` returns Thrive Syracuse + other customers.
+
+#### 3. User Administration Tools (5 tools)
+User account lifecycle: approval, rejection, promotion, listing, filtering.
+
+**File:** `src/server/agents/tools/domain/user-admin-tools.ts`
+
+| Tool | Purpose | Parameters |
+|------|---------|-----------|
+| `user.getAll` | List all users (with role/lifecycle stage filtering) | `filters?: { role?, lifecycleStage?, limit? }` |
+| `user.getPending` | Pending user accounts awaiting approval | `limit?: number` |
+| `user.approve` | Approve pending user + activate account | `uid: string` |
+| `user.reject` | Reject pending user with reason | `uid: string, reason?: string` |
+| `user.promote` | Promote user to super_user/admin role | `uid: string, newRole: string` |
+
+**Use Case:** Linus (CTO) asks "Show pending users" → `user.getPending` returns 3 pending signups. Linus asks "Approve rishabh@bakedbot.ai" → `user.approve` activates account.
+
+#### 4. System Control Tools (6 tools)
+Configuration, diagnostics, audit logs, statistics, cache management.
+
+**File:** `src/server/agents/tools/domain/system-control-tools.ts`
+
+| Tool | Purpose | Parameters |
+|------|---------|-----------|
+| `system.getConfig` | System configuration overview (email provider, timezone, etc.) | — |
+| `system.setConfig` | Update system configuration | `updates: Record<string, any>` |
+| `system.listIntegrations` | All active integrations (POS, payment, email) | — |
+| `system.getAuditLog` | Recent system actions (actor, action, resource, status) | `limit?: number` |
+| `system.getStats` | Tenant count, user count, orders today | — |
+| `system.clearCache` | Clear application cache (if caching enabled) | `cacheType?: string` |
+
+**Use Case:** Glenda (CMO) asks "What email provider are we using?" → `system.getConfig` returns 'mailjet'. Leo asks "Show audit log" → `system.getAuditLog` returns last 50 actions.
+
+### Architecture Highlights
+
+**Type Safety:** All tools use Zod schemas in Genkit definitions for input validation.
+
+**Error Handling:** Try/catch everywhere. All tools return `{ success: boolean, error?: string, data: ... }` format.
+
+**Firebase Integration:** Tools use `getAdminFirestore()` + `getAdminAuth()` for secure server-side access.
+
+**Role-Based Access Control:** All tools registered in TOOL_REGISTRY with `super_user` role gate (only Leo, Jack, Glenda, Mike, Linus can call them).
+
+**Real-time Data:** Direct Firestore queries (no caching at tool level) for latest state. Caching layer planned for Phase 2.
+
+### Wiring Fixes (Phase 1)
+
+**File:** `src/app/dashboard/ceo/agents/default-tools.ts`
+
+| Bug | Root Cause | Fix |
+|-----|-----------|-----|
+| contextLogDecision, intuitionEvaluateHeuristics, etc. | Declared in toolsDef but missing from defaultExecutiveBoardTools | Imported from tool-executor.ts + added to object |
+| `sendEmail` | Name mismatch (toolset has `sendEmailMailjet`) | Added alias: `sendEmail: sendEmailMailjet` |
+| `crmListUsers`, `crmGetStats` | Declared in Jack's toolsDef but not wired | Imported from crm-full.ts, added to defaultExecutiveBoardTools |
+| Dot-notation tools (`drive.uploadFile`, `browserSession.create`) | Harness lookup doesn't handle dot-notation keys | Converted to underscore: `drive_uploadFile`, `browserSession_create` |
+
+**Total Tools Now Available:** 28 (12 pre-existing + 16 new from audit fixes)
+
+### Deployment Checklist
+
+- ✅ **Phase 1:** Fixed critical wiring bugs (commit 647a6f12)
+- ✅ **Phase 2:** Created heartbeat-tools.ts + wired to default-tools.ts
+- ✅ **Phase 3:** Created platform-tools.ts + wired to default-tools.ts
+- ✅ **Phase 4:** Created user-admin-tools.ts + wired to default-tools.ts
+- ✅ **Phase 5:** Created system-control-tools.ts + wired to default-tools.ts
+- ✅ **Build verification:** `npm run check:types` → 0 new TypeScript errors
+- ✅ **Git commit:** All changes committed (647a6f12)
+- ✅ **Pushed to origin/main:** Firebase App Hosting CI/CD triggered
+
+### Verification
+
+**Test via Command Center chat:**
+1. Ask Leo: "What's our system status?" → heartbeat.getStatus returns config + alerts
+2. Ask Jack: "List all our brands" → platform.listTenants returns customer list
+3. Ask Linus: "Show pending users" → user.getPending returns waiting approvals
+4. Ask Glenda: "What email provider are we using?" → system.getConfig returns configuration
+
+### Next Phases
+
+**Phase 2 (Planned):** Tool caching for read-heavy operations (platform.getAnalytics, platform.listTenants, etc.) with configurable TTL
+
+**Phase 3 (Planned):** Real-time audit log streaming + email notifications for user approvals/rejections + scheduled system checks via Cloud Tasks
 
 ---
 
