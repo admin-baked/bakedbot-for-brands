@@ -25,10 +25,11 @@ if (!getApps().length) {
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { playbookId: string } }
+    { params }: { params: Promise<{ playbookId: string }> }
 ) {
+    let playbookId: string | undefined;
     try {
-        const { playbookId } = params;
+        playbookId = (await params).playbookId;
 
         // Verify authorization (CRON_SECRET or authenticated user)
         const authHeader = request.headers.get('authorization');
@@ -126,7 +127,7 @@ export async function POST(
     } catch (error: any) {
         logger.error('[PlaybookExecute] Execution failed:', {
             error: error.message,
-            playbookId: params.playbookId,
+            playbookId,
         });
 
         return NextResponse.json(
