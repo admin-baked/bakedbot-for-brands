@@ -7,9 +7,10 @@
  */
 
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type PlaybookFilterCategory = 'All' | 'Intel' | 'SEO' | 'Ops' | 'Finance' | 'Compliance';
@@ -73,17 +74,31 @@ export function PlaybooksHeader({
                     ))}
                 </div>
 
-                {/* New Playbook Button */}
-                {newPlaybookButton ?? (
-                    <Button
-                        onClick={onNewPlaybook}
-                        disabled={!onNewPlaybook}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-2"
-                    >
-                        <Plus className="w-5 h-5" />
-                        New Playbook
-                    </Button>
-                )}
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                    {/* Analytics Button */}
+                    <Link href="/dashboard/playbooks/analytics">
+                        <Button
+                            variant="outline"
+                            className="font-medium gap-2"
+                        >
+                            <TrendingUp className="w-5 h-5" />
+                            Analytics
+                        </Button>
+                    </Link>
+
+                    {/* New Playbook Button */}
+                    {newPlaybookButton ?? (
+                        <Button
+                            onClick={onNewPlaybook}
+                            disabled={!onNewPlaybook}
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium gap-2"
+                        >
+                            <Plus className="w-5 h-5" />
+                            New Playbook
+                        </Button>
+                    )}
+                </div>
             </div>
         </div>
     );
