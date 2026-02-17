@@ -1,6 +1,7 @@
 import { logger } from '@/lib/logger';
 import { slackService, SlackService } from './communications/slack';
 import { runAgentCore } from '@/server/agents/agent-runner';
+import { archiveSlackResponse } from './slack-response-archive';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
 // System-level identity injected for Slack requests.
@@ -153,6 +154,26 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         const fallbackText = `${getPersonaName(personaId)}: ${result.content.slice(0, 200)}`;
 
         await slackService.postInThread(channel, threadTs, fallbackText, blocks);
+
+        // 6. Archive response for audit trail
+        const requestType = isDm ? 'dm' : isChannelMsg ? 'channel' : 'mention';
+        archiveSlackResponse({
+            timestamp: new Date(),
+            slackUserId,
+            channel,
+            channelName: '',
+            threadTs,
+            userMessage: cleanText,
+            agent: personaId,
+            agentName: getPersonaName(personaId),
+            agentResponse: result.content,
+            responseLength: result.content.length,
+            isDm,
+            isChannelMsg,
+            requestType,
+            date: new Date().toISOString().split('T')[0],
+            month: new Date().toISOString().split('T')[0].slice(0, 7),
+        }).catch((err) => logger.warn(`[SlackBridge] Archive failed: ${err}`));
 
         logger.info(`[SlackBridge] Replied successfully to ${slackUserId} with ${personaId}`);
 
