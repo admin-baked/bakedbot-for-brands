@@ -345,45 +345,85 @@ function parseGeneratedEmail(generated: string): {
 }
 
 /**
+ * Convert markdown syntax to HTML
+ */
+function convertMarkdownToHtml(text: string): string {
+    return text
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')   // **bold**
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')               // *italic*
+        .replace(/_(.+?)_/g, '<em>$1</em>');                // _italic_
+}
+
+/**
  * Format HTML body with proper paragraph tags and spacing
  */
 function formatHtmlBody(rawHtml: string): string {
     // If already has HTML tags, just ensure proper styling
     if (rawHtml.includes('<p>') || rawHtml.includes('<div>')) {
-        // Add inline styles to existing <p> tags if they don't have them
         return rawHtml.replace(
             /<p>/gi,
             '<p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px; color: #333;">'
         );
     }
 
-    // Otherwise, convert plain text paragraphs to HTML
+    // Split on double line breaks into paragraphs
     const paragraphs = rawHtml
-        .split(/\n\n+/) // Split on double line breaks
+        .split(/\n\n+/)
         .map(p => p.trim())
         .filter(p => p.length > 0);
 
-    return paragraphs
-        .map(paragraph => {
-            // Check if it's a signature line (starts with name or title)
-            if (
-                paragraph.startsWith('Mrs. Parker') ||
-                paragraph.startsWith('With love') ||
-                paragraph.includes('💜') ||
-                paragraph.includes('Customer Happiness')
-            ) {
-                return `<p style="font-size: 16px; line-height: 1.8; margin-top: 30px; margin-bottom: 10px; color: #667eea; font-style: italic;">${paragraph}</p>`;
-            }
+    const htmlParts: string[] = [];
 
-            // Check if it's a greeting (Hey/Hi + name)
-            if (paragraph.match(/^(Hey|Hi|Hello|Welcome)\s+\w+[!,]/)) {
-                return `<p style="font-size: 18px; line-height: 1.8; margin-bottom: 20px; color: #333; font-weight: 500;">${paragraph}</p>`;
-            }
+    for (const paragraph of paragraphs) {
+        // Check if it's a bullet list block (lines starting with • - * or number)
+        const lines = paragraph.split('\n');
+        const isBulletBlock = lines.length > 1 && lines.every(
+            l => l.trim().match(/^[•\-\*]|\d+\./)
+        );
 
-            // Regular paragraph
-            return `<p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px; color: #333;">${paragraph}</p>`;
-        })
-        .join('\n');
+        if (isBulletBlock) {
+            const items = lines
+                .map(l => l.trim().replace(/^[•\-\*]\s*/, '').replace(/^\d+\.\s*/, ''))
+                .filter(l => l.length > 0)
+                .map(l => `<li style="font-size: 16px; line-height: 1.8; margin-bottom: 10px; color: #333;">${convertMarkdownToHtml(l)}</li>`)
+                .join('\n');
+            htmlParts.push(`<ul style="padding-left: 24px; margin-bottom: 20px;">\n${items}\n</ul>`);
+            continue;
+        }
+
+        // Signature block - split into individual lines with <br>
+        if (
+            paragraph.startsWith('Mrs. Parker') ||
+            paragraph.startsWith('With love') ||
+            paragraph.includes('💜') ||
+            paragraph.includes('Customer Happiness') ||
+            paragraph.includes('Craig') && paragraph.includes('BakedBot')
+        ) {
+            // Split signature lines and join with <br>
+            const sigLines = paragraph
+                .split(/\n|(?<=💜)\s+/)
+                .map(l => l.trim())
+                .filter(l => l.length > 0)
+                .join('<br>');
+            htmlParts.push(`<p style="font-size: 16px; line-height: 2; margin-top: 32px; margin-bottom: 10px; color: #667eea; font-style: italic;">${sigLines}</p>`);
+            continue;
+        }
+
+        // Greeting line
+        if (paragraph.match(/^(Hey|Hi|Hello|Welcome)\s+\w+[!,]/)) {
+            htmlParts.push(`<p style="font-size: 18px; line-height: 1.8; margin-bottom: 20px; color: #333; font-weight: 500;">${convertMarkdownToHtml(paragraph)}</p>`);
+            continue;
+        }
+
+        // Regular paragraph - handle single line breaks within as <br>
+        const formatted = paragraph
+            .split('\n')
+            .map(l => convertMarkdownToHtml(l.trim()))
+            .join('<br>');
+        htmlParts.push(`<p style="font-size: 16px; line-height: 1.8; margin-bottom: 20px; color: #333;">${formatted}</p>`);
+    }
+
+    return htmlParts.join('\n');
 }
 
 /**

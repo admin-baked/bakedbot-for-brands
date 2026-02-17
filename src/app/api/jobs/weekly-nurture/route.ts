@@ -78,7 +78,9 @@ export async function POST(request: NextRequest) {
             const userData = userDoc.data();
             const userId = userDoc.id;
             const email = userData.email;
-            const firstName = userData.name?.split(' ')[0];
+            // Try multiple field names - different signup paths store name differently
+            const fullName = userData.displayName || userData.name || userData.firstName || '';
+            const firstName = userData.firstName || fullName.split(' ')[0] || undefined;
 
             if (!email) {
                 logger.warn('[WeeklyNurture] Skipping user without email', { userId });
