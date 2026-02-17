@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BundleDeal, BundleProduct } from '@/types/bundles';
-import { Plus, Check, Sparkles, AlertCircle, Loader2, Search, Filter, X } from 'lucide-react';
+import { Plus, Check, Sparkles, AlertCircle, Loader2, Search, Filter, X, Leaf, Cookie, Droplets, Droplet, Wind, HandHeart, Pill, Coffee, Package, Cigarette } from 'lucide-react';
+import { getCategoryIconName, getCategoryIconColor } from '@/lib/utils/product-image';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -15,6 +16,11 @@ import { Slider } from '@/components/ui/slider';
 import Image from 'next/image';
 import { fetchEligibleBundleProducts, getBundleFilterOptions, type BundleEligibleProduct, type BundleProductFilters } from '@/app/actions/bundle-products';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+
+const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+    Leaf, Cookie, Droplets, Droplet, Wind, HandHeart, Pill, Coffee, Package, Cigarette,
+};
 
 interface BundleBuilderProps {
     deal: BundleDeal;
@@ -35,6 +41,16 @@ export function BundleBuilder({ deal, orgId, open, onOpenChange }: BundleBuilder
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [showFilters, setShowFilters] = useState(false);
+
+    // AI price suggestion state
+    const [aiSuggestion, setAiSuggestion] = useState<{
+        suggestedPrice: number;
+        reasoning: string;
+        marginAtSuggestedPrice: number;
+        priceRange: { min: number; max: number };
+        competitiveNote?: string;
+    } | null>(null);
+    const [aiSuggestionLoading, setAiSuggestionLoading] = useState(false);
 
     // Filter states
     const [filters, setFilters] = useState<BundleProductFilters>({
@@ -143,6 +159,35 @@ export function BundleBuilder({ deal, orgId, open, onOpenChange }: BundleBuilder
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.brand.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    // Get AI price suggestion
+    const handleGetAiPriceSuggestion = async () => {
+        if (selectedProducts.length === 0) return;
+        setAiSuggestionLoading(true);
+        setAiSuggestion(null);
+        try {
+            const { getBundlePriceSuggestion } = await import('@/app/actions/dynamic-pricing');
+            const result = await getBundlePriceSuggestion(
+                selectedProducts.map(p => ({
+                    name: p.name,
+                    category: p.category,
+                    price: p.price,
+                    unitCost: p.unitCost,
+                    marginPercent: p.marginPercent,
+                    thcPercentage: p.thcPercentage,
+                })),
+                deal.bundlePrice,
+                30
+            );
+            if (result.success && result.data) {
+                setAiSuggestion(result.data);
+            }
+        } catch {
+            // Silently fail - AI suggestion is enhancement only
+        } finally {
+            setAiSuggestionLoading(false);
+        }
+    };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -301,8 +346,12 @@ export function BundleBuilder({ deal, orgId, open, onOpenChange }: BundleBuilder
                                                     sizes="150px"
                                                 />
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                                                    No Image
+                                                <div className="w-full h-full flex items-center justify-center">
+                                                    {(() => {
+                                                        const iconName = getCategoryIconName(product.category);
+                                                        const IconComponent = CATEGORY_ICONS[iconName] || Leaf;
+                                                        return <IconComponent className={cn('h-8 w-8', getCategoryIconColor(product.category))} />;
+                                                    })()}
                                                 </div>
                                             )}
 
@@ -450,6 +499,39 @@ export function BundleBuilder({ deal, orgId, open, onOpenChange }: BundleBuilder
                                                 </div>
                                             )}
                                         </>
+                                    )}
+
+                                    {/* AI Price Suggestion */}
+                                    <Separator className="my-2" />
+                                    {!aiSuggestion ? (
+                                        <button
+                                            onClick={handleGetAiPriceSuggestion}
+                                            disabled={aiSuggestionLoading || selectedProducts.length === 0}
+                                            className="w-full text-[10px] text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 p-2 rounded flex items-center justify-center gap-1 transition-colors disabled:opacity-50"
+                                        >
+                                            {aiSuggestionLoading ? (
+                                                <><Loader2 className="h-3 w-3 animate-spin" /> Analyzing...</>
+                                            ) : (
+                                                <><Sparkles className="h-3 w-3" /> Get AI Price Suggestion</>
+                                            )}
+                                        </button>
+                                    ) : (
+                                        <div className="text-[10px] bg-purple-50 border border-purple-200 p-2 rounded space-y-1">
+                                            <div className="flex items-center justify-between">
+                                                <span className="font-semibold text-purple-800 flex items-center gap-1">
+                                                    <Sparkles className="h-3 w-3" /> AI Suggestion
+                                                </span>
+                                                <button onClick={() => setAiSuggestion(null)} className="text-purple-400 hover:text-purple-600">
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            </div>
+                                            <div className="text-purple-900 font-bold text-sm">${aiSuggestion.suggestedPrice.toFixed(2)}</div>
+                                            <div className="text-purple-700">{aiSuggestion.reasoning}</div>
+                                            {aiSuggestion.competitiveNote && (
+                                                <div className="text-purple-600 italic">{aiSuggestion.competitiveNote}</div>
+                                            )}
+                                            <div className="text-purple-600">Range: ${aiSuggestion.priceRange.min.toFixed(2)} – ${aiSuggestion.priceRange.max.toFixed(2)}</div>
+                                        </div>
                                     )}
                                 </div>
                             </div>

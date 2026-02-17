@@ -369,16 +369,36 @@ async function saveReportToDrive(
     const markdown = formatReportAsMarkdown(report);
     const buffer = Buffer.from(markdown, 'utf-8');
 
-    // Get tenant admin user for storage
+    // Get tenant admin user for storage — try tenant doc, fall back to users query
     const { firestore } = await createServerClient();
+    let adminUserId = 'system';
+    let adminEmail = 'system@bakedbot.ai';
+
     const tenantDoc = await firestore.collection('tenants').doc(orgId).get();
-    const tenantData = tenantDoc.data();
-    const adminUserId = tenantData?.ownerId || tenantData?.createdBy || 'system';
+    if (tenantDoc.exists) {
+        const tenantData = tenantDoc.data();
+        adminUserId = tenantData?.ownerId || tenantData?.createdBy || 'system';
+        adminEmail = tenantData?.email || 'system@bakedbot.ai';
+    } else {
+        // Fall back: find a dispensary-role user for this org
+        const usersSnap = await firestore
+            .collection('users')
+            .where('orgId', '==', orgId)
+            .limit(5)
+            .get();
+        const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() as any }));
+        const admin = users.find((u: any) => u.role === 'dispensary' || u.role === 'dispensary_owner')
+            || users[0];
+        if (admin) {
+            adminUserId = admin.id;
+            adminEmail = admin.email || 'system@bakedbot.ai';
+        }
+    }
 
     // Save to Drive under 'documents' category
     const uploadResult = await driveService.uploadFile({
         userId: adminUserId,
-        userEmail: tenantData?.email || 'system@bakedbot.ai',
+        userEmail: adminEmail,
         file: {
             buffer,
             originalName: `competitive-intel-${reportId}.md`,
@@ -436,14 +456,41 @@ async function createInboxNotification(
 ): Promise<void> {
     const { createInboxThread } = await import('@/server/actions/inbox');
 
-    // Get tenant admin user
     const { firestore } = await createServerClient();
+
+    // Try tenant doc first, then fall back to querying users collection
+    let adminUserId: string | undefined;
+    let adminEmail: string | undefined;
+
     const tenantDoc = await firestore.collection('tenants').doc(orgId).get();
-    const tenantData = tenantDoc.data();
-    const adminUserId = tenantData?.ownerId || tenantData?.createdBy;
+    if (tenantDoc.exists) {
+        const tenantData = tenantDoc.data();
+        adminUserId = tenantData?.ownerId || tenantData?.createdBy;
+        adminEmail = tenantData?.email;
+    }
+
+    // Fall back: find a dispensary-role user for this org
+    if (!adminUserId) {
+        const usersSnap = await firestore
+            .collection('users')
+            .where('orgId', '==', orgId)
+            .limit(10)
+            .get();
+
+        // Prefer dispensary role, then super_user, then any
+        const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() as any }));
+        const admin = users.find((u: any) => u.role === 'dispensary' || u.role === 'dispensary_owner')
+            || users.find((u: any) => u.role === 'super_user')
+            || users[0];
+
+        if (admin) {
+            adminUserId = admin.id;
+            adminEmail = admin.email;
+        }
+    }
 
     if (!adminUserId) {
-        logger.warn('[WeeklyReport] No admin user found for tenant', { orgId });
+        logger.warn('[WeeklyReport] No admin user found for org', { orgId });
         return;
     }
 
@@ -484,8 +531,8 @@ async function createInboxNotification(
         });
     }
 
-    // Also send email notification
-    await sendReportEmail(orgId, adminUserId, reportId, report, summary);
+    // Also send email notification (pass pre-fetched email to avoid re-querying)
+    await sendReportEmail(orgId, adminUserId, reportId, report, summary, adminEmail);
 }
 
 /**
@@ -496,15 +543,19 @@ async function sendReportEmail(
     adminUserId: string,
     reportId: string,
     report: Omit<WeeklyIntelReport, 'id'>,
-    summary: string
+    summary: string,
+    preloadedEmail?: string
 ): Promise<void> {
     try {
         const { firestore } = await createServerClient();
         const { sendGenericEmail } = await import('@/lib/email/dispatcher');
 
-        // Get admin user email
-        const userDoc = await firestore.collection('users').doc(adminUserId).get();
-        const userEmail = userDoc.data()?.email;
+        // Use pre-loaded email or fetch from users collection
+        let userEmail = preloadedEmail;
+        if (!userEmail) {
+            const userDoc = await firestore.collection('users').doc(adminUserId).get();
+            userEmail = userDoc.data()?.email;
+        }
 
         if (!userEmail) {
             logger.warn('[WeeklyReport] No email found for admin user', { adminUserId, orgId });

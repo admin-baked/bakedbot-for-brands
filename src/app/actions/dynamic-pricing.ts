@@ -1412,3 +1412,102 @@ export async function previewPricingRuleImpact(
     };
   }
 }
+
+// =============================================================================
+// BUNDLE AI PRICE SUGGESTION
+// =============================================================================
+
+interface BundleSlotProduct {
+  name: string;
+  category: string;
+  price: number;
+  unitCost?: number;
+  marginPercent?: number;
+  thcPercentage?: number;
+}
+
+interface BundlePriceSuggestion {
+  suggestedPrice: number;
+  reasoning: string;
+  marginAtSuggestedPrice: number;
+  priceRange: { min: number; max: number };
+  competitiveNote?: string;
+}
+
+/**
+ * Get Claude's suggestion for the optimal bundle price.
+ * Uses margin targets, inventory signals, and competitive context.
+ */
+export async function getBundlePriceSuggestion(
+  products: BundleSlotProduct[],
+  currentPrice: number,
+  targetMarginPct: number = 30
+): Promise<{ success: boolean; data?: BundlePriceSuggestion; error?: string }> {
+  try {
+    if (products.length === 0) {
+      return { success: false, error: 'No products provided' };
+    }
+
+    const totalCost = products.reduce((sum, p) => sum + (p.unitCost || 0), 0);
+    const totalRetail = products.reduce((sum, p) => sum + p.price, 0);
+
+    // Build prompt for Claude
+    const prompt = `You are a cannabis retail pricing expert. A dispensary wants to create a bundle deal.
+
+Bundle Products:
+${products.map((p, i) => `${i + 1}. ${p.name} (${p.category}) — Retail: $${p.price.toFixed(2)}${p.unitCost ? `, Cost: $${p.unitCost.toFixed(2)}, Margin: ${p.marginPercent?.toFixed(0) || 'N/A'}%` : ''}${p.thcPercentage ? `, THC: ${p.thcPercentage}%` : ''}`).join('\n')}
+
+Combined retail value: $${totalRetail.toFixed(2)}
+Total product cost: $${totalCost > 0 ? totalCost.toFixed(2) : 'unknown'}
+Current bundle price: $${currentPrice.toFixed(2)}
+Target margin: ${targetMarginPct}%
+
+Suggest an optimal bundle price that:
+1. Provides a compelling discount (15-30% off retail) to drive conversion
+2. Maintains at least ${targetMarginPct}% gross margin
+3. Is psychologically appealing (ends in .99 or .00)
+4. Undercuts typical competitor bundle pricing
+
+Respond in JSON format only:
+{
+  "suggestedPrice": <number>,
+  "reasoning": "<1-2 sentence explanation>",
+  "marginAtSuggestedPrice": <number — gross margin % at suggested price>,
+  "priceRange": { "min": <minimum viable price>, "max": <maximum compelling price> },
+  "competitiveNote": "<brief note on competitive positioning>"
+}`;
+
+    const { callClaude } = await import('@/ai/claude');
+    const rawResponse = await callClaude({
+      model: 'claude-haiku-4-5-20251001',
+      userMessage: prompt,
+      systemPrompt: 'You are a cannabis retail pricing expert. Always respond with valid JSON only, no prose.',
+      autoRouteModel: false,
+    });
+
+    // Extract JSON from response
+    const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No JSON found in AI response');
+    }
+    const result = JSON.parse(jsonMatch[0]) as BundlePriceSuggestion;
+
+    if (!result || typeof result.suggestedPrice !== 'number') {
+      throw new Error('Invalid response structure from AI');
+    }
+
+    logger.info('[DYNAMIC_PRICING] Bundle price suggestion generated', {
+      currentPrice,
+      suggestedPrice: result.suggestedPrice,
+      productCount: products.length,
+    });
+
+    return { success: true, data: result };
+  } catch (error) {
+    logger.error('[DYNAMIC_PRICING] Bundle price suggestion failed', { error });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate price suggestion',
+    };
+  }
+}

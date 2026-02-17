@@ -239,6 +239,17 @@ env:
     secret: CRON_SECRET@6
     availability:
       - RUNTIME
+  # Slack Agent Integration (2026-02-16)
+  # Setup: firebase apphosting:secrets:grantaccess SLACK_BOT_TOKEN --backend=bakedbot-prod
+  # Setup: firebase apphosting:secrets:grantaccess SLACK_SIGNING_SECRET --backend=bakedbot-prod
+  - variable: SLACK_BOT_TOKEN
+    secret: SLACK_BOT_TOKEN@1
+    availability:
+      - RUNTIME
+  - variable: SLACK_SIGNING_SECRET
+    secret: SLACK_SIGNING_SECRET@1
+    availability:
+      - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
     value: "https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app"
     availability:

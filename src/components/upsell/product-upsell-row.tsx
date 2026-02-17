@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Leaf, Sparkles, Tag, Zap, X } from 'lucide-react';
+import { motion } from 'framer-motion';
 import type { Product } from '@/types/domain';
 import type { UpsellSuggestion, UpsellPlacement, UpsellResult } from '@/types/upsell';
 
@@ -117,22 +118,27 @@ export function ProductUpsellRow({
       </h4>
 
       <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-        {suggestions.map((suggestion) => (
-          compact ? (
-            <CompactUpsellCard
-              key={suggestion.product.id}
-              suggestion={suggestion}
-              onAddToCart={onAddToCart}
-              primaryColor={primaryColor}
-            />
-          ) : (
-            <UpsellCard
-              key={suggestion.product.id}
-              suggestion={suggestion}
-              onAddToCart={onAddToCart}
-              primaryColor={primaryColor}
-            />
-          )
+        {suggestions.map((suggestion, index) => (
+          <motion.div
+            key={suggestion.product.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, delay: index * 0.06 }}
+          >
+            {compact ? (
+              <CompactUpsellCard
+                suggestion={suggestion}
+                onAddToCart={onAddToCart}
+                primaryColor={primaryColor}
+              />
+            ) : (
+              <UpsellCard
+                suggestion={suggestion}
+                onAddToCart={onAddToCart}
+                primaryColor={primaryColor}
+              />
+            )}
+          </motion.div>
         ))}
       </div>
     </div>
