@@ -781,3 +781,91 @@ export async function reassignDriver(deliveryId: string, newDriverId: string) {
         };
     }
 }
+
+/**
+ * Get driver performance metrics for analytics tab
+ */
+export async function getDriverPerformance(locationId: string) {
+    try {
+        await requireUser(DISPENSARY_ADMIN_ROLES);
+        const db = getAdminFirestore();
+
+        // Get completed deliveries grouped by driver
+        const completedSnapshot = await db
+            .collection('deliveries')
+            .where('locationId', '==', locationId)
+            .where('status', 'in', ['delivered', 'failed'])
+            .get();
+
+        // Aggregate by driverId
+        const driverMap: Record<string, {
+            completed: number;
+            failed: number;
+            totalMinutes: number;
+            onTimeCount: number;
+        }> = {};
+
+        completedSnapshot.docs.forEach((doc) => {
+            const data = doc.data();
+            const driverId = data.driverId;
+            if (!driverId) return;
+
+            if (!driverMap[driverId]) {
+                driverMap[driverId] = { completed: 0, failed: 0, totalMinutes: 0, onTimeCount: 0 };
+            }
+
+            if (data.status === 'delivered') {
+                driverMap[driverId].completed++;
+                if (data.createdAt && data.deliveredAt) {
+                    const created = data.createdAt.toDate();
+                    const delivered = data.deliveredAt.toDate();
+                    driverMap[driverId].totalMinutes += (delivered.getTime() - created.getTime()) / 60000;
+                }
+                if (data.deliveredAt && data.deliveryWindow?.end) {
+                    const deliveredTime = data.deliveredAt.toDate();
+                    const windowEnd = data.deliveryWindow.end.toDate();
+                    if (deliveredTime <= windowEnd) driverMap[driverId].onTimeCount++;
+                }
+            } else {
+                driverMap[driverId].failed++;
+            }
+        });
+
+        // Fetch driver names
+        const driverIds = Object.keys(driverMap);
+        const drivers = [];
+
+        for (const driverId of driverIds) {
+            const driverDoc = await db.collection('drivers').doc(driverId).get();
+            const driverData = driverDoc.data();
+            const stats = driverMap[driverId];
+            const totalDeliveries = stats.completed + stats.failed;
+
+            drivers.push({
+                driverId,
+                name: driverData
+                    ? `${driverData.firstName} ${driverData.lastName}`
+                    : 'Unknown Driver',
+                completed: stats.completed,
+                failed: stats.failed,
+                avgTime: stats.completed > 0 ? stats.totalMinutes / stats.completed : 0,
+                onTimeRate: stats.completed > 0 ? (stats.onTimeCount / stats.completed) * 100 : 0,
+            });
+        }
+
+        // Sort by completed deliveries descending
+        drivers.sort((a, b) => b.completed - a.completed);
+
+        return {
+            success: true,
+            drivers,
+        };
+    } catch (error) {
+        logger.error('Get driver performance failed', { error, locationId });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to load driver performance',
+            drivers: [],
+        };
+    }
+}

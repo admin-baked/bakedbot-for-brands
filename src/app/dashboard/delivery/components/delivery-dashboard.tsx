@@ -13,6 +13,7 @@ import { Truck, Users, MapPin, BarChart3, Loader2 } from 'lucide-react';
 import { ActiveDeliveriesTab } from './active-deliveries-tab';
 import { DriversTab } from './drivers-tab';
 import { ZonesTab } from './zones-tab';
+import { AnalyticsTab } from './analytics-tab';
 
 export function DeliveryDashboard() {
     const { user, isUserLoading } = useUser();
@@ -83,13 +84,7 @@ export function DeliveryDashboard() {
                 </TabsContent>
 
                 <TabsContent value="analytics" className="space-y-4">
-                    <div className="p-8 text-center border rounded-lg bg-muted/50">
-                        <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <h3 className="text-lg font-semibold mb-2">Analytics & Reports</h3>
-                        <p className="text-sm text-muted-foreground">
-                            Coming in Phase 5: Success rate, avg delivery time, driver performance
-                        </p>
-                    </div>
+                    <AnalyticsTab locationId={locationId} />
                 </TabsContent>
             </Tabs>
         </div>
