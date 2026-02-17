@@ -24,6 +24,12 @@ import {
     suggestAudience,
     submitCampaignForReview,
 } from '@/server/tools/campaign-tools';
+import {
+    crmListUsersTool,
+    crmGetStatsTool,
+    crmUpdateLifecycleTool,
+    crmAddNoteTool,
+} from '@/server/agents/tools/domain/crm-full';
 
 // Wrapper to avoid cirular dependency issues if any
 // but these tools mostly depend on external services or leaf nodes.
@@ -1354,6 +1360,105 @@ export const defaultExecutiveBoardTools = {
             total: AGENT_CAPABILITIES.length,
             note: 'Real-time agent monitoring not yet implemented. This shows registry data.'
         };
+    },
+
+    // === CONTEXT OS TOOLS (Fixed: were declared but not wired) ===
+    contextLogDecision: async (decision: string, reasoning: string, category: string) => {
+        try {
+            const { contextLogDecision: contextLogDecisionTool } = await import('@/server/tools/context-tools');
+            return await contextLogDecisionTool({ decision, reasoning, category });
+        } catch (e: any) {
+            return { success: false, error: `Context OS unavailable: ${e.message}` };
+        }
+    },
+
+    contextAskWhy: async (question: string) => {
+        try {
+            const { contextAskWhy: contextAskWhyTool } = await import('@/server/tools/context-tools');
+            return await contextAskWhyTool({ question });
+        } catch (e: any) {
+            return { success: false, error: `Context OS unavailable: ${e.message}` };
+        }
+    },
+
+    contextGetAgentHistory: async (agentId: string, limit?: number) => {
+        try {
+            const { contextGetAgentHistory: contextGetAgentHistoryTool } = await import('@/server/tools/context-tools');
+            return await contextGetAgentHistoryTool({ agentId, limit });
+        } catch (e: any) {
+            return { success: false, error: `Context OS unavailable: ${e.message}` };
+        }
+    },
+
+    // === INTUITION OS TOOLS (Fixed: were declared but not wired) ===
+    intuitionEvaluateHeuristics: async (scenario: string, options: any[]) => {
+        try {
+            const { intuitionEvaluateHeuristics: intuitionTool } = await import('@/server/tools/intuition-tools');
+            return await intuitionTool({ scenario, options });
+        } catch (e: any) {
+            return { success: false, error: `Intuition OS unavailable: ${e.message}` };
+        }
+    },
+
+    intuitionGetConfidence: async (prediction: string, data: any) => {
+        try {
+            const { intuitionGetConfidence: intuitionTool } = await import('@/server/tools/intuition-tools');
+            return await intuitionTool({ prediction, data });
+        } catch (e: any) {
+            return { success: false, error: `Intuition OS unavailable: ${e.message}` };
+        }
+    },
+
+    intuitionLogOutcome: async (predictionId: string, actualOutcome: any, notes?: string) => {
+        try {
+            const { intuitionLogOutcome: intuitionTool } = await import('@/server/tools/intuition-tools');
+            return await intuitionTool({ predictionId, actualOutcome, notes });
+        } catch (e: any) {
+            return { success: false, error: `Intuition OS unavailable: ${e.message}` };
+        }
+    },
+
+    // === CRM TOOLS (Fixed: Jack declared these but they weren't wired to exec toolset) ===
+    crmListUsers: async (search?: string, lifecycleStage?: string, limit?: number) => {
+        try {
+            const result = await crmListUsersTool({ search, lifecycleStage, limit });
+            return result;
+        } catch (e: any) {
+            return { success: false, error: `CRM lookup failed: ${e.message}`, users: [], total: 0 };
+        }
+    },
+
+    crmGetStats: async () => {
+        try {
+            const result = await crmGetStatsTool({});
+            return result;
+        } catch (e: any) {
+            return { success: false, error: `CRM stats unavailable: ${e.message}`, totalUsers: 0, activeUsers: 0, totalMRR: 0, byLifecycle: {} };
+        }
+    },
+
+    crmUpdateLifecycle: async (userId: string, stage: string, note?: string) => {
+        try {
+            const result = await crmUpdateLifecycleTool({ userId, stage: stage as any, note });
+            return result;
+        } catch (e: any) {
+            return { success: false, error: `CRM update failed: ${e.message}` };
+        }
+    },
+
+    crmAddNote: async (userId: string, note: string, authorId?: string) => {
+        try {
+            const result = await crmAddNoteTool({ userId, note, authorId });
+            return result;
+        } catch (e: any) {
+            return { success: false, error: `CRM note failed: ${e.message}` };
+        }
+    },
+
+    // === SEND EMAIL ALIAS (Fixed: sendEmail name mismatch) ===
+    // Agents declare 'sendEmail' but toolset has 'sendEmailMailjet'. Add alias for compatibility.
+    sendEmail: async (to: string, subject: string, htmlBody: string, fromEmail?: string, fromName?: string) => {
+        return await commonDigitalWorkerTools.sendEmailMailjet(to, subject, htmlBody, fromEmail, fromName);
     },
 
     // RTRvr.ai (Exclusive to Executive Board)
