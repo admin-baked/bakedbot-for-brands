@@ -3,6 +3,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { createServerClient } from '@/firebase/server-client';
 import { emitEvent } from '@/server/events/emitter';
 import { verifyAuthorizeNetSignature } from '@/lib/payments/webhook-validation';
+import { assignTierPlaybooks } from '@/server/actions/playbooks';
 import type { EventType } from '@/types/domain';
 import { logger } from '@/lib/logger';
 
@@ -422,6 +423,49 @@ export async function POST(req: NextRequest) {
                   eventType,
                 },
               });
+            }
+
+            // Send email notifications for failed/canceled subscriptions (non-blocking)
+            if (orgId && data?.tierId) {
+              const { notifySubscriptionPaymentFailed, notifySubscriptionCanceled } = await import(
+                '@/server/services/billing-notifications'
+              );
+
+              if (outcome.subscriptionStatus === 'past_due') {
+                notifySubscriptionPaymentFailed(orgId, data.tierId).catch((e: any) => {
+                  logger.warn('[AUTHNET_WEBHOOK] Payment failed email error', {
+                    orgId,
+                    error: e.message,
+                  });
+                });
+              } else if (outcome.subscriptionStatus === 'canceled') {
+                notifySubscriptionCanceled(orgId, data.tierId).catch((e: any) => {
+                  logger.warn('[AUTHNET_WEBHOOK] Canceled email error', {
+                    orgId,
+                    error: e.message,
+                  });
+                });
+              }
+            }
+
+            // Assign tier playbooks when subscription is activated
+            if (outcome.subscriptionStatus === 'active' && data?.tierId) {
+              try {
+                // Map tierId to playbook tier: pro/growth → 'pro', empire → 'enterprise'
+                const playbookTier =
+                  data.tierId === 'pro' || data.tierId === 'growth' ? 'pro' : 'enterprise';
+                await assignTierPlaybooks(orgId, playbookTier);
+                logger.info('[AUTHNET_WEBHOOK] Assigned tier playbooks on subscription activation', {
+                  orgId,
+                  tierId: data.tierId,
+                  playbookTier,
+                });
+              } catch (error: any) {
+                logger.warn('[AUTHNET_WEBHOOK] Failed to assign playbooks (non-blocking)', {
+                  orgId,
+                  error: error?.message,
+                });
+              }
             }
           })
         );
