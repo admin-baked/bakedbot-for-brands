@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -68,6 +69,7 @@ interface TierStats {
 }
 
 export default function PlaybookTemplatesPage() {
+  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [templates, setTemplates] = useState<TemplateStats[]>([]);
@@ -347,11 +349,17 @@ export default function PlaybookTemplatesPage() {
                 </TableHeader>
                 <TableBody>
                   {templates.map((template) => (
-                    <TableRow key={template.templateId}>
+                    <TableRow
+                      key={template.templateId}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => router.push(`/dashboard/admin/playbook-templates/${template.templateId}`)}
+                    >
                       <TableCell className="font-mono text-sm">
                         {template.templateId}
                       </TableCell>
-                      <TableCell className="font-medium">{template.templateName}</TableCell>
+                      <TableCell className="font-medium text-blue-600 hover:underline">
+                        {template.templateName}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant={
