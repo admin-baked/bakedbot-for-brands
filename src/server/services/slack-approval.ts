@@ -3,11 +3,12 @@
  * Detects high-risk agent actions and routes them through human approval before execution
  */
 
-import { getFirestore, Timestamp } from '@google-cloud/firestore';
+import { Timestamp } from '@google-cloud/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { AgentResult } from '@/server/agents/agent-runner';
 
-const firestore = getFirestore();
+const firestore = getAdminFirestore();
 
 // ============================================================================
 // Types

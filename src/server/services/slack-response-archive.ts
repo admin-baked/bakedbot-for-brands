@@ -3,7 +3,8 @@
  * Persists agent responses to Firestore for audit trail and history
  */
 
-import { getFirestore } from '@google-cloud/firestore';
+import { DocumentData, DocumentSnapshot } from '@google-cloud/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 
 export interface SlackResponseRecord {
@@ -35,7 +36,7 @@ export interface SlackResponseRecord {
     month: string; // YYYY-MM for monthly grouping
 }
 
-const firestore = getFirestore();
+const firestore = getAdminFirestore();
 
 /**
  * Archive a Slack agent response to Firestore
