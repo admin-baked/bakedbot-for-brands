@@ -141,8 +141,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const text: string = event.text ?? '';
     const slackUserId: string = event.user ?? '';
     const channel: string = event.channel ?? '';
-    const threadTs: string = event.thread_ts ?? event.ts ?? '';
+    const ts: string = event.ts ?? '';
+    const threadTs: string = event.thread_ts ?? '';
     const channelName: string = event.channel_name ?? '';
+
+    // Detect if this is a reply within a thread (thread_ts exists and differs from ts)
+    const isThreadReply = !!threadTs && threadTs !== ts;
 
     if (!text || !channel) {
         return response;
@@ -152,8 +156,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     Promise.resolve().then(async () => {
         try {
             await processSlackMessage({
-                text, slackUserId, channel, threadTs, channelName, isDm,
-                isChannelMsg
+                text, slackUserId, channel, threadTs: threadTs || ts, channelName, isDm,
+                isChannelMsg, isThreadReply
             });
         } catch (err: any) {
             logger.error('[Slack/Events] Background processing error:', err.message);

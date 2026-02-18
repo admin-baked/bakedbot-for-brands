@@ -162,10 +162,11 @@ export interface SlackMessageContext {
     channelName?: string;   // Optional: resolved channel name for routing
     isDm?: boolean;         // true if this is a direct message
     isChannelMsg?: boolean; // true if this is a public channel message (not @mention, not DM)
+    isThreadReply?: boolean; // true if this is a reply within a thread (has parent ts)
 }
 
 export async function processSlackMessage(ctx: SlackMessageContext): Promise<void> {
-    const { text, slackUserId, channel, threadTs, channelName = '', isDm = false, isChannelMsg = false } = ctx;
+    const { text, slackUserId, channel, threadTs, channelName = '', isDm = false, isChannelMsg = false, isThreadReply = false } = ctx;
 
     try {
         // 1. Strip bot mention and clean up text
@@ -192,14 +193,20 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
         logger.info(`[SlackBridge] Processing from ${slackUserId} in ${channel}: "${cleanText.slice(0, 80)}"`);
 
         // 4. Detect which agent to route to
-        const personaId = detectAgent(cleanText, channelName, isDm);
+        let personaId = detectAgent(cleanText, channelName, isDm);
         logger.info(`[SlackBridge] Routing to persona: ${personaId}`);
 
         // For public channel messages (not @mentions, not DMs), only respond if a
-        // specific agent keyword was found. Avoids replying to every channel message.
-        if (isChannelMsg && personaId === 'puff') {
-            logger.info('[SlackBridge] Channel message with no agent keyword — skipping');
+        // specific agent keyword was found OR if this is a thread reply (conversation continuation).
+        if (isChannelMsg && personaId === 'puff' && !isThreadReply) {
+            logger.info('[SlackBridge] Channel message with no agent keyword and not a thread reply — skipping');
             return;
+        }
+
+        // For thread replies without a specific agent keyword, route to Leo (COO) for conversation
+        if (isThreadReply && personaId === 'puff') {
+            personaId = 'leo';
+            logger.info('[SlackBridge] Thread reply without keyword — routing to Leo (default thread handler)');
         }
 
         // 5. Post a "thinking" indicator so user gets immediate feedback
