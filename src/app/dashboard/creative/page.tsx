@@ -1,32 +1,28 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
   MoreHorizontal,
   Calendar as CalendarIcon,
-  ChevronDown,
   Send,
   CheckCircle2,
   XCircle,
   AlertTriangle,
   Search,
   LayoutGrid,
-  Folder,
   MessageSquare,
-  Bell,
-  Settings,
-  ChevronsUpDown,
   HelpCircle,
-  ChevronRight,
   ArrowUpRight,
-  ChevronLeft,
   Loader2,
+  Sparkles,
+  Palette,
+  Upload,
+  BarChart3,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -35,28 +31,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 import { Calendar } from "@/components/ui/calendar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useCreativeContent } from "@/hooks/use-creative-content";
 import { toast } from "sonner";
 import type { SocialPlatform, GenerateContentRequest } from "@/types/creative-content";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { getMenuData } from "@/app/dashboard/menu/actions";
 import { logger } from "@/lib/logger";
+import { approveAtLevel, rejectAtLevel } from "@/server/actions/creative-content";
+import { EngagementAnalytics } from "@/components/creative/engagement-analytics";
+import { useUser } from "@/firebase/auth/use-user";
+import { DeeboCompliancePanel } from "./components/deebo-compliance-panel";
 
-// Type for menu products (minimal fields needed)
+// Type for menu products
 interface MenuProduct {
   id: string;
   name: string;
@@ -64,142 +54,33 @@ interface MenuProduct {
   brand?: string;
 }
 
-// Valid creative style types (non-optional since we always have a default)
+// Valid creative style types
 type CreativeStyle = NonNullable<GenerateContentRequest['style']>;
-import { approveAtLevel, rejectAtLevel } from "@/server/actions/creative-content";
-import { BarChart3, TrendingUp, QrCode, ShieldOff } from "lucide-react";
-import { EngagementAnalytics } from "@/components/creative/engagement-analytics";
-import { ApprovalChain } from "@/components/creative/approval-chain";
-import { useUser } from "@/firebase/auth/use-user";
+
+// Left panel sections
+type LeftPanel = 'generate' | 'templates' | 'brandkit' | 'upload' | 'calendar' | 'analytics' | 'help';
 
 // Feature flag: Gauntlet compliance verification system
-// Set to true when Gauntlet is re-enabled in agent-runner.ts
 const GAUNTLET_ENABLED = true;
 
-// --- Types ---
+// Left panel icon config
+const LEFT_PANELS: { id: LeftPanel; icon: React.ElementType; label: string }[] = [
+  { id: 'generate', icon: Sparkles, label: 'Generate' },
+  { id: 'templates', icon: LayoutGrid, label: 'Templates' },
+  { id: 'brandkit', icon: Palette, label: 'Brand Kit' },
+  { id: 'upload', icon: Upload, label: 'Media' },
+  { id: 'calendar', icon: CalendarIcon, label: 'Calendar' },
+  { id: 'analytics', icon: BarChart3, label: 'Analytics' },
+  { id: 'help', icon: HelpCircle, label: 'Help' },
+];
 
-// --- Components ---
-
-interface TheGridProps {
-  selectedPlatform: SocialPlatform;
-}
-
-const TheGrid = ({ selectedPlatform }: TheGridProps) => {
-  // Fetch published and scheduled content for The Grid
-  const { content: publishedContent, loading: gridLoading } = useCreativeContent({
-    platform: selectedPlatform,
-    statusFilter: ["approved", "scheduled"],
-    realtime: true,
-    limit: 12,
-  });
-
-  return (
-    <div className="w-80 border-r border-border flex flex-col h-full shrink-0">
-      <div className="p-4 flex items-center justify-between border-b border-border shrink-0 h-16">
-        <h2 className="font-semibold text-lg">The Grid</h2>
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white">
-            <LayoutGrid className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white">
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-      <div className="p-4 flex items-center justify-between shrink-0">
-        <h3 className="text-sm font-medium text-muted-foreground">
-          {publishedContent.length} Published
-        </h3>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white">
-          <MoreHorizontal className="w-4 h-4" />
-        </Button>
-      </div>
-      <ScrollArea className="flex-1">
-        <div className="px-4 space-y-4 pb-4">
-          {gridLoading ? (
-            // Loading skeleton
-            <AnimatePresence>
-              {[1, 2, 3].map((i) => (
-                <motion.div
-                  key={`skeleton-${i}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="relative rounded-lg overflow-hidden border border-border bg-card animate-pulse"
-                >
-                  <div className="w-full aspect-[4/5] bg-background" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-background/50" />
-                    <div className="h-3 w-20 bg-background/50 rounded" />
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          ) : publishedContent.length > 0 ? (
-            <AnimatePresence>
-              {publishedContent.map((post, index) => (
-                <motion.div
-                  key={post.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: index * 0.05, duration: 0.3 }}
-                  className="relative group rounded-lg overflow-hidden border border-border hover:border-primary/30 transition-colors"
-                >
-                  {post.mediaUrls && post.mediaUrls[0] ? (
-                    <img
-                      src={post.mediaUrls[0]}
-                      alt={post.caption.substring(0, 50)}
-                      className="w-full aspect-[4/5] object-cover"
-                    />
-                  ) : post.thumbnailUrl ? (
-                    <img
-                      src={post.thumbnailUrl}
-                      alt={post.caption.substring(0, 50)}
-                      className="w-full aspect-[4/5] object-cover"
-                    />
-                  ) : (
-                    <div className="w-full aspect-[4/5] bg-gradient-to-br from-primary/20 to-background flex items-center justify-center">
-                      <MessageSquare className="w-12 h-12 text-primary/50" />
-                    </div>
-                  )}
-                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                        <span className="text-xs font-medium text-white/90 capitalize">
-                          {post.status}
-                        </span>
-                      </div>
-                      <span className="text-xs text-white/70">
-                        {post.platform}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="secondary" size="icon" className="h-8 w-8 bg-muted/80 hover:bg-muted text-white backdrop-blur-sm">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-12 text-muted-foreground"
-            >
-              <MessageSquare className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
-              <p className="text-sm">No published content yet</p>
-              <p className="text-xs mt-1">Generate and approve content to see it here</p>
-            </motion.div>
-          )}
-        </div>
-      </ScrollArea>
-    </div>
-  );
+// Platform aspect ratios for canvas preview
+const PLATFORM_ASPECT: Record<SocialPlatform | string, string> = {
+  instagram: 'aspect-[4/5]',
+  tiktok: 'aspect-[9/16]',
+  linkedin: 'aspect-[1.91/1]',
+  twitter: 'aspect-square',
+  facebook: 'aspect-[1.91/1]',
 };
 
 // --- Main Page ---
@@ -207,7 +88,11 @@ const TheGrid = ({ selectedPlatform }: TheGridProps) => {
 export default function CreativeCommandCenter() {
   const router = useRouter();
   const { user } = useUser();
-  const [date, setDate] = useState<Date | undefined>(new Date());
+
+  // Left panel state
+  const [activeLeftPanel, setActiveLeftPanel] = useState<LeftPanel | null>('generate');
+
+  // Platform state
   const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform>("instagram");
 
   // Form state
@@ -221,31 +106,18 @@ export default function CreativeCommandCenter() {
   const [isEditingCaption, setIsEditingCaption] = useState(false);
   const [editedCaption, setEditedCaption] = useState("");
 
+  // Scheduling state
+  const [date, setDate] = useState<Date | undefined>(new Date());
+
   // Campaign templates
   const campaignTemplates = [
-    {
-      label: "Product Launch",
-      prompt: "Exciting new product launch! Highlighting unique features and benefits.",
-      tone: "hype" as const,
-    },
-    {
-      label: "Weekend Special",
-      prompt: "Weekend unwind promotion focusing on relaxation and quality time.",
-      tone: "professional" as const,
-    },
-    {
-      label: "Educational",
-      prompt: "Educational content about terpene profiles, effects, and proper usage.",
-      tone: "educational" as const,
-    },
-    {
-      label: "Event Promo",
-      prompt: "Upcoming event announcement with details and registration information.",
-      tone: "hype" as const,
-    },
+    { label: "Product Launch", prompt: "Exciting new product launch! Highlighting unique features and benefits.", tone: "hype" as const },
+    { label: "Weekend Special", prompt: "Weekend unwind promotion focusing on relaxation and quality time.", tone: "professional" as const },
+    { label: "Educational", prompt: "Educational content about terpene profiles, effects, and proper usage.", tone: "educational" as const },
+    { label: "Event Promo", prompt: "Upcoming event announcement with details and registration information.", tone: "hype" as const },
   ];
 
-  // Hashtag suggestions
+  // Hashtag suggestions per platform
   const hashtagSuggestions: Record<SocialPlatform, Array<{ tag: string; category: string }>> = {
     instagram: [
       { tag: "cannabiscommunity", category: "Community" },
@@ -301,13 +173,9 @@ export default function CreativeCommandCenter() {
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
-  // TheGrid toggle state
-  const [showGrid, setShowGrid] = useState(false);
-
-  // Menu items autocomplete
+  // Menu items
   const [menuItems, setMenuItems] = useState<Array<{ id: string; name: string; brandName?: string }>>([]);
   const [isLoadingMenu, setIsLoadingMenu] = useState(false);
-  const [showMenuDropdown, setShowMenuDropdown] = useState(false);
 
   // Fetch menu items on mount
   useEffect(() => {
@@ -324,7 +192,6 @@ export default function CreativeCommandCenter() {
       } catch (err) {
         logger.error('[Creative] Failed to fetch menu items', { error: String(err) });
         setMenuItems([]);
-        toast.error("Failed to load menu items. Product suggestions may be limited.");
       } finally {
         setIsLoadingMenu(false);
       }
@@ -349,65 +216,36 @@ export default function CreativeCommandCenter() {
     realtime: true,
   });
 
-  // Get the most recent content for display
   const currentContent = content[0] || null;
 
-  // Handle content generation
-  const handleGenerate = async () => {
-    if (!campaignPrompt.trim()) {
-      toast.error("Please enter a campaign description");
-      return;
-    }
+  // --- Handlers ---
 
+  const handleGenerate = async () => {
+    if (!campaignPrompt.trim()) { toast.error("Please enter a campaign description"); return; }
     try {
-      // Include selected hashtags in the prompt context
       const enhancedPrompt = selectedHashtags.length > 0
         ? `${campaignPrompt}\n\nSuggested hashtags: ${selectedHashtags.map(tag => `#${tag}`).join(' ')}`
         : campaignPrompt;
-
-      const result = await generate({
-        platform: selectedPlatform,
-        prompt: enhancedPrompt,
-        style: tone,
-        includeHashtags: true,
-        productName: menuItem || undefined,
-        tier: "free",
-      });
-
-      if (result) {
-        toast.success("Content generated! Craig & Pinky worked their magic ✨");
-        // Clear selected hashtags after successful generation
-        setSelectedHashtags([]);
-      } else {
-        toast.error("Failed to generate content. Please try again.");
-      }
+      const result = await generate({ platform: selectedPlatform, prompt: enhancedPrompt, style: tone, includeHashtags: true, productName: menuItem || undefined, tier: "free" });
+      if (result) { toast.success("Content generated! Craig & Pinky worked their magic ✨"); setSelectedHashtags([]); }
+      else { toast.error("Failed to generate content. Please try again."); }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An error occurred while generating content");
     }
   };
 
-  // Handle approval
   const handleApprove = async () => {
     if (!currentContent) return;
-
     try {
-      await approve(
-        currentContent.id,
-        date ? date.toISOString() : undefined
-      );
+      await approve(currentContent.id, date ? date.toISOString() : undefined);
       toast.success(date ? "Content scheduled for publishing!" : "Content approved and published!");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to approve content");
     }
   };
 
-  // Handle revision request
   const handleRevise = async () => {
-    if (!currentContent || !revisionNote.trim()) {
-      toast.error("Please enter revision notes");
-      return;
-    }
-
+    if (!currentContent || !revisionNote.trim()) { toast.error("Please enter revision notes"); return; }
     try {
       await revise(currentContent.id, revisionNote);
       setRevisionNote("");
@@ -417,12 +255,10 @@ export default function CreativeCommandCenter() {
     }
   };
 
-  // Handle accepting safe version from Deebo
   const handleAcceptSafeVersion = async () => {
     if (!currentContent) return;
-
     try {
-      const safeCaption = "May help with relaxation."; // This would come from Deebo's suggestion in real implementation
+      const safeCaption = "May help with relaxation.";
       await editCaption(currentContent.id, safeCaption);
       toast.success("Safe version accepted! Caption updated.");
     } catch (err) {
@@ -430,1982 +266,817 @@ export default function CreativeCommandCenter() {
     }
   };
 
-  // Handle caption editing
   const handleStartEditCaption = () => {
-    if (currentContent) {
-      setEditedCaption(currentContent.caption);
-      setIsEditingCaption(true);
-    }
+    if (currentContent) { setEditedCaption(currentContent.caption); setIsEditingCaption(true); }
   };
 
   const handleSaveCaption = async () => {
     if (!currentContent || !editedCaption.trim()) return;
-
     await editCaption(currentContent.id, editedCaption);
     setIsEditingCaption(false);
     toast.success("Caption updated!");
   };
 
-  const handleCancelEditCaption = () => {
-    setIsEditingCaption(false);
-    setEditedCaption("");
-  };
+  const handleCancelEditCaption = () => { setIsEditingCaption(false); setEditedCaption(""); };
 
-  // Handle template selection
   const handleSelectTemplate = (template: typeof campaignTemplates[0]) => {
     setCampaignPrompt(template.prompt);
     setTone(template.tone);
     toast.success(`${template.label} template loaded!`);
   };
 
-  // Handle hashtag toggle
   const handleToggleHashtag = (tag: string) => {
     setSelectedHashtags(prev => {
-      if (prev.includes(tag)) {
-        return prev.filter(t => t !== tag);
-      } else {
-        if (prev.length >= 10) {
-          toast.error("Maximum 10 hashtags allowed");
-          return prev;
-        }
-        return [...prev, tag];
-      }
+      if (prev.includes(tag)) return prev.filter(t => t !== tag);
+      if (prev.length >= 10) { toast.error("Maximum 10 hashtags allowed"); return prev; }
+      return [...prev, tag];
     });
   };
 
-  // Clear all hashtags
-  const handleClearHashtags = () => {
-    setSelectedHashtags([]);
-    toast.success("Hashtags cleared");
-  };
+  const handleClearHashtags = () => { setSelectedHashtags([]); };
 
-  // Handle image upload
   const handleImageUpload = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-
     const fileArray = Array.from(files);
     const validFiles = fileArray.filter(file => file.type.startsWith('image/'));
-
-    if (validFiles.length !== fileArray.length) {
-      toast.error("Some files were not images and were skipped");
-    }
-
-    if (uploadedImages.length + validFiles.length > 10) {
-      toast.error("Maximum 10 images allowed");
-      return;
-    }
-
+    if (validFiles.length !== fileArray.length) toast.error("Some files were not images and were skipped");
+    if (uploadedImages.length + validFiles.length > 10) { toast.error("Maximum 10 images allowed"); return; }
     validFiles.forEach(file => {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        setUploadedImages(prev => [...prev, dataUrl]);
-      };
+      reader.onload = (e) => { const dataUrl = e.target?.result as string; setUploadedImages(prev => [...prev, dataUrl]); };
       reader.readAsDataURL(file);
     });
-
     toast.success(`${validFiles.length} image${validFiles.length > 1 ? 's' : ''} uploaded`);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = () => { setIsDragging(false); };
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); handleImageUpload(e.dataTransfer.files); };
+  const handleRemoveImage = (index: number) => { setUploadedImages(prev => prev.filter((_, i) => i !== index)); };
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    handleImageUpload(e.dataTransfer.files);
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setUploadedImages(prev => prev.filter((_, i) => i !== index));
-    toast.success("Image removed");
-  };
-
-  // Handle batch mode toggle
   const handleToggleBatchMode = () => {
     setIsBatchMode(!isBatchMode);
-    if (!isBatchMode) {
-      setBatchPlatforms(['instagram', 'tiktok', 'linkedin']);
-      toast.success("Batch mode enabled - Generate for all platforms!");
-    } else {
-      setBatchPlatforms([]);
-      toast.success("Batch mode disabled");
-    }
+    if (!isBatchMode) { setBatchPlatforms(['instagram', 'tiktok', 'linkedin']); toast.success("Batch mode enabled!"); }
+    else { setBatchPlatforms([]); }
   };
 
   const handleToggleBatchPlatform = (platform: SocialPlatform) => {
-    setBatchPlatforms(prev => {
-      if (prev.includes(platform)) {
-        return prev.filter(p => p !== platform);
-      } else {
-        return [...prev, platform];
-      }
-    });
+    setBatchPlatforms(prev => prev.includes(platform) ? prev.filter(p => p !== platform) : [...prev, platform]);
   };
 
-  // Handle batch content generation
   const handleBatchGenerate = async () => {
-    if (!campaignPrompt.trim()) {
-      toast.error("Please enter a campaign description");
-      return;
-    }
-
-    if (batchPlatforms.length === 0) {
-      toast.error("Please select at least one platform");
-      return;
-    }
-
+    if (!campaignPrompt.trim()) { toast.error("Please enter a campaign description"); return; }
+    if (batchPlatforms.length === 0) { toast.error("Please select at least one platform"); return; }
     toast.success(`Generating content for ${batchPlatforms.length} platforms...`);
-
     try {
-      const promises = batchPlatforms.map(platform =>
-        generate({
-          platform,
-          prompt: campaignPrompt,
-          style: tone,
-          includeHashtags: true,
-          productName: menuItem || undefined,
-          tier: "free",
-        })
+      const results = await Promise.all(
+        batchPlatforms.map(platform => generate({ platform, prompt: campaignPrompt, style: tone, includeHashtags: true, productName: menuItem || undefined, tier: "free" }))
       );
-
-      const results = await Promise.all(promises);
-      const successCount = results.filter(r => r !== null).length;
-
-      toast.success(`Generated ${successCount}/${batchPlatforms.length} campaigns successfully!`);
+      toast.success(`Generated ${results.filter(r => r !== null).length}/${batchPlatforms.length} campaigns!`);
       setSelectedHashtags([]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to generate batch content");
     }
   };
 
-  // Handle approval chain approve
   const handleApprovalChainApprove = async (notes: string) => {
     if (!currentContent || !user?.uid) return;
-
     const tenantId = (user as any)?.tenantId || (user as any)?.brandId;
-    if (!tenantId) {
-      toast.error("Unable to determine tenant ID");
-      return;
-    }
-
-    const result = await approveAtLevel(
-      currentContent.id,
-      tenantId,
-      user.uid,
-      user.displayName || user.email || 'Unknown User',
-      (user as any)?.role || 'user',
-      notes
-    );
-
-    if (result.success) {
-      toast.success("Content approved at this level!");
-    } else {
-      toast.error(result.error || "Failed to approve content");
-    }
+    if (!tenantId) { toast.error("Unable to determine tenant ID"); return; }
+    const result = await approveAtLevel(currentContent.id, tenantId, user.uid, user.displayName || user.email || 'Unknown User', (user as any)?.role || 'user', notes);
+    if (result.success) toast.success("Content approved at this level!");
+    else toast.error(result.error || "Failed to approve content");
   };
 
-  // Handle approval chain reject
   const handleApprovalChainReject = async (notes: string) => {
     if (!currentContent || !user?.uid) return;
-
     const tenantId = (user as any)?.tenantId || (user as any)?.brandId;
-    if (!tenantId) {
-      toast.error("Unable to determine tenant ID");
-      return;
-    }
-
-    const result = await rejectAtLevel(
-      currentContent.id,
-      tenantId,
-      user.uid,
-      user.displayName || user.email || 'Unknown User',
-      (user as any)?.role || 'user',
-      notes
-    );
-
-    if (result.success) {
-      toast.success("Content rejected and sent for revision");
-    } else {
-      toast.error(result.error || "Failed to reject content");
-    }
+    if (!tenantId) { toast.error("Unable to determine tenant ID"); return; }
+    const result = await rejectAtLevel(currentContent.id, tenantId, user.uid, user.displayName || user.email || 'Unknown User', (user as any)?.role || 'user', notes);
+    if (result.success) toast.success("Content rejected and sent for revision");
+    else toast.error(result.error || "Failed to reject content");
   };
 
+  // ─────────────────────────────────────────────
+  //  RENDER — Canva-inspired 3-panel layout
+  // ─────────────────────────────────────────────
   return (
-    <div className="flex h-full bg-background text-foreground font-sans overflow-hidden rounded-lg border border-border">
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* Header */}
-        <header className="h-16 border-b border-border bg-muted/50 backdrop-blur-md flex items-center justify-between px-6 shrink-0 z-20">
-          <div>
-            <h1 className="text-xl font-semibold">Creative Command Center</h1>
-            <p className="text-sm text-muted-foreground">
-              Centralize your cannabis branding, marketing, and creative content.
-            </p>
+    <div className="flex flex-col h-full bg-background text-foreground overflow-hidden rounded-lg border border-border">
+
+      {/* ══ CANVA-STYLE TOP BAR ══ */}
+      <header className="h-14 border-b border-border flex items-center justify-between px-4 shrink-0 bg-background/90 backdrop-blur-sm z-20">
+        {/* Left: Studio identity */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+            <Sparkles className="w-4 h-4 text-primary" />
           </div>
-          <div className="flex items-center gap-4">
-             <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-                <span className="text-sm text-primary font-medium">
-                  {isGenerating ? "Craig & Pinky generating..." : "Agent Craig ready"}
-                </span>
-             </div>
-            <Button
-              onClick={handleToggleBatchMode}
-              variant={isBatchMode ? "default" : "outline"}
-              size="sm"
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">Creative Studio</p>
+            <p className="text-[11px] text-muted-foreground truncate">Powered by Craig &amp; Pinky</p>
+          </div>
+        </div>
+
+        {/* Center: Platform selector pills */}
+        <div className="flex items-center gap-0.5 bg-muted/60 rounded-lg p-1">
+          {(['instagram', 'tiktok', 'linkedin', 'facebook'] as SocialPlatform[]).map(p => (
+            <button
+              key={p}
+              onClick={() => setSelectedPlatform(p)}
               className={cn(
-                isBatchMode
-                  ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-600"
-                  : "border-border text-muted-foreground hover:text-white hover:bg-muted"
+                "px-3 py-1.5 rounded-md text-xs font-medium transition-all capitalize",
+                selectedPlatform === p
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {isBatchMode ? "Batch Mode ON" : "Batch Mode"}
-            </Button>
-            <Button
-              onClick={isBatchMode ? handleBatchGenerate : handleGenerate}
-              disabled={isGenerating || !campaignPrompt.trim()}
-              className="bg-primary hover:bg-primary-muted text-primary-foreground font-semibold"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                "Create Content"
+              {p}
+            </button>
+          ))}
+        </div>
+
+        {/* Right: Status + Actions */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="hidden sm:flex items-center gap-1.5">
+            <div className={cn("w-2 h-2 rounded-full", isGenerating ? "bg-yellow-500 animate-pulse" : "bg-green-500")} />
+            <span className="text-xs text-muted-foreground">
+              {isGenerating ? "Generating..." : "Craig ready"}
+            </span>
+          </div>
+
+          <Button
+            variant={isBatchMode ? "default" : "ghost"}
+            size="sm"
+            onClick={handleToggleBatchMode}
+            className={cn(
+              "h-8 text-xs font-medium",
+              isBatchMode ? "bg-purple-600 hover:bg-purple-700 text-white" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Batch
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={isBatchMode ? handleBatchGenerate : handleGenerate}
+            disabled={isGenerating || !campaignPrompt.trim()}
+            className="h-8 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold gap-1.5"
+          >
+            {isGenerating ? (
+              <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating</>
+            ) : (
+              <><Sparkles className="w-3.5 h-3.5" /> Generate</>
+            )}
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={handleApprove}
+            disabled={!currentContent || isApproving !== null}
+            className="h-8 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold gap-1.5 disabled:opacity-40"
+            title={!currentContent ? "Generate content first" : ""}
+          >
+            <Send className="w-3.5 h-3.5" />
+            {date ? "Schedule" : "Publish"}
+          </Button>
+        </div>
+      </header>
+
+      {/* ══ MAIN 3-PANEL WORKSPACE ══ */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* ── LEFT ICON STRIP (56px) ── */}
+        <aside className="w-14 border-r border-border flex flex-col items-center pt-3 pb-2 gap-1 bg-muted/20 shrink-0">
+          {LEFT_PANELS.map(({ id, icon: Icon, label }) => (
+            <button
+              key={id}
+              onClick={() => setActiveLeftPanel(activeLeftPanel === id ? null : id)}
+              title={label}
+              className={cn(
+                "w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all",
+                activeLeftPanel === id
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
               )}
-            </Button>
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-white">
-              <MoreHorizontal className="w-5 h-5" />
-            </Button>
-          </div>
-        </header>
+            >
+              <Icon className="w-4 h-4" />
+              <span className="text-[8px] font-medium leading-none">{label}</span>
+            </button>
+          ))}
+        </aside>
 
-        {/* Main Content Tabs & Layout */}
-        <Tabs
-          defaultValue="instagram"
-          value={selectedPlatform}
-          onValueChange={(value) => setSelectedPlatform(value as SocialPlatform)}
-          className="flex-1 flex flex-col overflow-hidden"
-        >
-          <div className="px-6 border-b border-border shrink-0 flex items-center justify-between bg-muted/30">
-            <TabsList className="bg-transparent p-0 h-12 gap-6">
-              <TabsTrigger
-                value="instagram"
-                className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 font-medium text-muted-foreground transition-all"
-              >
-                Instagram
-              </TabsTrigger>
-              <TabsTrigger
-                value="tiktok"
-                className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 font-medium text-muted-foreground transition-all"
-              >
-                TikTok
-              </TabsTrigger>
-              <TabsTrigger
-                value="linkedin"
-                className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 font-medium text-muted-foreground transition-all"
-              >
-                LinkedIn
-              </TabsTrigger>
-              <TabsTrigger
-                value="hero-carousel"
-                className="data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-full px-0 font-medium text-muted-foreground transition-all"
-              >
-                Hero Carousel
-              </TabsTrigger>
-            </TabsList>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowGrid(!showGrid)}
-                className={cn(
-                  "h-8 gap-2 border-border hover:bg-muted",
-                  showGrid ? "text-primary border-primary" : "text-muted-foreground"
-                )}
-              >
-                <LayoutGrid className="w-4 h-4"/>
-                {showGrid ? "Hide" : "Show"} Grid
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => router.push("/dashboard/inbox")}
-                className="h-8 gap-2 border-border text-muted-foreground hover:text-white hover:bg-muted"
-              >
-                <MessageSquare className="w-4 h-4"/>
-                Unified Inbox
-              </Button>
-            </div>
-          </div>
+        {/* ── LEFT EXPANDABLE PANEL (slides in) ── */}
+        <AnimatePresence mode="wait">
+          {activeLeftPanel && (
+            <motion.div
+              key={activeLeftPanel}
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 280, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+              className="border-r border-border bg-card overflow-hidden shrink-0"
+            >
+              <div className="w-[280px] h-full flex flex-col">
 
-          <TabsContent value="instagram" className="flex-1 flex overflow-hidden m-0 p-0 relative">
-            {showGrid && <TheGrid selectedPlatform={selectedPlatform} />}
-            <div className="flex-1 p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 overflow-auto">
-                {/* Column 1: Prompt Input */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1, duration: 0.4 }}
-                className="flex flex-col gap-6"
-              >
-                <h3 className="font-semibold text-lg">Prompt Input</h3>
-                <Card className="bg-card border-border shadow-none">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-medium">
-                      Campaign Idea
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Campaign Templates */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium text-muted-foreground">Quick Templates</label>
+                {/* ╌ Panel: AI Generate ╌ */}
+                {activeLeftPanel === 'generate' && (
+                  <ScrollArea className="flex-1">
+                    <div className="p-4 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-primary" />
+                        <h3 className="text-sm font-semibold">AI Generate</h3>
+                      </div>
+
+                      {/* Quick templates */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                          Quick Templates
+                        </label>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {campaignTemplates.map(t => (
+                            <button
+                              key={t.label}
+                              onClick={() => handleSelectTemplate(t)}
+                              className="px-2 py-2 text-xs rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted hover:border-primary/40 transition-all text-left leading-tight"
+                            >
+                              {t.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* Campaign prompt */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Campaign Idea</label>
+                        <Textarea
+                          value={campaignPrompt}
+                          onChange={e => setCampaignPrompt(e.target.value)}
+                          placeholder="Describe your campaign idea..."
+                          className="bg-background border-border resize-none h-28 text-xs placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
+                        />
+                      </div>
+
+                      {/* Type + Tone */}
                       <div className="grid grid-cols-2 gap-2">
-                        {campaignTemplates.map((template) => (
-                          <Button
-                            key={template.label}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSelectTemplate(template)}
-                            className="h-auto py-2 px-3 border-border text-muted-foreground hover:text-white hover:bg-muted hover:border-primary/50 transition-colors text-xs"
-                          >
-                            {template.label}
-                          </Button>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Type</label>
+                          <Select value={contentType} onValueChange={setContentType}>
+                            <SelectTrigger className="h-8 text-xs bg-background border-border">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-muted border-border text-foreground">
+                              <SelectItem value="social-post">Social Post</SelectItem>
+                              <SelectItem value="blog">Blog</SelectItem>
+                              <SelectItem value="email">Email</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tone</label>
+                          <Select value={tone} onValueChange={v => setTone(v as CreativeStyle)}>
+                            <SelectTrigger className="h-8 text-xs bg-background border-border">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-muted border-border text-foreground">
+                              <SelectItem value="professional">Professional</SelectItem>
+                              <SelectItem value="hype">Hype</SelectItem>
+                              <SelectItem value="educational">Educational</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Hashtags */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Hashtags</label>
+                          {selectedHashtags.length > 0 && (
+                            <button onClick={handleClearHashtags} className="text-[10px] text-muted-foreground hover:text-red-400 transition-colors">
+                              Clear {selectedHashtags.length}
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {hashtagSuggestions[selectedPlatform]?.map(({ tag }) => {
+                            const isSelected = selectedHashtags.includes(tag);
+                            return (
+                              <button
+                                key={tag}
+                                onClick={() => handleToggleHashtag(tag)}
+                                className={cn(
+                                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border transition-all",
+                                  isSelected
+                                    ? "bg-primary/15 border-primary text-primary"
+                                    : "bg-background border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                                )}
+                              >
+                                {isSelected && <CheckCircle2 className="w-2.5 h-2.5" />}
+                                #{tag}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {selectedHashtags.length > 0 && (
+                          <p className="text-[10px] text-muted-foreground leading-tight">
+                            {selectedHashtags.map(t => `#${t}`).join(' ')}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Product */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Product</label>
+                        <Select value={menuItem} onValueChange={setMenuItem}>
+                          <SelectTrigger className="h-8 text-xs bg-background border-border">
+                            <SelectValue placeholder={isLoadingMenu ? "Loading..." : "Select product (optional)"} />
+                          </SelectTrigger>
+                          <SelectContent className="bg-muted border-border text-foreground max-h-48">
+                            {menuItems.map(item => (
+                              <SelectItem key={item.id} value={item.name} className="text-xs">
+                                {item.name}
+                                {item.brandName && <span className="ml-1.5 text-muted-foreground">· {item.brandName}</span>}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Batch platforms (visible when batch mode on) */}
+                      {isBatchMode && (
+                        <div className="p-3 bg-purple-600/10 border border-purple-600/30 rounded-lg space-y-2">
+                          <label className="text-[10px] font-semibold text-purple-400 uppercase tracking-wider">Batch Platforms</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {(['instagram', 'tiktok', 'linkedin'] as SocialPlatform[]).map(p => (
+                              <button
+                                key={p}
+                                onClick={() => handleToggleBatchPlatform(p)}
+                                className={cn(
+                                  "px-2.5 py-1 rounded-md text-xs border capitalize transition-all",
+                                  batchPlatforms.includes(p)
+                                    ? "bg-purple-600 border-purple-600 text-white"
+                                    : "bg-background border-border text-muted-foreground hover:border-purple-400",
+                                )}
+                              >
+                                {batchPlatforms.includes(p) && <CheckCircle2 className="w-2.5 h-2.5 inline mr-1" />}
+                                {p}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-[10px] text-purple-300/70">{batchPlatforms.length} platform{batchPlatforms.length !== 1 ? 's' : ''} selected</p>
+                        </div>
+                      )}
+
+                      {/* CTA */}
+                      <Button
+                        onClick={isBatchMode ? handleBatchGenerate : handleGenerate}
+                        disabled={isGenerating || !campaignPrompt.trim()}
+                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+                      >
+                        {isGenerating ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating...</>
+                        ) : (
+                          <><Sparkles className="w-4 h-4 mr-2" />Generate with Craig</>
+                        )}
+                      </Button>
+                    </div>
+                  </ScrollArea>
+                )}
+
+                {/* ╌ Panel: Templates ╌ */}
+                {activeLeftPanel === 'templates' && (
+                  <div className="flex flex-col h-full">
+                    <div className="p-3 border-b border-border">
+                      <div className="flex items-center gap-2 mb-2">
+                        <LayoutGrid className="w-4 h-4 text-primary" />
+                        <h3 className="text-sm font-semibold">Templates</h3>
+                      </div>
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                        <input
+                          className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary/50"
+                          placeholder="Search templates..."
+                        />
+                      </div>
+                    </div>
+                    <ScrollArea className="flex-1">
+                      <div className="p-3 space-y-3">
+                        <div>
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Recently Used</p>
+                          <div className="grid grid-cols-2 gap-2">
+                            {campaignTemplates.map(t => (
+                              <div
+                                key={t.label}
+                                onClick={() => handleSelectTemplate(t)}
+                                className="aspect-square rounded-xl bg-gradient-to-br from-primary/20 to-muted border border-border hover:border-primary/50 flex flex-col items-center justify-center cursor-pointer transition-all group p-2"
+                              >
+                                <Sparkles className="w-6 h-6 text-primary/50 group-hover:text-primary transition-colors mb-1.5" />
+                                <span className="text-[10px] text-muted-foreground text-center leading-tight font-medium">{t.label}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <Separator />
+                        <div>
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">All Templates</p>
+                          <p className="text-xs text-muted-foreground text-center py-4">More templates coming soon</p>
+                        </div>
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
+
+                {/* ╌ Panel: Brand Kit ╌ */}
+                {activeLeftPanel === 'brandkit' && (
+                  <ScrollArea className="flex-1">
+                    <div className="p-4 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Palette className="w-4 h-4 text-primary" />
+                        <h3 className="text-sm font-semibold">Brand Kit</h3>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Brand Colors</label>
+                        <div className="flex flex-wrap gap-2">
+                          {['#7C3AED', '#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#EC4899'].map(color => (
+                            <div
+                              key={color}
+                              className="w-8 h-8 rounded-full border-2 border-border cursor-pointer hover:scale-110 transition-transform shadow-sm"
+                              style={{ backgroundColor: color }}
+                              title={color}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Logos</label>
+                        <div className="border border-dashed border-border rounded-xl p-6 text-center">
+                          <Sparkles className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
+                          <p className="text-xs text-muted-foreground">Connect brand guide to see logos</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Typography</label>
+                        <div className="border border-dashed border-border rounded-xl p-6 text-center">
+                          <p className="text-xs text-muted-foreground">Brand fonts from guide</p>
+                        </div>
+                      </div>
+                    </div>
+                  </ScrollArea>
+                )}
+
+                {/* ╌ Panel: Upload ╌ */}
+                {activeLeftPanel === 'upload' && (
+                  <div className="p-4 space-y-4 flex flex-col h-full">
+                    <div className="flex items-center gap-2">
+                      <Upload className="w-4 h-4 text-primary" />
+                      <h3 className="text-sm font-semibold">Upload Files</h3>
+                    </div>
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      className={cn(
+                        "border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer",
+                        isDragging ? "border-primary bg-primary/10" : "border-border hover:border-primary/40 hover:bg-muted/20",
+                      )}
+                    >
+                      <input type="file" accept="image/*" multiple className="hidden" id="image-upload-panel" onChange={e => handleImageUpload(e.target.files)} />
+                      <label htmlFor="image-upload-panel" className="cursor-pointer flex flex-col items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
+                          <Plus className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{isDragging ? "Drop here!" : "Upload files"}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">or drag and drop</p>
+                        </div>
+                      </label>
+                    </div>
+                    {uploadedImages.length > 0 && (
+                      <div className="space-y-2 flex-1">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                          Your Uploads ({uploadedImages.length}/10)
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {uploadedImages.map((img, idx) => (
+                            <div key={idx} className="relative group">
+                              <img src={img} alt={`Upload ${idx + 1}`} className="w-full h-20 object-cover rounded-lg border border-border" />
+                              <button
+                                onClick={() => handleRemoveImage(idx)}
+                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <XCircle className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ╌ Panel: Calendar ╌ */}
+                {activeLeftPanel === 'calendar' && (
+                  <div className="p-4 space-y-3 flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="w-4 h-4 text-primary" />
+                      <h3 className="text-sm font-semibold">Content Calendar</h3>
+                    </div>
+                    <Calendar
+                      mode="single"
+                      selected={date}
+                      onSelect={setDate}
+                      className="rounded-xl border border-border bg-background w-full p-3"
+                      classNames={{
+                        head_cell: "text-muted-foreground font-normal text-[0.7rem]",
+                        cell: "text-center text-sm p-0 relative",
+                        day: "h-7 w-7 p-0 font-normal aria-selected:opacity-100 hover:bg-muted rounded-md transition-colors text-foreground text-xs",
+                        day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                        day_today: "bg-border/50 text-foreground",
+                        nav_button: "border border-border hover:bg-muted transition-colors h-6 w-6",
+                      }}
+                    />
+                    {date && (
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">
+                          Scheduled: <span className="text-foreground font-medium">
+                            {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                          </span>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ╌ Panel: Analytics ╌ */}
+                {activeLeftPanel === 'analytics' && (
+                  <div className="p-4 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-primary" />
+                      <h3 className="text-sm font-semibold">Analytics</h3>
+                    </div>
+                    {currentContent?.engagementMetrics ? (
+                      <EngagementAnalytics metrics={currentContent.engagementMetrics} platform={selectedPlatform} />
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <BarChart3 className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                        <p className="text-sm">No analytics yet</p>
+                        <p className="text-xs mt-1">Publish content to see engagement stats</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ╌ Panel: Help ╌ */}
+                {activeLeftPanel === 'help' && (
+                  <ScrollArea className="flex-1">
+                    <div className="p-4 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <HelpCircle className="w-4 h-4 text-primary" />
+                        <h3 className="text-sm font-semibold">Help &amp; Shortcuts</h3>
+                      </div>
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Workflow</p>
+                        {[
+                          ['1', 'Open Generate panel (left strip)'],
+                          ['2', 'Describe your campaign idea'],
+                          ['3', 'Click Generate with Craig'],
+                          ['4', 'Review Deebo compliance (right rail)'],
+                          ['5', 'Hit Publish or Schedule'],
+                        ].map(([step, desc]) => (
+                          <div key={step} className="flex items-start gap-3">
+                            <div className="w-5 h-5 rounded-full bg-primary/15 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                              {step}
+                            </div>
+                            <span className="text-xs text-muted-foreground leading-tight">{desc}</span>
+                          </div>
                         ))}
                       </div>
-                    </div>
-                    <Separator className="bg-border" />
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-muted-foreground">Rich text</label>
-                        <Textarea
-                        value={campaignPrompt}
-                        onChange={(e) => setCampaignPrompt(e.target.value)}
-                        placeholder="Describe your campaign... e.g., 'Weekend unwind with Sunset Sherbet, focusing on citrus terpenes.'"
-                        className="bg-background border-border resize-none h-32 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Content Type</label>
-                      <Select value={contentType} onValueChange={setContentType}>
-                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
-                          <SelectValue placeholder="Select Type" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-muted border-border text-foreground">
-                          <SelectItem value="social-post" className="focus:bg-background focus:text-white cursor-pointer">Social Post</SelectItem>
-                          <SelectItem value="blog" className="focus:bg-background focus:text-white cursor-pointer">Blog Article</SelectItem>
-                          <SelectItem value="email" className="focus:bg-background focus:text-white cursor-pointer">Email Newsletter</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Tone</label>
-                      <Select value={tone} onValueChange={(v) => setTone(v as CreativeStyle)}>
-                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
-                          <SelectValue placeholder="Select Tone" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-muted border-border text-foreground">
-                          <SelectItem value="professional" className="focus:bg-background focus:text-white cursor-pointer">Professional</SelectItem>
-                          <SelectItem value="hype" className="focus:bg-background focus:text-white cursor-pointer">Hype / Energetic</SelectItem>
-                          <SelectItem value="educational" className="focus:bg-background focus:text-white cursor-pointer">Educational</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Hashtag Suggestions */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-muted-foreground">
-                          Suggested Hashtags
-                        </label>
-                        {selectedHashtags.length > 0 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleClearHashtags}
-                            className="h-6 text-xs text-muted-foreground hover:text-red-500"
-                          >
-                            Clear ({selectedHashtags.length})
-                          </Button>
-                        )}
-                      </div>
-                      <ScrollArea className="h-24">
-                        <div className="flex flex-wrap gap-2 pr-3">
-                          {hashtagSuggestions[selectedPlatform].map(({ tag, category }) => {
-                            const isSelected = selectedHashtags.includes(tag);
-                            return (
-                              <button
-                                key={tag}
-                                onClick={() => handleToggleHashtag(tag)}
-                                className={cn(
-                                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
-                                  "border hover:scale-105 active:scale-95",
-                                  isSelected
-                                    ? "bg-primary/20 border-primary text-primary"
-                                    : "bg-background border-border text-muted-foreground hover:border-primary/50 hover:text-white"
-                                )}
-                              >
-                                {isSelected && <CheckCircle2 className="w-3 h-3" />}
-                                #{tag}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </ScrollArea>
-                      {selectedHashtags.length > 0 && (
-                        <div className="text-xs text-muted-foreground">
-                          Selected: {selectedHashtags.map(tag => `#${tag}`).join(' ')}
-                        </div>
-                      )}
-                    </div>
-
-                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Menu Item Integration
-                        {isLoadingMenu && <span className="ml-2 text-xs text-muted-foreground">(Loading...)</span>}
-                      </label>
-                      <Select value={menuItem} onValueChange={setMenuItem}>
-                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
-                          <SelectValue placeholder={isLoadingMenu ? "Loading menu items..." : "Select a product (optional)"} />
-                        </SelectTrigger>
-                        <SelectContent className="bg-muted border-border text-foreground max-h-[300px]">
-                          {menuItems.length === 0 && !isLoadingMenu ? (
-                            <SelectItem value="none" disabled className="text-muted-foreground text-xs">
-                              No products available
-                            </SelectItem>
-                          ) : (
-                            menuItems.map(item => (
-                              <SelectItem
-                                key={item.id}
-                                value={item.name}
-                                className="focus:bg-background focus:text-white cursor-pointer"
-                              >
-                                {item.name}
-                                {item.brandName && <span className="ml-2 text-xs text-muted-foreground">• {item.brandName}</span>}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Image Upload */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Custom Images</label>
-                      <div
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={handleDrop}
-                        className={cn(
-                          "border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer",
-                          isDragging
-                            ? "border-primary bg-primary/10"
-                            : "border-border hover:border-primary/50"
-                        )}
-                      >
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="hidden"
-                          id="image-upload"
-                          onChange={(e) => handleImageUpload(e.target.files)}
-                        />
-                        <label htmlFor="image-upload" className="cursor-pointer">
-                          <Plus className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                          <p className="text-xs text-muted-foreground">
-                            {isDragging ? "Drop images here" : "Click or drag images here"}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {uploadedImages.length}/10 images
-                          </p>
-                        </label>
-                      </div>
-                      {uploadedImages.length > 0 && (
-                        <div className="grid grid-cols-3 gap-2 mt-2">
-                          {uploadedImages.map((img, idx) => (
-                            <div key={idx} className="relative group">
-                              <img
-                                src={img}
-                                alt={`Upload ${idx + 1}`}
-                                className="w-full h-20 object-cover rounded border border-border"
-                              />
-                              <button
-                                onClick={() => handleRemoveImage(idx)}
-                                className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <XCircle className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Batch Mode Platform Selection */}
-                    {isBatchMode && (
-                      <div className="space-y-2 p-3 bg-purple-600/10 border border-purple-600/30 rounded-lg">
-                        <label className="text-sm font-medium text-purple-400">Batch Platforms</label>
-                        <div className="flex flex-wrap gap-2">
-                          {(['instagram', 'tiktok', 'linkedin'] as SocialPlatform[]).map(platform => {
-                            const isSelected = batchPlatforms.includes(platform);
-                            return (
-                              <button
-                                key={platform}
-                                onClick={() => handleToggleBatchPlatform(platform)}
-                                className={cn(
-                                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border",
-                                  isSelected
-                                    ? "bg-purple-600 border-purple-600 text-white"
-                                    : "bg-background border-border text-muted-foreground hover:border-purple-600/50"
-                                )}
-                              >
-                                {isSelected && <CheckCircle2 className="w-3 h-3" />}
-                                {platform}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <p className="text-xs text-purple-300/70">
-                          {batchPlatforms.length} platform{batchPlatforms.length !== 1 ? 's' : ''} selected
+                      <Separator />
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Deebo Compliance</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Deebo automatically reviews all content against NY OCM regulations. Green = cleared. Amber = caution. Red = flagged and must be revised.
                         </p>
                       </div>
-                    )}
+                    </div>
+                  </ScrollArea>
+                )}
 
-                    <Button
-                      onClick={isBatchMode ? handleBatchGenerate : handleGenerate}
-                      disabled={isGenerating || !campaignPrompt.trim()}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        "Generate Campaign with Craig & Pinky"
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-               {/* Column 2: Deebo Compliance Shield */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.4 }}
-                className="flex flex-col gap-6"
+        {/* ── CENTER CANVAS ── */}
+        <main className="flex-1 flex flex-col items-center justify-start overflow-auto bg-muted/10 p-6">
+
+          {/* Format pills */}
+          <div className="flex items-center gap-1.5 mb-6 flex-wrap justify-center">
+            {['Post', 'Story', 'Reel', 'Carousel'].map(fmt => (
+              <button
+                key={fmt}
+                className="px-3 py-1 text-xs rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
               >
-                <h3 className="font-semibold text-lg">Deebo Compliance Shield</h3>
-                 <Card className="bg-card border-border shadow-none flex-1 flex flex-col">
-                    <CardContent className="p-6 flex-1 flex flex-col items-center justify-center space-y-6">
-                      {GAUNTLET_ENABLED ? (
-                        <>
-                        <div className="relative">
-                            <Avatar className="w-16 h-16 border-2 border-border z-10 relative">
-                                <AvatarImage src="/avatars/deebo.png" />
-                                <AvatarFallback>DB</AvatarFallback>
-                            </Avatar>
-                            {/* Scanning Effect */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-red-500/50 rounded-lg overflow-hidden z-0">
-                                <div className="w-full h-full bg-[url('https://source.unsplash.com/random/300x300/?cannabis')] bg-cover opacity-30 grayscale"></div>
-                                <div className="absolute top-0 left-0 w-full h-0.5 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-[scan_2s_ease-in-out_infinite]"></div>
-                            </div>
-                        </div>
+                {fmt}
+              </button>
+            ))}
+          </div>
 
-                        <div className="w-full space-y-3">
-                            {currentContent && currentContent.complianceChecks && currentContent.complianceChecks.some(c => !c.passed) ? (
-                              <>
-                                {currentContent.complianceChecks.filter(c => !c.passed).map((check, idx) => (
-                                  <div key={idx} className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm">
-                                      <div className="flex items-center justify-between mb-1">
-                                          <span className="font-medium text-red-500 flex items-center gap-1.5">
-                                              <AlertTriangle className="w-4 h-4"/> {check.checkType.replace(/_/g, ' ').toUpperCase()}
-                                          </span>
-                                          <XCircle className="w-4 h-4 text-red-500 cursor-pointer hover:text-red-400"/>
-                                      </div>
-                                      <p className="text-foreground text-xs">{check.message}</p>
-                                  </div>
-                                ))}
+          {/* Canvas frame — platform-aware aspect ratio */}
+          <motion.div
+            key={currentContent?.id ?? 'empty'}
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.25 }}
+            className={cn(
+              "relative rounded-2xl overflow-hidden border-2 border-border shadow-2xl bg-card w-full max-w-[320px]",
+              PLATFORM_ASPECT[selectedPlatform] ?? "aspect-square",
+            )}
+          >
+            {isGenerating ? (
+              /* Generating state */
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-background">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <Loader2 className="w-7 h-7 text-primary animate-spin" />
+                </div>
+                <div className="text-center px-4">
+                  <p className="text-sm font-semibold">Craig &amp; Pinky are working...</p>
+                  <p className="text-xs text-muted-foreground mt-1">Crafting your campaign content</p>
+                </div>
+              </div>
 
-                                <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-sm space-y-3">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <span className="font-medium text-primary flex items-center gap-1.5">
-                                            <CheckCircle2 className="w-4 h-4"/> Deebo&apos;s Safe Version
-                                        </span>
-                                    </div>
-                                    <p className="text-foreground">&quot;May help with relaxation.&quot;</p>
-                                    <Button
-                                      size="sm"
-                                      onClick={handleAcceptSafeVersion}
-                                      className="w-full bg-primary hover:bg-primary-muted text-primary-foreground font-semibold"
-                                    >
-                                        Accept Safe Version
-                                    </Button>
-                                </div>
-                              </>
-                            ) : currentContent ? (
-                              <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-sm">
-                                  <div className="flex items-center gap-2">
-                                      <CheckCircle2 className="w-5 h-5 text-primary"/>
-                                      <span className="font-medium text-primary">All Checks Passed!</span>
-                                  </div>
-                                  <p className="text-muted-foreground text-xs mt-2">
-                                    Content is compliant and ready for approval.
-                                  </p>
-                              </div>
-                            ) : (
-                              <div className="text-center text-muted-foreground text-sm py-8">
-                                Generate content to see compliance status
-                              </div>
-                            )}
-                        </div>
-                        </>
-                      ) : (
-                        <>
-                        <div className="relative">
-                            <Avatar className="w-16 h-16 border-2 border-muted z-10 relative opacity-50">
-                                <AvatarFallback className="bg-muted text-muted-foreground">DB</AvatarFallback>
-                            </Avatar>
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-muted rounded-lg flex items-center justify-center z-0">
-                                <ShieldOff className="w-8 h-8 text-muted-foreground/40" />
-                            </div>
-                        </div>
-                        <div className="w-full text-center space-y-2">
-                            <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm">
-                                <div className="flex items-center justify-center gap-2">
-                                    <ShieldOff className="w-4 h-4 text-muted-foreground"/>
-                                    <span className="font-medium text-muted-foreground">System Paused</span>
-                                </div>
-                                <p className="text-muted-foreground text-xs mt-2">
-                                    Compliance verification is currently in maintenance. Content will be reviewed manually.
-                                </p>
-                            </div>
-                        </div>
-                        </>
-                      )}
-                    </CardContent>
-                </Card>
-              </motion.div>
+            ) : currentContent ? (
+              <>
+                {/* Media */}
+                {currentContent.mediaUrls?.[0] ? (
+                  <img src={currentContent.mediaUrls[0]} alt="Generated content" className="w-full h-full object-cover" />
+                ) : currentContent.thumbnailUrl ? (
+                  <img src={currentContent.thumbnailUrl} alt="Generated content" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary/20 via-background to-muted flex items-center justify-center">
+                    <Sparkles className="w-16 h-16 text-primary/20" />
+                  </div>
+                )}
 
-              {/* Column 3: Draft & Revision */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.4 }}
-                className="flex flex-col gap-6"
-              >
-                <h3 className="font-semibold text-lg">Draft & Revision</h3>
-                <Card className="bg-card border-border shadow-none flex-1 flex flex-col overflow-hidden">
-                    <ScrollArea className="flex-1">
-                        <CardContent className="p-4 space-y-6">
-                        {currentContent ? (
-                          <AnimatePresence mode="wait">
-                            {/* Craig's Caption */}
-                            <motion.div
-                              key="craig-caption"
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0 }}
-                              className="flex gap-3 group"
-                            >
-                              <Avatar className="w-10 h-10 border border-border shrink-0">
-                                <AvatarFallback>C</AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1 space-y-1.5">
-                                <div className="flex items-baseline justify-between">
-                                  <span className="font-semibold text-sm">Craig</span>
-                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                    <MoreHorizontal className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"/>
-                                  </span>
-                                </div>
-                                <div className="space-y-3">
-                                  <p className="text-sm text-muted-foreground">
-                                    Here&apos;s your campaign content:
-                                  </p>
-                                  {isEditingCaption ? (
-                                    <div className="space-y-2">
-                                      <Textarea
-                                        value={editedCaption}
-                                        onChange={(e) => setEditedCaption(e.target.value)}
-                                        className="bg-background border-border resize-none h-32 text-sm focus-visible:ring-primary/50"
-                                      />
-                                      <div className="flex gap-2">
-                                        <Button
-                                          size="sm"
-                                          onClick={handleSaveCaption}
-                                          className="flex-1 bg-primary hover:bg-primary-muted text-primary-foreground font-semibold"
-                                        >
-                                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                                          Save
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={handleCancelEditCaption}
-                                          className="flex-1 border-border text-muted-foreground hover:text-white hover:bg-muted"
-                                        >
-                                          <XCircle className="w-3 h-3 mr-1" />
-                                          Cancel
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div
-                                      onClick={handleStartEditCaption}
-                                      className="bg-background p-3 rounded-md border border-border text-sm hover:border-primary/50 cursor-pointer transition-colors group relative"
-                                    >
-                                      {currentContent.caption}
-                                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span className="text-xs text-primary flex items-center gap-1">
-                                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                          </svg>
-                                          Edit
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
-                                  {currentContent.hashtags && currentContent.hashtags.length > 0 && (
-                                    <div className="flex flex-wrap gap-2">
-                                      {currentContent.hashtags.map((tag, idx) => (
-                                        <span key={idx} className="text-xs text-primary">
-                                          #{tag}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </motion.div>
-
-                            {/* Pinky's Images */}
-                            {currentContent.mediaUrls && currentContent.mediaUrls.length > 0 && (
-                              <motion.div
-                                key="pinky-images"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ delay: 0.1 }}
-                                className="flex gap-3 group"
-                              >
-                                <Avatar className="w-10 h-10 border border-border shrink-0">
-                                  <AvatarFallback className="bg-purple-600/20 text-purple-400">P</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 space-y-1.5">
-                                  <div className="flex items-baseline justify-between">
-                                    <span className="font-semibold text-sm">Pinky</span>
-                                    <span className="text-xs text-muted-foreground">The Visual Artist</span>
-                                  </div>
-                                  <div className="space-y-3">
-                                    <p className="text-sm text-muted-foreground">
-                                      Generated {currentContent.mediaUrls.length} visual{currentContent.mediaUrls.length > 1 ? 's' : ''}
-                                    </p>
-                                    <div className={cn(
-                                      "grid gap-2",
-                                      currentContent.mediaUrls.length === 1 ? "grid-cols-1" : "grid-cols-2"
-                                    )}>
-                                      {currentContent.mediaUrls.map((url, idx) => (
-                                        <motion.img
-                                          key={idx}
-                                          initial={{ opacity: 0, scale: 0.9 }}
-                                          animate={{ opacity: 1, scale: 1 }}
-                                          transition={{ delay: 0.2 + (idx * 0.1) }}
-                                          src={url}
-                                          alt={`Generated ${idx + 1}`}
-                                          className="rounded-md object-cover aspect-square border border-border hover:border-primary/50 transition-colors cursor-pointer"
-                                        />
-                                      ))}
-                                    </div>
-                                  </div>
-                                </div>
-                              </motion.div>
-                            )}
-
-                            {/* Revision Notes */}
-                            {currentContent.revisionNotes && currentContent.revisionNotes.length > 0 && (
-                              <motion.div
-                                key="revision-notes"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ delay: 0.2 }}
-                                className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 space-y-2"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                                  <span className="font-medium text-yellow-500 text-sm">Revision Requested</span>
-                                </div>
-                                {currentContent.revisionNotes.map((note, idx) => (
-                                  <p key={idx} className="text-xs text-muted-foreground">
-                                    {note.note}
-                                  </p>
-                                ))}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        ) : (
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="text-center py-12 text-muted-foreground"
-                          >
-                            <Send className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
-                            <p className="text-sm">No draft content</p>
-                            <p className="text-xs mt-1">Generate content to start the review process</p>
-                          </motion.div>
-                        )}
-                        </CardContent>
-                    </ScrollArea>
-                     <div className="p-4 border-t border-border bg-background shrink-0">
-                        <div className="space-y-3">
-                          <Textarea
-                            value={revisionNote}
-                            onChange={(e) => setRevisionNote(e.target.value)}
-                            placeholder="Request revisions or add feedback..."
-                            className="bg-muted border-border resize-none h-20 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
-                          />
-                          <Button
-                            onClick={handleRevise}
-                            disabled={!currentContent || !revisionNote.trim()}
-                            variant="outline"
-                            className="w-full border-border text-muted-foreground hover:text-white hover:bg-muted disabled:opacity-50"
-                          >
-                            Send Revision Request
-                          </Button>
-                        </div>
-                     </div>
-                </Card>
-              </motion.div>
-
-              {/* Column 4: HitL Approval & Publishing */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4, duration: 0.4 }}
-                className="flex flex-col gap-6"
-              >
-                <h3 className="font-semibold text-lg">HitL Approval & Publishing</h3>
-                <div className="space-y-6 flex-1 flex flex-col">
-                    {/* Approval Pipeline / Approval Chain */}
-                    {currentContent?.approvalState ? (
-                      <ApprovalChain
-                        approvalState={currentContent.approvalState}
-                        currentUserRole={(user as any)?.role}
-                        currentUserId={user?.uid}
-                        onApprove={handleApprovalChainApprove}
-                        onReject={handleApprovalChainReject}
+                {/* Caption overlay */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4">
+                  {isEditingCaption ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editedCaption}
+                        onChange={e => setEditedCaption(e.target.value)}
+                        className="bg-black/60 border-white/20 text-white text-xs resize-none h-24 backdrop-blur-sm focus-visible:ring-white/30"
+                        autoFocus
                       />
-                    ) : (
-                      <Card className="bg-card border-border shadow-none p-4">
-                        <div className="text-center py-6 space-y-3">
-                            <div className="flex justify-center">
-                                <CheckCircle2 className="w-8 h-8 text-muted-foreground/30" />
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                                Generate content to begin the approval workflow
-                            </p>
-                        </div>
-                      </Card>
-                    )}
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={handleSaveCaption} className="flex-1 h-7 text-xs bg-primary">
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={handleCancelEditCaption} className="flex-1 h-7 text-xs border-white/20 text-white bg-transparent hover:bg-white/10">
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="cursor-pointer group" onClick={handleStartEditCaption}>
+                      <p className="text-white text-xs leading-relaxed line-clamp-3 group-hover:line-clamp-none transition-all">
+                        {currentContent.caption}
+                      </p>
+                      <p className="text-white/40 text-[10px] mt-1 group-hover:text-white/60 flex items-center gap-1 transition-colors">
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                        Click to edit
+                      </p>
+                    </div>
+                  )}
+                </div>
 
-                    {/* QR Code Analytics */}
-                    {currentContent?.qrDataUrl && currentContent?.qrStats && (
-                      <Card className="bg-card border-border shadow-none p-4">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                              <QrCode className="w-4 h-4 text-purple-400" />
-                              QR Analytics
-                            </h4>
-                            <BarChart3 className="w-4 h-4 text-muted-foreground" />
-                          </div>
+                {/* Platform badge */}
+                <div className="absolute top-3 left-3">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/60 text-white backdrop-blur-sm capitalize tracking-wide">
+                    {selectedPlatform}
+                  </span>
+                </div>
 
-                          {/* QR Code Preview */}
-                          <div className="flex justify-center">
-                            <img
-                              src={currentContent.qrDataUrl}
-                              alt="QR Code"
-                              className="w-24 h-24 rounded-md border border-border"
-                            />
-                          </div>
+                {/* Status badge */}
+                <div className="absolute top-3 right-3">
+                  <span className={cn(
+                    "px-2 py-0.5 rounded-full text-[10px] font-semibold capitalize backdrop-blur-sm",
+                    currentContent.status === 'approved' ? "bg-green-500/80 text-white" :
+                    currentContent.status === 'failed' ? "bg-red-500/80 text-white" :
+                    "bg-yellow-500/80 text-white",
+                  )}>
+                    {currentContent.status}
+                  </span>
+                </div>
+              </>
 
-                          {/* Scan Statistics */}
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between p-2 bg-background rounded-md">
-                              <span className="text-xs text-muted-foreground">Total Scans</span>
-                              <div className="flex items-center gap-1">
-                                <TrendingUp className="w-3 h-3 text-primary" />
-                                <span className="text-sm font-semibold text-primary">{currentContent.qrStats.scans || 0}</span>
-                              </div>
-                            </div>
+            ) : (
+              /* Empty state */
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-background">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="w-8 h-8 text-primary/40" />
+                </div>
+                <div className="text-center px-4">
+                  <p className="text-sm font-semibold">Start creating</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-[180px]">
+                    Open the Generate panel, describe your idea, and hit Generate
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setActiveLeftPanel('generate')}
+                  className="border-primary/30 text-primary hover:bg-primary/10 hover:border-primary text-xs"
+                >
+                  <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                  Open Generate
+                </Button>
+              </div>
+            )}
+          </motion.div>
 
-                            {currentContent.qrStats.lastScanned && (
-                              <div className="flex items-center justify-between p-2 bg-background rounded-md">
-                                <span className="text-xs text-muted-foreground">Last Scanned</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(currentContent.qrStats.lastScanned).toLocaleDateString()}
-                                </span>
-                              </div>
-                            )}
+          {/* Hashtag chips below canvas */}
+          <AnimatePresence>
+            {currentContent?.hashtags && currentContent.hashtags.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-wrap gap-1.5 mt-4 max-w-[320px] justify-center"
+              >
+                {currentContent.hashtags.slice(0, 10).map((tag, idx) => (
+                  <span key={idx} className="text-xs text-primary/60 hover:text-primary transition-colors cursor-default">
+                    #{tag}
+                  </span>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-                            {currentContent.qrStats.scansByPlatform && Object.keys(currentContent.qrStats.scansByPlatform).length > 0 && (
-                              <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground">By Platform</span>
-                                {Object.entries(currentContent.qrStats.scansByPlatform).map(([platform, count]) => (
-                                  <div key={platform} className="flex items-center justify-between p-1.5 bg-background/50 rounded text-xs">
-                                    <span className="text-muted-foreground capitalize">{platform}</span>
-                                    <span className="text-foreground font-medium">{count}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+          {/* Revision input row */}
+          <AnimatePresence>
+            {currentContent && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ delay: 0.1 }}
+                className="w-full max-w-[320px] mt-4 space-y-2"
+              >
+                {/* Revision notes display */}
+                {currentContent.revisionNotes && currentContent.revisionNotes.length > 0 && (
+                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 flex items-start gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 text-yellow-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-semibold text-yellow-500">Revision Requested</p>
+                      {currentContent.revisionNotes.map((note, idx) => (
+                        <p key={idx} className="text-[11px] text-muted-foreground mt-0.5">{note.note}</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                          {currentContent.contentUrl && (
-                            <div className="pt-2 border-t border-border">
-                              <a
-                                href={currentContent.contentUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 justify-center"
-                              >
-                                View Landing Page
-                                <ArrowUpRight className="w-3 h-3" />
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      </Card>
-                    )}
-
-                    {/* Engagement Analytics */}
-                    {currentContent?.engagementMetrics && (
-                      <EngagementAnalytics
-                        metrics={currentContent.engagementMetrics}
-                        platform={selectedPlatform}
-                      />
-                    )}
-
-                     {/* Publishing Schedule */}
-                    <Card className="bg-card border-border shadow-none flex-1 flex flex-col">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-base font-medium">
-                            Publishing Schedule
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex-1 flex flex-col justify-between gap-4">
-                            <Calendar
-                                mode="single"
-                                selected={date}
-                                onSelect={setDate}
-                                className="rounded-md border border-border bg-background w-full flex justify-center p-3"
-                                classNames={{
-                                    head_cell: "text-muted-foreground font-normal text-[0.8rem]",
-                                    cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-primary/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                                    day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 hover:bg-muted rounded-md transition-colors text-foreground",
-                                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                                    day_today: "bg-border/50 text-foreground",
-                                    nav_button: "border border-border hover:bg-muted hover:text-white transition-colors",
-                                }}
-                            />
-                             <div className="space-y-3">
-                                <Button
-                                  onClick={handleApprove}
-                                  disabled={!currentContent || isApproving !== null}
-                                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold disabled:opacity-50"
-                                >
-                                    {isApproving ? (
-                                      <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Approving...
-                                      </>
-                                    ) : date ? (
-                                      "Schedule & Publish"
-                                    ) : (
-                                      "Approve & Publish"
-                                    )}
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  onClick={() => router.push("/dashboard/inbox")}
-                                  className="w-full border-border text-muted-foreground hover:text-white hover:bg-muted"
-                                >
-                                    View in Unified Inbox
-                                </Button>
-                             </div>
-                        </CardContent>
-                    </Card>
+                {/* Revision input */}
+                <div className="flex gap-2">
+                  <Textarea
+                    value={revisionNote}
+                    onChange={e => setRevisionNote(e.target.value)}
+                    placeholder="Ask Craig to revise..."
+                    className="bg-background border-border resize-none h-9 text-xs flex-1 py-2 min-h-0"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRevise}
+                    disabled={!revisionNote.trim()}
+                    className="h-9 border-border text-muted-foreground hover:text-foreground hover:bg-muted shrink-0"
+                    title="Send revision to Craig"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
               </motion.div>
+            )}
+          </AnimatePresence>
+        </main>
 
-            </div>
-          </TabsContent>
+        {/* ── RIGHT PANEL: Deebo + Schedule + Assets ── */}
+        <DeeboCompliancePanel
+          content={currentContent}
+          currentUserRole={(user as any)?.role}
+          currentUserId={user?.uid}
+          onAcceptSafeVersion={handleAcceptSafeVersion}
+          onApprove={handleApprovalChainApprove}
+          onReject={handleApprovalChainReject}
+          date={date}
+          onDateChange={setDate}
+          onScheduleApprove={handleApprove}
+          isApproving={isApproving}
+          gauntletEnabled={GAUNTLET_ENABLED}
+        />
 
-          <TabsContent value="tiktok" className="flex-1 flex overflow-hidden m-0 p-0 relative">
-            {showGrid && <TheGrid selectedPlatform={selectedPlatform} />}
-            <div className="flex-1 p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 overflow-auto">
-                {/* Column 1: Prompt Input */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1, duration: 0.4 }}
-                className="flex flex-col gap-6"
-              >
-                <h3 className="font-semibold text-lg">Prompt Input</h3>
-                <Card className="bg-card border-border shadow-none">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-medium">
-                      Campaign Idea
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-muted-foreground">Rich text</label>
-                        <Textarea
-                        value={campaignPrompt}
-                        onChange={(e) => setCampaignPrompt(e.target.value)}
-                        placeholder="Describe your TikTok campaign... e.g., 'Quick tutorial on identifying quality flower.'"
-                        className="bg-background border-border resize-none h-32 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Content Type</label>
-                      <Select value={contentType} onValueChange={setContentType}>
-                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
-                          <SelectValue placeholder="Select Type" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-muted border-border text-foreground">
-                          <SelectItem value="social-post" className="focus:bg-background focus:text-white cursor-pointer">Social Post</SelectItem>
-                          <SelectItem value="blog" className="focus:bg-background focus:text-white cursor-pointer">Blog Article</SelectItem>
-                          <SelectItem value="email" className="focus:bg-background focus:text-white cursor-pointer">Email Newsletter</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Tone</label>
-                      <Select value={tone} onValueChange={(v) => setTone(v as CreativeStyle)}>
-                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
-                          <SelectValue placeholder="Select Tone" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-muted border-border text-foreground">
-                          <SelectItem value="professional" className="focus:bg-background focus:text-white cursor-pointer">Professional</SelectItem>
-                          <SelectItem value="hype" className="focus:bg-background focus:text-white cursor-pointer">Hype / Energetic</SelectItem>
-                          <SelectItem value="educational" className="focus:bg-background focus:text-white cursor-pointer">Educational</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Hashtag Suggestions */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-muted-foreground">
-                          Suggested Hashtags
-                        </label>
-                        {selectedHashtags.length > 0 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleClearHashtags}
-                            className="h-6 text-xs text-muted-foreground hover:text-red-500"
-                          >
-                            Clear ({selectedHashtags.length})
-                          </Button>
-                        )}
-                      </div>
-                      <ScrollArea className="h-24">
-                        <div className="flex flex-wrap gap-2 pr-3">
-                          {hashtagSuggestions[selectedPlatform].map(({ tag, category }) => {
-                            const isSelected = selectedHashtags.includes(tag);
-                            return (
-                              <button
-                                key={tag}
-                                onClick={() => handleToggleHashtag(tag)}
-                                className={cn(
-                                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
-                                  "border hover:scale-105 active:scale-95",
-                                  isSelected
-                                    ? "bg-primary/20 border-primary text-primary"
-                                    : "bg-background border-border text-muted-foreground hover:border-primary/50 hover:text-white"
-                                )}
-                              >
-                                {isSelected && <CheckCircle2 className="w-3 h-3" />}
-                                #{tag}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </ScrollArea>
-                      {selectedHashtags.length > 0 && (
-                        <div className="text-xs text-muted-foreground">
-                          Selected: {selectedHashtags.map(tag => `#${tag}`).join(' ')}
-                        </div>
-                      )}
-                    </div>
-
-                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Menu Item Integration
-                        {isLoadingMenu && <span className="ml-2 text-xs text-muted-foreground">(Loading...)</span>}
-                      </label>
-                      <Select value={menuItem} onValueChange={setMenuItem}>
-                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
-                          <SelectValue placeholder={isLoadingMenu ? "Loading menu items..." : "Select a product (optional)"} />
-                        </SelectTrigger>
-                        <SelectContent className="bg-muted border-border text-foreground max-h-[300px]">
-                          {menuItems.length === 0 && !isLoadingMenu ? (
-                            <SelectItem value="none" disabled className="text-muted-foreground text-xs">
-                              No products available
-                            </SelectItem>
-                          ) : (
-                            menuItems.map(item => (
-                              <SelectItem
-                                key={item.id}
-                                value={item.name}
-                                className="focus:bg-background focus:text-white cursor-pointer"
-                              >
-                                {item.name}
-                                {item.brandName && <span className="ml-2 text-xs text-muted-foreground">• {item.brandName}</span>}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Image Upload */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Custom Images</label>
-                      <div
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={handleDrop}
-                        className={cn(
-                          "border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer",
-                          isDragging
-                            ? "border-primary bg-primary/10"
-                            : "border-border hover:border-primary/50"
-                        )}
-                      >
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="hidden"
-                          id="image-upload"
-                          onChange={(e) => handleImageUpload(e.target.files)}
-                        />
-                        <label htmlFor="image-upload" className="cursor-pointer">
-                          <Plus className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                          <p className="text-xs text-muted-foreground">
-                            {isDragging ? "Drop images here" : "Click or drag images here"}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {uploadedImages.length}/10 images
-                          </p>
-                        </label>
-                      </div>
-                      {uploadedImages.length > 0 && (
-                        <div className="grid grid-cols-3 gap-2 mt-2">
-                          {uploadedImages.map((img, idx) => (
-                            <div key={idx} className="relative group">
-                              <img
-                                src={img}
-                                alt={`Upload ${idx + 1}`}
-                                className="w-full h-20 object-cover rounded border border-border"
-                              />
-                              <button
-                                onClick={() => handleRemoveImage(idx)}
-                                className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <XCircle className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Batch Mode Platform Selection */}
-                    {isBatchMode && (
-                      <div className="space-y-2 p-3 bg-purple-600/10 border border-purple-600/30 rounded-lg">
-                        <label className="text-sm font-medium text-purple-400">Batch Platforms</label>
-                        <div className="flex flex-wrap gap-2">
-                          {(['instagram', 'tiktok', 'linkedin'] as SocialPlatform[]).map(platform => {
-                            const isSelected = batchPlatforms.includes(platform);
-                            return (
-                              <button
-                                key={platform}
-                                onClick={() => handleToggleBatchPlatform(platform)}
-                                className={cn(
-                                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border",
-                                  isSelected
-                                    ? "bg-purple-600 border-purple-600 text-white"
-                                    : "bg-background border-border text-muted-foreground hover:border-purple-600/50"
-                                )}
-                              >
-                                {isSelected && <CheckCircle2 className="w-3 h-3" />}
-                                {platform}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <p className="text-xs text-purple-300/70">
-                          {batchPlatforms.length} platform{batchPlatforms.length !== 1 ? 's' : ''} selected
-                        </p>
-                      </div>
-                    )}
-
-                    <Button
-                      onClick={isBatchMode ? handleBatchGenerate : handleGenerate}
-                      disabled={isGenerating || !campaignPrompt.trim()}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        "Generate Campaign with Craig & Pinky"
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-               {/* Column 2: Deebo Compliance Shield */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.4 }}
-                className="flex flex-col gap-6"
-              >
-                <h3 className="font-semibold text-lg">Deebo Compliance Shield</h3>
-                 <Card className="bg-card border-border shadow-none flex-1 flex flex-col">
-                    <CardContent className="p-6 flex-1 flex flex-col items-center justify-center space-y-6">
-                      {GAUNTLET_ENABLED ? (
-                        <>
-                        <div className="relative">
-                            <Avatar className="w-16 h-16 border-2 border-border z-10 relative">
-                                <AvatarImage src="/avatars/deebo.png" />
-                                <AvatarFallback>DB</AvatarFallback>
-                            </Avatar>
-                            {/* Scanning Effect */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-red-500/50 rounded-lg overflow-hidden z-0">
-                                <div className="w-full h-full bg-[url('https://source.unsplash.com/random/300x300/?cannabis')] bg-cover opacity-30 grayscale"></div>
-                                <div className="absolute top-0 left-0 w-full h-0.5 bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-[scan_2s_ease-in-out_infinite]"></div>
-                            </div>
-                        </div>
-
-                        <div className="w-full space-y-3">
-                            {currentContent && currentContent.complianceChecks && currentContent.complianceChecks.some(c => !c.passed) ? (
-                              <>
-                                {currentContent.complianceChecks.filter(c => !c.passed).map((check, idx) => (
-                                  <div key={idx} className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm">
-                                      <div className="flex items-center justify-between mb-1">
-                                          <span className="font-medium text-red-500 flex items-center gap-1.5">
-                                              <AlertTriangle className="w-4 h-4"/> {check.checkType.replace(/_/g, ' ').toUpperCase()}
-                                          </span>
-                                          <XCircle className="w-4 h-4 text-red-500 cursor-pointer hover:text-red-400"/>
-                                      </div>
-                                      <p className="text-foreground text-xs">{check.message}</p>
-                                  </div>
-                                ))}
-
-                                <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-sm space-y-3">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <span className="font-medium text-primary flex items-center gap-1.5">
-                                            <CheckCircle2 className="w-4 h-4"/> Deebo&apos;s Safe Version
-                                        </span>
-                                    </div>
-                                    <p className="text-foreground">&quot;May help with relaxation.&quot;</p>
-                                    <Button
-                                      size="sm"
-                                      onClick={handleAcceptSafeVersion}
-                                      className="w-full bg-primary hover:bg-primary-muted text-primary-foreground font-semibold"
-                                    >
-                                        Accept Safe Version
-                                    </Button>
-                                </div>
-                              </>
-                            ) : currentContent ? (
-                              <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 text-sm">
-                                  <div className="flex items-center gap-2">
-                                      <CheckCircle2 className="w-5 h-5 text-primary"/>
-                                      <span className="font-medium text-primary">All Checks Passed!</span>
-                                  </div>
-                                  <p className="text-muted-foreground text-xs mt-2">
-                                    Content is compliant and ready for approval.
-                                  </p>
-                              </div>
-                            ) : (
-                              <div className="text-center text-muted-foreground text-sm py-8">
-                                Generate content to see compliance status
-                              </div>
-                            )}
-                        </div>
-                        </>
-                      ) : (
-                        <>
-                        <div className="relative">
-                            <Avatar className="w-16 h-16 border-2 border-muted z-10 relative opacity-50">
-                                <AvatarFallback className="bg-muted text-muted-foreground">DB</AvatarFallback>
-                            </Avatar>
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-muted rounded-lg flex items-center justify-center z-0">
-                                <ShieldOff className="w-8 h-8 text-muted-foreground/40" />
-                            </div>
-                        </div>
-                        <div className="w-full text-center space-y-2">
-                            <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm">
-                                <div className="flex items-center justify-center gap-2">
-                                    <ShieldOff className="w-4 h-4 text-muted-foreground"/>
-                                    <span className="font-medium text-muted-foreground">System Paused</span>
-                                </div>
-                                <p className="text-muted-foreground text-xs mt-2">
-                                    Compliance verification is currently in maintenance. Content will be reviewed manually.
-                                </p>
-                            </div>
-                        </div>
-                        </>
-                      )}
-                    </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* Column 3: Draft & Revision */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.4 }}
-                className="flex flex-col gap-6"
-              >
-                <h3 className="font-semibold text-lg">Draft & Revision</h3>
-                <Card className="bg-card border-border shadow-none flex-1 flex flex-col overflow-hidden">
-                    <ScrollArea className="flex-1">
-                        <CardContent className="p-4 space-y-6">
-                        {currentContent ? (
-                          <AnimatePresence mode="wait">
-                            {/* Craig's Caption */}
-                            <motion.div
-                              key="craig-caption"
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0 }}
-                              className="flex gap-3 group"
-                            >
-                              <Avatar className="w-10 h-10 border border-border shrink-0">
-                                <AvatarFallback>C</AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1 space-y-1.5">
-                                <div className="flex items-baseline justify-between">
-                                  <span className="font-semibold text-sm">Craig</span>
-                                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                    <MoreHorizontal className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"/>
-                                  </span>
-                                </div>
-                                <div className="space-y-3">
-                                  <p className="text-sm text-muted-foreground">
-                                    Here&apos;s your campaign content:
-                                  </p>
-                                  {isEditingCaption ? (
-                                    <div className="space-y-2">
-                                      <Textarea
-                                        value={editedCaption}
-                                        onChange={(e) => setEditedCaption(e.target.value)}
-                                        className="bg-background border-border resize-none h-32 text-sm focus-visible:ring-primary/50"
-                                      />
-                                      <div className="flex gap-2">
-                                        <Button
-                                          size="sm"
-                                          onClick={handleSaveCaption}
-                                          className="flex-1 bg-primary hover:bg-primary-muted text-primary-foreground font-semibold"
-                                        >
-                                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                                          Save
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={handleCancelEditCaption}
-                                          className="flex-1 border-border text-muted-foreground hover:text-white hover:bg-muted"
-                                        >
-                                          <XCircle className="w-3 h-3 mr-1" />
-                                          Cancel
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div
-                                      onClick={handleStartEditCaption}
-                                      className="bg-background p-3 rounded-md border border-border text-sm hover:border-primary/50 cursor-pointer transition-colors group relative"
-                                    >
-                                      {currentContent.caption}
-                                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span className="text-xs text-primary flex items-center gap-1">
-                                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                          </svg>
-                                          Edit
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
-                                  {currentContent.hashtags && currentContent.hashtags.length > 0 && (
-                                    <div className="flex flex-wrap gap-2">
-                                      {currentContent.hashtags.map((tag, idx) => (
-                                        <span key={idx} className="text-xs text-primary">
-                                          #{tag}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </motion.div>
-
-                            {/* Pinky's Images */}
-                            {currentContent.mediaUrls && currentContent.mediaUrls.length > 0 && (
-                              <motion.div
-                                key="pinky-images"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ delay: 0.1 }}
-                                className="flex gap-3 group"
-                              >
-                                <Avatar className="w-10 h-10 border border-border shrink-0">
-                                  <AvatarFallback className="bg-purple-600/20 text-purple-400">P</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 space-y-1.5">
-                                  <div className="flex items-baseline justify-between">
-                                    <span className="font-semibold text-sm">Pinky</span>
-                                    <span className="text-xs text-muted-foreground">The Visual Artist</span>
-                                  </div>
-                                  <div className="space-y-3">
-                                    <p className="text-sm text-muted-foreground">
-                                      Generated {currentContent.mediaUrls.length} visual{currentContent.mediaUrls.length > 1 ? 's' : ''}
-                                    </p>
-                                    <div className={cn(
-                                      "grid gap-2",
-                                      currentContent.mediaUrls.length === 1 ? "grid-cols-1" : "grid-cols-2"
-                                    )}>
-                                      {currentContent.mediaUrls.map((url, idx) => (
-                                        <motion.img
-                                          key={idx}
-                                          initial={{ opacity: 0, scale: 0.9 }}
-                                          animate={{ opacity: 1, scale: 1 }}
-                                          transition={{ delay: 0.2 + (idx * 0.1) }}
-                                          src={url}
-                                          alt={`Generated ${idx + 1}`}
-                                          className="rounded-md object-cover aspect-square border border-border hover:border-primary/50 transition-colors cursor-pointer"
-                                        />
-                                      ))}
-                                    </div>
-                                  </div>
-                                </div>
-                              </motion.div>
-                            )}
-
-                            {/* Revision Notes */}
-                            {currentContent.revisionNotes && currentContent.revisionNotes.length > 0 && (
-                              <motion.div
-                                key="revision-notes"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                transition={{ delay: 0.2 }}
-                                className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 space-y-2"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                                  <span className="font-medium text-yellow-500 text-sm">Revision Requested</span>
-                                </div>
-                                {currentContent.revisionNotes.map((note, idx) => (
-                                  <p key={idx} className="text-xs text-muted-foreground">
-                                    {note.note}
-                                  </p>
-                                ))}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        ) : (
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="text-center py-12 text-muted-foreground"
-                          >
-                            <Send className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
-                            <p className="text-sm">No draft content</p>
-                            <p className="text-xs mt-1">Generate content to start the review process</p>
-                          </motion.div>
-                        )}
-                        </CardContent>
-                    </ScrollArea>
-                     <div className="p-4 border-t border-border bg-background shrink-0">
-                        <div className="space-y-3">
-                          <Textarea
-                            value={revisionNote}
-                            onChange={(e) => setRevisionNote(e.target.value)}
-                            placeholder="Request revisions or add feedback..."
-                            className="bg-muted border-border resize-none h-20 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
-                          />
-                          <Button
-                            onClick={handleRevise}
-                            disabled={!currentContent || !revisionNote.trim()}
-                            variant="outline"
-                            className="w-full border-border text-muted-foreground hover:text-white hover:bg-muted disabled:opacity-50"
-                          >
-                            Send Revision Request
-                          </Button>
-                        </div>
-                     </div>
-                </Card>
-              </motion.div>
-
-              {/* Column 4: HitL Approval & Publishing */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4, duration: 0.4 }}
-                className="flex flex-col gap-6"
-              >
-                <h3 className="font-semibold text-lg">HitL Approval & Publishing</h3>
-                <div className="space-y-6 flex-1 flex flex-col">
-                    {/* Approval Pipeline / Approval Chain */}
-                    {currentContent?.approvalState ? (
-                      <ApprovalChain
-                        approvalState={currentContent.approvalState}
-                        currentUserRole={(user as any)?.role}
-                        currentUserId={user?.uid}
-                        onApprove={handleApprovalChainApprove}
-                        onReject={handleApprovalChainReject}
-                      />
-                    ) : (
-                      <Card className="bg-card border-border shadow-none p-4">
-                        <div className="text-center py-6 space-y-3">
-                            <div className="flex justify-center">
-                                <CheckCircle2 className="w-8 h-8 text-muted-foreground/30" />
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                                Generate content to begin the approval workflow
-                            </p>
-                        </div>
-                      </Card>
-                    )}
-
-                    {/* QR Code Analytics */}
-                    {currentContent?.qrDataUrl && currentContent?.qrStats && (
-                      <Card className="bg-card border-border shadow-none p-4">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                              <QrCode className="w-4 h-4 text-purple-400" />
-                              QR Analytics
-                            </h4>
-                            <BarChart3 className="w-4 h-4 text-muted-foreground" />
-                          </div>
-
-                          {/* QR Code Preview */}
-                          <div className="flex justify-center">
-                            <img
-                              src={currentContent.qrDataUrl}
-                              alt="QR Code"
-                              className="w-24 h-24 rounded-md border border-border"
-                            />
-                          </div>
-
-                          {/* Scan Statistics */}
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between p-2 bg-background rounded-md">
-                              <span className="text-xs text-muted-foreground">Total Scans</span>
-                              <div className="flex items-center gap-1">
-                                <TrendingUp className="w-3 h-3 text-primary" />
-                                <span className="text-sm font-semibold text-primary">{currentContent.qrStats.scans || 0}</span>
-                              </div>
-                            </div>
-
-                            {currentContent.qrStats.lastScanned && (
-                              <div className="flex items-center justify-between p-2 bg-background rounded-md">
-                                <span className="text-xs text-muted-foreground">Last Scanned</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(currentContent.qrStats.lastScanned).toLocaleDateString()}
-                                </span>
-                              </div>
-                            )}
-
-                            {currentContent.qrStats.scansByPlatform && Object.keys(currentContent.qrStats.scansByPlatform).length > 0 && (
-                              <div className="space-y-1">
-                                <span className="text-xs text-muted-foreground">By Platform</span>
-                                {Object.entries(currentContent.qrStats.scansByPlatform).map(([platform, count]) => (
-                                  <div key={platform} className="flex items-center justify-between p-1.5 bg-background/50 rounded text-xs">
-                                    <span className="text-muted-foreground capitalize">{platform}</span>
-                                    <span className="text-foreground font-medium">{count}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          {currentContent.contentUrl && (
-                            <div className="pt-2 border-t border-border">
-                              <a
-                                href={currentContent.contentUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 justify-center"
-                              >
-                                View Landing Page
-                                <ArrowUpRight className="w-3 h-3" />
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      </Card>
-                    )}
-
-                    {/* Engagement Analytics */}
-                    {currentContent?.engagementMetrics && (
-                      <EngagementAnalytics
-                        metrics={currentContent.engagementMetrics}
-                        platform={selectedPlatform}
-                      />
-                    )}
-
-                     {/* Publishing Schedule */}
-                    <Card className="bg-card border-border shadow-none flex-1 flex flex-col">
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-base font-medium">
-                            Publishing Schedule
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex-1 flex flex-col justify-between gap-4">
-                            <Calendar
-                                mode="single"
-                                selected={date}
-                                onSelect={setDate}
-                                className="rounded-md border border-border bg-background w-full flex justify-center p-3"
-                                classNames={{
-                                    head_cell: "text-muted-foreground font-normal text-[0.8rem]",
-                                    cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-primary/20 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                                    day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 hover:bg-muted rounded-md transition-colors text-foreground",
-                                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-                                    day_today: "bg-border/50 text-foreground",
-                                    nav_button: "border border-border hover:bg-muted hover:text-white transition-colors",
-                                }}
-                            />
-                             <div className="space-y-3">
-                                <Button
-                                  onClick={handleApprove}
-                                  disabled={!currentContent || isApproving !== null}
-                                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold disabled:opacity-50"
-                                >
-                                    {isApproving ? (
-                                      <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Approving...
-                                      </>
-                                    ) : date ? (
-                                      "Schedule & Publish"
-                                    ) : (
-                                      "Approve & Publish"
-                                    )}
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  onClick={() => router.push("/dashboard/inbox")}
-                                  className="w-full border-border text-muted-foreground hover:text-white hover:bg-muted"
-                                >
-                                    View in Unified Inbox
-                                </Button>
-                             </div>
-                        </CardContent>
-                    </Card>
-                </div>
-              </motion.div>
-
-            </div>
-          </TabsContent>
-
-          <TabsContent value="linkedin" className="flex-1 flex overflow-hidden m-0 p-0 relative">
-            {showGrid && <TheGrid selectedPlatform={selectedPlatform} />}
-            <div className="flex-1 p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 overflow-auto">
-                {/* Same layout as Instagram/TikTok but with LinkedIn-specific placeholder */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1, duration: 0.4 }}
-                className="flex flex-col gap-6"
-              >
-                <h3 className="font-semibold text-lg">Prompt Input</h3>
-                <Card className="bg-card border-border shadow-none">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base font-medium">
-                      Campaign Idea
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-muted-foreground">Rich text</label>
-                        <Textarea
-                        value={campaignPrompt}
-                        onChange={(e) => setCampaignPrompt(e.target.value)}
-                        placeholder="Describe your LinkedIn campaign... e.g., 'Industry insights on terpene profiles and effects.'"
-                        className="bg-background border-border resize-none h-32 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
-                        />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Content Type</label>
-                      <Select value={contentType} onValueChange={setContentType}>
-                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
-                          <SelectValue placeholder="Select Type" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-muted border-border text-foreground">
-                          <SelectItem value="social-post" className="focus:bg-background focus:text-white cursor-pointer">Social Post</SelectItem>
-                          <SelectItem value="blog" className="focus:bg-background focus:text-white cursor-pointer">Blog Article</SelectItem>
-                          <SelectItem value="email" className="focus:bg-background focus:text-white cursor-pointer">Email Newsletter</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Tone</label>
-                      <Select value={tone} onValueChange={(v) => setTone(v as CreativeStyle)}>
-                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
-                          <SelectValue placeholder="Select Tone" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-muted border-border text-foreground">
-                          <SelectItem value="professional" className="focus:bg-background focus:text-white cursor-pointer">Professional</SelectItem>
-                          <SelectItem value="hype" className="focus:bg-background focus:text-white cursor-pointer">Hype / Energetic</SelectItem>
-                          <SelectItem value="educational" className="focus:bg-background focus:text-white cursor-pointer">Educational</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Hashtag Suggestions */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-muted-foreground">
-                          Suggested Hashtags
-                        </label>
-                        {selectedHashtags.length > 0 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleClearHashtags}
-                            className="h-6 text-xs text-muted-foreground hover:text-red-500"
-                          >
-                            Clear ({selectedHashtags.length})
-                          </Button>
-                        )}
-                      </div>
-                      <ScrollArea className="h-24">
-                        <div className="flex flex-wrap gap-2 pr-3">
-                          {hashtagSuggestions[selectedPlatform].map(({ tag, category }) => {
-                            const isSelected = selectedHashtags.includes(tag);
-                            return (
-                              <button
-                                key={tag}
-                                onClick={() => handleToggleHashtag(tag)}
-                                className={cn(
-                                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all",
-                                  "border hover:scale-105 active:scale-95",
-                                  isSelected
-                                    ? "bg-primary/20 border-primary text-primary"
-                                    : "bg-background border-border text-muted-foreground hover:border-primary/50 hover:text-white"
-                                )}
-                              >
-                                {isSelected && <CheckCircle2 className="w-3 h-3" />}
-                                #{tag}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </ScrollArea>
-                      {selectedHashtags.length > 0 && (
-                        <div className="text-xs text-muted-foreground">
-                          Selected: {selectedHashtags.map(tag => `#${tag}`).join(' ')}
-                        </div>
-                      )}
-                    </div>
-
-                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Menu Item Integration
-                        {isLoadingMenu && <span className="ml-2 text-xs text-muted-foreground">(Loading...)</span>}
-                      </label>
-                      <Select value={menuItem} onValueChange={setMenuItem}>
-                        <SelectTrigger className="bg-background border-border text-foreground focus:ring-primary/50">
-                          <SelectValue placeholder={isLoadingMenu ? "Loading menu items..." : "Select a product (optional)"} />
-                        </SelectTrigger>
-                        <SelectContent className="bg-muted border-border text-foreground max-h-[300px]">
-                          {menuItems.length === 0 && !isLoadingMenu ? (
-                            <SelectItem value="none" disabled className="text-muted-foreground text-xs">
-                              No products available
-                            </SelectItem>
-                          ) : (
-                            menuItems.map(item => (
-                              <SelectItem
-                                key={item.id}
-                                value={item.name}
-                                className="focus:bg-background focus:text-white cursor-pointer"
-                              >
-                                {item.name}
-                                {item.brandName && <span className="ml-2 text-xs text-muted-foreground">• {item.brandName}</span>}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Image Upload */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-muted-foreground">Custom Images</label>
-                      <div
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={handleDrop}
-                        className={cn(
-                          "border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer",
-                          isDragging
-                            ? "border-primary bg-primary/10"
-                            : "border-border hover:border-primary/50"
-                        )}
-                      >
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="hidden"
-                          id="image-upload"
-                          onChange={(e) => handleImageUpload(e.target.files)}
-                        />
-                        <label htmlFor="image-upload" className="cursor-pointer">
-                          <Plus className="w-6 h-6 mx-auto mb-2 text-muted-foreground" />
-                          <p className="text-xs text-muted-foreground">
-                            {isDragging ? "Drop images here" : "Click or drag images here"}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {uploadedImages.length}/10 images
-                          </p>
-                        </label>
-                      </div>
-                      {uploadedImages.length > 0 && (
-                        <div className="grid grid-cols-3 gap-2 mt-2">
-                          {uploadedImages.map((img, idx) => (
-                            <div key={idx} className="relative group">
-                              <img
-                                src={img}
-                                alt={`Upload ${idx + 1}`}
-                                className="w-full h-20 object-cover rounded border border-border"
-                              />
-                              <button
-                                onClick={() => handleRemoveImage(idx)}
-                                className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <XCircle className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Batch Mode Platform Selection */}
-                    {isBatchMode && (
-                      <div className="space-y-2 p-3 bg-purple-600/10 border border-purple-600/30 rounded-lg">
-                        <label className="text-sm font-medium text-purple-400">Batch Platforms</label>
-                        <div className="flex flex-wrap gap-2">
-                          {(['instagram', 'tiktok', 'linkedin'] as SocialPlatform[]).map(platform => {
-                            const isSelected = batchPlatforms.includes(platform);
-                            return (
-                              <button
-                                key={platform}
-                                onClick={() => handleToggleBatchPlatform(platform)}
-                                className={cn(
-                                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all border",
-                                  isSelected
-                                    ? "bg-purple-600 border-purple-600 text-white"
-                                    : "bg-background border-border text-muted-foreground hover:border-purple-600/50"
-                                )}
-                              >
-                                {isSelected && <CheckCircle2 className="w-3 h-3" />}
-                                {platform}
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <p className="text-xs text-purple-300/70">
-                          {batchPlatforms.length} platform{batchPlatforms.length !== 1 ? 's' : ''} selected
-                        </p>
-                      </div>
-                    )}
-
-                    <Button
-                      onClick={isBatchMode ? handleBatchGenerate : handleGenerate}
-                      disabled={isGenerating || !campaignPrompt.trim()}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        "Generate Campaign with Craig & Pinky"
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-               {/* Remaining columns same as above... */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.4 }}
-                className="flex-1 text-center py-20 text-muted-foreground"
-              >
-                <p className="text-sm">LinkedIn content workflow coming soon</p>
-                <p className="text-xs mt-2">Full layout similar to Instagram and TikTok</p>
-              </motion.div>
-
-            </div>
-          </TabsContent>
-
-          <TabsContent value="hero-carousel" className="flex-1 flex overflow-hidden m-0 p-0 relative">
-            {showGrid && <TheGrid selectedPlatform={selectedPlatform} />}
-            <div className="flex-1 p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 overflow-auto">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1, duration: 0.4 }}
-                className="flex-1 text-center py-20 text-muted-foreground"
-              >
-                <p className="text-sm">Hero Carousel builder coming soon</p>
-                <p className="text-xs mt-2">Create website banners and carousel content</p>
-              </motion.div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </main>
-
-      {/* Help Button */}
-      <div className="fixed bottom-4 right-4 z-30">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="bg-card border border-border rounded-full h-10 w-10 text-muted-foreground hover:text-white shadow-lg"
-        >
-          <HelpCircle className="w-5 h-5" />
-        </Button>
       </div>
     </div>
   );

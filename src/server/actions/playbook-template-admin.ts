@@ -7,7 +7,7 @@
  */
 
 import { createServerClient } from '@/firebase/server-client';
-import { requireUser, getUserRole, getUserOrgContext } from '@/server/auth/auth';
+import { requireUser } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import { PLAYBOOK_TEMPLATE_METADATA } from '@/config/tier-playbook-templates';
 
@@ -45,7 +45,7 @@ export async function getPlaybookTemplateStats(): Promise<
     }
 
     // Allow super_user, brand admins/members, and dispensary admins/staff
-    const userRole = await getUserRole();
+    const userRole = (user.role as string) || null;
     const allowedRoles = ['super_user', 'brand_admin', 'brand_member', 'dispensary_admin', 'dispensary_staff'];
 
     if (!allowedRoles.includes(userRole || '')) {
@@ -53,9 +53,8 @@ export async function getPlaybookTemplateStats(): Promise<
     }
 
     // Get user's org context (super users see all, others see only their org)
-    const orgContext = await getUserOrgContext();
     const isSuperUser = userRole === 'super_user';
-    const filterOrgId = isSuperUser ? null : orgContext?.currentOrgId;
+    const filterOrgId = isSuperUser ? null : ((user as any).currentOrgId || (user as any).orgId || null);
 
     const { firestore } = await createServerClient();
 
