@@ -5089,6 +5089,42 @@ Configuration, diagnostics, audit logs, statistics, cache management.
 
 **Phase 3 (Planned):** Real-time audit log streaming + email notifications for user approvals/rejections + scheduled system checks via Cloud Tasks
 
+## Vibe Builder Testing Suite (2026-02-18) ✅ COMPLETE
+
+**Status:** 150 Unit Tests + All Passing
+
+**Test Coverage:**
+| Module | Tests | Coverage |
+|--------|-------|----------|
+| `vibe-projects.ts` CRUD | 26 | createVibeProject, getVibeProject, updateVibeProject, autoSaveVibeProject, getUserVibeProjects, deleteVibeProject, publishVibeProject |
+| `vibe-publish.ts` Publishing | 50 | checkSubdomainAvailability (14 reserved subdomains), publishWebsite, unpublishWebsite, getPublishedSite (3-tier lookup), getPublishedSiteByProject, addCustomDomain, verifyCustomDomain, removeCustomDomain |
+| `domain-routing.ts` Server Utils | 24 | getDomainMapping (cache + Firestore), resolveRoute (menu/brand, menu/dispensary, vibe_site, hybrid with path routing) |
+| `middleware.custom-domain.ts` Edge | 28 | BakedBot domain detection (12 patterns), path skipping (11 patterns), custom domain resolution |
+| `unified-domain-management.ts` Actions | 22 | listDomains (subcollection + legacy fallback), updateDomainTarget (validation), getDomainStatus, getTenantByDomain |
+
+**Edge Cases Covered:**
+- Reserved subdomains (www, admin, api, bakedbot, staging)
+- Domain validation (min/max length, special chars, international TLDs, no protocol)
+- 3-tier domain lookup fallback (subdomain → customDomain → domain_mappings)
+- Hybrid path routing (/shop → menu, / → vibe_site)
+- Cache hit/miss + stale cache scenarios
+- Firestore error handling with graceful fallbacks
+- Middleware: case-insensitive matching, port stripping, Firebase hosting domains
+- Timestamp handling for Firestore objects
+
+**Key Fix:**
+Mock ordering bug in domain-routing tests fixed: changed `setupMapping()` from `mockResolvedValue` (persistent) to `mockResolvedValueOnce` for proper Firestore call chaining.
+
+**Commits:**
+- `4884b5d6` "fix(tests): Fix domain-routing mock ordering and add platform enhancements"
+
+**Files Created:**
+- `tests/actions/vibe-projects.test.ts`
+- `tests/actions/vibe-publish.test.ts`
+- `tests/lib/domain-routing.test.ts`
+- `tests/middleware/custom-domain-middleware.test.ts`
+- `tests/actions/unified-domain-management.test.ts`
+
 ---
 
 *This context loads automatically. For domain-specific details, consult `.agent/refs/`.*
