@@ -287,6 +287,87 @@ Customer can track: /track/[deliveryId]
 4. Customers will see "Delivery" option at checkout
 5. Test with full order → delivery → GPS tracking → completion flow
 
+### AI-Powered Welcome Email System (2026-02-17)
+**Status:** ✅ Production — 100% signup coverage with beautifully formatted AI-generated emails
+
+**What It Does:** Automated personalized welcome emails for ALL user signup paths using Claude AI, plus weekly nurture emails for customer retention.
+
+**Coverage (100% of Signups):**
+| Path | Trigger | Segment |
+|------|---------|---------|
+| Age gate (dispensary customers) | Age verification completion | `customer` |
+| Platform onboarding | Onboarding form submission | `super_user`, `dispensary_owner`, `brand_marketer` |
+| Invitation acceptance (NEW) | User accepts team invite | Same as inviter's segment |
+| Weekly nurture | Cloud Scheduler (5 jobs) | All segments |
+
+**Key Features:**
+- **AI Generation:** Claude Sonnet 4 (~$0.01/email) for cost-effective personalization
+- **Beautiful Formatting:** Markdown→HTML conversion, bullet lists, proper signatures
+- **Playbook Integration:** 5 default playbooks (customer, super_user, dispensary, brand, lead)
+- **Weekly Automation:** 5 Cloud Scheduler jobs running Mondays/Wednesdays
+- **firstName Fallback:** Tries `firstName → displayName → name` fields
+- **Firestore Composite Index:** Added `users(role, onboardingCompletedAt)` for weekly query
+
+**Key Files:**
+- `src/types/welcome-system.ts` (340 lines) — Type definitions
+- `src/server/services/mrs-parker-ai-welcome.ts` (500 lines) — AI email generation + formatting
+- `src/server/actions/platform-signup.ts` (244 lines) — Platform signup handler
+- `src/server/actions/invitations.ts` (modified) — Invitation acceptance integration
+- `src/app/api/jobs/weekly-nurture/route.ts` (168 lines) — Weekly processor endpoint
+- `firestore.indexes.json` — Added users composite index
+
+**System Prompt (Mrs. Parker):**
+```
+Persona: Customer Happiness Manager at BakedBot
+Tone: Southern hospitality, warm, conversational, personal
+Voice: Never mentions AI/automation, relationship-focused
+```
+
+**Email Formatting (2026-02-17 Enhancement):**
+- `**bold**` → `<strong>`, `*italic*` → `<em>`
+- Bullet points → proper `<ul>/<li>` HTML
+- Signatures → line breaks with `<br>`
+- Paragraphs → 20px margin + 1.8 line-height for readability
+- Function: `formatHtmlBody()` + `convertMarkdownToHtml()`
+
+**Invitation Integration (NEW):**
+When user accepts invitation, `acceptInvitationAction()` in `src/server/actions/invitations.ts`:
+1. Update user role + orgId in Firestore transaction
+2. Call `handlePlatformSignup()` with invitation context
+3. Trigger AI-powered welcome email + playbook events
+4. Non-fatal error handling (invitation succeeds even if email fails)
+
+**Weekly Nurture Cloud Scheduler Jobs (5 Active):**
+```
+customer-weekly-nurture           → Monday 9 AM EST
+super-user-weekly-nurture         → Monday 8 AM EST
+dispensary-owner-weekly-nurture   → Monday 10 AM EST
+brand-marketer-weekly-nurture     → Monday 11 AM EST
+lead-weekly-nurture               → Wednesday 10 AM EST
+```
+
+**Endpoint Testing (PowerShell):**
+```powershell
+$env:CRON_SECRET = "PcyrL/jzXMOniVVu15gPBQH+LPQDCTfK4yaOr0zUxhY="
+$headers = @{
+    "Authorization" = "Bearer $env:CRON_SECRET"
+    "Content-Type" = "application/json"
+}
+$body = @{ segment = "super_user"; playbookId = "welcome_super_user" } | ConvertTo-Json
+Invoke-RestMethod -Uri "https://bakedbot.ai/api/jobs/weekly-nurture" `
+    -Method POST -Headers $headers -Body $body | ConvertTo-Json -Depth 5
+```
+
+**For New Pilot Customers:**
+1. `scripts/seed-welcome-playbooks.ts` — Already seeded (run once per project)
+2. Cloud Scheduler jobs auto-created (or manually run setup script)
+3. Customers automatically receive welcome emails upon signup/invitation
+4. No configuration needed — works out of the box
+
+**See Also:**
+- Full implementation details: `memory/welcome-email-system-2026-02-17.md`
+- User-facing docs: `WELCOME_SYSTEM_COMPLETE.md`
+
 ### Heartbeat Automatic Recovery System (2026-02-18)
 **Status:** ✅ Production — 24/7 autonomous recovery without user intervention
 
