@@ -18,13 +18,13 @@ const RETRY_DELAYS_MS = [5000, 30000, 300000];
 const MAX_RETRIES = RETRY_DELAYS_MS.length;
 
 interface ExecutionRetryRecord {
-  executionId: string;
   playbookId: string;
   orgId: string;
   attempt: number;
   lastError?: string;
   nextRetryAt?: Date;
   status: 'pending' | 'retrying' | 'failed' | 'success';
+  eventData: Record<string, any>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -49,7 +49,7 @@ async function executePlaybookWithRetry(
     playbookId: string;
     orgId: string;
     userId: string;
-    triggeredBy: string;
+    triggeredBy: 'event' | 'manual' | 'schedule';
     eventData: Record<string, any>;
   },
   attempt: number = 1
