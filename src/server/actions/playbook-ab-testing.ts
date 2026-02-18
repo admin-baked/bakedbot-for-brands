@@ -160,7 +160,6 @@ export async function getABTestResults(templateId: string): Promise<ABTestResult
       variants.push({
         variantId,
         variantName: variantData.name || variantId,
-        templateId,
         totalExecutions: execSnap.size,
         successfulExecutions: successCount,
         failedExecutions: execSnap.size - successCount,

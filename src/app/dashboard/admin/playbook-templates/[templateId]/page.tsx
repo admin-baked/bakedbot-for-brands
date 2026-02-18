@@ -387,7 +387,7 @@ export default function TemplateDrilldownPage() {
                         <TableCell>
                           <Badge
                             variant={
-                              exec.status === 'completed' || exec.status === 'success'
+                              exec.status === 'completed'
                                 ? 'default'
                                 : exec.status === 'pending'
                                   ? 'secondary'

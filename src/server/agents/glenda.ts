@@ -43,7 +43,7 @@ export interface GlendaTools extends Partial<AllSharedTools> {
     sendEmail?(to: string, subject: string, content: string): Promise<any>;
 }
 
-export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
+export const glendaAgent: AgentImplementation<AgentMemory, GlendaTools> = {
     agentName: 'glenda',
 
     async initialize(brandMemory, agentMemory) {

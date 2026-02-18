@@ -26,6 +26,9 @@ import { generateVeoVideo } from '@/ai/generators/veo';
 import { generateSoraVideo } from '@/ai/generators/sora';
 import { generateImageFromPrompt } from '@/ai/flows/generate-social-image';
 
+// Revenue Attribution
+import { recordPlaybookExecution } from '@/server/actions/playbook-revenue-attribution';
+
 // Types
 export interface PlaybookExecutionRequest {
     playbookId: string;
@@ -1651,6 +1654,25 @@ export async function executePlaybook(
             successCount: FieldValue.increment(1),
             lastRunAt: completedAt,
         });
+
+        // Record execution for revenue attribution (fire-and-forget)
+        const templateId = playbook.playbookTemplateId || playbook.templateId;
+        const customerId = context.variables.customerId || request.eventData?.customerId;
+        if (templateId && customerId) {
+            Promise.resolve().then(async () => {
+                await recordPlaybookExecution(
+                    request.playbookId,
+                    request.orgId,
+                    templateId,
+                    customerId
+                );
+            }).catch(err => {
+                logger.warn('[PlaybookExecutor] Failed to record revenue attribution', {
+                    playbookId: request.playbookId,
+                    error: err instanceof Error ? err.message : String(err),
+                });
+            });
+        }
 
         logger.info('[PlaybookExecutor] Execution completed:', {
             executionId,
