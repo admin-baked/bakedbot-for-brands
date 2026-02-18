@@ -19,6 +19,7 @@ Detailed documentation for AI agents working in this codebase.
 | **Team management, org switching, multi-org** | **`super-users.md`** |
 | **Firebase secrets, App Hosting config** | **`firebase-secrets.md`** |
 | **Lead magnets, CEO Dashboard, analytics** | **`lead-magnets.md`** |
+| **NY OCM delivery system, driver management** | **`delivery-system.md`** |
 | Academy, email automation, scoring | `academy.md` |
 | Super User dashboard, BakedBot Drive | `super-users.md` |
 | API routes | `api.md` |
@@ -70,6 +71,7 @@ Detailed documentation for AI agents working in this codebase.
 | `pages-dispensary.md` | Dispensary console structure |
 | `pages-location.md` | Location/discovery pages |
 | `pilot-setup.md` | Quick provisioning for pilots |
+| `delivery-system.md` | **NY OCM-compliant cannabis delivery** - checkout, driver mgmt, GPS tracking, ID verification, analytics |
 | `vibe-builder-spec.md` | Vibe Builder visual editor, templates, publishing, domains |
 
 ### Lead Generation

@@ -118,6 +118,175 @@ if (!tenantDoc.exists || !adminUserId) {
 - Per-tenant webhook URL stored in Firestore (heartbeat config)
 - `SLACK_WEBHOOK_URL` env var = BakedBot's own workspace webhook
 
+### NY OCM-Compliant Cannabis Delivery System (2026-02-17)
+**Status:** ✅ Production — Full 6-phase implementation for Thrive Syracuse
+
+**What It Does:** End-to-end delivery system from checkout through driver assignment, GPS tracking, customer tracking, ID verification (21+ age check), proof of delivery, and analytics.
+
+**Regulatory Context:** NY Office of Cannabis Management (OCM) requires:
+- ✅ 21+ age verification (ID scan + manual entry)
+- ✅ Delivery only during business hours
+- ✅ 21+ drivers with valid licenses
+- ✅ GPS tracking (30-second intervals)
+- ✅ OCM-compliant manifests with transaction numbers
+- ✅ Signature capture + proof of delivery photo
+
+**Architecture (6 Phases):**
+
+**Phase 1: Delivery Infrastructure**
+- Zone-based pricing (Downtown $5, Suburbs $8, Extended $12)
+- Fulfillment selection in checkout (Pickup vs Delivery)
+- Real-time fee calculation + zone validation
+- Delivery address form with time slot selection
+- Auto-creates delivery record on order confirmation
+- Key files:
+  - `src/types/delivery.ts` (400 lines) — Complete type system
+  - `src/server/actions/delivery.ts` (850 lines) — CRUD operations, zone management, fee calculation
+  - `src/components/checkout/fulfillment-selection.tsx` — Pickup/Delivery cards
+  - `src/components/checkout/delivery-address-form.tsx` — Address + zone validation
+  - `firestore.indexes.json` — Composite indexes for delivery queries
+
+**Phase 2: Driver Management**
+- Driver CRUD with license validation (21+ age requirement via licenseExpiry)
+- On/off duty toggle, availability management
+- Admin dashboard: `/dashboard/delivery` with 4 tabs (Active, Drivers, Zones, Analytics)
+- Manual driver assignment for orders
+- Zone configuration UI
+- Key files:
+  - `src/server/actions/driver.ts` (350 lines) — Driver operations
+  - `src/app/dashboard/delivery/components/drivers-tab.tsx` — Roster + add/edit
+  - `src/app/dashboard/delivery/components/add-driver-dialog.tsx` — Driver form
+  - `src/app/dashboard/delivery/components/zones-tab.tsx` — Zone configuration
+
+**Phase 3: GPS Tracking & Driver PWA**
+- Driver mobile app at `/driver/*` with home screen installation
+- Driver login: `/driver/login` (Firebase Auth)
+- Dashboard: `/driver/dashboard` (active deliveries, stats)
+- Delivery details: `/driver/delivery/[id]` (order info, navigation, GPS tracking)
+- Real-time location updates (30-second intervals to Firestore)
+- Customer public tracking: `/track/[deliveryId]` (no auth required)
+- Admin dispatch map with live driver locations
+- Key files:
+  - `src/app/driver/login/page.tsx` — Driver authentication
+  - `src/app/driver/dashboard/page.tsx` — Driver home
+  - `src/app/driver/delivery/[id]/page.tsx` + `client.tsx` — Delivery details (Next.js 15 async params pattern)
+  - `src/app/track/[deliveryId]/page.tsx` + `client.tsx` — Customer tracking
+  - `src/server/actions/delivery-driver.ts` (380 lines) — GPS updates, status transitions
+  - `src/app/driver/manifest.ts` — PWA manifest (home screen install)
+
+**Phase 4: ID Verification & Compliance**
+- OCM-compliant age verification form (4 ID types)
+- Real-time age calculation from birth date
+- Auto-reject if under 21 with calculated age display
+- 7 rejection reason codes (no ID, under-age, expired, intoxicated, address mismatch, not present, refused)
+- HTML5 Canvas signature capture (touch + mouse)
+- Camera capture for proof of delivery photo
+- Firestore Storage for ID/signature/proof photos
+- Automatic manifest generation with OCM transaction numbers
+- Key files:
+  - `src/components/delivery/id-verification-form.tsx` (420 lines) — Age verification
+  - `src/components/delivery/signature-pad.tsx` (290 lines) — Signature capture
+  - `src/components/delivery/proof-photo-capture.tsx` (280 lines) — Photo capture
+
+**Phase 5: Analytics & Reporting**
+- Real delivery performance dashboard: `/dashboard/delivery?tab=analytics`
+- 4 KPI cards: Success Rate (%), Avg Delivery Time, On-Time % (within window), Total Orders
+- Color-coded performance scores (green 90%+, yellow 75%+, red below)
+- Visual progress bar by delivery status
+- Driver performance leaderboard (top 5 drivers with completed/failed counts, avg time, on-time rate)
+- Period filter: Today / This Week / This Month
+- Key files:
+  - `src/app/dashboard/delivery/components/analytics-tab.tsx` (340 lines) — Metrics + leaderboard
+
+**Phase 6: Polish & Auto-Assignment**
+- Auto-assign driver on delivery creation (first available active driver)
+- Manual reassign dropdown in dispatch dashboard
+- PWA manifest for driver home screen installation
+- Order→Delivery integration: returns `trackingUrl` to customer
+- Key files:
+  - `src/server/actions/delivery.ts` — Added `autoAssignDriver()`, `reassignDriver()`
+  - `src/app/dashboard/delivery/components/active-deliveries-tab.tsx` — Assign/Reassign dropdowns
+  - `src/app/checkout/actions/createOrder.ts` — Auto-create delivery + assign driver
+
+**Database Schema (4 New Collections):**
+
+| Collection | Purpose | Key Fields |
+|-----------|---------|-----------|
+| `drivers` | Driver roster | userId, orgId, licenseNumber, licenseExpiry, vehicleType, status, isAvailable, currentLocation |
+| `deliveries` | Order deliveries | orderId, locationId, driverId, status, deliveryAddress, deliveryWindow, idVerification (verified, idType, photoUrl), signatureUrl, proofOfDeliveryPhoto, estimatedArrival, actualArrival, driverLocation (GPS) |
+| `locations/{id}/delivery_zones` | Geographic pricing | name, radiusMiles, baseFee, minimumOrder, isActive |
+| `delivery_routes` | Batch deliveries (future) | driverId, locationId, deliveryIds[], status, sequence, totalDistance |
+
+**Configuration for Thrive Syracuse:**
+
+```typescript
+// 3 Default Zones
+const zones = [
+  { id: 'zone_downtown', name: 'Downtown Syracuse', radiusMiles: 5, baseFee: 5.00, minimumOrder: 30.00 },
+  { id: 'zone_suburbs', name: 'Syracuse Suburbs', radiusMiles: 10, baseFee: 8.00, minimumOrder: 50.00 },
+  { id: 'zone_extended', name: 'Extended Area', radiusMiles: 15, baseFee: 12.00, minimumOrder: 75.00 }
+];
+
+// Location Config
+location.deliveryConfig = {
+  enabled: true,
+  maxDeliveriesPerRoute: 5,
+  estimatedPrepTime: 30,
+  operatingHours: {
+    monday: { start: '10:00', end: '20:00' },
+    // ... etc
+    sunday: { start: '11:00', end: '18:00' }
+  }
+};
+```
+
+**Order Fulfillment Flow:**
+```
+Order Creation (checkout)
+    ↓
+fulfillmentType: 'pickup' or 'delivery' selected
+    ↓
+[DELIVERY] → deliveryAddress + deliveryWindow + deliveryFee
+    ↓
+createOrder() → createDelivery() → autoAssignDriver()
+    ↓
+Delivery Status: pending → assigned → in_transit → arrived → delivered
+    ↓
+ID verification → signature → photo → OCM manifest generated
+    ↓
+Order Status: out_for_delivery → delivered → completed
+    ↓
+Customer can track: /track/[deliveryId]
+```
+
+**Security & Compliance:**
+- Role-based access: only assigned driver can access delivery details
+- Firestore Storage encryption for ID photos, licenses, addresses
+- Audit logging: track all ID verifications, status changes
+- HTTPS-only for all API routes
+- Firestore transactions prevent race conditions on driver assignment
+
+**Key Patterns:**
+- **Next.js 15 Async Params:** Server wrapper awaits `params: Promise<T>`, passes resolved values to client components
+- **Firestore Transactions:** `autoAssignDriver()` uses transaction for race-condition prevention
+- **Non-blocking Operations:** Auto-assignment won't fail order creation if no drivers available
+- **Zone-based Pricing:** Simpler than real-time distance calc, more predictable for customers
+- **30-second GPS Updates:** Fires from driver app → Firestore → real-time updates to admin/customer
+
+**Cost Estimates (100 deliveries/day):**
+- Google Maps API: ~$135/month
+- Firestore: ~$6/month
+- Firebase Storage: ~$0.08/month
+- SMS notifications (Twilio): ~$72/month
+- **Total:** ~$213/month ($2.13 per delivery)
+
+**For New Pilot Customers:**
+1. Run `scripts/seed-delivery-zones.ts` to create default zones
+2. Create drivers at `/dashboard/delivery?tab=drivers`
+3. Enable `location.deliveryConfig.enabled = true` in location doc
+4. Customers will see "Delivery" option at checkout
+5. Test with full order → delivery → GPS tracking → completion flow
+
 ### Heartbeat Automatic Recovery System (2026-02-18)
 **Status:** ✅ Production — 24/7 autonomous recovery without user intervention
 
