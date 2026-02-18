@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { Palette, Check, X, Eye, Instagram, Linkedin, Hash } from 'lucide-react';
+import { Palette, Check, X, Eye, Instagram, Linkedin, Hash, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import { useInboxStore } from '@/lib/store/inbox-store';
 import type { InboxArtifact } from '@/types/inbox';
 import type { CreativeContent } from '@/types/creative-content';
 import { approveAndPublishArtifact, updateInboxArtifactStatus } from '@/server/actions/inbox';
+import { useRouter } from 'next/navigation';
 
 interface InboxCreativeCardProps {
     artifact: InboxArtifact;
@@ -39,6 +40,7 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 
 export function InboxCreativeCard({ artifact, className }: InboxCreativeCardProps) {
+    const router = useRouter();
     const { setSelectedArtifact, updateArtifact } = useInboxStore();
     const contentData = artifact.data as CreativeContent;
     const PlatformIcon = PLATFORM_ICONS[contentData.platform] || Palette;
@@ -157,6 +159,17 @@ export function InboxCreativeCard({ artifact, className }: InboxCreativeCardProp
                 >
                     <Eye className="h-3 w-3 mr-1" />
                     View
+                </Button>
+
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-primary hover:text-primary hover:bg-primary/5"
+                    onClick={() => router.push(`/dashboard/creative?contentId=${artifact.id}`)}
+                    title="Edit in Creative Studio"
+                >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    Studio
                 </Button>
 
                 {artifact.status === 'draft' && (
