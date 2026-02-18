@@ -7,7 +7,7 @@
  */
 
 import { createServerClient } from '@/firebase/server-client';
-import { requireUser, requireRole } from '@/server/auth/auth';
+import { requireUser, getUserRole, getUserOrgContext } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import { PLAYBOOK_TEMPLATE_METADATA } from '@/config/tier-playbook-templates';
 
@@ -44,8 +44,18 @@ export async function getPlaybookTemplateStats(): Promise<
       return { error: 'Not authenticated' };
     }
 
-    // Restrict to super_user role only
-    await requireRole('super_user');
+    // Allow super_user, brand admins/members, and dispensary admins/staff
+    const userRole = await getUserRole();
+    const allowedRoles = ['super_user', 'brand_admin', 'brand_member', 'dispensary_admin', 'dispensary_staff'];
+
+    if (!allowedRoles.includes(userRole || '')) {
+      return { error: 'Not authorized. Only admins and team members can view playbook templates.' };
+    }
+
+    // Get user's org context (super users see all, others see only their org)
+    const orgContext = await getUserOrgContext();
+    const isSuperUser = userRole === 'super_user';
+    const filterOrgId = isSuperUser ? null : orgContext?.currentOrgId;
 
     const { firestore } = await createServerClient();
 
@@ -72,11 +82,16 @@ export async function getPlaybookTemplateStats(): Promise<
       let activePlaybooks = 0;
 
       try {
-        // Query all playbooks with this template ID
-        const tenantSnap = await firestore
+        // Query playbooks with this template ID, filtered by org if not super_user
+        let query = firestore
           .collectionGroup('playbooks')
-          .where('playbookId', '==', templateId)
-          .get();
+          .where('playbookId', '==', templateId);
+
+        if (filterOrgId) {
+          query = query.where('orgId', '==', filterOrgId);
+        }
+
+        const tenantSnap = await query.get();
 
         assignedCount = tenantSnap.size;
 
@@ -88,6 +103,7 @@ export async function getPlaybookTemplateStats(): Promise<
         }
       } catch (err) {
         // If collection group query fails, count manually
+        logger.warn('[PlaybookTemplateAdmin] Failed to query playbooks', { templateId, error: String(err) });
         assignedCount = 0;
         activePlaybooks = 0;
       }
@@ -99,9 +115,16 @@ export async function getPlaybookTemplateStats(): Promise<
       let lastExecuted: string | undefined;
 
       try {
-        const execSnap = await firestore
+        // Query executions with this template ID, filtered by org if not super_user
+        let execQuery = firestore
           .collectionGroup('playbook_executions')
-          .where('playbookTemplateId', '==', templateId)
+          .where('playbookTemplateId', '==', templateId);
+
+        if (filterOrgId) {
+          execQuery = execQuery.where('orgId', '==', filterOrgId);
+        }
+
+        const execSnap = await execQuery
           .orderBy('startedAt', 'desc')
           .limit(1000)
           .get();
