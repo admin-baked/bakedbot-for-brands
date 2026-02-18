@@ -103,13 +103,13 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Plan Name</p>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-2xl font-bold">{tierConfig.name}</h3>
+                    <h3 className="text-2xl font-bold">{tierConfig?.name}</h3>
                     <Badge className={statusColor}>{subscription.status}</Badge>
                   </div>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Monthly Cost</p>
-                  <p className="text-2xl font-bold">${tierConfig.price}</p>
+                  <p className="text-2xl font-bold">${tierConfig?.price}</p>
                 </div>
               </div>
 
@@ -140,30 +140,32 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
               </div>
 
               {/* Plan Features */}
-              <div>
-                <h4 className="font-semibold mb-3">Included Features</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(tierConfig.features).map(([feature, included]) => {
-                    const isIncluded = included as boolean;
-                    return (
-                      <div key={feature} className="flex items-center gap-2 text-sm">
-                        <div
-                          className={`w-5 h-5 rounded border flex items-center justify-center ${
-                            isIncluded
-                              ? 'bg-emerald-100 border-emerald-300'
-                              : 'bg-gray-100 border-gray-300'
-                          }`}
-                        >
-                          {isIncluded && <span className="text-emerald-600 text-xs font-bold">✓</span>}
+              {tierConfig && (
+                <div>
+                  <h4 className="font-semibold mb-3">Included Features</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {Object.entries(tierConfig.features).map(([feature, included]) => {
+                      const isIncluded = included as boolean;
+                      return (
+                        <div key={feature} className="flex items-center gap-2 text-sm">
+                          <div
+                            className={`w-5 h-5 rounded border flex items-center justify-center ${
+                              isIncluded
+                                ? 'bg-emerald-100 border-emerald-300'
+                                : 'bg-gray-100 border-gray-300'
+                            }`}
+                          >
+                            {isIncluded && <span className="text-emerald-600 text-xs font-bold">✓</span>}
+                          </div>
+                          <span className={isIncluded ? 'text-gray-900' : 'text-gray-400'}>
+                            {feature.replace(/([A-Z])/g, ' $1').trim()}
+                          </span>
                         </div>
-                        <span className={isIncluded ? 'text-gray-900' : 'text-gray-400'}>
-                          {feature.replace(/([A-Z])/g, ' $1').trim()}
-                        </span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ) : (
             <div className="p-6 bg-gray-50 rounded-lg text-center">
@@ -177,7 +179,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
       </Card>
 
       {/* Usage */}
-      {subscription && usage && (
+      {subscription && usage && tierConfig && (
         <Card>
           <CardHeader>
             <CardTitle>Current Month Usage</CardTitle>
