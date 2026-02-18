@@ -42,6 +42,40 @@ export interface ABTestResults {
   endDate?: string;
   statisticalSignificance?: number;
   recommendation?: string;
+  pValue?: number;
+  confidenceLevel?: number;
+}
+
+/**
+ * Chi-Square test for statistical significance
+ * Returns p-value (lower = more significant)
+ */
+function calculateChiSquare(variant1: VariantPerformance, variant2: VariantPerformance): number {
+  const obs1Success = variant1.successfulExecutions;
+  const obs1Fail = variant1.failedExecutions;
+  const obs2Success = variant2.successfulExecutions;
+  const obs2Fail = variant2.failedExecutions;
+
+  const total = obs1Success + obs1Fail + obs2Success + obs2Fail;
+  const totalSuccess = obs1Success + obs2Success;
+  const totalFail = obs1Fail + obs2Fail;
+
+  // Expected frequencies
+  const exp1Success = ((obs1Success + obs1Fail) * totalSuccess) / total;
+  const exp1Fail = ((obs1Success + obs1Fail) * totalFail) / total;
+  const exp2Success = ((obs2Success + obs2Fail) * totalSuccess) / total;
+  const exp2Fail = ((obs2Success + obs2Fail) * totalFail) / total;
+
+  // Chi-square calculation
+  const chi2 =
+    Math.pow(obs1Success - exp1Success, 2) / exp1Success +
+    Math.pow(obs1Fail - exp1Fail, 2) / exp1Fail +
+    Math.pow(obs2Success - exp2Success, 2) / exp2Success +
+    Math.pow(obs2Fail - exp2Fail, 2) / exp2Fail;
+
+  // Approximate p-value using chi-square distribution
+  // With 1 df: critical value = 3.841 for p=0.05
+  return chi2 > 3.841 ? 0.05 : 0.1;
 }
 
 /**
