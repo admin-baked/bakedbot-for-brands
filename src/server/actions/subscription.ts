@@ -3,7 +3,12 @@
 import { TIERS, type TierId } from '@/config/tiers';
 import { createServerClient } from '@/firebase/server-client';
 import { requireUser } from '@/server/auth/auth';
-import { createCustomerProfile, createSubscriptionFromProfile } from '@/lib/payments/authorize-net';
+import {
+  createCustomerProfile,
+  createSubscriptionFromProfile,
+  cancelARBSubscription,
+  updateARBSubscription,
+} from '@/lib/payments/authorize-net';
 import { validatePromoCode } from './promos';
 import { assignTierPlaybooks } from './playbooks';
 import { emitEvent } from '@/server/events/emitter';
@@ -313,7 +318,36 @@ export async function createSubscription(
       });
     }
 
-    // 14. Send subscription confirmation email (non-blocking)
+    // 14. Write invoice record
+    try {
+      const now_date = new Date();
+      const invoicePeriod = `${now_date.getFullYear()}-${String(now_date.getMonth() + 1).padStart(
+        2,
+        '0'
+      )}`;
+
+      await firestore
+        .collection('invoices')
+        .doc(orgId)
+        .collection('records')
+        .add({
+          orgId,
+          amount,
+          description: `${tierConfig.name} Plan — Monthly Subscription`,
+          status: 'pending',
+          tierId,
+          period: invoicePeriod,
+          subscriptionId: authnetSubscriptionId,
+          createdAt: Date.now(),
+        });
+    } catch (error: any) {
+      logger.warn('[subscription] Failed to write invoice record', {
+        error: error.message,
+      });
+      // Non-blocking
+    }
+
+    // 15. Send subscription confirmation email (non-blocking)
     const { notifySubscriptionCreated } = await import(
       '@/server/services/billing-notifications'
     );
@@ -372,7 +406,39 @@ export async function getSubscription(orgId: string) {
 }
 
 /**
- * Cancels a subscription (soft-delete via status).
+ * Gets invoices for an org (last 12 months).
+ */
+export async function getInvoices(orgId: string) {
+  try {
+    const { firestore } = await createServerClient();
+    const snapshot = await firestore
+      .collection('invoices')
+      .doc(orgId)
+      .collection('records')
+      .orderBy('createdAt', 'desc')
+      .limit(12)
+      .get();
+
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      amount: doc.data().amount,
+      description: doc.data().description,
+      status: doc.data().status,
+      tierId: doc.data().tierId,
+      period: doc.data().period,
+      createdAt: doc.data().createdAt,
+    }));
+  } catch (error: any) {
+    logger.error('[subscription] getInvoices failed', {
+      orgId,
+      error: error.message,
+    });
+    return [];
+  }
+}
+
+/**
+ * Cancels a subscription (soft-delete via status + ARB cancellation at Authorize.net).
  */
 export async function cancelSubscription(orgId: string): Promise<{ success: boolean; error?: string }> {
   try {
@@ -390,13 +456,20 @@ export async function cancelSubscription(orgId: string): Promise<{ success: bool
       return { success: false, error: 'Not authorized' };
     }
 
-    // Update subscription status
+    // Get current subscription to retrieve ARB subscription ID
+    const subscription = await getSubscription(orgId);
+    if (!subscription) {
+      return { success: false, error: 'No active subscription found' };
+    }
+
+    // Update subscription status in Firestore
     await firestore
       .collection('subscriptions')
       .doc(orgId)
       .set(
         {
           status: 'canceled' as const,
+          canceledAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true }
@@ -411,15 +484,269 @@ export async function cancelSubscription(orgId: string): Promise<{ success: bool
       .set(
         {
           status: 'canceled' as const,
+          canceledAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true }
       );
 
-    logger.info('[subscription] Subscription canceled', { orgId });
+    // Cancel ARB subscription at Authorize.net (non-blocking)
+    if (subscription.authorizeNetSubscriptionId) {
+      try {
+        await cancelARBSubscription(subscription.authorizeNetSubscriptionId);
+        logger.info('[subscription] ARB subscription canceled at Authorize.net', { orgId });
+      } catch (error: any) {
+        logger.warn('[subscription] ARB cancel failed (subscription may already be inactive)', {
+          orgId,
+          error: error.message,
+        });
+        // Non-blocking — Firestore already updated, don't fail the user
+      }
+    }
+
+    // Send cancellation notification email (non-blocking)
+    const { notifySubscriptionCanceled } = await import(
+      '@/server/services/billing-notifications'
+    );
+    notifySubscriptionCanceled(orgId, subscription.tierId).catch((e: any) => {
+      logger.warn('[subscription] Cancellation email notification failed', {
+        error: e.message,
+      });
+    });
+
+    logger.info('[subscription] Subscription canceled', {
+      orgId,
+      authnetSubscriptionId: subscription.authorizeNetSubscriptionId,
+    });
     return { success: true };
   } catch (error: any) {
     logger.error('[subscription] cancelSubscription failed', {
+      orgId,
+      error: error.message,
+    });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Upgrades a subscription to a higher tier.
+ *
+ * Flow:
+ * 1. Authenticate user + verify org ownership
+ * 2. Get current subscription (must exist and be active)
+ * 3. Validate newTierId is higher than current
+ * 4. Calculate new amount (apply percent_off promo if active)
+ * 5. Call updateARBSubscription at Authorize.net
+ * 6. Update Firestore subscription + org subscription docs
+ * 7. Append to upgradeHistory
+ * 8. Re-assign tier playbooks
+ * 9. Emit subscription.updated event
+ * 10. Send notification email
+ * 11. Write invoice record
+ * Return new amount
+ */
+export async function upgradeSubscription(
+  orgId: string,
+  newTierId: TierId
+): Promise<{ success: boolean; error?: string; newAmount?: number }> {
+  try {
+    const user = await requireUser();
+    const { firestore } = await createServerClient();
+
+    // 1. Verify ownership
+    const orgDoc = await firestore.collection('organizations').doc(orgId).get();
+    if (!orgDoc.exists) {
+      return { success: false, error: 'Organization not found' };
+    }
+
+    const org = orgDoc.data();
+    if (!org || (org.ownerId !== user.uid && org.ownerUid !== user.uid)) {
+      return { success: false, error: 'Not authorized' };
+    }
+
+    // 2. Get current subscription
+    const subscription = await getSubscription(orgId);
+    if (!subscription) {
+      return { success: false, error: 'No active subscription found' };
+    }
+
+    if (subscription.status !== 'active') {
+      return { success: false, error: 'Subscription must be active to upgrade' };
+    }
+
+    const currentTierId = subscription.tierId as TierId;
+
+    // 3. Validate upgrade
+    const tierPrices: Record<TierId, number> = {
+      scout: 0,
+      pro: TIERS.pro.price,
+      growth: TIERS.growth.price,
+      empire: TIERS.empire.price,
+    };
+
+    if (newTierId === currentTierId) {
+      return { success: false, error: 'Cannot upgrade to the same tier' };
+    }
+
+    if (tierPrices[newTierId] <= tierPrices[currentTierId]) {
+      return { success: false, error: 'Downgrades not supported in this version' };
+    }
+
+    // 4. Calculate new amount (apply percent_off promo if still active)
+    const newTierConfig = TIERS[newTierId];
+    let newAmount = newTierConfig.price;
+    let promoApplied = null;
+
+    if (
+      subscription.promoCode &&
+      subscription.promoType === 'percent_off'
+    ) {
+      // Get original promo value
+      const promoSnapshot = await firestore
+        .collection('promos')
+        .where('code', '==', subscription.promoCode)
+        .limit(1)
+        .get();
+
+      if (!promoSnapshot.empty) {
+        const promoData = promoSnapshot.docs[0].data();
+        if (promoData.type === 'percent_off') {
+          const percentOff = promoData.value;
+          newAmount = Math.round((newAmount * (100 - percentOff)) / 100 * 100) / 100;
+          promoApplied = {
+            code: subscription.promoCode,
+            discount: `${percentOff}% off`,
+          };
+        }
+      }
+    }
+
+    // 5. Update ARB subscription at Authorize.net
+    if (!subscription.authorizeNetSubscriptionId) {
+      return { success: false, error: 'No Authorize.net subscription found' };
+    }
+
+    try {
+      await updateARBSubscription(subscription.authorizeNetSubscriptionId, newAmount);
+      logger.info('[subscription] ARB subscription updated at Authorize.net', { orgId, newAmount });
+    } catch (error: any) {
+      logger.error('[subscription] ARB update failed', {
+        orgId,
+        error: error.message,
+      });
+      return { success: false, error: 'Failed to update payment processor' };
+    }
+
+    // 6. Update Firestore — subscriptions collection
+    const now = FieldValue.serverTimestamp();
+    const upgradeHistory = subscription.upgradeHistory || [];
+    upgradeHistory.push({
+      fromTier: currentTierId,
+      toTier: newTierId,
+      fromAmount: subscription.amount || tierPrices[currentTierId],
+      toAmount: newAmount,
+      upgradedAt: Date.now(),
+    });
+
+    const updatedSubscriptionData = {
+      tierId: newTierId,
+      amount: newAmount,
+      upgradeHistory,
+      updatedAt: now,
+    };
+
+    await firestore
+      .collection('subscriptions')
+      .doc(orgId)
+      .set(updatedSubscriptionData, { merge: true });
+
+    // Update org subscription doc
+    await firestore
+      .collection('organizations')
+      .doc(orgId)
+      .collection('subscription')
+      .doc('current')
+      .set(updatedSubscriptionData, { merge: true });
+
+    // 7. Re-assign tier playbooks
+    const playbookTier = newTierId === 'pro' || newTierId === 'growth' ? 'pro' : 'enterprise';
+    try {
+      await assignTierPlaybooks(orgId, playbookTier);
+    } catch (error: any) {
+      logger.warn('[subscription] assignTierPlaybooks failed (non-blocking)', {
+        orgId,
+        tier: playbookTier,
+        error: error.message,
+      });
+    }
+
+    // 8. Emit subscription.updated event
+    try {
+      await emitEvent({
+        orgId,
+        agent: 'money_mike',
+        type: 'subscription.updated',
+        data: {
+          subscriptionId: subscription.authorizeNetSubscriptionId,
+          fromTier: currentTierId,
+          toTier: newTierId,
+          newAmount,
+        },
+      });
+    } catch (error: any) {
+      logger.warn('[subscription] emitEvent failed (non-blocking)', {
+        error: error.message,
+      });
+    }
+
+    // 9. Send notification email (non-blocking)
+    const { notifySubscriptionCreated } = await import(
+      '@/server/services/billing-notifications'
+    );
+    notifySubscriptionCreated(orgId, newTierId, newAmount, promoApplied || undefined).catch(
+      (e: any) => {
+        logger.warn('[subscription] Upgrade email notification failed', {
+          error: e.message,
+        });
+      }
+    );
+
+    // 10. Write invoice record
+    const now_date = new Date();
+    const period = `${now_date.getFullYear()}-${String(now_date.getMonth() + 1).padStart(2, '0')}`;
+
+    try {
+      await firestore
+        .collection('invoices')
+        .doc(orgId)
+        .collection('records')
+        .add({
+          orgId,
+          amount: newAmount,
+          description: `Upgrade from ${TIERS[currentTierId].name} to ${newTierConfig.name}`,
+          status: 'pending',
+          tierId: newTierId,
+          period,
+          subscriptionId: subscription.authorizeNetSubscriptionId,
+          createdAt: Date.now(),
+        });
+    } catch (error: any) {
+      logger.warn('[subscription] Failed to write invoice record', {
+        error: error.message,
+      });
+      // Non-blocking
+    }
+
+    logger.info('[subscription] Subscription upgraded', {
+      orgId,
+      fromTier: currentTierId,
+      toTier: newTierId,
+      newAmount,
+    });
+
+    return { success: true, newAmount };
+  } catch (error: any) {
+    logger.error('[subscription] upgradeSubscription failed', {
       orgId,
       error: error.message,
     });

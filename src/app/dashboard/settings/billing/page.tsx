@@ -1,8 +1,9 @@
 import { requireUser } from '@/server/auth/auth';
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/firebase/server-client';
-import { getSubscription, cancelSubscription } from '@/server/actions/subscription';
+import { getSubscription, cancelSubscription, getInvoices } from '@/server/actions/subscription';
 import { TIERS } from '@/config/tiers';
+import { UpgradeButton } from './upgrade-button';
 import {
   Card,
   CardContent,
@@ -59,6 +60,9 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
   const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const usageDoc = await firestore.collection('usage').doc(`${orgId}-${period}`).get();
   const usage = usageDoc.exists ? usageDoc.data() : null;
+
+  // Get invoices
+  const invoices = await getInvoices(orgId);
 
   const tierConfig = subscription ? TIERS[subscription.tierId as keyof typeof TIERS] : null;
 
@@ -284,9 +288,7 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
             <CardTitle>Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button className="w-full bg-emerald-600 hover:bg-emerald-700">
-              Upgrade Plan
-            </Button>
+            <UpgradeButton orgId={orgId} currentTierId={subscription.tierId as any} />
 
             {subscription.status === 'active' && (
               <AlertDialog>
@@ -327,16 +329,60 @@ export default async function BillingPage({ searchParams }: BillingPageProps) {
         </Card>
       )}
 
-      {/* Billing History Placeholder */}
+      {/* Billing History */}
       <Card>
         <CardHeader>
           <CardTitle>Billing History</CardTitle>
           <CardDescription>Past invoices and payment records</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-600 text-center py-8">
-            Billing history will appear here once you have an active subscription.
-          </p>
+          {invoices && invoices.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-4 font-semibold text-sm">Date</th>
+                    <th className="text-left py-3 px-4 font-semibold text-sm">Description</th>
+                    <th className="text-left py-3 px-4 font-semibold text-sm">Amount</th>
+                    <th className="text-left py-3 px-4 font-semibold text-sm">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invoices.map((invoice) => (
+                    <tr key={invoice.id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-4 text-sm">
+                        {new Date(invoice.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </td>
+                      <td className="py-3 px-4 text-sm">{invoice.description}</td>
+                      <td className="py-3 px-4 text-sm font-medium">${invoice.amount}/month</td>
+                      <td className="py-3 px-4 text-sm">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            invoice.status === 'paid'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : invoice.status === 'pending'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {invoice.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-600 text-center py-8">
+              No invoices found. Billing history will appear here once you have an active
+              subscription.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

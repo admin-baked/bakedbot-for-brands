@@ -154,3 +154,41 @@ export async function createSubscriptionFromProfile(
         subscriptionId: data.subscriptionId
     };
 }
+
+export async function cancelARBSubscription(subscriptionId: string): Promise<void> {
+    const request = {
+        ARBCancelSubscriptionRequest: {
+            subscriptionId
+        }
+    };
+
+    const data = await executeAuthNetRequest(request);
+
+    if (data.messages?.resultCode !== 'Ok') {
+        const error = data.messages?.message?.[0]?.text;
+        logger.error('[AuthNet] cancelARBSubscription failed:', error);
+        throw new Error(error || 'Subscription cancellation failed');
+    }
+}
+
+export async function updateARBSubscription(
+    subscriptionId: string,
+    newAmount: number
+): Promise<void> {
+    const request = {
+        ARBUpdateSubscriptionRequest: {
+            subscriptionId,
+            subscription: {
+                amount: newAmount.toFixed(2)
+            }
+        }
+    };
+
+    const data = await executeAuthNetRequest(request);
+
+    if (data.messages?.resultCode !== 'Ok') {
+        const error = data.messages?.message?.[0]?.text;
+        logger.error('[AuthNet] updateARBSubscription failed:', error);
+        throw new Error(error || 'Subscription update failed');
+    }
+}
