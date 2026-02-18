@@ -309,3 +309,126 @@ Video, designs, custom imagery = custom integrations add-on
 // Type export for TypeScript narrowing
 export type TierId = keyof typeof TIERS;
 export type TierConfig = typeof TIERS[TierId];
+
+// ---------------------------------------------------------------------------
+// FEATURE GATES — Tier-specific data access (§1.1e)
+// Used by dashboard to render locked states with upgrade prompts
+// ---------------------------------------------------------------------------
+
+export const FEATURE_GATES = {
+  competitiveIntel: {
+    scout: {
+      competitorNames: true,
+      competitorCategories: true,
+      competitorPricing: false,      // Hidden — upgrade prompt
+      stockLevels: false,            // Hidden — upgrade prompt
+      priceChangeAlerts: false,      // None
+      competitorsTracked: 1,
+      dashboardAccess: false,        // No live dashboard — weekly email only
+      reportDelivery: 'weekly_email_only',
+    },
+    pro: {
+      competitorNames: true,
+      competitorCategories: true,
+      competitorPricing: true,
+      stockLevels: true,
+      priceChangeAlerts: true,
+      priceChangeFrequency: 'weekly',
+      competitorsTracked: 3,
+      dashboardAccess: true,
+      reportDelivery: 'weekly_email_and_dashboard',
+    },
+    growth: {
+      competitorNames: true,
+      competitorCategories: true,
+      competitorPricing: true,
+      stockLevels: true,
+      priceChangeAlerts: true,
+      priceChangeFrequency: 'daily',
+      competitorsTracked: 10,
+      dashboardAccess: true,
+      reportDelivery: 'daily_email_and_dashboard',
+    },
+    empire: {
+      competitorNames: true,
+      competitorCategories: true,
+      competitorPricing: true,
+      stockLevels: true,
+      priceChangeAlerts: true,
+      priceChangeFrequency: 'realtime_sms',
+      competitorsTracked: -1,         // Unlimited
+      dashboardAccess: true,
+      reportDelivery: 'realtime_daily_and_dashboard',
+    },
+  },
+} as const;
+
+// ---------------------------------------------------------------------------
+// EMPIRE COGS BREAKDOWN — $999/mo target, ~51.3% gross margin (§1.1d)
+// ---------------------------------------------------------------------------
+
+export const EMPIRE_COGS = {
+  aiPlaybookAutomation: 228,   // Genkit/Gemini compute for 23 playbooks
+  smsCustomer5k: 165,          // 5,000 SMS × $0.033 avg COGS
+  email50k: 50,                // 50,000 emails via Mailjet
+  smsInternal50: 1.65,         // Internal staff alerts (50/mo)
+  crawling: 1.26,              // Ezal competitor crawling
+  infrastructure: 20,          // Firebase hosting, Firestore, storage
+  csmOnboardingAmortized: 20,  // 4 hrs × $60/hr CSM ÷ 12 months (§1.1d)
+  total: 485.91,
+  grossMarginAtListPrice: 0.513,
+} as const;
+
+// ---------------------------------------------------------------------------
+// BEHAVIORAL UPGRADE SIGNALS (§1.1f)
+// Firestore collection: upgrade_signals
+// ---------------------------------------------------------------------------
+
+export interface UpgradeSignal {
+  userId: string;
+  orgId: string;
+  fromTier: TierId;
+  toTier: TierId;
+  signalType:
+    | 'high_smokey_usage'          // 3+ queries/day for 5+ days → Scout → Pro
+    | 'repeated_snapshot_views'    // Views competitive snapshot 3 weeks in a row → Scout → Pro
+    | 'locked_pricing_attempts'    // Attempts to access locked pricing data 2+ times → Scout → Pro
+    | 'sms_cap_hit_repeatedly'     // Hits 80% SMS 2 months in a row → Pro → Growth
+    | 'campaign_cap_hit'           // 3 active campaigns simultaneously → Pro → Growth
+    | 'intel_engagement_high'      // Opens Ezal reports within 1hr, 3+ times → Pro → Growth
+    | 'competitor_search_overflow' // Searches for competitor outside allocation → Pro → Growth
+    | 'multi_location_mention'     // Mentions "second location" in Smokey → Growth → Empire
+    | 'multi_license_upload'       // Uploads products from multiple licenses → Growth → Empire
+    | 'pos_integration_request'    // Asks about POS integration → Growth → Empire
+    | 'audit_prep_request';        // Asks about compliance documentation → Growth → Empire
+  signalDetail: string;           // e.g. "hit_25_msg_limit", "viewed_locked_pricing_3x"
+  score: number;                  // Increment per signal (threshold: 3+ in 30 days → trigger nudge)
+  recordedAt: Date;
+}
+
+// ---------------------------------------------------------------------------
+// CONVERSION TRACKING (§1.1g)
+// Firestore collection: conversion_events
+// ---------------------------------------------------------------------------
+
+export interface ConversionEvent {
+  userId: string;
+  orgId: string;
+  fromTier: 'scout' | 'pro' | 'growth';
+  toTier: 'pro' | 'growth' | 'empire';
+  triggerSource:
+    | 'feature_ceiling'
+    | 'upgrade_nudge_playbook'
+    | 'competitive_snapshot'
+    | 'behavioral_signal'
+    | 'manual'
+    | 'sales_call';
+  triggerDetail: string;  // e.g. "hit_25_msg_limit", "viewed_locked_pricing_3x"
+  daysFromSignup: number;
+  convertedAt: Date;
+}
+
+// Upgrade signal score threshold — when a tier accumulates this many signals
+// within a 30-day window, trigger the upgrade nudge playbook
+export const UPGRADE_SIGNAL_THRESHOLD = 3;
+export const UPGRADE_SIGNAL_WINDOW_DAYS = 30;
