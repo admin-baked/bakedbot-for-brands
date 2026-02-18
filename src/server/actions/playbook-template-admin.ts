@@ -7,7 +7,7 @@
  */
 
 import { createServerClient } from '@/firebase/server-client';
-import { requireUser } from '@/server/auth/auth';
+import { requireUser, requireRole } from '@/server/auth/auth';
 import { logger } from '@/lib/logger';
 import { PLAYBOOK_TEMPLATE_METADATA } from '@/config/tier-playbook-templates';
 
@@ -43,6 +43,9 @@ export async function getPlaybookTemplateStats(): Promise<
     if (!user) {
       return { error: 'Not authenticated' };
     }
+
+    // Restrict to super_user role only
+    await requireRole('super_user');
 
     const { firestore } = await createServerClient();
 
