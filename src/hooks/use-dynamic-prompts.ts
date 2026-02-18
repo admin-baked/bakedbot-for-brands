@@ -6,10 +6,15 @@ import { getDynamicPromptSuggestions } from '@/server/actions/dynamic-prompts';
 /**
  * useDynamicPrompts
  *
- * Fetches live contextual prompts (CRM signals, competitive intel alerts,
- * market trends from the latest Drive report) and merges them with the
- * static pool.  Returns a freshly-shuffled set of `count` chips on
+ * Fetches live contextual prompts (onboarding nudges, CRM signals, competitive
+ * intel alerts, market trends from the latest Drive report) and merges them
+ * with the static pool.  Returns a freshly-shuffled set of `count` chips on
  * every mount (login / inbox refresh).
+ *
+ * Priority order:
+ *   1. Onboarding prompts (new user / missing setup steps) — highest priority
+ *   2. Dynamic CI/CRM signals (live data from org's activity)
+ *   3. Static pool (shuffled, role-specific)
  *
  * Strategy:
  *   - Show `dynamicSlots` dynamic prompts (data-driven, personalised)
@@ -21,12 +26,14 @@ import { getDynamicPromptSuggestions } from '@/server/actions/dynamic-prompts';
  * @param staticPool   - Full static prompt pool for this role
  * @param count        - Total chips to show (default 4)
  * @param dynamicSlots - Max dynamic chips to include (default 2)
+ * @param userId       - Current user UID — enables onboarding-aware prompts
  */
 export function useDynamicPrompts(
     orgId: string | null | undefined,
     staticPool: string[],
     count: number = 4,
-    dynamicSlots: number = 2
+    dynamicSlots: number = 2,
+    userId?: string | null
 ): { prompts: string[]; isLoading: boolean } {
     const [dynamicPrompts, setDynamicPrompts] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -43,12 +50,12 @@ export function useDynamicPrompts(
             return;
         }
 
-        getDynamicPromptSuggestions(orgId)
+        getDynamicPromptSuggestions(orgId, userId ?? undefined)
             .then(results => setDynamicPrompts(results.slice(0, dynamicSlots)))
             .catch(() => setDynamicPrompts([]))
             .finally(() => setIsLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [orgId]); // re-fetch only if org changes
+    }, [orgId, userId]); // re-fetch if org or user changes
 
     const prompts = useMemo(() => {
         // During load, show a static shuffle so there's no empty state

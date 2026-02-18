@@ -12,13 +12,16 @@ export function BrandChatWidget() {
 
     // Merge live CRM/intel/alert data with the static pool.
     // 4 chips total: up to 2 data-driven, remainder from shuffled static pool.
+    // Priority: onboarding nudges → CI/CRM signals → static pool.
     // Hook called unconditionally (Rules of Hooks).
     const orgId = (user as any)?.orgId ?? (user as any)?.uid ?? null;
+    const userId = user?.uid ?? null;
     const { prompts: brandPrompts } = useDynamicPrompts(
         orgId,
         BRAND_CHAT_CONFIG.promptSuggestions,
         4,
-        2
+        2,
+        userId
     );
 
     if (isUserLoading) {

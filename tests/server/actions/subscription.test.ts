@@ -29,11 +29,11 @@ jest.mock('@/server/services/billing-notifications', () => ({
   notifySubscriptionCanceled: jest.fn().mockResolvedValue(true),
 }));
 
-jest.mock('./promos', () => ({
+jest.mock('@/server/actions/promos', () => ({
   validatePromoCode: jest.fn(),
 }));
 
-jest.mock('./playbooks', () => ({
+jest.mock('@/server/actions/playbooks', () => ({
   assignTierPlaybooks: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -268,7 +268,7 @@ describe('Subscription Server Actions', () => {
         data: () => ({ ownerId: 'user123', name: 'Test Org' }),
       });
 
-      const { validatePromoCode } = require('./promos');
+      const { validatePromoCode } = require('@/server/actions/promos');
       validatePromoCode.mockResolvedValueOnce({
         valid: true,
         promo: { code: 'EARLYBIRD50', type: 'free_months', value: 3 },
@@ -309,7 +309,7 @@ describe('Subscription Server Actions', () => {
         data: () => ({ ownerId: 'user123', name: 'Test Org' }),
       });
 
-      const { validatePromoCode } = require('./promos');
+      const { validatePromoCode } = require('@/server/actions/promos');
       validatePromoCode.mockResolvedValueOnce({
         valid: true,
         promo: { code: 'SOCIALEQUITY', type: 'percent_off', value: 50 },

@@ -7,6 +7,7 @@ import { logger } from '@/lib/logger';
  * getDynamicPromptSuggestions
  *
  * Reads live data from:
+ *   - Onboarding state (highest priority — guides new users through setup)
  *   - Latest weekly competitive intel report  (tenants/{orgId}/weekly_reports)
  *   - Recent competitor alerts                (tenants/{orgId}/competitor_alerts)
  *   - CRM lifecycle signals                   (users collection)
@@ -16,13 +17,60 @@ import { logger } from '@/lib/logger';
  * inside useDynamicPrompts so the chips feel fresh on every login.
  *
  * Fails silently — callers always fall back to the static pool.
+ *
+ * @param orgId  - The org whose data to read
+ * @param userId - The current user's UID (optional — enables onboarding prompts)
  */
-export async function getDynamicPromptSuggestions(orgId: string): Promise<string[]> {
+export async function getDynamicPromptSuggestions(orgId: string, userId?: string): Promise<string[]> {
     if (!orgId) return [];
 
     try {
         const db = getAdminFirestore();
         const prompts: string[] = [];
+
+        // ── 0. Onboarding setup prompts (highest priority) ──────────────────
+        // Surface setup nudges for new users or incomplete setup steps.
+        // If any setup is missing, return these first — they're most actionable.
+        if (userId) {
+            try {
+                const userDoc = await db.collection('users').doc(userId).get();
+                const userData = userDoc.data() as any;
+
+                const isNewUser = userData?.isNewUser === true;
+                const onboardingCompleted = !!userData?.onboardingCompletedAt;
+                const hasPOS = !!userData?.posConfig;
+
+                // Check if competitors have been added for this org
+                const competitorsSnap = await db
+                    .collection(`organizations/${orgId}/competitors`)
+                    .limit(1)
+                    .get();
+                const hasCompetitors = !competitorsSnap.empty;
+
+                const setupPrompts: string[] = [];
+
+                if (isNewUser || !onboardingCompleted) {
+                    setupPrompts.push("I'm new here! Walk me through what Craig can do for my brand");
+                }
+                if (!hasPOS) {
+                    setupPrompts.push('Connect your POS to unlock real-time inventory and sales insights');
+                }
+                if (!hasCompetitors) {
+                    setupPrompts.push('Add competitors so I can start tracking pricing gaps and opportunities');
+                }
+
+                // If the user has any missing setup steps, surface those first.
+                // The caller (useDynamicPrompts) will fill remaining slots from static pool.
+                if (setupPrompts.length > 0) {
+                    logger.info('[DynamicPrompts] Returning onboarding prompts', {
+                        orgId, userId, count: setupPrompts.length, isNewUser, hasPOS, hasCompetitors
+                    });
+                    return [...new Set(setupPrompts)].slice(0, 4);
+                }
+            } catch (e) {
+                logger.warn('[DynamicPrompts] Could not load onboarding state', { orgId, userId, error: e });
+            }
+        }
 
         // ── 1. Latest weekly competitive intel report ───────────────────────
         try {
