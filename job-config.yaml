@@ -1,0 +1,9 @@
+﻿name: projects/studio-567050101-bc6e8/locations/us-central1/jobs/firebase-build-monitor
+description: Monitor Firebase App Hosting builds every 10 minutes
+schedule: */10 * * * *
+timeZone: America/New_York
+httpTarget:
+  uri: https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app/api/cron/firebase-build-monitor
+  httpMethod: POST
+  headers:
+    Authorization: Bearer [CRON_SECRET_VALUE]
