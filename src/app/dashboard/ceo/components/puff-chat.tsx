@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useRotatingPrompts } from '@/hooks/use-rotating-prompts';
 import { 
     Send, Mic, Paperclip, X, Bot, Sparkles, AlertCircle, 
     MoreHorizontal, ArrowLeft, Loader2, Check, ExternalLink, 
@@ -492,16 +493,31 @@ export function PuffChat({
     } as any));
 
     const hasMessages = displayMessages.length > 0;
-    // Use role-aware defaults unless explicitly overridden.
-    const defaultSuggestions = isSuperUser
+    // Full prompt pool — pick 4 fresh chips on every mount (login/refresh)
+    const defaultPool = isSuperUser
         ? [
             "Show platform health metrics",
             "Generate weekly KPI report (MRR, ARR, WAU)",
             "List recent signups + plan mix",
             "Run a compliance scan across active orgs",
+            "Are any cron jobs failing?",
+            "Show audit log for the past 24 hours",
+            "Which tenants have the most agent activity?",
+            "List orgs without completed onboarding",
         ]
-        : ["Draft a New Drop", "Audit my Brand", "Pricing Plans", "Check System Health"];
-    const suggestions = promptSuggestions || defaultSuggestions;
+        : [
+            "Draft a New Drop",
+            "Audit my Brand",
+            "Pricing Plans",
+            "Check System Health",
+            "Show active agents",
+            "Run competitive analysis",
+            "Generate revenue forecast",
+            "Check compliance across listings",
+        ];
+    const rotatedDefaults = useRotatingPrompts(defaultPool, 4);
+    const rotatedCustom = useRotatingPrompts(promptSuggestions ?? [], 4);
+    const suggestions = promptSuggestions ? rotatedCustom : rotatedDefaults;
 
     // Input Area JSX
     const InputArea = (

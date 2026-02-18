@@ -4,23 +4,16 @@ import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
 import { useUser } from '@/firebase/auth/use-user';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSquare, Loader2 } from 'lucide-react';
+import { useRotatingPrompts } from '@/hooks/use-rotating-prompts';
+import { BRAND_CHAT_CONFIG } from '@/lib/chat/role-chat-config';
 
 export function BrandChatWidget() {
     const { user, isUserLoading } = useUser();
 
-    const BRAND_PROMPTS = [
-        // Brand Discovery (Firecrawl + RTRVR)
-        "Extract brand data from a competitor website",
-        "Search for top cannabis brands in my market",
-        // Campaigns
-        "Draft a campaign in 30 seconds",
-        "Spy on competitor pricing",
-        // Growth
-        "Find dispensaries to carry my products",
-        "See this week's wins & opportunities"
-    ];
+    // Pick 4 fresh prompts from the full brand pool on every login/refresh.
+    // Hook must be called unconditionally (Rules of Hooks).
+    const brandPrompts = useRotatingPrompts(BRAND_CHAT_CONFIG.promptSuggestions, 4);
 
-    // Show loading state while checking auth
     if (isUserLoading) {
         return (
             <Card className="h-[400px] flex items-center justify-center">
@@ -29,7 +22,6 @@ export function BrandChatWidget() {
         );
     }
 
-    // Show message if not authenticated
     if (!user) {
         return (
             <Card className="h-[400px]">
@@ -53,7 +45,7 @@ export function BrandChatWidget() {
             <div className="h-[500px]">
                 <PuffChat
                     initialTitle="Revenue Ops Assistant"
-                    promptSuggestions={BRAND_PROMPTS}
+                    promptSuggestions={brandPrompts}
                     hideHeader={true}
                     isAuthenticated={!!user}
                     className="h-full border-0 shadow-none rounded-none"
