@@ -191,14 +191,6 @@ export const GapSchema = z.object({
     recommended_owner: z.string(),
 });
 
-export const EzalMemorySchema = AgentMemorySchema.extend({
-    competitor_watchlist: z.array(CompetitorSchema),
-    menu_snapshots: z.array(MenuSnapshotSchema),
-    open_gaps: z.array(GapSchema),
-});
-
-export type EzalMemory = z.infer<typeof EzalMemorySchema>;
-
 // --- Money Mike (Pricing) Schemas ---
 
 export const PricingRuleSchema = z.object({
@@ -396,6 +388,31 @@ export const DeeboMemorySchema = AgentMemorySchema.extend({
 });
 
 export type DeeboMemory = z.infer<typeof DeeboMemorySchema>;
+
+// --- Executive Memory Schema (Union of all executive agents) ---
+
+export const ExecutiveMemorySchema = AgentMemorySchema.extend({
+    agent_type: z.enum(['leo', 'linus', 'jack', 'glenda', 'mike']).optional(),
+    shared_context: z.record(z.any()).optional(),
+    // Executive-specific fields (may be empty for some agents)
+    objectives: z.array(BrandObjectiveSchema).optional(),
+    snapshot_history: z.array(z.object({
+        timestamp: TimestampSchema,
+        content: z.string(),
+        metric_values: z.record(z.number()).optional(),
+    })).optional(),
+    delegation_log: z.array(DelegationSchema).optional(),
+    collaboration_metrics: CollaborationMetricsSchema.optional(),
+    active_workflows: z.array(WorkflowSchema).optional(),
+    workflow_history: z.array(z.object({
+        workflow_id: z.string(),
+        name: z.string(),
+        completed_at: TimestampSchema,
+        success: z.boolean(),
+    })).optional(),
+});
+
+export type ExecutiveMemory = z.infer<typeof ExecutiveMemorySchema>;
 
 // --- Agent Log Schema ---
 

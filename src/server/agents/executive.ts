@@ -61,7 +61,7 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
     logger.info(`[Executive] Initializing for ${brandMemory.brand_profile.name}...`);
     
     // Ensure objectives tracking is initialized from brand memory if empty
-    if (!agentMemory.objectives || agentMemory.objectives.length === 0) {
+    if (!agentMemory.objectives || (Array.isArray(agentMemory.objectives) && agentMemory.objectives.length === 0)) {
         agentMemory.objectives = [...brandMemory.priority_objectives];
     }
 
@@ -128,9 +128,11 @@ export const executiveAgent: AgentImplementation<ExecutiveMemory, ExecutiveTools
     if (stimulus && typeof stimulus === 'string') return 'user_request';
 
     // Strategy: Check if the $100k MRR objective needs an update
-    const mrrObjective = agentMemory.objectives.find(o => o.description.includes('MRR') || o.id === 'mrr_goal');
-    if (mrrObjective && mrrObjective.status === 'active') {
-        return 'mrr_check';
+    if (agentMemory.objectives && Array.isArray(agentMemory.objectives)) {
+        const mrrObjective = agentMemory.objectives.find((o: any) => o.description.includes('MRR') || o.id === 'mrr_goal');
+        if (mrrObjective && mrrObjective.status === 'active') {
+            return 'mrr_check';
+        }
     }
 
     return null;

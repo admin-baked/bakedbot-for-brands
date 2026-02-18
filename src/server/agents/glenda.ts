@@ -6,7 +6,7 @@
  */
 
 import { AgentImplementation } from './harness';
-import { ExecutiveMemory } from './schemas';
+import { AgentMemory } from './schemas';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs, intuitionOsToolDefs, AllSharedTools } from './shared-tools';
@@ -49,7 +49,7 @@ export const glendaAgent: AgentImplementation<ExecutiveMemory, GlendaTools> = {
     async initialize(brandMemory, agentMemory) {
         logger.info(`[Glenda CMO] Initializing for ${brandMemory.brand_profile.name}...`);
 
-        if (!agentMemory.objectives || agentMemory.objectives.length === 0) {
+        if (!agentMemory.objectives || (Array.isArray(agentMemory.objectives) && agentMemory.objectives.length === 0)) {
             agentMemory.objectives = [...brandMemory.priority_objectives];
         }
 
