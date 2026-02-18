@@ -20,6 +20,8 @@ import {
   Palette,
   Upload,
   BarChart3,
+  ExternalLink,
+  ChevronDown,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -45,6 +47,15 @@ import { approveAtLevel, rejectAtLevel } from "@/server/actions/creative-content
 import { EngagementAnalytics } from "@/components/creative/engagement-analytics";
 import { useUser } from "@/firebase/auth/use-user";
 import { DeeboCompliancePanel } from "./components/deebo-compliance-panel";
+import { useBrandGuide, useBrandVoice, useBrandColors } from "@/hooks/use-brand-guide";
+import { sendCreativeToInbox } from "@/server/actions/creative-inbox";
+import { CreativeChatPanel } from "./components/creative-chat-panel";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Type for menu products
 interface MenuProduct {
@@ -88,6 +99,28 @@ const PLATFORM_ASPECT: Record<SocialPlatform | string, string> = {
 export default function CreativeCommandCenter() {
   const router = useRouter();
   const { user } = useUser();
+
+  // Brand guide integration
+  const brandId = (user as any)?.brandId || (user as any)?.orgId || '';
+  const { brandGuide } = useBrandGuide(brandId);
+  const brandVoiceData = useBrandVoice(brandGuide);
+  const brandColors = useBrandColors(brandGuide);
+
+  // Serialised brand voice string for Craig
+  const brandVoiceString = brandVoiceData
+    ? [
+        brandVoiceData.tone ? `Tone: ${brandVoiceData.tone}` : '',
+        brandVoiceData.personality?.length ? `Personality: ${brandVoiceData.personality.join(', ')}` : '',
+        brandVoiceData.doWrite?.length ? `Do write: ${brandVoiceData.doWrite.join('; ')}` : '',
+        brandVoiceData.dontWrite?.length ? `Don't write: ${brandVoiceData.dontWrite.join('; ')}` : '',
+      ].filter(Boolean).join('\n')
+    : undefined;
+
+  // Generate panel mode: form or chat
+  const [generateMode, setGenerateMode] = useState<'form' | 'chat'>('form');
+
+  // Inbox draft badge state
+  const [inboxDraft, setInboxDraft] = useState<{ threadId: string; artifactId: string } | null>(null);
 
   // Left panel state
   const [activeLeftPanel, setActiveLeftPanel] = useState<LeftPanel | null>('generate');
@@ -226,11 +259,47 @@ export default function CreativeCommandCenter() {
       const enhancedPrompt = selectedHashtags.length > 0
         ? `${campaignPrompt}\n\nSuggested hashtags: ${selectedHashtags.map(tag => `#${tag}`).join(' ')}`
         : campaignPrompt;
-      const result = await generate({ platform: selectedPlatform, prompt: enhancedPrompt, style: tone, includeHashtags: true, productName: menuItem || undefined, tier: "free" });
-      if (result) { toast.success("Content generated! Craig & Pinky worked their magic ✨"); setSelectedHashtags([]); }
-      else { toast.error("Failed to generate content. Please try again."); }
+      const result = await generate({
+        platform: selectedPlatform,
+        prompt: enhancedPrompt,
+        style: tone,
+        includeHashtags: true,
+        productName: menuItem || undefined,
+        tier: "free",
+        brandVoice: brandVoiceString,
+        logoUrl: brandGuide?.visualIdentity?.logo?.primary,
+      });
+      if (result) {
+        toast.success("Content generated! Craig & Pinky worked their magic ✨");
+        setSelectedHashtags([]);
+        // Auto-draft to inbox (fire-and-forget)
+        sendCreativeToInbox(result, selectedPlatform)
+          .then(r => { if (r.success && r.threadId && r.artifactId) setInboxDraft({ threadId: r.threadId, artifactId: r.artifactId }); })
+          .catch(() => {});
+      } else {
+        toast.error("Failed to generate content. Please try again.");
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An error occurred while generating content");
+    }
+  };
+
+  const handleContentFromChat = (chatContent: { caption: string; hashtags: string[]; platform: SocialPlatform; mediaPrompt?: string }) => {
+    // Populate form fields from chat-generated content so user can see/refine it on canvas
+    setCampaignPrompt(chatContent.caption);
+    setSelectedHashtags(chatContent.hashtags.map(h => h.replace(/^#/, '')).slice(0, 10));
+    toast.success("Content loaded to canvas! Hit Generate to publish ✨");
+    setGenerateMode('form');
+  };
+
+  const handleSendToInbox = async () => {
+    if (!currentContent) { toast.error("Generate content first"); return; }
+    const result = await sendCreativeToInbox(currentContent, selectedPlatform);
+    if (result.success && result.threadId && result.artifactId) {
+      setInboxDraft({ threadId: result.threadId, artifactId: result.artifactId });
+      toast.success("Sent to Inbox! View it in your draft queue.");
+    } else {
+      toast.error(result.error || "Failed to send to Inbox");
     }
   };
 
@@ -396,6 +465,16 @@ export default function CreativeCommandCenter() {
 
         {/* Right: Status + Actions */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Inbox badge — appears after auto-draft */}
+          {inboxDraft && (
+            <button
+              onClick={() => router.push(`/dashboard/inbox?threadId=${inboxDraft.threadId}`)}
+              className="hidden sm:flex items-center gap-1 text-[11px] text-primary hover:underline"
+            >
+              <ExternalLink className="w-3 h-3" /> View in Inbox
+            </button>
+          )}
+
           <div className="hidden sm:flex items-center gap-1.5">
             <div className={cn("w-2 h-2 rounded-full", isGenerating ? "bg-yellow-500 animate-pulse" : "bg-green-500")} />
             <span className="text-xs text-muted-foreground">
@@ -428,16 +507,31 @@ export default function CreativeCommandCenter() {
             )}
           </Button>
 
-          <Button
-            size="sm"
-            onClick={handleApprove}
-            disabled={!currentContent || isApproving !== null}
-            className="h-8 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold gap-1.5 disabled:opacity-40"
-            title={!currentContent ? "Generate content first" : ""}
-          >
-            <Send className="w-3.5 h-3.5" />
-            {date ? "Schedule" : "Publish"}
-          </Button>
+          {/* Publish dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="sm"
+                disabled={!currentContent || isApproving !== null}
+                className="h-8 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold gap-1 disabled:opacity-40"
+                title={!currentContent ? "Generate content first" : ""}
+              >
+                <Send className="w-3.5 h-3.5" />
+                {date ? "Schedule" : "Publish"}
+                <ChevronDown className="w-3 h-3 ml-0.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={handleApprove}>
+                <Send className="w-3.5 h-3.5 mr-2 text-green-500" />
+                {date ? "Schedule" : "Publish Now"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSendToInbox}>
+                <ArrowUpRight className="w-3.5 h-3.5 mr-2 text-primary" />
+                Send to Inbox
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -479,12 +573,48 @@ export default function CreativeCommandCenter() {
 
                 {/* ╌ Panel: AI Generate ╌ */}
                 {activeLeftPanel === 'generate' && (
-                  <ScrollArea className="flex-1">
-                    <div className="p-4 space-y-4">
+                  <div className="flex flex-col h-full min-h-0">
+                    {/* Header + mode toggle */}
+                    <div className="p-4 pb-3 border-b border-border shrink-0 space-y-3">
                       <div className="flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-primary" />
                         <h3 className="text-sm font-semibold">AI Generate</h3>
                       </div>
+                      {/* Form / Chat pill toggle */}
+                      <div className="flex rounded-lg border border-border bg-muted/40 p-0.5">
+                        {(['form', 'chat'] as const).map(m => (
+                          <button
+                            key={m}
+                            onClick={() => setGenerateMode(m)}
+                            className={cn(
+                              "flex-1 text-xs py-1.5 rounded-md font-medium transition-all",
+                              generateMode === m
+                                ? "bg-background shadow-sm text-foreground"
+                                : "text-muted-foreground hover:text-foreground",
+                            )}
+                          >
+                            {m === 'form' ? '⚡ Form' : '💬 Chat'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Chat mode */}
+                    {generateMode === 'chat' && (
+                      <div className="flex-1 min-h-0">
+                        <CreativeChatPanel
+                          platform={selectedPlatform}
+                          brandVoice={brandVoiceString}
+                          brandColors={brandColors ?? undefined}
+                          onContentFromChat={handleContentFromChat}
+                        />
+                      </div>
+                    )}
+
+                    {/* Form mode */}
+                    {generateMode === 'form' && (
+                  <ScrollArea className="flex-1">
+                    <div className="p-4 space-y-4">
 
                       {/* Quick templates */}
                       <div className="space-y-2">
@@ -641,6 +771,8 @@ export default function CreativeCommandCenter() {
                       </Button>
                     </div>
                   </ScrollArea>
+                    )}
+                  </div>
                 )}
 
                 {/* ╌ Panel: Templates ╌ */}
@@ -694,32 +826,70 @@ export default function CreativeCommandCenter() {
                         <Palette className="w-4 h-4 text-primary" />
                         <h3 className="text-sm font-semibold">Brand Kit</h3>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Brand Colors</label>
-                        <div className="flex flex-wrap gap-2">
-                          {['#7C3AED', '#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#EC4899'].map(color => (
-                            <div
-                              key={color}
-                              className="w-8 h-8 rounded-full border-2 border-border cursor-pointer hover:scale-110 transition-transform shadow-sm"
-                              style={{ backgroundColor: color }}
-                              title={color}
-                            />
-                          ))}
+
+                      {!brandGuide ? (
+                        <div className="border border-dashed border-border rounded-xl p-6 text-center space-y-2">
+                          <Palette className="w-6 h-6 mx-auto text-muted-foreground/40" />
+                          <p className="text-xs text-muted-foreground">No brand guide found. Set one up in Settings → Brand to unlock live colors, voice, and logo here.</p>
                         </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Logos</label>
-                        <div className="border border-dashed border-border rounded-xl p-6 text-center">
-                          <Sparkles className="w-6 h-6 mx-auto mb-2 text-muted-foreground/40" />
-                          <p className="text-xs text-muted-foreground">Connect brand guide to see logos</p>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Typography</label>
-                        <div className="border border-dashed border-border rounded-xl p-6 text-center">
-                          <p className="text-xs text-muted-foreground">Brand fonts from guide</p>
-                        </div>
-                      </div>
+                      ) : (
+                        <>
+                          {/* Logo */}
+                          {brandGuide.visualIdentity?.logo?.primary && (
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Logo</label>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={brandGuide.visualIdentity.logo.primary} alt="Brand logo" className="h-12 object-contain rounded-lg border border-border p-1 bg-muted/30" />
+                            </div>
+                          )}
+
+                          {/* Colors */}
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Brand Colors</label>
+                            <div className="flex flex-wrap gap-2">
+                              {brandColors && Object.entries(brandColors).map(([key, hex]) => hex ? (
+                                <div key={key} className="flex flex-col items-center gap-1">
+                                  <div
+                                    className="w-8 h-8 rounded-full border-2 border-border shadow-sm"
+                                    style={{ backgroundColor: hex }}
+                                    title={`${key}: ${hex}`}
+                                  />
+                                  <span className="text-[8px] text-muted-foreground capitalize">{key}</span>
+                                </div>
+                              ) : null)}
+                            </div>
+                          </div>
+
+                          {/* Voice */}
+                          {brandVoiceData && (
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Brand Voice</label>
+                              {brandVoiceData.tone && (
+                                <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] bg-primary/10 text-primary border border-primary/20 capitalize">
+                                  {brandVoiceData.tone}
+                                </div>
+                              )}
+                              {brandVoiceData.personality && brandVoiceData.personality.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {brandVoiceData.personality.map((trait: string) => (
+                                    <span key={trait} className="px-2 py-0.5 rounded-full text-[10px] bg-muted border border-border text-muted-foreground capitalize">
+                                      {trait}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Tagline */}
+                          {brandGuide.messaging?.tagline && (
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tagline</label>
+                              <p className="text-xs text-foreground italic leading-snug">"{brandGuide.messaging.tagline}"</p>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   </ScrollArea>
                 )}
@@ -1073,6 +1243,7 @@ export default function CreativeCommandCenter() {
           date={date}
           onDateChange={setDate}
           onScheduleApprove={handleApprove}
+          onSendToInbox={handleSendToInbox}
           isApproving={isApproving}
           gauntletEnabled={GAUNTLET_ENABLED}
         />

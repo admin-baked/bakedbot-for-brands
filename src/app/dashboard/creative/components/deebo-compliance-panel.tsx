@@ -53,6 +53,7 @@ interface DeeboCompliancePanelProps {
   date: Date | undefined;
   onDateChange: (date: Date | undefined) => void;
   onScheduleApprove: () => void;
+  onSendToInbox: () => void;
   isApproving: string | null;
   gauntletEnabled: boolean;
 }
@@ -82,6 +83,7 @@ export function DeeboCompliancePanel({
   date,
   onDateChange,
   onScheduleApprove,
+  onSendToInbox,
   isApproving,
   gauntletEnabled,
 }: DeeboCompliancePanelProps) {
@@ -350,6 +352,18 @@ export function DeeboCompliancePanel({
                   Publish Now
                 </>
               )}
+            </Button>
+
+            {/* Send to Inbox secondary CTA */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onSendToInbox}
+              disabled={!content}
+              className="w-full h-8 text-xs border-primary/30 text-primary hover:bg-primary/5 disabled:opacity-40"
+            >
+              <ArrowUpRight className="w-3.5 h-3.5 mr-1.5" />
+              Send to Inbox
             </Button>
 
             {/* QR / engagement quick stats */}
