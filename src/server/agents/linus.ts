@@ -1374,6 +1374,97 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: ['query']
         }
+    },
+    // Firebase Build Monitor Tools for Linus CTO
+    {
+        name: 'build_monitor_get_recent',
+        description: 'Get recent Firebase build statuses and identify failures. Shows last N builds with status, timestamp, duration, and error messages.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                limit: {
+                    type: 'number',
+                    description: 'Number of recent builds to check (1-50, default: 10)'
+                }
+            },
+            required: []
+        }
+    },
+    {
+        name: 'build_monitor_get_last_status',
+        description: 'Get the last known Firebase build status. Use to check current deployment state quickly.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {},
+            required: []
+        }
+    },
+    {
+        name: 'build_monitor_analyze_failure',
+        description: 'Analyze a build failure and provide diagnosis. Identifies common causes and suggests fixes.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                commitHash: {
+                    type: 'string',
+                    description: 'Git commit hash of the failed build'
+                },
+                errorMessage: {
+                    type: 'string',
+                    description: 'Error message from the build failure'
+                }
+            },
+            required: ['commitHash', 'errorMessage']
+        }
+    },
+    {
+        name: 'build_monitor_notify_failure',
+        description: 'Send build failure notifications to Super Users via email and Slack.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                commitHash: {
+                    type: 'string',
+                    description: 'Git commit hash'
+                },
+                errorMessage: {
+                    type: 'string',
+                    description: 'Error message to include in notification'
+                },
+                recipientEmail: {
+                    type: 'string',
+                    description: 'Email address to notify'
+                }
+            },
+            required: ['commitHash', 'errorMessage', 'recipientEmail']
+        }
+    },
+    {
+        name: 'build_monitor_record_status',
+        description: 'Record a build status check in Firestore for audit trail and monitoring.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                commitHash: {
+                    type: 'string',
+                    description: 'Git commit hash'
+                },
+                status: {
+                    type: 'string',
+                    description: 'Build status: pending, building, success, or failed',
+                    enum: ['pending', 'building', 'success', 'failed']
+                },
+                duration: {
+                    type: 'number',
+                    description: 'Build duration in milliseconds'
+                },
+                errorMessage: {
+                    type: 'string',
+                    description: 'Error message if status is failed (optional)'
+                }
+            },
+            required: ['commitHash', 'status', 'duration']
+        }
     }
 ];
 
@@ -3357,6 +3448,172 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                     location,
                     resultCount: result.results.length,
                     places: result.results
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        // ====================================================================
+        // FIREBASE BUILD MONITOR TOOLS
+        // ====================================================================
+
+        case 'build_monitor_get_recent': {
+            try {
+                const {
+                    getRecentBuildStatuses
+                } = await import('@/server/services/firebase-build-monitor');
+                const limit = (input.limit as number) || 10;
+                const builds = await getRecentBuildStatuses(Math.min(limit, 50));
+
+                return {
+                    success: true,
+                    builds: builds.map(b => ({
+                        commitHash: b.commitHash,
+                        status: b.status,
+                        timestamp: b.timestamp.toISOString(),
+                        duration: b.duration,
+                        errorMessage: b.errorMessage,
+                        notified: b.notificationsSent
+                    })),
+                    count: builds.length
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'build_monitor_get_last_status': {
+            try {
+                const {
+                    getLastBuildStatus
+                } = await import('@/server/services/firebase-build-monitor');
+                const build = await getLastBuildStatus();
+
+                if (!build) {
+                    return {
+                        success: true,
+                        build: null,
+                        message: 'No build records found'
+                    };
+                }
+
+                return {
+                    success: true,
+                    build: {
+                        commitHash: build.commitHash,
+                        status: build.status,
+                        timestamp: build.timestamp.toISOString(),
+                        duration: build.duration,
+                        errorMessage: build.errorMessage,
+                        notified: build.notificationsSent
+                    }
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'build_monitor_analyze_failure': {
+            try {
+                const { commitHash, errorMessage } = input as {
+                    commitHash: string;
+                    errorMessage: string;
+                };
+
+                const lowerError = errorMessage.toLowerCase();
+                let diagnosis = '';
+                let severity: 'critical' | 'high' | 'medium' | 'low' = 'medium';
+                const commonCauses: string[] = [];
+                const suggestedActions: string[] = [];
+
+                if (lowerError.includes('getfirestore') || lowerError.includes('firebase') || lowerError.includes('initialization')) {
+                    diagnosis = 'Firebase SDK initialization error - likely module-level Firestore call causing webpack build failure';
+                    severity = 'critical';
+                    commonCauses.push('Module-level getAdminFirestore() call (not lazy-initialized)');
+                    commonCauses.push('Firebase credentials unavailable during build time');
+                    suggestedActions.push('Use lazy-initialization pattern: wrap getAdminFirestore() in getFirestore() function');
+                    suggestedActions.push('Only call getFirestore() at runtime, not module load');
+                } else if (lowerError.includes('typescript') || lowerError.includes('type')) {
+                    diagnosis = 'TypeScript compilation error - type mismatches or invalid imports';
+                    severity = 'high';
+                    commonCauses.push('Type errors in service files');
+                    suggestedActions.push('Run npm run check:types locally to identify errors');
+                } else if (lowerError.includes('syntax') || lowerError.includes('parse')) {
+                    diagnosis = 'Syntax error - parsing failed during build';
+                    severity = 'critical';
+                    commonCauses.push('Syntax errors in TypeScript/JavaScript');
+                    suggestedActions.push('Check recent commits for syntax errors');
+                } else {
+                    diagnosis = 'Unknown build failure - needs investigation';
+                    severity = 'medium';
+                    commonCauses.push('Unknown cause - detailed error analysis needed');
+                    suggestedActions.push('Check full Firebase build logs for detailed error');
+                }
+
+                return {
+                    success: true,
+                    commitHash,
+                    diagnosis,
+                    severity,
+                    commonCauses,
+                    suggestedActions
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'build_monitor_notify_failure': {
+            try {
+                const {
+                    notifyBuildFailure
+                } = await import('@/server/services/firebase-build-monitor');
+                const { commitHash, errorMessage, recipientEmail } = input as {
+                    commitHash: string;
+                    errorMessage: string;
+                    recipientEmail: string;
+                };
+
+                await notifyBuildFailure(commitHash, errorMessage, recipientEmail);
+
+                return {
+                    success: true,
+                    message: `Notifications sent for build ${commitHash.slice(0, 8)}`
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'build_monitor_record_status': {
+            try {
+                const {
+                    recordBuildStatus
+                } = await import('@/server/services/firebase-build-monitor');
+                const { commitHash, status, duration, errorMessage } = input as {
+                    commitHash: string;
+                    status: 'pending' | 'building' | 'success' | 'failed';
+                    duration: number;
+                    errorMessage?: string;
+                };
+
+                await recordBuildStatus({
+                    commitHash,
+                    status,
+                    timestamp: new Date(),
+                    duration,
+                    errorMessage,
+                    notificationsSent: {
+                        email: false,
+                        slack: false,
+                        agent: false
+                    }
+                });
+
+                return {
+                    success: true,
+                    message: `Recorded build status for ${commitHash.slice(0, 8)}`
                 };
             } catch (e: any) {
                 return { success: false, error: e.message };
