@@ -639,5 +639,94 @@ service cloud.firestore {
       // For now, management is server-side only as per domain-management.ts
       allow write: if false;
     }
+
+    // ===========================================================================
+    // BILLING & SUBSCRIPTION COLLECTIONS (Phase 1)
+    // See: src/types/firestore.ts, src/config/tiers.ts
+    // ===========================================================================
+
+    // --- Subscriptions Collection ---
+    // Stores billing & tier information for each customer.
+    // One doc per customer, keyed by subscriptionId.
+    match /subscriptions/{subscriptionId} {
+      // Customer can read their own subscription
+      allow read: if resource.data.customerId == request.auth.uid || isSuperUser();
+
+      // Dispensary/Brand admin can read their org's subscriptions
+      allow read: if request.auth != null && (
+        isTenantMember(resource.data.customerId) ||
+        isSuperUser()
+      );
+
+      // Only server actions (Authorize.net webhook, admin actions) can write subscriptions
+      allow write: if false;
+    }
+
+    // --- Usage Records Collection ---
+    // Tracks usage per billing period.
+    // One doc per subscription per month, keyed by subscriptionId-period.
+    match /usage/{usageId} {
+      // Customer can read their own usage
+      allow read: if resource.data.subscriptionId == request.auth.uid || isSuperUser();
+
+      // Dispensary/Brand admin can read their org's usage
+      allow read: if request.auth != null && (
+        isTenantMember(resource.data.subscriptionId) ||
+        isSuperUser()
+      );
+
+      // Only server actions can write usage records
+      allow write: if false;
+    }
+
+    // --- Staff Phone Numbers Collection ---
+    // Internal phone numbers for SMS alerts (Ezal competitive alerts, etc).
+    // Scoped to subscription + location (for multi-location MSOs).
+    match /staff_phones/{phoneId} {
+      // Admin of subscription/location can read their staff phones
+      allow read: if request.auth != null && (
+        resource.data.subscriptionId == request.auth.uid ||
+        isTenantMember(resource.data.subscriptionId) ||
+        isSuperUser()
+      );
+
+      // Only server actions can write staff phone records
+      // (for TCPA compliance audit trail)
+      allow write: if false;
+    }
+
+    // --- Playbook Assignments Collection ---
+    // Tracks which playbooks are active for each subscription.
+    // One doc per playbook per subscription.
+    match /playbook_assignments/{assignmentId} {
+      // Customer/subscription owner can read their playbook assignments
+      allow read: if resource.data.subscriptionId == request.auth.uid || isSuperUser();
+
+      // Dispensary/Brand admin can read their org's assignments
+      allow read: if request.auth != null && (
+        isTenantMember(resource.data.subscriptionId) ||
+        isSuperUser()
+      );
+
+      // Only server actions can write playbook assignments
+      allow write: if false;
+    }
+
+    // --- Promo Redemptions Collection ---
+    // Audit trail of promo code redemptions.
+    // One doc per redemption event.
+    match /promo_redemptions/{redemptionId} {
+      // Customer can read their own redemptions
+      allow read: if resource.data.customerId == request.auth.uid || isSuperUser();
+
+      // Dispensary/Brand admin can read their org's redemptions
+      allow read: if request.auth != null && (
+        isTenantMember(resource.data.customerId) ||
+        isSuperUser()
+      );
+
+      // Only server actions can write redemptions (immutable audit trail)
+      allow write: if false;
+    }
   }
 }

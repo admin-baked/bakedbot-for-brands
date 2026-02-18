@@ -12,7 +12,7 @@ BakedBot integrates with numerous external services for messaging, payments, dat
 | **Blackleaf** | Craig | `blackleaf-service.ts` | Messaging | Default SMS |
 | **Mailjet** | Craig | `mailjet-service.ts` | Messaging | Default Email |
 | **WhatsApp** | Craig | `openclaw/gateway.ts` | Messaging | Production |
-| **Slack** | All Agents | `slack-agent-bridge.ts` | Notifications | Live (2026-02-17) |
+| **Slack** | All Agents | `slack-agent-bridge.ts` | Notifications | Live (2026-02-18) |
 | **Alpine IQ** | Mrs. Parker | `alpine-iq.ts` | Loyalty | Live |
 | **CannMenus** | Ezal | `cannmenus.ts` | Data | Live |
 | **Headset** | Ezal | `headset.ts` | Data | Mock |
@@ -27,28 +27,35 @@ BakedBot integrates with numerous external services for messaging, payments, dat
 
 ---
 
-## Slack Integration (2026-02-17)
+## Slack Integration (2026-02-18)
 
 **Secrets:**
 - `SLACK_BOT_TOKEN@3` — Bot OAuth token for posting messages
 - `SLACK_SIGNING_SECRET@2` — Request signature verification (HMAC-SHA256)
 - `SLACK_WEBHOOK_URL` — Incoming webhook for heartbeat alerts
 
-### Two-Way Agent Chat (NEW)
+### Two-Way Agent Chat
 
 | File | Purpose |
 |------|---------|
-| `src/server/services/slack-agent-bridge.ts` | Agent routing (keyword detection) + message processing |
-| `src/app/api/webhooks/slack/events/route.ts` | Slack Events API handler: DMs, @mentions, channel messages |
+| `src/server/services/slack-agent-bridge.ts` | Agent routing (keyword detection) + message processing + thread handling |
+| `src/app/api/webhooks/slack/events/route.ts` | Slack Events API handler: DMs, @mentions, channel messages, thread detection |
 | `src/server/services/communications/slack.ts` | SlackService: `postMessage()`, `postInThread()`, `formatAgentResponse()` |
 
 **Slack App:** A0AF6BKMWLT
 
-**Agent Routing:**
+**Agent Routing (with Thread Support):**
 1. **Keyword matching** — "linus, build status?" → routes to Linus
 2. **Channel prefix** — `#linus-bot`, `#ezal-intel` → auto-routes
 3. **DM default** — Messages in DMs → Leo (COO), unless keyword detected
-4. **New members** — `member_joined_channel` event → Mrs. Parker welcome
+4. **Thread replies** — Replies in threads (no keyword) → Leo (COO) for conversation
+5. **New members** — `member_joined_channel` event → Mrs. Parker welcome
+
+**Thread Reply Detection (NEW - 2026-02-18):**
+- Detects thread replies via `event.thread_ts && event.thread_ts !== event.ts`
+- Thread replies bypass "no agent keyword" filter
+- Enables natural multi-turn conversations in threads
+- Default handler: Leo (COO) for conversation flow
 
 **Response Formatting:**
 - Block Kit with emoji header, agent role, divider, body (split at 3000 chars), footer
@@ -59,6 +66,7 @@ BakedBot integrates with numerous external services for messaging, payments, dat
 ```typescript
 import { processSlackMessage } from '@/server/services/slack-agent-bridge';
 
+// 1. DM with explicit agent keyword
 await processSlackMessage({
     text: 'Hey linus, what\'s the build status?',
     slackUserId: 'U123456',
@@ -69,6 +77,19 @@ await processSlackMessage({
     channelName: '',
 });
 // → Routes to Linus, posts response in thread
+
+// 2. Thread reply (natural conversation)
+await processSlackMessage({
+    text: 'Thanks, can you deploy to production?',
+    slackUserId: 'U123456',
+    channel: 'C567890', // public channel
+    threadTs: '1234567890.123456', // parent message ts
+    isDm: false,
+    isChannelMsg: true,
+    channelName: 'general',
+    isThreadReply: true, // ← Thread reply detected
+});
+// → Routes to Leo (COO) for conversation, posts in thread
 ```
 
 ### Heartbeat Alerts (Existing)
