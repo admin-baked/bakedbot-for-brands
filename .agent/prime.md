@@ -93,10 +93,10 @@ if (!tenantDoc.exists || !adminUserId) {
 3. Create Cloud Scheduler job pointing to `/api/cron/competitive-intel`
 4. Competitors live in `tenants/{orgId}/competitors/`, snapshots in `tenants/{orgId}/competitor_snapshots/`
 
-### Slack Integration (2026-02-17)
-**Status:** ✅ LIVE — Full two-way agent chat + heartbeat alerts
+### Slack Integration (2026-02-18)
+**Status:** ✅ LIVE — Full two-way agent chat + heartbeat alerts + **thread reply fix**
 
-**Two-Way Agent Chat (NEW):**
+**Two-Way Agent Chat:**
 - **Endpoint:** POST `/api/webhooks/slack/events` — Slack Events API webhook
 - **Slack App:** A0AF6BKMWLT (already created)
 - **Bot Token:** `SLACK_BOT_TOKEN@3` (Secret Manager)
@@ -106,7 +106,14 @@ if (!tenantDoc.exists || !adminUserId) {
 1. **DM messages** → Default to Leo (COO), unless message contains agent keyword
 2. **@mention in channel** → Keyword detection routes to agent (linus/cto → Linus, jack/cro → Jack, etc.)
 3. **Channel name prefix** → `#linus-*`, `#leo-*` auto-routes to that agent
-4. **member_joined_channel event** → Mrs. Parker posts personalized welcome
+4. **Thread replies** → Routes to Leo (COO) by default if no agent keyword (enables conversation flow)
+5. **member_joined_channel event** → Mrs. Parker posts personalized welcome
+
+**Thread Reply Fix (2026-02-18)** ✅
+- **Problem**: Agent sends welcome but never responds to thread replies (filtered as "channel message with no keyword")
+- **Solution**: Detect thread replies via `event.thread_ts && event.thread_ts !== event.ts`, allow them to bypass filter, route to Leo (COO)
+- **Result**: Natural conversation flow in Slack threads
+- **Commit**: `f106fead` "fix(slack): Process thread replies even without agent keywords"
 
 **Response Formatting:**
 - Block Kit format: emoji header + agent role + divider + response body (split at 3000 chars) + footer
