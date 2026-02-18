@@ -99,12 +99,6 @@ export const CampaignSchema = z.object({
     notes: z.array(z.string()).optional(),
 });
 
-export const CraigMemorySchema = AgentMemorySchema.extend({
-    campaigns: z.array(CampaignSchema),
-});
-
-export type CraigMemory = z.infer<typeof CraigMemorySchema>;
-
 // --- Smokey (Budtender) Schemas ---
 
 export const RecPolicySchema = z.object({
@@ -266,31 +260,139 @@ export type MrsParkerMemory = z.infer<typeof MrsParkerMemorySchema>;
 
 // --- Executive Suite Schemas ---
 
-export const ExecutiveMemorySchema = AgentMemorySchema.extend({
+// --- Cross-Agent Collaboration Schemas ---
+
+export const ResearchFindingSchema = z.object({
+    id: z.string(),
+    topic: z.string(),
+    finding: z.string(),
+    relevant_to: z.array(z.string()), // ['craig', 'money_mike', 'pops']
+    confidence: z.enum(['high', 'medium', 'low']),
+    shared_with: z.array(z.string()).optional(),
+    timestamp: TimestampSchema,
+});
+
+export const DelegationSchema = z.object({
+    id: z.string(),
+    delegated_to: z.string(),
+    delegated_by: z.string(),
+    task_description: z.string(),
+    status: z.enum(['pending', 'in_progress', 'completed', 'failed']),
+    context: z.record(z.any()).optional(),
+    deadline: TimestampSchema.optional(),
+    result: z.string().optional(),
+    timestamp: TimestampSchema,
+});
+
+export const CollaborationMetricsSchema = z.object({
+    agents_coordinated_with: z.array(z.string()),
+    successful_delegations: z.number(),
+    failed_delegations: z.number(),
+    avg_delegation_time_hours: z.number(),
+    most_frequent_collaborator: z.string().optional(),
+});
+
+export const WorkflowSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    steps: z.array(z.object({
+        agent: z.string(),
+        task: z.string(),
+        status: z.enum(['pending', 'in_progress', 'completed', 'failed']),
+    })),
+    status: z.enum(['running', 'paused', 'completed', 'failed']),
+    created_at: TimestampSchema,
+    completed_at: TimestampSchema.optional(),
+});
+
+export const CampaignReviewSchema = z.object({
+    id: z.string(),
+    campaign_id: z.string(),
+    requested_by: z.string(),        // 'craig'
+    requested_to: z.string(),        // 'deebo'
+    campaign_summary: z.object({
+        name: z.string(),
+        audience: z.string(),
+        channels: z.array(z.string()),
+        content_preview: z.string(),
+    }),
+    status: z.enum(['pending', 'approved', 'rejected', 'revision_needed']),
+    deebo_feedback: z.string().optional(),
+    compliance_issues: z.array(z.string()).optional(),
+    revision_requests: z.array(z.string()).optional(),
+    reviewed_at: TimestampSchema.optional(),
+    timestamp: TimestampSchema,
+});
+
+// Updated agent memory schemas with collaboration fields
+
+export const EzalMemorySchema = AgentMemorySchema.extend({
+    competitor_watchlist: z.array(CompetitorSchema),
+    menu_snapshots: z.array(MenuSnapshotSchema),
+    open_gaps: z.array(GapSchema),
+    // NEW: Shareable findings
+    research_findings: z.array(ResearchFindingSchema),
+    findings_shared_log: z.array(z.object({
+        finding_id: z.string(),
+        shared_with: z.string(),
+        shared_at: TimestampSchema,
+    })),
+});
+
+export type EzalMemory = z.infer<typeof EzalMemorySchema>;
+
+export const CraigMemorySchema = AgentMemorySchema.extend({
+    campaigns: z.array(CampaignSchema),
+    // NEW: Track cross-agent dependencies
+    pending_requests: z.array(DelegationSchema),
+    pending_reviews: z.array(CampaignReviewSchema),
+    agent_dependencies: z.array(z.object({
+        campaign_id: z.string(),
+        depends_on: z.array(z.object({
+            agent: z.string(),
+            data_type: z.string(),  // 'market_intel', 'pricing', 'compliance'
+            status: z.enum(['requested', 'received', 'incorporated']),
+        })),
+    })),
+});
+
+export type CraigMemory = z.infer<typeof CraigMemorySchema>;
+
+export const LeoMemorySchema = AgentMemorySchema.extend({
     objectives: z.array(BrandObjectiveSchema),
     snapshot_history: z.array(z.object({
         timestamp: TimestampSchema,
         content: z.string(),
         metric_values: z.record(z.number()).optional(),
     })),
+    // NEW: Cross-agent coordination
+    delegation_log: z.array(DelegationSchema),
+    collaboration_metrics: CollaborationMetricsSchema.optional(),
+    active_workflows: z.array(WorkflowSchema).optional(),
+    workflow_history: z.array(z.object({
+        workflow_id: z.string(),
+        name: z.string(),
+        completed_at: TimestampSchema,
+        success: z.boolean(),
+    })).optional(),
 });
 
-export type ExecutiveMemory = z.infer<typeof ExecutiveMemorySchema>;
-
-// --- Deebo (Compliance) Schemas ---
+export type LeoMemory = z.infer<typeof LeoMemorySchema>;
 
 export const DeeboMemorySchema = AgentMemorySchema.extend({
-    pending_reviews: z.array(z.object({
-        id: z.string(),
-        content: z.string(),
-        source: z.string(),
-        status: z.enum(['pending', 'approved', 'rejected']),
-    })),
+    pending_reviews: z.array(CampaignReviewSchema),
     rule_packs: z.array(z.object({
         jurisdiction: z.string(),
         version: z.string(),
         status: z.enum(['active', 'deprecated']),
     })),
+    review_history: z.array(z.object({
+        review_id: z.string(),
+        campaign_id: z.string(),
+        reviewed_by_deebo: z.boolean(),
+        result: z.enum(['approved', 'rejected']),
+        reviewed_at: TimestampSchema,
+    })).optional(),
 });
 
 export type DeeboMemory = z.infer<typeof DeeboMemorySchema>;

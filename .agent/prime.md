@@ -21,6 +21,7 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-02-18)
 **Recent Updates (2026-02-18):**
+- ✅ **Super User Promotion: Rishabh** — UID-based promotion fixes Firebase Auth issues for new users
 - ✅ Phase 4: User Mention Resolution — Slack user mentions auto-extracted + resolved to names/emails
 - ✅ Firebase Build Monitor — 24/7 monitoring, autonomous failure detection, Linus (CTO) alert system
 - ✅ Heartbeat Automatic Recovery (24/7 autonomously keeps system online)
@@ -57,6 +58,74 @@ const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
 ```
 
 See `.agent/refs/firebase-secrets.md` for full pattern.
+
+---
+
+## 🆕 Super User Onboarding
+
+### Promoting New Super Users to Admin Access (2026-02-18)
+**Status:** ✅ Two-Script Solution — Email-based (backup) + UID-based (recommended)
+
+**Scenario:** User signs up, needs Super User access to `/dashboard/ceo`
+
+**Method 1: UID-Based (Recommended)** ✅
+```bash
+node scripts/promote-super-user-by-uid.mjs <UID>
+# Example: node scripts/promote-super-user-by-uid.mjs hEnDEzVXDxZdvRo63UZWVbbmItE3
+```
+- **When to use:** Most reliable for new users who just signed up
+- **Why:** Bypasses Firestore email indexing delay
+- **What it does:**
+  1. Looks up user in Firebase Auth by UID (always works)
+  2. Sets custom claims: `{ role: "super_user" }`
+  3. Creates/updates Firestore user document with `role: super_user`
+  4. Gracefully handles missing Firestore docs (creates on-the-fly)
+
+**Method 2: Email-Based (Backup)**
+```bash
+node scripts/promote-super-user-by-email.mjs <EMAIL>
+# Example: node scripts/promote-super-user-by-email.mjs rishabh@bakedbot.ai
+```
+- **When to use:** If UID unavailable, once email indexing is complete (1-24 hours)
+- **Why:** Useful for batch promotion of multiple users
+- **Limitation:** Firestore email queries take time to index
+
+**Finding the UID:**
+1. **Firebase Console:** Authentication → Users → Click user → Copy UID
+2. **Browser DevTools:** Application → Local Storage → `firebase:authUser:...`
+3. **Script output:** Script prints UID on successful auth lookup
+
+**Example Success (Rishabh, 2026-02-18):**
+```
+🔧 Initializing Firebase Admin SDK...
+✅ Firebase initialized with service account
+
+🔍 Looking up user by UID: hEnDEzVXDxZdvRo63UZWVbbmItE3
+✅ Found user: rishabhsuravaram161@gmail.com
+
+🔐 Setting custom claims in Firebase Auth...
+✅ Custom claims updated: { role: "super_user" }
+
+📝 Updating Firestore user document...
+⚠️  User document not found in Firestore, creating one...
+✅ Created user document in Firestore
+
+🎉 Success! rishabhsuravaram161@gmail.com (hEnDEzVXDxZdvRo63UZWVbbmItE3) is now a Super User
+   Dashboard: https://bakedbot.ai/dashboard/ceo
+   They should re-login to see changes.
+```
+
+**After Promotion:**
+- User needs to **re-login** for changes to take effect
+- They'll bypass `/onboarding` and any training dashboards
+- Auto-routed to `/dashboard/ceo` on next login
+- Full access to 28 Super User agent tools across all domains
+
+**Technical Details (Why UID Works Better):**
+- Firebase Auth email lookup (`auth.getUserByEmail()`) has permission/auth challenges
+- Firestore email field indexing takes 1-24 hours for new users
+- UID is immediately available in Firebase Auth upon signup
+- Direct UID lookup skips both lookup methods, most reliable
 
 ---
 
