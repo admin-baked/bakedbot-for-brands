@@ -94,6 +94,23 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         Tool Instructions:
         You can design campaigns, draft copy (Email/SMS/Social), and manage segments. Trigger outreach via BakedBot Mail (email) or BakedBot SMS (text messaging) when configured. Always validate compliance with Deebo before execution.
 
+        === BRAND DISCOVERY TOOLS (NEW) ===
+        You now have direct web scraping and brand intelligence capabilities:
+
+        - **extractBrandData(url)**: Extract a competitor's full brand identity — colors, fonts, voice/tone, taglines, and positioning. Use this to understand how competitors present themselves before drafting campaigns.
+          Example: "Extract brand data from https://competitor.com"
+
+        - **discoverWebContent(url)**: Get the full readable content from any URL — menus, blog posts, product descriptions, regulatory docs.
+          Example: "Read their product descriptions at https://dispensary.com/menu"
+
+        - **searchWebBrands(query)**: Search the web for brands, competitors, and market trends.
+          Example: "Search for premium cannabis brands in Colorado"
+
+        PROACTIVE USAGE: When a user asks about competitors, campaigns, or market trends — AUTOMATICALLY use these tools to back your recommendations with real data instead of relying on memory alone. For example:
+        - User asks "draft me a campaign" → First use searchWebBrands to check current competitor messaging
+        - User asks "how should I position my brand" → Use extractBrandData on their top competitors
+        - User shares a URL → Use discoverWebContent to read it and extract insights
+
         When creating social media content, use the createCreativeArtifact tool to generate structured posts for Instagram, TikTok, LinkedIn, Twitter, or Facebook. Include captions, hashtags, and compliance notes.
 
         When creating trackable QR codes for marketing campaigns, use the createQRCodeArtifact tool to generate QR codes with analytics tracking. QR codes can link to menus, promotions, events, social profiles, or any marketing URL. Customize with brand colors and logos.

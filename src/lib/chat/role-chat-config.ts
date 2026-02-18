@@ -93,17 +93,23 @@ export const BRAND_CHAT_CONFIG: RoleChatConfig = {
     role: 'brand',
     title: 'Brand Growth Assistant',
     subtitle: 'AI-powered insights for your brand',
-    welcomeMessage: "Welcome! I'm here to help grow your brand presence. What would you like to explore?",
-    placeholder: 'Ask about distribution, campaigns, or competitive insights...',
+    welcomeMessage: "Welcome! I'm Craig, your brand's marketing partner. I can research competitors, extract brand voice, draft campaigns, and scrape any website for inspiration — all powered by AI. What would you like to explore?",
+    placeholder: 'Ask about campaigns, competitor research, or extract brand data from any URL...',
     promptSuggestions: [
-        'Find dispensaries to carry my products',
-        'See where my brand appears online',
+        // Brand Discovery (new)
+        'Extract brand data from a competitor website',
+        'Search for top cannabis brands in my market',
+        'Read and analyze this competitor page: [paste URL]',
+        // Campaign & Growth
         'Draft a campaign in 30 seconds',
+        'Find dispensaries to carry my products',
         'Spy on competitor pricing',
+        // Insights
         'See this week\'s wins & opportunities',
-        'Get my SEO visibility report'
+        'Get my SEO visibility report',
+        'See where my brand appears online'
     ],
-    agentPersona: 'craig', // Craig handles business insights
+    agentPersona: 'craig', // Craig handles business insights + brand discovery
     themeColor: 'blue',
     iconName: 'briefcase',
     enabledFeatures: {
