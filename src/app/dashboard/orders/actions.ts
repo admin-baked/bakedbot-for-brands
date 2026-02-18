@@ -201,20 +201,38 @@ async function getOrdersFromAlleaves(
         });
 
         // Transform Alleaves orders to OrderDoc format
+        // Alleaves API returns flat fields: date_created, id_customer, name_first, name_last, email
+        // The ALLeavesOrder TypeScript type uses nested 'customer' object (legacy assumption — not actual API)
         const orders = alleavesOrders.map((ao: any) => {
-            const orderDate = ao.created_at ? new Date(ao.created_at) : new Date();
-            const updatedDate = ao.updated_at ? new Date(ao.updated_at) : orderDate;
+            // Alleaves uses 'date_created' — fall back to 'created_at' if adapter normalizes it
+            const rawDate = ao.date_created || ao.created_at;
+            const rawUpdated = ao.date_updated || ao.updated_at || rawDate;
+            const orderDate = rawDate ? new Date(rawDate) : new Date();
+            const updatedDate = rawUpdated ? new Date(rawUpdated) : orderDate;
+
+            // Alleaves may return flat customer fields OR a nested customer object
+            const customerName =
+                ao.customer?.name ||
+                `${ao.customer?.first_name || ao.name_first || ao.customer_first_name || ''} ${ao.customer?.last_name || ao.name_last || ao.customer_last_name || ''}`.trim() ||
+                ao.customer_name ||
+                'Unknown';
+            const customerEmail =
+                ao.customer?.email || ao.email || ao.customer_email || 'no-email@alleaves.local';
+            const customerPhone =
+                ao.customer?.phone || ao.phone || ao.customer_phone || '';
+            const customerId =
+                ao.customer?.id?.toString() || ao.id_customer?.toString() || 'alleaves_customer';
 
             const orderDoc: OrderDoc = {
-                id: ao.id?.toString() || `alleaves_${ao.order_number || Date.now()}`,
+                id: ao.id?.toString() || ao.id_order?.toString() || `alleaves_${ao.order_number || Date.now()}`,
                 brandId: orgId,
                 retailerId: posConfig.locationId,
-                userId: ao.customer?.id?.toString() || 'alleaves_customer',
+                userId: customerId,
                 status: mapAlleavesStatus(ao.status),
                 customer: {
-                    name: ao.customer?.name || `${ao.customer?.first_name || ''} ${ao.customer?.last_name || ''}`.trim() || 'Unknown',
-                    email: ao.customer?.email || 'no-email@alleaves.local',
-                    phone: ao.customer?.phone || '',
+                    name: customerName,
+                    email: customerEmail,
+                    phone: customerPhone,
                 },
                 items: (ao.items || []).map((item: any) => ({
                     productId: item.id_item?.toString() || item.product_id?.toString() || 'unknown',
