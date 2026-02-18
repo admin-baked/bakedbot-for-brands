@@ -166,11 +166,11 @@ export async function createTransaction(payment: PaymentRequest): Promise<Paymen
                     transactionId: txResponse.transId,
                     responseCode: txResponse.responseCode,
                     message: 'Transaction declined',
-                    errors: txResponse.errors?.map((e: any) => `${e.errorCode}: ${e.errorText}`) || [],
+                    errors: txResponse.errors?.map((e: { errorCode: string; errorText: string }) => `${e.errorCode}: ${e.errorText}`) || [],
                 };
             }
         } else {
-            const errors = data.messages.message.map((m: any) => `${m.code}: ${m.text}`);
+            const errors = data.messages.message.map((m: { code: string; text: string }) => `${m.code}: ${m.text}`);
             logger.error('[Authorize.net] Transaction failed', {
                 resultCode: data.messages.resultCode,
                 errors,
@@ -182,12 +182,12 @@ export async function createTransaction(payment: PaymentRequest): Promise<Paymen
                 errors,
             };
         }
-    } catch (error: any) {
-        logger.error('Authorize.net transaction error:', error);
+    } catch (error: unknown) {
+        logger.error('Authorize.net transaction error:', error as Record<string, unknown>);
         return {
             success: false,
             message: 'Payment processing error',
-            errors: [error.message],
+            errors: [error instanceof Error ? error.message : 'Unknown error'],
         };
     }
 }
