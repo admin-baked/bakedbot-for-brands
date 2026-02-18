@@ -36,7 +36,14 @@ export interface SlackResponseRecord {
     month: string; // YYYY-MM for monthly grouping
 }
 
-const firestore = getAdminFirestore();
+let firestore: ReturnType<typeof getAdminFirestore> | null = null;
+
+function getFirestore() {
+    if (!firestore) {
+        firestore = getAdminFirestore();
+    }
+    return firestore;
+}
 
 /**
  * Archive a Slack agent response to Firestore
@@ -45,7 +52,7 @@ const firestore = getAdminFirestore();
  */
 export async function archiveSlackResponse(record: SlackResponseRecord): Promise<void> {
     try {
-        const docRef = firestore.collection('slack_responses').doc();
+        const docRef = getFirestore().collection('slack_responses').doc();
 
         await docRef.set({
             ...record,
@@ -67,7 +74,7 @@ export async function getResponsesByAgent(
     limit: number = 50
 ): Promise<SlackResponseRecord[]> {
     try {
-        const snapshot = await firestore
+        const snapshot = await getFirestore()
             .collection('slack_responses')
             .where('agent', '==', agent)
             .orderBy('timestamp', 'desc')
@@ -90,7 +97,7 @@ export async function getResponsesByDateRange(
     agent?: string
 ): Promise<SlackResponseRecord[]> {
     try {
-        let query = firestore
+        let query = getFirestore()
             .collection('slack_responses')
             .where('timestamp', '>=', startDate)
             .where('timestamp', '<=', endDate)
@@ -117,7 +124,7 @@ export async function getResponseStats(
 ): Promise<{ totalResponses: number; agentBreakdown: Record<string, number> }> {
     try {
         const field = type === 'channel' ? 'channel' : 'slackUserId';
-        const snapshot = await firestore
+        const snapshot = await getFirestore()
             .collection('slack_responses')
             .where(field, '==', id)
             .get();
@@ -148,14 +155,14 @@ export async function deleteOldResponses(daysToKeep: number = 90): Promise<numbe
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
-        const snapshot = await firestore
+        const snapshot = await getFirestore()
             .collection('slack_responses')
             .where('timestamp', '<', cutoffDate)
             .limit(100) // Batch limit to prevent timeout
             .get();
 
         let deleted = 0;
-        const batch = firestore.batch();
+        const batch = getFirestore().batch();
 
         snapshot.docs.forEach((doc) => {
             batch.delete(doc.ref);
