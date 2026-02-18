@@ -50,7 +50,7 @@ export async function getDynamicPromptSuggestions(orgId: string, userId?: string
                 const setupPrompts: string[] = [];
 
                 if (isNewUser || !onboardingCompleted) {
-                    setupPrompts.push("I'm new here! Walk me through what Craig can do for my brand");
+                    setupPrompts.push("I'm new here! Give me a quick tour of what the AI can do for my business");
                 }
                 if (!hasPOS) {
                     setupPrompts.push('Connect your POS to unlock real-time inventory and sales insights');
