@@ -63,6 +63,96 @@ async function persistPOSIntegrationStatus(
 }
 
 /**
+ * Persist Alleaves orders to Firestore `orders` collection.
+ * Uses batched upserts (merge) keyed by Alleaves order ID so re-syncs are idempotent.
+ * Alleaves field names differ from the ALLeavesOrder TypeScript type:
+ *   - date_created  (not created_at)
+ *   - date_updated  (not updated_at)
+ *   - id_customer   (flat, not nested customer object)
+ */
+async function persistOrdersToFirestore(
+    firestore: FirebaseFirestore.Firestore,
+    orgId: string,
+    locationId: string,
+    rawOrders: any[]
+): Promise<void> {
+    const { Timestamp } = await import('firebase-admin/firestore');
+    const BATCH_SIZE = 400; // Firestore batch limit is 500
+    let batch = firestore.batch();
+    let batchCount = 0;
+    let total = 0;
+
+    const mapStatus = (s: string): string => {
+        const map: Record<string, string> = {
+            pending: 'pending', submitted: 'submitted', confirmed: 'confirmed',
+            preparing: 'preparing', ready: 'ready', completed: 'completed',
+            cancelled: 'cancelled', processing: 'preparing', delivered: 'completed',
+        };
+        return map[s?.toLowerCase()] || 'pending';
+    };
+
+    for (const ao of rawOrders) {
+        const orderId = ao.id?.toString() || ao.id_order?.toString();
+        if (!orderId) continue;
+
+        const docId = `alleaves_${orderId}`;
+        const rawDate = ao.date_created || ao.created_at;
+        const rawUpdated = ao.date_updated || ao.updated_at || rawDate;
+        const orderDate = rawDate ? new Date(rawDate) : new Date();
+        const updatedDate = rawUpdated ? new Date(rawUpdated) : orderDate;
+
+        const customerName =
+            ao.customer?.name ||
+            `${ao.customer?.first_name || ao.name_first || ao.customer_first_name || ''} ${ao.customer?.last_name || ao.name_last || ao.customer_last_name || ''}`.trim() ||
+            ao.customer_name || 'Unknown';
+        const customerEmail = ao.customer?.email || ao.email || ao.customer_email || 'no-email@alleaves.local';
+        const customerPhone = ao.customer?.phone || ao.phone || ao.customer_phone || '';
+
+        const docRef = firestore.collection('orders').doc(docId);
+        batch.set(docRef, {
+            id: docId,
+            brandId: orgId,
+            retailerId: locationId,
+            userId: ao.customer?.id?.toString() || ao.id_customer?.toString() || 'alleaves_customer',
+            status: mapStatus(ao.status),
+            customer: { name: customerName, email: customerEmail, phone: customerPhone },
+            items: (ao.items || []).map((item: any) => ({
+                productId: item.id_item?.toString() || item.product_id?.toString() || 'unknown',
+                name: item.item || item.product_name || 'Unknown Item',
+                qty: parseInt(item.quantity || 1),
+                price: parseFloat(item.price || item.unit_price || 0),
+                category: item.category || 'other',
+            })),
+            totals: {
+                subtotal: parseFloat(ao.subtotal || 0),
+                tax: parseFloat(ao.tax || 0),
+                discount: parseFloat(ao.discount || 0),
+                total: parseFloat(ao.total || ao.amount || 0),
+            },
+            mode: 'live',
+            source: 'alleaves',
+            createdAt: Timestamp.fromDate(orderDate),
+            updatedAt: Timestamp.fromDate(updatedDate),
+        }, { merge: true }); // merge so status updates from BakedBot aren't overwritten
+
+        batchCount++;
+        total++;
+
+        if (batchCount >= BATCH_SIZE) {
+            await batch.commit();
+            batch = firestore.batch();
+            batchCount = 0;
+        }
+    }
+
+    if (batchCount > 0) {
+        await batch.commit();
+    }
+
+    logger.info('[POS_SYNC] Persisted orders to Firestore', { orgId, total });
+}
+
+/**
  * Sync customers and orders for a specific organization
  */
 export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
@@ -126,16 +216,23 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
         const client = new ALLeavesClient(alleavesConfig);
 
         // Fetch customers and orders in parallel
+        // Fetch up to 10k orders to capture full history on each sync
         const [customers, orders] = await Promise.all([
             client.getAllCustomersPaginated(30).catch(err => {
                 logger.error('[POS_SYNC] Failed to fetch customers', { orgId, error: err.message });
                 return [];
             }),
-            client.getAllOrders(100).catch(err => {
+            client.getAllOrders(10000).catch(err => {
                 logger.error('[POS_SYNC] Failed to fetch orders', { orgId, error: err.message });
                 return [];
             }),
         ]);
+
+        // Persist orders to Firestore so historical data accumulates across syncs
+        // Alleaves orders are NOT stored anywhere between page loads without this
+        if (orders.length > 0) {
+            await persistOrdersToFirestore(firestore, orgId, posConfig.locationId, orders);
+        }
 
         // Invalidate existing cache to force refresh on next request
         posCache.invalidate(cacheKeys.customers(orgId));
