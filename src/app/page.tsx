@@ -75,7 +75,7 @@ const modules = [
   },
   {
     icon: BarChart3,
-    name: "Add-on: Pops (Analytics)",
+    name: "Add-on: Big Worm (Analytics)",
     blurb: "Turn data into decisions: dashboards, insights, and forecasting you can act on.",
     bullets: [
       "Revenue dashboards",
@@ -158,10 +158,10 @@ export default function HomePage() {
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
           <div className="space-y-4 max-w-2xl">
             <Badge variant="outline" className="w-fit bg-blue-500/10 text-blue-600 border-blue-500/20">Modular Platform</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Buy the Core. Add agents as you grow.</h2>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Start with what drives revenue. Add intelligence as you scale.</h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Start with what creates immediate leverage: a fast, indexable menu and an AI budtender.
-              Then layer in automation, analytics, compliance, and competitive intelligence when you're ready.
+              Your core is the SEO menu and AI budtender — the two things that put products in front of customers
+              and convert questions into sales. Everything else layers on when you're ready.
             </p>
           </div>
           <div className="flex gap-3">
@@ -239,7 +239,7 @@ export default function HomePage() {
         <div className="grid gap-12 lg:grid-cols-2 items-center">
           <div className="space-y-6">
             <Badge variant="outline" className="w-fit bg-red-500/10 text-red-600 border-red-500/20">Safety First</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight">Compliance is not a checkbox.<br />It's infrastructure.</h2>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight">Compliance isn't a feature.<br />It's the foundation.</h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
               Deebo is our compliance engine. It pre-checks on-site content and outbound messaging against jurisdiction-aware
               rules, then records what happened for auditability.
@@ -307,14 +307,26 @@ export default function HomePage() {
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
             <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">Transparent Pricing</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Launch pricing</h2>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Start free. Scale when it pays for itself.</h2>
             <p className="text-lg text-muted-foreground leading-relaxed">
-              Predictable plans with included usage. When you outgrow the included limits, you pay transparent overages with no surprises.
+              Every plan includes a usage allowance. No hidden fees. Transparent overages when you grow past your limits.
             </p>
           </div>
 
           <PricingClient />
         </div>
+      </section>
+
+      {/* Bottom CTA Section */}
+      <section className="mx-auto max-w-4xl px-4 py-24 text-center">
+        <p className="text-sm text-muted-foreground uppercase tracking-widest font-medium mb-4">Not sure which plan fits?</p>
+        <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+          Give Smokey a URL and watch the team go to work.
+        </h2>
+        <p className="text-lg text-muted-foreground mb-8">No login required.</p>
+        <Button asChild size="lg" className="rounded-xl h-12 px-8 text-base font-semibold shadow-lg shadow-primary/20">
+          <a href="/get-started">Try the Live Demo →</a>
+        </Button>
       </section>
 
       {/* Footer */}
