@@ -24,6 +24,10 @@ export interface CraigTools {
   // New Upgrades
   crmListUsers?(search?: string, lifecycleStage?: string, limit?: number): Promise<any>;
   lettaUpdateCoreMemory?(section: 'persona' | 'human', content: string): Promise<any>;
+  // Brand Discovery Tools (for competitor research & campaign inspiration)
+  extractBrandData?(url: string, includeData?: ('visual' | 'voice' | 'messaging' | 'social')[]): Promise<any>;
+  discoverWebContent?(url: string): Promise<{ markdown: string; title?: string; description?: string }>;
+  searchWebBrands?(query: string): Promise<any[]>;
 }
 
 // --- Craig Agent Implementation ---
@@ -230,6 +234,29 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
                     lifecycleStage: z.enum(['prospect', 'contacted', 'demo_scheduled', 'trial', 'customer', 'vip', 'churned', 'winback']).optional(),
                     limit: z.number().optional()
                 })
+            },
+            // Brand Discovery Tools (Firecrawl + RTRVR fallback)
+            {
+                name: "extractBrandData",
+                description: "Extract brand identity data from a website (colors, voice, messaging, social handles). Uses Firecrawl with RTRVR fallback. Perfect for competitor analysis & campaign inspiration.",
+                schema: z.object({
+                    url: z.string().describe("Brand website URL to analyze"),
+                    includeData: z.array(z.enum(['visual', 'voice', 'messaging', 'social'])).optional().describe("Data types to extract: visual (colors/fonts), voice (tone/personality), messaging (taglines/positioning), social (Instagram/Twitter handles)")
+                })
+            },
+            {
+                name: "discoverWebContent",
+                description: "Extract readable markdown content from any URL using Firecrawl (auto-fallback to RTRVR.ai if Firecrawl is down). Great for reading competitor pages, blog posts, regulatory docs.",
+                schema: z.object({
+                    url: z.string().describe("URL to scrape and extract content from")
+                })
+            },
+            {
+                name: "searchWebBrands",
+                description: "Search the web for brand websites and competitor information. Uses Firecrawl web search (auto-fallback to RTRVR.ai).",
+                schema: z.object({
+                    query: z.string().describe("Search query (e.g., 'cannabis brands in Colorado', 'premium vape brands')")
+                })
             }
         ];
 
@@ -306,3 +333,111 @@ export async function handleCraigEvent(orgId: string, eventId: string) {
   logger.info(`[Craig] Handled event ${eventId} for org ${orgId} (Stub)`);
 }
 
+// ============================================================================
+// BRAND DISCOVERY TOOL IMPLEMENTATIONS (Firecrawl + RTRVR Fallback)
+// ============================================================================
+
+/**
+ * Create tool implementations for Craig's brand discovery tools.
+ * Call this function before invoking Craig's agent.
+ *
+ * Example:
+ * ```
+ * const craigTools = createCraigTools();
+ * await runAgent(brandId, adapter, craigAgent, craigTools, userMessage);
+ * ```
+ */
+export function createCraigToolImpls() {
+  return {
+    extractBrandData: async (input: { url: string; includeData?: ('visual' | 'voice' | 'messaging' | 'social')[] }) => {
+      try {
+        const { BrandGuideExtractor } = await import('@/server/services/brand-guide-extractor');
+        const extractor = new BrandGuideExtractor();
+
+        logger.info('[Craig:extractBrandData] Starting brand extraction', { url: input.url });
+
+        const result = await extractor.extractFromUrl({
+          url: input.url,
+          socialHandles: {} // Can be enhanced to detect social handles from URL
+        });
+
+        // Filter to requested data types if specified
+        if (input.includeData) {
+          const filtered = {
+            ...(input.includeData.includes('visual') && { visual: result.visualIdentity }),
+            ...(input.includeData.includes('voice') && { voice: result.voice }),
+            ...(input.includeData.includes('messaging') && { messaging: result.messaging }),
+            confidence: result.confidence,
+            source: result.source
+          };
+          return { success: true, data: filtered };
+        }
+
+        return { success: true, data: result };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error('[Craig:extractBrandData] Failed', { error: message });
+        return { success: false, error: message };
+      }
+    },
+
+    discoverWebContent: async (input: { url: string }) => {
+      try {
+        const { discovery } = await import('@/server/services/firecrawl');
+
+        if (!discovery.isConfigured()) {
+          return {
+            success: false,
+            error: 'Discovery service not configured. Ensure FIRECRAWL_API_KEY and/or RTRVR_API_KEY are set.'
+          };
+        }
+
+        logger.info('[Craig:discoverWebContent] Extracting content from URL', { url: input.url });
+
+        const result = await discovery.discoverUrl(input.url);
+
+        return {
+          success: true,
+          data: {
+            markdown: result.markdown,
+            title: result.metadata?.title,
+            description: result.metadata?.description,
+            source: 'Firecrawl (with RTRVR.ai fallback)'
+          }
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error('[Craig:discoverWebContent] Failed', { error: message });
+        return { success: false, error: message };
+      }
+    },
+
+    searchWebBrands: async (input: { query: string }) => {
+      try {
+        const { discovery } = await import('@/server/services/firecrawl');
+
+        if (!discovery.isConfigured()) {
+          return {
+            success: false,
+            error: 'Discovery service not configured. Ensure FIRECRAWL_API_KEY and/or RTRVR_API_KEY are set.'
+          };
+        }
+
+        logger.info('[Craig:searchWebBrands] Searching for brands', { query: input.query });
+
+        const results = await discovery.search(input.query);
+
+        return {
+          success: true,
+          data: results,
+          resultCount: Array.isArray(results) ? results.length : 0,
+          source: 'Firecrawl Web Search (with RTRVR.ai fallback)'
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error('[Craig:searchWebBrands] Failed', { error: message });
+        return { success: false, error: message };
+      }
+    }
+  };
+}
