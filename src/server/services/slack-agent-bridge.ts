@@ -82,6 +82,25 @@ export function extractMentions(text: string): string[] {
 }
 
 /**
+ * Convert Slack file objects to agent attachment format.
+ * Extracts file name, size, and type for agent processing.
+ */
+export function convertSlackFilesToAttachments(slackFiles: any[]): any[] {
+    if (!slackFiles || !slackFiles.length) {
+        return [];
+    }
+
+    return slackFiles.map(file => ({
+        name: file.name || file.title || 'attachment',
+        type: file.mimetype || file.filetype || 'application/octet-stream',
+        size: file.size || 0,
+        url: file.url_private || file.permalink || '',
+        // Note: base64 encoding would require downloading the file via Slack API
+        // For now, we pass the file metadata and URL for agent context
+    }));
+}
+
+/**
  * Resolve Slack user IDs to readable context (name, email, BakedBot role).
  * Returns a formatted context string for agent enrichment.
  */
@@ -163,10 +182,11 @@ export interface SlackMessageContext {
     isDm?: boolean;         // true if this is a direct message
     isChannelMsg?: boolean; // true if this is a public channel message (not @mention, not DM)
     isThreadReply?: boolean; // true if this is a reply within a thread (has parent ts)
+    files?: any[];          // Optional: Slack file objects from the message
 }
 
 export async function processSlackMessage(ctx: SlackMessageContext): Promise<void> {
-    const { text, slackUserId, channel, threadTs, channelName = '', isDm = false, isChannelMsg = false, isThreadReply = false } = ctx;
+    const { text, slackUserId, channel, threadTs, channelName = '', isDm = false, isChannelMsg = false, isThreadReply = false, files = [] } = ctx;
 
     try {
         // 1. Strip bot mention and clean up text
@@ -215,20 +235,42 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             logger.error(`[SlackBridge] Failed to post thinking message: ${thinkingResult.error} — check SLACK_BOT_TOKEN and bot channel membership`);
         }
 
-        // 6. Run the agent with enriched text (includes team context) and system user
+        // 6. Convert Slack files to agent attachments if present
+        const attachments = files.length > 0 ? convertSlackFilesToAttachments(files) : undefined;
+        if (attachments) {
+            logger.info(`[SlackBridge] Processing ${files.length} file(s): ${files.map((f: any) => f.name || f.title).join(', ')}`);
+        }
+
+        // 7. Run the agent with enriched text (includes team context), attachments, and system user
         // (avoids requireUser() cookie lookup in async context)
-        const result = await runAgentCore(enrichedText, personaId, {}, SLACK_SYSTEM_USER);
+        let result;
+        try {
+            const extraOptions = attachments ? { attachments } : {};
+            result = await Promise.race([
+                runAgentCore(enrichedText, personaId, extraOptions, SLACK_SYSTEM_USER),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Agent response timeout after 55 seconds')), 55000)
+                ),
+            ]) as any;
+        } catch (agentErr: any) {
+            logger.error('[SlackBridge] Agent execution error:', agentErr.message);
+            await slackService.postInThread(
+                channel, threadTs,
+                `⚠️ ${getPersonaName(personaId)} encountered an issue: ${agentErr.message}. The team has been notified.`
+            );
+            return;
+        }
 
         if (!result.content) {
             logger.warn('[SlackBridge] Agent returned empty content');
             await slackService.postInThread(
                 channel, threadTs,
-                'Sorry, I had trouble generating a response. Please try again.'
+                `Sorry, ${getPersonaName(personaId)} had trouble generating a response. Please try again.`
             );
             return;
         }
 
-        // 7. Check if action is risky and requires approval
+        // 8. Check if action is risky and requires approval
         const risk = detectRiskyAction(result.content, result.toolCalls);
         if (risk.isRisky) {
             logger.info('[SlackBridge] High-risk action detected, requesting approval', {
@@ -293,13 +335,13 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             return;
         }
 
-        // 8. Format as Slack Block Kit and post
+        // 9. Format as Slack Block Kit and post
         const blocks = SlackService.formatAgentResponse(result.content, personaId);
         const fallbackText = `${getPersonaName(personaId)}: ${result.content.slice(0, 200)}`;
 
         await slackService.postInThread(channel, threadTs, fallbackText, blocks);
 
-        // 9. Archive response for audit trail
+        // 10. Archive response for audit trail
         const requestType = isDm ? 'dm' : isChannelMsg ? 'channel' : 'mention';
         archiveSlackResponse({
             timestamp: new Date(),
