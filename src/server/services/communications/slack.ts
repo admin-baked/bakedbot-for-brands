@@ -178,6 +178,33 @@ export class SlackService {
         }
     }
 
+    async getUserInfo(slackUserId: string): Promise<{ id: string; name: string; email: string } | null> {
+        if (!this.client) {
+            logger.warn('[Slack] Get user info skipped (No Token)');
+            return null;
+        }
+
+        try {
+            const result = await this.client.users.info({
+                user: slackUserId
+            });
+
+            if (!result.user) {
+                return null;
+            }
+
+            const user = result.user;
+            return {
+                id: user.id || slackUserId,
+                name: user.real_name || user.name || slackUserId,
+                email: user.profile?.email || ''
+            };
+        } catch (e: any) {
+            logger.error(`[Slack] Get user info failed: ${e.message}`);
+            return null;
+        }
+    }
+
     static formatAgentResponse(content: string, personaId: string): any[] {
         const meta = PERSONA_META[personaId] ?? PERSONA_META['puff'];
         const agentLabel = `${meta.emoji} ${meta.role}`;

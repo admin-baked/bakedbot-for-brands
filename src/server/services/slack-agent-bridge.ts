@@ -73,6 +73,58 @@ export function stripBotMention(text: string): string {
 }
 
 /**
+ * Extract all Slack user ID mentions from text (as <@USERID> tokens).
+ * Returns the user IDs without the < @ > wrapping.
+ */
+export function extractMentions(text: string): string[] {
+    const matches = Array.from(text.matchAll(/<@([A-Z0-9]+)>/g));
+    return matches.map(m => m[1]);
+}
+
+/**
+ * Resolve Slack user IDs to readable context (name, email, BakedBot role).
+ * Returns a formatted context string for agent enrichment.
+ */
+export async function resolveMentions(userIds: string[], requestorSlackId: string): Promise<string> {
+    if (userIds.length === 0) {
+        return '';
+    }
+
+    const contextLines: string[] = [];
+
+    for (const userId of userIds) {
+        // Skip the requestor (don't include self-mentions)
+        if (userId === requestorSlackId) {
+            continue;
+        }
+
+        try {
+            // Get Slack user profile
+            const profile = await slackService.getUserInfo(userId);
+            if (!profile) {
+                logger.warn(`[SlackBridge] Could not resolve user ${userId}`);
+                continue;
+            }
+
+            let context = `• @${profile.name}`;
+            if (profile.email) {
+                context += ` (${profile.email})`;
+            }
+
+            contextLines.push(context);
+        } catch (err: any) {
+            logger.warn(`[SlackBridge] Failed to resolve mention for ${userId}: ${err.message}`);
+        }
+    }
+
+    if (contextLines.length === 0) {
+        return '';
+    }
+
+    return `**Team members mentioned:**\n${contextLines.join('\n')}`;
+}
+
+/**
  * Detect which agent persona to use based on message content and channel name.
  * Priority: explicit name in message > channel prefix > default.
  */
@@ -124,9 +176,22 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             return;
         }
 
+        // 2. Extract and resolve user mentions for context enrichment
+        const mentionedUserIds = extractMentions(text);
+        let enrichmentContext = '';
+        if (mentionedUserIds.length > 0) {
+            enrichmentContext = await resolveMentions(mentionedUserIds, slackUserId);
+            logger.info(`[SlackBridge] Resolved ${mentionedUserIds.length} mentions`);
+        }
+
+        // 3. Enrich prompt with team context if mentions were found
+        const enrichedText = enrichmentContext
+            ? `${cleanText}\n\n[Team Context]\n${enrichmentContext}`
+            : cleanText;
+
         logger.info(`[SlackBridge] Processing from ${slackUserId} in ${channel}: "${cleanText.slice(0, 80)}"`);
 
-        // 2. Detect which agent to route to
+        // 4. Detect which agent to route to
         const personaId = detectAgent(cleanText, channelName, isDm);
         logger.info(`[SlackBridge] Routing to persona: ${personaId}`);
 
@@ -137,14 +202,15 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             return;
         }
 
-        // 3. Post a "thinking" indicator so user gets immediate feedback
+        // 5. Post a "thinking" indicator so user gets immediate feedback
         const thinkingResult = await slackService.postInThread(channel, threadTs, `_${getPersonaName(personaId)} is thinking..._`);
         if (!thinkingResult.sent) {
             logger.error(`[SlackBridge] Failed to post thinking message: ${thinkingResult.error} — check SLACK_BOT_TOKEN and bot channel membership`);
         }
 
-        // 4. Run the agent with system user (avoids requireUser() cookie lookup in async context)
-        const result = await runAgentCore(cleanText, personaId, {}, SLACK_SYSTEM_USER);
+        // 6. Run the agent with enriched text (includes team context) and system user
+        // (avoids requireUser() cookie lookup in async context)
+        const result = await runAgentCore(enrichedText, personaId, {}, SLACK_SYSTEM_USER);
 
         if (!result.content) {
             logger.warn('[SlackBridge] Agent returned empty content');
@@ -155,7 +221,7 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             return;
         }
 
-        // 5. Check if action is risky and requires approval
+        // 7. Check if action is risky and requires approval
         const risk = detectRiskyAction(result.content, result.toolCalls);
         if (risk.isRisky) {
             logger.info('[SlackBridge] High-risk action detected, requesting approval', {
@@ -220,13 +286,13 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
             return;
         }
 
-        // 5. Format as Slack Block Kit and post
+        // 8. Format as Slack Block Kit and post
         const blocks = SlackService.formatAgentResponse(result.content, personaId);
         const fallbackText = `${getPersonaName(personaId)}: ${result.content.slice(0, 200)}`;
 
         await slackService.postInThread(channel, threadTs, fallbackText, blocks);
 
-        // 6. Archive response for audit trail
+        // 9. Archive response for audit trail
         const requestType = isDm ? 'dm' : isChannelMsg ? 'channel' : 'mention';
         archiveSlackResponse({
             timestamp: new Date(),
