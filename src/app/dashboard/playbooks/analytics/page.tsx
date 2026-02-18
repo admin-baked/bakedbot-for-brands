@@ -13,7 +13,7 @@
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartContainer, ChartTooltip, ChartLegend, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { getPlaybookAnalytics } from '@/server/actions/playbook-analytics';
 import { useSearchParams } from 'next/navigation';
 import { Loader } from 'lucide-react';
@@ -158,18 +158,18 @@ export default function PlaybooksAnalyticsPage() {
             </CardHeader>
             <CardContent>
               {data.executionTrendDaily.length > 0 ? (
-                <ChartContainer config={{ count: { label: 'Executions', color: '#3b82f6' }, revenue: { label: 'Revenue', color: '#10b981' } }}>
-                  <LineChart data={data.executionTrendDaily} width={600} height={300}>
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={data.executionTrendDaily}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" style={{ fontSize: 12 }} />
                     <YAxis yAxisId="left" style={{ fontSize: 12 }} />
                     <YAxis yAxisId="right" orientation="right" style={{ fontSize: 12 }} />
-                    <ChartTooltip />
-                    <ChartLegend />
+                    <Tooltip />
+                    <Legend />
                     <Line yAxisId="left" type="monotone" dataKey="count" stroke="#3b82f6" />
                     <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#10b981" />
                   </LineChart>
-                </ChartContainer>
+                </ResponsiveContainer>
               ) : (
                 <p className="text-muted-foreground text-center py-8">No execution data available</p>
               )}
@@ -222,15 +222,15 @@ export default function PlaybooksAnalyticsPage() {
             </CardHeader>
             <CardContent>
               {data.eventDistribution.length > 0 ? (
-                <ChartContainer config={{ count: { label: 'Count', color: '#3b82f6' } }}>
-                  <BarChart data={data.eventDistribution} layout="vertical" width={600} height={300}>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={data.eventDistribution} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" style={{ fontSize: 12 }} />
                     <YAxis dataKey="event" type="category" width={120} style={{ fontSize: 11 }} />
-                    <ChartTooltip />
+                    <Tooltip />
                     <Bar dataKey="count" fill="#3b82f6" />
                   </BarChart>
-                </ChartContainer>
+                </ResponsiveContainer>
               ) : (
                 <p className="text-muted-foreground text-center py-8">No event data available</p>
               )}

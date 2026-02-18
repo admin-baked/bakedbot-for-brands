@@ -93,8 +93,8 @@ class AuditLogStreamingService {
                     logs.forEach(log => callbacks.onData(log));
                     logger.debug(`[Audit Log Stream] Returned ${logs.length} historical logs for stream ${streamId}`);
                 })
-                .catch(error => {
-                    logger.error(`[Audit Log Stream] Failed to fetch historical logs:`, error);
+                .catch((error: any) => {
+                    logger.error(`[Audit Log Stream] Failed to fetch historical logs:`, { error: error instanceof Error ? error.message : String(error) });
                     callbacks.onError?.(error);
                 });
         }
@@ -103,7 +103,7 @@ class AuditLogStreamingService {
         const unsubscribe = query.onSnapshot(
             (snapshot) => {
                 // Skip if this is the initial snapshot (we already returned historical logs)
-                if (returnHistorical && snapshot.metadata.hasPendingWrites === false) {
+                if (returnHistorical && (snapshot as any).metadata?.hasPendingWrites === false) {
                     return;
                 }
 
@@ -158,8 +158,8 @@ class AuditLogStreamingService {
 
             logger.debug(`[Audit Log] Logged action: ${action} by ${actor}`);
             return docRef.id;
-        } catch (error) {
-            logger.error(`[Audit Log] Failed to log action:`, error);
+        } catch (error: any) {
+            logger.error(`[Audit Log] Failed to log action:`, { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -199,8 +199,8 @@ class AuditLogStreamingService {
             await batch.commit();
             logger.info(`[Audit Log] Batch logged ${actions.length} actions`);
             return ids;
-        } catch (error) {
-            logger.error(`[Audit Log] Failed to batch log actions:`, error);
+        } catch (error: any) {
+            logger.error(`[Audit Log] Failed to batch log actions:`, { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -230,8 +230,8 @@ class AuditLogStreamingService {
                 .filter(log => this.matchesFilter(log, filter.action));
 
             return logs;
-        } catch (error) {
-            logger.error(`[Audit Log] Failed to query logs:`, error);
+        } catch (error: any) {
+            logger.error(`[Audit Log] Failed to query logs:`, { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -279,8 +279,8 @@ class AuditLogStreamingService {
             stats.successRate = logs.length > 0 ? (successCount / logs.length) * 100 : 0;
 
             return stats;
-        } catch (error) {
-            logger.error(`[Audit Log] Failed to get stats:`, error);
+        } catch (error: any) {
+            logger.error(`[Audit Log] Failed to get stats:`, { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -337,4 +337,5 @@ class AuditLogStreamingService {
 // Singleton instance
 const auditLogStreaming = new AuditLogStreamingService();
 
-export { AuditLogStreamingService, auditLogStreaming, AuditLog, AuditLogFilter, StreamOptions, StreamCallback };
+export { AuditLogStreamingService, auditLogStreaming };
+export type { AuditLog, AuditLogFilter, StreamOptions, StreamCallback };
