@@ -5,7 +5,7 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
-import { sendEmailViaMailjet } from '@/server/services/communications/email';
+import { sendEmail } from '@/server/services/email-service';
 import { slackService } from '@/server/services/communications/slack';
 
 export interface BuildStatus {
@@ -132,12 +132,12 @@ ${errorMessage.slice(0, 500)}${errorMessage.length > 500 ? '...' : ''}
 <p><strong>Action:</strong> Check Firebase App Hosting console or ask Linus (CTO) to investigate.</p>
 `;
 
-        await sendEmailViaMailjet(
-            recipientEmail,
-            emailSubject,
-            emailContent,
-            'Build Failure Alert'
-        );
+        await sendEmail({
+            to: recipientEmail,
+            subject: emailSubject,
+            html: emailContent,
+            text: emailContent.replace(/<[^>]*>/g, '')
+        });
         logger.info('[BuildMonitor] Email sent', { to: recipientEmail });
 
         // Send Slack notification
