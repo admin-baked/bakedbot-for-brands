@@ -20,6 +20,8 @@ Detailed documentation for AI agents working in this codebase.
 | **Firebase secrets, App Hosting config** | **`firebase-secrets.md`** |
 | **Lead magnets, CEO Dashboard, analytics** | **`lead-magnets.md`** |
 | **NY OCM delivery system, driver management** | **`delivery-system.md`** |
+| **Slack integration, user mentions** | **`.agent/prime.md` (Phase 4 section)** |
+| **Firebase build monitoring, deployment alerts** | **`.agent/prime.md` (Build Monitor section)** |
 | Academy, email automation, scoring | `academy.md` |
 | Super User dashboard, BakedBot Drive | `super-users.md` |
 | API routes | `api.md` |
@@ -90,10 +92,12 @@ Detailed documentation for AI agents working in this codebase.
 | `workflows.md` | Playbooks, automation recipes |
 | `media-generation.md` | AI image/video generation, cost tracking, playbook templates |
 
-### Operations
+### Operations & Monitoring
 | File | What's Inside |
 |------|---------------|
 | `firebase-secrets.md` | **Firebase App Hosting secret management** - IAM bindings, version pinning, debugging checklist |
+| `prime.md` (Phase 4) | **Slack user mention resolution** - agent context enrichment from @mentions |
+| `prime.md` (Build Monitor) | **Firebase build monitoring** - 24/7 failure detection, Linus agent diagnostics, Cloud Scheduler integration |
 | `work-archive.md` | Historical decisions, artifact storage |
 | `session-handoff.md` | Continuing work mid-session |
 | `integrations.md` | External APIs (Blackleaf, Mailjet, CannMenus, etc.) |
