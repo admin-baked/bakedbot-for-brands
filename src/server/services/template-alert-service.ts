@@ -234,7 +234,7 @@ export async function sendTemplateAlerts(alerts: TemplateAlert[]): Promise<void>
         await sendGenericEmail({
           to: email,
           subject,
-          html: htmlBody,
+          htmlBody,
           orgId: 'system',
         });
       } catch (emailErr) {
@@ -254,10 +254,7 @@ ${warnings.map((a) => `• ${a.templateName}: ${a.message}`).join('\n')}
 <https://bakedbot.ai/dashboard/admin/playbook-templates|View Dashboard>
       `;
 
-      await slackService.postMessage({
-        channel: '#alerts', // Configure this channel in Slack workspace
-        text: summaryText,
-      });
+      await slackService.postMessage('#alerts', summaryText);
     } catch (slackErr) {
       logger.warn('[TemplateAlerts] Failed to send Slack alert', { error: String(slackErr) });
     }

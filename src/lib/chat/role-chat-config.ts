@@ -88,7 +88,7 @@ export const CUSTOMER_CHAT_CONFIG: RoleChatConfig = {
         // Discovery
         'Something similar to Blue Dream',
         'Top-rated products near me',
-        'What's new in this week's inventory?',
+        'What\'s new in this week\'s inventory?',
         'Show me your best flower under $40',
         // Deals & Cart
         'Find me the best deals today',

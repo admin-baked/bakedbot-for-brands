@@ -74,15 +74,15 @@ export async function getTemplateDrilldown(templateId: string) {
       return { error: 'Template not found' };
     }
 
-    const template = templateDoc.data();
+    const template = templateDoc.data() as any;
     const templateDetails: TemplateDetails = {
       id: templateId,
-      name: template.name || templateId,
-      tier: template.tier || 'unknown',
-      description: template.description,
-      schedule: template.schedule,
-      triggers: template.triggers,
-      createdAt: template.createdAt,
+      name: template?.name || templateId,
+      tier: template?.tier || 'unknown',
+      description: template?.description,
+      schedule: template?.schedule,
+      triggers: template?.triggers,
+      createdAt: template?.createdAt,
     };
 
     // Get all org assignments for this template
@@ -220,7 +220,7 @@ export async function getTemplateDrilldown(templateId: string) {
         const entry = timelineMap.get(dateStr);
         if (entry) {
           entry.execs++;
-          if (exec.status === 'completed' || exec.status === 'success') {
+          if (exec.status === 'completed') {
             entry.success++;
           } else if (exec.status === 'failed' || exec.status === 'error') {
             entry.fail++;

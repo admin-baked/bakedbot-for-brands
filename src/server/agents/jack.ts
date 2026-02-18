@@ -39,7 +39,7 @@ export interface JackTools extends Partial<AllSharedTools> {
     sendEmail?(to: string, subject: string, content: string): Promise<any>;
 }
 
-export const jackAgent: AgentImplementation<ExecutiveMemory, JackTools> = {
+export const jackAgent: AgentImplementation<AgentMemory, JackTools> = {
     agentName: 'jack',
 
     async initialize(brandMemory, agentMemory) {

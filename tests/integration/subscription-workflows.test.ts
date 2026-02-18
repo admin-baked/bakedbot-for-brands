@@ -29,11 +29,11 @@ jest.mock('@/server/services/billing-notifications', () => ({
   notifySubscriptionCanceled: jest.fn().mockResolvedValue(true),
 }));
 
-jest.mock('./promos', () => ({
+jest.mock('@/server/actions/promos', () => ({
   validatePromoCode: jest.fn(),
 }));
 
-jest.mock('./playbooks', () => ({
+jest.mock('@/server/actions/playbooks', () => ({
   assignTierPlaybooks: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -219,7 +219,7 @@ describe('Subscription Workflows — Integration Tests', () => {
         });
 
       const { updateARBSubscription } = require('@/lib/payments/authorize-net');
-      const { assignTierPlaybooks } = require('./playbooks');
+      const { assignTierPlaybooks } = require('@/server/actions/playbooks');
       const { emitEvent } = require('@/server/events/emitter');
       const { notifySubscriptionCreated } = require('@/server/services/billing-notifications');
 
