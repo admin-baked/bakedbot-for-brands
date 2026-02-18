@@ -61,7 +61,7 @@ export async function notifySubscriptionCreated(
     const tierConfig = TIERS[tierId];
     const promoText = promoApplied ? `\n\n**Promo Applied:** ${promoApplied.code} — ${promoApplied.discount}` : '';
 
-    const success = await sendGenericEmail({
+    const result = await sendGenericEmail({
       to: adminEmail,
       subject: 'Your BakedBot subscription is active',
       htmlBody: `
@@ -100,7 +100,7 @@ export async function notifySubscriptionCreated(
       orgId,
     });
 
-    if (success) {
+    if (result.success) {
       await auditLogStreaming.logAction(
         'subscription_created_email_sent',
         'system',
@@ -119,7 +119,7 @@ export async function notifySubscriptionCreated(
       );
     }
 
-    return success;
+    return result.success;
   } catch (error: any) {
     logger.error('[billing-notifications] notifySubscriptionCreated error', {
       orgId,
@@ -153,7 +153,7 @@ export async function notifySubscriptionCanceled(
     }
 
     const tierConfig = TIERS[tierId];
-    const success = await sendGenericEmail({
+    const result = await sendGenericEmail({
       to: adminEmail,
       subject: 'Your BakedBot subscription has been canceled',
       htmlBody: `
@@ -171,7 +171,7 @@ export async function notifySubscriptionCanceled(
       orgId,
     });
 
-    if (success) {
+    if (result.success) {
       await auditLogStreaming.logAction(
         'subscription_canceled_email_sent',
         'system',
@@ -181,7 +181,7 @@ export async function notifySubscriptionCanceled(
       );
     }
 
-    return success;
+    return result.success;
   } catch (error: any) {
     logger.error('[billing-notifications] notifySubscriptionCanceled error', {
       orgId,
@@ -206,7 +206,7 @@ export async function notifySubscriptionPaymentFailed(
     }
 
     const tierConfig = TIERS[tierId];
-    const success = await sendGenericEmail({
+    const result = await sendGenericEmail({
       to: adminEmail,
       subject: '⚠️ Action required: BakedBot payment failed',
       htmlBody: `
@@ -224,7 +224,7 @@ export async function notifySubscriptionPaymentFailed(
       orgId,
     });
 
-    if (success) {
+    if (result.success) {
       await auditLogStreaming.logAction(
         'payment_failed_email_sent',
         'system',
@@ -234,7 +234,7 @@ export async function notifySubscriptionPaymentFailed(
       );
     }
 
-    return success;
+    return result.success;
   } catch (error: any) {
     logger.error('[billing-notifications] notifySubscriptionPaymentFailed error', {
       orgId,
@@ -277,7 +277,7 @@ export async function notifyUsage80Percent(
       )
       .join('');
 
-    const success = await sendGenericEmail({
+    const result = await sendGenericEmail({
       to: adminEmail,
       subject: '⚠️ You\'re approaching usage limits',
       htmlBody: `
@@ -310,7 +310,7 @@ export async function notifyUsage80Percent(
       orgId,
     });
 
-    if (success) {
+    if (result.success) {
       await auditLogStreaming.logAction(
         'usage_alert_80_percent_sent',
         'system',
@@ -321,7 +321,7 @@ export async function notifyUsage80Percent(
       );
     }
 
-    return success;
+    return result.success;
   } catch (error: any) {
     logger.error('[billing-notifications] notifyUsage80Percent error', {
       orgId,
@@ -347,7 +347,7 @@ export async function notifyPromoExpiring(
     }
 
     const tierConfig = TIERS[tierId];
-    const success = await sendGenericEmail({
+    const result = await sendGenericEmail({
       to: adminEmail,
       subject: `⏰ Your free months are ending soon (${monthsRemaining} month${monthsRemaining === 1 ? '' : 's'} left)`,
       htmlBody: `
@@ -365,7 +365,7 @@ export async function notifyPromoExpiring(
       orgId,
     });
 
-    if (success) {
+    if (result.success) {
       await auditLogStreaming.logAction(
         'promo_expiring_email_sent',
         'system',
@@ -376,7 +376,7 @@ export async function notifyPromoExpiring(
       );
     }
 
-    return success;
+    return result.success;
   } catch (error: any) {
     logger.error('[billing-notifications] notifyPromoExpiring error', {
       orgId,
@@ -402,7 +402,7 @@ export async function notifyPromoExpired(
     }
 
     const tierConfig = TIERS[tierId];
-    const success = await sendGenericEmail({
+    const result = await sendGenericEmail({
       to: adminEmail,
       subject: 'Your free trial has ended — subscription continues',
       htmlBody: `
@@ -425,7 +425,7 @@ export async function notifyPromoExpired(
       orgId,
     });
 
-    if (success) {
+    if (result.success) {
       await auditLogStreaming.logAction(
         'promo_expired_email_sent',
         'system',
@@ -436,7 +436,7 @@ export async function notifyPromoExpired(
       );
     }
 
-    return success;
+    return result.success;
   } catch (error: any) {
     logger.error('[billing-notifications] notifyPromoExpired error', {
       orgId,
