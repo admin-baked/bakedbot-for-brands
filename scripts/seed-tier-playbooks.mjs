@@ -70,11 +70,27 @@ async function seedPlaybooks() {
   try {
     // Initialize Firebase Admin SDK
     if (!admin.apps.length) {
+      const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || './firebase-key.json';
       const projectId = process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8';
 
-      admin.initializeApp({
-        projectId,
-      });
+      try {
+        // Try loading service account key
+        const { readFileSync } = await import('fs');
+        const serviceAccount = JSON.parse(readFileSync(keyPath, 'utf8'));
+
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+          projectId,
+        });
+
+        console.log('✅ Authenticated with service account key');
+      } catch (keyErr) {
+        // Fallback: use Application Default Credentials
+        console.log('⚠️  Service account key not found, using Application Default Credentials');
+        admin.initializeApp({
+          projectId,
+        });
+      }
     }
 
     const db = admin.firestore();
