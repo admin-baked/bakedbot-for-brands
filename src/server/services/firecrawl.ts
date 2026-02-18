@@ -23,23 +23,18 @@ export class DiscoveryService {
     private static instance: DiscoveryService;
 
     private constructor() {
-        // DEBUG: Logging to see if env is loaded
-        const apiKey = process.env.FIRECRAWL_API_KEY;
-        console.log('[DiscoveryService] Initializing...');
-        console.log('[DiscoveryService] Env Key Exists:', !!apiKey);
-        if (apiKey) console.log('[DiscoveryService] Key Length:', apiKey.length);
+        const firecrawlKey = process.env.FIRECRAWL_API_KEY;
+        const rtrvrKey = process.env.RTRVR_API_KEY;
 
-        if (apiKey) {
-            this.app = new FirecrawlApp({ apiKey });
-            console.log('[DiscoveryService] App Initialized Successfully');
-        } else {
-            console.warn('[Discovery] API Key not found. BakedBot Discovery service will be disabled.');
-            console.warn('[Discovery] Checked process.env.FIRECRAWL_API_KEY');
+        if (firecrawlKey) {
+            this.app = new FirecrawlApp({ apiKey: firecrawlKey });
         }
 
         logger.info('[Discovery] Service initialized', {
             firecrawlAvailable: !!this.app,
-            rtrvrAvailable: this.isRTRVRAvailable()
+            firecrawlKeyLength: firecrawlKey?.length || 0,
+            rtrvrAvailable: this.isRTRVRAvailable(),
+            rtrvrKeyLength: rtrvrKey?.length || 0
         });
     }
 
