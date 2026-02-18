@@ -4,15 +4,22 @@ import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
 import { useUser } from '@/firebase/auth/use-user';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSquare, Loader2 } from 'lucide-react';
-import { useRotatingPrompts } from '@/hooks/use-rotating-prompts';
+import { useDynamicPrompts } from '@/hooks/use-dynamic-prompts';
 import { BRAND_CHAT_CONFIG } from '@/lib/chat/role-chat-config';
 
 export function BrandChatWidget() {
     const { user, isUserLoading } = useUser();
 
-    // Pick 4 fresh prompts from the full brand pool on every login/refresh.
-    // Hook must be called unconditionally (Rules of Hooks).
-    const brandPrompts = useRotatingPrompts(BRAND_CHAT_CONFIG.promptSuggestions, 4);
+    // Merge live CRM/intel/alert data with the static pool.
+    // 4 chips total: up to 2 data-driven, remainder from shuffled static pool.
+    // Hook called unconditionally (Rules of Hooks).
+    const orgId = (user as any)?.orgId ?? (user as any)?.uid ?? null;
+    const { prompts: brandPrompts } = useDynamicPrompts(
+        orgId,
+        BRAND_CHAT_CONFIG.promptSuggestions,
+        4,
+        2
+    );
 
     if (isUserLoading) {
         return (
