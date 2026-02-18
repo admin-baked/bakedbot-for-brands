@@ -102,7 +102,7 @@ export function HeroClient() {
 
                             <p className="mt-6 text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
                                 {userType === 'dispensary'
-                                    ? "Launch a headless SEO menu, automate budtender recommendations, and protect your license with always-on compliance checks."
+                                    ? "Launch a headless SEO menu, automate budtender recommendations, run compliant campaigns, and spy on your competitors — all from one platform."
                                     : "Find new retail partners, generate compliant marketing campaigns, and track competitor pricing with your own team of AI agents."
                                 }
                             </p>
