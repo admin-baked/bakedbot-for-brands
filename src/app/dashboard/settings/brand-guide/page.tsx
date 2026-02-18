@@ -6,8 +6,7 @@
 
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
-import { getCurrentUser } from '@/lib/auth-helpers';
+import { requireUser } from '@/server/auth/auth';
 import { getBrandGuide } from '@/server/actions/brand-guide';
 import { BrandGuideClient } from './brand-guide-client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,59 +17,39 @@ export const metadata = {
 };
 
 export default async function BrandGuideSettingsPage() {
-  // Get user session
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('__session')?.value;
-  const session = await getCurrentUser(sessionCookie);
-
-  if (!session) {
+  let session;
+  try {
+    session = await requireUser([
+      'brand',
+      'brand_admin',
+      'brand_member',
+      'dispensary',
+      'dispensary_admin',
+      'dispensary_staff',
+      'super_user',
+    ]);
+  } catch {
     redirect('/login');
   }
 
-  // Check role - support all brand and dispensary role variations
-  const allowedRoles = [
-    'brand',
-    'brand_admin',
-    'brand_member',
-    'dispensary',
-    'dispensary_admin',
-    'dispensary_staff',
-    'super_user',
-    'ceo'
-  ];
+  // Resolve orgId — prefer currentOrgId (impersonation), then orgId, then brandId
+  const brandId = session.currentOrgId || session.orgId || session.brandId;
 
-  const userRole = session.role?.toLowerCase();
-
-  if (!userRole || !allowedRoles.includes(userRole)) {
-    console.log('[Brand Guide] Access denied - Role:', userRole, 'Allowed:', allowedRoles);
+  if (!brandId) {
     redirect('/dashboard/inbox');
   }
 
-  console.log('[Brand Guide] Access granted - Role:', userRole, 'Session:', session);
-
-  // Get orgId/brandId
-  const brandId = session.orgId || session.uid;
-
-  // Fetch brand guide
+  // Fetch brand guide (returns undefined if none exists — shows onboarding)
   const { brandGuide } = await getBrandGuide(brandId);
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Brand Guide</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your brand identity, voice, messaging, and assets
-        </p>
-      </div>
-
-      <Suspense fallback={<BrandGuideLoadingSkeleton />}>
-        <BrandGuideClient
-          brandId={brandId}
-          initialBrandGuide={brandGuide}
-          userRole={session.role}
-        />
-      </Suspense>
-    </div>
+    <Suspense fallback={<BrandGuideLoadingSkeleton />}>
+      <BrandGuideClient
+        brandId={brandId}
+        initialBrandGuide={brandGuide}
+        userRole={session.role as string}
+      />
+    </Suspense>
   );
 }
 
