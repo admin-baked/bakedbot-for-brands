@@ -3,11 +3,6 @@
  *
  * Runs independently from the regular heartbeat checks to detect and recover failures.
  * Frequency: Every 5 minutes (catches failures quickly)
- *
- * Deploy cron job:
- * gcloud scheduler jobs create http heartbeat-recovery-cron --schedule="*/5 * * * *"
- *   --uri="https://bakedbot.ai/api/cron/heartbeat-recovery" --http-method=POST
- *   --headers="Authorization=Bearer CRON_SECRET" --location=us-central1
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -71,3 +66,12 @@ export async function POST(req: NextRequest) {
         );
     }
 }
+
+// Deployment instructions:
+// Create Cloud Scheduler job:
+// gcloud scheduler jobs create http heartbeat-recovery-cron \
+//   --schedule="*/5 * * * *" \
+//   --uri="https://bakedbot.ai/api/cron/heartbeat-recovery" \
+//   --http-method=POST \
+//   --headers="Authorization=Bearer CRON_SECRET" \
+//   --location=us-central1
