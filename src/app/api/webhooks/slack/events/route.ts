@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac, timingSafeEqual } from 'crypto';
 import { logger } from '@/lib/logger';

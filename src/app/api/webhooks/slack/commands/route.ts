@@ -5,6 +5,8 @@
  * Example: /ask linus what's the build status?
  */
 
+import 'server-only';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac } from 'crypto';
 import { logger } from '@/lib/logger';
