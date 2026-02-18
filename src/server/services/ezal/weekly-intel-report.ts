@@ -16,6 +16,7 @@ import {
     SnapshotSummary,
 } from '@/server/repos/competitor-snapshots';
 import { listCompetitors } from '@/server/services/ezal/competitor-manager';
+import type { DriveFileDoc } from '@/types/drive';
 
 // =============================================================================
 // TYPES
@@ -426,7 +427,44 @@ async function saveReportToDrive(
         throw new Error(uploadResult.error || 'Failed to save to Drive');
     }
 
-    // Save Drive file reference to Firestore
+    // Create drive_files Firestore record so the file appears in the BakedBot Drive UI.
+    // The Drive UI queries the `drive_files` collection — without this record the file
+    // is in Firebase Storage but invisible to users.
+    const now = Date.now();
+    const filename = `competitive-intel-${reportId}.md`;
+    const fileDoc: DriveFileDoc = {
+        id: '',
+        name: filename,
+        mimeType: 'text/plain',
+        size: buffer.length,
+        storagePath: uploadResult.storagePath!,
+        downloadUrl: uploadResult.downloadUrl!,
+        folderId: null,
+        path: `/${filename}`,
+        ownerId: adminUserId,
+        ownerEmail: adminEmail,
+        category: 'documents',
+        tags: ['competitive-intel', 'automated', 'ezal'],
+        description: `Weekly Competitive Intelligence Report - ${new Date().toLocaleDateString()}`,
+        metadata: {
+            orgId,
+            reportId,
+            generatedAt: new Date().toISOString(),
+            competitorCount: String(report.competitors.length),
+            dealCount: String(report.totalDealsTracked),
+        },
+        isShared: false,
+        shareIds: [],
+        viewCount: 0,
+        downloadCount: 0,
+        createdAt: now,
+        updatedAt: now,
+        isDeleted: false,
+    };
+    const driveFileRef = await firestore.collection('drive_files').add(fileDoc);
+    await driveFileRef.update({ id: driveFileRef.id });
+
+    // Save Drive file reference to tenant sub-collection for quick lookup by orgId
     await firestore
         .collection('tenants')
         .doc(orgId)
@@ -434,6 +472,7 @@ async function saveReportToDrive(
         .doc(reportId)
         .set({
             reportId,
+            driveFileId: driveFileRef.id,
             storagePath: uploadResult.storagePath,
             downloadUrl: uploadResult.downloadUrl,
             createdAt: new Date(),
