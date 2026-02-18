@@ -419,6 +419,16 @@ export function SuperAdminSidebar() {
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
 
+                                {/* Playbook Templates Section */}
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton asChild isActive={pathname?.startsWith('/dashboard/admin/playbook-templates')}>
+                                        <Link href="/dashboard/admin/playbook-templates">
+                                            <FolderKanban />
+                                            <span>Playbook Templates</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+
                                 {/* Dev Tools Section */}
                                 <SidebarMenuItem>
                                     <SidebarMenuButton asChild isActive={isAdminSectionActive("devtools")}>
