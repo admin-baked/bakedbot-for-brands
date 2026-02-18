@@ -70,7 +70,11 @@ async function seedPlaybooks() {
   try {
     // Initialize Firebase Admin SDK
     if (!admin.apps.length) {
-      admin.initializeApp();
+      const projectId = process.env.GCLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID || 'studio-567050101-bc6e8';
+
+      admin.initializeApp({
+        projectId,
+      });
     }
 
     const db = admin.firestore();
