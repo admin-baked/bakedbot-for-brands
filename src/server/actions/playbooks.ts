@@ -186,6 +186,93 @@ export async function assignPlaybookToOrg(
 }
 
 /**
+ * Assign tier-based playbooks (Pro/Enterprise) to an organization
+ * Called during signup/onboarding for paid tier users
+ */
+export async function assignTierPlaybooks(
+    orgId: string,
+    tier: 'free' | 'pro' | 'enterprise'
+): Promise<{ success: boolean; assigned: string[]; error?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+        const assigned: string[] = [];
+
+        if (tier === 'free') {
+            // Free tier uses separate logic in free-user-setup.ts
+            return { success: true, assigned: [] };
+        }
+
+        // Import Pro/Enterprise playbook templates
+        const { getPlaybooksForTier, templateToFirestoreDoc } = await import(
+            '@/app/onboarding/templates/pro-tier-playbooks'
+        );
+        const templates = getPlaybooksForTier(tier);
+
+        // Assign each template as a playbook
+        for (const template of templates) {
+            try {
+                const collectionRef = firestore.collection('organizations').doc(orgId).collection('playbooks');
+
+                // Check if playbook already exists
+                const existing = await collectionRef
+                    .where('templateId', '==', template.id)
+                    .limit(1)
+                    .get();
+
+                if (!existing.empty) {
+                    console.log(`[Playbooks] Tier playbook already exists: ${template.name}`);
+                    assigned.push(template.id);
+                    continue;
+                }
+
+                // Create the playbook from template
+                const newDocRef = collectionRef.doc();
+                const timestamp = new Date();
+
+                const playbookData = {
+                    id: newDocRef.id,
+                    templateId: template.id,
+                    name: template.name,
+                    description: template.description,
+                    tier: template.tier,
+                    category: template.category,
+                    triggerEvent: template.triggerEvent,
+                    schedule: template.schedule,
+                    steps: template.steps,
+                    channels: template.channels,
+                    aiGenerated: template.aiGenerated,
+                    personalizationLevel: template.personalizationLevel,
+                    status: 'active',
+                    ownerId: 'system',
+                    ownerName: 'BakedBot',
+                    isCustom: false,
+                    createdAt: timestamp,
+                    updatedAt: timestamp,
+                    createdBy: 'system',
+                    orgId,
+                    runCount: 0,
+                    successCount: 0,
+                    failureCount: 0,
+                    version: 1,
+                };
+
+                await newDocRef.set(playbookData);
+                assigned.push(template.id);
+                console.log(`[Playbooks] Assigned ${tier} tier playbook: ${template.name}`);
+            } catch (err) {
+                console.error(`[Playbooks] Failed to assign tier playbook ${template.id}:`, err);
+                // Continue with other templates
+            }
+        }
+
+        return { success: true, assigned };
+    } catch (error: any) {
+        console.error('[Playbooks] assignTierPlaybooks failed:', error);
+        return { success: false, assigned: [], error: error.message };
+    }
+}
+
+/**
  * Create a new playbook
  */
 export async function createPlaybook(
