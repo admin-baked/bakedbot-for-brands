@@ -1,0 +1,63 @@
+name: Day Day International Discovery
+
+on:
+  schedule:
+    # Run daily at 3 AM UTC (10 AM Thailand time)
+    - cron: '0 3 * * *'
+  workflow_dispatch: # Allow manual triggering for testing
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check CRON_SECRET
+        run: |
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "ERROR: CRON_SECRET is not set in GitHub secrets"
+            exit 1
+          fi
+          echo "✅ CRON_SECRET is configured"
+
+      - name: Run International Market Discovery
+        run: |
+          echo "🌍 Starting international market discovery..."
+          echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            https://bakedbot.ai/api/cron/dayday-international-discovery \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json")
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "HTTP Status: $http_code"
+          echo "Response:"
+          echo "$body" | jq . 2>/dev/null || echo "$body"
+
+          if [ "$http_code" != "200" ]; then
+            echo "ERROR: International discovery failed with status $http_code"
+            exit 1
+          fi
+
+          # Parse response for summary
+          if echo "$body" | jq . 2>/dev/null | grep -q '"success":true'; then
+            markets=$(echo "$body" | jq -r '.marketsProcessed // 0')
+            dispensaries=$(echo "$body" | jq -r '.dispensariesFound // 0')
+            pages=$(echo "$body" | jq -r '.pagesSaved // 0')
+
+            echo ""
+            echo "✅ International Discovery Complete!"
+            echo "📊 Summary:"
+            echo "   - Markets processed: $markets"
+            echo "   - Dispensaries found: $dispensaries"
+            echo "   - Pages saved: $pages"
+          else
+            echo "⚠️  Response received but check details above"
+          fi
+
+      - name: Log Success
+        run: |
+          echo "✅ International market discovery completed at $(date -u +%Y-%m-%dT%H:%M:%SZ)"

@@ -384,21 +384,27 @@ export async function getZipCodeCoordinates(
 /**
  * Geocode a general location string (Zip, City, or Address)
  * @param query The location string to geocode (e.g. "Robbins", "Robbins, IL", "90210")
+ * @param options Optional configuration: countryCode to restrict results (e.g. "th" for Thailand, defaults to "us")
  */
 export async function geocodeLocation(
-    query: string
+    query: string,
+    options?: { countryCode?: string }
 ): Promise<{ lat: number; lng: number; city: string; state: string } | null> {
-    // 1. If it looks like a ZIP code (5 digits), use the specialized zip handler
+    // 1. If it looks like a ZIP code (5 digits) and no country override, use the specialized zip handler
     // This maintains caching and existing behavior for clear zips
     const zipMatch = query.match(/^\b\d{5}\b$/);
-    if (zipMatch) {
+    if (zipMatch && !options?.countryCode) {
          return getZipCodeCoordinates(zipMatch[0]);
     }
 
     // 2. Otherwise, perform a free-text search via Nominatim
     try {
+        // Build country filter - default to US for backward compatibility, allow international
+        const countryCode = options?.countryCode || 'us';
+        const countryFilter = countryCode ? `&countrycodes=${countryCode}` : '';
+
         const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&countrycodes=us&format=json&limit=1&addressdetails=1`,
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}${countryFilter}&format=json&limit=1&addressdetails=1`,
             {
                 headers: {
                     'User-Agent': 'BakedBot-GeoFinder/1.0',
@@ -412,10 +418,10 @@ export async function geocodeLocation(
         if (data && data.length > 0) {
             const result = data[0];
             const address = result.address || {};
-            
+
             // Extract City (handle various OSM keys)
             const city = address.city || address.town || address.village || address.hamlet || (address.county ? address.county.replace(' County', '') : undefined);
-            
+
             if (result.lat && result.lon && city && address.state) {
                 return {
                     lat: parseFloat(result.lat),
@@ -428,7 +434,7 @@ export async function geocodeLocation(
     } catch (e) {
         console.error("Geocoding failed:", e);
     }
-    
+
     return null;
 }
 
