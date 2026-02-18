@@ -53,6 +53,13 @@ export function useDashboardConfig() {
         roles: ['brand', 'dispensary', 'super_user'],
       },
       {
+        label: 'Template Health',
+        href: '/dashboard/admin/playbook-templates',
+        icon: 'HeartHandshake',
+        description: 'Monitor playbook template performance, A/B tests, and revenue attribution.',
+        roles: ['brand', 'dispensary', 'super_user'],
+      },
+      {
         label: 'Projects',
         href: '/dashboard/projects',
         icon: 'FolderKanban',

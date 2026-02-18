@@ -25,8 +25,8 @@ npm run check:types
 - ✅ **Phase 6: Unit Tests** — 27 tests for subscription actions + modal, all passing
 - ✅ **Phase 5: Subscription Management** — Upgrade/Cancel/Invoice features complete
 - ✅ **Fixed 10+ pre-existing type errors** — Build health restored (0 TypeScript errors)
-- ✅ **Onboarding-aware prompt chips** — Brand chat chips surface setup nudges for new users (POS, competitors, brand guide)
-- ✅ **Dynamic prompts from live data** — CI reports, competitor alerts, CRM signals drive chip content
+- ✅ **Dynamic prompts — Brand + Dispensary** — Both dashboards show live CI/CRM chips + onboarding nudges (commit bcebba7a)
+- ✅ **Onboarding-aware prompt chips** — New users see setup nudges; fully-set-up users see live intel
 - ✅ **Craig brand discovery tools** — extractBrandData, discoverWebContent, searchWebBrands (Firecrawl + RTRVR)
 - ✅ **Super User Promotion: Rishabh** — UID-based promotion fixes Firebase Auth issues for new users
 - ✅ Heartbeat Automatic Recovery (24/7 autonomously keeps system online)
@@ -5208,12 +5208,12 @@ Mock ordering bug in domain-routing tests fixed: changed `setupMapping()` from `
 
 ---
 
-## Brand Chat: Dynamic & Onboarding-Aware Prompts (2026-02-18) ✅ COMPLETE
+## Brand + Dispensary Chat: Dynamic & Onboarding-Aware Prompts (2026-02-18) ✅ COMPLETE
 
-**Status:** Production — Smart prompt chips on brand dashboard chat widget
+**Status:** Production — Smart prompt chips on brand AND dispensary dashboard chat widgets
 
 ### What Was Built
-Three-layer prompt chip system for the Brand Chat Widget (Craig agent):
+Three-layer prompt chip system for BrandChatWidget (Craig) and DispensaryChatWidget (Money Mike):
 
 | Priority | Source | When Active |
 |----------|--------|-------------|
@@ -5244,8 +5244,9 @@ Server action `getDynamicPromptSuggestions(orgId, userId?)` reads:
 | `src/server/actions/dynamic-prompts.ts` | Server action — onboarding check (section 0) + CI/CRM signals |
 | `src/hooks/use-dynamic-prompts.ts` | Client hook — fetches dynamic + merges with static shuffle |
 | `src/hooks/use-rotating-prompts.ts` | Simple shuffle hook (used in PuffChat) |
-| `src/app/dashboard/brand/components/brand-chat-widget.tsx` | Passes orgId + userId to hook |
-| `src/lib/chat/role-chat-config.ts` | 18-prompt static pools for all 7 roles |
+| `src/app/dashboard/brand/components/brand-chat-widget.tsx` | Brand (Craig) — passes orgId + userId to hook |
+| `src/app/dashboard/dispensary/components/dispensary-chat-widget.tsx` | Dispensary (Money Mike) — same pattern |
+| `src/lib/chat/role-chat-config.ts` | 15-18 prompt static pools for all 7 roles |
 
 ### Hook Signature
 ```typescript
@@ -5271,6 +5272,7 @@ Craig agent has 3 discovery tools wired to Firecrawl + RTRVR fallback:
 - `36c2e6c9` feat(ux): Rotate fresh prompt chips on every login/inbox refresh
 - `f4b94282` feat(prompts): Dynamic prompt chips from live CRM, intel & alerts
 - `f4f3ceef` fix(chat): Onboarding-aware prompts + syntax fix
+- `bcebba7a` feat(dispensary): Wire dynamic + onboarding-aware prompts into dispensary chat
 
 
 **Files Created:**
