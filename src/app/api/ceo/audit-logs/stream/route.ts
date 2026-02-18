@@ -69,8 +69,8 @@ export async function GET(request: NextRequest) {
                             try {
                                 const data = `data: ${JSON.stringify(log)}\n\n`;
                                 controller.enqueue(encoder.encode(data));
-                            } catch (error) {
-                                logger.error('[Audit Log Stream] Failed to send log:', error);
+                            } catch (error: any) {
+                                logger.error('[Audit Log Stream] Failed to send log:', { error: error instanceof Error ? error.message : String(error) });
                             }
                         },
                         onError(error) {
@@ -101,8 +101,8 @@ export async function GET(request: NextRequest) {
                 'X-Accel-Buffering': 'no', // Disable buffering in proxies
             },
         });
-    } catch (error) {
-        logger.error('[Audit Log Stream] Failed to start stream:', error);
+    } catch (error: any) {
+        logger.error('[Audit Log Stream] Failed to start stream:', { error: error instanceof Error ? error.message : String(error) });
         return NextResponse.json(
             { error: 'Failed to start stream' },
             { status: 500 }

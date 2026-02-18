@@ -67,8 +67,8 @@ class SystemHealthChecksService {
                         timestamp: new Date(),
                     };
             }
-        } catch (error) {
-            logger.error(`[Health Check] Failed to execute ${checkType}:`, error);
+        } catch (error: any) {
+            logger.error(`[Health Check] Failed to execute ${checkType}:`, { error: error instanceof Error ? error.message : String(error) });
             return {
                 checkId,
                 checkType,
@@ -276,8 +276,8 @@ class SystemHealthChecksService {
             });
 
             return docRef.id;
-        } catch (error) {
-            logger.error(`[Health Check] Failed to log run:`, error);
+        } catch (error: any) {
+            logger.error(`[Health Check] Failed to log run:`, { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -307,8 +307,8 @@ class SystemHealthChecksService {
                     failureMessage: data.failureMessage,
                 };
             });
-        } catch (error) {
-            logger.error(`[Health Check] Failed to get recent runs:`, error);
+        } catch (error: any) {
+            logger.error(`[Health Check] Failed to get recent runs:`, { error: error instanceof Error ? error.message : String(error) });
             return [];
         }
     }
@@ -361,8 +361,8 @@ class SystemHealthChecksService {
                 averageDurationMs: avgDuration,
                 checkBreakdown,
             };
-        } catch (error) {
-            logger.error(`[Health Check] Failed to get stats:`, error);
+        } catch (error: any) {
+            logger.error(`[Health Check] Failed to get stats:`, { error: error instanceof Error ? error.message : String(error) });
             return {
                 totalRuns: 0,
                 successfulRuns: 0,

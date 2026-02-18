@@ -185,8 +185,8 @@ export async function POST(request: NextRequest) {
                 'failed',
                 { error: errorMessage }
             );
-        } catch (auditError) {
-            logger.error('[Health Check] Failed to log audit entry', auditError);
+        } catch (auditError: any) {
+            logger.error('[Health Check] Failed to log audit entry', { error: auditError instanceof Error ? auditError.message : String(auditError) });
         }
 
         return NextResponse.json(

@@ -73,8 +73,8 @@ class ToolCacheService {
 
             logger.debug(`[Tool Cache] STORED ${key} (TTL: ${ttlSeconds}s)`);
             return data;
-        } catch (error) {
-            logger.error(`[Tool Cache] FETCH FAILED ${key}`, error);
+        } catch (error: any) {
+            logger.error(`[Tool Cache] FETCH FAILED ${key}`, { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
