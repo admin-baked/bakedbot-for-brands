@@ -184,17 +184,33 @@ export class BrandGuideExtractor {
    */
   private async analyzeWebsite(url: string): Promise<WebsiteAnalysis> {
     try {
-      // Use Discovery service to scrape the website
+      logger.info('[BrandGuideExtractor] Starting website analysis', { url });
+
+      // Use Discovery service to scrape the website (Firecrawl → RTRVR fallback)
       const scrapeResult = await this.discovery.discoverUrl(url);
+
+      if (!scrapeResult.markdown) {
+        logger.warn('[BrandGuideExtractor] No markdown content returned from scraper', { url });
+      }
 
       // Extract colors from content (looking for hex codes)
       const colors = this.extractColors(scrapeResult.markdown || '');
+      logger.debug('[BrandGuideExtractor] Extracted colors', { url, count: colors.length });
 
       // Extract fonts from content (if mentioned)
       const fonts = this.extractFonts(scrapeResult.markdown || '');
+      logger.debug('[BrandGuideExtractor] Extracted fonts', { url, count: fonts.length });
 
       // Extract text samples for voice analysis
       const textSamples = this.extractTextSamples(scrapeResult.markdown || '');
+      logger.debug('[BrandGuideExtractor] Extracted text samples', { url, count: textSamples.length });
+
+      logger.info('[BrandGuideExtractor] Website analysis completed successfully', {
+        url,
+        colorsFound: colors.length,
+        fontsFound: fonts.length,
+        textSamplesFound: textSamples.length
+      });
 
       return {
         url,
@@ -210,7 +226,10 @@ export class BrandGuideExtractor {
         textSamples,
       };
     } catch (error) {
-      logger.error('Website analysis failed', { error, url });
+      logger.error('[BrandGuideExtractor] Website analysis failed', {
+        error: error instanceof Error ? error.message : String(error),
+        url
+      });
       throw error;
     }
   }
