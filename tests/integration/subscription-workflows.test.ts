@@ -228,7 +228,7 @@ describe('Subscription Workflows — Integration Tests', () => {
       expect(result.success).toBe(true);
       expect(updateARBSubscription).toHaveBeenCalled(); // Step 5
       expect(mockDocRef.set).toHaveBeenCalled(); // Step 6
-      expect(assignTierPlaybooks).toHaveBeenCalledWith('org1', 'enterprise'); // Step 7
+      expect(assignTierPlaybooks).toHaveBeenCalledWith('org1', 'pro'); // Step 7 (growth maps to pro playbook tier)
       expect(emitEvent).toHaveBeenCalled(); // Step 8
       expect(notifySubscriptionCreated).toHaveBeenCalled(); // Step 9
       expect(firestoreWrites.some((w) => w.type === 'add')).toBe(true); // Step 10 (invoice)
