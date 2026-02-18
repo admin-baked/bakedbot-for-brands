@@ -8,7 +8,14 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import type { AgentResult } from '@/server/agents/agent-runner';
 
-const firestore = getAdminFirestore();
+let firestore: ReturnType<typeof getAdminFirestore> | null = null;
+
+function getFirestore() {
+    if (!firestore) {
+        firestore = getAdminFirestore();
+    }
+    return firestore;
+}
 
 // ============================================================================
 // Types
@@ -122,7 +129,7 @@ export interface CreateApprovalParams {
  * Store a pending approval request in Firestore
  */
 export async function createApprovalRequest(params: CreateApprovalParams): Promise<string> {
-    const docRef = firestore.collection('slack_pending_approvals').doc();
+    const docRef = getFirestore().collection('slack_pending_approvals').doc();
     const now = Timestamp.now();
     const expiresAt = new Timestamp(now.seconds + 86400, now.nanoseconds); // 24h TTL
 
@@ -166,7 +173,7 @@ export async function createApprovalRequest(params: CreateApprovalParams): Promi
  */
 export async function setApprovalMessageTs(approvalId: string, messageTs: string): Promise<void> {
     try {
-        await firestore.collection('slack_pending_approvals').doc(approvalId).update({
+        await getFirestore().collection('slack_pending_approvals').doc(approvalId).update({
             slackApprovalMessageTs: messageTs,
         });
     } catch (error: any) {
@@ -182,7 +189,7 @@ export async function setApprovalMessageTs(approvalId: string, messageTs: string
  */
 export async function getApprovalRequest(approvalId: string): Promise<SlackPendingApproval | null> {
     try {
-        const doc = await firestore.collection('slack_pending_approvals').doc(approvalId).get();
+        const doc = await getFirestore().collection('slack_pending_approvals').doc(approvalId).get();
         if (!doc.exists) {
             return null;
         }
@@ -205,7 +212,7 @@ export async function approveAction(
 ): Promise<void> {
     try {
         const now = Timestamp.now();
-        await firestore.collection('slack_pending_approvals').doc(approvalId).update({
+        await getFirestore().collection('slack_pending_approvals').doc(approvalId).update({
             status: 'approved',
             reviewedBy: reviewerSlackId,
             reviewedAt: now,
@@ -233,7 +240,7 @@ export async function rejectAction(
 ): Promise<void> {
     try {
         const now = Timestamp.now();
-        await firestore.collection('slack_pending_approvals').doc(approvalId).update({
+        await getFirestore().collection('slack_pending_approvals').doc(approvalId).update({
             status: 'rejected',
             reviewedBy: reviewerSlackId,
             reviewedAt: now,
