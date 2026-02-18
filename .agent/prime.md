@@ -132,7 +132,7 @@ node scripts/promote-super-user-by-email.mjs <EMAIL>
 
 ## 🆕 Recent Updates
 
-### Competitive Intelligence System (2026-02-17)
+### Competitive Intelligence System (2026-02-18)
 **Status:** ✅ Production — Full automation for Thrive Syracuse
 
 **What It Does:** Daily report at 9 AM EST scans 4 local Syracuse competitors, saves to BakedBot Drive, creates inbox notification, sends email to `thrivesyracuse@bakedbot.ai`, detects real-time price alerts.
@@ -142,6 +142,15 @@ node scripts/promote-super-user-by-email.mjs <EMAIL>
 - `src/server/services/ezal/weekly-intel-report.ts` — Core: report + Drive + Inbox + Email
 - `src/server/services/ezal/competitor-alerts.ts` — Real-time alerts (>30% price drops, strategy changes)
 - `src/server/agents/ezal.ts` — `readDriveFile()` + `listCompetitiveReports()` tools
+
+**Bug Fixed (2026-02-18) — Drive Save Was Silent No-Op:**
+`saveReportToDrive()` uploaded the `.md` to Firebase Storage but never created a `drive_files` Firestore record. The Drive UI only queries `drive_files` — so files were invisible. Fix: after storage upload, now creates a proper `DriveFileDoc` in `drive_files` with full metadata. Confirmed working via live Firestore verification (record `3OiNUrfUyUNuCadvYNUO`).
+
+**Critical Pattern — Saving Automated Files to BakedBot Drive:**
+Any automated service that saves to Drive must do BOTH steps:
+1. `driveService.uploadFile(...)` — uploads to Firebase Storage
+2. Write a `DriveFileDoc` to the `drive_files` Firestore collection — makes the file visible in Drive UI
+Without step 2, the file exists in Storage but is invisible to users. See `drive.ts:340-366` for the reference pattern.
 
 **Critical Pattern — Tenant Doc May Not Exist:**
 ```typescript
@@ -162,7 +171,6 @@ if (!tenantDoc.exists || !adminUserId) {
 2. Run `npx tsx scripts/seed-thrive-competitors.ts` pattern (adapt competitor list)
 3. Create Cloud Scheduler job pointing to `/api/cron/competitive-intel`
 4. Competitors live in `tenants/{orgId}/competitors/`, snapshots in `tenants/{orgId}/competitor_snapshots/`
-
 ### Slack Integration (2026-02-18)
 **Status:** ✅ LIVE — Full two-way agent chat + heartbeat alerts + **thread reply fix**
 
