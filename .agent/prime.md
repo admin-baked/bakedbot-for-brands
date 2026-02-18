@@ -21,11 +21,12 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-02-18)
 **Recent Updates (2026-02-18):**
+- ✅ **Onboarding-aware prompt chips** — Brand chat chips surface setup nudges for new users (POS, competitors, brand guide)
+- ✅ **Dynamic prompts from live data** — CI reports, competitor alerts, CRM signals drive chip content
+- ✅ **Craig brand discovery tools** — extractBrandData, discoverWebContent, searchWebBrands (Firecrawl + RTRVR)
+- ✅ **RTRVR.ai fallback** — IAM binding fixed, brand guide scraping now fully operational
 - ✅ **Super User Promotion: Rishabh** — UID-based promotion fixes Firebase Auth issues for new users
-- ✅ Phase 4: User Mention Resolution — Slack user mentions auto-extracted + resolved to names/emails
-- ✅ Firebase Build Monitor — 24/7 monitoring, autonomous failure detection, Linus (CTO) alert system
 - ✅ Heartbeat Automatic Recovery (24/7 autonomously keeps system online)
-- ✅ Phase 2: Tool caching + Real-time audit streaming (40+ tests added)
 - ✅ 28 Super User agent tools + Next.js 15 + Competitive Intel + Loyalty + Slack
 
 ---
@@ -5193,6 +5194,73 @@ Mock ordering bug in domain-routing tests fixed: changed `setupMapping()` from `
 
 **Commits:**
 - `4884b5d6` "fix(tests): Fix domain-routing mock ordering and add platform enhancements"
+
+---
+
+## Brand Chat: Dynamic & Onboarding-Aware Prompts (2026-02-18) ✅ COMPLETE
+
+**Status:** Production — Smart prompt chips on brand dashboard chat widget
+
+### What Was Built
+Three-layer prompt chip system for the Brand Chat Widget (Craig agent):
+
+| Priority | Source | When Active |
+|----------|--------|-------------|
+| 1 (highest) | **Onboarding nudges** | User is new OR has incomplete setup steps |
+| 2 | **Live CI/CRM signals** | User is fully set up, has org activity |
+| 3 | **Static pool (shuffled)** | Always fills remaining slots |
+
+### Onboarding Nudges (Priority 1)
+Detected via `users/{uid}` fields + `organizations/{orgId}/competitors` count:
+- `isNewUser === true` or no `onboardingCompletedAt` → "Walk me through what Craig can do"
+- `posConfig === null` → "Connect your POS to unlock real-time insights"
+- competitors count === 0 → "Add competitors to track pricing gaps"
+
+Once all setup steps complete → falls through to CI/CRM signals.
+
+### CI/CRM Signals (Priority 2)
+Server action `getDynamicPromptSuggestions(orgId, userId?)` reads:
+- `tenants/{orgId}/weekly_reports` — market trends, pricing gaps, recommendations
+- `tenants/{orgId}/competitor_alerts` (last 7 days) — price drops, new competitors, stockouts
+- `users` CRM — new signups this week, churned customers, VIP lifecycle stage
+
+### Static Pool (Priority 3)
+18-prompt pool in `BRAND_CHAT_CONFIG.promptSuggestions` — freshly shuffled each mount via `useDynamicPrompts`.
+
+### Key Files
+| File | Purpose |
+|------|---------|
+| `src/server/actions/dynamic-prompts.ts` | Server action — onboarding check (section 0) + CI/CRM signals |
+| `src/hooks/use-dynamic-prompts.ts` | Client hook — fetches dynamic + merges with static shuffle |
+| `src/hooks/use-rotating-prompts.ts` | Simple shuffle hook (used in PuffChat) |
+| `src/app/dashboard/brand/components/brand-chat-widget.tsx` | Passes orgId + userId to hook |
+| `src/lib/chat/role-chat-config.ts` | 18-prompt static pools for all 7 roles |
+
+### Hook Signature
+```typescript
+useDynamicPrompts(
+    orgId: string | null,
+    staticPool: string[],
+    count: number = 4,       // total chips to show
+    dynamicSlots: number = 2, // max live-data chips
+    userId?: string | null    // enables onboarding check
+)
+```
+
+### Craig Brand Discovery Tools (same session)
+Craig agent has 3 discovery tools wired to Firecrawl + RTRVR fallback:
+- `extractBrandData(url)` — full brand guide extraction via `BrandGuideExtractor`
+- `discoverWebContent(url)` — markdown scrape of any URL
+- `searchWebBrands(query)` — web search for competitor brands
+
+**RTRVR fix:** `firebase apphosting:secrets:grantaccess RTRVR_API_KEY --backend=bakedbot-prod` resolved IAM binding. Brand guide scraping now operational.
+
+### Commits
+- `7cb84b2a` feat(craig): Add proactive brand discovery prompts and agent guidance
+- `36c2e6c9` feat(ux): Rotate fresh prompt chips on every login/inbox refresh
+- `f4b94282` feat(prompts): Dynamic prompt chips from live CRM, intel & alerts
+- `f4f3ceef` fix(chat): Onboarding-aware prompts + syntax fix
+
 
 **Files Created:**
 - `tests/actions/vibe-projects.test.ts`
