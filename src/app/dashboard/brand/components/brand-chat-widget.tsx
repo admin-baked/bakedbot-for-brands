@@ -9,10 +9,14 @@ export function BrandChatWidget() {
     const { user, isUserLoading } = useUser();
 
     const BRAND_PROMPTS = [
-        "Find dispensaries to carry my products",
-        "See where my brand appears online",
+        // Brand Discovery (Firecrawl + RTRVR)
+        "Extract brand data from a competitor website",
+        "Search for top cannabis brands in my market",
+        // Campaigns
         "Draft a campaign in 30 seconds",
         "Spy on competitor pricing",
+        // Growth
+        "Find dispensaries to carry my products",
         "See this week's wins & opportunities"
     ];
 
