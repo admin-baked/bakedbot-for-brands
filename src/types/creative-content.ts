@@ -127,7 +127,7 @@ export interface CreativeContentBase {
     mediaType: MediaType;
 
     /** AI model used for generation */
-    generatedBy: 'nano-banana' | 'nano-banana-pro' | 'manual';
+    generatedBy: 'nano-banana' | 'nano-banana-pro' | 'flux-schnell' | 'flux-pro' | 'manual';
 
     /** Prompt used to generate content */
     generationPrompt?: string;
