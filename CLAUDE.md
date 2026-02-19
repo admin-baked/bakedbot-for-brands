@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (Leafly brand logo seeder, Linus Slack timeout 55s→240s, brand guide scan fixes)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (Cottonmouth competitive audit, menu parity improvements, configurable loyalty/discount bar)
 
 ---
 
