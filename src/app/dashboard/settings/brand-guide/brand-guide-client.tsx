@@ -305,11 +305,18 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         throw new Error(result.error || 'Failed to scan website');
       }
 
-      // Step 1 — derive brand name from extracted data or URL domain
-      // (extraction may not return an explicit brand name, so fall back to domain)
+      // Step 1 — derive brand name from extracted data, website title, or URL domain
+      // Priority: explicit brandName → website page title → URL domain fallback
+      const websiteTitle: string | undefined = (result as any).websiteTitle;
+      const titleDerivedName = websiteTitle
+        ? websiteTitle
+            // Strip common suffixes like "| Dispensary" or "- Cannabis"
+            .split(/\s*[\|\-–]\s*/)[0]
+            .trim()
+        : undefined;
+
       const extractedBrandName: string =
-        (result as any).brandName ||
-        (result as any).messaging?.brandName ||
+        titleDerivedName ||
         websiteUrl
           .replace(/^https?:\/\//i, '')
           .replace(/^www\./i, '')
@@ -317,12 +324,29 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
           .replace(/[-_]/g, ' ')
           .replace(/\b\w/g, (c: string) => c.toUpperCase());
 
+      // Filter out AI placeholder values that look like "Unknown - ..."
+      const cleanTagline = (value: string | undefined): string => {
+        if (!value) return '';
+        const lower = value.toLowerCase().trim();
+        if (
+          lower.startsWith('unknown') ||
+          lower === 'n/a' ||
+          lower === 'not found' ||
+          lower === 'not available' ||
+          lower.includes('insufficient') ||
+          lower.includes('not provided')
+        ) {
+          return '';
+        }
+        return value;
+      };
+
       // Only pre-fill if the user hasn't already completed step 1
       if (!step1Data) {
         setStep1Data({
           brandName: extractedBrandName,
           description: (result as any).messaging?.valueProposition || '',
-          tagline: (result as any).messaging?.tagline || '',
+          tagline: cleanTagline((result as any).messaging?.tagline),
         });
       }
 
