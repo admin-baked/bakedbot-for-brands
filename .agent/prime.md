@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-19)
 
 **Recent work (2026-02-19):** See `memory/MEMORY.md` for full log.
-Key completed: [Creative Studio image variety + text overlay + proactive gen] (`23c10b1e`), [Brand Guide scan fixes] (`b7feb9d1`)
+Key completed: [Heartbeat gray pulse fix — users fallback in findDueTenants] (`92d8345f`), [Creative Studio + brand images] (`23c10b1e`)
 
 ---
 
