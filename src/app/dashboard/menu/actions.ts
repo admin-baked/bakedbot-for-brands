@@ -144,7 +144,7 @@ export async function getPosConfig(): Promise<PosConfigInfo> {
  * Triggers a sync with the connected POS (Dutchie or Alleaves).
  * Upserts products into the 'products' collection.
  */
-export async function syncMenu(): Promise<{ success: boolean; count?: number; error?: string; provider?: string }> {
+export async function syncMenu(): Promise<{ success: boolean; count?: number; error?: string; provider?: string; removed?: number }> {
     try {
         const { firestore } = await createServerClient();
         const user = await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender', 'super_user']);
@@ -200,36 +200,39 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
 
         // 4. Map & Upsert
         const productRepo = makeProductRepo(firestore);
-        const batch = firestore.batch();
         const now = new Date();
 
+        // Build set of external IDs returned by POS this sync
+        const syncedExternalIds = new Set(items.map(item => item.externalId));
+
         let count = 0;
+        let batch = firestore.batch();
 
         for (const item of items) {
              // Create a deterministic ID: locationId_externalId
              const docId = `${locationId}_${item.externalId}`;
-             const ref = productRepo.getRef(docId); 
+             const ref = productRepo.getRef(docId);
 
              const productData = {
                  id: docId,
                  name: item.name,
-                 brandId: user.brandId || '', 
+                 brandId: user.brandId || '',
                  brandName: item.brand,
                  dispensaryId: locationId,
-                 category: item.category, 
+                 category: item.category,
                  description: '', // DutchieClient doesn't currently bubble description, maybe add later
                  imageUrl: item.imageUrl || '',
-                 
+
                  price: item.price,
                  originalPrice: item.price,
                  currency: 'USD',
-                 
+
                  thcPercent: item.thcPercent || 0,
                  cbdPercent: item.cbdPercent || 0,
-                 
+
                  inStock: (item.stock || 0) > 0,
                  stockCount: item.stock || 0,
-                 
+
                  source: 'pos',
                  externalId: item.externalId,
                  updatedAt: now,
@@ -241,21 +244,56 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
 
              if (count % 400 === 0) {
                  await batch.commit();
+                 batch = firestore.batch();
              }
         }
-        
-        await batch.commit();
 
-        // 5. Update Location Sync Status
+        if (count % 400 !== 0) {
+            await batch.commit();
+        }
+
+        // 5. Remove stale POS products — products in Firestore that no longer exist in Alleaves
+        // Only removes products with source='pos' to preserve any manually added products
+        const existingSnap = await firestore.collection('products')
+            .where('dispensaryId', '==', locationId)
+            .where('source', '==', 'pos')
+            .get();
+
+        const staleIds = existingSnap.docs
+            .filter(doc => {
+                const externalId = doc.data().externalId;
+                return externalId && !syncedExternalIds.has(externalId);
+            })
+            .map(doc => doc.id);
+
+        if (staleIds.length > 0) {
+            let deleteBatch = firestore.batch();
+            let deleteCount = 0;
+            for (const staleId of staleIds) {
+                deleteBatch.delete(firestore.collection('products').doc(staleId));
+                deleteCount++;
+                if (deleteCount % 400 === 0) {
+                    await deleteBatch.commit();
+                    deleteBatch = firestore.batch();
+                }
+            }
+            if (deleteCount % 400 !== 0) {
+                await deleteBatch.commit();
+            }
+            logger.info('[SYNC_MENU] Removed stale POS products', { locationId, removed: staleIds.length });
+        }
+
+        // 6. Update Location Sync Status
         await firestore.collection('locations').doc(locationId).update({
             'posConfig.syncedAt': now,
             'posConfig.lastSyncStatus': 'success'
         });
-        
+
         const { revalidatePath } = await import('next/cache');
         revalidatePath('/dashboard/menu');
+        revalidatePath('/dashboard/products');
 
-        return { success: true, count, provider };
+        return { success: true, count, provider, removed: staleIds.length };
 
     } catch (e: any) {
         logger.error('[SYNC_MENU] Failed:', e);
