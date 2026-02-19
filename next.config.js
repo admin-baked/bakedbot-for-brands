@@ -19,39 +19,10 @@ const nextConfig = {
 
   // Reduce compilation overhead
   images: {
+    // Allow any external image URL — needed for brand logos from diverse brand websites
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**.bakedbot.ai',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'storage.googleapis.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'storage.cloud.google.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'product-assets.iheartjane.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 's3-us-west-2.amazonaws.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.dutchie.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'firebasestorage.googleapis.com',
-      },
+      { protocol: 'https', hostname: '**' },
+      { protocol: 'http', hostname: '**' },
     ],
   },
   serverExternalPackages: [
