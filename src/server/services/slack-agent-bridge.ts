@@ -243,13 +243,26 @@ export async function processSlackMessage(ctx: SlackMessageContext): Promise<voi
 
         // 7. Run the agent with enriched text (includes team context), attachments, and system user
         // (avoids requireUser() cookie lookup in async context)
+        //
+        // Timeouts are agent-aware: Claude-based agents (linus, executive board) need more
+        // time due to multi-step tool calling (15 iterations × ~20s per Claude call).
+        // Slack has already received a "thinking" message, so there's no hard ACK deadline.
+        const AGENT_TIMEOUTS: Record<string, number> = {
+            linus: 240_000,   // 4 min — Claude API + multi-tool (run_health_check, run_command)
+            leo:   120_000,   // 2 min — COO operations may chain multiple tools
+            jack:  120_000,   // 2 min — CRO revenue analysis
+            glenda: 120_000,  // 2 min — CMO strategy
+        };
+        const agentTimeoutMs = AGENT_TIMEOUTS[personaId] ?? 55_000;
+        const agentTimeoutSec = Math.round(agentTimeoutMs / 1000);
+
         let result;
         try {
             const extraOptions = attachments ? { attachments } : {};
             result = await Promise.race([
                 runAgentCore(enrichedText, personaId, extraOptions, SLACK_SYSTEM_USER),
                 new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Agent response timeout after 55 seconds')), 55000)
+                    setTimeout(() => reject(new Error(`Agent response timeout after ${agentTimeoutSec} seconds`)), agentTimeoutMs)
                 ),
             ]) as any;
         } catch (agentErr: any) {

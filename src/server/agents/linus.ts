@@ -3631,6 +3631,7 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
 
 export interface LinusRequest {
     prompt: string;
+    maxIterations?: number; // Default: 15 for direct use, 8 for Slack/harness context
     context?: {
         userId?: string;
         sessionId?: string;
@@ -3810,7 +3811,7 @@ User Request: ${request.prompt}`;
         linusToolExecutor,
         {
             userId: request.context?.userId,
-            maxIterations: 15 // Allow more iterations for complex coding tasks
+            maxIterations: request.maxIterations ?? 15 // Default 15; callers may lower for Slack context
         }
     );
 
@@ -3859,8 +3860,9 @@ export const linusAgent: AgentImplementation<AgentMemory, any> = {
     async act(brandMemory, agentMemory, targetId, tools, stimulus) {
         if (targetId === 'user_request' && stimulus) {
             try {
-                // Wrapper around the specific runLinus implementation
-                const result = await runLinus({ prompt: stimulus });
+                // Slack/harness context: limit to 8 iterations for faster, focused responses.
+                // Full 15 iterations is reserved for direct CTO-mode invocations.
+                const result = await runLinus({ prompt: stimulus, maxIterations: 8 });
                 
                 return {
                     updatedMemory: agentMemory,
