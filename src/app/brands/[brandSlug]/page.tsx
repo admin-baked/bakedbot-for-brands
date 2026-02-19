@@ -1,5 +1,6 @@
 
 import { fetchBrandPageData } from '@/lib/brand-data';
+import type { Product } from '@/types/domain';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import Link from 'next/link';
@@ -166,7 +167,7 @@ export default async function GlobalBrandPage({ params }: { params: Promise<{ br
                     <section className="space-y-4">
                         <h2 className="text-xl font-bold text-slate-800">Popular Products by {brand.name}</h2>
                         <div className="grid grid-cols-2 gap-4 filter blur-[4px] opacity-40 grayscale pointer-events-none">
-                            {(products && products.length > 0 ? products.slice(0, 4) : [null, null, null, null]).map((product, i) => (
+                            {(products && products.length > 0 ? products.slice(0, 4) : [null, null, null, null]).map((product: Product | null, i: number) => (
                                 <div key={i} className="bg-white p-4 rounded-xl border border-slate-200 flex gap-4">
                                     {product?.imageUrl && product.imageUrl !== '/icon-192.png' ? (
                                         <img src={product.imageUrl} alt={product.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
