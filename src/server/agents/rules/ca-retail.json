@@ -1,0 +1,47 @@
+{
+  "jurisdiction": "CA",
+  "channel": "retail",
+  "version": 1,
+  "status": "passing",
+  "source": "CA DCC Cannabis Advertising Regulations — cannabis.ca.gov",
+  "last_reviewed": "2026-02-19",
+  "notes": "CA DCC rules largely mirror federal FTC standards for health claims. Health benefit claims explicitly prohibited.",
+  "rules": [
+    {
+      "id": "ban_medical_claims_ca",
+      "type": "regex",
+      "pattern": "(cure|treat|prevent|heal).*(pain|anxiety|depression|insomnia|cancer|disease|nausea|inflammation|seizure|ptsd|arthritis|disorder|symptom)",
+      "description": "Medical claim: CA DCC prohibits any statement that implies cannabis treats, cures, or prevents any medical condition."
+    },
+    {
+      "id": "ban_health_benefit_ca",
+      "type": "regex",
+      "pattern": "\\bhealth\\s+benefits?\\b",
+      "description": "Health benefit claim: CA DCC explicitly prohibits the phrase 'health benefit(s)' in cannabis advertising without FDA approval."
+    },
+    {
+      "id": "ban_prescription_language_ca",
+      "type": "regex",
+      "pattern": "\\bprescri(be|bed|ption)s?\\b",
+      "description": "Prescription language prohibited under CA Business and Professions Code §26152."
+    },
+    {
+      "id": "ban_clinical_claims_ca",
+      "type": "regex",
+      "pattern": "\\bclinically\\s+(proven|tested|shown|studied)\\b",
+      "description": "Clinical claim: implies regulatory approval or clinical validation not recognized for cannabis in CA."
+    },
+    {
+      "id": "ban_doctor_endorsement_ca",
+      "type": "regex",
+      "pattern": "\\bdoctors?\\s+(recommend|prescribed?|approved?)\\b",
+      "description": "Medical professional endorsement prohibited by CA DCC advertising rules."
+    },
+    {
+      "id": "ban_minors_appeal_ca",
+      "type": "regex",
+      "pattern": "\\b(cartoon\\s+character|gummy\\s+bears?|kids?\\s+(love|enjoy|can)|children\\s+(love|enjoy|can)|candy-?like)\\b",
+      "description": "Appeal to minors: CA law requires all advertising to be in media where 71.6%+ of audience is 21+. Child-directed imagery prohibited."
+    }
+  ]
+}

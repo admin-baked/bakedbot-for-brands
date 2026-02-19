@@ -89,16 +89,29 @@ function runFunctionTest(tc) {
 
 // ── TIER 1: Regex rule tests ─────────────────────────────────────────────────
 
+function loadRegexRulesForJurisdiction(jurisdiction, channel) {
+  const rulesDir = join(ROOT, 'src', 'server', 'agents', 'rules');
+  // Try exact channel match first, then fall back to retail (mirrors deebo.ts logic)
+  const candidates = [
+    `${jurisdiction.toLowerCase()}-${channel}.json`,
+    `${jurisdiction.toLowerCase()}-retail.json`,
+  ];
+  for (const filename of candidates) {
+    try {
+      const pack = JSON.parse(readFileSync(join(rulesDir, filename), 'utf8'));
+      const rules = pack.rules.filter(r => r.type === 'regex');
+      if (rules.length > 0) return rules;
+    } catch {
+      // File not found — try next candidate
+    }
+  }
+  return [];
+}
+
 function runRegexTest(tc) {
   const { jurisdiction, channel, content } = tc.input;
 
-  // Load rule pack — currently only WA/retail has regex rules
-  let regexRules = [];
-  if (jurisdiction === 'WA' && channel === 'retail') {
-    const rulesPath = join(ROOT, 'src', 'server', 'agents', 'rules', 'wa-retail.json');
-    const pack      = JSON.parse(readFileSync(rulesPath, 'utf8'));
-    regexRules      = pack.rules.filter(r => r.type === 'regex');
-  }
+  const regexRules = loadRegexRulesForJurisdiction(jurisdiction, channel);
 
   if (regexRules.length === 0) {
     // Gap: no regex rules for this jurisdiction — falls through to LLM in prod

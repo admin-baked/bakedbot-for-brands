@@ -1,0 +1,41 @@
+{
+  "jurisdiction": "NY",
+  "channel": "retail",
+  "version": 1,
+  "status": "passing",
+  "source": "NY OCM Cannabis Advertising Guidelines — cannabis.ny.gov",
+  "last_reviewed": "2026-02-19",
+  "notes": "Fast-path regex rules. LLM fallback handles edge cases not caught here.",
+  "rules": [
+    {
+      "id": "ban_medical_claims_ny",
+      "type": "regex",
+      "pattern": "(cure|treat|prevent|heal).*(pain|anxiety|depression|insomnia|cancer|disease|nausea|inflammation|seizure|ptsd|arthritis|disorder|symptom)",
+      "description": "Medical claim: implies the product cures, treats, prevents, or heals a condition. NY OCM prohibits all unapproved therapeutic claims."
+    },
+    {
+      "id": "ban_prescription_language_ny",
+      "type": "regex",
+      "pattern": "\\bprescri(be|bed|ption)s?\\b",
+      "description": "Prescription language: cannabis is not an FDA-approved prescription drug. Use of prescription framing is prohibited."
+    },
+    {
+      "id": "ban_clinical_claims_ny",
+      "type": "regex",
+      "pattern": "\\bclinically\\s+(proven|tested|shown|studied)\\b",
+      "description": "Clinical claim: implying clinical validation without approved trials is false advertising under NY OCM rules."
+    },
+    {
+      "id": "ban_doctor_endorsement_ny",
+      "type": "regex",
+      "pattern": "\\bdoctors?\\s+(recommend|prescribed?|approved?)\\b",
+      "description": "Medical professional endorsement: claims of doctor recommendation imply therapeutic use. Prohibited by NY OCM."
+    },
+    {
+      "id": "ban_minors_appeal_ny",
+      "type": "regex",
+      "pattern": "\\b(cartoon\\s+character|gummy\\s+bears?|kids?\\s+(love|enjoy|can)|children\\s+(love|enjoy|can)|candy-?like)\\b",
+      "description": "Appeal to minors: imagery or language that could attract underage individuals is prohibited under NY Cannabis Law §128."
+    }
+  ]
+}
