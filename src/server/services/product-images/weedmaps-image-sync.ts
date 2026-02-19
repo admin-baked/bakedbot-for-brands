@@ -142,6 +142,20 @@ function extractStrainSlugs(productName: string): string[] {
                     const words = clean.split(/\s+/);
                     if (words.length >= 2) slugs.add(slugify(words.slice(0, 2).join(' ')));
                 }
+
+                // Cross/blend strains: "Donny Burger x Strawberry Cough" → try each parent
+                const crossParts = clean.split(/\s+x\s+/i);
+                if (crossParts.length > 1) {
+                    for (const part of crossParts) {
+                        const cs = slugify(part.trim());
+                        if (cs.length > 3) {
+                            slugs.add(cs);
+                            // Strip trailing phenotype number: "gelato-41" → "gelato"
+                            const noNum = cs.replace(/-\d+$/, '');
+                            if (noNum !== cs && noNum.length > 3) slugs.add(noNum);
+                        }
+                    }
+                }
             }
         }
     }
@@ -175,6 +189,19 @@ function extractStrainSlugs(productName: string): string[] {
             const words = clean.split(/\s+/).filter(w => w.length > 1);
             if (words.length >= 2) slugs.add(slugify(words.slice(0, 2).join(' ')));
             if (words.length >= 3) slugs.add(slugify(words.slice(0, 3).join(' ')));
+        }
+        // Cross/blend strains: "Donny Burger x Strawberry Cough" → try each parent
+        const crossParts = clean.split(/\s+x\s+/i);
+        if (crossParts.length > 1) {
+            for (const part of crossParts) {
+                const cs = slugify(part.trim());
+                if (cs.length > 3) {
+                    slugs.add(cs);
+                    // Strip trailing phenotype number: "gelato-41" → "gelato"
+                    const noNum = cs.replace(/-\d+$/, '');
+                    if (noNum !== cs && noNum.length > 3) slugs.add(noNum);
+                }
+            }
         }
     }
 
