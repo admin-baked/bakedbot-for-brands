@@ -15,9 +15,16 @@ export interface FeaturedBrand {
     productCount?: number;
 }
 
+/** Derive the brands/{id} doc ID from a brand display name */
+function toBrandId(name: string): string {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return `brand_${slug.replace(/-/g, '_')}`;
+}
+
 /**
- * Get featured brands for a dispensary from their product catalog
- * Analyzes products to determine top brands by product count
+ * Get featured brands for a dispensary from their product catalog.
+ * Analyzes products to determine top brands by product count,
+ * then looks up logo URLs from the brands collection.
  */
 export async function getFeaturedBrands(orgId: string): Promise<FeaturedBrand[]> {
     try {
@@ -53,10 +60,31 @@ export async function getFeaturedBrands(orgId: string): Promise<FeaturedBrand[]>
             .sort((a, b) => b[1] - a[1])
             .slice(0, 8);
 
+        // Look up logo URLs from the brands collection
+        const logoMap = new Map<string, string>(); // brandName → logoUrl
+        try {
+            const brandDocs = await Promise.all(
+                topBrands.map(([name]) =>
+                    firestore.collection('brands').doc(toBrandId(name)).get()
+                )
+            );
+            brandDocs.forEach((doc, idx) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data?.logoUrl) {
+                        logoMap.set(topBrands[idx][0], data.logoUrl);
+                    }
+                }
+            });
+        } catch {
+            // fail gracefully — logos are optional
+        }
+
         // Convert to FeaturedBrand format
         const featuredBrands: FeaturedBrand[] = topBrands.map(([name, count], idx) => ({
             id: `brand-${idx + 1}`,
             name,
+            logo: logoMap.get(name),
             productCount: count,
             tagline: `${count} products available`,
             backgroundColor: generateBrandColor(name),
