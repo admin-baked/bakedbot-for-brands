@@ -18,7 +18,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShoppingCart, Search } from 'lucide-react';
+import { ShoppingCart, Search, Award, Shield, GraduationCap, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { useStore } from '@/hooks/use-store';
 import { useRouter } from 'next/navigation';
 import type { Product, Retailer } from '@/types/domain';
@@ -60,6 +61,7 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [] }: Dis
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('popular');
+  const [effectFilter, setEffectFilter] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   // Cart state
@@ -115,6 +117,13 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [] }: Dis
     }
   };
 
+  // All unique effects across the menu (for filter pills)
+  const allEffects = useMemo(() => {
+    const effectSet = new Set<string>();
+    products.forEach(p => p.effects?.forEach(e => effectSet.add(e)));
+    return Array.from(effectSet).slice(0, 8);
+  }, [products]);
+
   // Filter and sort products
   const filteredProducts = useMemo(() => {
     return products
@@ -122,7 +131,8 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [] }: Dis
         const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           product.description?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
-        return matchesSearch && matchesCategory;
+        const matchesEffect = !effectFilter || product.effects?.includes(effectFilter);
+        return matchesSearch && matchesCategory && matchesEffect;
       })
       .sort((a, b) => {
         switch (sortBy) {
@@ -258,6 +268,26 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [] }: Dis
         {/* Hero Carousel */}
         <HeroCarousel primaryColor={primaryColor} />
 
+        {/* Loyalty & Discount Bar */}
+        <div className="border-b bg-muted/40">
+          <div className="container mx-auto px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+            <div className="flex items-center gap-2 font-medium" style={{ color: primaryColor }}>
+              <Award className="h-4 w-4" />
+              <span>Rewards: every 10th purchase = free pre-roll</span>
+            </div>
+            <div className="h-4 w-px bg-border hidden sm:block" />
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Shield className="h-4 w-4" />
+              <span>Military &amp; Veterans: 10% off every visit</span>
+            </div>
+            <div className="h-4 w-px bg-border hidden sm:block" />
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <GraduationCap className="h-4 w-4" />
+              <span>Seniors 60+: 15% off daily</span>
+            </div>
+          </div>
+        </div>
+
         {/* Featured Brands */}
         <FeaturedBrandsCarousel
           title="Featured Brands"
@@ -316,6 +346,26 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [] }: Dis
           </div>
         )}
 
+        {/* Delivery Info Bar */}
+        <div className="bg-muted/60 border-t border-b">
+          <div className="container mx-auto px-4 py-3 flex flex-wrap items-center justify-center gap-x-8 gap-y-1 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span className="text-base">🚗</span>
+              <strong className="text-foreground">Delivery</strong> — $50 min · $10 fee · 20-mi radius
+            </span>
+            <span className="hidden sm:block text-border">|</span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-base">🏪</span>
+              <strong className="text-foreground">In-Store Pickup</strong> — Order ahead, skip the line
+            </span>
+            <span className="hidden sm:block text-border">|</span>
+            <span className="flex items-center gap-1.5">
+              <span className="text-base">🚗</span>
+              <strong className="text-foreground">Drive-Thru</strong> — Open daily 9AM–10PM
+            </span>
+          </div>
+        </div>
+
         {/* All Products Section with Filters */}
         <section id="products" className="py-12">
           <div className="container mx-auto px-4">
@@ -364,6 +414,35 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [] }: Dis
                 </Select>
               </div>
             </div>
+
+            {/* Effect Filter Pills */}
+            {allEffects.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-6">
+                {allEffects.map((effect) => (
+                  <button
+                    key={effect}
+                    onClick={() => setEffectFilter(effectFilter === effect ? null : effect)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                      effectFilter === effect
+                        ? 'text-white border-transparent'
+                        : 'bg-background text-muted-foreground border-border hover:border-primary hover:text-primary'
+                    }`}
+                    style={effectFilter === effect ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
+                  >
+                    {effect}
+                  </button>
+                ))}
+                {effectFilter && (
+                  <button
+                    onClick={() => setEffectFilter(null)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm text-muted-foreground border border-border hover:border-destructive hover:text-destructive transition-all"
+                  >
+                    <X className="h-3 w-3" />
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Products Grid */}
             {filteredProducts.length === 0 ? (

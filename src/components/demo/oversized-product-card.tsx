@@ -20,6 +20,7 @@ interface OversizedProductCardProps {
   size?: 'normal' | 'large' | 'xlarge';
   dealBadge?: string;
   onClick?: () => void;
+  brandName?: string;
 }
 
 export function OversizedProductCard({
@@ -33,6 +34,7 @@ export function OversizedProductCard({
   size = 'large',
   dealBadge,
   onClick,
+  brandName,
 }: OversizedProductCardProps) {
   const [quantity, setQuantity] = useState(1);
   const [isHovered, setIsHovered] = useState(false);
@@ -214,10 +216,24 @@ export function OversizedProductCard({
 
       {/* Content */}
       <div className="p-4 flex-1 flex flex-col">
-        {/* Category */}
-        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-          {product.category}
-        </p>
+        {/* Category + Weight row */}
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-xs text-muted-foreground uppercase tracking-wide">
+            {product.category}
+          </p>
+          {product.weight && (
+            <p className="text-xs text-muted-foreground font-medium">
+              {product.weight}{product.weightUnit || 'g'}
+            </p>
+          )}
+        </div>
+
+        {/* Brand name */}
+        {(brandName || product.brandName) && (
+          <p className="text-xs font-semibold mb-1" style={{ color: primaryColor }}>
+            {brandName || product.brandName}
+          </p>
+        )}
 
         {/* Name */}
         <h3 className="font-bold text-lg leading-tight mb-2 line-clamp-2 group-hover:text-primary transition-colors">
