@@ -23,9 +23,10 @@ npm run check:types
 
 **Recent work (2026-02-18):** See `memory/MEMORY.md` for full log.
 Key completed:
-- [Build fixes: 3 Firebase webpack violations] (`103ba327`, `612caded`, `406c926e`) — wrong import path `@/server/auth/require-user`, server-only chain violation in email-warmup page, ESM const-between-imports syntax error
-- [Production Readiness Audit Phase 2 setup] — E2E tests (27), unit tests (40+), manual checklist, test brand setup script, production testing guide for Thrive Syracuse (`dev/PRODUCTION_TESTING_GUIDE.md`)
-- [Jest + Next.js config fixes] — Windows-compatible moduleNameMapper, turbopack config added to next.config.js
+- [The Herbalist Samui — International Pilot] (`abf56b8e`) — First international dispensary on BakedBot. Koh Samui, Thailand. Org `dispensary_herbalistsamui`, 22 demo products (THB ฿ pricing), 4 local competitors, Cloud Scheduler daily CI at 9 AM Bangkok, invites to jack@bakedbot.ai + bryan@thebeachsamui.com. See `scripts/seed-herbalist-samui.ts` + `HERBALIST_SAMUI_SETUP.md`.
+- [Multi-Region ISR: Thailand/Koh Samui] (`f9b85263`) — New `/destination/[country]/[city]` route structure with 4-hour ISR cache. RTRVR-powered Google Maps scraping, multi-currency (THB/VND/KHR/USD), GitHub Actions daily automation (3 AM UTC). Seeded 4 Koh Samui dispensaries. See `src/app/destination/` + `src/server/services/growth/international-discovery.ts`.
+- [Build fixes: 3 Firebase webpack violations] — wrong import path, server-only chain violation, ESM const-between-imports syntax error
+- [Billing System Testing Phases 5-10] — 107 tests total (unit, E2E, integration, performance, security, load)
 
 ---
 
@@ -123,7 +124,8 @@ node scripts/promote-super-user-by-email.mjs <EMAIL>
 | Billing (Phases 1-10) | ✅ Tests passing | `refs/` (various) |
 | Creative Studio (Canva-style) | ✅ 3-panel layout | `src/app/dashboard/creative/` |
 | Help Center (50 articles) | ✅ Feb 2026 | `src/app/help/` |
-| Pilot Customers | ✅ Thrive + Herbalist | `memory/customers.md` |
+| Pilot Customers | ✅ Thrive (US) + Herbalist Samui (🇹🇭 INT'L) | `memory/customers.md` + `HERBALIST_SAMUI_SETUP.md` |
+| International ISR Pages | ✅ Thailand/Koh Samui live | `src/app/destination/` |
 
 ---
 
