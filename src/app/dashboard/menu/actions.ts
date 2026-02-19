@@ -5,6 +5,7 @@ import { requireUser } from '@/server/auth/auth';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import { logger } from '@/lib/logger';
 import { CannMenusService } from '@/server/services/cannmenus';
+import { normalizeCategoryName } from '@/lib/utils/product-image';
 
 export interface MenuData {
     products: any[];
@@ -219,7 +220,7 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
                  brandId: user.brandId || '',
                  brandName: item.brand,
                  dispensaryId: locationId,
-                 category: item.category,
+                 category: normalizeCategoryName(item.category),
                  description: '', // DutchieClient doesn't currently bubble description, maybe add later
                  imageUrl: item.imageUrl || '',
 

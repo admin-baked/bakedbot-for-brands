@@ -303,7 +303,8 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
   }));
 
   // Brand stats for hero (show in-stock count to be accurate)
-  const inStockCount = allProducts.filter(p => (p.stock ?? 1) > 0).length;
+  // stock undefined = unknown → treat as in stock; stock > 0 = in stock
+  const inStockCount = allProducts.filter(p => p.stock === undefined || p.stock > 0).length;
   const brandStats = {
     products: inStockCount || allProducts.length,
     retailers: retailers.length,

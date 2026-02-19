@@ -8,13 +8,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, ShoppingBag, RefreshCw, DollarSign, AlertTriangle, Pencil, Check, X } from 'lucide-react';
+import { Loader2, Search, ShoppingBag, RefreshCw, DollarSign, AlertTriangle, Pencil, Check, X, Tag, Package, MessageSquare, Zap, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { logger } from '@/lib/logger';
 import { getMenuData, syncMenu, getPosConfig, updateProductCost, type PosConfigInfo } from './actions';
 import { useToast } from '@/hooks/use-toast';
+import { normalizeCategoryName } from '@/lib/utils/product-image';
 
 interface Product {
     id: string;
@@ -162,10 +164,10 @@ export default function MenuPage() {
                 id: p.id || p.cann_sku_id,
                 name: p.name || p.product_name,
                 brand: p.brandName || p.brand_name || 'Unknown',
-                category: p.category || 'Other',
+                category: normalizeCategoryName(p.category),
                 price: p.price || p.latest_price || 0,
                 originalPrice: p.originalPrice || p.original_price || p.price || p.latest_price || 0,
-                imageUrl: p.imageUrl || p.image_url,
+                imageUrl: p.imageUrl || p.image_url || '',
                 thc: p.thcPercent || p.percentage_thc,
                 cbd: p.cbdPercent || p.percentage_cbd,
                 cost: p.cost ?? undefined,
@@ -196,8 +198,10 @@ export default function MenuPage() {
         return matchesSearch && matchesCategory;
     });
 
-    const categories = Array.from(new Set(products.map(p => p.category)));
+    const categories = Array.from(new Set(products.map(p => p.category))).sort();
     const missingCOGSCount = products.filter(p => p.cost == null).length;
+    const inStockCount = products.filter(p => p.inStock !== false).length;
+    const outOfStockCount = products.filter(p => p.inStock === false).length;
 
     return (
         <div className="space-y-6">
@@ -289,13 +293,50 @@ export default function MenuPage() {
                 </Card>
             ) : (
                 <>
-                    <div className="flex items-center justify-between">
-                        <p className="text-sm text-muted-foreground">
-                            Showing {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
-                        </p>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <DollarSign className="h-3 w-3" />
-                            <span>Click any COGS cell to edit</span>
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                        <div className="flex items-center gap-3">
+                            <p className="text-sm text-muted-foreground">
+                                Showing <span className="font-medium text-foreground">{filteredProducts.length}</span> product{filteredProducts.length !== 1 ? 's' : ''}
+                                {categoryFilter === 'all' && (
+                                    <span className="ml-1.5 text-xs">
+                                        · <span className="text-emerald-600 font-medium">{inStockCount} in stock</span>
+                                        {outOfStockCount > 0 && <span className="text-muted-foreground"> · {outOfStockCount} out of stock</span>}
+                                    </span>
+                                )}
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground hidden sm:flex items-center gap-1">
+                                <DollarSign className="h-3 w-3" />
+                                Click COGS to edit
+                            </span>
+                            <div className="h-4 w-px bg-border hidden sm:block" />
+                            <Link href="/dashboard/pricing" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                <Tag className="h-3.5 w-3.5" />
+                                Pricing
+                            </Link>
+                            <Link href="/dashboard/bundles" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                <Package className="h-3.5 w-3.5" />
+                                Bundles
+                            </Link>
+                            <Link href="/dashboard/inbox" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                <MessageSquare className="h-3.5 w-3.5" />
+                                Inbox
+                            </Link>
+                            <Link href="/dashboard/playbooks" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                <Zap className="h-3.5 w-3.5" />
+                                Playbooks
+                            </Link>
+                            {posConfig.provider && (
+                                <Link
+                                    href={`https://bakedbot.ai/thrivesyracuse`}
+                                    target="_blank"
+                                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                    View Live
+                                </Link>
+                            )}
                         </div>
                     </div>
 
@@ -334,19 +375,13 @@ export default function MenuPage() {
                                             {/* Thumbnail */}
                                             <td className="px-4 py-3">
                                                 <div className="w-10 h-10 rounded bg-muted relative overflow-hidden flex-shrink-0">
-                                                    {product.imageUrl ? (
-                                                        <Image
-                                                            src={product.imageUrl}
-                                                            alt={product.name}
-                                                            fill
-                                                            className="object-cover"
-                                                            sizes="40px"
-                                                        />
-                                                    ) : (
-                                                        <div className="flex items-center justify-center h-full">
-                                                            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-                                                        </div>
-                                                    )}
+                                                    <Image
+                                                        src={product.imageUrl || '/icon-192.png'}
+                                                        alt={product.name}
+                                                        fill
+                                                        className={product.imageUrl ? 'object-cover' : 'object-contain p-1 opacity-60'}
+                                                        sizes="40px"
+                                                    />
                                                 </div>
                                             </td>
 
