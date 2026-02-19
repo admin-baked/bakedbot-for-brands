@@ -21,6 +21,8 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-02-18)
 **Recent Updates (2026-02-18) — Latest Session:**
+- ✅ **Product count bug fixed** — Stale cleanup now removes ALL `source='pos'` products not in current sync, including orphaned records with no `externalId` (was: only matched by externalId; 313 stale products accumulated) (commit 58b4718c)
+- ✅ **COGS (Cost of Goods Sold)** — Full pipeline: Alleaves `cost_of_good` → POSProduct.cost → Firestore. Menu page rebuilt as a table with COGS column, inline click-to-edit, margin %, "Not Set" badge. Amber banner when products lack cost. Warning in pricing rule scope sheet (commit 58b4718c)
 - ✅ **Playbooks UX overhaul** — New `DispensaryPlaybooksView` with hero, tier cards, toggle controls, "Activate All" CTA (commit 6dff2788)
 - ✅ **Playbooks role fix** — `dispensary_admin`/`dispensary_staff` now correctly routed (was: `=== 'dispensary'` only)
 - ✅ **Firestore indexes** — 3 missing `playbook_assignments` indexes deployed (fixes FAILED_PRECONDITION errors)
