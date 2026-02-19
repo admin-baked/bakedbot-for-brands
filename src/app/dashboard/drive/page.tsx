@@ -10,11 +10,15 @@
  */
 
 import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useDriveStore } from '@/lib/store/drive-store';
 import { getTrash } from '@/server/actions/drive';
 import { FileBrowser, UploadDialog, ShareDialog } from '@/components/drive';
 
 export default function DrivePage() {
+  const searchParams = useSearchParams();
+  const initialFileId = searchParams.get('file') ?? undefined;
+
   const { isTrashViewOpen, setFolders, setFiles, setIsLoading, setError } = useDriveStore();
 
   useEffect(() => {
@@ -38,7 +42,7 @@ export default function DrivePage() {
   return (
     <div className="h-[calc(100vh-4rem)] p-4">
       <div className="h-full border rounded-lg bg-background overflow-hidden">
-        <FileBrowser />
+        <FileBrowser initialFileId={initialFileId} />
       </div>
       <UploadDialog />
       <ShareDialog />

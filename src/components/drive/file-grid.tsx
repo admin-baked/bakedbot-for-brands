@@ -18,9 +18,10 @@ interface FileGridProps {
   folders: DriveFolder[];
   files: DriveFile[];
   onRefresh: () => void;
+  onOpenFile?: (file: DriveFile) => void;
 }
 
-export function FileGrid({ folders, files, onRefresh }: FileGridProps) {
+export function FileGrid({ folders, files, onRefresh, onOpenFile }: FileGridProps) {
   const { viewMode, openUploadDialog, isTrashViewOpen } = useDriveStore();
 
   const isEmpty = folders.length === 0 && files.length === 0;
@@ -68,7 +69,7 @@ export function FileGrid({ folders, files, onRefresh }: FileGridProps) {
 
       {/* Then files */}
       {files.map((file) => (
-        <FileCard key={file.id} file={file} viewMode={viewMode} onRefresh={onRefresh} />
+        <FileCard key={file.id} file={file} viewMode={viewMode} onRefresh={onRefresh} onOpen={onOpenFile} />
       ))}
     </div>
   );

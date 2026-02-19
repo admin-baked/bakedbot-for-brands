@@ -58,9 +58,10 @@ interface FileCardProps {
   file: DriveFile;
   viewMode: DriveViewMode;
   onRefresh: () => void;
+  onOpen?: (file: DriveFile) => void;
 }
 
-export function FileCard({ file, viewMode, onRefresh }: FileCardProps) {
+export function FileCard({ file, viewMode, onRefresh, onOpen }: FileCardProps) {
   const {
     selectItem,
     isSelected,
@@ -78,6 +79,11 @@ export function FileCard({ file, viewMode, onRefresh }: FileCardProps) {
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (e.detail === 2) {
+      // Double-click → open viewer
+      onOpen?.(file);
+      return;
+    }
     selectItem({ type: 'file', id: file.id }, e.ctrlKey || e.metaKey);
   };
 
@@ -164,6 +170,11 @@ export function FileCard({ file, viewMode, onRefresh }: FileCardProps) {
               <DropdownMenuItem onClick={handleRestore}>Restore</DropdownMenuItem>
             ) : (
               <>
+                <DropdownMenuItem onClick={() => onOpen?.(file)}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleDownload}>
                   <Download className="h-4 w-4 mr-2" />
                   Download
@@ -232,6 +243,11 @@ export function FileCard({ file, viewMode, onRefresh }: FileCardProps) {
               <DropdownMenuItem onClick={handleRestore}>Restore</DropdownMenuItem>
             ) : (
               <>
+                <DropdownMenuItem onClick={() => onOpen?.(file)}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleDownload}>
                   <Download className="h-4 w-4 mr-2" />
                   Download

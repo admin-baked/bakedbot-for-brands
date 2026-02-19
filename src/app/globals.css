@@ -66,6 +66,22 @@
   animation: float 3s ease-in-out infinite;
 }
 
+/* Drive Markdown Viewer */
+.drive-md h1 { @apply text-xl font-bold mb-4 pb-2 border-b; }
+.drive-md h2 { @apply text-lg font-bold mt-6 mb-3 pb-1 border-b; }
+.drive-md h3 { @apply text-base font-semibold mt-5 mb-2; }
+.drive-md h4 { @apply text-sm font-semibold mt-4 mb-1 text-muted-foreground uppercase tracking-wide; }
+.drive-md p  { @apply mb-3 leading-6 text-sm text-foreground/90; }
+.drive-md ul { @apply list-disc pl-5 mb-3 space-y-1 text-sm; }
+.drive-md ol { @apply list-decimal pl-5 mb-3 space-y-1 text-sm; }
+.drive-md li { @apply leading-6; }
+.drive-md blockquote { @apply border-l-4 border-primary/40 pl-4 italic text-muted-foreground text-sm my-3; }
+.drive-md hr  { @apply border-muted my-5; }
+.drive-md code { @apply px-1.5 py-0.5 bg-muted rounded text-xs font-mono; }
+.drive-md strong { @apply font-semibold; }
+.drive-md em  { @apply italic; }
+.drive-md a { @apply text-primary underline underline-offset-2 hover:opacity-80; }
+
 @layer base {
   :root {
     --background: 210 40% 98%;
