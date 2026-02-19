@@ -177,7 +177,7 @@ export default function SettingsPage() {
             <CardContent>
               {/* Quick view of recent invitations */}
               <InvitationsList
-                orgId={(user as any)?.brandId || (user as any)?.locationId}
+                orgId={(user as any)?.brandId || (user as any)?.locationId || (user as any)?.orgId || (user as any)?.currentOrgId}
                 allowedRoles={isBrandRole ? ['brand_admin', 'brand_member'] : ['dispensary_admin', 'dispensary_staff']}
               />
             </CardContent>
@@ -186,7 +186,7 @@ export default function SettingsPage() {
 
         <TabsContent value="billing" className="space-y-4">
           <BillingForm
-            organizationId={(user as any)?.brandId || (user as any)?.locationId || user?.uid}
+            organizationId={(user as any)?.brandId || (user as any)?.locationId || (user as any)?.orgId || (user as any)?.currentOrgId || user?.uid}
             locationCount={1} // Defaulting to 1 for now, should ideally be fetched from data
             customerEmail={user?.email || undefined}
             customerName={user?.displayName || undefined}

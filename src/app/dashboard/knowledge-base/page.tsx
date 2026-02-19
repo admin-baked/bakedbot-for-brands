@@ -30,7 +30,7 @@ export default function KnowledgeBasePage() {
 
     // 2. Brand View
     if (role === 'brand') {
-        const brandId = (user as any)?.brandId || user?.uid;
+        const brandId = (user as any)?.brandId || (user as any)?.orgId || (user as any)?.currentOrgId || user?.uid;
         
         if (!brandId) {
              return (

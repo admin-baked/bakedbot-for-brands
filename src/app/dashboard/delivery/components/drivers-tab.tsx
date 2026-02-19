@@ -26,8 +26,8 @@ export function DriversTab() {
     const { toast } = useToast();
     const { user } = useUser();
 
-    // Get orgId from user (for Thrive Syracuse, this will be org_thrive_syracuse)
-    const orgId = (user as any)?.orgId || 'org_thrive_syracuse';
+    // Resolve orgId from user claims — supports brand admins (brandId) and dispensary admins (orgId/currentOrgId)
+    const orgId = (user as any)?.orgId || (user as any)?.currentOrgId || (user as any)?.brandId || (user as any)?.locationId || '';
 
     const loadDrivers = async () => {
         setLoading(true);

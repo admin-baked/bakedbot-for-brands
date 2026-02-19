@@ -550,7 +550,7 @@ export default function CreativeCommandCenter() {
 
   const handleApprovalChainApprove = async (notes: string) => {
     if (!currentContent || !user?.uid) return;
-    const tenantId = (user as any)?.tenantId || (user as any)?.brandId;
+    const tenantId = (user as any)?.tenantId || (user as any)?.brandId || (user as any)?.locationId || (user as any)?.orgId || (user as any)?.currentOrgId;
     if (!tenantId) { toast.error("Unable to determine tenant ID"); return; }
     const result = await approveAtLevel(currentContent.id, tenantId, user.uid, user.displayName || user.email || 'Unknown User', (user as any)?.role || 'user', notes);
     if (result.success) toast.success("Content approved at this level!");
@@ -559,7 +559,7 @@ export default function CreativeCommandCenter() {
 
   const handleApprovalChainReject = async (notes: string) => {
     if (!currentContent || !user?.uid) return;
-    const tenantId = (user as any)?.tenantId || (user as any)?.brandId;
+    const tenantId = (user as any)?.tenantId || (user as any)?.brandId || (user as any)?.locationId || (user as any)?.orgId || (user as any)?.currentOrgId;
     if (!tenantId) { toast.error("Unable to determine tenant ID"); return; }
     const result = await rejectAtLevel(currentContent.id, tenantId, user.uid, user.displayName || user.email || 'Unknown User', (user as any)?.role || 'user', notes);
     if (result.success) toast.success("Content rejected and sent for revision");
