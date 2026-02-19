@@ -233,6 +233,9 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
                  inStock: (item.stock || 0) > 0,
                  stockCount: item.stock || 0,
 
+                 // COGS from POS — null means "not set", undefined skips field entirely
+                 ...(item.cost !== undefined ? { cost: item.cost } : {}),
+
                  source: 'pos',
                  externalId: item.externalId,
                  updatedAt: now,
@@ -262,7 +265,8 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
         const staleIds = existingSnap.docs
             .filter(doc => {
                 const externalId = doc.data().externalId;
-                return externalId && !syncedExternalIds.has(externalId);
+                // Remove if: no externalId (orphaned POS record) OR has externalId not in current sync
+                return !externalId || !syncedExternalIds.has(externalId);
             })
             .map(doc => doc.id);
 
@@ -403,5 +407,32 @@ export async function getMenuData(): Promise<MenuData> {
     } catch (error) {
         logger.error('[MENU_ACTION] Failed to fetch menu data', { error });
         throw error;
+    }
+}
+
+/**
+ * Update (or clear) the Cost of Goods Sold for a single product.
+ * Allowed roles: dispensary_admin, dispensary, super_user.
+ * Pass null to clear the cost field.
+ */
+export async function updateProductCost(
+    productId: string,
+    cost: number | null
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+        await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'super_user']);
+
+        const { FieldValue } = await import('firebase-admin/firestore');
+        // Use FieldValue.delete() to fully remove the field when clearing cost
+        await firestore.collection('products').doc(productId).update({
+            cost: cost !== null ? cost : FieldValue.delete(),
+        });
+
+        logger.info('[MENU_ACTION] COGS updated', { productId, cost });
+        return { success: true };
+    } catch (error) {
+        logger.error('[MENU_ACTION] Failed to update product cost', { productId, error });
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to save' };
     }
 }

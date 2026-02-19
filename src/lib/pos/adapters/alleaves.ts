@@ -407,6 +407,7 @@ export class ALLeavesClient implements POSClient {
                 brand: item.brand || 'Unknown',
                 category,
                 price,                                       // Use retail price or calculated from cost
+                cost: item.cost_of_good || undefined,        // COGS for margin visibility
                 stock: item.available,                       // Use available (not on_hand) for accurate stock
                 thcPercent: item.thc || undefined,
                 cbdPercent: item.cbd || undefined,
