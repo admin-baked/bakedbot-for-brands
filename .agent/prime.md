@@ -19,10 +19,14 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-02-18)
+**Current Status:** 🟢 Passing (verified 2026-02-19)
 
 **Recent work (2026-02-19):** See `memory/MEMORY.md` for full log.
-Key completed: CSS text overlay + 8 templates in Creative Studio (`577200f9`), brand image pre-gen on onboarding (`577200f9`), image quality + Accept Safe Version + POS sync + Brand Guide scan (`18399095`)
+- ✅ **POS single source of truth** — `syncMenu()` removes ALL non-POS products on reconcile; count badge compares against total catalog (`fe9cb346`)
+- ✅ **Inbox auto-submit** — `hasPendingAutoSubmit` ref + `useEffect` in `InboxConversation`; no more double-send (`fe9cb346`)
+  - Bridge: `inbox-drive-bridge.ts` → Storage upload + `drive_files` Firestore doc + artifact backlink
+- ✅ **Drive Share dialog fix** — `name: u.name ?? null` in createShare + updateShare (`892b79d7`)
+  - Root cause: Firestore rejects `undefined` values; `name` was undefined when not supplied by dialog
 
 ---
 
