@@ -228,9 +228,12 @@ export async function generateContent(
     const IMAGE_PLACEHOLDER = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWExYTJlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPkltYWdlIGdlbmVyYXRpbmcuLi48L3RleHQ+PC9zdmc+';
 
     try {
+        // Build a visual-first image prompt (imageStyle leads; marketing copy goes to caption only)
+        const imagePrompt = deriveImagePrompt(request);
+
         // Run image generation + caption generation in parallel to save time
         const [imageUrl, caption] = await Promise.all([
-            generateImageFromPrompt(request.prompt, {
+            generateImageFromPrompt(imagePrompt, {
                 brandName: request.productName,
                 tier: request.tier || 'free',
                 platform: request.platform,  // Pass platform for correct aspect ratio
@@ -671,6 +674,45 @@ export async function getContentByPlatform(
 }
 
 // --- Helper Functions ---
+
+/**
+ * Build a visual-first image prompt for FLUX.1.
+ *
+ * Separates visual style from marketing copy — FLUX.1 needs a visual descriptor
+ * (lighting, mood, style, subject) NOT marketing text ("announcement", "details").
+ *
+ * Priority order:
+ *   1. imageStyle (e.g. "warm ambient lifestyle photography, golden hour light")
+ *   2. productName as subject anchor
+ *   3. Fallback: first clause of prompt if no imageStyle provided
+ */
+function deriveImagePrompt(request: GenerateContentRequest): string {
+    const parts: string[] = [];
+
+    // 1. Visual style description FIRST — FLUX.1 weights early tokens most heavily
+    if (request.imageStyle) {
+        parts.push(request.imageStyle);
+    }
+
+    // 2. Product name as subject anchor
+    if (request.productName) {
+        parts.push(`${request.productName} cannabis product`);
+    } else {
+        parts.push('cannabis dispensary lifestyle');
+    }
+
+    // 3. When no imageStyle, extract first visual clause from the prompt as fallback
+    if (!request.imageStyle) {
+        const firstClause = request.prompt
+            .split(/[.\n]/)[0]
+            .replace(/#\w+/g, '')
+            .replace(/\b(announcement|highlighting|featuring|focusing on|registration|information|messaging|details?|promotion)\b/gi, '')
+            .trim();
+        if (firstClause) parts.push(firstClause);
+    }
+
+    return parts.filter(Boolean).join(', ');
+}
 
 /**
  * Generate a caption using Craig's AI marketing expertise

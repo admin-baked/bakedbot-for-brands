@@ -103,7 +103,7 @@ export default function CreativeCommandCenter() {
 
   // Brand guide integration
   const brandId = (user as any)?.brandId || (user as any)?.orgId || '';
-  const { brandGuide } = useBrandGuide(brandId);
+  const { brandGuide, loading: brandGuideLoading } = useBrandGuide(brandId);
   const brandVoiceData = useBrandVoice(brandGuide);
   const brandColors = useBrandColors(brandGuide);
 
@@ -332,6 +332,12 @@ export default function CreativeCommandCenter() {
     realtime: true,
   });
 
+  // Clear optimistic local content when platform changes — avoid showing stale image from a different platform
+  useEffect(() => {
+    setLocalContent(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlatform]);
+
   // Proactive generation — auto-generate an intro post when the brand guide loads
   // and no content has been created yet in this session.
   useEffect(() => {
@@ -368,14 +374,16 @@ export default function CreativeCommandCenter() {
   const handleGenerate = async () => {
     if (!campaignPrompt.trim()) { toast.error("Please enter a campaign description"); return; }
     try {
-      // Append imageStyle hint from selected template so FLUX.1 generates visually distinct images
-      const styleHint = selectedImageStyle ? `\n\nPhoto style: ${selectedImageStyle}` : '';
-      const enhancedPrompt = selectedHashtags.length > 0
-        ? `${campaignPrompt}${styleHint}\n\nSuggested hashtags: ${selectedHashtags.map(tag => `#${tag}`).join(' ')}`
-        : `${campaignPrompt}${styleHint}`;
+      // Pass imageStyle separately so the server can send it directly to FLUX.1 as a
+      // visual-first prompt, while the marketing copy (campaignPrompt + hashtags) goes
+      // only to Craig for caption generation.
+      const captionPrompt = selectedHashtags.length > 0
+        ? `${campaignPrompt}\n\nSuggested hashtags: ${selectedHashtags.map(tag => `#${tag}`).join(' ')}`
+        : campaignPrompt;
       const result = await generate({
         platform: selectedPlatform,
-        prompt: enhancedPrompt,
+        prompt: captionPrompt,
+        imageStyle: selectedImageStyle || undefined,
         style: tone,
         includeHashtags: true,
         productName: menuItem || undefined,
@@ -750,6 +758,12 @@ export default function CreativeCommandCenter() {
                             </button>
                           ))}
                         </div>
+                        {/* Active template style indicator */}
+                        {selectedImageStyle && (
+                          <p className="text-[10px] text-primary/70 leading-tight mt-1 truncate" title={selectedImageStyle}>
+                            <span className="font-semibold">Style:</span> {selectedImageStyle}
+                          </p>
+                        )}
                       </div>
 
                       <Separator />
@@ -759,7 +773,7 @@ export default function CreativeCommandCenter() {
                         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Campaign Idea</label>
                         <Textarea
                           value={campaignPrompt}
-                          onChange={e => setCampaignPrompt(e.target.value)}
+                          onChange={e => { setCampaignPrompt(e.target.value); setSelectedImageStyle(''); }}
                           placeholder="Describe your campaign idea..."
                           className="bg-background border-border resize-none h-28 text-xs placeholder:text-muted-foreground/50 focus-visible:ring-primary/50"
                         />
@@ -945,7 +959,12 @@ export default function CreativeCommandCenter() {
                         <h3 className="text-sm font-semibold">Brand Kit</h3>
                       </div>
 
-                      {!brandGuide ? (
+                      {brandGuideLoading ? (
+                        <div className="flex items-center gap-2 py-6 text-muted-foreground justify-center">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-xs">Loading brand guide...</span>
+                        </div>
+                      ) : !brandGuide ? (
                         <div className="border border-dashed border-border rounded-xl p-6 text-center space-y-2">
                           <Palette className="w-6 h-6 mx-auto text-muted-foreground/40" />
                           <p className="text-xs text-muted-foreground">No brand guide found. Set one up in Settings → Brand to unlock live colors, voice, and logo here.</p>
