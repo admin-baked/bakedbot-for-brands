@@ -299,6 +299,15 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
     try {
       const result = await extractBrandGuideFromUrl({
         url: websiteUrl,
+        // Include social handles from Step 4 if already filled (e.g. re-scan after advanced setup)
+        ...(step4Data?.instagramHandle || step4Data?.facebookHandle
+          ? {
+              socialHandles: {
+                instagram: step4Data.instagramHandle || undefined,
+                facebook: step4Data.facebookHandle || undefined,
+              },
+            }
+          : {}),
       });
 
       if (!result.success) {
@@ -345,17 +354,24 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
       if (!step1Data) {
         setStep1Data({
           brandName: extractedBrandName,
-          description: (result as any).messaging?.valueProposition || '',
+          // Fallback chain: valuePropositions[0] → positioning → metadata.description
+          description:
+            (result as any).messaging?.valuePropositions?.[0] ||
+            (result as any).messaging?.positioning ||
+            (result as any).metadata?.description ||
+            '',
           tagline: cleanTagline((result as any).messaging?.tagline),
         });
       }
 
-      // Step 2 — visual identity
+      // Step 2 — visual identity + logo preview from OG image / favicon
       if (result.visualIdentity) {
+        const detectedLogo = result.visualIdentity.logo?.primary;
         setStep2Data({
           primaryColor: result.visualIdentity.colors?.primary?.hex || '#4ade80',
           secondaryColor: result.visualIdentity.colors?.secondary?.hex,
-          logoUrl: result.visualIdentity.logo?.primary,
+          logoUrl: detectedLogo,
+          logoPreviewUrl: detectedLogo,
         });
       }
 
@@ -410,6 +426,16 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         method: 'manual',
         initialData: {
           brandName: step1Data.brandName,
+          // Location + dispensary type stored as metadata for AI content generation
+          ...(step1Data.city || step1Data.state || step1Data.dispensaryType
+            ? {
+                metadata: {
+                  city: step1Data.city,
+                  state: step1Data.state,
+                  dispensaryType: step1Data.dispensaryType,
+                },
+              }
+            : {}),
           visualIdentity: {
             colors: {
               primary: {
@@ -437,8 +463,10 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
             doWrite: step3Data.doWrite,
             dontWrite: step3Data.dontWrite,
           } as any,
-          // Messaging is optional during manual creation
-          // Will be filled in later via the messaging tab
+          // Messaging from tagline (if provided)
+          ...(step1Data.tagline
+            ? { messaging: { tagline: step1Data.tagline } as any }
+            : {}),
         },
       });
 
@@ -664,12 +692,25 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         initialData={step1Data || undefined}
         onComplete={(data) => {
           setStep1Data(data);
+          // Smart voice defaults based on dispensaryType — only if Step3 not yet filled
+          if (!step3Data && data.dispensaryType) {
+            const voiceDefaults: Record<string, { tone: string[]; personality: string[] }> = {
+              medical: { tone: ['Professional', 'Educational'], personality: ['Trustworthy', 'Empathetic'] },
+              recreational: { tone: ['Casual', 'Playful'], personality: ['Friendly', 'Authentic'] },
+              both: { tone: ['Professional', 'Casual'], personality: ['Friendly', 'Trustworthy'] },
+            };
+            const defaults = voiceDefaults[data.dispensaryType];
+            if (defaults) {
+              setStep3Data({ tone: defaults.tone, personality: defaults.personality, doWrite: [], dontWrite: [] });
+            }
+          }
           setCurrentStep(null);
         }}
       />
       <Step2Dialog
         open={currentStep === 2}
         onOpenChange={(open) => !open && setCurrentStep(null)}
+        initialData={step2Data || undefined}
         onComplete={(data) => {
           setStep2Data(data);
           setCurrentStep(null);
@@ -678,6 +719,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
       <Step3Dialog
         open={currentStep === 3}
         onOpenChange={(open) => !open && setCurrentStep(null)}
+        initialData={step3Data || undefined}
         onComplete={(data) => {
           setStep3Data(data);
           setCurrentStep(null);
@@ -686,6 +728,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
       <Step4Dialog
         open={currentStep === 4}
         onOpenChange={(open) => !open && setCurrentStep(null)}
+        initialData={step4Data || undefined}
         onComplete={(data) => {
           setStep4Data(data);
           setCurrentStep(null);

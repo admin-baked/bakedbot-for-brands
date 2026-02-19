@@ -18,23 +18,43 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Instagram, Facebook, MapPin, Building2 } from 'lucide-react';
 
 // ============================================================================
-// STEP 1: Brand Name & Description
+// STEP 1: Brand Name & Description + Location + Dispensary Type
 // ============================================================================
 
 interface Step1DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onComplete: (data: { brandName: string; description: string; tagline?: string }) => void;
-  initialData?: { brandName?: string; description?: string; tagline?: string };
+  onComplete: (data: {
+    brandName: string;
+    description: string;
+    tagline?: string;
+    city?: string;
+    state?: string;
+    dispensaryType?: 'recreational' | 'medical' | 'both';
+  }) => void;
+  initialData?: {
+    brandName?: string;
+    description?: string;
+    tagline?: string;
+    city?: string;
+    state?: string;
+    dispensaryType?: 'recreational' | 'medical' | 'both';
+  };
 }
 
 export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Step1DialogProps) {
   const [brandName, setBrandName] = useState(initialData?.brandName || '');
   const [description, setDescription] = useState(initialData?.description || '');
   const [tagline, setTagline] = useState(initialData?.tagline || '');
+  const [city, setCity] = useState(initialData?.city || '');
+  const [state, setState] = useState(initialData?.state || '');
+  const [dispensaryType, setDispensaryType] = useState<'recreational' | 'medical' | 'both' | ''>(
+    initialData?.dispensaryType || ''
+  );
 
   // When the dialog opens with pre-filled data (e.g. after a website scan),
   // populate the fields so the user can review and edit before saving.
@@ -43,13 +63,29 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
       if (initialData.brandName) setBrandName(initialData.brandName);
       if (initialData.description) setDescription(initialData.description);
       if (initialData.tagline) setTagline(initialData.tagline);
+      if (initialData.city) setCity(initialData.city);
+      if (initialData.state) setState(initialData.state);
+      if (initialData.dispensaryType) setDispensaryType(initialData.dispensaryType);
     }
   }, [open, initialData]);
 
   const handleSubmit = () => {
-    onComplete({ brandName, description, tagline });
+    onComplete({
+      brandName,
+      description,
+      tagline,
+      city: city || undefined,
+      state: state || undefined,
+      dispensaryType: dispensaryType || undefined,
+    });
     onOpenChange(false);
   };
+
+  const typeOptions: { value: 'recreational' | 'medical' | 'both'; label: string; desc: string }[] = [
+    { value: 'recreational', label: 'Recreational', desc: 'Adult-use cannabis' },
+    { value: 'medical', label: 'Medical', desc: 'Patient-focused care' },
+    { value: 'both', label: 'Both', desc: 'Rec + Medical' },
+  ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -91,10 +127,61 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
               placeholder="Describe your brand, mission, and what makes you unique..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="mt-1.5 min-h-[120px]"
+              className="mt-1.5 min-h-[100px]"
             />
             <p className="text-xs text-muted-foreground mt-1.5">
               This will be used across your marketing materials and customer communications.
+            </p>
+          </div>
+
+          {/* Location */}
+          <div>
+            <Label className="flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5" />
+              Location
+            </Label>
+            <div className="grid grid-cols-2 gap-3 mt-1.5">
+              <Input
+                placeholder="City (e.g., Syracuse)"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+              />
+              <Input
+                placeholder="State (e.g., New York)"
+                value={state}
+                onChange={(e) => setState(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Used for local marketing, compliance, and geo-targeted content.
+            </p>
+          </div>
+
+          {/* Dispensary Type */}
+          <div>
+            <Label className="flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5" />
+              Dispensary Type
+            </Label>
+            <div className="grid grid-cols-3 gap-2 mt-1.5">
+              {typeOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setDispensaryType(opt.value)}
+                  className={`p-3 rounded-lg border text-left transition-all ${
+                    dispensaryType === opt.value
+                      ? 'border-baked-green bg-green-50 ring-1 ring-baked-green'
+                      : 'border-gray-200 hover:border-green-200 hover:bg-green-50/50'
+                  }`}
+                >
+                  <div className="font-semibold text-sm text-gray-800">{opt.label}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{opt.desc}</div>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Determines compliance rules and default voice settings.
             </p>
           </div>
         </div>
@@ -117,7 +204,7 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
 }
 
 // ============================================================================
-// STEP 2: Colors & Logo
+// STEP 2: Colors & Logo — with initialData pre-fill + logo preview
 // ============================================================================
 
 interface Step2DialogProps {
@@ -128,12 +215,27 @@ interface Step2DialogProps {
     secondaryColor?: string;
     logoUrl?: string;
   }) => void;
+  initialData?: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    logoUrl?: string;
+    logoPreviewUrl?: string;
+  };
 }
 
-export function Step2Dialog({ open, onOpenChange, onComplete }: Step2DialogProps) {
-  const [primaryColor, setPrimaryColor] = useState('#4ade80');
-  const [secondaryColor, setSecondaryColor] = useState('#1f3324');
-  const [logoUrl, setLogoUrl] = useState('');
+export function Step2Dialog({ open, onOpenChange, onComplete, initialData }: Step2DialogProps) {
+  const [primaryColor, setPrimaryColor] = useState(initialData?.primaryColor || '#4ade80');
+  const [secondaryColor, setSecondaryColor] = useState(initialData?.secondaryColor || '#1f3324');
+  const [logoUrl, setLogoUrl] = useState(initialData?.logoUrl || '');
+
+  // Pre-fill when dialog opens with extracted data
+  useEffect(() => {
+    if (open && initialData) {
+      if (initialData.primaryColor) setPrimaryColor(initialData.primaryColor);
+      if (initialData.secondaryColor) setSecondaryColor(initialData.secondaryColor);
+      if (initialData.logoUrl) setLogoUrl(initialData.logoUrl);
+    }
+  }, [open, initialData]);
 
   const handleSubmit = () => {
     onComplete({
@@ -143,6 +245,8 @@ export function Step2Dialog({ open, onOpenChange, onComplete }: Step2DialogProps
     });
     onOpenChange(false);
   };
+
+  const logoPreview = initialData?.logoPreviewUrl;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -197,8 +301,42 @@ export function Step2Dialog({ open, onOpenChange, onComplete }: Step2DialogProps
             </div>
           </div>
 
+          {/* Logo Preview from scan */}
+          {logoPreview && (
+            <div className="p-4 rounded-lg border border-green-100 bg-green-50/50">
+              <p className="text-sm font-medium text-gray-700 mb-3">
+                Detected from your website:
+              </p>
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 rounded-lg border border-gray-200 bg-white flex items-center justify-center overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={logoPreview}
+                    alt="Detected logo"
+                    className="max-w-full max-h-full object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-600 mb-2 break-all">{logoPreview}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLogoUrl(logoPreview)}
+                    className="border-baked-green text-baked-green hover:bg-green-50"
+                  >
+                    Use This Logo
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div>
-            <Label htmlFor="logoUrl">Logo URL (Optional)</Label>
+            <Label htmlFor="logoUrl">Logo URL {logoPreview ? '(or enter a different URL)' : '(Optional)'}</Label>
             <Input
               id="logoUrl"
               type="url"
@@ -245,7 +383,7 @@ export function Step2Dialog({ open, onOpenChange, onComplete }: Step2DialogProps
 }
 
 // ============================================================================
-// STEP 3: Brand Voice
+// STEP 3: Brand Voice — with initialData auto-select
 // ============================================================================
 
 interface Step3DialogProps {
@@ -257,9 +395,15 @@ interface Step3DialogProps {
     doWrite: string[];
     dontWrite: string[];
   }) => void;
+  initialData?: {
+    tone?: string[];
+    personality?: string[];
+    doWrite?: string[];
+    dontWrite?: string[];
+  };
 }
 
-export function Step3Dialog({ open, onOpenChange, onComplete }: Step3DialogProps) {
+export function Step3Dialog({ open, onOpenChange, onComplete, initialData }: Step3DialogProps) {
   const [selectedTones, setSelectedTones] = useState<string[]>([]);
   const [selectedPersonality, setSelectedPersonality] = useState<string[]>([]);
   const [doWrite, setDoWrite] = useState('');
@@ -283,6 +427,31 @@ export function Step3Dialog({ open, onOpenChange, onComplete }: Step3DialogProps
     'Empowering',
   ];
 
+  // Auto-select extracted or smart-default tones/personality when dialog opens
+  useEffect(() => {
+    if (open && initialData) {
+      if (initialData.tone && initialData.tone.length > 0) {
+        // Match case-insensitively against our options list
+        const matched = toneOptions.filter((opt) =>
+          initialData.tone!.some((t) => t.toLowerCase() === opt.toLowerCase())
+        );
+        if (matched.length > 0) setSelectedTones(matched.slice(0, 3));
+      }
+      if (initialData.personality && initialData.personality.length > 0) {
+        const matched = personalityOptions.filter((opt) =>
+          initialData.personality!.some((p) => p.toLowerCase() === opt.toLowerCase())
+        );
+        if (matched.length > 0) setSelectedPersonality(matched.slice(0, 4));
+      }
+      if (initialData.doWrite && initialData.doWrite.length > 0) {
+        setDoWrite(initialData.doWrite.join('\n'));
+      }
+      if (initialData.dontWrite && initialData.dontWrite.length > 0) {
+        setDontWrite(initialData.dontWrite.join('\n'));
+      }
+    }
+  }, [open, initialData]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const toggleTone = (tone: string) => {
     setSelectedTones((prev) =>
       prev.includes(tone) ? prev.filter((t) => t !== tone) : [...prev, tone]
@@ -305,6 +474,10 @@ export function Step3Dialog({ open, onOpenChange, onComplete }: Step3DialogProps
     onOpenChange(false);
   };
 
+  const hasAutoFill = initialData && (
+    (initialData.tone?.length ?? 0) > 0 || (initialData.personality?.length ?? 0) > 0
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
@@ -312,6 +485,11 @@ export function Step3Dialog({ open, onOpenChange, onComplete }: Step3DialogProps
           <DialogTitle>Define Brand Voice</DialogTitle>
           <DialogDescription>
             Set the tone and personality for all AI-generated content.
+            {hasAutoFill && (
+              <span className="ml-1 text-baked-green font-medium">
+                Suggestions pre-selected from your website — adjust as needed.
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -380,7 +558,7 @@ export function Step3Dialog({ open, onOpenChange, onComplete }: Step3DialogProps
 
           {/* Don't Write */}
           <div>
-            <Label htmlFor="dontWrite">Don't Write (One per line)</Label>
+            <Label htmlFor="dontWrite">Don&apos;t Write (One per line)</Label>
             <Textarea
               id="dontWrite"
               placeholder="Avoid medical claims&#10;Don't use slang excessively&#10;No pressure to buy"
@@ -409,7 +587,7 @@ export function Step3Dialog({ open, onOpenChange, onComplete }: Step3DialogProps
 }
 
 // ============================================================================
-// STEP 4: Advanced Setup
+// STEP 4: Advanced Setup — with social handles
 // ============================================================================
 
 interface Step4DialogProps {
@@ -419,13 +597,38 @@ interface Step4DialogProps {
     targetAudience?: string;
     competitorUrls?: string[];
     specialRequirements?: string;
+    instagramHandle?: string;
+    facebookHandle?: string;
   }) => void;
+  initialData?: {
+    targetAudience?: string;
+    competitorUrls?: string[];
+    specialRequirements?: string;
+    instagramHandle?: string;
+    facebookHandle?: string;
+  };
 }
 
-export function Step4Dialog({ open, onOpenChange, onComplete }: Step4DialogProps) {
-  const [targetAudience, setTargetAudience] = useState('');
-  const [competitorUrls, setCompetitorUrls] = useState('');
-  const [specialRequirements, setSpecialRequirements] = useState('');
+export function Step4Dialog({ open, onOpenChange, onComplete, initialData }: Step4DialogProps) {
+  const [targetAudience, setTargetAudience] = useState(initialData?.targetAudience || '');
+  const [competitorUrls, setCompetitorUrls] = useState(
+    initialData?.competitorUrls?.join('\n') || ''
+  );
+  const [specialRequirements, setSpecialRequirements] = useState(
+    initialData?.specialRequirements || ''
+  );
+  const [instagramHandle, setInstagramHandle] = useState(initialData?.instagramHandle || '');
+  const [facebookHandle, setFacebookHandle] = useState(initialData?.facebookHandle || '');
+
+  useEffect(() => {
+    if (open && initialData) {
+      if (initialData.targetAudience) setTargetAudience(initialData.targetAudience);
+      if (initialData.competitorUrls) setCompetitorUrls(initialData.competitorUrls.join('\n'));
+      if (initialData.specialRequirements) setSpecialRequirements(initialData.specialRequirements);
+      if (initialData.instagramHandle) setInstagramHandle(initialData.instagramHandle);
+      if (initialData.facebookHandle) setFacebookHandle(initialData.facebookHandle);
+    }
+  }, [open, initialData]);
 
   const handleSubmit = () => {
     onComplete({
@@ -434,13 +637,15 @@ export function Step4Dialog({ open, onOpenChange, onComplete }: Step4DialogProps
         ? competitorUrls.split('\n').filter(Boolean)
         : undefined,
       specialRequirements: specialRequirements || undefined,
+      instagramHandle: instagramHandle || undefined,
+      facebookHandle: facebookHandle || undefined,
     });
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Advanced Setup</DialogTitle>
           <DialogDescription>
@@ -449,6 +654,39 @@ export function Step4Dialog({ open, onOpenChange, onComplete }: Step4DialogProps
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Social Media Handles */}
+          <div className="p-4 rounded-lg border border-gray-100 bg-gray-50/50 space-y-3">
+            <Label className="flex items-center gap-1.5 text-gray-700">
+              Social Media Profiles
+              <Badge variant="outline" className="text-[10px] ml-1">Enhances AI extraction</Badge>
+            </Label>
+            <p className="text-xs text-muted-foreground -mt-1">
+              Adding your social handles gives BakedBot more brand voice samples for better content.
+            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <Instagram className="w-4 h-4 text-pink-500 flex-shrink-0" />
+                <Input
+                  placeholder="@yourdispensary"
+                  value={instagramHandle}
+                  onChange={(e) => setInstagramHandle(e.target.value)}
+                  className="bg-white"
+                />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <Facebook className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                <Input
+                  placeholder="yourdispensarypage"
+                  value={facebookHandle}
+                  onChange={(e) => setFacebookHandle(e.target.value)}
+                  className="bg-white"
+                />
+              </div>
+            </div>
+          </div>
+
           <div>
             <Label htmlFor="targetAudience">Target Audience</Label>
             <Textarea
@@ -470,7 +708,7 @@ export function Step4Dialog({ open, onOpenChange, onComplete }: Step4DialogProps
               className="mt-1.5 min-h-[80px] font-mono text-sm"
             />
             <p className="text-xs text-muted-foreground mt-1.5">
-              We'll analyze competitors to help you stand out.
+              We&apos;ll analyze competitors to help you stand out.
             </p>
           </div>
 
