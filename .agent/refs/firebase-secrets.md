@@ -39,6 +39,42 @@ GitHub scans every commit for: Slack webhooks, API keys, OAuth tokens, private k
 
 ---
 
+## 🚨 PREPARER-STEP BUILD FAILURES (Build-Blocking)
+
+**This happened (2026-02-19):** `FAL_API_KEY` was referenced in `apphosting.yaml` but the secret existed with **0 versions** and had no IAM binding. Firebase failed at the **preparer step** — before any compilation — with:
+
+```
+{"reason":"Misconfigured Secret","code":"fah/misconfigured-secret",
+ "userFacingMessage":"Error resolving secret version with name=.../FAL_API_KEY/versions/latest..."}
+```
+
+This is **worse than a runtime error** — it blocks ALL deployments until fixed.
+
+### Three Ways a Referenced Secret Can Fail at Build Time
+
+| Cause | Symptom | Fix |
+|-------|---------|-----|
+| Secret doesn't exist | `fah/misconfigured-secret` | Create it + add version + grantaccess |
+| Secret exists but **0 versions** | `fah/misconfigured-secret` (same error!) | `gcloud secrets versions add` |
+| Secret has no IAM binding | `fah/misconfigured-secret` (same error!) | `firebase apphosting:secrets:grantaccess` |
+
+### How to Distinguish Which Case You Have
+
+```bash
+# Step 1: Check secret exists and has versions
+gcloud secrets versions list SECRET_NAME --project=studio-567050101-bc6e8
+# "Listed 0 items." → secret exists but EMPTY — add a version
+# Error "NOT_FOUND" → secret doesn't exist — create it
+# Shows version(s) → secret has data, check IAM next
+
+# Step 2: Check IAM bindings
+gcloud secrets get-iam-policy SECRET_NAME --project=studio-567050101-bc6e8
+# Look for: firebase-app-hosting-compute@ service accounts
+# Missing? → run firebase apphosting:secrets:grantaccess
+```
+
+---
+
 ## The Problem
 
 Firebase App Hosting secret references in `apphosting.yaml` may fail to resolve even with correct Secret Manager permissions. This manifests as:
@@ -50,19 +86,25 @@ Firebase App Hosting secret references in `apphosting.yaml` may fail to resolve 
 
 ---
 
-## The Solution
+## The Solution (Full 3-Step Checklist)
 
-### Step 1: Create Secret in Secret Manager
+> Every step is required. Missing any one causes `fah/misconfigured-secret`.
 
-```powershell
-# Option A: Using gcloud
-echo -n "your-secret-value" | gcloud secrets create SECRET_NAME --data-file=- --project=PROJECT_ID
+### Step 1: Create Secret AND Add a Version
 
-# Option B: Using PowerShell script
-$tempFile = [System.IO.Path]::GetTempFileName()
-Set-Content -Path $tempFile -Value "your-secret-value" -NoNewline
-gcloud secrets versions add SECRET_NAME --data-file=$tempFile --project=PROJECT_ID
-Remove-Item $tempFile
+**IMPORTANT:** `gcloud secrets create` only creates the container — it does NOT add a version.
+A secret with 0 versions causes the same build failure as a missing secret.
+
+```bash
+# ✅ RECOMMENDED: Create and populate in one command
+echo -n "your-secret-value" | gcloud secrets create SECRET_NAME --data-file=- --project=studio-567050101-bc6e8
+
+# If secret already exists but is empty (0 versions):
+echo -n "your-secret-value" | gcloud secrets versions add SECRET_NAME --data-file=- --project=studio-567050101-bc6e8
+
+# Verify it has a version:
+gcloud secrets versions list SECRET_NAME --project=studio-567050101-bc6e8
+# Must show at least 1 version (not "Listed 0 items.")
 ```
 
 ### Step 2: Grant Firebase App Hosting Access (CRITICAL)
@@ -141,6 +183,24 @@ Invoke-RestMethod -Uri "https://your-app.web.app/api/system/health"
 
 ## Common Mistakes
 
+### ❌ Creating Secret Without Adding a Version
+
+```bash
+# WRONG — creates the secret container but leaves it empty (0 versions)
+gcloud secrets create MY_SECRET --project=studio-567050101-bc6e8
+# Result: "fah/misconfigured-secret" at build time — same error as missing secret!
+```
+
+```bash
+# RIGHT — create AND populate in one step
+echo -n "actual-value" | gcloud secrets create MY_SECRET --data-file=- --project=studio-567050101-bc6e8
+
+# OR if secret already exists but is empty:
+echo -n "actual-value" | gcloud secrets versions add MY_SECRET --data-file=- --project=studio-567050101-bc6e8
+```
+
+**Why this matters:** The preparer step (before compilation) reads all secrets referenced in `apphosting.yaml`. A secret with 0 versions is treated identically to a missing secret. The error `fah/misconfigured-secret` is the same in both cases — always check versions list first.
+
 ### ❌ Using gcloud Instead of Firebase CLI
 
 ```bash
@@ -192,14 +252,26 @@ firebase apphosting:secrets:grantaccess SECRET_NAME --backend=backend-name
 
 ## Debugging Checklist
 
-If secrets aren't resolving:
+If secrets aren't resolving (runtime) or build fails with `fah/misconfigured-secret` (build-time):
 
-### 1. Check Secret Exists
+### 0. Check if It's a Preparer-Step Failure (Build-Blocking)
+Build log shows `fah/misconfigured-secret` in the **preparer** step? This blocks all deployments.
+Run the 3-step diagnostic below before anything else.
+
+### 1. Check Secret Exists AND Has Versions
 ```bash
-gcloud secrets versions access latest --secret=SECRET_NAME --project=PROJECT_ID
+# Does the secret exist at all?
+gcloud secrets describe SECRET_NAME --project=studio-567050101-bc6e8
+
+# Does it have at least 1 version? (0 items = build will fail!)
+gcloud secrets versions list SECRET_NAME --project=studio-567050101-bc6e8
+
+# Can you read the value?
+gcloud secrets versions access latest --secret=SECRET_NAME --project=studio-567050101-bc6e8
 ```
-- ✅ Should return the secret value
-- ❌ If error → Secret doesn't exist or you don't have access
+- `Listed 0 items.` → **Add a version**: `echo -n "value" | gcloud secrets versions add SECRET_NAME --data-file=- --project=studio-567050101-bc6e8`
+- `NOT_FOUND` → Secret doesn't exist. Create it first.
+- ✅ Returns value → Secret has data, check IAM next
 
 ### 2. Check IAM Bindings
 ```bash
@@ -409,11 +481,14 @@ powershell scripts/test-heartbeat-verbose.ps1
 ## Key Takeaways
 
 1. **Firebase CLI > gcloud** for all Firebase-specific operations
-2. **Fresh deployments required** after IAM binding changes
-3. **Version pinning** (`SECRET@6`) recommended for stability
-4. **401 vs 500 errors** help diagnose secret resolution vs execution issues
-5. **Wait 5-10 minutes** after pushing code before testing
-6. **Test verbose responses** to get detailed error information
+2. **3 steps required**: create secret → add version → grantaccess. All three. Every time.
+3. **Secret with 0 versions = build fails** at preparer step — same error as missing secret
+4. **Fresh deployments required** after IAM binding changes (empty commit forces rebuild)
+5. **Version pinning** (`SECRET@6`) recommended for stability
+6. **Preparer errors block ALL deploys** — fix immediately, don't wait
+7. **401 vs 500 errors** help diagnose secret resolution vs execution issues at runtime
+8. **Wait 5-10 minutes** after pushing code before testing
+9. **Test verbose responses** to get detailed error information
 
 ---
 

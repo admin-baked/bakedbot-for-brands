@@ -62,13 +62,18 @@ npm run check:types
 
 **Secrets in code = blocked push + rotated credentials.** It happened (Slack webhook, 2026-02-17).
 
-### The Only Correct Pattern:
+### The Complete 3-Step Pattern (ALL steps required):
 ```bash
-# 1. Create in Secret Manager
+# STEP 1: Create secret AND populate it (one command does both)
 echo -n "secret-value" | gcloud secrets create SECRET_NAME --data-file=- --project=studio-567050101-bc6e8
-# 2. Grant Firebase access (Firebase CLI ONLY — not raw gcloud)
+
+# If secret already exists but has 0 versions (will also cause build failure!):
+echo -n "secret-value" | gcloud secrets versions add SECRET_NAME --data-file=- --project=studio-567050101-bc6e8
+
+# STEP 2: Grant Firebase access (Firebase CLI ONLY — not raw gcloud)
 firebase apphosting:secrets:grantaccess SECRET_NAME --backend=bakedbot-prod
-# 3. Reference in apphosting.yaml — use secret:, NEVER value:
+
+# STEP 3: Reference in apphosting.yaml — then push to deploy
 ```
 ```yaml
 - variable: MY_SECRET
@@ -85,7 +90,22 @@ const webhookUrl = process.env.SLACK_WEBHOOK_URL;
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL || '';
 ```
 
-See `.agent/refs/firebase-secrets.md` for full pattern.
+### 🚨 Preparer-Step Failures (Build-Blocking)
+When a secret is referenced in `apphosting.yaml` but is misconfigured, Firebase fails at the **preparer step** — before any compilation — blocking ALL deployments with `fah/misconfigured-secret`.
+
+**Three causes, same error:**
+1. Secret doesn't exist in Secret Manager
+2. Secret exists but has **0 versions** (empty container — `gcloud secrets versions list` shows "Listed 0 items.")
+3. Secret exists with data but no Firebase IAM binding
+
+**Quick diagnostic:**
+```bash
+gcloud secrets versions list SECRET_NAME --project=studio-567050101-bc6e8
+# "Listed 0 items." → add a version (step 1 above)
+# Shows version(s) → run firebase apphosting:secrets:grantaccess (step 2)
+```
+
+See `.agent/refs/firebase-secrets.md` for full pattern, debugging checklist, and version management.
 
 ---
 
