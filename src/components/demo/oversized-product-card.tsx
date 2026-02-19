@@ -88,7 +88,7 @@ export function OversizedProductCard({
     >
       {/* Image Container */}
       <div className={cn('relative bg-muted overflow-hidden', imageSizeClasses[size])}>
-        {product.imageUrl ? (
+        {(product.imageUrl && !product.imageUrl.includes('unsplash.com') && !product.imageUrl.includes('placeholder')) ? (
           <Image
             src={product.imageUrl}
             alt={product.name}
@@ -100,8 +100,14 @@ export function OversizedProductCard({
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Leaf className="h-16 w-16 text-muted-foreground/30" />
+          <div className="absolute inset-0 flex items-center justify-center bg-green-50/50">
+            <Image
+              src="/icon-192.png"
+              alt="BakedBot"
+              width={72}
+              height={72}
+              className="opacity-50 object-contain"
+            />
           </div>
         )}
 

@@ -148,6 +148,8 @@ export async function fetchBrandPageData(brandParam: string) {
                 if (!productsSnapshot.empty) {
                     products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
                     console.log(`[fetchBrandPageData] Loaded ${products.length} products from tenant catalog for ${brand.id}`);
+                    // Mark as dispensary menu when products come from tenant/POS catalog
+                    (brand as any).menuDesign = 'dispensary';
                 }
             } catch (e) {
                 console.error('Failed to fetch tenant products:', e);
@@ -218,7 +220,7 @@ export async function fetchBrandPageData(brandParam: string) {
 
         // 5. Fetch featured brands for dispensary menus
         let featuredBrands: FeaturedBrand[] = [];
-        if (tenantId && (brand as any).menuDesign === 'dispensary') {
+        if (tenantId && ((brand as any).menuDesign === 'dispensary' || isTenant)) {
             try {
                 featuredBrands = await getFeaturedBrands(tenantId);
             } catch (error) {
