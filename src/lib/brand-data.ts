@@ -214,8 +214,40 @@ export async function fetchBrandPageData(brandParam: string) {
             ]);
             retailers = retailerDocs.map(mapRetailerDocToDomain);
         } catch (error) {
-            // console.error('Failed to fetch retailers for brand page:', error);
             // Fail gracefully, retailers will be empty - page still loads
+        }
+
+        // Local Firestore fallback: check retailers collection for brands that
+        // linked themselves via the seed-ny-brands-from-thrive script (brandIds array).
+        // This covers unclaimed NY brands not yet indexed on CannMenus.
+        if (retailers.length === 0 && brand.id) {
+            try {
+                const localSnap = await firestore
+                    .collection('retailers')
+                    .where('brandIds', 'array-contains', brand.id)
+                    .where('status', '==', 'active')
+                    .get();
+                if (!localSnap.empty) {
+                    retailers = localSnap.docs.map((d: any) => {
+                        const r = d.data();
+                        return {
+                            id: d.id,
+                            name: r.name || '',
+                            address: r.address || '',
+                            city: r.city || '',
+                            state: r.state || '',
+                            zip: r.zip || '',
+                            phone: r.phone,
+                            lat: r.lat,
+                            lon: r.lon,
+                            status: r.status || 'active',
+                            claimStatus: r.claimStatus,
+                        } as Retailer;
+                    });
+                }
+            } catch {
+                // fail gracefully — brand page still loads without retailer list
+            }
         }
 
         // 5. Fetch featured brands for dispensary menus
