@@ -496,6 +496,237 @@ export async function getMenuData(): Promise<MenuData> {
 }
 
 /**
+ * Batch-update the sortOrder field on multiple products.
+ * Called after a drag-to-reorder operation in the dashboard Preview tab.
+ * Writes to both the tenant catalog and legacy products collection.
+ */
+export async function updateProductSortOrder(
+    updates: { id: string; sortOrder: number }[]
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'dispensary_admin', 'brand_admin', 'super_user']);
+        const orgId = await resolveOrgId(firestore, user as any);
+
+        const batch = firestore.batch();
+
+        for (const { id, sortOrder } of updates) {
+            // Update tenant catalog (primary source)
+            if (orgId) {
+                const tenantRef = firestore
+                    .collection('tenants')
+                    .doc(orgId)
+                    .collection('publicViews')
+                    .doc('products')
+                    .collection('items')
+                    .doc(id);
+                batch.update(tenantRef, { sortOrder });
+            }
+            // Update legacy products collection
+            const legacyRef = firestore.collection('products').doc(id);
+            batch.update(legacyRef, { sortOrder });
+        }
+
+        await batch.commit();
+        logger.info('[MENU_ACTION] Product sort order updated', { count: updates.length, orgId });
+        return { success: true };
+    } catch (error) {
+        logger.error('[MENU_ACTION] Failed to update product sort order', { error });
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to save order' };
+    }
+}
+
+/**
+ * Toggle the featured flag on a product.
+ * Featured products float to the top of the public menu default (popular) sort.
+ */
+export async function toggleProductFeatured(
+    productId: string,
+    featured: boolean
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'dispensary_admin', 'brand_admin', 'super_user']);
+        const orgId = await resolveOrgId(firestore, user as any);
+
+        const updates = { featured };
+
+        // Update tenant catalog
+        if (orgId) {
+            await firestore
+                .collection('tenants')
+                .doc(orgId)
+                .collection('publicViews')
+                .doc('products')
+                .collection('items')
+                .doc(productId)
+                .update(updates);
+        }
+
+        // Update legacy products collection
+        await firestore.collection('products').doc(productId).update(updates);
+
+        logger.info('[MENU_ACTION] Product featured toggled', { productId, featured });
+        return { success: true };
+    } catch (error) {
+        logger.error('[MENU_ACTION] Failed to toggle product featured', { productId, error });
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to update' };
+    }
+}
+
+/**
+ * Update the retail price of a single product.
+ * Writes to both tenant catalog and legacy products collection.
+ */
+export async function updateProductPrice(
+    productId: string,
+    price: number
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'dispensary_admin', 'brand_admin', 'super_user']);
+        const orgId = await resolveOrgId(firestore, user as any);
+
+        const updates = { price };
+
+        if (orgId) {
+            await firestore
+                .collection('tenants')
+                .doc(orgId)
+                .collection('publicViews')
+                .doc('products')
+                .collection('items')
+                .doc(productId)
+                .update(updates);
+        }
+
+        await firestore.collection('products').doc(productId).update(updates);
+
+        logger.info('[MENU_ACTION] Product price updated', { productId, price });
+        return { success: true };
+    } catch (error) {
+        logger.error('[MENU_ACTION] Failed to update product price', { productId, error });
+        return { success: false, error: error instanceof Error ? error.message : 'Failed to update price' };
+    }
+}
+
+/**
+ * Fetch the bundles that include a specific product.
+ * Used by BundleQuickSheet in the dashboard Preview tab.
+ */
+export async function getProductBundles(productId: string): Promise<{
+    id: string;
+    name: string;
+    savingsPercent: number;
+    bundlePrice: number;
+    status: 'active' | 'draft';
+}[]> {
+    try {
+        const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'dispensary_admin', 'brand_admin', 'super_user']);
+        const orgId = await resolveOrgId(firestore, user as any);
+
+        if (!orgId) return [];
+
+        const bundlesSnap = await firestore
+            .collection('tenants')
+            .doc(orgId)
+            .collection('bundles')
+            .where('status', 'in', ['active', 'draft'])
+            .get();
+
+        const result: { id: string; name: string; savingsPercent: number; bundlePrice: number; status: 'active' | 'draft' }[] = [];
+
+        for (const doc of bundlesSnap.docs) {
+            const data = doc.data();
+            const productIds: string[] = (data.products || []).map((p: any) => p.id || p);
+            if (productIds.includes(productId)) {
+                result.push({
+                    id: doc.id,
+                    name: data.name || 'Bundle',
+                    savingsPercent: data.savingsPercent || 0,
+                    bundlePrice: data.bundlePrice || 0,
+                    status: data.status || 'draft',
+                });
+            }
+        }
+
+        return result;
+    } catch (error) {
+        logger.error('[MENU_ACTION] Failed to fetch product bundles', { productId, error });
+        return [];
+    }
+}
+
+/**
+ * Fetch all data needed for the dashboard Menu Preview tab.
+ * Returns brand config, bundles, featured brands, carousels, and public menu settings
+ * so the dashboard can render BrandMenuClient with isManageMode=true.
+ */
+export async function getMenuPreviewData(): Promise<{
+    brand: import('@/types/domain').Brand | null;
+    bundles: import('@/types/bundles').BundleDeal[];
+    featuredBrands: import('@/server/actions/featured-brands').FeaturedBrand[];
+    carousels: import('@/types/carousels').Carousel[];
+    publicMenuSettings: import('@/components/demo/menu-info-bar').PublicMenuSettings | null;
+    brandSlug: string;
+}> {
+    try {
+        const { firestore } = await createServerClient();
+        const user = await requireUser(['dispensary', 'dispensary_admin', 'brand_admin', 'super_user']);
+        const orgId = await resolveOrgId(firestore, user as any);
+
+        if (!orgId) {
+            return { brand: null, bundles: [], featuredBrands: [], carousels: [], publicMenuSettings: null, brandSlug: '' };
+        }
+
+        // Fetch brand doc — check by orgId field or by doc ID
+        let brandData: import('@/types/domain').Brand | null = null;
+        let brandSlug = '';
+
+        const brandByOrgSnap = await firestore.collection('brands').where('orgId', '==', orgId).limit(1).get();
+        if (!brandByOrgSnap.empty) {
+            const doc = brandByOrgSnap.docs[0];
+            brandData = { id: doc.id, ...doc.data() } as import('@/types/domain').Brand;
+            brandSlug = (brandData as any).slug || doc.id;
+        } else {
+            // Try using orgId as brand doc ID directly
+            const brandDoc = await firestore.collection('brands').doc(orgId).get();
+            if (brandDoc.exists) {
+                brandData = { id: brandDoc.id, ...brandDoc.data() } as import('@/types/domain').Brand;
+                brandSlug = (brandData as any).slug || orgId;
+            }
+        }
+
+        if (!brandData) {
+            return { brand: null, bundles: [], featuredBrands: [], carousels: [], publicMenuSettings: null, brandSlug: '' };
+        }
+
+        // Parallel fetch of supporting data
+        const [bundlesResult, featuredBrandsResult, carouselsResult, settingsResult] = await Promise.allSettled([
+            import('@/app/actions/bundles').then(m => m.getActiveBundles(brandData!.id)),
+            import('@/server/actions/featured-brands').then(m => m.getFeaturedBrands(orgId!)),
+            import('@/app/actions/carousels').then(m => m.getCarousels(orgId!)),
+            import('@/server/actions/loyalty-settings').then(m => m.getPublicMenuSettings(brandData!.id)),
+        ]);
+
+        const bundles = bundlesResult.status === 'fulfilled' ? bundlesResult.value : [];
+        const featuredBrands = featuredBrandsResult.status === 'fulfilled' ? featuredBrandsResult.value : [];
+        const carouselsRaw = carouselsResult.status === 'fulfilled' ? carouselsResult.value : null;
+        const carousels: import('@/types/carousels').Carousel[] =
+            (carouselsRaw && typeof carouselsRaw === 'object' && 'data' in carouselsRaw)
+                ? (carouselsRaw as { data?: import('@/types/carousels').Carousel[] }).data || []
+                : [];
+        const publicMenuSettings = settingsResult.status === 'fulfilled' ? settingsResult.value : null;
+
+        return { brand: brandData, bundles, featuredBrands, carousels, publicMenuSettings, brandSlug };
+    } catch (error) {
+        logger.error('[MENU_ACTION] Failed to fetch menu preview data', { error });
+        return { brand: null, bundles: [], featuredBrands: [], carousels: [], publicMenuSettings: null, brandSlug: '' };
+    }
+}
+
+/**
  * Update (or clear) the Cost of Goods Sold for a single product.
  * Allowed roles: dispensary_admin, dispensary, super_user.
  * Pass null to clear the cost field.

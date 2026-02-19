@@ -141,7 +141,15 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
         switch (sortBy) {
           case 'price-low': return a.price - b.price;
           case 'price-high': return b.price - a.price;
-          case 'popular': return (b.likes || 0) - (a.likes || 0);
+          case 'popular': {
+            // Featured products always float to the top
+            if (a.featured !== b.featured) return a.featured ? -1 : 1;
+            // Custom operator sort order wins; likes as tiebreaker
+            const aOrder = a.sortOrder ?? 9999;
+            const bOrder = b.sortOrder ?? 9999;
+            if (aOrder !== bOrder) return aOrder - bOrder;
+            return (b.likes || 0) - (a.likes || 0);
+          }
           case 'thc-high': return (b.thcPercent || 0) - (a.thcPercent || 0);
           default: return a.name.localeCompare(b.name);
         }
