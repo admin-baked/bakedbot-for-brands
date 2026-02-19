@@ -315,6 +315,23 @@ export default function CreativeCommandCenter() {
       .finally(() => setIsLoadingBrandKit(false));
   }, [activeLeftPanel, brandId]);
 
+  // Creative content hook — must be declared before the auto-generation useEffect below
+  const {
+    content,
+    loading,
+    error,
+    generate,
+    approve,
+    revise,
+    editCaption,
+    isGenerating,
+    isApproving,
+  } = useCreativeContent({
+    platform: selectedPlatform,
+    statusFilter: ["pending", "draft"],
+    realtime: true,
+  });
+
   // Proactive generation — auto-generate an intro post when the brand guide loads
   // and no content has been created yet in this session.
   useEffect(() => {
@@ -342,23 +359,6 @@ export default function CreativeCommandCenter() {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brandGuide, loading, content.length, localContent, isGenerating]);
-
-  // Creative content hook
-  const {
-    content,
-    loading,
-    error,
-    generate,
-    approve,
-    revise,
-    editCaption,
-    isGenerating,
-    isApproving,
-  } = useCreativeContent({
-    platform: selectedPlatform,
-    statusFilter: ["pending", "draft"],
-    realtime: true,
-  });
 
   // content[0] from Firestore listener takes precedence; fall back to optimistic local state
   const currentContent = content[0] || localContent || null;
