@@ -21,16 +21,26 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-02-18)
 **Recent Updates (2026-02-18) — Latest Session:**
-- ✅ **Product count bug fixed** — Stale cleanup now removes ALL `source='pos'` products not in current sync, including orphaned records with no `externalId` (was: only matched by externalId; 313 stale products accumulated) (commit 58b4718c)
-- ✅ **COGS (Cost of Goods Sold)** — Full pipeline: Alleaves `cost_of_good` → POSProduct.cost → Firestore. Menu page rebuilt as a table with COGS column, inline click-to-edit, margin %, "Not Set" badge. Amber banner when products lack cost. Warning in pricing rule scope sheet (commit 58b4718c)
-- ✅ **Playbooks UX overhaul** — New `DispensaryPlaybooksView` with hero, tier cards, toggle controls, "Activate All" CTA (commit 6dff2788)
-- ✅ **Playbooks role fix** — `dispensary_admin`/`dispensary_staff` now correctly routed (was: `=== 'dispensary'` only)
-- ✅ **Firestore indexes** — 3 missing `playbook_assignments` indexes deployed (fixes FAILED_PRECONDITION errors)
-- ✅ **Empire playbook seed** — Thrive Syracuse: 22 playbooks activated via `activate-empire-playbooks.mjs`
-- ✅ **Inbox UX** — Input bar scroll bug fixed (`min-h-0`), prompts now persist into new threads via `_pendingInputs` map (commit 73227b58)
-- ✅ **PWA dismiss persistence** — Permanent dismiss (was 7-day); race condition with `beforeinstallprompt` fixed (commit 285e0dd6)
-- ✅ **Money Mike collapsible** — Chat widget on dispensary dashboard now has toggle header, state persisted to localStorage
-- ✅ **Order backfill** — 2,999 Thrive Syracuse orders backfilled from Alleaves (2020→today) via `/api/admin/backfill-orders`
+- ✅ **Platform Overhaul Phases 1-7 COMPLETE** — Full build from spec (commits `3db16c22`, `451b6920`, `18f9bfc4`)
+- ✅ **Drive File Viewer** — In-line PDF/image/text preview in BakedBot Drive (commit `db9b3571`)
+- ✅ **Pricing aligned** — `pricing.ts` + homepage copy fully match Feb 2026 spec (Growth $349, Empire $999, EARLYBIRD50 banner, social equity callout)
+- ✅ **Playbook engine (Phase 4)** — `assignment-service.ts`, `execution-service.ts`, `mailjet.ts`, `trigger-engine.ts`, cron routes daily + weekly
+- ✅ **23-playbook registry** — `src/config/playbooks.ts` — full typed registry with tiers, channels, triggers, estimated costs
+- ✅ **Authorize.net webhook** — `/api/webhooks/authorize-net` — subscription lifecycle + payment events
+- ✅ **Social equity system** — `/social-equity` page + `/api/social-equity/apply` — 50% off forever, manual license review
+- ✅ **Dashboard alerts center** — `/dashboard/alerts` — 30-day alert history, filter by severity/unread, mark-read
+- ✅ **Usage dashboard** — `/dashboard/settings/usage` — monthly usage vs tier limits, progress bars, overage display
+- ✅ **Notification preferences** — `/dashboard/settings/notifications` — email/dashboard/SMS toggles per alert type
+- ✅ **Internal SMS router** — `src/lib/sms/internal-router.ts` — 7 alert types via Blackleaf (unlimited, staff-only)
+- ✅ **Usage metering service** — `src/lib/metering/usage-service.ts` — subscription-aware, atRisk[], overage calc
+**Previous (2026-02-18):**
+- ✅ Product count bug + COGS pipeline (commit 58b4718c)
+- ✅ Playbooks UX overhaul + role fix + 22 Empire playbooks seeded (commit 6dff2788)
+- ✅ Creative Studio redesign — Canva-style 3-panel layout, 59 DeeboCompliancePanel tests
+- ✅ Billing Phase 8-10 Tests — 46 new tests (performance, security, load)
+- ✅ Dynamic prompts — Brand + Dispensary dashboards with live CI/CRM chips + onboarding nudges
+- ✅ Heartbeat Automatic Recovery (24/7 autonomously keeps system online)
+- ✅ 28 Super User agent tools + Next.js 15 + Competitive Intel + Loyalty + Slack
 **Previous (2026-02-18):**
 - ✅ Creative Studio redesign — Canva-style 3-panel layout, 59 DeeboCompliancePanel tests
 - ✅ Billing Phase 8-10 Tests — 46 new tests (performance, security, load)
