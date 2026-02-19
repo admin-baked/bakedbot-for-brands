@@ -536,8 +536,11 @@ export default function CreativeCommandCenter() {
     toast.success(`Generating content for ${batchPlatforms.length} platforms...`);
     try {
       const results = await Promise.all(
-        batchPlatforms.map(platform => generate({ platform, prompt: campaignPrompt, style: tone, includeHashtags: true, productName: menuItem || undefined, tier: "free" }))
+        batchPlatforms.map(platform => generate({ platform, prompt: campaignPrompt, imageStyle: selectedImageStyle || undefined, style: tone, includeHashtags: true, productName: menuItem || undefined, tier: "free" }))
       );
+      // Show the first successful result on canvas immediately
+      const firstResult = results.find(r => r !== null);
+      if (firstResult) setLocalContent(firstResult);
       toast.success(`Generated ${results.filter(r => r !== null).length}/${batchPlatforms.length} campaigns!`);
       setSelectedHashtags([]);
     } catch (err) {
