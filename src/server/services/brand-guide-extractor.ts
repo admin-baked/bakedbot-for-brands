@@ -182,46 +182,96 @@ export class BrandGuideExtractor {
   }
 
   /**
-   * Analyze website content and extract data
+   * Common subpage paths that contain brand/about content.
+   * We try these after the root page to get richer brand story data.
+   */
+  private static readonly BRAND_SUBPAGES = [
+    '/about-us',
+    '/about-us/',
+    '/about',
+    '/about/',
+    '/our-story',
+    '/our-story/',
+    '/who-we-are',
+    '/mission',
+    '/contact',
+  ];
+
+  /**
+   * Scrape a list of subpages in parallel and return their combined markdown.
+   * Silently skips pages that 404 or fail.
+   */
+  private async scrapeSubpages(baseUrl: string): Promise<string> {
+    const base = baseUrl.replace(/\/$/, '');
+    const candidates = BrandGuideExtractor.BRAND_SUBPAGES.map((path) => `${base}${path}`);
+
+    const results = await Promise.allSettled(
+      candidates.map((subUrl) =>
+        this.discovery.discoverUrl(subUrl).then((r) => ({ subUrl, content: r.markdown || '' }))
+      )
+    );
+
+    const parts: string[] = [];
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value.content.trim().length > 100) {
+        logger.info('[BrandGuideExtractor] Scraped subpage', { url: result.value.subUrl, chars: result.value.content.length });
+        parts.push(`\n\n<!-- subpage: ${result.value.subUrl} -->\n${result.value.content}`);
+      }
+    }
+
+    return parts.join('\n');
+  }
+
+  /**
+   * Analyze website content and extract data.
+   * Scrapes the root URL plus key brand subpages (About Us, Our Story, etc.)
+   * to capture richer brand context before AI extraction.
    */
   private async analyzeWebsite(url: string): Promise<WebsiteAnalysis> {
     try {
       logger.info('[BrandGuideExtractor] Starting website analysis', { url });
 
-      // Use Discovery service to scrape the website (Firecrawl → RTRVR fallback)
-      const scrapeResult = await this.discovery.discoverUrl(url);
+      // Step 1: Scrape root URL + subpages in parallel
+      const [rootResult, subpageContent] = await Promise.all([
+        this.discovery.discoverUrl(url),
+        this.scrapeSubpages(url),
+      ]);
 
-      if (!scrapeResult.markdown) {
-        logger.warn('[BrandGuideExtractor] No markdown content returned from scraper', { url });
+      if (!rootResult.markdown) {
+        logger.warn('[BrandGuideExtractor] No markdown content returned from root scrape', { url });
       }
 
+      // Merge root + subpage content (root first so metadata is prioritised)
+      const combinedContent = (rootResult.markdown || '') + subpageContent;
+
       // Extract colors from content (looking for hex codes)
-      const colors = this.extractColors(scrapeResult.markdown || '');
+      const colors = this.extractColors(combinedContent);
       logger.debug('[BrandGuideExtractor] Extracted colors', { url, count: colors.length });
 
       // Extract fonts from content (if mentioned)
-      const fonts = this.extractFonts(scrapeResult.markdown || '');
+      const fonts = this.extractFonts(combinedContent);
       logger.debug('[BrandGuideExtractor] Extracted fonts', { url, count: fonts.length });
 
       // Extract text samples for voice analysis
-      const textSamples = this.extractTextSamples(scrapeResult.markdown || '');
+      const textSamples = this.extractTextSamples(combinedContent);
       logger.debug('[BrandGuideExtractor] Extracted text samples', { url, count: textSamples.length });
 
       logger.info('[BrandGuideExtractor] Website analysis completed successfully', {
         url,
         colorsFound: colors.length,
         fontsFound: fonts.length,
-        textSamplesFound: textSamples.length
+        textSamplesFound: textSamples.length,
+        subpageChars: subpageContent.length,
       });
 
       return {
         url,
-        content: scrapeResult.markdown || '',
+        content: combinedContent,
         metadata: {
-          title: scrapeResult.metadata?.title,
-          description: scrapeResult.metadata?.description,
-          ogImage: scrapeResult.metadata?.ogImage,
-          favicon: scrapeResult.metadata?.favicon,
+          title: rootResult.metadata?.title,
+          description: rootResult.metadata?.description,
+          ogImage: rootResult.metadata?.ogImage,
+          favicon: rootResult.metadata?.favicon,
         },
         colors,
         fonts,
@@ -434,11 +484,12 @@ Return a JSON object with this structure:
     website: WebsiteAnalysis
   ): Promise<Partial<BrandMessaging>> {
     const prompt = `Analyze the following website content and extract brand messaging.
+The content may include the homepage plus About Us / Our Story pages — prioritise those for brand story elements.
 
 Website: ${website.url}
 Title: ${website.metadata.title || 'Unknown'}
 Description: ${website.metadata.description || 'Unknown'}
-Content sample: ${website.content.substring(0, 3000)}
+Content sample: ${website.content.substring(0, 5000)}
 
 Extract and structure:
 1. Tagline (if present)
@@ -535,7 +586,7 @@ Return a JSON object with this structure:
       .filter((p) => !p.includes('©')) // Skip copyright
       .filter((p) => !p.includes('http')); // Skip URLs
 
-    return paragraphs.slice(0, 20); // Limit to 20 samples
+    return paragraphs.slice(0, 30); // Limit to 30 samples (more subpage content now)
   }
 
   /**
