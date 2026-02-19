@@ -928,7 +928,7 @@ export async function createShare(input: CreateShareInput): Promise<DriveActionR
       accessLevel: input.accessLevel,
       allowedUsers: (input.allowedUsers || []).map((u) => ({
         email: u.email,
-        name: u.name,
+        name: u.name ?? null,
         accessLevel: u.accessLevel || input.accessLevel,
         invitedAt: now,
         invitedBy: user.uid,
@@ -1019,7 +1019,7 @@ export async function updateShare(input: UpdateShareInput): Promise<DriveActionR
         if (!allowedUsers.some((u) => u.email === newUser.email)) {
           allowedUsers.push({
             email: newUser.email,
-            name: newUser.name,
+            name: newUser.name ?? null,
             accessLevel: newUser.accessLevel || share.accessLevel,
             invitedAt: now,
             invitedBy: user.uid,

@@ -160,6 +160,74 @@ export async function myAction(input: Input): Promise<Result> {
 | `verifyCustomDomain` | Verify DNS records for domain |
 | `removeCustomDomain` | Remove custom domain configuration |
 | `getDomainStatus` | Get current domain verification status |
+| `updateFileContent` | Re-upload edited file to Firebase Storage, update Firestore metadata |
+| `aiProcessFile` | Process Drive file content with Claude Haiku (7 action types) |
+
+---
+
+## BakedBot Drive Integration
+
+### Drive Content Actions
+**File**: `src/server/actions/drive-content.ts`
+
+```typescript
+// Save edited text content for a Drive file (ownership-checked)
+updateFileContent(fileId: string, content: string): Promise<{ success: boolean; downloadUrl?: string; error?: string }>
+
+// Process file content with AI (Claude Haiku, ~10k token cap)
+aiProcessFile(
+  fileContent: string,
+  action: AiFileAction,
+  userQuestion?: string
+): Promise<{ success: boolean; result?: string; error?: string }>
+
+type AiFileAction = 'summarize' | 'improve' | 'key_points' | 'ask' | 'follow_up' | 'parse_json' | 'describe_image';
+```
+
+- `updateFileContent`: Fetches `drive_files` doc, checks `ownerId === user.uid`, overwrites Storage at existing `storagePath`, regenerates signed URL (expires 2500), updates Firestore `size` + `downloadUrl` + `updatedAt`
+- `aiProcessFile`: 7 pre-defined system prompts. Content capped at 40k chars. Uses `callClaude()` with `claude-haiku-4-5-20251001`
+
+### Inbox → Drive Bridge
+**File**: `src/server/services/inbox-drive-bridge.ts`
+
+```typescript
+saveArtifactToDrive(opts: SaveArtifactOptions): Promise<string | null>
+
+interface SaveArtifactOptions {
+  artifactId: string;
+  artifactType: InboxArtifactType;
+  content: string | Buffer;
+  filename: string;
+  orgId: string;
+  ownerId: string;
+  ownerEmail: string;
+}
+```
+
+- Uploads to Firebase Storage at `drive/{ownerId}/{category}/{timestamp}_{filename}`
+- Creates `drive_files` Firestore doc with full metadata (required for Drive UI visibility)
+- Writes `driveFileId` back to `inbox_artifacts/{artifactId}` doc
+- Category mapping: `qr_code→qr`, `carousel|creative_content→agents`, default→documents
+- Returns `driveFileId` on success, `null` on failure (non-blocking)
+- **Critical**: Both Storage upload AND `drive_files` Firestore doc required — Storage-only files are invisible in Drive UI
+
+### Drive File Viewer Component
+**File**: `src/components/drive/file-viewer.tsx`
+
+Sheet slide-in panel with full viewer + editor + AI panel:
+- Renders by MIME type: `image/*`→img, `application/pdf`→iframe, `.md`→markdown prose, `.json`→pre formatted, text/*→pre
+- Edit mode: textarea with 3-second auto-save debounce + Ctrl+S, markdown preview toggle
+- AI Magic Button: toggles AI panel with 5 quick actions + "Ask a question" textarea
+- Double-click any file card OR "Open" menu item → opens viewer
+- `?file=<driveFileId>` URL param on `/dashboard/drive` → auto-opens that file
+
+### Deep Link Pattern
+```typescript
+// Navigate to Drive and auto-open a specific file:
+router.push(`/dashboard/drive?file=${driveFileId}`);
+
+// FileBrowser reads initialFileId prop, finds matching file in loaded files[], opens viewer
+```
 
 ---
 
