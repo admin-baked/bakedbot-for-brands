@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (Brand Guide multi-page crawl — About Us subpages scraped in parallel)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (Spec-first workflow + golden set eval suite — Smokey/Craig/Deebo QA sets installed)
 
 ---
 
