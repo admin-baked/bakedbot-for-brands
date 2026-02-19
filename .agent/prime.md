@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-19)
 
 **Recent work (2026-02-19):** See `memory/MEMORY.md` for full log.
-Key completed: [Linus Slack timeout fix — 55s→240s, harness 8 iterations] (`1d9f7aaf`), [Heartbeat gray pulse fix] (`92d8345f`)
+Key completed: [Leafly brand logo seeder + product image sync] (`810eeac7`), [Linus Slack timeout 55s→240s] (`1d9f7aaf`)
 
 ---
 
