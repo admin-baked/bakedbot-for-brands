@@ -166,11 +166,10 @@ export function ProductsDataTable<TData extends Product, TValue>({
     return counts;
   }, [data]);
 
-  // POS count sync status
+  // POS is the only source of truth — compare against total catalog count
   const posCount = posConfig?.lastSyncCount ?? null;
   const lastSyncedAt = posConfig?.lastSyncedAt ?? null;
-  const catalogCount = tierCounts.all;
-  const countMismatch = posCount !== null && posCount !== catalogCount;
+  const countMismatch = posCount !== null && posCount !== tierCounts.all;
 
   // Human-readable "synced X ago"
   const syncAge = React.useMemo(() => {
@@ -215,7 +214,7 @@ export function ProductsDataTable<TData extends Product, TValue>({
             {syncAge && ` · synced ${syncAge}`}
             {countMismatch && (
               <span className="ml-1 font-medium">
-                · catalog shows {catalogCount} — sync to reconcile
+                · catalog shows {tierCounts.all} — sync to reconcile
               </span>
             )}
           </span>
