@@ -22,11 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-19)
 
 **Recent work (2026-02-19):** See `memory/MEMORY.md` for full log.
-- ✅ **POS single source of truth** — `syncMenu()` removes ALL non-POS products on reconcile; count badge compares against total catalog (`fe9cb346`)
-- ✅ **Inbox auto-submit** — `hasPendingAutoSubmit` ref + `useEffect` in `InboxConversation`; no more double-send (`fe9cb346`)
-  - Bridge: `inbox-drive-bridge.ts` → Storage upload + `drive_files` Firestore doc + artifact backlink
-- ✅ **Drive Share dialog fix** — `name: u.name ?? null` in createShare + updateShare (`892b79d7`)
-  - Root cause: Firestore rejects `undefined` values; `name` was undefined when not supplied by dialog
+Key completed: [Creative Studio image variety + text overlay + proactive gen] (`23c10b1e`), [Brand Guide scan fixes] (`b7feb9d1`)
 
 ---
 
