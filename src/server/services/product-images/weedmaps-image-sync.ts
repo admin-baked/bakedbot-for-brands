@@ -1,20 +1,24 @@
 'use server';
 
 /**
- * WeedMaps NY Brand Image Sync
+ * Cannabis Product Image Sync — Leafly Strain Image Edition
  *
- * Crawls WeedMaps' undocumented JSON API to extract product images for all
- * NY cannabis brands, matches them to BakedBot Firestore products, and
- * re-hosts images on Firebase Storage so product cards look real.
+ * WeedMaps' API was retired (404) and their website blocks all server requests (406).
+ * This service instead scrapes Leafly strain pages to get high-quality product images,
+ * then matches them to BakedBot Firestore products by normalized strain name.
+ *
+ * Coverage: Flower, Pre-rolls, Vapes, Concentrates (anything with a strain name)
+ *           Edibles / branded products that don't match strain names are skipped.
  *
  * Architecture:
- *  1. GET /discovery/v1/listings  — All NY dispensaries (paginated)
- *  2. GET /listings/{slug}/menu_items — Products + CDN image URLs per dispensary
- *  3. Build brand→product→imageUrl catalog
- *  4. Match to Firestore products by normalized (brand, name)
- *  5. Download image → Firebase Storage → update product.imageUrl in Firestore
+ *  1. Query Firestore products for the org (imageUrl = placeholder or missing)
+ *  2. Extract unique normalized strain names from product names
+ *  3. For each strain slug, fetch leafly.com/strains/{slug} → extract nugImage
+ *  4. Try multiple slug variations (strip sizes/types/categories)
+ *  5. Build a strain→imageUrl catalog (cached 7 days in Firestore)
+ *  6. Download images → Firebase Storage → update product.imageUrl in Firestore
  *
- * Rate limit: 2 req/sec against WeedMaps API
+ * Rate limit: 300ms between Leafly page fetches (~3 req/sec)
  * Storage path: product-images/{brand-slug}/{product-slug}.{ext}
  */
 
@@ -23,68 +27,20 @@ import { getStorage } from 'firebase-admin/storage';
 import { logger } from '@/lib/logger';
 
 // ============================================================================
-// WEEDMAPS API TYPES
+// CONFIGURATION
 // ============================================================================
 
-const WM_API = 'https://api.weedmaps.com/discovery/v1';
+const LEAFLY_WEB = 'https://www.leafly.com';
 
-const WM_HEADERS = {
+const LEAFLY_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-    'Accept': 'application/json',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.9',
-    'Referer': 'https://weedmaps.com/',
-    'Origin': 'https://weedmaps.com',
+    'Cache-Control': 'no-cache',
 };
 
-interface WMDispensary {
-    id: string;
-    slug: string;
-    name: string;
-    city: string;
-    state_abbreviation: string;
-    license_type: string;
-    status: string;
-}
-
-interface WMMenuItemPhoto {
-    urls: {
-        original: string;
-        small?: string;
-        medium?: string;
-        large?: string;
-    };
-}
-
-interface WMMenuItem {
-    id: string;
-    name: string;
-    brand: { name: string; slug: string } | null;
-    category: { name: string; slug: string } | null;
-    photos: WMMenuItemPhoto[];
-    prices: Array<{ price: number; unit: string }>;
-    available: boolean;
-}
-
-interface WMMenuResponse {
-    data: {
-        menu_items: WMMenuItem[];
-        meta?: { total_count: number };
-    };
-}
-
-interface WMListingsResponse {
-    data: {
-        listings: WMDispensary[];
-        meta: {
-            total_count: number;
-            page: number;
-            per_page: number;
-        };
-    };
-}
-
 // ============================================================================
-// SYNC RESULT TYPES
+// RESULT TYPES (unchanged interface — same as original WeedMaps version)
 // ============================================================================
 
 export interface ImageSyncResult {
@@ -102,19 +58,16 @@ export interface ImageSyncResult {
 export interface WMProductImage {
     brand: string;
     name: string;
-    imageUrl: string;           // WeedMaps CDN URL
+    imageUrl: string;
     category: string;
     dispensarySlug: string;
 }
 
 // ============================================================================
-// WEEDMAPS API HELPERS
+// STRING UTILITIES
 // ============================================================================
 
-/** Sleep helper for rate limiting */
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-
-/** Normalize brand/product name for fuzzy matching */
+/** Normalize a string for catalog key matching */
 function normalize(s: string): string {
     return s
         .toLowerCase()
@@ -124,7 +77,7 @@ function normalize(s: string): string {
         .trim();
 }
 
-/** Slugify a string for Storage paths */
+/** Slugify a string for Leafly URL paths / Storage paths */
 function slugify(s: string): string {
     return s
         .toLowerCase()
@@ -133,168 +86,263 @@ function slugify(s: string): string {
 }
 
 /**
- * Fetch all NY dispensaries from WeedMaps API (paginated)
- */
-export async function fetchNYDispensaries(maxPages = 20): Promise<WMDispensary[]> {
-    const all: WMDispensary[] = [];
-    const perPage = 100;
-
-    for (let page = 1; page <= maxPages; page++) {
-        try {
-            const url = `${WM_API}/listings?filter[state_abbreviation]=NY&filter[license_type]=dispensary&filter[status]=open&page[limit]=${perPage}&page[offset]=${(page - 1) * perPage}`;
-            const resp = await fetch(url, { headers: WM_HEADERS });
-
-            if (!resp.ok) {
-                logger.warn('[WM_IMAGE_SYNC] Dispensary fetch failed', { page, status: resp.status });
-                break;
-            }
-
-            const json: WMListingsResponse = await resp.json();
-            const listings = json?.data?.listings || [];
-            all.push(...listings);
-
-            logger.info('[WM_IMAGE_SYNC] Fetched dispensary page', { page, count: listings.length, total: all.length });
-
-            if (listings.length < perPage) break; // last page
-            await sleep(500); // 2 req/sec
-        } catch (err) {
-            logger.warn('[WM_IMAGE_SYNC] Dispensary page error', { page, err: String(err) });
-            break;
-        }
-    }
-
-    logger.info('[WM_IMAGE_SYNC] Total NY dispensaries', { count: all.length });
-    return all;
-}
-
-/**
- * Fetch all menu items with images for a single dispensary
- * Returns only items that have at least one photo
- */
-export async function fetchDispensaryImages(dispensarySlug: string): Promise<WMProductImage[]> {
-    const results: WMProductImage[] = [];
-    const perPage = 100;
-    let page = 1;
-    let fetched = 0;
-
-    while (true) {
-        try {
-            const url = `${WM_API}/listings/${dispensarySlug}/menu_items?page[limit]=${perPage}&page[offset]=${(page - 1) * perPage}`;
-            const resp = await fetch(url, { headers: WM_HEADERS });
-
-            if (!resp.ok) {
-                if (resp.status === 404) break; // Dispensary has no menu in API
-                logger.warn('[WM_IMAGE_SYNC] Menu fetch failed', { dispensarySlug, page, status: resp.status });
-                break;
-            }
-
-            const json: WMMenuResponse = await resp.json();
-            const items = json?.data?.menu_items || [];
-            fetched += items.length;
-
-            for (const item of items) {
-                if (!item.photos?.length) continue;
-                const imageUrl = item.photos[0].urls.large
-                    || item.photos[0].urls.medium
-                    || item.photos[0].urls.original;
-                if (!imageUrl) continue;
-
-                results.push({
-                    brand: item.brand?.name || '',
-                    name: item.name,
-                    imageUrl,
-                    category: item.category?.name || 'Other',
-                    dispensarySlug,
-                });
-            }
-
-            if (items.length < perPage) break;
-            page++;
-            await sleep(500);
-        } catch (err) {
-            logger.warn('[WM_IMAGE_SYNC] Menu page error', { dispensarySlug, page, err: String(err) });
-            break;
-        }
-    }
-
-    logger.debug('[WM_IMAGE_SYNC] Dispensary scanned', { dispensarySlug, total: fetched, withImages: results.length });
-    return results;
-}
-
-/**
- * Build a brand→product→imageUrl catalog from all NY WeedMaps dispensaries.
- * Key: `${normBrand}||${normName}` → imageUrl (first match wins)
+ * Extract likely strain names from a cannabis product name.
+ * Returns an ordered array of slug candidates to try on Leafly,
+ * from most-specific to least-specific.
  *
- * This is the expensive step (100+ dispensaries × 100+ products each).
- * Results are stored in Firestore `wm_image_catalog` for reuse.
+ * Examples:
+ *   "Blue Dream 3.5g"           → ["blue-dream"]
+ *   "OG Kush 1g Pre-Roll"       → ["og-kush", "og"]
+ *   "Wedding Cake Flower 7g"    → ["wedding-cake"]
+ *   "GSC (Girl Scout Cookies)"  → ["gsc", "girl-scout-cookies"]
+ *   "Strawberry Cough Sativa 1g"→ ["strawberry-cough", "strawberry"]
  */
-export async function buildNYImageCatalog(): Promise<Map<string, string>> {
-    const catalog = new Map<string, string>(); // normalized key → imageUrl
-    const db = getAdminFirestore();
+function extractStrainSlugs(productName: string): string[] {
+    const slugs = new Set<string>();
 
-    const dispensaries = await fetchNYDispensaries();
-    logger.info('[WM_IMAGE_SYNC] Building catalog from dispensaries', { count: dispensaries.length });
-
-    let dispensaryCount = 0;
-    for (const dispensary of dispensaries) {
-        const images = await fetchDispensaryImages(dispensary.slug);
-
-        for (const img of images) {
-            const key = `${normalize(img.brand)}||${normalize(img.name)}`;
-            if (!catalog.has(key) && img.imageUrl) {
-                catalog.set(key, img.imageUrl);
-            }
-        }
-
-        dispensaryCount++;
-        if (dispensaryCount % 10 === 0) {
-            logger.info('[WM_IMAGE_SYNC] Catalog progress', { dispensaryCount, catalogSize: catalog.size });
-        }
-
-        await sleep(500); // rate limit
+    // Step 1: Remove parenthetical content (e.g. "(Girl Scout Cookies)")
+    // but save it as an additional candidate
+    const parenMatch = productName.match(/\(([^)]+)\)/);
+    if (parenMatch) {
+        slugs.add(slugify(parenMatch[1].trim()));
     }
 
-    // Persist catalog to Firestore for faster subsequent runs
-    const catalogDoc = db.collection('wm_image_catalog').doc('ny');
-    await catalogDoc.set({
-        entries: Object.fromEntries(catalog),
-        builtAt: new Date(),
-        dispensaryCount,
-        entryCount: catalog.size,
-    });
+    // Step 2: Strip parenthetical from the main name
+    let clean = productName.replace(/\([^)]*\)/g, ' ');
 
-    logger.info('[WM_IMAGE_SYNC] Catalog built and saved', {
-        dispensaries: dispensaryCount,
-        entries: catalog.size,
-    });
+    // Step 3: Remove size tokens (e.g. 3.5g, 100mg, 1g, 0.5oz)
+    clean = clean.replace(/\d+(?:\.\d+)?\s*(?:mg|g|oz|ml|pack|count|ct|pk)\b/gi, '');
 
+    // Step 4: Remove trailing quantity markers (e.g. "x2", "2pk", "2-pack")
+    clean = clean.replace(/\b\d+[-]?(?:pack|pk|x|ct|count)\b/gi, '');
+    clean = clean.replace(/\bx\d+\b/gi, '');
+
+    // Step 5: Remove cannabis category words
+    clean = clean.replace(
+        /\b(?:pre-?roll|preroll|flower|vape|vapor|cartridge|cart|carts|live\s+resin|live\s+rosin|rosin|wax|shatter|distillate|concentrate|tincture|gumm(?:y|ies)|edible|capsule|oil|extract|hash|kief|badder|sugar|sauce|infused|infusion|single|twin|double)\b/gi,
+        ''
+    );
+
+    // Step 6: Remove type indicators (Sativa, Indica, Hybrid)
+    clean = clean.replace(/\b(?:sativa|indica|hybrid|ruderalis|autoflower)\b/gi, '');
+
+    // Step 7: Remove brand qualifiers often appended to strain names
+    clean = clean.replace(/\b(?:premium|select|reserve|craft|small\s+batch|limited|special|edition)\b/gi, '');
+
+    // Clean up whitespace
+    clean = clean.replace(/\s+/g, ' ').trim();
+
+    // Generate slug candidates
+    if (clean) {
+        const mainSlug = slugify(clean);
+        if (mainSlug && mainSlug.length > 2) {
+            slugs.add(mainSlug);
+
+            // Also try individual words as fallback
+            const words = clean.split(/\s+/).filter(w => w.length > 2);
+            if (words.length >= 2) {
+                // First 2 words
+                slugs.add(slugify(words.slice(0, 2).join(' ')));
+            }
+            if (words.length >= 3) {
+                // First 3 words
+                slugs.add(slugify(words.slice(0, 3).join(' ')));
+            }
+        }
+    }
+
+    // Also try slugifying the full original name (in case brand IS the product)
+    const fullSlug = slugify(productName.replace(/\([^)]*\)/g, '').trim());
+    if (fullSlug.length > 2 && !slugs.has(fullSlug)) {
+        slugs.add(fullSlug);
+    }
+
+    return Array.from(slugs).filter(s => s.length > 2);
+}
+
+// ============================================================================
+// LEAFLY STRAIN IMAGE LOOKUP
+// ============================================================================
+
+const GENERIC_IMAGE_PATTERNS = [
+    'defaults/generic',
+    'defaults/dark',
+    'defaults/light',
+    '/defaults/',
+];
+
+function isGenericImage(url: string): boolean {
+    return GENERIC_IMAGE_PATTERNS.some(p => url.includes(p));
+}
+
+/**
+ * Look up a strain on Leafly by slug and extract its nugImage.
+ * Returns null if the strain isn't found or only has a generic placeholder image.
+ */
+async function lookupLeaflyStrain(slug: string): Promise<string | null> {
+    const url = `${LEAFLY_WEB}/strains/${slug}`;
+    try {
+        const resp = await fetch(url, { headers: LEAFLY_HEADERS });
+        if (!resp.ok) return null;
+
+        const html = await resp.text();
+        const match = html.match(
+            /<script\s+id="__NEXT_DATA__"\s+type="application\/json">([\s\S]*?)<\/script>/
+        );
+        if (!match?.[1]) return null;
+
+        const data = JSON.parse(match[1]) as {
+            props?: {
+                pageProps?: {
+                    strain?: {
+                        nugImage?: string;
+                        name?: string;
+                    };
+                };
+            };
+        };
+
+        const nugImage = data?.props?.pageProps?.strain?.nugImage;
+        if (!nugImage || isGenericImage(nugImage)) return null;
+
+        return nugImage;
+    } catch (err) {
+        logger.debug('[PRODUCT_IMG] Leafly lookup error', { slug, err: String(err) });
+        return null;
+    }
+}
+
+/**
+ * Find the best Leafly image for a cannabis product.
+ * Tries multiple slug variations until one matches.
+ * Returns null if no real image found.
+ */
+async function findProductImage(productName: string): Promise<{ imageUrl: string; slug: string } | null> {
+    const slugs = extractStrainSlugs(productName);
+
+    for (const slug of slugs) {
+        const imageUrl = await lookupLeaflyStrain(slug);
+        if (imageUrl) {
+            return { imageUrl, slug };
+        }
+        await sleep(300); // Rate limit: ~3 req/sec
+    }
+
+    return null;
+}
+
+/** Sleep helper */
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+// ============================================================================
+// CATALOG BUILDER (Leafly-based, 7-day cache)
+// ============================================================================
+
+/**
+ * Build a strain name → imageUrl catalog from Leafly for the given product set.
+ * The catalog is shared across orgs since strains are universal.
+ *
+ * @param productNames - Unique product names to look up (from any org's inventory)
+ */
+async function buildLeaflyImageCatalog(
+    productNames: string[]
+): Promise<Map<string, string>> {
+    const catalog = new Map<string, string>(); // normalized name → imageUrl
+
+    logger.info('[PRODUCT_IMG] Building Leafly image catalog', { products: productNames.length });
+
+    let found = 0;
+    let notFound = 0;
+    let processed = 0;
+
+    for (const name of productNames) {
+        const result = await findProductImage(name);
+        processed++;
+
+        if (result) {
+            const key = normalize(name);
+            if (!catalog.has(key)) {
+                catalog.set(key, result.imageUrl);
+            }
+            found++;
+            logger.debug('[PRODUCT_IMG] Image found', { name, slug: result.slug });
+        } else {
+            notFound++;
+        }
+
+        if (processed % 20 === 0) {
+            logger.info('[PRODUCT_IMG] Catalog progress', {
+                processed, found, notFound,
+                pct: Math.round(found / processed * 100),
+            });
+        }
+    }
+
+    logger.info('[PRODUCT_IMG] Leafly catalog built', { products: productNames.length, found, notFound });
     return catalog;
 }
 
 /**
- * Load catalog from Firestore (if built within last 7 days), else rebuild.
+ * Load catalog from Firestore (7-day cache) or rebuild from Leafly.
+ * The catalog is keyed by org since different orgs have different product names.
  */
-export async function getOrBuildCatalog(forceRebuild = false): Promise<Map<string, string>> {
+export async function getOrBuildCatalog(
+    forceRebuild = false,
+    orgId?: string
+): Promise<Map<string, string>> {
+    const db = getAdminFirestore();
+    const docId = orgId ? `leafly_${orgId}` : 'leafly_global';
+
     if (!forceRebuild) {
-        const db = getAdminFirestore();
         try {
-            const doc = await db.collection('wm_image_catalog').doc('ny').get();
+            const doc = await db.collection('wm_image_catalog').doc(docId).get();
             if (doc.exists) {
                 const data = doc.data()!;
                 const ageMs = Date.now() - (data.builtAt?.toDate?.()?.getTime() || 0);
                 const sevenDays = 7 * 24 * 60 * 60 * 1000;
                 if (ageMs < sevenDays && data.entries) {
                     const map = new Map<string, string>(Object.entries(data.entries));
-                    logger.info('[WM_IMAGE_SYNC] Loaded catalog from Firestore', { size: map.size });
+                    logger.info('[PRODUCT_IMG] Loaded catalog from Firestore', { size: map.size, docId });
                     return map;
                 }
             }
         } catch (err) {
-            logger.warn('[WM_IMAGE_SYNC] Catalog load failed, rebuilding', { err: String(err) });
+            logger.warn('[PRODUCT_IMG] Catalog load failed, rebuilding', { err: String(err) });
         }
     }
 
-    return buildNYImageCatalog();
+    // Need to rebuild — first get product names from Firestore if orgId provided
+    let productNames: string[] = [];
+    if (orgId) {
+        try {
+            const snap = await db
+                .collection('products')
+                .where('orgId', '==', orgId)
+                .get();
+            // Deduplicate by normalized name
+            const nameSet = new Set<string>();
+            snap.docs.forEach(d => {
+                const name = d.data().name;
+                if (name) nameSet.add(name);
+            });
+            productNames = Array.from(nameSet);
+        } catch (err) {
+            logger.warn('[PRODUCT_IMG] Failed to load product names', { orgId, err: String(err) });
+        }
+    }
+
+    const catalog = await buildLeaflyImageCatalog(productNames);
+
+    // Cache in Firestore
+    await db.collection('wm_image_catalog').doc(docId).set({
+        entries: Object.fromEntries(catalog),
+        builtAt: new Date(),
+        entryCount: catalog.size,
+        source: 'leafly',
+        orgId: orgId || null,
+    });
+
+    return catalog;
 }
 
 // ============================================================================
@@ -302,32 +350,30 @@ export async function getOrBuildCatalog(forceRebuild = false): Promise<Map<strin
 // ============================================================================
 
 /**
- * Download an image from WeedMaps CDN and upload to Firebase Storage.
+ * Download an image from Leafly CDN and re-host on Firebase Storage.
  * Returns the public signed URL, or null on failure.
  */
 async function storeProductImage(
-    wmImageUrl: string,
+    imageUrl: string,
     brand: string,
     productName: string
 ): Promise<string | null> {
     try {
-        // Download from WeedMaps CDN
-        const resp = await fetch(wmImageUrl, { headers: { 'Referer': 'https://weedmaps.com/' } });
+        const resp = await fetch(imageUrl, { headers: { 'Referer': `${LEAFLY_WEB}/` } });
         if (!resp.ok) return null;
 
         const contentType = resp.headers.get('content-type') || 'image/jpeg';
         const buffer = Buffer.from(await resp.arrayBuffer());
-        if (buffer.length < 1000) return null; // Skip tiny/corrupt images
+        if (buffer.length < 1000) return null;
 
-        // Determine extension
-        const ext = contentType.includes('png') ? 'png' : contentType.includes('webp') ? 'webp' : 'jpg';
+        const ext = contentType.includes('png') ? 'png'
+            : contentType.includes('webp') ? 'webp'
+            : 'jpg';
 
-        // Storage path: product-images/{brand-slug}/{product-slug}.{ext}
         const brandSlug = slugify(brand) || 'unknown-brand';
         const productSlug = slugify(productName) || `product-${Date.now()}`;
         const storagePath = `product-images/${brandSlug}/${productSlug}.${ext}`;
 
-        // Upload to Firebase Storage
         const bucket = getStorage().bucket();
         const fileRef = bucket.file(storagePath);
 
@@ -335,16 +381,15 @@ async function storeProductImage(
             contentType,
             metadata: {
                 metadata: {
-                    source: 'weedmaps',
+                    source: 'leafly',
                     brand,
                     productName,
-                    originalUrl: wmImageUrl,
+                    originalUrl: imageUrl,
                     syncedAt: new Date().toISOString(),
                 },
             },
         });
 
-        // Generate signed URL (100 year expiry)
         const [signedUrl] = await fileRef.getSignedUrl({
             action: 'read',
             expires: '01-01-2125',
@@ -352,7 +397,7 @@ async function storeProductImage(
 
         return signedUrl;
     } catch (err) {
-        logger.warn('[WM_IMAGE_SYNC] Image store failed', { wmImageUrl, err: String(err) });
+        logger.warn('[PRODUCT_IMG] Image store failed', { imageUrl, err: String(err) });
         return null;
     }
 }
@@ -361,14 +406,13 @@ async function storeProductImage(
 // MATCH + UPDATE FIRESTORE
 // ============================================================================
 
-const PLACEHOLDER = '/icon-192.png'; // Current placeholder (never overwrite real images)
+const PLACEHOLDER = '/icon-192.png';
 
 /**
- * Sync WeedMaps images to Firestore products for a given org.
+ * Sync Leafly strain images to Firestore products for a given org.
  *
- * Only updates products that:
- * - Have imageUrl === placeholder or imageUrl is missing
- * - Match catalog by (brand, name)
+ * For products not covered by the catalog (edibles, branded items), the image
+ * is looked up individually on Leafly at runtime.
  */
 export async function syncOrgProductImages(
     orgId: string,
@@ -377,7 +421,6 @@ export async function syncOrgProductImages(
 ): Promise<{ matched: number; updated: number; failed: number }> {
     const db = getAdminFirestore();
 
-    // Fetch all products for this org that need images
     const productsSnap = await db
         .collection('products')
         .where('orgId', '==', orgId)
@@ -388,7 +431,9 @@ export async function syncOrgProductImages(
         return !data.imageUrl || data.imageUrl === PLACEHOLDER || data.imageUrl === '';
     });
 
-    logger.info('[WM_IMAGE_SYNC] Products needing images', { orgId, total: productsSnap.size, needsImage: needsImage.length });
+    logger.info('[PRODUCT_IMG] Products needing images', {
+        orgId, total: productsSnap.size, needsImage: needsImage.length
+    });
 
     let matched = 0;
     let updated = 0;
@@ -396,51 +441,66 @@ export async function syncOrgProductImages(
 
     for (const doc of needsImage) {
         const product = doc.data();
-        const brand = product.brand || '';
         const name = product.name || '';
+        const brand = product.brand || '';
 
-        // Try exact normalized match first
-        const key = `${normalize(brand)}||${normalize(name)}`;
-        let wmImageUrl = catalog.get(key);
+        // Try catalog lookup by normalized name (exact match)
+        const normName = normalize(name);
+        let imageUrl = catalog.get(normName);
 
-        // If no exact match, try brand-only prefix search (e.g. "Flower" vs "Flower 3.5g")
-        if (!wmImageUrl) {
-            const normBrand = normalize(brand);
-            const normName = normalize(name);
+        // Fuzzy fallback: try prefix matching on the catalog
+        if (!imageUrl) {
             for (const [k, v] of catalog) {
-                const [kb, kn] = k.split('||');
-                if (kb === normBrand && (kn.startsWith(normName.substring(0, 10)) || normName.startsWith(kn.substring(0, 10)))) {
-                    wmImageUrl = v;
+                if (normName.startsWith(k.substring(0, 8)) || k.startsWith(normName.substring(0, 8))) {
+                    imageUrl = v;
                     break;
                 }
             }
         }
 
-        if (!wmImageUrl) continue;
+        // Last resort: look up on Leafly directly (adds latency but covers catalog misses)
+        if (!imageUrl) {
+            const result = await findProductImage(name);
+            if (result) {
+                imageUrl = result.imageUrl;
+                // Add to catalog for future lookups
+                catalog.set(normName, imageUrl);
+            }
+        }
+
+        if (!imageUrl) {
+            continue; // No match — keep placeholder
+        }
+
         matched++;
 
         if (dryRun) {
-            logger.debug('[WM_IMAGE_SYNC] DRY RUN match', { name, brand, wmImageUrl });
+            logger.debug('[PRODUCT_IMG] DRY RUN match', { name, brand, imageUrl });
             continue;
         }
 
-        // Download + re-host on Firebase Storage
-        const storedUrl = await storeProductImage(wmImageUrl, brand, name);
+        // Download + re-host on Firebase Storage, fall back to CDN URL
+        const storedUrl = await storeProductImage(imageUrl, brand, name);
         if (storedUrl) {
-            await doc.ref.update({ imageUrl: storedUrl, imageSource: 'weedmaps', imageUpdatedAt: new Date() });
-            updated++;
-            logger.debug('[WM_IMAGE_SYNC] Updated product image', { name, brand });
+            await doc.ref.update({
+                imageUrl: storedUrl,
+                imageSource: 'leafly',
+                imageUpdatedAt: new Date(),
+            });
         } else {
-            // Fallback: use WeedMaps CDN URL directly (not ideal but better than placeholder)
-            await doc.ref.update({ imageUrl: wmImageUrl, imageSource: 'weedmaps_cdn', imageUpdatedAt: new Date() });
-            updated++;
+            // Use CDN URL directly if Firebase Storage upload fails
+            await doc.ref.update({
+                imageUrl,
+                imageSource: 'leafly_cdn',
+                imageUpdatedAt: new Date(),
+            });
         }
+        updated++;
 
-        // Brief pause to avoid hammering WeedMaps CDN
-        await sleep(200);
+        await sleep(100); // Brief pause between updates
     }
 
-    logger.info('[WM_IMAGE_SYNC] Org sync complete', { orgId, matched, updated, failed });
+    logger.info('[PRODUCT_IMG] Org sync complete', { orgId, matched, updated, failed });
     return { matched, updated, failed };
 }
 
@@ -449,25 +509,27 @@ export async function syncOrgProductImages(
 // ============================================================================
 
 /**
- * Full sync: build/load NY image catalog, then update all products for one org.
- * Call this from a cron endpoint or admin script.
+ * Full sync: build/load image catalog, then update all products for one org.
+ * Exported as `runWeedmapsImageSync` for backwards compatibility with the
+ * cron endpoint and backfill script.
  */
 export async function runWeedmapsImageSync(
     orgId: string,
     options: { forceRebuild?: boolean; dryRun?: boolean } = {}
 ): Promise<ImageSyncResult> {
     const startMs = Date.now();
-    logger.info('[WM_IMAGE_SYNC] Starting sync', { orgId, ...options });
+    logger.info('[PRODUCT_IMG] Starting Leafly image sync', { orgId, ...options });
 
-    const catalog = await getOrBuildCatalog(options.forceRebuild);
+    // Build/load catalog scoped to this org's product names
+    const catalog = await getOrBuildCatalog(options.forceRebuild, orgId);
 
     const { matched, updated, failed } = await syncOrgProductImages(orgId, catalog, options.dryRun);
 
     const result: ImageSyncResult = {
         orgId,
         runAt: new Date(),
-        dispensariesScanned: 0,  // only available when rebuilding catalog
-        brandsFound: new Set([...catalog.keys()].map(k => k.split('||')[0])).size,
+        dispensariesScanned: 0,
+        brandsFound: new Set([...catalog.keys()].map(k => k.split(' ')[0])).size,
         productImagesFound: catalog.size,
         productsMatched: matched,
         productsUpdated: updated,
@@ -475,10 +537,32 @@ export async function runWeedmapsImageSync(
         durationMs: Date.now() - startMs,
     };
 
-    // Log run to Firestore for monitoring
     const db = getAdminFirestore();
-    await db.collection('image_sync_log').add(result);
+    await db.collection('image_sync_log').add({
+        ...result,
+        source: 'leafly',
+    });
 
-    logger.info('[WM_IMAGE_SYNC] Sync complete', result);
+    logger.info('[PRODUCT_IMG] Sync complete', result);
     return result;
+}
+
+// ============================================================================
+// LEGACY EXPORTS (compatibility)
+// ============================================================================
+
+/** @deprecated Use runWeedmapsImageSync instead. Still exported for backwards compat. */
+export async function buildNYImageCatalog(): Promise<Map<string, string>> {
+    logger.warn('[PRODUCT_IMG] buildNYImageCatalog is deprecated, use getOrBuildCatalog');
+    return getOrBuildCatalog(true);
+}
+
+/** @deprecated */
+export async function fetchNYDispensaries(): Promise<Array<{ slug: string; name: string }>> {
+    return []; // No longer applicable — using Leafly, not WeedMaps dispensaries
+}
+
+/** @deprecated */
+export async function fetchDispensaryImages(): Promise<WMProductImage[]> {
+    return []; // No longer applicable
 }
