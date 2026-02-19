@@ -122,6 +122,10 @@ export default function CreativeCommandCenter() {
   // Inbox draft badge state
   const [inboxDraft, setInboxDraft] = useState<{ threadId: string; artifactId: string } | null>(null);
 
+  // Optimistic local content — shown immediately after generate() returns, even if the
+  // Firestore real-time listener hasn't fired yet (handles permission/index edge cases).
+  const [localContent, setLocalContent] = useState<import('@/types/creative-content').CreativeContent | null>(null);
+
   // Left panel state
   const [activeLeftPanel, setActiveLeftPanel] = useState<LeftPanel | null>('generate');
 
@@ -249,7 +253,8 @@ export default function CreativeCommandCenter() {
     realtime: true,
   });
 
-  const currentContent = content[0] || null;
+  // content[0] from Firestore listener takes precedence; fall back to optimistic local state
+  const currentContent = content[0] || localContent || null;
 
   // --- Handlers ---
 
@@ -270,6 +275,7 @@ export default function CreativeCommandCenter() {
         logoUrl: brandGuide?.visualIdentity?.logo?.primary,
       });
       if (result) {
+        setLocalContent(result); // Show immediately — don't wait for Firestore listener
         toast.success("Content generated! Craig & Pinky worked their magic ✨");
         setSelectedHashtags([]);
         // Auto-draft to inbox (fire-and-forget)
