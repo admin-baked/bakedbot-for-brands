@@ -63,7 +63,7 @@ import { useUserRole } from "@/hooks/use-user-role";
 
 export const DispensarySidebar = memo(function DispensarySidebar() {
     const pathname = usePathname();
-    const { orgId } = useUserRole();
+    const { orgId, isSuperUser } = useUserRole();
 
     const isActive = (href: string): boolean => {
         if (href === '/dashboard') {
@@ -275,6 +275,7 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        {isSuperUser && (
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/media')}>
                                 <Link href="/dashboard/media" prefetch={true}>
@@ -283,6 +284,7 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        )}
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/campaigns')}>
                                 <Link href="/dashboard/campaigns" prefetch={true}>
