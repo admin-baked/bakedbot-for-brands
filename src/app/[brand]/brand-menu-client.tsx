@@ -55,6 +55,8 @@ import Chatbot from '@/components/chatbot';
 import { DemoHeader } from '@/components/demo/demo-header';
 import { HeroCarousel } from '@/components/demo/hero-carousel';
 import { FeaturedBrandsCarousel } from '@/components/demo/featured-brands-carousel';
+import { MenuInfoBar } from '@/components/demo/menu-info-bar';
+import type { PublicMenuSettings } from '@/components/demo/menu-info-bar';
 
 interface BrandMenuClientProps {
   brand: Brand;
@@ -64,6 +66,7 @@ interface BrandMenuClientProps {
   bundles?: BundleDeal[];
   featuredBrands?: FeaturedBrand[];
   carousels?: Carousel[];
+  publicMenuSettings?: PublicMenuSettings | null;
 }
 
 // Category order for display
@@ -88,7 +91,7 @@ const DEFAULT_PRIMARY_COLOR = '#16a34a';
 
 type BrandView = 'shop' | 'locator' | 'checkout' | 'shipping-checkout';
 
-export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [], featuredBrands = [], carousels = [] }: BrandMenuClientProps) {
+export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [], featuredBrands = [], carousels = [], publicMenuSettings }: BrandMenuClientProps) {
   // Check if a URL is a real product image (not a stock photo or placeholder)
   const isRealImage = (url?: string): boolean => {
     if (!url || url.trim() === '') return false;
@@ -467,6 +470,11 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         <main className="flex-1">
           {/* Hero Carousel */}
           <HeroCarousel primaryColor={primaryColor} />
+
+          {/* Loyalty & Discount Bar */}
+          {publicMenuSettings && (
+            <MenuInfoBar settings={publicMenuSettings} primaryColor={primaryColor} />
+          )}
 
           {/* Featured Brands */}
           <FeaturedBrandsCarousel

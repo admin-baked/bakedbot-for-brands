@@ -12,18 +12,19 @@
  * Access: /dashboard/settings/loyalty (dispensary role)
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useUserRole } from '@/hooks/use-user-role';
 import { getLoyaltySettings, updateLoyaltySettings, updateSegmentThresholds } from '@/server/actions/loyalty-settings';
 import { DEFAULT_LOYALTY_SETTINGS } from '@/types/customers';
-import type { LoyaltySettings, LoyaltyTier, RedemptionTier, SegmentThresholds } from '@/types/customers';
+import type { LoyaltySettings, LoyaltyTier, RedemptionTier, SegmentThresholds, DiscountProgram, DiscountProgramIcon, LoyaltyMenuDisplay } from '@/types/customers';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Crown, Star, Settings2, Gift, Plus, Trash2, Save, RotateCcw, Loader2, Info } from 'lucide-react';
+import { Crown, Star, Settings2, Gift, Plus, Trash2, Save, RotateCcw, Loader2, Info, Eye, Shield, GraduationCap, Tag, Heart, Users } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -508,6 +509,262 @@ function RedemptionsTab({ settings, orgId, onSaved }: {
 }
 
 // --------------------------------------------------------------------------
+// Menu Display Tab
+// --------------------------------------------------------------------------
+
+const ICON_OPTIONS: { value: DiscountProgramIcon; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+    { value: 'shield', label: 'Military', Icon: Shield },
+    { value: 'star', label: 'Senior', Icon: Star },
+    { value: 'graduation-cap', label: 'Student', Icon: GraduationCap },
+    { value: 'heart', label: 'Medical', Icon: Heart },
+    { value: 'users', label: 'Group', Icon: Users },
+    { value: 'tag', label: 'General', Icon: Tag },
+];
+
+function iconForKey(key: DiscountProgramIcon) {
+    return ICON_OPTIONS.find(o => o.value === key)?.Icon ?? Tag;
+}
+
+function MenuDisplayTab({ settings, orgId, onSaved }: {
+    settings: LoyaltySettings;
+    orgId: string;
+    onSaved: () => void;
+}) {
+    const { toast } = useToast();
+    const defaultDisplay = DEFAULT_LOYALTY_SETTINGS.menuDisplay!;
+    const [display, setDisplay] = useState<LoyaltyMenuDisplay>({
+        ...defaultDisplay,
+        ...(settings.menuDisplay || {}),
+    });
+    const [programs, setPrograms] = useState<DiscountProgram[]>(
+        settings.discountPrograms?.length
+            ? settings.discountPrograms
+            : (DEFAULT_LOYALTY_SETTINGS.discountPrograms ?? [])
+    );
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        setDisplay({ ...defaultDisplay, ...(settings.menuDisplay || {}) });
+        setPrograms(settings.discountPrograms?.length
+            ? settings.discountPrograms
+            : (DEFAULT_LOYALTY_SETTINGS.discountPrograms ?? []));
+    }, [settings]);
+
+    const updateProgram = (id: string, field: keyof DiscountProgram, value: unknown) => {
+        setPrograms(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+    };
+
+    const addProgram = () => {
+        setPrograms(prev => [...prev, {
+            id: `program_${Date.now()}`,
+            enabled: true,
+            name: 'New Discount',
+            description: '10% off with valid ID',
+            icon: 'tag',
+        }]);
+    };
+
+    const removeProgram = (id: string) => setPrograms(prev => prev.filter(p => p.id !== id));
+
+    const handleSave = async () => {
+        setSaving(true);
+        const result = await updateLoyaltySettings(orgId, { menuDisplay: display, discountPrograms: programs });
+        setSaving(false);
+        if (result.success) {
+            toast({ title: 'Menu display settings saved' });
+            onSaved();
+        } else {
+            toast({ title: 'Error saving', description: result.error, variant: 'destructive' });
+        }
+    };
+
+    // Build loyalty tagline from settings if not set
+    const autoTagline = `Earn ${settings.pointsPerDollar} pt${settings.pointsPerDollar !== 1 ? 's' : ''} per $1 spent — redeem for discounts`;
+
+    return (
+        <div className="space-y-6">
+            {/* Global bar toggle */}
+            <Card>
+                <CardContent className="pt-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="font-medium">Show loyalty &amp; offers bar</p>
+                            <p className="text-sm text-muted-foreground">Displays the loyalty tagline and discount programs at the top of your public menu</p>
+                        </div>
+                        <Switch
+                            checked={display.showBar}
+                            onCheckedChange={v => setDisplay(d => ({ ...d, showBar: v }))}
+                        />
+                    </div>
+
+                    {display.showBar && (
+                        <>
+                            <div className="space-y-1">
+                                <Label>Loyalty tagline</Label>
+                                <Input
+                                    placeholder={autoTagline}
+                                    value={display.loyaltyTagline ?? ''}
+                                    onChange={e => setDisplay(d => ({ ...d, loyaltyTagline: e.target.value }))}
+                                />
+                                <p className="text-xs text-muted-foreground">Leave blank to use auto-generated: "{autoTagline}"</p>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium">Show discount programs</p>
+                                    <p className="text-xs text-muted-foreground">Military, senior, student etc.</p>
+                                </div>
+                                <Switch
+                                    checked={display.showDiscountPrograms}
+                                    onCheckedChange={v => setDisplay(d => ({ ...d, showDiscountPrograms: v }))}
+                                />
+                            </div>
+                        </>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Delivery info */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-base">Delivery Info</CardTitle>
+                    <CardDescription>Show delivery terms on your public menu page</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">Show delivery info bar</p>
+                        <Switch
+                            checked={display.showDeliveryInfo}
+                            onCheckedChange={v => setDisplay(d => ({ ...d, showDeliveryInfo: v }))}
+                        />
+                    </div>
+
+                    {display.showDeliveryInfo && (
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-1">
+                                <Label className="text-xs">Order minimum ($)</Label>
+                                <Input
+                                    type="number" min={0}
+                                    value={display.deliveryMinimum ?? 50}
+                                    onChange={e => setDisplay(d => ({ ...d, deliveryMinimum: Number(e.target.value) }))}
+                                    className="h-8"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs">Delivery fee ($)</Label>
+                                <Input
+                                    type="number" min={0}
+                                    value={display.deliveryFee ?? 10}
+                                    onChange={e => setDisplay(d => ({ ...d, deliveryFee: Number(e.target.value) }))}
+                                    className="h-8"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-xs">Radius (miles)</Label>
+                                <Input
+                                    type="number" min={0}
+                                    value={display.deliveryRadius ?? 20}
+                                    onChange={e => setDisplay(d => ({ ...d, deliveryRadius: Number(e.target.value) }))}
+                                    className="h-8"
+                                />
+                            </div>
+                            <div className="col-span-3 flex items-center justify-between">
+                                <p className="text-sm font-medium">Show drive-thru messaging</p>
+                                <Switch
+                                    checked={display.showDriveThru ?? false}
+                                    onCheckedChange={v => setDisplay(d => ({ ...d, showDriveThru: v }))}
+                                />
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* Discount programs */}
+            {display.showBar && display.showDiscountPrograms && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">Discount Programs</CardTitle>
+                        <CardDescription>Military, senior, student, and other discount programs shown on your menu</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {programs.map(program => {
+                            const IconComp = iconForKey(program.icon);
+                            return (
+                                <div key={program.id} className="flex items-start gap-3 p-3 rounded-lg border">
+                                    <Switch
+                                        checked={program.enabled}
+                                        onCheckedChange={v => updateProgram(program.id, 'enabled', v)}
+                                        className="mt-0.5"
+                                    />
+                                    <div className="flex-1 grid grid-cols-2 gap-2">
+                                        <div>
+                                            <Label className="text-xs">Program name</Label>
+                                            <Input
+                                                value={program.name}
+                                                onChange={e => updateProgram(program.id, 'name', e.target.value)}
+                                                className="h-8"
+                                                disabled={!program.enabled}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs">Description (shown on menu)</Label>
+                                            <Input
+                                                value={program.description}
+                                                onChange={e => updateProgram(program.id, 'description', e.target.value)}
+                                                className="h-8"
+                                                placeholder="e.g. 10% off every visit"
+                                                disabled={!program.enabled}
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs">Icon</Label>
+                                            <select
+                                                value={program.icon}
+                                                onChange={e => updateProgram(program.id, 'icon', e.target.value as DiscountProgramIcon)}
+                                                className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm disabled:opacity-50"
+                                                disabled={!program.enabled}
+                                            >
+                                                {ICON_OPTIONS.map(o => (
+                                                    <option key={o.value} value={o.value}>{o.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="flex items-end">
+                                            {program.enabled && (
+                                                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                                    <IconComp className="h-4 w-4" />
+                                                    <span>{program.name}: {program.description}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <Button
+                                        variant="ghost" size="icon"
+                                        className="h-8 w-8 text-destructive shrink-0"
+                                        onClick={() => removeProgram(program.id)}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            );
+                        })}
+                        <Button variant="outline" size="sm" onClick={addProgram} className="gap-2">
+                            <Plus className="h-4 w-4" /> Add Program
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
+
+            <Button onClick={handleSave} disabled={saving} className="gap-2">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Save Menu Display
+            </Button>
+        </div>
+    );
+}
+
+// --------------------------------------------------------------------------
 // Main Page
 // --------------------------------------------------------------------------
 
@@ -549,7 +806,7 @@ export default function LoyaltySettingsPage() {
             </div>
 
             <Tabs defaultValue="points">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="points" className="gap-1">
                         <Star className="h-3.5 w-3.5" /> Points
                     </TabsTrigger>
@@ -561,6 +818,9 @@ export default function LoyaltySettingsPage() {
                     </TabsTrigger>
                     <TabsTrigger value="redemptions" className="gap-1">
                         <Gift className="h-3.5 w-3.5" /> Redemptions
+                    </TabsTrigger>
+                    <TabsTrigger value="menu-display" className="gap-1">
+                        <Eye className="h-3.5 w-3.5" /> Menu
                     </TabsTrigger>
                 </TabsList>
 
@@ -612,6 +872,10 @@ export default function LoyaltySettingsPage() {
                             <RedemptionsTab settings={settings} orgId={orgId || ''} onSaved={fetchSettings} />
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                <TabsContent value="menu-display" className="mt-6">
+                    <MenuDisplayTab settings={settings} orgId={orgId || ''} onSaved={fetchSettings} />
                 </TabsContent>
             </Tabs>
         </div>

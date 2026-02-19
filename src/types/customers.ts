@@ -191,6 +191,28 @@ export interface SegmentThresholds {
     new_maxDays: number;              // Default: 30
 }
 
+/** Icon key for discount programs — maps to Lucide icons on the menu */
+export type DiscountProgramIcon = 'shield' | 'graduation-cap' | 'star' | 'heart' | 'users' | 'tag';
+
+export interface DiscountProgram {
+    id: string;
+    enabled: boolean;
+    name: string;          // e.g. "Military & Veterans"
+    description: string;   // e.g. "10% off every visit"
+    icon: DiscountProgramIcon;
+}
+
+export interface LoyaltyMenuDisplay {
+    showBar: boolean;              // Show the loyalty/discount bar on public menu
+    loyaltyTagline?: string;       // e.g. "Earn points every visit — redeem for free products"
+    showDiscountPrograms: boolean; // Show discount program badges in the bar
+    showDeliveryInfo: boolean;     // Show delivery terms (min, fee, radius)
+    deliveryMinimum?: number;      // $ minimum for delivery
+    deliveryFee?: number;          // $ delivery fee
+    deliveryRadius?: number;       // Miles radius
+    showDriveThru?: boolean;       // Show drive-thru messaging
+}
+
 export interface LoyaltySettings {
     pointsPerDollar: number;
     tiers: LoyaltyTier[];
@@ -198,6 +220,8 @@ export interface LoyaltySettings {
     redemptionTiers?: RedemptionTier[];
     enableGamification?: boolean;
     segmentThresholds?: SegmentThresholds;
+    discountPrograms?: DiscountProgram[];
+    menuDisplay?: LoyaltyMenuDisplay;
 }
 
 export const DEFAULT_LOYALTY_SETTINGS: LoyaltySettings = {
@@ -228,6 +252,21 @@ export const DEFAULT_LOYALTY_SETTINGS: LoyaltySettings = {
         atRisk_minDays: 60,
         churned_minDays: 90,
         new_maxDays: 30,
+    },
+    discountPrograms: [
+        { id: 'military', enabled: false, name: 'Military & Veterans', description: '10% off every visit', icon: 'shield' },
+        { id: 'senior', enabled: false, name: 'Seniors 60+', description: '15% off daily', icon: 'star' },
+        { id: 'student', enabled: false, name: 'Students', description: '10% off with valid ID', icon: 'graduation-cap' },
+    ],
+    menuDisplay: {
+        showBar: true,
+        loyaltyTagline: '',
+        showDiscountPrograms: true,
+        showDeliveryInfo: false,
+        deliveryMinimum: 50,
+        deliveryFee: 10,
+        deliveryRadius: 20,
+        showDriveThru: false,
     },
 };
 

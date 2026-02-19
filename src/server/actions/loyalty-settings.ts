@@ -10,8 +10,41 @@
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { DEFAULT_LOYALTY_SETTINGS } from '@/types/customers';
-import type { LoyaltySettings, LoyaltyTier, RedemptionTier, SegmentThresholds } from '@/types/customers';
+import type { LoyaltySettings, LoyaltyTier, RedemptionTier, SegmentThresholds, LoyaltyMenuDisplay, DiscountProgram } from '@/types/customers';
 import { requireUser } from '@/server/auth/auth';
+
+/**
+ * Public (no auth) — fetch only the menu-display-relevant fields for a given orgId.
+ * Called from public menu pages to render the loyalty/discount bar.
+ */
+export async function getPublicMenuSettings(orgId: string): Promise<{
+    pointsPerDollar: number;
+    menuDisplay: LoyaltyMenuDisplay;
+    discountPrograms: DiscountProgram[];
+} | null> {
+    try {
+        if (!orgId) return null;
+        const db = getAdminFirestore();
+        const doc = await db
+            .collection('tenants').doc(orgId)
+            .collection('settings').doc('loyalty')
+            .get();
+
+        const defaults = DEFAULT_LOYALTY_SETTINGS;
+        const saved = doc.exists ? (doc.data() as Partial<LoyaltySettings>) : {};
+
+        return {
+            pointsPerDollar: saved.pointsPerDollar ?? defaults.pointsPerDollar,
+            menuDisplay: { ...defaults.menuDisplay!, ...(saved.menuDisplay || {}) },
+            discountPrograms: saved.discountPrograms?.length
+                ? saved.discountPrograms
+                : (defaults.discountPrograms ?? []),
+        };
+    } catch (error: unknown) {
+        logger.error('[LOYALTY_SETTINGS] getPublicMenuSettings failed', { error, orgId });
+        return null;
+    }
+}
 
 /**
  * Get loyalty settings for an org. Falls back to defaults if none saved.
