@@ -62,7 +62,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export const BrandSidebar = memo(function BrandSidebar() {
     const pathname = usePathname();
-    const { orgId } = useUserRole();
+    const { orgId, isSuperUser } = useUserRole();
 
     const isActive = (href: string): boolean => {
         if (href === '/dashboard') {
@@ -151,6 +151,7 @@ export const BrandSidebar = memo(function BrandSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        {isSuperUser && (
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/media')}>
                                 <Link href="/dashboard/media" prefetch={true}>
@@ -159,6 +160,7 @@ export const BrandSidebar = memo(function BrandSidebar() {
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>
+                        )}
                     </SidebarMenu>
                 </SidebarGroupContent>
             </SidebarGroup>
