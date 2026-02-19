@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-18 (Product count fix + full COGS system — menu table, inline editing, pricing warnings, 0 TS errors)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-18 (prime.md restructure 5387→402 lines, MEMORY.md topic files, session-end workflow)
 
 ---
 
@@ -185,6 +185,57 @@ Load from `.agent/refs/` on-demand (conserve context):
 | Using `&&` in PowerShell | Use `;` instead |
 | Using `console.log` | Use `logger` from `@/lib/logger` |
 | Forgetting to archive | Call `archive_work` after significant changes |
+
+---
+
+## 🔚 Session End: "Update recent work"
+
+When the user says **"Update recent work"** (or similar), execute this checklist automatically — no questions:
+
+### 1. `CLAUDE.md` — line 15: Current Status
+Update the build status line with today's date and a brief summary:
+```
+**Current Status:** 🟢 Passing | **Last update:** YYYY-MM-DD (Feature A, Feature B)
+```
+
+### 2. `.agent/prime.md` — lines ~21–24: Recent work block
+Update the 2-line recent work summary with the latest commit hashes:
+```
+**Recent work (YYYY-MM-DD):** See `memory/MEMORY.md` for full log.
+Key completed: [Feature A] (`commitHash`), [Feature B] (`commitHash`)
+```
+**Rule:** Max 2 lines. No implementation details. Just feature names + commit hashes.
+
+### 3. `memory/MEMORY.md` — add session entry
+Prepend a brief session summary under a new `## Session: YYYY-MM-DD` heading (or append to latest).
+- New architectural pattern / gotcha discovered → add inline
+- New system built → 3–5 bullet points max, commit hash, ref pointer
+- If topic already exists in a `memory/*.md` file → update that file instead, add a one-liner to MEMORY.md
+
+### 4. Route to topic file if applicable
+| What changed | Update this file |
+|---|---|
+| Heartbeat, cron, ISR, build monitor | `memory/platform.md` |
+| Slack channels, routing, approvals | `memory/slack.md` |
+| Agent tools, user promotion, audit | `memory/agents.md` |
+| Playbooks, billing, webhooks | `memory/playbooks.md` |
+| Thrive / Herbalist config | `memory/customers.md` |
+| Competitive intel system | `memory/competitive-intel.md` |
+| New pilot customer | `memory/customers.md` |
+| Delivery system | `memory/delivery-system-2026-02-17.md` |
+
+### 5. Commit
+```bash
+git add CLAUDE.md .agent/prime.md
+git commit -m "docs: Update session notes YYYY-MM-DD - [brief summary]"
+```
+Memory files are local-only (not committed — `dev/` is git-ignored; `memory/` lives outside repo).
+
+### ⚠️ What NOT to do
+- Do NOT add full implementation details to `prime.md`
+- Do NOT add more than 2–3 lines to the prime.md recent work block
+- Do NOT let `memory/MEMORY.md` exceed 200 lines (split to topic file if needed)
+- Do NOT commit `memory/` files (they're in the Claude projects folder, not the repo)
 
 ---
 
