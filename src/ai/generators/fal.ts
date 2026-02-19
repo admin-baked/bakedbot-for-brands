@@ -117,6 +117,7 @@ export async function generateImageWithFal(
             prompt: safePrompt,
             image_size: imageSize,
             num_inference_steps: numSteps,
+            seed: Math.floor(Math.random() * 9_999_999),  // explicit random seed — FLUX.1 must never reuse the same image
             enable_safety_checker: false,  // legal cannabis business — no content restrictions
         }),
     });
