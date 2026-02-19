@@ -322,6 +322,9 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
             // Strip common suffixes like "| Dispensary" or "- Cannabis"
             .split(/\s*[\|\-–]\s*/)[0]
             .trim()
+            // Strip TLD suffix when the title is just the domain (e.g. "thrivesyracuse.com")
+            .replace(/\.(com|net|org|io|co|ca|us|biz|info)(\s.*)?$/i, '')
+            .trim()
         : undefined;
 
       const extractedBrandName: string =
@@ -333,17 +336,20 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
           .replace(/[-_]/g, ' ')
           .replace(/\b\w/g, (c: string) => c.toUpperCase());
 
-      // Filter out AI placeholder values that look like "Unknown - ..."
+      // Filter out AI placeholder values that look like "Unknown - ..." or "Unable to extract..."
       const cleanTagline = (value: string | undefined): string => {
         if (!value) return '';
         const lower = value.toLowerCase().trim();
         if (
           lower.startsWith('unknown') ||
+          lower.startsWith('unable') ||
           lower === 'n/a' ||
           lower === 'not found' ||
           lower === 'not available' ||
           lower.includes('insufficient') ||
-          lower.includes('not provided')
+          lower.includes('not provided') ||
+          lower.includes('unable to extract') ||
+          lower.includes('no content')
         ) {
           return '';
         }
@@ -356,9 +362,9 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
           brandName: extractedBrandName,
           // Fallback chain: valuePropositions[0] → positioning → metadata.description
           description:
-            (result as any).messaging?.valuePropositions?.[0] ||
-            (result as any).messaging?.positioning ||
-            (result as any).metadata?.description ||
+            cleanTagline((result as any).messaging?.valuePropositions?.[0]) ||
+            cleanTagline((result as any).messaging?.positioning) ||
+            cleanTagline((result as any).metadata?.description) ||
             '',
           tagline: cleanTagline((result as any).messaging?.tagline),
         });
