@@ -246,7 +246,6 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
 
     // 3. Update User Profile with Enterprise Context
     const organizationIds = orgId ? [orgId] : [];
-    const existingUserDoc = await userDocRef.get();
 
     // Build orgMemberships for vertical integration support
     const orgMemberships: Record<string, any> = {};
