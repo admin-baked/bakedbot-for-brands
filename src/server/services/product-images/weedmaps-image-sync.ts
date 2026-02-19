@@ -24,6 +24,7 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
+import type { Firestore } from 'firebase-admin/firestore';
 import { logger } from '@/lib/logger';
 
 // ============================================================================
@@ -85,76 +86,96 @@ function slugify(s: string): string {
         .replace(/^-|-$/g, '');
 }
 
+/** Returns true if a token is a product size (e.g. "3.5g", "100mg", "2pk") */
+function isSizeToken(s: string): boolean {
+    return /^\d+(?:\.\d+)?\s*(?:mg|g|oz|ml|pk|ct|pack|count)$/i.test(s.trim())
+        || /^\d+[-]?(?:pk|x|ct|count)$/i.test(s.trim())
+        || /^x\d+$/i.test(s.trim());
+}
+
+/** Returns true if a token contains cannabis category keywords */
+function containsCategoryWord(s: string): boolean {
+    return /\b(?:aio|pre[-\s]?roll|flower|vape|vapor|cartridge|cart|live\s*resin|live\s*rosin|rosin|wax|shatter|distillate|concentrate|tincture|gumm(?:y|ies)|edible|capsule|oil|extract|hash|kief|badder|sugar|sauce|infused|infusion|single|twin|double|liquid\s*diamonds?)\b/i.test(s);
+}
+
 /**
  * Extract likely strain names from a cannabis product name.
- * Returns an ordered array of slug candidates to try on Leafly,
- * from most-specific to least-specific.
+ * Handles two naming conventions:
  *
- * Examples:
- *   "Blue Dream 3.5g"           → ["blue-dream"]
- *   "OG Kush 1g Pre-Roll"       → ["og-kush", "og"]
- *   "Wedding Cake Flower 7g"    → ["wedding-cake"]
- *   "GSC (Girl Scout Cookies)"  → ["gsc", "girl-scout-cookies"]
- *   "Strawberry Cough Sativa 1g"→ ["strawberry-cough", "strawberry"]
+ * 1. Alleaves/POS format: "Brand - Category - Strain - Size"
+ *    e.g. "Jaunty - AIO - Blue Dream - 1.5g" → "blue-dream"
+ *    e.g. "KOA - Infused Pre roll - 2pk - Trop Cherry - 0.7g" → "trop-cherry"
+ *
+ * 2. Simple format: "Strain Size Category"
+ *    e.g. "Blue Dream 3.5g" → "blue-dream"
+ *    e.g. "OG Kush 1g Pre-Roll" → "og-kush"
  */
 function extractStrainSlugs(productName: string): string[] {
     const slugs = new Set<string>();
 
-    // Step 1: Remove parenthetical content (e.g. "(Girl Scout Cookies)")
-    // but save it as an additional candidate
-    const parenMatch = productName.match(/\(([^)]+)\)/);
-    if (parenMatch) {
-        slugs.add(slugify(parenMatch[1].trim()));
-    }
+    // --- Strategy 1: Alleaves dash-separated format ---
+    // Split on " - " or " – " with surrounding spaces
+    const dashParts = productName.split(/\s+[-–]\s+/);
 
-    // Step 2: Strip parenthetical from the main name
-    let clean = productName.replace(/\([^)]*\)/g, ' ');
+    if (dashParts.length >= 3) {
+        // Skip brand (index 0), skip parts that are sizes or category keywords
+        // What remains (excluding first part) is the strain
+        const strainParts = dashParts
+            .slice(1)                               // skip brand
+            .filter(p => !isSizeToken(p) && !containsCategoryWord(p))
+            .map(p => p.replace(/\([^)]*\)/g, '').trim())  // strip parens
+            .filter(Boolean);
 
-    // Step 3: Remove size tokens (e.g. 3.5g, 100mg, 1g, 0.5oz)
-    clean = clean.replace(/\d+(?:\.\d+)?\s*(?:mg|g|oz|ml|pack|count|ct|pk)\b/gi, '');
+        if (strainParts.length > 0) {
+            const strainName = strainParts.join(' ');
+            // Clean: remove sizes, type words
+            let clean = strainName
+                .replace(/\d+(?:\.\d+)?\s*(?:mg|g|oz|ml|pk)\b/gi, '')
+                .replace(/\b(?:sativa|indica|hybrid)\b/gi, '')
+                .replace(/\s+/g, ' ').trim();
 
-    // Step 4: Remove trailing quantity markers (e.g. "x2", "2pk", "2-pack")
-    clean = clean.replace(/\b\d+[-]?(?:pack|pk|x|ct|count)\b/gi, '');
-    clean = clean.replace(/\bx\d+\b/gi, '');
-
-    // Step 5: Remove cannabis category words
-    clean = clean.replace(
-        /\b(?:pre-?roll|preroll|flower|vape|vapor|cartridge|cart|carts|live\s+resin|live\s+rosin|rosin|wax|shatter|distillate|concentrate|tincture|gumm(?:y|ies)|edible|capsule|oil|extract|hash|kief|badder|sugar|sauce|infused|infusion|single|twin|double)\b/gi,
-        ''
-    );
-
-    // Step 6: Remove type indicators (Sativa, Indica, Hybrid)
-    clean = clean.replace(/\b(?:sativa|indica|hybrid|ruderalis|autoflower)\b/gi, '');
-
-    // Step 7: Remove brand qualifiers often appended to strain names
-    clean = clean.replace(/\b(?:premium|select|reserve|craft|small\s+batch|limited|special|edition)\b/gi, '');
-
-    // Clean up whitespace
-    clean = clean.replace(/\s+/g, ' ').trim();
-
-    // Generate slug candidates
-    if (clean) {
-        const mainSlug = slugify(clean);
-        if (mainSlug && mainSlug.length > 2) {
-            slugs.add(mainSlug);
-
-            // Also try individual words as fallback
-            const words = clean.split(/\s+/).filter(w => w.length > 2);
-            if (words.length >= 2) {
-                // First 2 words
-                slugs.add(slugify(words.slice(0, 2).join(' ')));
-            }
-            if (words.length >= 3) {
-                // First 3 words
-                slugs.add(slugify(words.slice(0, 3).join(' ')));
+            if (clean) {
+                const s = slugify(clean);
+                if (s.length > 2) {
+                    slugs.add(s);
+                    // Also try first 2 words
+                    const words = clean.split(/\s+/);
+                    if (words.length >= 2) slugs.add(slugify(words.slice(0, 2).join(' ')));
+                }
             }
         }
     }
 
-    // Also try slugifying the full original name (in case brand IS the product)
-    const fullSlug = slugify(productName.replace(/\([^)]*\)/g, '').trim());
-    if (fullSlug.length > 2 && !slugs.has(fullSlug)) {
-        slugs.add(fullSlug);
+    // --- Strategy 2: Simple format (no brand prefix) ---
+    // Also run this for dash-format products as a fallback in case strategy 1 fails
+
+    // Preserve parenthetical as additional candidate
+    const parenMatch = productName.match(/\(([^)]+)\)/);
+    if (parenMatch) slugs.add(slugify(parenMatch[1].trim()));
+
+    let clean = productName.replace(/\([^)]*\)/g, ' ');
+    clean = clean.replace(/\d+(?:\.\d+)?\s*(?:mg|g|oz|ml|pack|count|ct|pk)\b/gi, '');
+    clean = clean.replace(/\b\d+[-]?(?:pack|pk|x|ct|count)\b/gi, '');
+    clean = clean.replace(/\bx\d+\b/gi, '');
+    clean = clean.replace(
+        /\b(?:pre[-\s]?roll|flower|vape|vapor|cartridge|cart|carts|live\s+resin|live\s+rosin|rosin|wax|shatter|distillate|concentrate|tincture|gumm(?:y|ies)|edible|capsule|oil|extract|hash|kief|badder|sugar|sauce|infused|infusion|single|twin|double|liquid\s+diamonds?|aio)\b/gi,
+        ''
+    );
+    clean = clean.replace(/\b(?:sativa|indica|hybrid|ruderalis|autoflower)\b/gi, '');
+    clean = clean.replace(/\b(?:premium|select|reserve|craft|limited|special|edition)\b/gi, '');
+    // Also strip brand-like prefixes (common NY brand names)
+    clean = clean.replace(/\b(?:jaunty|flowerhouse|melo|koa|nar|cannabals|cannabols|kings\s+road|revert|thrive)\s*[-–]?\s*/gi, '');
+    clean = clean.replace(/\s*[-–]\s*/g, ' ');  // flatten remaining dashes
+    clean = clean.replace(/\s+/g, ' ').trim();
+
+    if (clean && clean.length > 2) {
+        const mainSlug = slugify(clean);
+        if (mainSlug.length > 2) {
+            slugs.add(mainSlug);
+            const words = clean.split(/\s+/).filter(w => w.length > 1);
+            if (words.length >= 2) slugs.add(slugify(words.slice(0, 2).join(' ')));
+            if (words.length >= 3) slugs.add(slugify(words.slice(0, 3).join(' ')));
+        }
     }
 
     return Array.from(slugs).filter(s => s.length > 2);
@@ -315,10 +336,7 @@ export async function getOrBuildCatalog(
     let productNames: string[] = [];
     if (orgId) {
         try {
-            const snap = await db
-                .collection('products')
-                .where('orgId', '==', orgId)
-                .get();
+            const snap = await getOrgProducts(db, orgId);
             // Deduplicate by normalized name
             const nameSet = new Set<string>();
             snap.docs.forEach(d => {
@@ -326,6 +344,7 @@ export async function getOrBuildCatalog(
                 if (name) nameSet.add(name);
             });
             productNames = Array.from(nameSet);
+            logger.info('[PRODUCT_IMG] Loaded product names for catalog', { orgId, count: productNames.length });
         } catch (err) {
             logger.warn('[PRODUCT_IMG] Failed to load product names', { orgId, err: String(err) });
         }
@@ -407,6 +426,40 @@ async function storeProductImage(
 // ============================================================================
 
 const PLACEHOLDER = '/icon-192.png';
+const UNSPLASH_PREFIX = 'https://images.unsplash.com'; // Generic Unsplash category images
+
+/** Returns true if a product still needs a real strain-specific image. */
+function needsRealImage(imageUrl: string | undefined): boolean {
+    if (!imageUrl || imageUrl === '' || imageUrl === PLACEHOLDER) return true;
+    // Unsplash URLs are generic category photos, not real product images
+    if (imageUrl.startsWith(UNSPLASH_PREFIX)) return true;
+    return false;
+}
+
+/**
+ * Fetch products from the tenant catalog.
+ * Thrive and all POS-integrated orgs store products at:
+ *   tenants/{orgId}/publicViews/products/items
+ *
+ * Falls back to legacy root `products` collection if tenant catalog is empty.
+ */
+async function getOrgProducts(db: Firestore, orgId: string) {
+    // Primary: tenant catalog
+    const tenantSnap = await db
+        .collection('tenants')
+        .doc(orgId)
+        .collection('publicViews')
+        .doc('products')
+        .collection('items')
+        .get();
+
+    if (!tenantSnap.empty) {
+        return tenantSnap;
+    }
+
+    // Fallback: legacy root products collection
+    return db.collection('products').where('orgId', '==', orgId).get();
+}
 
 /**
  * Sync Leafly strain images to Firestore products for a given org.
@@ -421,15 +474,9 @@ export async function syncOrgProductImages(
 ): Promise<{ matched: number; updated: number; failed: number }> {
     const db = getAdminFirestore();
 
-    const productsSnap = await db
-        .collection('products')
-        .where('orgId', '==', orgId)
-        .get();
+    const productsSnap = await getOrgProducts(db, orgId);
 
-    const needsImage = productsSnap.docs.filter(doc => {
-        const data = doc.data();
-        return !data.imageUrl || data.imageUrl === PLACEHOLDER || data.imageUrl === '';
-    });
+    const needsImage = productsSnap.docs.filter(doc => needsRealImage(doc.data().imageUrl));
 
     logger.info('[PRODUCT_IMG] Products needing images', {
         orgId, total: productsSnap.size, needsImage: needsImage.length
