@@ -260,6 +260,7 @@ export async function extractBrandGuideFromUrl(
   voice?: any;
   messaging?: any;
   confidence?: number;
+  websiteTitle?: string;
   error?: string;
 }> {
   try {
@@ -272,6 +273,7 @@ export async function extractBrandGuideFromUrl(
       voice: result.voice,
       messaging: result.messaging,
       confidence: result.confidence,
+      websiteTitle: result.websiteTitle,
     };
   } catch (error) {
     logger.error('Failed to extract brand guide from URL', { error, input });

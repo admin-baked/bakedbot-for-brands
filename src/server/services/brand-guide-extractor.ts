@@ -67,6 +67,7 @@ interface ExtractionResult {
   messaging: Partial<BrandMessaging>;
   source: BrandGuideSource;
   confidence: number; // 0-100
+  websiteTitle?: string;
 }
 
 // ============================================================================
@@ -172,6 +173,7 @@ export class BrandGuideExtractor {
         messaging,
         source,
         confidence,
+        websiteTitle: websiteAnalysis.metadata.title,
       };
     } catch (error) {
       logger.error('Brand guide extraction failed', { error, url: input.url });
