@@ -16,8 +16,8 @@ import { ActivityFeed } from './components/activity-feed';
 import { UsageMeter } from './components/usage-meter';
 import { AgentChat } from './components/agent-chat';
 import { CreatePlaybookDialog } from './components/create-playbook-dialog';
-import DispensaryDashboardClient from '../dispensary/dashboard-client';
 import { BrandPlaybooksView } from '../brand/components/brand-playbooks-view';
+import { DispensaryPlaybooksView } from '../dispensary/components/dispensary-playbooks-view';
 import { PLAYBOOKS, Playbook } from './data';
 import { PlaybooksHeader, PlaybookFilterCategory } from './components/playbooks-header';
 import { PlaybookCardModern } from './components/playbook-card-modern';
@@ -201,13 +201,15 @@ export default function PlaybooksPage() {
     };
 
     // Role-based redirects (AFTER all hooks)
-    // Redirect Dispensary users to their specific console
-    if (role === 'dispensary') {
-        const brandId = (user as any)?.brandId || user?.uid || 'unknown-dispensary';
-        return <DispensaryDashboardClient brandId={brandId} />;
+    const isDispensaryRole = role === 'dispensary' || role === 'dispensary_admin' || role === 'dispensary_staff';
+    const isBrandRole = role === 'brand' || role === 'brand_admin' || role === 'brand_member';
+
+    if (isDispensaryRole) {
+        const orgId = (user as any)?.currentOrgId || (user as any)?.orgId || user?.uid || '';
+        return <DispensaryPlaybooksView orgId={orgId} />;
     }
 
-    if (role === 'brand') {
+    if (isBrandRole) {
         const brandId = (user as any)?.brandId || user?.uid;
         return <BrandPlaybooksView brandId={brandId} />;
     }
