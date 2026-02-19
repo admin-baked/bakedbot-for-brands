@@ -54,13 +54,12 @@ interface FalResponse {
  *
  * FLUX.1 Schnell (4-step) is a photography/art model — it has poor text rendering
  * and garbles any words it tries to write. We explicitly forbid text in the image
- * and steer the model toward clean product photography instead.
+ * and let the caller's prompt drive the visual style (e.g. template imageStyle hints).
  */
 function buildImagePrompt(userPrompt: string, tier: FalImageTier): string {
     const noText = 'no text, no words, no letters, no watermarks, no captions, no overlays';
-    const photoStyle = 'photorealistic product photography, studio lighting, clean background';
     const quality = tier === 'free'
-        ? 'sharp focus, vibrant colors'
+        ? 'sharp focus, vibrant colors, high quality'
         : 'ultra-detailed, 8k, award-winning commercial photography';
 
     // Strip any instruction that would cause the model to render text
@@ -68,7 +67,9 @@ function buildImagePrompt(userPrompt: string, tier: FalImageTier): string {
         .replace(/\b(text|caption|slogan|headline|title|label|banner|ad copy)\b/gi, '')
         .trim();
 
-    return `${photoStyle}, ${quality}. ${sanitized}. ${noText}.`;
+    // Let the user's prompt (which includes imageStyle from campaign templates) drive the
+    // visual direction instead of always prepending a fixed photoStyle prefix.
+    return `${sanitized}, ${quality}, ${noText}.`;
 }
 
 /**
