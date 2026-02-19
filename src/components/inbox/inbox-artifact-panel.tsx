@@ -21,7 +21,9 @@ import {
     ChevronRight,
     Loader2,
     Sparkles,
+    FolderOpen,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -233,6 +235,7 @@ function CreativeDetail({ artifact }: { artifact: InboxArtifact }) {
 // ============ Main Component ============
 
 export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelProps) {
+    const router = useRouter();
     const {
         selectedArtifactId,
         setSelectedArtifact,
@@ -430,6 +433,32 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                                 />
                             )}
                         </motion.div>
+                    )}
+
+                    {/* Drive integration — show badge + open button when saved */}
+                    {selectedArtifact?.driveFileId && (
+                        <div className="flex items-center gap-2">
+                            <Badge
+                                variant="outline"
+                                className="text-xs gap-1.5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                            >
+                                <FolderOpen className="h-3 w-3" />
+                                Saved to Drive
+                            </Badge>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs gap-1.5 ml-auto"
+                                onClick={() =>
+                                    router.push(
+                                        `/dashboard/drive?file=${selectedArtifact.driveFileId}`
+                                    )
+                                }
+                            >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                Open in Drive
+                            </Button>
+                        </div>
                     )}
 
                     {/* Secondary Actions */}
