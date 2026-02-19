@@ -21,6 +21,72 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-02-19)
 
+---
+
+## Workflow Protocol
+
+**Every task follows this pipeline. No shortcuts. No exceptions.**
+
+### Stage 1: Spec First
+On receiving a task prompt, FIRST produce a completed spec using `.agent/spec-template.md`.
+- Do NOT write implementation code before the spec is approved.
+- If the task is trivial (< 20 lines, single file, no boundary triggers) → produce a mini-spec inline:
+  ```
+  Mini-spec: [what] → [why] → [files] → [test] → [rollback: revert commit]
+  ```
+- If ANY boundary check triggers (auth, payments, schema, cost, prompts, compliance) → full spec required, no mini-spec allowed.
+- Present spec to human. Wait for explicit approval.
+
+### Stage 2: Build
+Implement strictly within the approved spec scope.
+- Write code + tests + logging in one pass.
+- Follow Constitution §II (clean code, error handling, types, structured logs).
+- Do not modify files outside the spec. Do not add unplanned dependencies.
+
+### Stage 3: Self-Review
+Run every item in `.agent/review-checklist.md` against your own work.
+- Report the checklist results before committing.
+- If any critical failure → stop and report. Do not commit.
+- If minor issues → fix them, then re-run the checklist.
+
+### Stage 4: Test & Eval
+- Run the full test suite. Report results (pass/fail counts).
+- If this task touched LLM prompts or agent behavior → run the relevant golden set eval from `.agent/golden-sets/`.
+  - Smokey changes → `smokey-qa.json` (target: ≥90% overall, 100% compliance)
+  - Craig changes → `craig-campaigns.json`
+  - Deebo changes → `deebo-compliance.json`
+- Report eval scores. If below threshold → do not commit. Iterate.
+
+### Stage 5: Ship + Record
+Only after Stages 1-4 are complete:
+1. Commit with structured message (see review-checklist.md for format).
+2. Update `CLAUDE.md` line 15 — build status one-liner.
+3. Update `prime.md` recent work block — prepend new entry (commit hash + one-liner).
+4. Update `memory/MEMORY.md` — full session details, gotchas, decisions.
+5. Route to topic files if applicable (`memory/platform.md`, `memory/agents.md`, etc.).
+6. If feature-flagged → note flag name and canary status.
+
+### Escape Hatches
+- **Hotfix (production down):** Skip Stage 1 spec. Implement fix, run Stage 3-4, commit with `hotfix()` prefix. File retroactive spec within same session.
+- **Docs-only change:** Skip Stages 2-4. Commit directly with `docs()` prefix.
+- **Exploration/spike:** Produce spec marked `status: 🔬 Spike`. Code is throwaway. Do not merge to main without converting to a real spec.
+
+---
+
+## Agent File Map
+
+| File | Purpose | When to read |
+|---|---|---|
+| `.agent/prime.md` | Startup context + workflow protocol | Every session (auto-loaded) |
+| `.agent/spec-template.md` | Structured spec format | Before any implementation |
+| `.agent/review-checklist.md` | Self-review gates | After implementation, before commit |
+| `.agent/golden-sets/*.json` | Eval datasets for LLM changes | When code touches agent prompts/behavior |
+| `.agent/constitution.md` | Full engineering principles | Reference for edge cases and disputes |
+| `memory/MEMORY.md` | Detailed session memory | On demand (not auto-loaded) |
+| `memory/*.md` topic files | Domain-specific deep context | On demand by topic |
+
+---
+
 **Recent work (2026-02-19):** See `memory/MEMORY.md` for full log.
 Key completed:
 - [Brand Guide multi-page crawl] (`8d873984`) — Extractor now scrapes /about-us, /about, /our-story etc. in parallel; 3k→5k content window for AI.
@@ -214,21 +280,7 @@ Full index in `refs/README.md`.
 
 ## 🔄 Standard Workflow
 
-### For Simple Tasks (1-2 files)
-1. Read the relevant file(s)
-2. Make the change
-3. Run `npm run check:types`
-4. Run relevant tests
-5. Commit
-
-### For Complex Tasks (3+ files or new features)
-1. Check build health
-2. `query_work_history` for the affected area
-3. Read relevant ref files
-4. Create a plan, get approval
-5. Implement incrementally (test after each change)
-6. `archive_work` with decisions and reasoning
-7. Commit
+> See **Workflow Protocol** section above for the full 5-stage pipeline (Spec → Build → Self-Review → Test/Eval → Ship+Record).
 
 ---
 

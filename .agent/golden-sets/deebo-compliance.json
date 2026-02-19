@@ -1,0 +1,367 @@
+{
+  "meta": {
+    "agent": "deebo",
+    "version": "1.0",
+    "source": "Deebo Compliance Engine Classification QA Set v1",
+    "created": "2026-02-19",
+    "thresholds": {
+      "overall_accuracy": 1.00,
+      "medical_claims": 1.00,
+      "minors_protection": 1.00,
+      "false_statements": 1.00,
+      "compliant_pass_rate": 0.95
+    },
+    "scoring_method": "exact_match",
+    "notes": [
+      "Deebo is a classification engine — every test case has a deterministic expected_status",
+      "Zero tolerance: a single false-negative on medical_claims or minors_protection blocks the commit",
+      "test_type: 'regex' cases must pass WITHOUT the LLM (fast path) — regression tests for rule engine",
+      "test_type: 'llm' cases require semantic understanding — test the Gemini compliance check",
+      "test_type: 'function' cases test deterministic helper functions (deeboCheckAge, deeboCheckStateAllowed)"
+    ]
+  },
+  "test_cases": [
+    {
+      "id": "medical-001",
+      "category": "medical_claims",
+      "test_type": "regex",
+      "input": {
+        "jurisdiction": "NY",
+        "channel": "sms",
+        "content": "Our CBD tincture cures chronic back pain. Try it today!"
+      },
+      "expected_status": "fail",
+      "expected_violations_contain": ["medical claim", "cure"],
+      "compliance_critical": true,
+      "notes": "Regex rule — 'cure' must trigger immediate fail without LLM"
+    },
+    {
+      "id": "medical-002",
+      "category": "medical_claims",
+      "test_type": "regex",
+      "input": {
+        "jurisdiction": "CA",
+        "channel": "email",
+        "content": "This strain treats anxiety and depression. Clinically proven."
+      },
+      "expected_status": "fail",
+      "expected_violations_contain": ["medical claim", "treat"],
+      "compliance_critical": true,
+      "notes": "Regex rule — 'treat' + 'clinically proven' double violation"
+    },
+    {
+      "id": "medical-003",
+      "category": "medical_claims",
+      "test_type": "regex",
+      "input": {
+        "jurisdiction": "IL",
+        "channel": "sms",
+        "content": "Our topical prevents inflammation. Doctor recommended."
+      },
+      "expected_status": "fail",
+      "expected_violations_contain": ["medical claim", "prevent"],
+      "compliance_critical": true,
+      "notes": "Regex rule — 'prevent' is a medical claim trigger"
+    },
+    {
+      "id": "medical-004",
+      "category": "medical_claims",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "NY",
+        "channel": "social",
+        "content": "Many of our customers report better sleep and a calmer mood after using our indica edibles."
+      },
+      "expected_status": "pass",
+      "expected_violations_contain": [],
+      "compliance_critical": true,
+      "notes": "LLM check — anecdotal customer report, not a medical claim. Must PASS."
+    },
+    {
+      "id": "medical-005",
+      "category": "medical_claims",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "NY",
+        "channel": "email",
+        "content": "Our tinctures are clinically shown to reduce pain levels by 40% in double-blind trials."
+      },
+      "expected_status": "fail",
+      "expected_violations_contain": ["medical claim", "clinically"],
+      "compliance_critical": true,
+      "notes": "LLM check — fabricated clinical study is a clear medical/false claim"
+    },
+    {
+      "id": "medical-006",
+      "category": "medical_claims",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "CA",
+        "channel": "sms",
+        "content": "Try our wellness line — tinctures, topicals, and more. Find what works for you."
+      },
+      "expected_status": "pass",
+      "expected_violations_contain": [],
+      "compliance_critical": false,
+      "notes": "LLM check — generic wellness framing without therapeutic claims. Must PASS."
+    },
+    {
+      "id": "minors-001",
+      "category": "minors_protection",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "NY",
+        "channel": "social",
+        "content": "Cannabis gummies that look just like your favorite childhood candy! Kids love the colors."
+      },
+      "expected_status": "fail",
+      "expected_violations_contain": ["minors", "appeal to children", "candy"],
+      "compliance_critical": true,
+      "notes": "LLM check — explicit candy-like / children appeal. Zero tolerance."
+    },
+    {
+      "id": "minors-002",
+      "category": "minors_protection",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "IL",
+        "channel": "email",
+        "content": "Our cartoon mascot Budsy the Bear invites you to explore our edibles lineup!"
+      },
+      "expected_status": "fail",
+      "expected_violations_contain": ["minors", "cartoon", "appeal"],
+      "compliance_critical": true,
+      "notes": "LLM check — cartoon character is a standard minors-appeal violation"
+    },
+    {
+      "id": "minors-003",
+      "category": "minors_protection",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "NY",
+        "channel": "sms",
+        "content": "Adults 21+ only. Explore our premium edibles — sophisticated flavors for discerning palates."
+      },
+      "expected_status": "pass",
+      "expected_violations_contain": [],
+      "compliance_critical": true,
+      "notes": "LLM check — age-affirmative adult language. Must PASS."
+    },
+    {
+      "id": "misleading-001",
+      "category": "false_statements",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "NY",
+        "channel": "email",
+        "content": "#1 Rated Dispensary in New York State by every major publication."
+      },
+      "expected_status": "fail",
+      "expected_violations_contain": ["false", "misleading", "unsubstantiated"],
+      "compliance_critical": true,
+      "notes": "LLM check — unverifiable superlative claim without citation"
+    },
+    {
+      "id": "misleading-002",
+      "category": "false_statements",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "CA",
+        "channel": "sms",
+        "content": "Voted Best Dispensary in Syracuse 2024 by Syracuse.com readers. Stop by and see why!"
+      },
+      "expected_status": "pass",
+      "expected_violations_contain": [],
+      "compliance_critical": false,
+      "notes": "LLM check — award claim with named source and year. Verifiable. Must PASS."
+    },
+    {
+      "id": "misleading-003",
+      "category": "false_statements",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "NY",
+        "channel": "email",
+        "content": "Our flower is 100% organic and pesticide-free (not certified, but we promise!)."
+      },
+      "expected_status": "warning",
+      "expected_violations_contain": ["misleading", "unverified"],
+      "compliance_critical": false,
+      "notes": "LLM check — disclaiming their own organic claim. Should be warning or fail."
+    },
+    {
+      "id": "compliant-001",
+      "category": "compliant_content",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "NY",
+        "channel": "sms",
+        "content": "New arrivals just dropped at Thrive Syracuse! Pre-rolls, flower, and edibles. 21+ only. Reply STOP to opt-out."
+      },
+      "expected_status": "pass",
+      "expected_violations_contain": [],
+      "compliance_critical": false,
+      "notes": "Clean SMS with age gate and STOP opt-out. Must PASS."
+    },
+    {
+      "id": "compliant-002",
+      "category": "compliant_content",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "NY",
+        "channel": "email",
+        "content": "This week at Thrive: 20% off all concentrates. Browse our full menu online. Must be 21+ to purchase. Unsubscribe at any time."
+      },
+      "expected_status": "pass",
+      "expected_violations_contain": [],
+      "compliance_critical": false,
+      "notes": "Clean promo email with unsubscribe and age disclaimer. Must PASS."
+    },
+    {
+      "id": "compliant-003",
+      "category": "compliant_content",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "IL",
+        "channel": "social",
+        "content": "Explore terpene profiles with our knowledgeable team. Learn the difference between myrcene, limonene, and pinene. Educational content for adults 21+."
+      },
+      "expected_status": "pass",
+      "expected_violations_contain": [],
+      "compliance_critical": false,
+      "notes": "Educational content, no health claims, age affirmed. Must PASS."
+    },
+    {
+      "id": "age-check-001",
+      "category": "age_verification",
+      "test_type": "function",
+      "function": "deeboCheckAge",
+      "input": {
+        "dob": "2000-01-01",
+        "jurisdiction": "NY"
+      },
+      "expected_output": {
+        "allowed": true,
+        "minAge": 21
+      },
+      "compliance_critical": true,
+      "notes": "25 year old in 2025. Must be allowed."
+    },
+    {
+      "id": "age-check-002",
+      "category": "age_verification",
+      "test_type": "function",
+      "function": "deeboCheckAge",
+      "input": {
+        "dob": "2010-06-15",
+        "jurisdiction": "NY"
+      },
+      "expected_output": {
+        "allowed": false,
+        "minAge": 21
+      },
+      "compliance_critical": true,
+      "notes": "14-15 year old. Must be blocked."
+    },
+    {
+      "id": "age-check-003",
+      "category": "age_verification",
+      "test_type": "function",
+      "function": "deeboCheckAge",
+      "input": {
+        "dob": "2004-02-19",
+        "jurisdiction": "NY"
+      },
+      "expected_output": {
+        "allowed": true,
+        "minAge": 21
+      },
+      "compliance_critical": true,
+      "notes": "Exactly 21 today (2026-02-19). Must be allowed."
+    },
+    {
+      "id": "state-check-001",
+      "category": "state_restrictions",
+      "test_type": "function",
+      "function": "deeboCheckStateAllowed",
+      "input": {
+        "state": "NY"
+      },
+      "expected_output": {
+        "allowed": true
+      },
+      "compliance_critical": true,
+      "notes": "NY is legal. Must allow."
+    },
+    {
+      "id": "state-check-002",
+      "category": "state_restrictions",
+      "test_type": "function",
+      "function": "deeboCheckStateAllowed",
+      "input": {
+        "state": "ID"
+      },
+      "expected_output": {
+        "allowed": false
+      },
+      "compliance_critical": true,
+      "notes": "Idaho is blocked. Must deny."
+    },
+    {
+      "id": "state-check-003",
+      "category": "state_restrictions",
+      "test_type": "function",
+      "function": "deeboCheckStateAllowed",
+      "input": {
+        "state": "KS"
+      },
+      "expected_output": {
+        "allowed": false
+      },
+      "compliance_critical": true,
+      "notes": "Kansas is blocked. Must deny."
+    },
+    {
+      "id": "adversarial-001",
+      "category": "medical_claims",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "NY",
+        "channel": "email",
+        "content": "Some customers find our products helpful for managing discomfort. Results vary. Not a substitute for medical advice."
+      },
+      "expected_status": "pass",
+      "expected_violations_contain": [],
+      "compliance_critical": true,
+      "notes": "Borderline case — properly hedged anecdotal claim with medical disclaimer. Must PASS."
+    },
+    {
+      "id": "adversarial-002",
+      "category": "medical_claims",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "CA",
+        "channel": "sms",
+        "content": "Doctors are recommending our CBD products to their patients for pain relief and sleep disorders."
+      },
+      "expected_status": "fail",
+      "expected_violations_contain": ["medical claim", "doctor", "patients"],
+      "compliance_critical": true,
+      "notes": "Implies medical endorsement and therapeutic use. Clear fail."
+    },
+    {
+      "id": "adversarial-003",
+      "category": "false_statements",
+      "test_type": "llm",
+      "input": {
+        "jurisdiction": "NY",
+        "channel": "social",
+        "content": "We guarantee you'll love it or your money back!"
+      },
+      "expected_status": "warning",
+      "expected_violations_contain": ["guarantee"],
+      "compliance_critical": false,
+      "notes": "Satisfaction guarantee is a warning-level claim in cannabis — may imply product claims"
+    }
+  ]
+}
