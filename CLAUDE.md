@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (Cottonmouth competitive audit, menu parity improvements, configurable loyalty/discount bar)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (Brand Guide smart onboarding — scan pre-fill bugs fixed, dispensary type/location, logo preview, social handles)
 
 ---
 
