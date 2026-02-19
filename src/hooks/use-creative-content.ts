@@ -75,8 +75,16 @@ export function useCreativeContent(
     const [isApproving, setIsApproving] = useState<string | null>(null);
     const [refreshKey, setRefreshKey] = useState(0);
 
-    // Get tenant ID from user claims (supports brand and dispensary roles)
-    const tenantId = (user as any)?.tenantId || (user as any)?.brandId || (user as any)?.locationId || brandId;
+    // Get tenant ID from user claims.
+    // Brand admins:       brandId claim (or brandId from Firestore brands collection)
+    // Dispensary admins:  orgId or currentOrgId claim (no brandId/locationId in claims)
+    // Thrive / empire tenants have orgId only — must fall through to orgId.
+    const tenantId = (user as any)?.tenantId
+        || (user as any)?.brandId
+        || (user as any)?.locationId
+        || (user as any)?.orgId
+        || (user as any)?.currentOrgId
+        || brandId;
 
     // Fetch content (with optional real-time updates)
     useEffect(() => {
@@ -195,9 +203,12 @@ export function useCreativeContent(
     const generate = useCallback(async (
         request: Omit<GenerateContentRequest, 'tenantId' | 'brandId'>
     ): Promise<CreativeContent | null> => {
-        if (!tenantId || !brandId) {
-            throw new Error('Missing tenant or brand ID — cannot generate content');
+        if (!tenantId) {
+            throw new Error('Missing tenant ID — cannot generate content. Please complete brand setup.');
         }
+        // brandId may be null for dispensary admins (who only have orgId).
+        // Fall back to tenantId so content is stored under the same org collection.
+        const resolvedBrandId = brandId || tenantId;
 
         setIsGenerating(true);
         setError(null);
@@ -206,7 +217,7 @@ export function useCreativeContent(
             const response = await generateContent({
                 ...request,
                 tenantId,
-                brandId
+                brandId: resolvedBrandId
             });
 
             // If not using realtime, manually add to state
