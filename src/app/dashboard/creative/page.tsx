@@ -49,6 +49,7 @@ import { useUser } from "@/firebase/auth/use-user";
 import { DeeboCompliancePanel } from "./components/deebo-compliance-panel";
 import { useBrandGuide, useBrandVoice, useBrandColors } from "@/hooks/use-brand-guide";
 import { sendCreativeToInbox } from "@/server/actions/creative-inbox";
+import { getBrandKitImages } from "@/server/actions/brand-images";
 import { CreativeChatPanel } from "./components/creative-chat-panel";
 import {
   DropdownMenu,
@@ -148,10 +149,62 @@ export default function CreativeCommandCenter() {
 
   // Campaign templates
   const campaignTemplates = [
-    { label: "Product Launch", prompt: "Exciting new product launch! Highlighting unique features and benefits.", tone: "hype" as const },
-    { label: "Weekend Special", prompt: "Weekend unwind promotion focusing on relaxation and quality time.", tone: "professional" as const },
-    { label: "Educational", prompt: "Educational content about terpene profiles, effects, and proper usage.", tone: "educational" as const },
-    { label: "Event Promo", prompt: "Upcoming event announcement with details and registration information.", tone: "hype" as const },
+    {
+      label: "Product Launch",
+      prompt: "Exciting new product launch! Highlighting unique features and benefits.",
+      tone: "hype" as const,
+      textOverlay: { headline: "Now Available", cta: "Shop Now" },
+      imageStyle: "vibrant studio product shot, dark background, spotlight lighting",
+    },
+    {
+      label: "Weekend Special",
+      prompt: "Weekend unwind promotion focusing on relaxation and quality time.",
+      tone: "professional" as const,
+      textOverlay: { headline: "Weekend Special", cta: "View Deals" },
+      imageStyle: "warm ambient lifestyle photography, golden hour light",
+    },
+    {
+      label: "Educational",
+      prompt: "Educational content about terpene profiles, effects, and proper usage.",
+      tone: "educational" as const,
+      textOverlay: { headline: "Did You Know?", cta: "Learn More" },
+      imageStyle: "clean minimalist product photography, white background",
+    },
+    {
+      label: "Event Promo",
+      prompt: "Upcoming event announcement with details and registration information.",
+      tone: "hype" as const,
+      textOverlay: { headline: "Join Us", cta: "RSVP Now" },
+      imageStyle: "energetic nightlife atmosphere, neon accents",
+    },
+    {
+      label: "Flash Sale",
+      prompt: "Limited time discount offer with urgency-focused messaging and exclusive savings.",
+      tone: "hype" as const,
+      textOverlay: { headline: "Today Only", cta: "Grab the Deal" },
+      imageStyle: "bold colors, dynamic energy, high contrast lighting",
+    },
+    {
+      label: "New Arrival",
+      prompt: "Brand new product just dropped — first-to-know excitement and exclusivity.",
+      tone: "hype" as const,
+      textOverlay: { headline: "Just Dropped", cta: "Be First" },
+      imageStyle: "sleek premium product shot, dark moody studio",
+    },
+    {
+      label: "Loyalty Reward",
+      prompt: "Thank loyal customers with exclusive recognition and special reward messaging.",
+      tone: "professional" as const,
+      textOverlay: { headline: "For Our VIPs", cta: "Claim Reward" },
+      imageStyle: "luxury gold accent photography, elegant dark background",
+    },
+    {
+      label: "Wellness",
+      prompt: "Health and wellness focus, mindful cannabis consumption and self-care messaging.",
+      tone: "educational" as const,
+      textOverlay: { headline: "Feel Your Best", cta: "Explore" },
+      imageStyle: "serene nature photography, soft morning light, green tones",
+    },
   ];
 
   // Hashtag suggestions per platform
@@ -206,6 +259,16 @@ export default function CreativeCommandCenter() {
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [batchPlatforms, setBatchPlatforms] = useState<SocialPlatform[]>([]);
 
+  // Text overlay state (Option A — CSS text layer over canvas image)
+  const [textOverlay, setTextOverlay] = useState({ enabled: false, headline: '', cta: 'Shop Now' });
+
+  // Canvas background override (brand kit image applied without full regeneration)
+  const [canvasBackground, setCanvasBackground] = useState<string | null>(null);
+
+  // Brand kit images pre-generated during onboarding
+  const [brandKitImages, setBrandKitImages] = useState<{ url: string; name: string; type: string }[]>([]);
+  const [isLoadingBrandKit, setIsLoadingBrandKit] = useState(false);
+
   // Image upload state
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -235,6 +298,16 @@ export default function CreativeCommandCenter() {
     };
     fetchMenuItems();
   }, []);
+
+  // Load brand kit images when Media panel is opened
+  useEffect(() => {
+    if (activeLeftPanel !== 'upload' || !brandId) return;
+    setIsLoadingBrandKit(true);
+    getBrandKitImages(brandId)
+      .then(images => setBrandKitImages(images))
+      .catch(() => setBrandKitImages([]))
+      .finally(() => setIsLoadingBrandKit(false));
+  }, [activeLeftPanel, brandId]);
 
   // Creative content hook
   const {
@@ -355,6 +428,9 @@ export default function CreativeCommandCenter() {
   const handleSelectTemplate = (template: typeof campaignTemplates[0]) => {
     setCampaignPrompt(template.prompt);
     setTone(template.tone);
+    // Auto-populate text overlay from template
+    setTextOverlay({ enabled: true, headline: template.textOverlay.headline, cta: template.textOverlay.cta });
+    setActiveLeftPanel('generate');
     toast.success(`${template.label} template loaded!`);
   };
 
@@ -925,6 +1001,57 @@ export default function CreativeCommandCenter() {
                         </div>
                       </label>
                     </div>
+                    {/* Brand Kit Images — pre-generated during onboarding */}
+                    {isLoadingBrandKit ? (
+                      <div className="flex items-center justify-center py-4 gap-2 text-muted-foreground">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-xs">Loading brand kit...</span>
+                      </div>
+                    ) : brandKitImages.length > 0 && (
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                          Brand Kit ({brandKitImages.length})
+                        </label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {brandKitImages.map((img) => (
+                            <div
+                              key={img.type}
+                              className="relative group cursor-pointer"
+                              onClick={() => {
+                                setCanvasBackground(img.url);
+                                toast.success(`${img.name.replace(/_/g, ' ')} applied to canvas`);
+                              }}
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={img.url}
+                                alt={img.name}
+                                className={cn(
+                                  "w-full h-20 object-cover rounded-lg border transition-all",
+                                  canvasBackground === img.url
+                                    ? "border-primary ring-1 ring-primary"
+                                    : "border-border group-hover:border-primary/50"
+                                )}
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-end">
+                                <span className="text-[9px] text-transparent group-hover:text-white/90 font-medium px-1.5 pb-1 capitalize leading-tight">
+                                  {img.name.replace(/_/g, ' ')}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {canvasBackground && (
+                          <button
+                            onClick={() => setCanvasBackground(null)}
+                            className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            ✕ Clear background override
+                          </button>
+                        )}
+                      </div>
+                    )}
+
                     {uploadedImages.length > 0 && (
                       <div className="space-y-2 flex-1">
                         <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -1044,8 +1171,8 @@ export default function CreativeCommandCenter() {
         {/* ── CENTER CANVAS ── */}
         <main className="flex-1 flex flex-col items-center justify-start overflow-auto bg-muted/10 p-6">
 
-          {/* Format pills */}
-          <div className="flex items-center gap-1.5 mb-6 flex-wrap justify-center">
+          {/* Format pills + Text toggle */}
+          <div className="flex items-center gap-1.5 mb-3 flex-wrap justify-center">
             {['Post', 'Story', 'Reel', 'Carousel'].map(fmt => (
               <button
                 key={fmt}
@@ -1054,7 +1181,36 @@ export default function CreativeCommandCenter() {
                 {fmt}
               </button>
             ))}
+            <button
+              onClick={() => setTextOverlay(prev => ({ ...prev, enabled: !prev.enabled }))}
+              className={cn(
+                "px-3 py-1 text-xs rounded-full border transition-all",
+                textOverlay.enabled
+                  ? "border-primary bg-primary/15 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground"
+              )}
+            >
+              Aa Text
+            </button>
           </div>
+
+          {/* Inline text overlay controls (visible when text layer is enabled) */}
+          {textOverlay.enabled && (
+            <div className="flex gap-2 mb-4 w-full max-w-[320px]">
+              <input
+                value={textOverlay.headline}
+                onChange={e => setTextOverlay(prev => ({ ...prev, headline: e.target.value }))}
+                className="flex-1 text-xs px-2 py-1.5 border border-border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-primary/50"
+                placeholder="Headline..."
+              />
+              <input
+                value={textOverlay.cta}
+                onChange={e => setTextOverlay(prev => ({ ...prev, cta: e.target.value }))}
+                className="w-28 text-xs px-2 py-1.5 border border-border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-primary/50"
+                placeholder="CTA..."
+              />
+            </div>
+          )}
 
           {/* Canvas frame — platform-aware aspect ratio */}
           <motion.div
@@ -1081,15 +1237,43 @@ export default function CreativeCommandCenter() {
 
             ) : currentContent ? (
               <>
-                {/* Media */}
-                {currentContent.mediaUrls?.[0] ? (
-                  <img src={currentContent.mediaUrls[0]} alt="Generated content" className="w-full h-full object-cover" />
+                {/* Media — canvasBackground overrides the AI-generated image (e.g. brand kit swap) */}
+                {(canvasBackground || currentContent.mediaUrls?.[0]) ? (
+                  <img src={canvasBackground || currentContent.mediaUrls[0]} alt="Generated content" className="w-full h-full object-cover" />
                 ) : currentContent.thumbnailUrl ? (
                   <img src={currentContent.thumbnailUrl} alt="Generated content" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-primary/20 via-background to-muted flex items-center justify-center">
                     <Sparkles className="w-16 h-16 text-primary/20" />
                   </div>
+                )}
+
+                {/* Text overlay — CSS/HTML text layer rendered over the image (Option A) */}
+                {textOverlay.enabled && (
+                  <>
+                    {/* Headline — top center */}
+                    {textOverlay.headline && (
+                      <div className="absolute top-10 left-0 right-0 px-4 flex justify-center pointer-events-none">
+                        <p
+                          className="text-white text-lg font-bold text-center leading-tight drop-shadow-lg"
+                          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.9)' }}
+                        >
+                          {textOverlay.headline}
+                        </p>
+                      </div>
+                    )}
+                    {/* CTA pill — above caption gradient */}
+                    {textOverlay.cta && (
+                      <div className="absolute bottom-20 left-0 right-0 flex justify-center pointer-events-none">
+                        <span
+                          className="px-4 py-1.5 rounded-full text-white text-xs font-bold shadow-xl"
+                          style={{ backgroundColor: brandColors?.primary || '#22c55e' }}
+                        >
+                          {textOverlay.cta}
+                        </span>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Caption overlay */}
