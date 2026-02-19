@@ -366,8 +366,11 @@ export default function CreativeCommandCenter() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brandGuide, loading, content.length, localContent, isGenerating]);
 
-  // content[0] from Firestore listener takes precedence; fall back to optimistic local state
-  const currentContent = content[0] || localContent || null;
+  // localContent (set on explicit Generate) takes precedence over Firestore listener.
+  // content[0] is used only on first load (when localContent is null) to show the
+  // most recent previously-generated piece. This prevents the auto-generated doc from
+  // overriding a new explicit generation.
+  const currentContent = localContent || content[0] || null;
 
   // --- Handlers ---
 
@@ -1305,36 +1308,32 @@ export default function CreativeCommandCenter() {
                   </div>
                 )}
 
-                {/* Text overlay — CSS/HTML text layer rendered over the image (Option A) */}
-                {textOverlay.enabled && (
-                  <>
-                    {/* Headline — top center with dark backdrop strip */}
+                {/* Text overlay — billboard block in the lower-center of canvas.
+                    Headline + CTA sit above the caption strip, anchored to the bottom gradient.
+                    Layout mirrors professional dispensary ads (Trulieve/Sunnyside reference). */}
+                {textOverlay.enabled && (textOverlay.headline || textOverlay.cta) && (
+                  <div className="absolute inset-x-0 bottom-[72px] flex flex-col items-center gap-3 px-5 pointer-events-none">
                     {textOverlay.headline && (
-                      <div className="absolute top-0 left-0 right-0 px-4 pt-5 pb-4 flex justify-center pointer-events-none bg-gradient-to-b from-black/70 to-transparent">
-                        <p
-                          className="text-white text-3xl font-black text-center leading-tight tracking-tight"
-                          style={{ textShadow: '0 2px 12px rgba(0,0,0,1), 0 4px 24px rgba(0,0,0,0.8)' }}
-                        >
-                          {textOverlay.headline}
-                        </p>
-                      </div>
+                      <p
+                        className="text-white text-4xl font-black text-center leading-tight tracking-tight"
+                        style={{ textShadow: '0 2px 20px rgba(0,0,0,1), 0 4px 40px rgba(0,0,0,0.9)' }}
+                      >
+                        {textOverlay.headline}
+                      </p>
                     )}
-                    {/* CTA pill — above caption gradient */}
                     {textOverlay.cta && (
-                      <div className="absolute bottom-20 left-0 right-0 flex justify-center pointer-events-none">
-                        <span
-                          className="px-6 py-2.5 rounded-full text-white text-sm font-bold shadow-2xl tracking-wide uppercase"
-                          style={{ backgroundColor: brandColors?.primary || '#22c55e', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
-                        >
-                          {textOverlay.cta}
-                        </span>
-                      </div>
+                      <span
+                        className="px-8 py-2.5 rounded-xl text-white text-xs font-bold uppercase tracking-widest shadow-2xl"
+                        style={{ backgroundColor: brandColors?.primary || '#22c55e' }}
+                      >
+                        {textOverlay.cta}
+                      </span>
                     )}
-                  </>
+                  </div>
                 )}
 
-                {/* Caption overlay */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4">
+                {/* Caption overlay — taller gradient covers text overlay + caption area */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent pt-28 p-4">
                   {isEditingCaption ? (
                     <div className="space-y-2">
                       <Textarea
