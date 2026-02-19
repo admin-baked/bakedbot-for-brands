@@ -468,10 +468,12 @@ const ALLOWED_FILE_TYPES = [
 export function InboxConversation({ thread, artifacts, className }: InboxConversationProps) {
     // Lazy init: pick up any pending input set by the empty state or sidebar before
     // activating this thread, then immediately clear it from the map.
+    const hasPendingAutoSubmit = useRef(false);
     const [input, setInput] = useState<string>(() => {
         const pending = _pendingInputs.get(thread.id);
         if (pending) {
             _pendingInputs.delete(thread.id);
+            hasPendingAutoSubmit.current = true; // auto-submit on mount
             return pending;
         }
         return '';
@@ -974,6 +976,16 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             setIsSubmitting(false);
         }
     };
+
+    // Auto-submit if the user typed a message before the thread was open
+    // (pending input set by inbox-empty-state or sidebar)
+    useEffect(() => {
+        if (hasPendingAutoSubmit.current) {
+            hasPendingAutoSubmit.current = false;
+            handleSubmit();
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleCompleteCarousel = async (carouselData: any) => {
         setShowCarouselGenerator(false);

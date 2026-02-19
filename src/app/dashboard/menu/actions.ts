@@ -339,17 +339,17 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
             }
         }
 
-        // 5. Remove stale POS products — products in Firestore that no longer exist in Alleaves
-        // Only removes products with source='pos' to preserve any manually added products
+        // 5. Remove stale products — when POS is connected it is the ONLY source of truth.
+        // Remove ALL products for this location not present in the current POS sync,
+        // regardless of source (clears historical CannMenus imports, manual entries, etc.)
         const existingSnap = await firestore.collection('products')
             .where('dispensaryId', '==', locationId)
-            .where('source', '==', 'pos')
             .get();
 
         const staleIds = existingSnap.docs
             .filter(doc => {
                 const externalId = doc.data().externalId;
-                // Remove if: no externalId (orphaned POS record) OR has externalId not in current sync
+                // Remove if: no externalId (non-POS product) OR externalId not in current POS sync
                 return !externalId || !syncedExternalIds.has(externalId);
             })
             .map(doc => doc.id);
