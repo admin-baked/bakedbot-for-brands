@@ -27,13 +27,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sparkles, RefreshCw, Loader2 } from 'lucide-react';
+import { Sparkles, RefreshCw, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { TIER_CONFIG, type PriceTier } from '@/lib/product-tiers';
 import type { Product } from '@/types/domain';
 import { AIDescriptionDialog } from './ai-description-dialog';
 import { syncProductsFromPos, getPosConfig } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import type { PosConfigInfo } from '@/app/dashboard/menu/actions';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -53,13 +54,13 @@ export function ProductsDataTable<TData extends Product, TValue>({
   const [isSyncing, setIsSyncing] = React.useState(false);
   const [aiDialogOpen, setAiDialogOpen] = React.useState(false);
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
-  const [posProvider, setPosProvider] = React.useState<string | null>(null);
+  const [posConfig, setPosConfig] = React.useState<PosConfigInfo | null>(null);
+
+  const posProvider = posConfig?.provider ?? null;
 
   // Load POS config on mount
   React.useEffect(() => {
-    getPosConfig().then(config => {
-      setPosProvider(config.provider);
-    });
+    getPosConfig().then(cfg => setPosConfig(cfg));
   }, []);
 
   // Add selection column to columns
@@ -123,11 +124,14 @@ export function ProductsDataTable<TData extends Product, TValue>({
     try {
       const result = await syncProductsFromPos();
       if (result.success) {
+        const removed = (result as any).removed || 0;
         toast({
           title: 'Sync Complete',
-          description: `Synced ${result.count || 0} products from ${result.provider || 'POS'}.`
+          description: `${result.count || 0} products from ${result.provider || 'POS'}${removed > 0 ? ` · ${removed} stale removed` : ''}.`
         });
+        // Refresh both the page data AND the POS config (so count badge updates)
         router.refresh();
+        getPosConfig().then(cfg => setPosConfig(cfg));
       } else {
         toast({
           variant: 'destructive',
@@ -162,6 +166,24 @@ export function ProductsDataTable<TData extends Product, TValue>({
     return counts;
   }, [data]);
 
+  // POS count sync status
+  const posCount = posConfig?.lastSyncCount ?? null;
+  const lastSyncedAt = posConfig?.lastSyncedAt ?? null;
+  const catalogCount = tierCounts.all;
+  const countMismatch = posCount !== null && posCount !== catalogCount;
+
+  // Human-readable "synced X ago"
+  const syncAge = React.useMemo(() => {
+    if (!lastSyncedAt) return null;
+    const diffMs = Date.now() - new Date(lastSyncedAt).getTime();
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  }, [lastSyncedAt]);
+
   return (
     <div className="space-y-4">
       {/* Tier Filter Tabs */}
@@ -174,6 +196,39 @@ export function ProductsDataTable<TData extends Product, TValue>({
           <TabsTrigger value="luxury" className="text-amber-600">Luxury ({tierCounts.luxury})</TabsTrigger>
         </TabsList>
       </Tabs>
+
+      {/* POS Sync Status — source of truth indicator */}
+      {posConfig?.provider && (
+        <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-md border ${
+          countMismatch
+            ? 'bg-amber-50 border-amber-200 text-amber-700'
+            : 'bg-green-50 border-green-200 text-green-700'
+        }`}>
+          {countMismatch ? (
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+          ) : (
+            <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+          )}
+          <span>
+            <strong>POS ({posConfig.displayName}):</strong>{' '}
+            {posCount !== null ? `${posCount} products` : 'not synced yet'}
+            {syncAge && ` · synced ${syncAge}`}
+            {countMismatch && (
+              <span className="ml-1 font-medium">
+                · catalog shows {catalogCount} — sync to reconcile
+              </span>
+            )}
+          </span>
+          {countMismatch && !isSyncing && (
+            <button
+              onClick={handleSync}
+              className="ml-auto underline font-semibold hover:no-underline"
+            >
+              Sync now
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4">

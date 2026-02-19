@@ -50,6 +50,28 @@ interface FalResponse {
 }
 
 /**
+ * Sanitize a user prompt for image generation.
+ *
+ * FLUX.1 Schnell (4-step) is a photography/art model — it has poor text rendering
+ * and garbles any words it tries to write. We explicitly forbid text in the image
+ * and steer the model toward clean product photography instead.
+ */
+function buildImagePrompt(userPrompt: string, tier: FalImageTier): string {
+    const noText = 'no text, no words, no letters, no watermarks, no captions, no overlays';
+    const photoStyle = 'photorealistic product photography, studio lighting, clean background';
+    const quality = tier === 'free'
+        ? 'sharp focus, vibrant colors'
+        : 'ultra-detailed, 8k, award-winning commercial photography';
+
+    // Strip any instruction that would cause the model to render text
+    const sanitized = userPrompt
+        .replace(/\b(text|caption|slogan|headline|title|label|banner|ad copy)\b/gi, '')
+        .trim();
+
+    return `${photoStyle}, ${quality}. ${sanitized}. ${noText}.`;
+}
+
+/**
  * Generate an image using fal.ai FLUX.1.
  * Throws if the API key is not set or the request fails.
  */
@@ -70,12 +92,16 @@ export async function generateImageWithFal(
     // FLUX.1 Pro uses 28 steps for higher quality
     const numSteps = tier === 'free' ? 4 : 28;
 
+    // Sanitize the prompt — FLUX.1 garbles any text it tries to render.
+    // Steer toward clean product photography with no text overlays.
+    const safePrompt = buildImagePrompt(prompt, tier);
+
     logger.info('[fal] Generating image', {
         tier,
         platform: options?.platform,
         imageSize,
         numSteps,
-        promptPreview: prompt.substring(0, 80),
+        promptPreview: safePrompt.substring(0, 80),
     });
 
     const res = await fetch(endpoint, {
@@ -85,7 +111,7 @@ export async function generateImageWithFal(
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            prompt,
+            prompt: safePrompt,
             image_size: imageSize,
             num_inference_steps: numSteps,
             enable_safety_checker: false,  // legal cannabis business — no content restrictions

@@ -131,7 +131,7 @@ export default function MenuPage() {
     const [source, setSource] = useState<string>('none');
     const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
-    const [posConfig, setPosConfig] = useState<PosConfigInfo>({ provider: null, status: null, displayName: 'POS' });
+    const [posConfig, setPosConfig] = useState<PosConfigInfo>({ provider: null, status: null, displayName: 'POS', lastSyncCount: null, lastSyncedAt: null });
     const { toast } = useToast();
 
     const handleSync = async () => {

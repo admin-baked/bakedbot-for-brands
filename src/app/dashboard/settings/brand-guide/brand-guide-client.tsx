@@ -304,7 +304,28 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         throw new Error(result.error || 'Failed to scan website');
       }
 
-      // Pre-populate steps with extracted data
+      // Step 1 — derive brand name from extracted data or URL domain
+      // (extraction may not return an explicit brand name, so fall back to domain)
+      const extractedBrandName: string =
+        (result as any).brandName ||
+        (result as any).messaging?.brandName ||
+        websiteUrl
+          .replace(/^https?:\/\//i, '')
+          .replace(/^www\./i, '')
+          .split('.')[0]
+          .replace(/[-_]/g, ' ')
+          .replace(/\b\w/g, (c: string) => c.toUpperCase());
+
+      // Only pre-fill if the user hasn't already completed step 1
+      if (!step1Data) {
+        setStep1Data({
+          brandName: extractedBrandName,
+          description: (result as any).messaging?.valueProposition || '',
+          tagline: (result as any).messaging?.tagline || '',
+        });
+      }
+
+      // Step 2 — visual identity
       if (result.visualIdentity) {
         setStep2Data({
           primaryColor: result.visualIdentity.colors?.primary?.hex || '#4ade80',
@@ -313,6 +334,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         });
       }
 
+      // Step 3 — brand voice
       if (result.voice) {
         setStep3Data({
           tone: result.voice.tone || [],
@@ -322,9 +344,12 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         });
       }
 
+      // Open step 1 so user can review/confirm the pre-filled brand name
+      setCurrentStep(1);
+
       toast({
         title: 'Website Scanned',
-        description: `We found brand data from ${websiteUrl}. Review and edit the pre-filled steps.`,
+        description: `Brand data extracted from ${websiteUrl}. Review and confirm the steps below.`,
       });
     } catch (error) {
       toast({
@@ -605,6 +630,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
       <Step1Dialog
         open={currentStep === 1}
         onOpenChange={(open) => !open && setCurrentStep(null)}
+        initialData={step1Data || undefined}
         onComplete={(data) => {
           setStep1Data(data);
           setCurrentStep(null);

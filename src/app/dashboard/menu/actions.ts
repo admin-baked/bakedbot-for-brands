@@ -17,6 +17,8 @@ export interface PosConfigInfo {
     provider: string | null;
     status: string | null;
     displayName: string;
+    lastSyncCount: number | null;   // POS product count from last sync (source of truth)
+    lastSyncedAt: string | null;    // ISO timestamp of last successful sync
 }
 
 /**
@@ -107,7 +109,7 @@ export async function getPosConfig(): Promise<PosConfigInfo> {
         const { locationId, locationData } = await resolveLocation(firestore, user.locationId, orgId, 'GET_POS_CONFIG');
 
         if (!locationId || !locationData) {
-            return { provider: null, status: null, displayName: 'POS' };
+            return { provider: null, status: null, displayName: 'POS', lastSyncCount: null, lastSyncedAt: null };
         }
 
         const posConfig = locationData.posConfig;
@@ -119,7 +121,7 @@ export async function getPosConfig(): Promise<PosConfigInfo> {
         });
 
         if (!posConfig) {
-            return { provider: null, status: null, displayName: 'POS' };
+            return { provider: null, status: null, displayName: 'POS', lastSyncCount: null, lastSyncedAt: null };
         }
 
         // Map provider to display name
@@ -130,14 +132,25 @@ export async function getPosConfig(): Promise<PosConfigInfo> {
             'jane': 'Jane',
         };
 
+        // Normalize syncedAt to ISO string
+        const rawSyncedAt = posConfig.syncedAt;
+        let lastSyncedAt: string | null = null;
+        if (rawSyncedAt) {
+            if (typeof rawSyncedAt === 'string') lastSyncedAt = rawSyncedAt;
+            else if (rawSyncedAt.toDate) lastSyncedAt = rawSyncedAt.toDate().toISOString();
+            else if (rawSyncedAt._seconds) lastSyncedAt = new Date(rawSyncedAt._seconds * 1000).toISOString();
+        }
+
         return {
             provider: posConfig.provider || null,
             status: posConfig.status || null,
             displayName: displayNames[posConfig.provider] || posConfig.provider || 'POS',
+            lastSyncCount: posConfig.lastSyncCount ?? null,
+            lastSyncedAt,
         };
     } catch (error) {
         logger.error('[GET_POS_CONFIG] Failed:', error instanceof Error ? error : new Error(String(error)));
-        return { provider: null, status: null, displayName: 'POS' };
+        return { provider: null, status: null, displayName: 'POS', lastSyncCount: null, lastSyncedAt: null };
     }
 }
 
@@ -358,10 +371,11 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
             logger.info('[SYNC_MENU] Removed stale POS products', { locationId, removed: staleIds.length });
         }
 
-        // 6. Update Location Sync Status
+        // 6. Update Location Sync Status (including POS count — source of truth)
         await firestore.collection('locations').doc(locationId).update({
             'posConfig.syncedAt': now,
-            'posConfig.lastSyncStatus': 'success'
+            'posConfig.lastSyncStatus': 'success',
+            'posConfig.lastSyncCount': count,   // POS authoritative product count
         });
 
         const { revalidatePath } = await import('next/cache');
