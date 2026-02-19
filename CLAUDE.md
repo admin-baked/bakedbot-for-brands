@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (Creative Studio: image variety, bigger text overlay, proactive generation on login)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (Creative Studio image variety + text overlay + proactive gen; heartbeat gray pulse fix; brand logos in menu carousel)
 
 ---
 
