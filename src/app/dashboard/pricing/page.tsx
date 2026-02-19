@@ -1,41 +1,34 @@
 'use client';
 
-
-
 /**
  * Dynamic Pricing Dashboard
  *
  * Main dashboard for managing dynamic pricing rules and viewing analytics.
- * Features tabbed interface with Rules, Analytics, and Inventory views.
+ * Create Rule opens an inline Sheet (no inbox redirect).
  */
 
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Plus, TrendingUp } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Plus, TrendingUp, Sparkles } from 'lucide-react';
 import { PricingKPIGrid } from './components/pricing-kpi-grid';
 import { PricingRulesList } from './components/pricing-rules-list';
 import { InventoryIntelligenceTab } from './components/inventory-intelligence-tab';
 import { PricingAnalyticsTab } from './components/pricing-analytics-tab';
 import { PublishToMenuTab } from './components/publish-to-menu-tab';
 import { TemplateBrowser } from './components/template-browser';
-import { useRouter } from 'next/navigation';
 import { useDispensaryId } from '@/hooks/use-dispensary-id';
 
 export default function PricingPage() {
   const [activeTab, setActiveTab] = useState('rules');
   const [refreshKey, setRefreshKey] = useState(0);
-  const router = useRouter();
+  const [createSheetOpen, setCreateSheetOpen] = useState(false);
   const { dispensaryId } = useDispensaryId();
 
-  const handleCreateRule = () => {
-    // Navigate to inbox with pricing thread type
-    router.push('/dashboard/inbox?create=pricing');
-  };
-
   const handleRuleCreated = () => {
-    // Refresh the rules list
     setRefreshKey((prev) => prev + 1);
+    setCreateSheetOpen(false);
   };
 
   return (
@@ -53,7 +46,7 @@ export default function PricingPage() {
             AI-powered price optimization and rule management
           </p>
         </div>
-        <Button onClick={handleCreateRule} className="gap-2">
+        <Button onClick={() => setCreateSheetOpen(true)} className="gap-2">
           <Plus className="h-4 w-4" />
           Create Rule
         </Button>
@@ -71,42 +64,48 @@ export default function PricingPage() {
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
         </TabsList>
 
-        {/* Rules Tab */}
-        <TabsContent value="rules" className="space-y-8">
-          {/* Template Browser */}
-          {dispensaryId && (
-            <TemplateBrowser orgId={dispensaryId} onRuleCreated={handleRuleCreated} />
-          )}
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Your Rules</span>
-            </div>
-          </div>
-
-          {/* Existing Rules */}
-          <PricingRulesList key={refreshKey} onCreateRule={handleCreateRule} />
+        {/* Rules Tab — just the rules list, no template browser */}
+        <TabsContent value="rules" className="space-y-4">
+          <PricingRulesList
+            key={refreshKey}
+            onCreateRule={() => setCreateSheetOpen(true)}
+          />
         </TabsContent>
 
-        {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-4">
           <PricingAnalyticsTab />
         </TabsContent>
 
-        {/* Publish to Menu Tab */}
         <TabsContent value="publish" className="space-y-4">
           <PublishToMenuTab />
         </TabsContent>
 
-        {/* Inventory Tab */}
         <TabsContent value="inventory" className="space-y-4">
           <InventoryIntelligenceTab />
         </TabsContent>
       </Tabs>
+
+      {/* Create Rule Sheet — replaces inbox redirect */}
+      <Sheet open={createSheetOpen} onOpenChange={setCreateSheetOpen}>
+        <SheetContent
+          side="right"
+          className="w-full sm:w-[680px] sm:max-w-[680px] overflow-y-auto"
+        >
+          <SheetHeader className="mb-6">
+            <SheetTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Create Pricing Rule
+            </SheetTitle>
+            <SheetDescription>
+              Choose a template, set your discount, and pick which products it applies to.
+            </SheetDescription>
+          </SheetHeader>
+
+          {dispensaryId && (
+            <TemplateBrowser orgId={dispensaryId} onRuleCreated={handleRuleCreated} />
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

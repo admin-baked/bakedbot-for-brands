@@ -629,10 +629,15 @@ export async function getDeliveryZones(locationId: string) {
             .orderBy('radiusMiles', 'asc')
             .get();
 
-        const zones = zonesSnapshot.docs.map((doc) => ({
-            ...doc.data(),
-            id: doc.id,
-        })) as DeliveryZone[];
+        const zones = zonesSnapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                ...data,
+                id: doc.id,
+                createdAt: data.createdAt?.toDate?.()?.toISOString() ?? null,
+                updatedAt: data.updatedAt?.toDate?.()?.toISOString() ?? null,
+            };
+        }) as unknown as DeliveryZone[];
 
         return { success: true, zones };
     } catch (error) {

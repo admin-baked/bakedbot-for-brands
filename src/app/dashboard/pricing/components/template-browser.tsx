@@ -5,9 +5,14 @@
  *
  * Allows users to browse and select pre-configured pricing rule templates.
  * Features category filtering, difficulty levels, and estimated impact.
+ *
+ * Customization dialog includes:
+ * - Rule name, discount %, min price
+ * - "Applies to" scope: All Products / By Category
+ * - Live preview impact
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   PRICING_TEMPLATES,
   TEMPLATE_CATEGORIES,
@@ -24,6 +29,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
@@ -35,12 +41,24 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sparkles, CheckCircle2, AlertCircle, Eye, TrendingUp, TrendingDown } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  Eye,
+  TrendingUp,
+  TrendingDown,
+  Tag,
+  Loader2,
+} from 'lucide-react';
 import { createPricingRule, previewPricingRuleImpact } from '@/app/actions/dynamic-pricing';
+import { getProductCategories } from '../actions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import type { DynamicPricingRule } from '@/types/dynamic-pricing';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 
 interface TemplateBrowserProps {
   orgId: string;
@@ -59,6 +77,13 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
   const [customDiscount, setCustomDiscount] = useState<number>(0);
   const [customMinPrice, setCustomMinPrice] = useState<number>(5.0);
 
+  // Scope state
+  type ScopeMode = 'all' | 'categories';
+  const [scopeMode, setScopeMode] = useState<ScopeMode>('all');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+
   // Preview state
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewData, setPreviewData] = useState<{
@@ -67,38 +92,63 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
     avgDiscount: number;
   } | null>(null);
 
+  // Load categories when dialog opens
+  useEffect(() => {
+    if (!isCustomizing || availableCategories.length > 0) return;
+    setCategoriesLoading(true);
+    getProductCategories(orgId)
+      .then((result) => {
+        if (result.success && result.categories) {
+          setAvailableCategories(result.categories);
+        }
+      })
+      .finally(() => setCategoriesLoading(false));
+  }, [isCustomizing, orgId, availableCategories.length]);
+
   const handleSelectTemplate = (template: PricingRuleTemplate) => {
     setSelectedTemplate(template);
-    setCustomName(template.config.name);
-    setCustomDiscount((template.config.priceAdjustment.value || 0) * 100);
-    setCustomMinPrice(template.config.priceAdjustment.minPrice || 5.0);
+    setCustomName(template.config.name ?? '');
+    setCustomDiscount((template.config.priceAdjustment?.value || 0) * 100);
+    setCustomMinPrice(template.config.priceAdjustment?.minPrice || 5.0);
+    const templateCats = template.config.conditions?.categories ?? [];
+    if (templateCats.length > 0) {
+      setScopeMode('categories');
+      setSelectedCategories(templateCats);
+    } else {
+      setScopeMode('all');
+      setSelectedCategories([]);
+    }
+    setPreviewData(null);
     setIsCustomizing(true);
   };
+
+  const buildRuleConfig = (): Partial<DynamicPricingRule> => ({
+    ...selectedTemplate!.config,
+    name: customName,
+    orgId,
+    conditions: {
+      ...selectedTemplate!.config.conditions,
+      categories:
+        scopeMode === 'categories' && selectedCategories.length > 0
+          ? selectedCategories
+          : undefined,
+    },
+    priceAdjustment: {
+      type: selectedTemplate!.config.priceAdjustment?.type ?? 'percentage',
+      value: customDiscount / 100,
+      minPrice: customMinPrice,
+    },
+  });
 
   const handleCreateFromTemplate = async () => {
     if (!selectedTemplate || !user) return;
 
     setIsCreating(true);
     try {
-      const ruleConfig: Partial<DynamicPricingRule> = {
-        ...selectedTemplate.config,
-        name: customName,
-        orgId,
-        createdBy: user.uid,
-        priceAdjustment: {
-          ...selectedTemplate.config.priceAdjustment,
-          value: customDiscount / 100,
-          minPrice: customMinPrice,
-        },
-      };
-
-      const result = await createPricingRule(ruleConfig);
+      const result = await createPricingRule({ ...buildRuleConfig(), createdBy: user.uid });
 
       if (result.success) {
-        toast({
-          title: 'Rule Created',
-          description: `${customName} has been created successfully.`,
-        });
+        toast({ title: 'Rule Created', description: `${customName} has been created successfully.` });
         setIsCustomizing(false);
         setSelectedTemplate(null);
         onRuleCreated?.();
@@ -118,23 +168,10 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
 
   const handlePreviewImpact = async () => {
     if (!selectedTemplate) return;
-
     setIsPreviewing(true);
     setPreviewData(null);
     try {
-      const ruleConfig: Partial<DynamicPricingRule> = {
-        ...selectedTemplate.config,
-        name: customName,
-        orgId,
-        priceAdjustment: {
-          ...selectedTemplate.config.priceAdjustment,
-          value: customDiscount / 100,
-          minPrice: customMinPrice,
-        },
-      };
-
-      const result = await previewPricingRuleImpact(orgId, ruleConfig);
-
+      const result = await previewPricingRuleImpact(orgId, buildRuleConfig());
       if (result.success && result.data) {
         setPreviewData({
           affectedProductsCount: result.data.affectedProductsCount,
@@ -155,14 +192,18 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
     }
   };
 
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+    setPreviewData(null);
+  };
+
   const getDifficultyColor = (difficulty: PricingRuleTemplate['difficulty']) => {
     switch (difficulty) {
-      case 'beginner':
-        return 'bg-green-500/10 text-green-700 dark:text-green-400';
-      case 'intermediate':
-        return 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400';
-      case 'advanced':
-        return 'bg-red-500/10 text-red-700 dark:text-red-400';
+      case 'beginner':  return 'bg-green-500/10 text-green-700 dark:text-green-400';
+      case 'intermediate': return 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400';
+      case 'advanced':  return 'bg-red-500/10 text-red-700 dark:text-red-400';
     }
   };
 
@@ -191,10 +232,7 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
 
           {TEMPLATE_CATEGORIES.map((category) => (
             <TabsContent key={category.id} value={category.id} className="space-y-4">
-              {/* Category Description */}
               <p className="text-sm text-muted-foreground">{category.description}</p>
-
-              {/* Templates Grid */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {getTemplatesByCategory(category.id as any).map((template) => (
                   <Card
@@ -218,18 +256,13 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
                     </CardHeader>
 
                     <CardContent className="flex-1 pb-3 space-y-2">
-                      {/* Estimated Impact */}
                       <div className="flex items-start gap-2 text-xs">
                         <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                         <span className="text-muted-foreground">{template.estimatedImpact}</span>
                       </div>
-
-                      {/* Recommended For */}
                       <div className="flex flex-wrap gap-1">
                         {template.recommendedFor.slice(0, 2).map((rec, idx) => (
-                          <Badge key={idx} variant="secondary" className="text-xs">
-                            {rec}
-                          </Badge>
+                          <Badge key={idx} variant="secondary" className="text-xs">{rec}</Badge>
                         ))}
                         {template.recommendedFor.length > 2 && (
                           <Badge variant="secondary" className="text-xs">
@@ -244,10 +277,7 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
                         variant="outline"
                         size="sm"
                         className="w-full"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelectTemplate(template);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); handleSelectTemplate(template); }}
                       >
                         Use Template
                       </Button>
@@ -262,7 +292,7 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
 
       {/* Customization Dialog */}
       <Dialog open={isCustomizing} onOpenChange={setIsCustomizing}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[640px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span className="text-2xl">{selectedTemplate?.icon}</span>
@@ -272,22 +302,22 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
           </DialogHeader>
 
           {selectedTemplate && (
-            <div className="space-y-6 py-4">
+            <div className="space-y-5 py-2">
               {/* Rule Name */}
               <div className="space-y-2">
-                <Label htmlFor="name">Rule Name</Label>
+                <Label htmlFor="rule-name">Rule Name</Label>
                 <Input
-                  id="name"
+                  id="rule-name"
                   value={customName}
                   onChange={(e) => setCustomName(e.target.value)}
                   placeholder="Enter rule name"
                 />
               </div>
 
-              {/* Discount Percentage */}
+              {/* Discount */}
               <div className="space-y-2">
                 <Label htmlFor="discount">
-                  Discount Percentage (Current: {customDiscount}%)
+                  Discount — <span className="font-bold text-foreground">{customDiscount}% OFF</span>
                 </Label>
                 <Input
                   id="discount"
@@ -296,16 +326,14 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
                   max="40"
                   step="1"
                   value={customDiscount}
-                  onChange={(e) => setCustomDiscount(Number(e.target.value))}
+                  onChange={(e) => { setCustomDiscount(Number(e.target.value)); setPreviewData(null); }}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Maximum 40% discount enforced by system
-                </p>
+                <p className="text-xs text-muted-foreground">Max 40% enforced</p>
               </div>
 
-              {/* Minimum Price */}
+              {/* Floor Price */}
               <div className="space-y-2">
-                <Label htmlFor="minPrice">Minimum Price ($)</Label>
+                <Label htmlFor="minPrice">Floor Price ($)</Label>
                 <Input
                   id="minPrice"
                   type="number"
@@ -314,9 +342,77 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
                   value={customMinPrice}
                   onChange={(e) => setCustomMinPrice(Number(e.target.value))}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Products will never sell below this price
-                </p>
+                <p className="text-xs text-muted-foreground">Products never sell below this price</p>
+              </div>
+
+              {/* ── Applies To ─────────────────────────── */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-primary" />
+                  <Label className="text-sm font-semibold">Applies To</Label>
+                </div>
+
+                <div className="flex gap-2">
+                  {(['all', 'categories'] as ScopeMode[]).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => {
+                        setScopeMode(mode);
+                        if (mode === 'all') setSelectedCategories([]);
+                        setPreviewData(null);
+                      }}
+                      className={cn(
+                        'flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors',
+                        scopeMode === mode
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border text-muted-foreground hover:bg-muted/30'
+                      )}
+                    >
+                      {mode === 'all' ? 'All Products' : 'By Category'}
+                    </button>
+                  ))}
+                </div>
+
+                {scopeMode === 'categories' && (
+                  <div className="rounded-lg border p-3 space-y-2">
+                    {categoriesLoading ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading categories…
+                      </div>
+                    ) : availableCategories.length === 0 ? (
+                      <p className="text-sm text-muted-foreground py-2">
+                        No categories found in your product catalog.
+                      </p>
+                    ) : (
+                      <ScrollArea className="max-h-44">
+                        <div className="grid grid-cols-2 gap-2 pr-2">
+                          {availableCategories.map((cat) => (
+                            <div key={cat} className="flex items-center gap-2">
+                              <Checkbox
+                                id={`cat-${cat}`}
+                                checked={selectedCategories.includes(cat)}
+                                onCheckedChange={() => toggleCategory(cat)}
+                              />
+                              <label
+                                htmlFor={`cat-${cat}`}
+                                className="text-sm cursor-pointer truncate"
+                              >
+                                {cat}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    )}
+                    {selectedCategories.length > 0 && (
+                      <p className="text-xs text-muted-foreground pt-1 border-t">
+                        {selectedCategories.length} categor{selectedCategories.length > 1 ? 'ies' : 'y'} selected
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Template Info */}
@@ -325,7 +421,6 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
                   <AlertCircle className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium">Template Details</span>
                 </div>
-
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <p className="text-muted-foreground">Strategy</p>
@@ -348,38 +443,36 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
                     </Badge>
                   </div>
                 </div>
-
                 <div>
                   <p className="text-muted-foreground mb-2">Recommended For:</p>
                   <div className="flex flex-wrap gap-1">
                     {selectedTemplate.recommendedFor.map((rec, idx) => (
-                      <Badge key={idx} variant="outline" className="text-xs">
-                        {rec}
-                      </Badge>
+                      <Badge key={idx} variant="outline" className="text-xs">{rec}</Badge>
                     ))}
                   </div>
                 </div>
-
                 <div className="pt-2 border-t">
                   <p className="text-sm">
-                    <span className="font-medium text-green-600 dark:text-green-400">
-                      Estimated Impact:{' '}
-                    </span>
+                    <span className="font-medium text-green-600 dark:text-green-400">Estimated Impact: </span>
                     {selectedTemplate.estimatedImpact}
                   </p>
                 </div>
               </div>
 
-              {/* Preview Impact Section */}
+              {/* Preview Impact */}
               <div className="space-y-3">
                 <Button
                   onClick={handlePreviewImpact}
                   variant="outline"
                   className="w-full gap-2"
-                  disabled={isPreviewing || !customName}
+                  disabled={
+                    isPreviewing ||
+                    !customName ||
+                    (scopeMode === 'categories' && selectedCategories.length === 0)
+                  }
                 >
                   <Eye className="h-4 w-4" />
-                  {isPreviewing ? 'Calculating...' : 'Preview Impact'}
+                  {isPreviewing ? 'Calculating…' : 'Preview Impact'}
                 </Button>
 
                 {previewData && (
@@ -403,7 +496,7 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
                               <>
                                 <TrendingDown className="h-4 w-4 text-red-500" />
                                 <span className="text-sm font-semibold text-red-600">
-                                  ${Math.abs(previewData.revenueImpact).toFixed(2)}
+                                  -${Math.abs(previewData.revenueImpact).toFixed(2)}
                                 </span>
                               </>
                             ) : (
@@ -428,8 +521,15 @@ export function TemplateBrowser({ orgId, onRuleCreated }: TemplateBrowserProps) 
             <Button variant="outline" onClick={() => setIsCustomizing(false)} disabled={isCreating}>
               Cancel
             </Button>
-            <Button onClick={handleCreateFromTemplate} disabled={isCreating || !customName}>
-              {isCreating ? 'Creating...' : 'Create Rule'}
+            <Button
+              onClick={handleCreateFromTemplate}
+              disabled={
+                isCreating ||
+                !customName ||
+                (scopeMode === 'categories' && selectedCategories.length === 0)
+              }
+            >
+              {isCreating ? 'Creating…' : 'Create Rule'}
             </Button>
           </DialogFooter>
         </DialogContent>

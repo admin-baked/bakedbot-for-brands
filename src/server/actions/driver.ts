@@ -14,7 +14,7 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 import type { Driver, DriverStatus, VehicleType } from '@/types/delivery';
-import { requireUser } from '@/lib/auth-helpers';
+import { requireUser } from '@/server/auth/auth';
 import { DISPENSARY_ADMIN_ROLES } from '@/types/roles';
 
 // Validation schemas

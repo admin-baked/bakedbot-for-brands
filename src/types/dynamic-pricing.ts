@@ -71,6 +71,11 @@ export interface DynamicPricingRule {
   timesApplied?: number;
   revenueImpact?: number;
   avgConversionRate?: number;
+
+  // Alleaves POS sync
+  alleavesDiscountId?: number;
+  lastSyncedToAlleaves?: Date;
+  alleavesDiscountActive?: boolean;
 }
 
 // ============ Dynamic Price Result ============

@@ -31,17 +31,26 @@ export function DriversTab() {
 
     const loadDrivers = async () => {
         setLoading(true);
-        const result = await getDrivers(orgId);
-        if (result.success) {
-            setDrivers(result.drivers);
-        } else {
+        try {
+            const result = await getDrivers(orgId);
+            if (result.success) {
+                setDrivers(result.drivers);
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: result.error || 'Failed to load drivers',
+                });
+            }
+        } catch {
             toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: result.error || 'Failed to load drivers',
+                description: 'Failed to load drivers',
             });
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     useEffect(() => {
