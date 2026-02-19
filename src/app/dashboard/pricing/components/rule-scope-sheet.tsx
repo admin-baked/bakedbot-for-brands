@@ -10,7 +10,8 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Info, Package, Tag, TrendingDown } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AlertCircle, AlertTriangle, Info, Package, Tag, TrendingDown } from 'lucide-react';
 import type { RuleScope, ScopeProduct } from '../actions';
 
 interface RuleScopeSheetProps {
@@ -79,6 +80,17 @@ export function RuleScopeSheet({
               </Badge>
             </div>
 
+            {/* COGS warning if any products lack cost data */}
+            {scope.products.some(p => p.cost == null) && (
+              <div className="flex items-start gap-2 mb-4 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-xs">
+                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <span>
+                  <strong>{scope.products.filter(p => p.cost == null).length} product{scope.products.filter(p => p.cost == null).length !== 1 ? 's' : ''}</strong> in this rule have no cost data.
+                  You may be discounting below cost. Add COGS in the <strong>Main Menu</strong> page first.
+                </span>
+              </div>
+            )}
+
             {/* Runtime conditions notice */}
             {scope.hasRuntimeConditions && (
               <div className="flex items-start gap-2 mb-4 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200 text-xs">
@@ -117,13 +129,34 @@ export function RuleScopeSheet({
 
 function ProductScopeRow({ product }: { product: ScopeProduct }) {
   const hasDiscount = product.discountedPrice < product.price;
+  const noCogs = product.cost == null;
+  const margin = product.cost != null && product.discountedPrice > 0
+    ? ((product.discountedPrice - product.cost) / product.discountedPrice * 100).toFixed(0)
+    : null;
 
   return (
-    <div className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors">
+    <div className={`flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/30 transition-colors ${noCogs ? 'border-amber-200' : ''}`}>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{product.name}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-medium truncate">{product.name}</p>
+          {noCogs && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                </TooltipTrigger>
+                <TooltipContent>No cost data — can&apos;t verify margin safety</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
         {product.category && (
           <p className="text-xs text-muted-foreground">{product.category}</p>
+        )}
+        {margin !== null && (
+          <p className={`text-xs font-medium mt-0.5 ${Number(margin) < 20 ? 'text-red-500' : Number(margin) < 40 ? 'text-amber-600' : 'text-emerald-600'}`}>
+            {margin}% margin after discount
+          </p>
         )}
       </div>
 

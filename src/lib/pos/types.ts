@@ -17,6 +17,7 @@ export interface POSProduct {
     thcPercent?: number;
     cbdPercent?: number;
     imageUrl?: string;
+    cost?: number;         // Cost of goods sold (COGS) from POS
     expirationDate?: Date; // Product/batch expiration date for clearance bundles
     rawData?: Record<string, unknown>; // Store original payload for debugging
 

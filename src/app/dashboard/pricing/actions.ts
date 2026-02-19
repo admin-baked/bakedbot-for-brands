@@ -17,6 +17,7 @@ export interface ScopeProduct {
   price: number;
   discountedPrice: number;
   discountPercent: number;
+  cost?: number; // COGS — used to warn when discounting without margin data
 }
 
 export interface RuleScope {
@@ -77,6 +78,7 @@ export async function previewRuleScope(
             price,
             discountedPrice,
             discountPercent,
+            cost: data.cost ?? undefined,
           };
         });
       return {
@@ -92,7 +94,7 @@ export async function previewRuleScope(
 
     // Fetch up to 200 products (enough for counts + preview list)
     const snap = await query.limit(200).get();
-    const allProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Array<{ id: string; name: string; category: string; price: number }>;
+    const allProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Array<{ id: string; name: string; category: string; price: number; cost?: number }>;
 
     // Filter by category if specified
     let filtered = allProducts;
@@ -114,6 +116,7 @@ export async function previewRuleScope(
         price,
         discountedPrice,
         discountPercent,
+        cost: p.cost ?? undefined,
       };
     });
 
