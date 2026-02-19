@@ -1,0 +1,47 @@
+{
+  "jurisdiction": "IL",
+  "channel": "retail",
+  "version": 1,
+  "status": "passing",
+  "source": "IL CCB Cannabis Advertising Rules — idfpr.illinois.gov",
+  "last_reviewed": "2026-02-19",
+  "notes": "IL Cannabis Regulation and Tax Act (410 ILCS 705) prohibits therapeutic claims and requires 21+ audience targeting.",
+  "rules": [
+    {
+      "id": "ban_medical_claims_il",
+      "type": "regex",
+      "pattern": "(cure|treat|prevent|heal).*(pain|anxiety|depression|insomnia|cancer|disease|nausea|inflammation|seizure|ptsd|arthritis|disorder|symptom)",
+      "description": "Medical claim: IL CRTA §55-21 prohibits advertising that states or implies cannabis has therapeutic or medical value."
+    },
+    {
+      "id": "ban_safe_healthy_claim_il",
+      "type": "regex",
+      "pattern": "\\b(safe\\s+alternative|healthier\\s+(than|option)|100%\\s+(natural|organic|safe))\\b",
+      "description": "False safety claim: IL CCB prohibits statements implying cannabis is safer or healthier than other substances without substantiation."
+    },
+    {
+      "id": "ban_prescription_language_il",
+      "type": "regex",
+      "pattern": "\\bprescri(be|bed|ption)s?\\b",
+      "description": "Prescription language prohibited under IL CRTA advertising rules."
+    },
+    {
+      "id": "ban_clinical_claims_il",
+      "type": "regex",
+      "pattern": "\\bclinically\\s+(proven|tested|shown|studied)\\b",
+      "description": "Clinical claim prohibited by IL CCB §55-21."
+    },
+    {
+      "id": "ban_doctor_endorsement_il",
+      "type": "regex",
+      "pattern": "\\bdoctors?\\s+(recommend|prescribed?|approved?)\\b",
+      "description": "Medical professional endorsement prohibited under IL CRTA advertising rules."
+    },
+    {
+      "id": "ban_minors_appeal_il",
+      "type": "regex",
+      "pattern": "\\b(cartoon\\s+character|gummy\\s+bears?|kids?\\s+(love|enjoy|can)|children\\s+(love|enjoy|can)|candy-?like)\\b",
+      "description": "Appeal to minors: IL CRTA §55-21(a)(4) explicitly prohibits marketing that could be appealing to persons under 21."
+    }
+  ]
+}

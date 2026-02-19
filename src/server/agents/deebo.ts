@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
 import waRetailRules from './rules/wa-retail.json';
+import nyRetailRules from './rules/ny-retail.json';
+import caRetailRules from './rules/ca-retail.json';
+import ilRetailRules from './rules/il-retail.json';
 
 export const ComplianceResultSchema = z.object({
   status: z.enum(['pass', 'fail', 'warning']),
@@ -23,13 +26,25 @@ export type RulePack = z.infer<typeof RulePackSchema>;
 // --- Phase 4: Rule Engine ---
 export class RulePackService {
   static async getRulePack(jurisdiction: string, channel: string): Promise<RulePack | null> {
-    // In a real app, this would load from Firestore or dynamic path
-    // For MVP, we map rigid paths or return mock
-    if (jurisdiction === 'WA' && channel === 'retail') {
-      return waRetailRules as unknown as RulePack;
+    const key = `${jurisdiction}:${channel}`;
+    const packs: Record<string, unknown> = {
+      'WA:retail': waRetailRules,
+      'NY:retail': nyRetailRules,
+      'CA:retail': caRetailRules,
+      'IL:retail': ilRetailRules,
+    };
+
+    if (key in packs) {
+      return packs[key] as unknown as RulePack;
     }
 
-    // Mock fallback for other jurisdictions
+    // Advertising rules apply across all channels — fall back to retail pack for this jurisdiction
+    const retailKey = `${jurisdiction}:retail`;
+    if (retailKey in packs) {
+      return packs[retailKey] as unknown as RulePack;
+    }
+
+    // Unmapped jurisdiction — LLM handles semantic checks
     return {
       jurisdiction,
       channel,
