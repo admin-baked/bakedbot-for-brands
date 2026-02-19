@@ -396,9 +396,12 @@ export async function findDueTenants(): Promise<Array<{
             .where('status', '==', 'active')
             .get();
 
+        const foundOrgIds = new Set<string>();
+
         for (const doc of tenantsSnap.docs) {
             const tenant = doc.data();
             const tenantId = doc.id;
+            foundOrgIds.add(tenantId);
 
             // Get heartbeat config
             const configSnap = await db
@@ -437,6 +440,68 @@ export async function findDueTenants(): Promise<Array<{
             dueTenants.push({
                 tenantId,
                 userId: primaryUserId,
+                role,
+                config,
+                slackWebhookUrl: (config as TenantHeartbeatConfig).slackWebhookUrl,
+            });
+        }
+
+        // Fallback: find orgs that have users but no tenant doc (e.g. Thrive Syracuse).
+        // Some orgs were seeded directly into `users` without a `tenants` document.
+        // Querying admin-level roles only (brand_admin, dispensary_admin + legacy aliases).
+        // Super users are excluded — they're platform-level and have separate management.
+        const ADMIN_ROLES = ['brand_admin', 'brand', 'dispensary_admin', 'dispensary'];
+        const usersSnap = await db
+            .collection('users')
+            .where('role', 'in', ADMIN_ROLES)
+            .get();
+
+        const fallbackOrgIds = new Map<string, { userId: string; role: HeartbeatRole }>();
+        for (const userDoc of usersSnap.docs) {
+            const user = userDoc.data();
+            const orgId: string = user.currentOrgId || user.orgId;
+            if (!orgId || foundOrgIds.has(orgId) || fallbackOrgIds.has(orgId)) continue;
+
+            // Prefer orgMemberships[orgId].orgType — it's the authoritative source.
+            // Fall back to inferring from the user's role string.
+            const membershipType: string | undefined = user.orgMemberships?.[orgId]?.orgType;
+            let heartbeatRole: HeartbeatRole = 'dispensary';
+            if (membershipType === 'brand' || user.role === 'brand_admin' || user.role === 'brand') {
+                heartbeatRole = 'brand';
+            }
+
+            fallbackOrgIds.set(orgId, { userId: userDoc.id, role: heartbeatRole });
+        }
+
+        for (const [tenantId, { userId, role }] of fallbackOrgIds) {
+            // Sub-collections can exist even without a parent tenant doc.
+            const configSnap = await db
+                .collection('tenants')
+                .doc(tenantId)
+                .collection('settings')
+                .doc('heartbeat')
+                .get();
+
+            if (configSnap.exists && configSnap.data()?.enabled === false) {
+                continue;
+            }
+
+            const config = configSnap.exists
+                ? (configSnap.data() as TenantHeartbeatConfig)
+                : buildDefaultConfig(role);
+
+            const lastRun = configSnap.data()?.lastRun?.toDate?.() || null;
+            const intervalMs = (config.interval || 30) * 60 * 1000;
+
+            if (lastRun && now.getTime() - lastRun.getTime() < intervalMs) {
+                continue;
+            }
+
+            logger.info('[Heartbeat] Found tenant via users fallback (no tenant doc)', { tenantId, role });
+
+            dueTenants.push({
+                tenantId,
+                userId,
                 role,
                 config,
                 slackWebhookUrl: (config as TenantHeartbeatConfig).slackWebhookUrl,
