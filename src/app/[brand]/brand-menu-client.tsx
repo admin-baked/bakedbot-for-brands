@@ -22,6 +22,7 @@
  */
 
 import { useState, useMemo, useEffect } from 'react';
+import { normalizeCategoryName } from '@/lib/utils/product-image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -88,6 +89,16 @@ const DEFAULT_PRIMARY_COLOR = '#16a34a';
 type BrandView = 'shop' | 'locator' | 'checkout' | 'shipping-checkout';
 
 export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [], featuredBrands = [], carousels = [] }: BrandMenuClientProps) {
+  // Normalize products: clean up POS category strings + ensure image fallback
+  const normalizedProducts = useMemo(() => products.map(p => ({
+    ...p,
+    category: normalizeCategoryName(p.category),
+    imageUrl: p.imageUrl || '/icon-192.png',
+  })), [products]);
+
+  // Use normalizedProducts everywhere (alias for clarity)
+  const allProducts = normalizedProducts;
+
   // View state
   const [brandView, setBrandView] = useState<BrandView>('shop');
 
@@ -167,9 +178,9 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     }
   };
 
-  // Filter and sort products
+  // Filter and sort products (using normalizedProducts via allProducts)
   const filteredProducts = useMemo(() => {
-    return products
+    return allProducts
       .filter(product => {
         const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           product.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -185,25 +196,25 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           default: return a.name.localeCompare(b.name);
         }
       });
-  }, [products, searchQuery, categoryFilter, sortBy]);
+  }, [allProducts, searchQuery, categoryFilter, sortBy]);
 
-  // Get unique categories (for filter dropdown)
+  // Get unique categories (normalized, for filter dropdown)
   const categories = useMemo(() => {
-    const cats = Array.from(new Set(products.map(p => p.category)));
-    return CATEGORY_ORDER.filter(c => cats.includes(c));
-  }, [products]);
+    const cats = Array.from(new Set(allProducts.map(p => p.category)));
+    // Include any categories not in CATEGORY_ORDER (e.g., Seeds, Capsules)
+    const extra = cats.filter(c => !CATEGORY_ORDER.includes(c)).sort();
+    return [...CATEGORY_ORDER.filter(c => cats.includes(c)), ...extra];
+  }, [allProducts]);
 
   // Build category grid data with actual counts from products
   const categoryGridData = useMemo(() => {
-    // Count products per category
     const categoryCounts: Record<string, number> = {};
-    products.forEach(p => {
+    allProducts.forEach(p => {
       if (p.category) {
         categoryCounts[p.category] = (categoryCounts[p.category] || 0) + 1;
       }
     });
 
-    // Build category objects with icons and counts
     return Object.entries(categoryCounts)
       .map(([name, count]) => ({
         id: name.toLowerCase().replace(/\s+/g, '-'),
@@ -212,7 +223,6 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         productCount: count,
       }))
       .sort((a, b) => {
-        // Sort by CATEGORY_ORDER if present, otherwise alphabetically
         const aIndex = CATEGORY_ORDER.indexOf(a.name);
         const bIndex = CATEGORY_ORDER.indexOf(b.name);
         if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
@@ -220,29 +230,29 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         if (bIndex !== -1) return 1;
         return a.name.localeCompare(b.name);
       });
-  }, [products]);
+  }, [allProducts]);
 
   // Featured products (highest likes or first 8)
   const featuredProducts = useMemo(() => {
-    return [...products]
+    return [...allProducts]
       .sort((a, b) => (b.likes || 0) - (a.likes || 0))
       .slice(0, 8);
-  }, [products]);
+  }, [allProducts]);
 
   // Deal products (for dispensary menu - products under $30)
   const dealProducts = useMemo(() => {
-    return products.filter(p => p.price < 30).slice(0, 8);
-  }, [products]);
+    return allProducts.filter(p => p.price < 30).slice(0, 8);
+  }, [allProducts]);
 
   // Products grouped by category (for dispensary menu category sections)
   const productsByCategory = useMemo(() => {
-    return products.reduce((acc, product) => {
+    return allProducts.reduce((acc, product) => {
       const cat = product.category;
       if (!acc[cat]) acc[cat] = [];
       acc[cat].push(product);
       return acc;
     }, {} as Record<string, Product[]>);
-  }, [products]);
+  }, [allProducts]);
 
   // Deal badge helper
   const getDealBadge = (product: Product): string | undefined => {
@@ -292,11 +302,12 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     backgroundColor: primaryColor,
   }));
 
-  // Brand stats for hero
+  // Brand stats for hero (show in-stock count to be accurate)
+  const inStockCount = allProducts.filter(p => (p.stock ?? 1) > 0).length;
   const brandStats = {
-    products: products.length,
+    products: inStockCount || allProducts.length,
     retailers: retailers.length,
-    rating: 4.8, // Could be calculated from reviews in the future
+    rating: 4.8,
   };
 
   // Shipping Checkout view (for online_only brands)

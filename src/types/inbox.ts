@@ -245,6 +245,9 @@ export interface InboxArtifact {
     // Agent rationale for the suggestion
     rationale?: string;
 
+    // Drive integration — set when artifact has a corresponding BakedBot Drive file
+    driveFileId?: string;
+
     // Tracking
     createdAt: Date;
     updatedAt: Date;

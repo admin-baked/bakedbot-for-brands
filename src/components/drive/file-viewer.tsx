@@ -377,6 +377,37 @@ export function FileViewer({ file, open, onOpenChange }: FileViewerProps) {
     handleSave(editContent);
   };
 
+  // AI action handler
+  const handleAiAction = async (action: AiFileAction, question?: string) => {
+    const source = isEditing ? editContent : (content ?? '');
+    if (!source) return;
+    setAiAction(action);
+    setAiLoading(true);
+    setAiResult(null);
+    try {
+      const res = await aiProcessFile(source, action, question);
+      setAiResult(res.result ?? res.error ?? 'No response');
+    } catch {
+      setAiResult('AI processing failed');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Apply AI result into editor
+  const handleApplyAiResult = () => {
+    if (!aiResult) return;
+    if (!isEditing) {
+      setEditContent(aiResult);
+      setIsEditing(true);
+    } else {
+      setEditContent(aiResult);
+    }
+    setSaveStatus('idle');
+    setAiResult(null);
+    setAiPanelOpen(false);
+  };
+
   if (!file) return null;
 
   const typeIcon = {
@@ -477,6 +508,19 @@ export function FileViewer({ file, open, onOpenChange }: FileViewerProps) {
                 </>
               ) : (
                 <>
+                  {/* Magic Button — AI tools (only for text-based files) */}
+                  {isEditable && (
+                    <Button
+                      variant={aiPanelOpen ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => { setAiPanelOpen((p) => !p); setAiResult(null); }}
+                      className="gap-1.5"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      AI
+                      {aiPanelOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                    </Button>
+                  )}
                   {isEditable && (
                     <Button variant="outline" size="sm" onClick={handleEdit}>
                       <Pencil className="h-4 w-4 mr-1.5" />
@@ -501,6 +545,145 @@ export function FileViewer({ file, open, onOpenChange }: FileViewerProps) {
         </SheetHeader>
 
         <Separator />
+
+        {/* AI Panel */}
+        {aiPanelOpen && isEditable && (
+          <div className="border-b bg-muted/20 px-6 py-4 shrink-0 space-y-3">
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs"
+                onClick={() => handleAiAction('summarize')}
+                disabled={aiLoading}
+              >
+                <Wand2 className="h-3.5 w-3.5" />
+                Summarize
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs"
+                onClick={() => handleAiAction('key_points')}
+                disabled={aiLoading}
+              >
+                <ListChecks className="h-3.5 w-3.5" />
+                Key Points
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs"
+                onClick={() => handleAiAction('improve')}
+                disabled={aiLoading}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Improve Writing
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs"
+                onClick={() => handleAiAction('follow_up')}
+                disabled={aiLoading}
+              >
+                <Lightbulb className="h-3.5 w-3.5" />
+                Next Steps
+              </Button>
+              {viewerType === 'json' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-xs"
+                  onClick={() => handleAiAction('parse_json')}
+                  disabled={aiLoading}
+                >
+                  <FileJson className="h-3.5 w-3.5" />
+                  Explain JSON
+                </Button>
+              )}
+            </div>
+
+            {/* Ask a question row */}
+            <div className="flex gap-2">
+              <Textarea
+                value={aiQuestion}
+                onChange={(e) => setAiQuestion(e.target.value)}
+                placeholder="Ask a question about this file…"
+                className="text-sm min-h-[36px] max-h-[72px] resize-none py-2"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (aiQuestion.trim()) {
+                      handleAiAction('ask', aiQuestion.trim());
+                      setAiQuestion('');
+                    }
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                onClick={() => { if (aiQuestion.trim()) { handleAiAction('ask', aiQuestion.trim()); setAiQuestion(''); } }}
+                disabled={aiLoading || !aiQuestion.trim()}
+                className="shrink-0"
+              >
+                <MessageSquare className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* AI result */}
+            {aiLoading && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>
+                  {aiAction === 'summarize' && 'Summarizing…'}
+                  {aiAction === 'improve' && 'Improving writing…'}
+                  {aiAction === 'key_points' && 'Extracting key points…'}
+                  {aiAction === 'ask' && 'Thinking…'}
+                  {aiAction === 'follow_up' && 'Generating next steps…'}
+                  {aiAction === 'parse_json' && 'Analyzing JSON…'}
+                  {!aiAction && 'Processing…'}
+                </span>
+              </div>
+            )}
+
+            {aiResult && !aiLoading && (
+              <div className="rounded-lg border bg-background p-3 text-sm whitespace-pre-wrap">
+                <p className="text-foreground leading-6">{aiResult}</p>
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs gap-1.5"
+                    onClick={() => navigator.clipboard.writeText(aiResult)}
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    Copy
+                  </Button>
+                  {(aiAction === 'improve' || aiAction === 'summarize') && (
+                    <Button
+                      size="sm"
+                      className="text-xs gap-1.5"
+                      onClick={handleApplyAiResult}
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      Apply to editor
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs"
+                    onClick={() => setAiResult(null)}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Content area */}
         <ScrollArea className="flex-1 min-h-0">
