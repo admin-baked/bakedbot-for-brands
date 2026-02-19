@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (Menu Command Center — live preview tab, drag-to-reorder, hover overlays for pricing/bundles/inbox)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (Creative Studio — billboard text overlay, random seed, content priority fix)
 
 ---
 
