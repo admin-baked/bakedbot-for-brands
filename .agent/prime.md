@@ -89,6 +89,7 @@ Only after Stages 1-4 are complete:
 
 **Recent work (2026-02-19):** See `memory/MEMORY.md` for full log.
 Key completed:
+- [Spec-first workflow + golden sets] (`c3ab224d`) — spec-template, review-checklist, Workflow Protocol in prime.md, Smokey/Craig/Deebo golden set eval suites (65 total QA cases).
 - [Brand Guide multi-page crawl] (`8d873984`) — Extractor now scrapes /about-us, /about, /our-story etc. in parallel; 3k→5k content window for AI.
 - [Menu Command Center] (`72f5f044`) — Live Preview tab, drag-to-reorder, per-card overlays, Full Screen toggle.
 - [Brand Guide onboarding overhaul] (`b9a24074`) — Fixed silent data-loss bugs; dispensary type smart voice defaults; logo preview.
