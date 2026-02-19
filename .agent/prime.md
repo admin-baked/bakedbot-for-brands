@@ -22,9 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-18)
 
 **Recent work (2026-02-18):** See `memory/MEMORY.md` for full log.
-Key completed: Alleaves P1/P2/P3 enrichment (`5c59c5fb`), Drive overhaul (`b9ac9f4c`),
-Platform phases 1-7 (`18f9bfc4`), COGS pipeline (`58b4718c`), Creative Studio redesign,
-Billing tests, Heartbeat auto-recovery, 28 Super User tools, fal.ai FLUX.1 image gen (`aff0cdb7`)
+Key completed: prime.md 5387→402 lines (`5843c29b`), MEMORY.md topic files, session-end workflow in CLAUDE.md
 
 ---
 
