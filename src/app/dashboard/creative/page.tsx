@@ -367,10 +367,14 @@ export default function CreativeCommandCenter() {
   }, [brandGuide, loading, content.length, localContent, isGenerating]);
 
   // localContent (set on explicit Generate) takes precedence over Firestore listener.
-  // content[0] is used only on first load (when localContent is null) to show the
-  // most recent previously-generated piece. This prevents the auto-generated doc from
-  // overriding a new explicit generation.
-  const currentContent = localContent || content[0] || null;
+  // content[0] is only shown if it was generated recently (< 2 hours) — older stale
+  // Firestore docs (e.g. from failed/bad generations) are ignored so the canvas
+  // starts clean and the auto-generation guard can kick in.
+  const TWO_HOURS = 2 * 60 * 60 * 1000;
+  const recentFirestoreContent = content[0]?.createdAt && (Date.now() - content[0].createdAt < TWO_HOURS)
+    ? content[0]
+    : null;
+  const currentContent = localContent || recentFirestoreContent || null;
 
   // --- Handlers ---
 
