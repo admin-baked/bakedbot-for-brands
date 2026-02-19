@@ -382,6 +382,10 @@ export interface GenerateContentRequest {
     logoUrl?: string;
     /** Tier for image generation */
     tier?: 'free' | 'paid' | 'super';
+    /** Visual style hint for FLUX.1 image generation (e.g. "dark moody studio, spotlight lighting").
+     *  Kept separate from `prompt` so image model receives a clean visual description
+     *  while caption generation receives the full marketing context. */
+    imageStyle?: string;
 }
 
 /**

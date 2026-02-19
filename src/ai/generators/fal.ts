@@ -52,23 +52,25 @@ interface FalResponse {
 /**
  * Sanitize a user prompt for image generation.
  *
- * FLUX.1 Schnell (4-step) is a photography/art model — it has poor text rendering
- * and garbles any words it tries to write. We explicitly forbid text in the image
- * and let the caller's prompt drive the visual style (e.g. template imageStyle hints).
+ * FLUX.1 is a photography/art model — it needs visual descriptors (style, lighting,
+ * mood, subject) not marketing copy ("announcement", "featuring", "details").
+ * We strip non-visual words and hashtags, then append quality/noText suffix.
  */
 function buildImagePrompt(userPrompt: string, tier: FalImageTier): string {
     const noText = 'no text, no words, no letters, no watermarks, no captions, no overlays';
     const quality = tier === 'free'
-        ? 'sharp focus, vibrant colors, high quality'
+        ? 'sharp focus, vibrant colors, high quality photography'
         : 'ultra-detailed, 8k, award-winning commercial photography';
 
-    // Strip any instruction that would cause the model to render text
+    // Strip hashtags, marketing-speak, and the "Photo style:" label prefix
+    // (content is already extracted by deriveImagePrompt in creative-content.ts)
     const sanitized = userPrompt
-        .replace(/\b(text|caption|slogan|headline|title|label|banner|ad copy)\b/gi, '')
+        .replace(/#\w+/g, '')
+        .replace(/\b(text|caption|slogan|headline|title|label|banner|ad copy|announcement|featuring|highlighting|focusing on|registration|information|messaging|promotion|details?)\b/gi, '')
+        .replace(/Photo style:/gi, '')
+        .replace(/\s+/g, ' ')
         .trim();
 
-    // Let the user's prompt (which includes imageStyle from campaign templates) drive the
-    // visual direction instead of always prepending a fixed photoStyle prefix.
     return `${sanitized}, ${quality}, ${noText}.`;
 }
 
@@ -89,9 +91,9 @@ export async function generateImageWithFal(
     const endpoint = tier === 'free' ? FAL_ENDPOINTS.schnell : FAL_ENDPOINTS.pro;
     const imageSize = PLATFORM_IMAGE_SIZE[options?.platform ?? 'instagram'] ?? 'square_hd';
 
-    // FLUX.1 Schnell uses 4 steps (baked-in quality for speed),
-    // FLUX.1 Pro uses 28 steps for higher quality
-    const numSteps = tier === 'free' ? 4 : 28;
+    // FLUX.1 Schnell: 8 steps (was 4) — minimum for style differentiation across templates.
+    // FLUX.1 Pro: 28 steps for full quality.
+    const numSteps = tier === 'free' ? 8 : 28;
 
     // Sanitize the prompt — FLUX.1 garbles any text it tries to render.
     // Steer toward clean product photography with no text overlays.
