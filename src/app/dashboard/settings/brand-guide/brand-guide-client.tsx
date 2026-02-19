@@ -53,6 +53,7 @@ import {
   Step4Dialog,
 } from './components/setup-step-dialogs';
 import { extractBrandGuideFromUrl, createBrandGuide } from '@/server/actions/brand-guide';
+import { generateBrandImagesForNewAccount } from '@/server/actions/brand-images';
 import { useToast } from '@/hooks/use-toast';
 
 interface BrandGuideClientProps {
@@ -421,12 +422,18 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         throw new Error(result.error || 'Failed to create brand guide');
       }
 
-      toast({
-        title: 'Brand Guide Created',
-        description: 'Your brand guide has been created successfully!',
+      onComplete(result.brandGuide);
+
+      // Fire-and-forget: generate brand kit images in background
+      // Images will appear in Creative Studio Media panel once ready (~30-60s)
+      generateBrandImagesForNewAccount(brandId, result.brandGuide).catch(() => {
+        // Background op — silently ignore; images simply won't be pre-populated
       });
 
-      onComplete(result.brandGuide);
+      toast({
+        title: 'Brand Guide Created',
+        description: 'Your brand guide is live! Brand kit images are being generated in the background.',
+      });
     } catch (error) {
       toast({
         title: 'Creation Failed',
