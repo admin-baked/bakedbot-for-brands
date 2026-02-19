@@ -439,6 +439,122 @@ curl -X POST https://bakedbot.ai/api/playbooks/{playbookId}/execute \
 
 ---
 
+## 🏗️ Phase 4 Playbook Engine (src/lib/playbooks/) ✅ DEPLOYED
+
+### Overview
+A tier-aware playbook engine that automatically assigns, executes, and tracks playbooks per org. Lives in `src/lib/playbooks/` (separate from older `src/server/services/playbook-executor.ts`).
+
+### Files
+
+| File | Purpose |
+|------|---------|
+| `src/lib/playbooks/assignment-service.ts` | Maps tier → playbooks, idempotent per-org assignment |
+| `src/lib/playbooks/execution-service.ts` | 3× exponential backoff executor (5s→30s→5m), email/dashboard/SMS delivery |
+| `src/lib/playbooks/mailjet.ts` | Branded HTML email template for playbook deliverables |
+| `src/lib/playbooks/trigger-engine.ts` | Scheduled frequency dispatcher (daily/weekly cadence) |
+
+### Playbook Registry
+**File**: `src/config/playbooks.ts` — 23 pre-built playbooks across tiers
+
+```typescript
+// Tier assignments
+starter:    3 playbooks  (basic daily intel, weekly summary, onboarding)
+growth:     7 playbooks  (+ competitive alerts, segment campaigns)
+pro:       10 playbooks  (+ price intelligence, multi-channel)
+enterprise: 23 playbooks (all — real-time intel, exec reports, partner ecosystem)
+```
+
+### Cron Endpoints
+- `POST /api/cron/playbooks/daily` — Runs all daily-frequency playbooks (9 AM EST)
+- `POST /api/cron/playbooks/weekly` — Runs all weekly-frequency playbooks (Mon 8 AM EST)
+
+### Execution Flow
+```
+Cloud Scheduler → /api/cron/playbooks/daily
+  → trigger-engine.ts: getOrgsWithActivePlans()
+  → assignment-service.ts: getAssignedPlaybooks(orgId, tierId)
+  → execution-service.ts: executePlaybook(orgId, playbookId)
+      → Step execution (3× backoff on failure)
+      → On success: deliverEmail() + deliverDashboard() + deliverSMS()
+      → On final failure: writeFailureNotification() → inbox_notifications
+  → usage-service.ts: incrementUsage(orgId, 'aiSessionsUsed', 1)
+```
+
+### Retry Logic
+```typescript
+// 3-attempt exponential backoff
+attempt 1: immediate
+attempt 2: 5 second delay
+attempt 3: 30 second delay
+// If all 3 fail: DLQ entry + inbox_notifications alert
+```
+
+---
+
+## 📊 Usage Metering (src/lib/metering/)
+
+**File**: `src/lib/metering/usage-service.ts`
+
+Tracks per-org monthly usage against tier limits.
+
+```typescript
+// Firestore collection: usage/{orgId}-{period}
+// period = "2026-02" (YYYY-MM)
+
+incrementUsage(orgId, metric, count?)
+getMonthlyUsage(orgId, period?)
+getUsageWithLimits(orgId, tierId, period?)  // returns atRisk[] (≥80%)
+markAlertSent(orgId, period?)              // idempotent 80% alert flag
+calculateAndRecordOverages(orgId, tierId) // charges per overage unit
+```
+
+**Tracked Metrics**: `smsCustomerUsed`, `smsInternalUsed`, `emailsUsed`, `aiSessionsUsed`, `creativeAssetsUsed`, `competitorsTracked`, `zipCodesActive`, `overageCharges`
+
+**Overage rates** come from `TIERS[tierId].overages.{sms, email, creativeAssets}` (field names — not `smsPerMsg`).
+
+---
+
+## 📱 Internal SMS Router (src/lib/sms/)
+
+**File**: `src/lib/sms/internal-router.ts`
+
+Staff-only alert routing (separate bucket from customer SMS).
+
+```typescript
+// 7 alert types
+type InternalAlertType =
+  | 'playbook_failure' | 'usage_threshold' | 'competitor_alert'
+  | 'compliance_flag' | 'billing_alert' | 'system_alert' | 'custom'
+
+sendInternalAlert({ orgId, to, type, data })
+sendEzalPriceDropAlert(orgId, phones, competitorName, product, priceDiff)
+sendUsageAlert(orgId, phones, metric, pct)
+```
+
+Routes through `BlackleafService.sendCustomMessage()` — unlimited on paid tiers.
+
+---
+
+## 🔔 Alert Center (Phase 5)
+
+### Dashboard
+**URL**: `/dashboard/alerts`
+**Data**: `inbox_notifications` collection, last 30 days, ordered `createdAt DESC`
+
+### API Routes
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/alerts/[id]/read` | POST | Mark single alert read (IDOR-protected) |
+| `/api/alerts/mark-all-read` | POST | Batch mark all read via Firestore batch |
+| `/api/settings/notifications` | GET/POST | Read/write `notification_preferences/{orgId}` |
+
+### Notification Preferences
+**Firestore**: `notification_preferences/{orgId}`
+**6 alert types**: `playbook_failure`, `usage_alert`, `competitor_alert`, `compliance_flag`, `billing_alert`, `weekly_report`
+**3 channels per type**: email / dashboard / SMS (SMS gated per type)
+
+---
+
 ## ✅ Summary
 
 **Key Points:**
@@ -449,6 +565,7 @@ curl -X POST https://bakedbot.ai/api/playbooks/{playbookId}/execute \
 4. **Secure Execution** - CRON_SECRET protects all endpoints
 5. **Cost Optimized** - Smart caching, model selection, batching
 6. **Agent Integration** - Competitive actions trigger Money Mike, Craig, Pops automatically
-7. **Production Ready** - All code deployed and tested
+7. **Phase 4 Engine** - `src/lib/playbooks/` tier-aware engine with 23 playbooks, 3× backoff, usage metering
+8. **Production Ready** - All code deployed and tested
 
 **No manual CRON setup required!** 🎉

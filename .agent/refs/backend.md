@@ -40,6 +40,22 @@ src/server/
 ├── middleware/           # Request middleware
 ├── repos/                # Data repositories
 └── treasury/             # Crypto trading (experimental)
+
+src/lib/                  # Shared utilities & engines
+├── playbooks/            # Tier-aware playbook engine ⭐
+│   ├── assignment-service.ts  # Tier→playbook mapping, idempotent assignment
+│   ├── execution-service.ts   # 3× backoff executor, email/dashboard/SMS delivery
+│   ├── mailjet.ts             # Branded HTML email template
+│   └── trigger-engine.ts      # Daily/weekly cron dispatcher
+├── metering/             # Usage tracking ⭐
+│   └── usage-service.ts       # incrementUsage, getUsageWithLimits, overage calc
+├── sms/                  # SMS routing ⭐
+│   └── internal-router.ts     # Staff-only alerts (7 types, Blackleaf backend)
+├── payments/             # Subscription billing
+│   └── authorize-net.ts       # ARB subscriptions (createCustomerProfile, createARBSub)
+├── authorize-net.ts      # One-time transactions (createTransaction, PaymentRequest)
+└── email/                # Email dispatcher
+    └── dispatcher.ts          # sendGenericEmail, template routing
 ```
 
 ---
