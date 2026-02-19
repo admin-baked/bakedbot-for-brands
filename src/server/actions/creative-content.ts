@@ -224,45 +224,69 @@ export async function generateContent(
         prompt: request.prompt.substring(0, 100)
     });
 
+    // Placeholder used when image generation fails or is unavailable
+    const IMAGE_PLACEHOLDER = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWExYTJlIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjI0IiBmaWxsPSIjNjY2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iMC4zZW0iPkltYWdlIGdlbmVyYXRpbmcuLi48L3RleHQ+PC9zdmc+';
+
     try {
-        // Generate image using Nano Banana
-        const imageUrl = await generateImageFromPrompt(request.prompt, {
-            brandName: request.productName,
-            tier: request.tier || 'free'
-        });
+        // Run image generation + caption generation in parallel to save time
+        const [imageUrl, caption] = await Promise.all([
+            generateImageFromPrompt(request.prompt, {
+                brandName: request.productName,
+                tier: request.tier || 'free'
+            }).catch((imgErr) => {
+                // Image generation can fail (model unavailable, safety filter, timeout)
+                // Fall back gracefully — content is still usable without the image
+                logger.warn('[creative-content] Image generation failed, using placeholder', {
+                    error: String(imgErr),
+                    prompt: request.prompt.substring(0, 80)
+                });
+                return IMAGE_PLACEHOLDER;
+            }),
+            generateCaption(request),
+        ]);
 
-        // Generate caption using Craig's AI expertise
-        const caption = await generateCaption(request);
+        // Run Deebo compliance check on the generated caption (with fallback)
+        let complianceStatus: ComplianceStatus = 'active';
+        let complianceChecks: { checkType: string; passed: boolean; message: string; checkedAt: number }[] = [];
+        try {
+            const { deebo } = await import('@/server/agents/deebo');
+            const complianceResult = await deebo.checkContent(
+                'US', // Default jurisdiction - could be dynamic based on tenant
+                mapPlatformToChannel(request.platform),
+                caption
+            );
 
-        // Run Deebo compliance check on the generated caption
-        const { deebo } = await import('@/server/agents/deebo');
-        const complianceResult = await deebo.checkContent(
-            'US', // Default jurisdiction - could be dynamic based on tenant
-            mapPlatformToChannel(request.platform),
-            caption
-        );
+            complianceStatus =
+                complianceResult.status === 'pass' ? 'active' :
+                    complianceResult.status === 'warning' ? 'warning' : 'review_needed';
 
-        // Map Deebo result to our compliance status
-        const complianceStatus: ComplianceStatus =
-            complianceResult.status === 'pass' ? 'active' :
-                complianceResult.status === 'warning' ? 'warning' : 'review_needed';
-
-        // Build compliance checks array
-        const complianceChecks = complianceResult.violations.map(violation => ({
-            checkType: 'deebo_content_scan',
-            passed: false,
-            message: violation,
-            checkedAt: Date.now()
-        }));
-
-        // Add a "passed" check if no violations
-        if (complianceResult.status === 'pass') {
-            complianceChecks.push({
+            complianceChecks = complianceResult.violations.map(violation => ({
                 checkType: 'deebo_content_scan',
-                passed: true,
-                message: 'Content passed all compliance checks',
+                passed: false,
+                message: violation,
                 checkedAt: Date.now()
+            }));
+
+            if (complianceResult.status === 'pass') {
+                complianceChecks.push({
+                    checkType: 'deebo_content_scan',
+                    passed: true,
+                    message: 'Content passed all compliance checks',
+                    checkedAt: Date.now()
+                });
+            }
+        } catch (deeboErr) {
+            // Deebo unavailable — default to pending review, don't block content creation
+            logger.warn('[creative-content] Deebo compliance check failed, defaulting to warning', {
+                error: String(deeboErr)
             });
+            complianceStatus = 'warning';
+            complianceChecks = [{
+                checkType: 'deebo_content_scan',
+                passed: false,
+                message: 'Compliance check unavailable — manual review required',
+                checkedAt: Date.now()
+            }];
         }
 
         // Create content record
