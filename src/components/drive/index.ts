@@ -13,3 +13,4 @@ export { DriveBreadcrumbs } from './breadcrumbs';
 export { DriveToolbar } from './toolbar';
 export { UploadDialog } from './upload-dialog';
 export { ShareDialog } from './share-dialog';
+export { FileViewer } from './file-viewer';

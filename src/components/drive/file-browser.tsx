@@ -7,16 +7,18 @@
  * Provides a split view with folder tree and file grid.
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useDriveStore, useFilteredItems } from '@/lib/store/drive-store';
 import { getFolderContents, getFolderTree } from '@/server/actions/drive';
 import { FolderTree } from './folder-tree';
 import { FileGrid } from './file-grid';
 import { DriveBreadcrumbs } from './breadcrumbs';
 import { DriveToolbar } from './toolbar';
+import { FileViewer } from './file-viewer';
 import { Loader2 } from 'lucide-react';
+import type { DriveFile } from '@/types/drive';
 
-export function FileBrowser() {
+export function FileBrowser({ initialFileId }: { initialFileId?: string }) {
   const {
     currentFolderId,
     isLoading,
@@ -29,7 +31,15 @@ export function FileBrowser() {
     setError,
   } = useDriveStore();
 
+  const [viewerFile, setViewerFile] = useState<DriveFile | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+
   const { folders, files } = useFilteredItems();
+
+  const handleOpenFile = (file: DriveFile) => {
+    setViewerFile(file);
+    setViewerOpen(true);
+  };
 
   // Load folder contents
   const loadContents = useCallback(async () => {
@@ -70,6 +80,16 @@ export function FileBrowser() {
     loadTree();
   }, [loadContents, loadTree]);
 
+  // Auto-open file if initialFileId provided (e.g. from ?file= URL param)
+  useEffect(() => {
+    if (!initialFileId || !files) return;
+    const target = files.find((f) => f.id === initialFileId);
+    if (target) {
+      setViewerFile(target);
+      setViewerOpen(true);
+    }
+  }, [initialFileId, files]);
+
   // Reload when folder changes
   useEffect(() => {
     if (!isTrashViewOpen) {
@@ -99,10 +119,25 @@ export function FileBrowser() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <FileGrid folders={folders} files={files} onRefresh={loadContents} />
+            <FileGrid
+              folders={folders}
+              files={files}
+              onRefresh={loadContents}
+              onOpenFile={handleOpenFile}
+            />
           )}
         </div>
       </div>
+
+      {/* File Viewer sheet */}
+      <FileViewer
+        file={viewerFile}
+        open={viewerOpen}
+        onOpenChange={(open) => {
+          setViewerOpen(open);
+          if (!open) setViewerFile(null);
+        }}
+      />
     </div>
   );
 }
