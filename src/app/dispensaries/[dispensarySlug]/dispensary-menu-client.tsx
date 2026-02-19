@@ -18,12 +18,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShoppingCart, Search, Award, Shield, GraduationCap, X } from 'lucide-react';
+import { ShoppingCart, Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useStore } from '@/hooks/use-store';
 import { useRouter } from 'next/navigation';
 import type { Product, Retailer } from '@/types/domain';
 import type { BundleDeal } from '@/types/bundles';
+import { MenuInfoBar } from '@/components/demo/menu-info-bar';
+import type { PublicMenuSettings } from '@/components/demo/menu-info-bar';
 
 // Dispensary Menu Components (from demo-shop)
 import { DemoHeader } from '@/components/demo/demo-header';
@@ -48,6 +50,7 @@ interface DispensaryMenuClientProps {
   };
   products: Product[];
   bundles?: BundleDeal[];
+  publicMenuSettings?: PublicMenuSettings | null;
 }
 
 // Category order for display
@@ -55,7 +58,7 @@ const CATEGORY_ORDER = ['Flower', 'Pre-roll', 'Vapes', 'Edibles', 'Concentrates'
 
 const DEFAULT_PRIMARY_COLOR = '#16a34a';
 
-export function DispensaryMenuClient({ dispensary, products, bundles = [] }: DispensaryMenuClientProps) {
+export function DispensaryMenuClient({ dispensary, products, bundles = [], publicMenuSettings }: DispensaryMenuClientProps) {
   // Product state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -268,25 +271,10 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [] }: Dis
         {/* Hero Carousel */}
         <HeroCarousel primaryColor={primaryColor} />
 
-        {/* Loyalty & Discount Bar */}
-        <div className="border-b bg-muted/40">
-          <div className="container mx-auto px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-            <div className="flex items-center gap-2 font-medium" style={{ color: primaryColor }}>
-              <Award className="h-4 w-4" />
-              <span>Rewards: every 10th purchase = free pre-roll</span>
-            </div>
-            <div className="h-4 w-px bg-border hidden sm:block" />
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Shield className="h-4 w-4" />
-              <span>Military &amp; Veterans: 10% off every visit</span>
-            </div>
-            <div className="h-4 w-px bg-border hidden sm:block" />
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <GraduationCap className="h-4 w-4" />
-              <span>Seniors 60+: 15% off daily</span>
-            </div>
-          </div>
-        </div>
+        {/* Loyalty & Discount Bar (driven by loyalty settings) */}
+        {publicMenuSettings && (
+          <MenuInfoBar settings={publicMenuSettings} primaryColor={primaryColor} />
+        )}
 
         {/* Featured Brands */}
         <FeaturedBrandsCarousel
@@ -345,26 +333,6 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [] }: Dis
             />
           </div>
         )}
-
-        {/* Delivery Info Bar */}
-        <div className="bg-muted/60 border-t border-b">
-          <div className="container mx-auto px-4 py-3 flex flex-wrap items-center justify-center gap-x-8 gap-y-1 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <span className="text-base">🚗</span>
-              <strong className="text-foreground">Delivery</strong> — $50 min · $10 fee · 20-mi radius
-            </span>
-            <span className="hidden sm:block text-border">|</span>
-            <span className="flex items-center gap-1.5">
-              <span className="text-base">🏪</span>
-              <strong className="text-foreground">In-Store Pickup</strong> — Order ahead, skip the line
-            </span>
-            <span className="hidden sm:block text-border">|</span>
-            <span className="flex items-center gap-1.5">
-              <span className="text-base">🚗</span>
-              <strong className="text-foreground">Drive-Thru</strong> — Open daily 9AM–10PM
-            </span>
-          </div>
-        </div>
 
         {/* All Products Section with Filters */}
         <section id="products" className="py-12">

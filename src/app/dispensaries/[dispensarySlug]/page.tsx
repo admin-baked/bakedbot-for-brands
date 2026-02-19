@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { LeadCaptureForm } from '@/components/leads/lead-capture-form';
 import { DispensaryMenuClient } from './dispensary-menu-client';
 import { getActiveBundles } from '@/app/actions/bundles';
+import { getPublicMenuSettings } from '@/server/actions/loyalty-settings';
 
 // Common categories for SEO
 const CATEGORIES = ['Flower', 'Vapes', 'Edibles', 'Concentrates', 'Pre-Rolls', 'Topicals'];
@@ -54,13 +55,15 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
     const isClaimed = dispensary.claimStatus === 'claimed';
 
     if (isClaimed && products.length > 0) {
-        // Fetch bundles for claimed dispensaries
+        // Fetch bundles + public loyalty settings for claimed dispensaries
         let bundles: import('@/types/bundles').BundleDeal[] = [];
         try {
             bundles = await getActiveBundles(dispensary.id);
         } catch (e) {
             console.error('Failed to fetch bundles:', e);
         }
+
+        const publicMenuSettings = await getPublicMenuSettings(dispensary.id).catch(() => null);
 
         // Render full dispensary menu experience
         return (
@@ -84,6 +87,7 @@ export default async function DispensaryPage({ params }: { params: Promise<{ dis
                     }}
                     products={products}
                     bundles={bundles}
+                    publicMenuSettings={publicMenuSettings}
                 />
             </main>
         );

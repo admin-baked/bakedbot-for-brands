@@ -11,6 +11,7 @@ import { DispensaryHeader } from '@/components/dispensary/dispensary-header';
 import { BrandMenuClient } from './brand-menu-client';
 import { getActiveBundles } from '@/app/actions/bundles';
 import { MenuWithAgeGate } from '@/components/menu/menu-with-age-gate';
+import { getPublicMenuSettings } from '@/server/actions/loyalty-settings';
 
 // Disable caching to ensure fresh data on each request
 export const dynamic = 'force-dynamic';
@@ -91,6 +92,9 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
         console.error('Failed to fetch bundles:', e);
     }
 
+    // Fetch public loyalty/menu display settings (no auth required)
+    const publicMenuSettings = await getPublicMenuSettings(brand.id).catch(() => null);
+
     return (
         <MenuWithAgeGate
             brandId={brand.id}
@@ -105,6 +109,7 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
                     bundles={bundles}
                     featuredBrands={featuredBrands}
                     carousels={carousels}
+                    publicMenuSettings={publicMenuSettings}
                 />
             </main>
         </MenuWithAgeGate>
