@@ -166,12 +166,17 @@ export default async function GlobalBrandPage({ params }: { params: Promise<{ br
                     <section className="space-y-4">
                         <h2 className="text-xl font-bold text-slate-800">Popular Products by {brand.name}</h2>
                         <div className="grid grid-cols-2 gap-4 filter blur-[4px] opacity-40 grayscale pointer-events-none">
-                            {[1, 2, 3, 4].map(i => (
+                            {(products && products.length > 0 ? products.slice(0, 4) : [null, null, null, null]).map((product, i) => (
                                 <div key={i} className="bg-white p-4 rounded-xl border border-slate-200 flex gap-4">
-                                    <div className="w-16 h-16 bg-slate-100 rounded-lg" />
-                                    <div className="space-y-2">
-                                        <div className="h-4 w-24 bg-slate-200 rounded" />
-                                        <div className="h-3 w-16 bg-slate-100 rounded" />
+                                    {product?.imageUrl && product.imageUrl !== '/icon-192.png' ? (
+                                        <img src={product.imageUrl} alt={product.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
+                                    ) : (
+                                        <div className="w-16 h-16 bg-slate-100 rounded-lg flex-shrink-0" />
+                                    )}
+                                    <div className="space-y-2 min-w-0">
+                                        <div className="h-4 font-medium text-xs text-slate-800 truncate">{product?.name || ''}</div>
+                                        <div className="h-3 text-xs text-slate-500">{product?.category || ''}</div>
+                                        {product?.price ? <div className="text-xs font-bold text-green-700">${product.price.toFixed(2)}</div> : null}
                                     </div>
                                 </div>
                             ))}
