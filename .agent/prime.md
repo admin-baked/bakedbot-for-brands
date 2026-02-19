@@ -21,8 +21,16 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-02-18)
 **Recent Updates (2026-02-18) — Latest Session:**
+- ✅ **Alleaves API Audit + P1/P2/P3 Enrichment** — 128-endpoint spec audited (from swagger-ui-init.js). Was capturing ~60% of available product data. Now capturing ~95%. Full pipeline: `fetchMenu()` → `/inventory/search` + `/inventory/area` (parallel) + `/inventory/batch/search` → `mapInventoryItems()`. New `POSProduct` fields: `sku`, `strain`, `uom`, `onHand`, `packageDate`, `batchCost`, `batchId`, `thcMg`, `cbdMg`, `metrcTag`, `batchStatus`, `areaName`. All persisted to Firestore on sync. See `.agent/refs/alleaves-pos.md`. (commit `5c59c5fb`)
+- ✅ **BakedBot Drive Overhaul** — Google Drive-style viewer/editor/AI + inbox integration (commit `b9ac9f4c`)
+  - `FileViewer` Sheet component: renders markdown/JSON/text/image/PDF inline, double-click or "Open" menu to launch
+  - File editor: textarea w/ 3s auto-save debounce + Ctrl+S, markdown preview toggle, ownership check
+  - AI Magic Button: 7 actions (Summarize, Key Points, Improve, Next Steps, Ask, Explain JSON, Describe Image) via Claude Haiku
+  - `?file=<driveFileId>` URL param → auto-opens FileViewer from any deep link
+  - Inbox integration: `InboxArtifact.driveFileId?` field + "Saved to Drive" badge + "Open in Drive" button
+  - Bridge service: `inbox-drive-bridge.ts` `saveArtifactToDrive()` → Storage upload + `drive_files` doc + artifact backlink
+  - New server action: `drive-content.ts` — `updateFileContent()`, `aiProcessFile()`
 - ✅ **Platform Overhaul Phases 1-7 COMPLETE** — Full build from spec (commits `3db16c22`, `451b6920`, `18f9bfc4`)
-- ✅ **Drive File Viewer** — In-line PDF/image/text preview in BakedBot Drive (commit `db9b3571`)
 - ✅ **Pricing aligned** — `pricing.ts` + homepage copy fully match Feb 2026 spec (Growth $349, Empire $999, EARLYBIRD50 banner, social equity callout)
 - ✅ **Playbook engine (Phase 4)** — `assignment-service.ts`, `execution-service.ts`, `mailjet.ts`, `trigger-engine.ts`, cron routes daily + weekly
 - ✅ **23-playbook registry** — `src/config/playbooks.ts` — full typed registry with tiers, channels, triggers, estimated costs

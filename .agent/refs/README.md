@@ -29,6 +29,7 @@ Detailed documentation for AI agents working in this codebase.
 | React components, UI | `frontend.md` |
 | Tests, Jest, coverage | `testing.md` |
 | External APIs (Blackleaf, etc.) | `integrations.md` |
+| **Alleaves POS — endpoints, fields, enrichment flow** | **`alleaves-pos.md`** |
 | Playbooks, automation | `workflows.md` |
 | Media generation, cost tracking | `media-generation.md` |
 | Vibe Builder, domains, publishing | `vibe-builder-spec.md` |
@@ -101,6 +102,7 @@ Detailed documentation for AI agents working in this codebase.
 | `work-archive.md` | Historical decisions, artifact storage |
 | `session-handoff.md` | Continuing work mid-session |
 | `integrations.md` | External APIs (Blackleaf, Mailjet, CannMenus, etc.) |
+| `alleaves-pos.md` | **Alleaves POS** — endpoints, field mapping, fetchMenu() enrichment flow, Firestore schema |
 
 ---
 
