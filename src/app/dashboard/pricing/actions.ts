@@ -8,7 +8,154 @@
 
 import { getAdminFirestore } from '@/firebase/admin';
 import { getPricingRules } from '@/app/actions/dynamic-pricing';
-import type { PricingAnalytics } from '@/types/dynamic-pricing';
+import type { DynamicPricingRule, PricingAnalytics } from '@/types/dynamic-pricing';
+
+export interface ScopeProduct {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  discountedPrice: number;
+  discountPercent: number;
+}
+
+export interface RuleScope {
+  count: number;
+  totalProducts: number;
+  products: ScopeProduct[];
+  hasRuntimeConditions: boolean; // inventory age, time, etc. — can't pre-filter
+}
+
+/**
+ * Preview which products a pricing rule would affect.
+ * Filters by static conditions (categories, productIds).
+ * Runtime conditions (inventoryAge, timeRange, etc.) are flagged but not pre-evaluated.
+ */
+export async function previewRuleScope(
+  orgId: string,
+  rule: Pick<DynamicPricingRule, 'conditions' | 'priceAdjustment'>
+): Promise<{ success: boolean; data?: RuleScope; error?: string }> {
+  try {
+    const db = getAdminFirestore();
+    const baseRef = db
+      .collection('tenants')
+      .doc(orgId)
+      .collection('publicViews')
+      .doc('products')
+      .collection('items');
+
+    // Fetch products — apply category filter at query level if possible
+    let query: FirebaseFirestore.Query = baseRef;
+    const { conditions } = rule;
+
+    const hasRuntimeConditions = !!(
+      conditions.inventoryAge ||
+      conditions.stockLevel ||
+      conditions.stockLevelPercent ||
+      conditions.competitorPrice ||
+      conditions.timeRange ||
+      conditions.daysOfWeek ||
+      conditions.trafficLevel
+    );
+
+    // If specific product IDs — fetch only those
+    if (conditions.productIds && conditions.productIds.length > 0) {
+      const docs = await Promise.all(
+        conditions.productIds.slice(0, 50).map((id) => baseRef.doc(id).get())
+      );
+      const products: ScopeProduct[] = docs
+        .filter((d) => d.exists)
+        .map((d) => {
+          const data = d.data()!;
+          const price = data.price ?? 0;
+          const discountedPrice = applyAdjustment(price, rule.priceAdjustment);
+          const discountPercent = price > 0 ? Math.round(((price - discountedPrice) / price) * 100) : 0;
+          return {
+            id: d.id,
+            name: data.name ?? 'Unknown',
+            category: data.category ?? '',
+            price,
+            discountedPrice,
+            discountPercent,
+          };
+        });
+      return {
+        success: true,
+        data: {
+          count: products.length,
+          totalProducts: products.length,
+          products,
+          hasRuntimeConditions,
+        },
+      };
+    }
+
+    // Fetch up to 200 products (enough for counts + preview list)
+    const snap = await query.limit(200).get();
+    const allProducts = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Array<{ id: string; name: string; category: string; price: number }>;
+
+    // Filter by category if specified
+    let filtered = allProducts;
+    if (conditions.categories && conditions.categories.length > 0) {
+      const cats = conditions.categories.map((c) => c.toLowerCase());
+      filtered = allProducts.filter((p) =>
+        cats.some((c) => (p.category ?? '').toLowerCase().includes(c))
+      );
+    }
+
+    const products: ScopeProduct[] = filtered.slice(0, 50).map((p) => {
+      const price = p.price ?? 0;
+      const discountedPrice = applyAdjustment(price, rule.priceAdjustment);
+      const discountPercent = price > 0 ? Math.round(((price - discountedPrice) / price) * 100) : 0;
+      return {
+        id: p.id,
+        name: p.name ?? 'Unknown',
+        category: p.category ?? '',
+        price,
+        discountedPrice,
+        discountPercent,
+      };
+    });
+
+    return {
+      success: true,
+      data: {
+        count: filtered.length,
+        totalProducts: allProducts.length,
+        products,
+        hasRuntimeConditions,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to preview rule scope',
+    };
+  }
+}
+
+function applyAdjustment(
+  price: number,
+  adj: DynamicPricingRule['priceAdjustment']
+): number {
+  if (price <= 0) return price;
+  switch (adj.type) {
+    case 'percentage': {
+      const discounted = price * (1 - adj.value);
+      const floored = adj.minPrice ? Math.max(discounted, adj.minPrice) : discounted;
+      return Math.round(floored * 100) / 100;
+    }
+    case 'fixed_amount': {
+      const discounted = price - adj.value;
+      const floored = adj.minPrice ? Math.max(discounted, adj.minPrice) : discounted;
+      return Math.round(Math.max(floored, 0) * 100) / 100;
+    }
+    case 'set_price':
+      return adj.value;
+    default:
+      return price;
+  }
+}
 
 /**
  * Get comprehensive pricing analytics for an organization
@@ -169,6 +316,39 @@ export async function getRulePerformanceData(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Get distinct product categories for an org.
+ * Used by the "Applies to" scope picker in rule creation.
+ */
+export async function getProductCategories(
+  orgId: string
+): Promise<{ success: boolean; categories?: string[]; error?: string }> {
+  try {
+    const db = getAdminFirestore();
+    const snap = await db
+      .collection('tenants')
+      .doc(orgId)
+      .collection('publicViews')
+      .doc('products')
+      .collection('items')
+      .limit(500)
+      .get();
+
+    const seen = new Set<string>();
+    snap.docs.forEach((d) => {
+      const cat = d.data().category as string | undefined;
+      if (cat && cat.trim()) seen.add(cat.trim());
+    });
+
+    return { success: true, categories: Array.from(seen).sort() };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to load categories',
     };
   }
 }

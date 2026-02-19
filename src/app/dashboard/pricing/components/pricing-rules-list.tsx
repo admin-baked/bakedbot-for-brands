@@ -154,6 +154,7 @@ export function PricingRulesList({
           <PricingRuleCard
             key={rule.id}
             rule={rule}
+            orgId={dispensaryId ?? ''}
             onEdit={handleEdit}
             onDuplicate={handleDuplicate}
             onArchive={handleArchive}

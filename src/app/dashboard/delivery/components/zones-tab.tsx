@@ -28,17 +28,26 @@ export function ZonesTab() {
 
     const loadZones = async () => {
         setLoading(true);
-        const result = await getDeliveryZones(locationId);
-        if (result.success) {
-            setZones(result.zones);
-        } else {
+        try {
+            const result = await getDeliveryZones(locationId);
+            if (result.success) {
+                setZones(result.zones);
+            } else {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: result.error || 'Failed to load zones',
+                });
+            }
+        } catch {
             toast({
                 variant: 'destructive',
                 title: 'Error',
-                description: result.error || 'Failed to load zones',
+                description: 'Failed to load delivery zones',
             });
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     useEffect(() => {
