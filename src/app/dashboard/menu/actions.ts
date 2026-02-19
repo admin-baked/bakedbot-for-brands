@@ -275,6 +275,57 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
             await batch.commit();
         }
 
+        // 4b. Also write to tenant catalog (used by the public-facing menu)
+        // This keeps bakedbot.ai/{slug} in sync with the latest POS data and clean images
+        if (orgId) {
+            try {
+                const tenantBase = firestore
+                    .collection('tenants').doc(orgId)
+                    .collection('publicViews').doc('products')
+                    .collection('items');
+
+                let tenantBatch = firestore.batch();
+                let tenantCount = 0;
+
+                for (const item of items) {
+                    const docId = `${locationId}_${item.externalId}`;
+                    const ref = tenantBase.doc(docId);
+                    const tenantProductData = {
+                        id: docId,
+                        name: item.name,
+                        brandName: item.brand,
+                        dispensaryId: locationId,
+                        orgId,
+                        category: normalizeCategoryName(item.category),
+                        // Only store real POS images — never stock photos
+                        imageUrl: (item.imageUrl && !item.imageUrl.includes('unsplash.com')) ? item.imageUrl : '',
+                        price: item.price,
+                        originalPrice: item.price,
+                        thcPercent: item.thcPercent || 0,
+                        cbdPercent: item.cbdPercent || 0,
+                        inStock: (item.stock || 0) > 0,
+                        stockCount: item.stock || 0,
+                        source: 'pos',
+                        externalId: item.externalId,
+                        lastSyncedAt: now.toISOString(),
+                    };
+                    tenantBatch.set(ref, tenantProductData, { merge: true });
+                    tenantCount++;
+                    if (tenantCount % 400 === 0) {
+                        await tenantBatch.commit();
+                        tenantBatch = firestore.batch();
+                    }
+                }
+                if (tenantCount % 400 !== 0) {
+                    await tenantBatch.commit();
+                }
+                logger.info('[SYNC_MENU] Synced tenant catalog', { orgId, count: tenantCount });
+            } catch (tenantErr) {
+                // Non-fatal — legacy products collection is the source of truth for the dashboard
+                logger.warn('[SYNC_MENU] Failed to sync tenant catalog', { orgId, error: String(tenantErr) });
+            }
+        }
+
         // 5. Remove stale POS products — products in Firestore that no longer exist in Alleaves
         // Only removes products with source='pos' to preserve any manually added products
         const existingSnap = await firestore.collection('products')

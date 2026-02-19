@@ -89,12 +89,21 @@ const DEFAULT_PRIMARY_COLOR = '#16a34a';
 type BrandView = 'shop' | 'locator' | 'checkout' | 'shipping-checkout';
 
 export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [], featuredBrands = [], carousels = [] }: BrandMenuClientProps) {
-  // Normalize products: clean up POS category strings + ensure image fallback
+  // Check if a URL is a real product image (not a stock photo or placeholder)
+  const isRealImage = (url?: string): boolean => {
+    if (!url || url.trim() === '') return false;
+    if (url.includes('unsplash.com')) return false; // Filter out old Unsplash stock photos
+    if (url.includes('placeholder')) return false;
+    if (url.startsWith('/icon') || url.startsWith('/bakedbot')) return false; // Skip our own mascot if it leaked into DB
+    return true;
+  };
+
+  // Normalize products: clean up POS category strings + replace stock photo placeholders with Smokey
   const normalizedProducts = useMemo(() => products.map(p => ({
     ...p,
     category: normalizeCategoryName(p.category),
-    imageUrl: p.imageUrl || '/icon-192.png',
-  })), [products]);
+    imageUrl: isRealImage(p.imageUrl) ? p.imageUrl : '/icon-192.png',
+  })), [products]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Use normalizedProducts everywhere (alias for clarity)
   const allProducts = normalizedProducts;
