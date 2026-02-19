@@ -23,8 +23,8 @@ npm run check:types
 
 **Recent work (2026-02-19):** See `memory/MEMORY.md` for full log.
 Key completed:
-- [Cottonmouth Competitive Audit + Menu Parity] (`9a15695d`) — Audited menu vs Cottonmouth; added competitive parity improvements. Seed filter tightened: out-of-stock products excluded, brand blocklist updated (`15f32705`).
-- [Configurable Loyalty Info Bar] (`2710bd10`) — Menu info bar now driven by loyalty settings (configurable text, CTA, visibility). See `src/components/menu/loyalty-info-bar.tsx`.
+- [Brand Guide smart onboarding] (`b9a24074`) — Fixed scan pre-fill bugs (Step2/Step3 initialData, valueProposition→valuePropositions[0]); added dispensary type, city/state, logo preview, social handles, smart voice defaults.
+- [Creative Studio image variety fix] (`f82952e2`) — `imageStyle` now separate from caption prompt; FLUX.1 steps 4→8; `deriveImagePrompt()` sends visual-first prompt to FLUX.1.
 - [Leafly Brand Logo Seeder + Brand Carousel] (`810eeac7`, `959a40ef`) — Leafly scraper for brand logos + product image sync scripts. Featured Brands carousel now shows logos in Thrive menu.
 - [Mid-Tier Brand Logos Seed] (`7fe7f898`) — Seed script for mid-tier brand logos + upload utilities. See `scripts/seed-brand-logos.ts`.
 - [Linus Slack Timeout Fix] (`1d9f7aaf`) — Linus timeout raised 55s → 240s; harness iteration cap set to 8. Prevents Slack reply timeouts on complex CTO queries.
