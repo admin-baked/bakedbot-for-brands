@@ -2,8 +2,7 @@
 
 import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
 import { useUser } from '@/firebase/auth/use-user';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useDynamicPrompts } from '@/hooks/use-dynamic-prompts';
 import { DISPENSARY_CHAT_CONFIG } from '@/lib/chat/role-chat-config';
 
@@ -26,7 +25,7 @@ export function DispensaryChatWidget() {
 
     if (isUserLoading) {
         return (
-            <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex items-center justify-center h-[500px]">
+            <div className="flex items-center justify-center h-[480px]">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
         );
@@ -34,38 +33,22 @@ export function DispensaryChatWidget() {
 
     if (!user) {
         return (
-            <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col h-[500px]">
-                <div className="bg-muted/30 p-4 border-b">
-                    <h3 className="font-semibold text-sm flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-emerald-600" />
-                        Dispensary Operations
-                    </h3>
-                </div>
-                <div className="flex-1 flex items-center justify-center">
-                    <p className="text-muted-foreground text-sm text-center">
-                        Please sign in to use the AI assistant.
-                    </p>
-                </div>
+            <div className="flex items-center justify-center h-[480px]">
+                <p className="text-muted-foreground text-sm text-center">
+                    Please sign in to use the AI assistant.
+                </p>
             </div>
         );
     }
 
     return (
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden flex flex-col h-[500px]">
-            <div className="bg-muted/30 p-4 border-b">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-emerald-600" />
-                    Ask Money Mike (Dispensary Ops)
-                </h3>
-            </div>
-            <div className="flex-1 overflow-hidden">
-                <PuffChat
-                    initialTitle="Ops Assistant"
-                    promptSuggestions={dispensaryPrompts}
-                    className="h-full border-none shadow-none rounded-none"
-                    isAuthenticated={!!user}
-                />
-            </div>
+        <div className="flex flex-col h-[480px]">
+            <PuffChat
+                initialTitle="Ops Assistant"
+                promptSuggestions={dispensaryPrompts}
+                className="h-full border-none shadow-none rounded-none"
+                isAuthenticated={!!user}
+            />
         </div>
     );
 }

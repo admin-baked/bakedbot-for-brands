@@ -6,7 +6,7 @@ import { DispensaryChatWidget } from './components/dispensary-chat-widget';
 import { DispensaryRightRail } from './components/dispensary-right-sidebar';
 import { DispensaryPlaybooksList } from './components/dispensary-playbooks-list';
 import { Button } from '@/components/ui/button';
-import { MapPin, Power, User } from 'lucide-react';
+import { MapPin, Power, User, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
     DropdownMenu,
@@ -28,10 +28,29 @@ import { SetupChecklist } from '@/components/dashboard/setup-checklist';
 import { QuickSetupCard } from '@/components/dashboard/quick-setup-card';
 import { getDispensaryDashboardData, type DispensaryDashboardData } from './actions';
 
+const CHAT_OPEN_KEY = 'dispensary-chat-open';
+
 export default function DispensaryDashboardClient({ brandId }: { brandId: string }) {
     const [liveData, setLiveData] = useState<DispensaryDashboardData | null>(null);
     const [dispensaryName, setDispensaryName] = useState<string | null>(null);
     const [showQuickSetup, setShowQuickSetup] = useState(true);
+    const [chatOpen, setChatOpen] = useState(true);
+
+    // Restore chat open/closed state from localStorage
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem(CHAT_OPEN_KEY);
+            if (stored !== null) setChatOpen(stored === 'true');
+        } catch { /* localStorage unavailable */ }
+    }, []);
+
+    const toggleChat = () => {
+        setChatOpen((prev) => {
+            const next = !prev;
+            try { localStorage.setItem(CHAT_OPEN_KEY, String(next)); } catch { /* ignore */ }
+            return next;
+        });
+    };
 
     // Fetch data for widgets
     useEffect(() => {
@@ -115,8 +134,35 @@ export default function DispensaryDashboardClient({ brandId }: { brandId: string
             <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
                 {/* Main Column */}
                 <div className="lg:col-span-4 space-y-6">
-                    {/* 3. Chat Block */}
-                    <DispensaryChatWidget />
+                    {/* 3. Chat Block — collapsible */}
+                    <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+                        {/* Toggle header — always visible */}
+                        <button
+                            onClick={toggleChat}
+                            className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors text-left"
+                            aria-expanded={chatOpen}
+                        >
+                            <div className="flex items-center gap-2">
+                                <MessageCircle className="h-4 w-4 text-emerald-600" />
+                                <span className="text-sm font-semibold">Money Mike</span>
+                                <span className="text-xs text-muted-foreground hidden sm:inline">— Dispensary Ops AI</span>
+                            </div>
+                            {chatOpen ? (
+                                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-muted-foreground">Ask about ops, pricing, campaigns...</span>
+                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                            )}
+                        </button>
+                        {/* Chat content */}
+                        {chatOpen && (
+                            <div className="border-t">
+                                <DispensaryChatWidget />
+                            </div>
+                        )}
+                    </div>
 
                     {/* 4. Pages */}
                     <ManagedPagesList userRole="dispensary" />
