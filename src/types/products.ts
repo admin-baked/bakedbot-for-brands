@@ -112,6 +112,7 @@ export type Product = {
     lineage?: StrainLineage;
     thcPercent?: number; // Quick access
     cbdPercent?: number; // Quick access
+    brandName?: string; // Display name of the brand/manufacturer (stored from POS sync)
     source?: 'manual' | 'pos' | 'cannmenus' | 'leafly' | 'discovery' | 'url-import'; // Data source
     sourceTimestamp?: Date; // Last synced with source
     strainType?: string;
