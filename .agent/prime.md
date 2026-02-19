@@ -23,9 +23,9 @@ npm run check:types
 
 **Recent work (2026-02-19):** See `memory/MEMORY.md` for full log.
 Key completed:
-- [Creative Studio image variety + billboard overlay] (`f82952e2`, `84b45aa1`) — Visual-first FLUX.1 prompts, 4→8 steps, random seed, localContent priority fix, billboard text layout.
-- [Menu Command Center] (`d2803d65`) — Dashboard /dashboard/menu now has Live Preview tab, drag-to-reorder, per-card overlays (Price Sheet, Bundle Sheet, Discuss→Inbox), Full Screen toggle.
-- [Leafly Brand Logo Seeder + Brand Carousel] (`810eeac7`, `959a40ef`) — Leafly scraper for brand logos + product image sync scripts. Featured Brands carousel now shows logos in Thrive menu.
+- [Brand Guide multi-page crawl] (`8d873984`) — Extractor now scrapes /about-us, /about, /our-story etc. in parallel; 3k→5k content window for AI.
+- [Menu Command Center] (`72f5f044`) — Live Preview tab, drag-to-reorder, per-card overlays, Full Screen toggle.
+- [Brand Guide onboarding overhaul] (`b9a24074`) — Fixed silent data-loss bugs; dispensary type smart voice defaults; logo preview.
 - [Mid-Tier Brand Logos Seed] (`7fe7f898`) — Seed script for mid-tier brand logos + upload utilities. See `scripts/seed-brand-logos.ts`.
 - [Linus Slack Timeout Fix] (`1d9f7aaf`) — Linus timeout raised 55s → 240s; harness iteration cap set to 8. Prevents Slack reply timeouts on complex CTO queries.
 - [Heartbeat Gray Pulse Fix] (`92d8345f`) — Permanent fix for gray pulse on orgs without tenant doc. Heartbeat now resolves correctly for all org types.
