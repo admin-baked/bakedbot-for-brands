@@ -282,8 +282,6 @@ export default function CreativeCommandCenter() {
         sendCreativeToInbox(result, selectedPlatform)
           .then(r => { if (r.success && r.threadId && r.artifactId) setInboxDraft({ threadId: r.threadId, artifactId: r.artifactId }); })
           .catch(() => {});
-      } else {
-        toast.error("Failed to generate content. Please try again.");
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "An error occurred while generating content");

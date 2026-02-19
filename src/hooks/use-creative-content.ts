@@ -196,8 +196,7 @@ export function useCreativeContent(
         request: Omit<GenerateContentRequest, 'tenantId' | 'brandId'>
     ): Promise<CreativeContent | null> => {
         if (!tenantId || !brandId) {
-            setError('Missing tenant or brand ID');
-            return null;
+            throw new Error('Missing tenant or brand ID — cannot generate content');
         }
 
         setIsGenerating(true);
@@ -217,8 +216,9 @@ export function useCreativeContent(
 
             return response.content;
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to generate content');
-            return null;
+            const msg = err instanceof Error ? err.message : 'Failed to generate content';
+            setError(msg);
+            throw new Error(msg); // re-throw so the page's catch block fires
         } finally {
             setIsGenerating(false);
         }
@@ -227,8 +227,7 @@ export function useCreativeContent(
     // Approve content
     const approve = useCallback(async (contentId: string, scheduledAt?: string): Promise<void> => {
         if (!tenantId || !user?.uid) {
-            setError('Missing tenant ID or user');
-            return;
+            throw new Error('Missing tenant ID or user — cannot approve content');
         }
 
         setIsApproving(contentId);
@@ -247,7 +246,9 @@ export function useCreativeContent(
                 setContent(prev => prev.filter(item => item.id !== contentId));
             }
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to approve content');
+            const msg = err instanceof Error ? err.message : 'Failed to approve content';
+            setError(msg);
+            throw new Error(msg); // re-throw so the page can show a proper error toast
         } finally {
             setIsApproving(null);
         }
@@ -282,8 +283,7 @@ export function useCreativeContent(
     // Edit caption directly
     const editCaption = useCallback(async (contentId: string, newCaption: string): Promise<void> => {
         if (!tenantId) {
-            setError('Missing tenant ID');
-            return;
+            throw new Error('Missing tenant ID — cannot update caption');
         }
 
         setError(null);
@@ -298,7 +298,9 @@ export function useCreativeContent(
                 ));
             }
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Failed to update caption');
+            const msg = err instanceof Error ? err.message : 'Failed to update caption';
+            setError(msg);
+            throw new Error(msg); // re-throw so the page can show a proper error toast
         }
     }, [tenantId, realtime]);
 

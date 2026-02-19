@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -28,12 +28,23 @@ interface Step1DialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onComplete: (data: { brandName: string; description: string; tagline?: string }) => void;
+  initialData?: { brandName?: string; description?: string; tagline?: string };
 }
 
-export function Step1Dialog({ open, onOpenChange, onComplete }: Step1DialogProps) {
-  const [brandName, setBrandName] = useState('');
-  const [description, setDescription] = useState('');
-  const [tagline, setTagline] = useState('');
+export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Step1DialogProps) {
+  const [brandName, setBrandName] = useState(initialData?.brandName || '');
+  const [description, setDescription] = useState(initialData?.description || '');
+  const [tagline, setTagline] = useState(initialData?.tagline || '');
+
+  // When the dialog opens with pre-filled data (e.g. after a website scan),
+  // populate the fields so the user can review and edit before saving.
+  useEffect(() => {
+    if (open && initialData) {
+      if (initialData.brandName) setBrandName(initialData.brandName);
+      if (initialData.description) setDescription(initialData.description);
+      if (initialData.tagline) setTagline(initialData.tagline);
+    }
+  }, [open, initialData]);
 
   const handleSubmit = () => {
     onComplete({ brandName, description, tagline });
