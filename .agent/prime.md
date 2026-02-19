@@ -19,14 +19,18 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-02-18)
+**Current Status:** 🟢 Passing (verified 2026-02-19)
 
-**Recent work (2026-02-18):** See `memory/MEMORY.md` for full log.
+**Recent work (2026-02-19):** See `memory/MEMORY.md` for full log.
 Key completed:
+- [Cottonmouth Competitive Audit + Menu Parity] (`9a15695d`) — Audited menu vs Cottonmouth; added competitive parity improvements. Seed filter tightened: out-of-stock products excluded, brand blocklist updated (`15f32705`).
+- [Configurable Loyalty Info Bar] (`2710bd10`) — Menu info bar now driven by loyalty settings (configurable text, CTA, visibility). See `src/components/menu/loyalty-info-bar.tsx`.
+- [Leafly Brand Logo Seeder + Brand Carousel] (`810eeac7`, `959a40ef`) — Leafly scraper for brand logos + product image sync scripts. Featured Brands carousel now shows logos in Thrive menu.
+- [Mid-Tier Brand Logos Seed] (`7fe7f898`) — Seed script for mid-tier brand logos + upload utilities. See `scripts/seed-brand-logos.ts`.
+- [Linus Slack Timeout Fix] (`1d9f7aaf`) — Linus timeout raised 55s → 240s; harness iteration cap set to 8. Prevents Slack reply timeouts on complex CTO queries.
+- [Heartbeat Gray Pulse Fix] (`92d8345f`) — Permanent fix for gray pulse on orgs without tenant doc. Heartbeat now resolves correctly for all org types.
 - [The Herbalist Samui — International Pilot] (`abf56b8e`) — First international dispensary on BakedBot. Koh Samui, Thailand. Org `dispensary_herbalistsamui`, 22 demo products (THB ฿ pricing), 4 local competitors, Cloud Scheduler daily CI at 9 AM Bangkok, invites to jack@bakedbot.ai + bryan@thebeachsamui.com. See `scripts/seed-herbalist-samui.ts` + `HERBALIST_SAMUI_SETUP.md`.
 - [Multi-Region ISR: Thailand/Koh Samui] (`f9b85263`) — New `/destination/[country]/[city]` route structure with 4-hour ISR cache. RTRVR-powered Google Maps scraping, multi-currency (THB/VND/KHR/USD), GitHub Actions daily automation (3 AM UTC). Seeded 4 Koh Samui dispensaries. See `src/app/destination/` + `src/server/services/growth/international-discovery.ts`.
-- [Build fixes: 3 Firebase webpack violations] — wrong import path, server-only chain violation, ESM const-between-imports syntax error
-- [Billing System Testing Phases 5-10] — 107 tests total (unit, E2E, integration, performance, security, load)
 
 ---
 
