@@ -5,6 +5,38 @@
  * Follows the upsell-row pattern (Leaf icon) but extends to all categories.
  */
 
+/**
+ * Normalize raw POS category strings to canonical display names.
+ * Alleaves sends "Category > Subcategory" (e.g., "Flower > Premium Flower").
+ * Dutchie sends mixed casing. This returns a clean, consistent category name.
+ */
+export function normalizeCategoryName(rawCategory?: string): string {
+    if (!rawCategory) return 'Other';
+
+    // Strip everything after " > " (Alleaves subcategory notation)
+    const base = rawCategory.split('>')[0].trim();
+
+    const lower = base.toLowerCase().replace(/[-_\s]+/g, '');
+
+    // Map to canonical display names
+    if (lower.includes('flower') || lower.includes('bud')) return 'Flower';
+    if (lower.includes('preroll') || lower.includes('joint') || lower.includes('cone') || lower.includes('pre-roll')) return 'Pre-Rolls';
+    if (lower.includes('edible') || lower.includes('gummy') || lower.includes('candy') || lower.includes('chocolate')) return 'Edibles';
+    if (lower.includes('concentrate') || lower.includes('wax') || lower.includes('shatter') || lower.includes('dab') || lower.includes('rosin') || lower.includes('resin') || lower.includes('hash') || lower.includes('extract')) return 'Concentrates';
+    if (lower.includes('vape') || lower.includes('vaporizer') || lower.includes('cartridge') || lower.includes('cart') || lower.includes('pod') || lower.includes('aio')) return 'Vapes';
+    if (lower.includes('tincture') || lower.includes('oil') || lower.includes('drop') || lower.includes('sublingual')) return 'Tinctures';
+    if (lower.includes('topical') || lower.includes('cream') || lower.includes('lotion') || lower.includes('balm') || lower.includes('patch') || lower.includes('salve')) return 'Topicals';
+    if (lower.includes('capsule') || lower.includes('pill') || lower.includes('tablet') || lower.includes('softgel')) return 'Capsules';
+    if (lower.includes('beverage') || lower.includes('drink') || lower.includes('soda') || lower.includes('tea') || lower.includes('juice')) return 'Beverages';
+    if (lower.includes('accessory') || lower.includes('accessories') || lower.includes('device') || lower.includes('pipe') || lower.includes('bowl') || lower.includes('grinder') || lower.includes('paper')) return 'Accessories';
+    if (lower.includes('apparel') || lower.includes('merch') || lower.includes('merchandise') || lower.includes('clothing') || lower.includes('shirt')) return 'Merchandise';
+    if (lower.includes('seed')) return 'Seeds';
+    if (lower.includes('uncategorized') || lower.includes('unknown')) return 'Other';
+
+    // Return cleaned base name with title case if no match
+    return base.charAt(0).toUpperCase() + base.slice(1);
+}
+
 export type ProductCategory =
     | 'flower'
     | 'pre-roll'
