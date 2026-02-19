@@ -2,21 +2,32 @@
 // src/app/dashboard/menu/page.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, ShoppingBag, RefreshCw, DollarSign, AlertTriangle, Pencil, Check, X, Tag, Package, MessageSquare, Zap, ExternalLink } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+    Loader2, Search, ShoppingBag, RefreshCw, DollarSign, AlertTriangle,
+    Pencil, Check, X, Tag, Package, MessageSquare, Zap, ExternalLink,
+    Eye, Maximize2, Minimize2, LayoutGrid, Table2
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { logger } from '@/lib/logger';
-import { getMenuData, syncMenu, getPosConfig, updateProductCost, type PosConfigInfo } from './actions';
+import {
+    getMenuData, syncMenu, getPosConfig, updateProductCost,
+    getMenuPreviewData, updateProductSortOrder, toggleProductFeatured,
+    type PosConfigInfo
+} from './actions';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeCategoryName } from '@/lib/utils/product-image';
+import { BrandMenuClient } from '@/app/[brand]/brand-menu-client';
+import type { Product as DomainProduct, Retailer } from '@/types/domain';
 
 interface Product {
     id: string;
@@ -124,7 +135,9 @@ function CostCell({ product, onSaved }: { product: Product; onSaved: (id: string
 }
 
 export default function MenuPage() {
+    // ── Product data (shared across tabs) ──
     const [products, setProducts] = useState<Product[]>([]);
+    const [domainProducts, setDomainProducts] = useState<DomainProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -133,6 +146,20 @@ export default function MenuPage() {
     const [isSyncing, setIsSyncing] = useState(false);
     const [posConfig, setPosConfig] = useState<PosConfigInfo>({ provider: null, status: null, displayName: 'POS', lastSyncCount: null, lastSyncedAt: null });
     const { toast } = useToast();
+
+    // ── Preview tab state ──
+    const [previewData, setPreviewData] = useState<{
+        brand: import('@/types/domain').Brand | null;
+        bundles: import('@/types/bundles').BundleDeal[];
+        featuredBrands: import('@/server/actions/featured-brands').FeaturedBrand[];
+        carousels: import('@/types/carousels').Carousel[];
+        publicMenuSettings: import('@/components/demo/menu-info-bar').PublicMenuSettings | null;
+        brandSlug: string;
+    } | null>(null);
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [fullScreen, setFullScreen] = useState(false);
+    const [activeTab, setActiveTab] = useState<'preview' | 'products'>('preview');
+    const previewFetchedRef = useRef(false);
 
     const handleSync = async () => {
         setIsSyncing(true);
@@ -176,7 +203,30 @@ export default function MenuPage() {
                 stockCount: p.stockCount,
             }));
 
+            // Build domain products for the Preview tab (BrandMenuClient needs the full type)
+            const domain: DomainProduct[] = data.products.map((p: any) => ({
+                id: p.id || p.cann_sku_id,
+                name: p.name || p.product_name,
+                category: normalizeCategoryName(p.category),
+                price: p.price || p.latest_price || 0,
+                imageUrl: p.imageUrl || p.image_url || '/icon-192.png',
+                imageHint: p.imageHint || p.category || 'product',
+                description: p.description || '',
+                brandId: p.brandId || '',
+                brandName: p.brandName || p.brand_name,
+                thcPercent: p.thcPercent || p.percentage_thc,
+                cbdPercent: p.cbdPercent || p.percentage_cbd,
+                stock: p.stockCount,
+                inStock: p.inStock,
+                cost: p.cost,
+                effects: p.effects || [],
+                sortOrder: p.sortOrder,
+                featured: p.featured,
+                source: p.source || 'pos',
+            }));
+
             setProducts(normalized);
+            setDomainProducts(domain);
             setSource(data.source);
             setLastSyncedAt(data.lastSyncedAt);
         } catch (error) {
@@ -186,10 +236,54 @@ export default function MenuPage() {
         }
     }, []);
 
+    const loadPreviewData = useCallback(async () => {
+        if (previewFetchedRef.current) return;
+        previewFetchedRef.current = true;
+        setPreviewLoading(true);
+        try {
+            const data = await getMenuPreviewData();
+            setPreviewData(data);
+        } catch (error) {
+            logger.error('Failed to load preview data:', error instanceof Error ? error : new Error(String(error)));
+        } finally {
+            setPreviewLoading(false);
+        }
+    }, []);
+
     useEffect(() => { loadProducts(); }, [loadProducts]);
+
+    // Load preview data when switching to preview tab
+    useEffect(() => {
+        if (activeTab === 'preview' && !previewFetchedRef.current) {
+            loadPreviewData();
+        }
+    }, [activeTab, loadPreviewData]);
+
+    // Also load on mount if preview is the default tab
+    useEffect(() => {
+        loadPreviewData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleCostSaved = (id: string, cost: number | null) => {
         setProducts(prev => prev.map(p => p.id === id ? { ...p, cost: cost ?? undefined } : p));
+    };
+
+    // ── Manage mode callbacks ──
+    const handleProductReorder = async (updates: { id: string; sortOrder: number }[]) => {
+        const result = await updateProductSortOrder(updates);
+        if (!result.success) throw new Error(result.error);
+        // Update local domain products to reflect new sort order
+        setDomainProducts(prev => {
+            const orderMap = new Map(updates.map(u => [u.id, u.sortOrder]));
+            return prev.map(p => orderMap.has(p.id) ? { ...p, sortOrder: orderMap.get(p.id) } : p);
+        });
+    };
+
+    const handleToggleFeatured = async (productId: string, featured: boolean) => {
+        const result = await toggleProductFeatured(productId, featured);
+        if (!result.success) throw new Error(result.error);
+        setDomainProducts(prev => prev.map(p => p.id === productId ? { ...p, featured } : p));
     };
 
     const filteredProducts = products.filter(product => {
@@ -203,12 +297,57 @@ export default function MenuPage() {
     const inStockCount = products.filter(p => p.inStock !== false).length;
     const outOfStockCount = products.filter(p => p.inStock === false).length;
 
+    // ── Full-screen preview overlay ──
+    if (fullScreen && previewData?.brand) {
+        return (
+            <div className="fixed inset-0 z-50 bg-background overflow-auto">
+                <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-2 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-sm font-medium">Live Preview — exactly what customers see</span>
+                        <a
+                            href={`https://bakedbot.ai/${previewData.brandSlug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Open Live
+                        </a>
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setFullScreen(false)}
+                        className="gap-2"
+                    >
+                        <Minimize2 className="h-4 w-4" />
+                        Exit Full Screen
+                    </Button>
+                </div>
+                <BrandMenuClient
+                    brand={previewData.brand}
+                    products={domainProducts}
+                    retailers={[] as Retailer[]}
+                    brandSlug={previewData.brandSlug}
+                    bundles={previewData.bundles}
+                    featuredBrands={previewData.featuredBrands}
+                    carousels={previewData.carousels}
+                    publicMenuSettings={previewData.publicMenuSettings}
+                    isManageMode={true}
+                    onProductReorder={handleProductReorder}
+                    onToggleFeatured={handleToggleFeatured}
+                />
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             {/* Header */}
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Main Menu</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">Menu</h1>
                     <p className="text-muted-foreground">
                         Source: <span className="capitalize font-medium text-foreground">{source}</span>
                         {lastSyncedAt && ` • Last sync: ${lastSyncedAt}`}
@@ -241,199 +380,292 @@ export default function MenuPage() {
                 </div>
             )}
 
-            {/* Filters */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                        <Search className="h-4 w-4" />
-                        Search & Filter
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex gap-4">
-                        <div className="flex-1">
-                            <Input
-                                placeholder="Search products..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                            />
-                        </div>
-                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                            <SelectTrigger className="w-[220px]">
-                                <SelectValue placeholder="Category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Categories ({products.length})</SelectItem>
-                                {categories.map((cat) => {
-                                    const count = products.filter(p => p.category === cat).length;
-                                    return (
-                                        <SelectItem key={cat} value={cat}>
-                                            {cat} ({count})
-                                        </SelectItem>
-                                    );
-                                })}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </CardContent>
-            </Card>
+            {/* Tabs: Preview / Products */}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'preview' | 'products')}>
+                <div className="flex items-center justify-between">
+                    <TabsList>
+                        <TabsTrigger value="preview" className="gap-2">
+                            <Eye className="h-4 w-4" />
+                            Live Preview
+                        </TabsTrigger>
+                        <TabsTrigger value="products" className="gap-2">
+                            <Table2 className="h-4 w-4" />
+                            Products ({products.length})
+                        </TabsTrigger>
+                    </TabsList>
 
-            {/* Product Table */}
-            {loading ? (
-                <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-            ) : filteredProducts.length === 0 ? (
-                <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                        <ShoppingBag className="h-12 w-12 text-muted-foreground mb-4" />
-                        <p className="text-lg font-medium">No products found</p>
-                        <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
-                    </CardContent>
-                </Card>
-            ) : (
-                <>
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
-                        <div className="flex items-center gap-3">
-                            <p className="text-sm text-muted-foreground">
-                                Showing <span className="font-medium text-foreground">{filteredProducts.length}</span> product{filteredProducts.length !== 1 ? 's' : ''}
-                                {categoryFilter === 'all' && (
-                                    <span className="ml-1.5 text-xs">
-                                        · <span className="text-emerald-600 font-medium">{inStockCount} in stock</span>
-                                        {outOfStockCount > 0 && <span className="text-muted-foreground"> · {outOfStockCount} out of stock</span>}
-                                    </span>
-                                )}
-                            </p>
-                        </div>
+                    {activeTab === 'preview' && (
                         <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground hidden sm:flex items-center gap-1">
-                                <DollarSign className="h-3 w-3" />
-                                Click COGS to edit
-                            </span>
-                            <div className="h-4 w-px bg-border hidden sm:block" />
-                            <Link href="/dashboard/pricing" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                                <Tag className="h-3.5 w-3.5" />
-                                Pricing
-                            </Link>
-                            <Link href="/dashboard/bundles" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                                <Package className="h-3.5 w-3.5" />
-                                Bundles
-                            </Link>
-                            <Link href="/dashboard/inbox" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                                <MessageSquare className="h-3.5 w-3.5" />
-                                Inbox
-                            </Link>
-                            <Link href="/dashboard/playbooks" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                                <Zap className="h-3.5 w-3.5" />
-                                Playbooks
-                            </Link>
-                            {posConfig.provider && (
-                                <Link
-                                    href={`https://bakedbot.ai/thrivesyracuse`}
+                            {previewData?.brandSlug && (
+                                <a
+                                    href={`https://bakedbot.ai/${previewData.brandSlug}`}
                                     target="_blank"
-                                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                                 >
                                     <ExternalLink className="h-3.5 w-3.5" />
-                                    View Live
-                                </Link>
+                                    Open Live Site
+                                </a>
                             )}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setFullScreen(true)}
+                                disabled={!previewData?.brand}
+                                className="gap-2"
+                            >
+                                <Maximize2 className="h-4 w-4" />
+                                Full Screen
+                            </Button>
                         </div>
-                    </div>
+                    )}
+                </div>
 
-                    <Card className="overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b bg-muted/30">
-                                        <th className="text-left font-medium px-4 py-3 w-12"></th>
-                                        <th className="text-left font-medium px-4 py-3">Product</th>
-                                        <th className="text-left font-medium px-4 py-3">Category</th>
-                                        <th className="text-left font-medium px-4 py-3">THC / CBD</th>
-                                        <th className="text-right font-medium px-4 py-3">Retail Price</th>
-                                        <th className="text-left font-medium px-4 py-3">
-                                            <div className="flex items-center gap-1">
-                                                COGS
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger>
-                                                            <DollarSign className="h-3 w-3 text-muted-foreground" />
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            Cost of Goods Sold — what you paid for this product.
-                                                            Used to calculate margin and prevent over-discounting.
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
-                                            </div>
-                                        </th>
-                                        <th className="text-left font-medium px-4 py-3">Stock</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y">
-                                    {filteredProducts.map((product) => (
-                                        <tr key={product.id} className="hover:bg-muted/20 transition-colors">
-                                            {/* Thumbnail */}
-                                            <td className="px-4 py-3">
-                                                <div className="w-10 h-10 rounded bg-muted relative overflow-hidden flex-shrink-0">
-                                                    <Image
-                                                        src={product.imageUrl || '/icon-192.png'}
-                                                        alt={product.name}
-                                                        fill
-                                                        className={product.imageUrl ? 'object-cover' : 'object-contain p-1 opacity-60'}
-                                                        sizes="40px"
-                                                    />
-                                                </div>
-                                            </td>
-
-                                            {/* Name + Brand */}
-                                            <td className="px-4 py-3">
-                                                <div className="font-medium line-clamp-1">{product.name}</div>
-                                                <div className="text-xs text-muted-foreground">{product.brand}</div>
-                                            </td>
-
-                                            {/* Category */}
-                                            <td className="px-4 py-3">
-                                                <Badge variant="secondary" className="text-xs font-normal">
-                                                    {product.category}
-                                                </Badge>
-                                            </td>
-
-                                            {/* THC / CBD */}
-                                            <td className="px-4 py-3 text-muted-foreground text-xs">
-                                                {product.thc ? <span className="text-green-700 font-medium">{product.thc}% THC</span> : '—'}
-                                                {product.thc && product.cbd ? ' · ' : ''}
-                                                {product.cbd ? <span>{product.cbd}% CBD</span> : ''}
-                                                {!product.thc && !product.cbd ? '—' : ''}
-                                            </td>
-
-                                            {/* Retail Price */}
-                                            <td className="px-4 py-3 text-right font-semibold">
-                                                ${product.price ? product.price.toFixed(2) : '0.00'}
-                                            </td>
-
-                                            {/* COGS — editable */}
-                                            <td className="px-4 py-3">
-                                                <CostCell product={product} onSaved={handleCostSaved} />
-                                            </td>
-
-                                            {/* Stock */}
-                                            <td className="px-4 py-3">
-                                                {product.inStock !== undefined ? (
-                                                    <span className={`text-xs font-medium ${product.inStock ? 'text-emerald-600' : 'text-red-500'}`}>
-                                                        {product.inStock ? (product.stockCount != null ? `${product.stockCount} in stock` : 'In Stock') : 'Out of Stock'}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-xs text-muted-foreground">—</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                {/* Preview Tab */}
+                <TabsContent value="preview" className="mt-4">
+                    {previewLoading || loading ? (
+                        <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+                            <Loader2 className="h-8 w-8 animate-spin mb-4" />
+                            <p className="text-sm">Loading your live menu…</p>
                         </div>
+                    ) : !previewData?.brand ? (
+                        <Card>
+                            <CardContent className="flex flex-col items-center justify-center py-16">
+                                <Eye className="h-12 w-12 text-muted-foreground mb-4" />
+                                <p className="text-lg font-medium">No brand page found</p>
+                                <p className="text-sm text-muted-foreground mb-4">
+                                    Complete your brand setup to enable the live preview.
+                                </p>
+                                <Button asChild variant="outline">
+                                    <Link href="/dashboard/brand-page">Set Up Brand Page</Link>
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <>
+                            {/* Preview banner */}
+                            <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 mb-4">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
+                                <p className="text-sm text-emerald-800 flex-1">
+                                    <span className="font-medium">Live Preview</span> — this is exactly what your customers see.
+                                    Hover products to edit price, manage bundles, or chat with AI about any product.
+                                    Use <span className="font-medium">Reorder Products</span> to drag and rearrange your menu.
+                                </p>
+                                <a
+                                    href={`https://bakedbot.ai/${previewData.brandSlug}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-1 text-xs font-medium text-emerald-700 hover:text-emerald-900 transition-colors whitespace-nowrap"
+                                >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                    Open Live
+                                </a>
+                            </div>
+
+                            {/* Full storefront preview — same component as public menu */}
+                            <div className="rounded-xl border overflow-hidden shadow-sm">
+                                <BrandMenuClient
+                                    brand={previewData.brand}
+                                    products={domainProducts}
+                                    retailers={[] as Retailer[]}
+                                    brandSlug={previewData.brandSlug}
+                                    bundles={previewData.bundles}
+                                    featuredBrands={previewData.featuredBrands}
+                                    carousels={previewData.carousels}
+                                    publicMenuSettings={previewData.publicMenuSettings}
+                                    isManageMode={true}
+                                    onProductReorder={handleProductReorder}
+                                    onToggleFeatured={handleToggleFeatured}
+                                />
+                            </div>
+                        </>
+                    )}
+                </TabsContent>
+
+                {/* Products Table Tab */}
+                <TabsContent value="products" className="mt-4 space-y-4">
+                    {/* Filters */}
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Search className="h-4 w-4" />
+                                Search & Filter
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <Input
+                                        placeholder="Search products..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                </div>
+                                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                                    <SelectTrigger className="w-[220px]">
+                                        <SelectValue placeholder="Category" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Categories ({products.length})</SelectItem>
+                                        {categories.map((cat) => {
+                                            const count = products.filter(p => p.category === cat).length;
+                                            return (
+                                                <SelectItem key={cat} value={cat}>
+                                                    {cat} ({count})
+                                                </SelectItem>
+                                            );
+                                        })}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </CardContent>
                     </Card>
-                </>
-            )}
+
+                    {/* Product Table */}
+                    {loading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                    ) : filteredProducts.length === 0 ? (
+                        <Card>
+                            <CardContent className="flex flex-col items-center justify-center py-12">
+                                <ShoppingBag className="h-12 w-12 text-muted-foreground mb-4" />
+                                <p className="text-lg font-medium">No products found</p>
+                                <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <>
+                            <div className="flex items-center justify-between gap-4 flex-wrap">
+                                <div className="flex items-center gap-3">
+                                    <p className="text-sm text-muted-foreground">
+                                        Showing <span className="font-medium text-foreground">{filteredProducts.length}</span> product{filteredProducts.length !== 1 ? 's' : ''}
+                                        {categoryFilter === 'all' && (
+                                            <span className="ml-1.5 text-xs">
+                                                · <span className="text-emerald-600 font-medium">{inStockCount} in stock</span>
+                                                {outOfStockCount > 0 && <span className="text-muted-foreground"> · {outOfStockCount} out of stock</span>}
+                                            </span>
+                                        )}
+                                    </p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-muted-foreground hidden sm:flex items-center gap-1">
+                                        <DollarSign className="h-3 w-3" />
+                                        Click COGS to edit
+                                    </span>
+                                    <div className="h-4 w-px bg-border hidden sm:block" />
+                                    <Link href="/dashboard/pricing" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                        <Tag className="h-3.5 w-3.5" />
+                                        Pricing
+                                    </Link>
+                                    <Link href="/dashboard/bundles" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                        <Package className="h-3.5 w-3.5" />
+                                        Bundles
+                                    </Link>
+                                    <Link href="/dashboard/inbox" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                        <MessageSquare className="h-3.5 w-3.5" />
+                                        Inbox
+                                    </Link>
+                                    <Link href="/dashboard/playbooks" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                                        <Zap className="h-3.5 w-3.5" />
+                                        Playbooks
+                                    </Link>
+                                    {posConfig.provider && (
+                                        <Link
+                                            href={`https://bakedbot.ai/thrivesyracuse`}
+                                            target="_blank"
+                                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                        >
+                                            <ExternalLink className="h-3.5 w-3.5" />
+                                            View Live
+                                        </Link>
+                                    )}
+                                </div>
+                            </div>
+
+                            <Card className="overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b bg-muted/30">
+                                                <th className="text-left font-medium px-4 py-3 w-12"></th>
+                                                <th className="text-left font-medium px-4 py-3">Product</th>
+                                                <th className="text-left font-medium px-4 py-3">Category</th>
+                                                <th className="text-left font-medium px-4 py-3">THC / CBD</th>
+                                                <th className="text-right font-medium px-4 py-3">Retail Price</th>
+                                                <th className="text-left font-medium px-4 py-3">
+                                                    <div className="flex items-center gap-1">
+                                                        COGS
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger>
+                                                                    <DollarSign className="h-3 w-3 text-muted-foreground" />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>
+                                                                    Cost of Goods Sold — what you paid for this product.
+                                                                    Used to calculate margin and prevent over-discounting.
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    </div>
+                                                </th>
+                                                <th className="text-left font-medium px-4 py-3">Stock</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y">
+                                            {filteredProducts.map((product) => (
+                                                <tr key={product.id} className="hover:bg-muted/20 transition-colors">
+                                                    <td className="px-4 py-3">
+                                                        <div className="w-10 h-10 rounded bg-muted relative overflow-hidden flex-shrink-0">
+                                                            <Image
+                                                                src={product.imageUrl || '/icon-192.png'}
+                                                                alt={product.name}
+                                                                fill
+                                                                className={product.imageUrl ? 'object-cover' : 'object-contain p-1 opacity-60'}
+                                                                sizes="40px"
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <div className="font-medium line-clamp-1">{product.name}</div>
+                                                        <div className="text-xs text-muted-foreground">{product.brand}</div>
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <Badge variant="secondary" className="text-xs font-normal">
+                                                            {product.category}
+                                                        </Badge>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-muted-foreground text-xs">
+                                                        {product.thc ? <span className="text-green-700 font-medium">{product.thc}% THC</span> : '—'}
+                                                        {product.thc && product.cbd ? ' · ' : ''}
+                                                        {product.cbd ? <span>{product.cbd}% CBD</span> : ''}
+                                                        {!product.thc && !product.cbd ? '—' : ''}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right font-semibold">
+                                                        ${product.price ? product.price.toFixed(2) : '0.00'}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <CostCell product={product} onSaved={handleCostSaved} />
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        {product.inStock !== undefined ? (
+                                                            <span className={`text-xs font-medium ${product.inStock ? 'text-emerald-600' : 'text-red-500'}`}>
+                                                                {product.inStock ? (product.stockCount != null ? `${product.stockCount} in stock` : 'In Stock') : 'Out of Stock'}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-xs text-muted-foreground">—</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </Card>
+                        </>
+                    )}
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

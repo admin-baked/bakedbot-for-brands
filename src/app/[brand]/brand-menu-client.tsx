@@ -36,6 +36,9 @@ import type { BundleDeal } from '@/types/bundles';
 import type { FeaturedBrand } from '@/server/actions/featured-brands';
 import type { Carousel } from '@/types/carousels';
 
+// Menu management components (dashboard only)
+import { ManagedProductGrid } from '@/components/menu/ManagedProductGrid';
+
 // Brand Menu Components
 import { BrandMenuHeader } from '@/components/demo/brand-menu-header';
 import { BrandHero } from '@/components/demo/brand-hero';
@@ -67,6 +70,9 @@ interface BrandMenuClientProps {
   featuredBrands?: FeaturedBrand[];
   carousels?: Carousel[];
   publicMenuSettings?: PublicMenuSettings | null;
+  isManageMode?: boolean;
+  onProductReorder?: (updates: { id: string; sortOrder: number }[]) => Promise<void>;
+  onToggleFeatured?: (productId: string, featured: boolean) => Promise<void>;
 }
 
 // Category order for display
@@ -91,7 +97,7 @@ const DEFAULT_PRIMARY_COLOR = '#16a34a';
 
 type BrandView = 'shop' | 'locator' | 'checkout' | 'shipping-checkout';
 
-export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [], featuredBrands = [], carousels = [], publicMenuSettings }: BrandMenuClientProps) {
+export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [], featuredBrands = [], carousels = [], publicMenuSettings, isManageMode = false, onProductReorder, onToggleFeatured }: BrandMenuClientProps) {
   // Check if a URL is a real product image (not a stock photo or placeholder)
   const isRealImage = (url?: string): boolean => {
     if (!url || url.trim() === '') return false;
@@ -203,7 +209,15 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         switch (sortBy) {
           case 'price-low': return a.price - b.price;
           case 'price-high': return b.price - a.price;
-          case 'popular': return (b.likes || 0) - (a.likes || 0);
+          case 'popular': {
+            // Featured products always float to the top
+            if (a.featured !== b.featured) return a.featured ? -1 : 1;
+            // Custom operator sort order wins; likes as tiebreaker
+            const aOrder = a.sortOrder ?? 9999;
+            const bOrder = b.sortOrder ?? 9999;
+            if (aOrder !== bOrder) return aOrder - bOrder;
+            return (b.likes || 0) - (a.likes || 0);
+          }
           case 'thc-high': return (b.thcPercent || 0) - (a.thcPercent || 0);
           default: return a.name.localeCompare(b.name);
         }
@@ -634,6 +648,19 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
                     </Button>
                   </CardContent>
                 </Card>
+              ) : isManageMode ? (
+                <ManagedProductGrid
+                  products={filteredProducts}
+                  primaryColor={primaryColor}
+                  onAddToCart={handleAddToCart}
+                  getCartQuantity={getCartItemQuantity}
+                  onProductClick={setSelectedProduct}
+                  onFavorite={toggleFavorite}
+                  favorites={favorites}
+                  getDealBadge={getDealBadge}
+                  onReorderSave={onProductReorder}
+                  onToggleFeatured={onToggleFeatured}
+                />
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredProducts.map((product) => (
