@@ -20,19 +20,19 @@ npm run check:types
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
 **Current Status:** 🟢 Passing (verified 2026-02-18)
-**Recent Updates (2026-02-18):**
-- ✅ **Creative Studio redesign** — Canva-style 3-panel layout (left strip, canvas, compliance rail), 59 DeeboCompliancePanel tests
-- ✅ **Phase 10: Load Tests** — 9 tests (concurrent creation, race conditions, invoice accumulation, ARB resilience)
-- ✅ **Phase 9: Security Tests** — 27 tests (IDOR prevention, unauthenticated access, Zod validation, source audit, promo security)
-- ✅ **Phase 8: Performance Tests** — 10 tests (latency benchmarks, write efficiency, concurrent perf), afterAll summary table
-- ✅ **Phase 7: E2E + Integration Tests** — 35 new tests (20 Playwright + 15 Jest), all passing
-- ✅ **Phase 6: Unit Tests** — 27 tests for subscription actions + modal, all passing
-- ✅ **Phase 5: Subscription Management** — Upgrade/Cancel/Invoice features complete
-- ✅ **Fixed 10+ pre-existing type errors** — Build health restored (0 TypeScript errors)
-- ✅ **Dynamic prompts — Brand + Dispensary** — Both dashboards show live CI/CRM chips + onboarding nudges (commit bcebba7a)
-- ✅ **Onboarding-aware prompt chips** — New users see setup nudges; fully-set-up users see live intel
-- ✅ **Craig brand discovery tools** — extractBrandData, discoverWebContent, searchWebBrands (Firecrawl + RTRVR)
-- ✅ **Super User Promotion: Rishabh** — UID-based promotion fixes Firebase Auth issues for new users
+**Recent Updates (2026-02-18) — Latest Session:**
+- ✅ **Playbooks UX overhaul** — New `DispensaryPlaybooksView` with hero, tier cards, toggle controls, "Activate All" CTA (commit 6dff2788)
+- ✅ **Playbooks role fix** — `dispensary_admin`/`dispensary_staff` now correctly routed (was: `=== 'dispensary'` only)
+- ✅ **Firestore indexes** — 3 missing `playbook_assignments` indexes deployed (fixes FAILED_PRECONDITION errors)
+- ✅ **Empire playbook seed** — Thrive Syracuse: 22 playbooks activated via `activate-empire-playbooks.mjs`
+- ✅ **Inbox UX** — Input bar scroll bug fixed (`min-h-0`), prompts now persist into new threads via `_pendingInputs` map (commit 73227b58)
+- ✅ **PWA dismiss persistence** — Permanent dismiss (was 7-day); race condition with `beforeinstallprompt` fixed (commit 285e0dd6)
+- ✅ **Money Mike collapsible** — Chat widget on dispensary dashboard now has toggle header, state persisted to localStorage
+- ✅ **Order backfill** — 2,999 Thrive Syracuse orders backfilled from Alleaves (2020→today) via `/api/admin/backfill-orders`
+**Previous (2026-02-18):**
+- ✅ Creative Studio redesign — Canva-style 3-panel layout, 59 DeeboCompliancePanel tests
+- ✅ Billing Phase 8-10 Tests — 46 new tests (performance, security, load)
+- ✅ Dynamic prompts — Brand + Dispensary dashboards with live CI/CRM chips + onboarding nudges
 - ✅ Heartbeat Automatic Recovery (24/7 autonomously keeps system online)
 - ✅ 28 Super User agent tools + Next.js 15 + Competitive Intel + Loyalty + Slack
 
@@ -138,6 +138,62 @@ node scripts/promote-super-user-by-email.mjs <EMAIL>
 ---
 
 ## 🆕 Recent Updates
+
+### Dispensary Playbooks System (2026-02-18) ✅ COMPLETE
+**Status:** Live — Thrive Syracuse has all 22 Empire playbooks active.
+
+**What It Does:** Tier-based playbook management for dispensary users. Toggle automations on/off, or activate all with one click.
+
+**Key Files:**
+- `src/app/dashboard/dispensary/components/dispensary-playbooks-view.tsx` — Main UX (hero + category tabs + toggle cards)
+- `src/server/actions/dispensary-playbooks.ts` — Server actions: get/toggle/activate-all assignments
+- `src/app/dashboard/playbooks/page.tsx` — Role routing: dispensary_admin/staff → DispensaryPlaybooksView
+- `scripts/activate-empire-playbooks.mjs` — Idempotent seed script for new Empire orgs
+- `src/config/playbooks.ts` — 23 playbooks registry (PLAYBOOKS record + getPlaybookIdsForTier)
+- `src/lib/playbooks/assignment-service.ts` — Core assignment CRUD (subscriptionId-based)
+
+**Firestore Collection:** `playbook_assignments` (orgId + status + subscriptionId + playbookId)
+**Indexes:** 3 composite indexes deployed: `(subscriptionId+status)`, `(orgId+status)`, `(subscriptionId+playbookId)`
+
+**Empire Tier = 22 playbooks** (NOT 23 — `weekly-competitive-snapshot` is scout-only)
+
+**To activate playbooks for a new Empire org:**
+```bash
+node scripts/activate-empire-playbooks.mjs <orgId>
+# Example: node scripts/activate-empire-playbooks.mjs org_thrive_syracuse
+```
+
+**PlaybookDefinition fields:** `id`, `name`, `agent`, `description`, `tiers[]`, `channels[]`, `trigger`, `estimatedMonthlyCostUsd`
+- **No `category` field** — group by `agent` in UI: craig=Marketing, smokey=Menu, ezal=Intel, deebo=Compliance, big_worm=Analytics
+
+**Role Check Pattern (important):**
+```typescript
+const isDispensaryRole = role === 'dispensary' || role === 'dispensary_admin' || role === 'dispensary_staff';
+```
+Never check `=== 'dispensary'` alone — will miss `dispensary_admin` and `dispensary_staff`.
+
+---
+
+### Inbox UX Fixes (2026-02-18) ✅ COMPLETE
+**Scroll bug:** Missing `min-h-0` on flex column containers pushed input bar below viewport.
+- Fix: Added to `ScrollArea` in inbox-conversation.tsx + conversation divs in unified-inbox.tsx
+
+**Prompt persistence:** `_pendingInputs = new Map<string, string>()` exported from inbox-conversation.tsx
+- Written before thread activation by: empty-state (preset/custom submit) and sidebar quick actions
+- Consumed on mount via lazy `useState(() => { const v = map.get(id); map.delete(id); return v || '' })`
+- Auto-focuses textarea when pre-populated
+
+**Sidebar quick action prompts:** `action.promptTemplate` pre-populates chat for conversational threads.
+- Generator types (`carousel`, `bundle`, `qr_code`, etc.) skip pre-population — use inline wizard instead.
+
+---
+
+### PWA + Chat Widget UX (2026-02-18) ✅ COMPLETE
+**PWA dismiss:** Changed 7-day cooldown → permanent. Race condition fixed: `beforeinstallprompt` handler now checks dismissal before `setShowPrompt(true)`. Key: `localStorage.getItem('pwa-install-dismissed') === 'true'`.
+
+**Money Mike collapsible:** Dispensary dashboard chat widget has a toggle header (always visible). State persisted in localStorage (`dispensary-chat-open`). Defaults to open on first visit.
+
+---
 
 ### Competitive Intelligence System (2026-02-18)
 **Status:** ✅ Production — Full automation for Thrive Syracuse
