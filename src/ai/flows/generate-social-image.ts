@@ -2,18 +2,20 @@
 'use server';
 /**
  * @fileOverview Generates social media images for products.
- * 
- * Supports tiered image generation:
- * - Free tier: Gemini 2.5 Flash Image (Nano Banana) - fast & efficient
- * - Paid/SuperUser: Gemini 3 Pro Image (Nano Banana Pro) - professional quality
  *
- * - generateSocialMediaImage - A function that generates a social media image.
- * - GenerateSocialMediaImageInput - The input type for the generateSocialMediaImage function.
- * - GenerateSocialMediaImageOutput - The return type for the generateSocialMediaImage function.
+ * Provider cascade (cannabis-friendly first):
+ *   1. fal.ai FLUX.1 — primary, no cannabis restrictions, fast
+ *   2. Gemini 2.5/3 Flash Image — fallback (may be blocked for cannabis content)
+ *
+ * Tiers:
+ *   free  → fal.ai FLUX.1 Schnell → Gemini 2.5 Flash Image
+ *   paid  → fal.ai FLUX.1 Pro     → Gemini 3 Pro Image
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'zod';
+import { logger } from '@/lib/logger';
+import { generateImageWithFal } from '@/ai/generators/fal';
 
 const GenerateSocialMediaImageInputSchema = z.object({
   productName: z.string().describe('The name of the product or a title for the image.'),
@@ -112,29 +114,44 @@ export async function generateSocialMediaImage(
 }
 
 /**
- * Simple wrapper for chat-based image generation.
- * Takes a simple prompt and returns the image URL.
- * 
- * @param promptText - The image description
- * @param options.tier - 'free' (2.5 Flash), 'paid' or 'super' (3 Pro)
+ * Generate a social image with a cannabis-friendly provider cascade.
+ *
+ * Cascade: fal.ai FLUX.1 → Gemini → throw (caller handles placeholder)
+ *
+ * @param promptText - The image description / campaign prompt
+ * @param options.tier - 'free' (Schnell), 'paid'/'super' (Pro)
+ * @param options.platform - Social platform for correct aspect ratio
  */
 export async function generateImageFromPrompt(
-    promptText: string, 
-    options?: { 
-      aspectRatio?: string; 
-      brandName?: string;
-      tier?: ImageTier;
+    promptText: string,
+    options?: {
+        aspectRatio?: string;
+        brandName?: string;
+        tier?: ImageTier;
+        platform?: string;
     }
 ): Promise<string> {
-    // Create a simple logo placeholder for chat use
+    // 1. Try fal.ai FLUX.1 first — cannabis-friendly, fast, no safety filter issues
+    try {
+        const falTier = (options?.tier === 'free' || !options?.tier) ? 'free' : 'paid';
+        return await generateImageWithFal(promptText, {
+            tier: falTier,
+            platform: options?.platform,
+        });
+    } catch (falErr) {
+        logger.warn('[image-gen] fal.ai failed, falling back to Gemini', {
+            error: String(falErr).substring(0, 200),
+        });
+    }
+
+    // 2. Fall back to Gemini (may be blocked for cannabis content)
     const logoPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-    
     const result = await generateSocialMediaImage({
         productName: promptText,
         features: promptText,
         brandVoice: 'Professional',
         logoDataUri: logoPlaceholder,
     }, options?.tier || 'free');
-    
+
     return result.imageUrl;
 }

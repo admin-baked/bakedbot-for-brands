@@ -232,7 +232,8 @@ export async function generateContent(
         const [imageUrl, caption] = await Promise.all([
             generateImageFromPrompt(request.prompt, {
                 brandName: request.productName,
-                tier: request.tier || 'free'
+                tier: request.tier || 'free',
+                platform: request.platform,  // Pass platform for correct aspect ratio
             }).catch((imgErr) => {
                 // Image generation can fail (model unavailable, safety filter, timeout)
                 // Fall back gracefully — content is still usable without the image
@@ -305,7 +306,7 @@ export async function generateContent(
             mediaUrls: [imageUrl],
             thumbnailUrl: imageUrl,
             mediaType: 'image',
-            generatedBy: request.tier === 'free' ? 'nano-banana' : 'nano-banana-pro',
+            generatedBy: request.tier === 'free' ? 'flux-schnell' : 'flux-pro',
             generationPrompt: request.prompt,
             createdBy: userId,
             createdAt: now,
