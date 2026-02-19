@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (Image quality fix, Accept Safe Version + Schedule, POS sync status badge, Brand Guide scan pre-fill)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (CSS text overlay on canvas, 8 campaign templates, brand image pre-gen on brand guide creation)
 
 ---
 

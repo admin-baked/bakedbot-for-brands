@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-18)
 
 **Recent work (2026-02-19):** See `memory/MEMORY.md` for full log.
-Key completed: Image quality (no garbled text in FLUX.1), Accept Safe Version + Schedule fixed, POS sync status badge, Brand Guide scan unblocked (`18399095`)
+Key completed: CSS text overlay + 8 templates in Creative Studio (`577200f9`), brand image pre-gen on onboarding (`577200f9`), image quality + Accept Safe Version + POS sync + Brand Guide scan (`18399095`)
 
 ---
 
