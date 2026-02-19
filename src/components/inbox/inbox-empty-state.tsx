@@ -38,7 +38,7 @@ import type { InboxQuickAction } from '@/types/inbox';
 import { createInboxThread } from '@/server/actions/inbox';
 import { useToast } from '@/hooks/use-toast';
 import { InsightCardsGrid } from './insight-cards-grid';
-import { InboxConversation } from './inbox-conversation';
+import { InboxConversation, _pendingInputs } from './inbox-conversation';
 
 // ============ Props ============
 
@@ -174,6 +174,11 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
             // Mark thread as persisted (safe to use now)
             markThreadPersisted(localThread.id);
 
+            // Persist any custom text into the chat input
+            if (hasCustomText && customText.trim()) {
+                _pendingInputs.set(localThread.id, customText.trim());
+            }
+
             // Set as active thread to show inline conversation
             setActiveThread(localThread.id);
 
@@ -229,6 +234,9 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
             }
 
             markThreadPersisted(localThread.id);
+
+            // Persist the typed text into the new chat input so it's ready to send
+            _pendingInputs.set(localThread.id, customText.trim());
 
             // Set as active thread to show inline conversation
             setActiveThread(localThread.id);
@@ -319,10 +327,11 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
                         </div>
 
                         {/* Inline Conversation */}
-                        <div className="border rounded-lg bg-card">
+                        <div className="border rounded-lg bg-card h-[520px] flex flex-col overflow-hidden">
                             <InboxConversation
                                 thread={activeThread}
                                 artifacts={activeArtifacts}
+                                className="flex-1 min-h-0"
                             />
                         </div>
                     </div>

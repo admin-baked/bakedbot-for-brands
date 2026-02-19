@@ -55,6 +55,7 @@ import { createInboxThread } from '@/server/actions/inbox';
 import { useToast } from '@/hooks/use-toast';
 import { ProjectSelector } from '@/components/dashboard/project-selector';
 import type { Project } from '@/types/project';
+import { _pendingInputs } from './inbox-conversation';
 
 // ============ Icon Mapping ============
 
@@ -452,6 +453,9 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
         [favoriteQuickActions, quickActions]
     );
 
+    // Thread types with dedicated inline generators — no need to pre-populate input
+    const GENERATOR_THREAD_TYPES = new Set(['carousel', 'bundle', 'qr_code', 'hero', 'social_post', 'dynamic_pricing']);
+
     const handleQuickActionSelect = useCallback((action: InboxQuickAction) => {
         // Create thread via the action
         const projectId = threadFilter.projectId && threadFilter.projectId !== 'all'
@@ -463,6 +467,11 @@ export function InboxSidebar({ collapsed, className }: InboxSidebarProps) {
             primaryAgent: action.defaultAgent,
             projectId,
         });
+
+        // Pre-populate the chat input with the action's prompt template for non-generator threads
+        if (action.promptTemplate && !GENERATOR_THREAD_TYPES.has(action.threadType)) {
+            _pendingInputs.set(thread.id, action.promptTemplate);
+        }
 
         markThreadPending(thread.id);
 

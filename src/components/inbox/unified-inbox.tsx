@@ -158,7 +158,7 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
             <div className="relative z-10 flex flex-1 overflow-hidden">
                 {/* Conversation Area */}
                 <div className={cn(
-                    'flex-1 flex flex-col overflow-hidden transition-all duration-300',
+                    'flex-1 min-h-0 flex flex-col overflow-hidden transition-all duration-300',
                     isArtifactPanelOpen && 'mr-0'
                 )}>
                     <AnimatePresence mode="wait">
@@ -168,7 +168,7 @@ export function UnifiedInbox({ className }: UnifiedInboxProps) {
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="flex-1 flex flex-col overflow-hidden"
+                                className="flex-1 min-h-0 flex flex-col overflow-hidden"
                             >
                                 <InboxConversation
                                     thread={activeThread}

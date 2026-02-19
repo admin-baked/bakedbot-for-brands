@@ -78,6 +78,11 @@ import { useJobPoller } from '@/hooks/use-job-poller';
 import { AttachmentPreviewList, type AttachmentItem } from '@/components/ui/attachment-preview';
 import { useToast } from '@/hooks/use-toast';
 
+// ============ Pending Input Store ============
+// Module-level map so other components (empty state, sidebar) can pre-populate
+// the chat input before a thread is activated. Read once on mount, then cleared.
+export const _pendingInputs = new Map<string, string>();
+
 // ============ Agent Name Mapping ============
 
 const AGENT_NAMES: Record<InboxAgentPersona, {
@@ -461,7 +466,16 @@ const ALLOWED_FILE_TYPES = [
 ];
 
 export function InboxConversation({ thread, artifacts, className }: InboxConversationProps) {
-    const [input, setInput] = useState('');
+    // Lazy init: pick up any pending input set by the empty state or sidebar before
+    // activating this thread, then immediately clear it from the map.
+    const [input, setInput] = useState<string>(() => {
+        const pending = _pendingInputs.get(thread.id);
+        if (pending) {
+            _pendingInputs.delete(thread.id);
+            return pending;
+        }
+        return '';
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentJobId, setCurrentJobId] = useState<string | null>(null);
     const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
@@ -501,6 +515,16 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [thread.messages.length]);
+
+    // Focus textarea and move cursor to end when thread opens with pre-populated input
+    useEffect(() => {
+        if (input && textareaRef.current) {
+            textareaRef.current.focus();
+            const len = textareaRef.current.value.length;
+            textareaRef.current.setSelectionRange(len, len);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Run once on mount only
 
     // Auto-resize textarea
     useEffect(() => {
@@ -1105,7 +1129,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
             <ThreadHeader thread={thread} />
 
             {/* Messages */}
-            <ScrollArea ref={scrollRef} className="flex-1 px-4">
+            <ScrollArea ref={scrollRef} className="flex-1 min-h-0 px-4">
                 <div className="max-w-3xl mx-auto py-4">
                     {thread.messages.length === 0 ? (
                         <>
