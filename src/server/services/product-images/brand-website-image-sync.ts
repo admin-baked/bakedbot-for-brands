@@ -178,14 +178,15 @@ interface ScrapedProductImage {
  */
 function parseMarkdownImages(markdown: string): ScrapedProductImage[] {
     const results: ScrapedProductImage[] = [];
-    const imgPattern = /!\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
+    const imgPattern = /!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/g;
     let m: RegExpExecArray | null;
 
     while ((m = imgPattern.exec(markdown)) !== null) {
         const name = m[1].trim();
         const imageUrl = m[2].trim();
-        if (name && imageUrl && !imageUrl.includes('logo') && !imageUrl.includes('icon')) {
-            results.push({ name, imageUrl });
+        // Skip icons/favicons (tiny) but keep logos and product images
+        if (imageUrl && !imageUrl.match(/favicon|\.ico/i)) {
+            results.push({ name: name || imageUrl, imageUrl });
         }
     }
 
@@ -193,24 +194,55 @@ function parseMarkdownImages(markdown: string): ScrapedProductImage[] {
 }
 
 /**
- * Scrape one or more URLs on a brand's website and extract product images.
+ * Extract og:image / logo URL from scraped markdown/html.
+ * Looks for og:image meta, or images with "logo" in alt/url.
+ */
+function extractLogoUrl(markdown: string, brandName: string): string | null {
+    // Firecrawl sometimes includes og:image in metadata block
+    const ogMatch = markdown.match(/og:image["\s:]*["']?(https?:\/\/[^\s"'<>]+)/i);
+    if (ogMatch) return ogMatch[1];
+
+    // Look for images explicitly named "logo"
+    const logoMatch = markdown.match(/!\[[^\]]*logo[^\]]*\]\((https?:\/\/[^)]+)\)/i)
+        || markdown.match(/!\[[^\]]*\]\((https?:\/\/[^)]*logo[^)]*)\)/i);
+    if (logoMatch) return logoMatch[1];
+
+    // Look for image with brand name as alt text that appears near the top
+    const brandSlugRe = new RegExp(
+        `!\\[${brandName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\\]]*\\]\\((https?://[^)]+)\\)`,
+        'i'
+    );
+    const brandMatch = markdown.match(brandSlugRe);
+    if (brandMatch) return brandMatch[1];
+
+    return null;
+}
+
+/**
+ * Scrape one or more URLs on a brand's website and extract product images + logo.
  * Tries homepage, /products, /shop, and /menu paths.
  */
 async function scrapeProductImages(
     websiteUrl: string,
     brandName: string,
-): Promise<ScrapedProductImage[]> {
+): Promise<{ images: ScrapedProductImage[]; logoUrl: string | null }> {
     const base = websiteUrl.replace(/\/$/, '');
     const urlsToTry = [base, `${base}/products`, `${base}/shop`, `${base}/menu`];
 
     const allImages: ScrapedProductImage[] = [];
     const seen = new Set<string>();
+    let logoUrl: string | null = null;
 
     for (const url of urlsToTry) {
         try {
             const resp = await discovery.discoverUrl(url, ['markdown']) as any;
             const markdown: string = resp?.markdown || resp?.data?.markdown || '';
             if (!markdown) continue;
+
+            // Try to find logo from homepage scrape
+            if (!logoUrl) {
+                logoUrl = extractLogoUrl(markdown, brandName);
+            }
 
             const images = parseMarkdownImages(markdown);
             for (const img of images) {
@@ -229,10 +261,10 @@ async function scrapeProductImages(
     }
 
     logger.info('[BrandImgSync] Scraped images from brand website', {
-        brandName, websiteUrl, imageCount: allImages.length,
+        brandName, websiteUrl, imageCount: allImages.length, logoFound: !!logoUrl,
     });
 
-    return allImages;
+    return { images: allImages, logoUrl };
 }
 
 // ============================================================================
@@ -389,9 +421,22 @@ async function processBrand(
             brandId, count: productsNeedingImages.length,
         });
 
-        // 3. Scrape brand website
-        const scrapedImages = await scrapeProductImages(websiteResult.url, brandName);
+        // 3. Scrape brand website (products + logo)
+        const { images: scrapedImages, logoUrl } = await scrapeProductImages(websiteResult.url, brandName);
         result.imagesFound = scrapedImages.length;
+
+        // 3a. Save discovered logo if brand doesn't have one yet
+        if (logoUrl && !dryRun) {
+            const brandDoc = await db.collection('brands').doc(brandId).get();
+            if (brandDoc.exists && !brandDoc.data()?.logoUrl) {
+                await db.collection('brands').doc(brandId).update({
+                    logoUrl,
+                    logoSource: 'brand_website',
+                    logoDiscoveredAt: new Date(),
+                }).catch(e => logger.warn('[BrandImgSync] Logo save failed', { brandId, err: String(e) }));
+                logger.info('[BrandImgSync] Brand logo saved', { brandId, logoUrl });
+            }
+        }
 
         if (scrapedImages.length === 0) return result;
 
@@ -402,7 +447,7 @@ async function processBrand(
         if (imageMatches.size === 0 || dryRun) {
             if (dryRun) {
                 logger.info('[BrandImgSync] [DRY RUN] Would update products', {
-                    brandId, matchCount: imageMatches.size,
+                    brandId, matchCount: imageMatches.size, logoFound: !!logoUrl,
                 });
             }
             return result;
