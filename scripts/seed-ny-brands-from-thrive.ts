@@ -364,12 +364,12 @@ async function run() {
     } else {
         console.log('🚀 Brand pages are now live:');
         for (const [slug] of brandMap) {
-            console.log(`   https://bakedbot.com/brands/${slug}`);
+            console.log(`   https://bakedbot.ai/brands/${slug}`);
         }
         console.log('');
         console.log('📬 Share claim links with brands:');
         for (const [slug, brand] of brandMap) {
-            console.log(`   ${brand.name}: https://bakedbot.com/brands/claim?name=${encodeURIComponent(brand.name)}&type=brand`);
+            console.log(`   ${brand.name}: https://bakedbot.ai/brands/claim?name=${encodeURIComponent(brand.name)}&type=brand`);
         }
         console.log('');
     }
