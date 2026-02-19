@@ -12,9 +12,10 @@
  * conversion to paid BakedBot customers.
  *
  * Run:
- *   npx tsx scripts/seed-ny-brands-from-thrive.ts --dry-run   (preview only)
- *   npx tsx scripts/seed-ny-brands-from-thrive.ts              (write to Firestore)
- *   npx tsx scripts/seed-ny-brands-from-thrive.ts --update     (re-sync prices/images)
+ *   npx tsx scripts/seed-ny-brands-from-thrive.ts --dry-run              (preview only)
+ *   npx tsx scripts/seed-ny-brands-from-thrive.ts                         (write to Firestore, in-stock only)
+ *   npx tsx scripts/seed-ny-brands-from-thrive.ts --update                (re-sync in-stock products)
+ *   npx tsx scripts/seed-ny-brands-from-thrive.ts --update --prune-oos    (re-sync + delete OOS mirrors)
  */
 
 import * as admin from 'firebase-admin';
@@ -31,6 +32,7 @@ const THRIVE_RETAILER_ID = 'retail_thrive_syracuse';
 const args = process.argv.slice(2);
 const DRY_RUN = args.includes('--dry-run');
 const UPDATE_EXISTING = args.includes('--update');
+const PRUNE_OOS = args.includes('--prune-oos'); // Delete mirror docs for out-of-stock products
 
 // ── Firebase Init ─────────────────────────────────────────────────────────────
 
@@ -63,7 +65,22 @@ db.settings({ ignoreUndefinedProperties: true });
 const BRAND_BLOCKLIST = new Set([
     'test', 'gift-card', 'gilden-t-shirt', 'gilden', 'ocb',
     'thrive-3-5g-pre-pack', 'thrive-3-5g',
+    // The dispensary itself — not a brand
+    'thrive-syracuse',
+    // Product lines / flavors parsed as brands (Incredibles edibles)
+    'dark-chocolate-mini-bar', 'milk-chocolate-mini-bar',
+    'dragon-punch-pearls-rosin', 'orange-yuzu-pearls-rosin',
+    'raspberry-lemonade-pearls', 'watermelon-pearls',
+    'sour-cherry-tart',
+    // "Nanticoke -Maui Waui" is a single Nanticoke product, not a separate brand
+    'nanticoke-maui-waui',
 ]);
+
+// Slug PREFIX patterns to block (checked with startsWith)
+const BRAND_BLOCKLIST_PREFIXES = [
+    'sample-',    // "Sample Grape Ice", "Sample Headbanger" etc. — test/demo entries
+    'munch-kins-', // "Munch Kins Fruity Pebbles" — individual SKU parsed as brand
+];
 
 /**
  * Returns true if a candidate brand name/slug should be excluded.
@@ -71,13 +88,15 @@ const BRAND_BLOCKLIST = new Set([
  * mistakenly parsed as brands (e.g. "Animal Face 5 Pack 1.75g").
  */
 function isJunkBrand(name: string, slug: string): boolean {
-    // Blocklist
+    // Exact blocklist
     if (BRAND_BLOCKLIST.has(slug)) return true;
+    // Prefix blocklist (sample-*, munch-kins-*)
+    if (BRAND_BLOCKLIST_PREFIXES.some(p => slug.startsWith(p))) return true;
     // Starts with a digit → ratio product name (e.g. "2:1:1 Tangelo Pearls")
     if (/^\d/.test(name)) return true;
     // Too many slug segments → a product description, not a brand name
-    // e.g. "animal-face-5-pack-1-75g" (6 segments)
-    if (slug.split('-').length > 5) return true;
+    // e.g. "thaze-5-pack-1-75g" (5 segments), "animal-face-5-pack-1-75g" (6 segments)
+    if (slug.split('-').length >= 5) return true;
     return false;
 }
 
@@ -169,6 +188,14 @@ async function run() {
             brandMap.set(slug, { name: brandName, slug, productIds: [] });
         }
         brandMap.get(slug)!.productIds.push(doc.id);
+    }
+
+    // Drop brands with only 1 product — almost always a strain/flavor name, not a real brand
+    const MIN_PRODUCTS = 2;
+    for (const [slug, brand] of brandMap) {
+        if (brand.productIds.length < MIN_PRODUCTS) {
+            brandMap.delete(slug);
+        }
     }
 
     console.log(`\n🏷️  Found ${brandMap.size} unique brands:`);
@@ -274,6 +301,7 @@ async function run() {
 
     let created = 0;
     let skipped = 0;
+    let pruned = 0;
     let failed = 0;
 
     const BATCH_SIZE = 400; // Firestore batch limit is 500, stay safe
@@ -296,6 +324,27 @@ async function run() {
         }
 
         const mirrorId = `mirror_thrive_${doc.id}`;
+
+        // Skip out-of-stock products — only mirror items available for purchase
+        const inStock = data.inStock === true || (data.stock || 0) > 0;
+        if (!inStock) {
+            if (PRUNE_OOS && !DRY_RUN) {
+                // Delete the mirror doc if it exists (cleanup from previous runs)
+                const existingMirror = await db.collection('products').doc(mirrorId).get();
+                if (existingMirror.exists) {
+                    batch.delete(db.collection('products').doc(mirrorId));
+                    batchCount++;
+                    pruned++;
+                    if (batchCount >= BATCH_SIZE) {
+                        await batch.commit();
+                        batch = db.batch();
+                        batchCount = 0;
+                    }
+                }
+            }
+            skipped++;
+            continue;
+        }
 
         if (!UPDATE_EXISTING) {
             const existingMirror = await db.collection('products').doc(mirrorId).get();
@@ -352,10 +401,11 @@ async function run() {
     // ── 7. Summary ───────────────────────────────────────────────────────────
     console.log('\n' + '─'.repeat(60));
     console.log('✅ Seed complete!');
-    console.log(`   Brands created:   ${brandMap.size}`);
+    console.log(`   Brands created:    ${brandMap.size}`);
     console.log(`   Products mirrored: ${created}`);
-    console.log(`   Products skipped:  ${skipped}`);
-    if (failed > 0) console.log(`   Failed:           ${failed}`);
+    console.log(`   Products skipped:  ${skipped} (incl. out-of-stock)`);
+    if (pruned > 0) console.log(`   OOS mirrors pruned:${pruned}`);
+    if (failed > 0) console.log(`   Failed:            ${failed}`);
     console.log('');
 
     if (DRY_RUN) {
