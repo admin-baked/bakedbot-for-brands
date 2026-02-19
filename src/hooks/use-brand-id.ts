@@ -21,9 +21,20 @@ export function useBrandId() {
                 return;
             }
 
-            // 1. Check Custom Claims (brandId for brands, locationId for dispensaries)
+            // 1. Check Custom Claims — priority order matches CLAUDE.md orgId resolution.
+            //    Brand admins have brandId; dispensary admins have orgId/currentOrgId/locationId.
             if ((user as any).brandId) {
                 setBrandId((user as any).brandId);
+                setLoading(false);
+                return;
+            }
+            if ((user as any).orgId) {
+                setBrandId((user as any).orgId);
+                setLoading(false);
+                return;
+            }
+            if ((user as any).currentOrgId) {
+                setBrandId((user as any).currentOrgId);
                 setLoading(false);
                 return;
             }
