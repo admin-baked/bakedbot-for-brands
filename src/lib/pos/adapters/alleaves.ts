@@ -45,7 +45,7 @@ export interface ALLeavesInventoryItem {
     id_item_group: number;
     id_location: number;
     item: string;                    // Product name
-    sku: string;
+    sku: string;                     // SKU / barcode
     brand: string;
     category: string;                // Format: "Category > Subcategory" (e.g., "Category > Flower")
     price_retail: number;            // Retail price before tax
@@ -54,19 +54,79 @@ export interface ALLeavesInventoryItem {
     price_otd: number;               // Out-the-door price (with tax)
     price_otd_adult_use?: number;    // Adult-use OTD price (with tax)
     price_otd_medical_use?: number;  // Medical OTD price (with tax)
-    on_hand: number;                 // Total quantity on hand
+    on_hand: number;                 // Total quantity on hand (includes reserved)
     available: number;               // Available quantity for sale
     thc: number;                     // THC percentage
     cbd: number;                     // CBD percentage
+    thc_mg?: number;                 // THC in milligrams (absolute amount)
+    cbd_mg?: number;                 // CBD in milligrams (absolute amount)
     strain: string;
-    uom: string;                     // Unit of measure
+    uom: string;                     // Unit of measure (Each, g, oz, mg)
     is_adult_use: boolean;
     is_medical_use?: boolean;
     is_cannabis: boolean;
     cost_of_good?: number;           // Item cost of goods sold
     batch_cost_of_good?: number;     // Batch cost of goods sold
     expiration_date?: string;        // Batch expiration date (ISO string)
-    package_date?: string;           // Package/harvest date
+    package_date?: string;           // Package/harvest date (ISO string)
+    // Traceability / batch status (P2 — may be present in response)
+    tag?: string;                    // METRC traceability tag (primary field name candidate)
+    metrc_tag?: string;              // Alternate METRC tag field name
+    batch_tag?: string;              // Another possible tag field name
+    barcode?: string;                // Explicit barcode field (if separate from sku)
+    status?: string;                 // Batch status: "open", "closed", etc.
+    id_status?: number;              // Numeric status ID
+    // Area (P2 — may be present in response or requires area endpoint join)
+    id_area?: number;                // Area ID (join with /inventory/area)
+    area?: string;                   // Area name (if returned inline)
+    area_name?: string;              // Alternate area name field
+}
+
+/**
+ * ALLeaves Area (from GET /inventory/area)
+ * Storage areas within a location (e.g. "Sales Floor", "Back Room")
+ */
+export interface ALLeavesArea {
+    id_area: number;
+    id_location: number;
+    name: string;
+    path?: string;                   // Full path (e.g. "Sales Floor > Display")
+    id_status?: number;
+    deleted?: boolean;
+    priority?: number;
+}
+
+/**
+ * ALLeaves Batch Detail (from GET /inventory/batch/{id} or POST /inventory/batch/search)
+ * Extended traceability and provenance data per batch
+ */
+export interface ALLeavesBatchDetail {
+    id_batch: number;
+    // Traceability
+    tag?: string;                    // METRC / state traceability tag
+    metrc_tag?: string;
+    batch_tag?: string;
+    barcode?: string;
+    // Status
+    status?: string;                 // "open" | "closed"
+    id_status?: number;
+    // Dates
+    date_expire?: string;
+    date_production?: string;
+    date_harvest?: string;
+    date_package?: string;
+    // Quantity
+    quantity?: number;
+    on_hand?: number;
+    available?: number;
+    // Potency in mg (absolute)
+    thc_mg?: number;
+    cbd_mg?: number;
+    // Location
+    id_area?: number;
+    area?: string;
+    area_name?: string;
+    id_location?: number;
 }
 
 /**
@@ -330,25 +390,45 @@ export class ALLeavesClient implements POSClient {
     }
 
     /**
-     * Fetch full menu from ALLeaves
-     * Uses POST /inventory/search with empty query to get all items
+     * Fetch full menu from ALLeaves with area and batch enrichment.
+     *
+     * Flow:
+     *  1. POST /inventory/search — all inventory items (primary data)
+     *  2. GET /inventory/area    — area lookup map (id_area → name) [parallel]
+     *  3. POST /inventory/batch/search (or GET /inventory/batch/{id}) — traceability tags,
+     *     batch status, mg potency [parallel, best-effort]
      */
     async fetchMenu(): Promise<POSProduct[]> {
         logger.info('[POS_ALLEAVES] Fetching menu', { locationId: this.config.locationId });
 
         try {
-            // Use inventory search endpoint with empty query to get all items
-            const items = await this.request<ALLeavesInventoryItem[]>(
-                `/inventory/search`,
-                {
-                    method: 'POST',
-                    body: JSON.stringify({ query: '' }),
-                }
-            );
+            // Step 1: Fetch inventory items and areas in parallel
+            const [items, areaLookup] = await Promise.all([
+                this.request<ALLeavesInventoryItem[]>(
+                    `/inventory/search`,
+                    {
+                        method: 'POST',
+                        body: JSON.stringify({ query: '' }),
+                    }
+                ),
+                this.fetchAreas(),
+            ]);
 
-            logger.info(`[POS_ALLEAVES] Fetched ${items.length} inventory items`);
+            logger.info(`[POS_ALLEAVES] Fetched ${items.length} inventory items, ${areaLookup.size} areas`);
 
-            return this.mapInventoryItems(items);
+            // Step 2: Collect unique batch IDs and fetch batch details (best-effort)
+            const batchIds = [...new Set(
+                items.map(i => i.id_batch).filter((id): id is number => typeof id === 'number' && id > 0)
+            )];
+
+            const batchDetails = await this.fetchBatchDetails(batchIds);
+
+            logger.info('[POS_ALLEAVES] Batch enrichment complete', {
+                uniqueBatches: batchIds.length,
+                enriched: batchDetails.size,
+            });
+
+            return this.mapInventoryItems(items, areaLookup, batchDetails);
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             logger.error('[POS_ALLEAVES] Menu fetch failed', { error: errorMessage });
@@ -357,9 +437,84 @@ export class ALLeavesClient implements POSClient {
     }
 
     /**
+     * Fetch all storage areas for this location and return an id_area → name map.
+     * Used to enrich inventory items with human-readable area names (e.g. "Sales Floor").
+     */
+    async fetchAreas(): Promise<Map<number, string>> {
+        try {
+            const areas = await this.request<ALLeavesArea[]>(
+                `/inventory/area?id_location=${this.config.locationId}`
+            );
+
+            const lookup = new Map<number, string>();
+            for (const area of areas || []) {
+                // Prefer the short name; fall back to path; then generic label
+                lookup.set(area.id_area, area.name || area.path || `Area ${area.id_area}`);
+            }
+
+            logger.info('[POS_ALLEAVES] Fetched area lookup', { count: lookup.size });
+            return lookup;
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            logger.warn('[POS_ALLEAVES] Area fetch failed (non-fatal)', { error: errorMessage });
+            return new Map();
+        }
+    }
+
+    /**
+     * Fetch batch details for a list of batch IDs.
+     * Tries POST /inventory/batch/search (one call) first; falls back to individual GET calls.
+     * Results are keyed by id_batch for O(1) lookup during mapInventoryItems.
+     */
+    async fetchBatchDetails(batchIds: number[]): Promise<Map<number, ALLeavesBatchDetail>> {
+        const result = new Map<number, ALLeavesBatchDetail>();
+        if (!batchIds.length) return result;
+
+        // Strategy 1: batch search endpoint (undocumented, single call)
+        try {
+            const batches = await this.request<ALLeavesBatchDetail[]>(
+                '/inventory/batch/search',
+                {
+                    method: 'POST',
+                    body: JSON.stringify({ ids: batchIds }),
+                }
+            );
+
+            for (const b of batches || []) {
+                if (b.id_batch) result.set(b.id_batch, b);
+            }
+
+            logger.info('[POS_ALLEAVES] Batch details fetched via search', { count: result.size });
+            return result;
+        } catch {
+            logger.debug('[POS_ALLEAVES] Batch search endpoint unavailable, trying individual calls');
+        }
+
+        // Strategy 2: individual GET calls — capped at 100 to avoid rate limiting
+        const limited = batchIds.slice(0, 100);
+        await Promise.all(
+            limited.map(async (id) => {
+                try {
+                    const detail = await this.request<ALLeavesBatchDetail>(`/inventory/batch/${id}`);
+                    if (detail?.id_batch) result.set(detail.id_batch, detail);
+                } catch {
+                    // Non-fatal — skip batches that can't be fetched
+                }
+            })
+        );
+
+        logger.info('[POS_ALLEAVES] Batch details fetched individually', { fetched: result.size, attempted: limited.length });
+        return result;
+    }
+
+    /**
      * Map ALLeaves inventory items to standard POS format
      */
-    private mapInventoryItems(items: ALLeavesInventoryItem[]): POSProduct[] {
+    private mapInventoryItems(
+        items: ALLeavesInventoryItem[],
+        areaLookup: Map<number, string> = new Map(),
+        batchDetails: Map<number, ALLeavesBatchDetail> = new Map()
+    ): POSProduct[] {
         return items.map((item) => {
             // Strip "Category > " prefix from category if present
             let category = item.category || 'Other';
@@ -401,18 +556,91 @@ export class ALLeavesClient implements POSClient {
                 }
             }
 
+            // Parse package/harvest date (used to calculate product age)
+            let packageDate: Date | undefined;
+            if (item.package_date) {
+                const parsed = new Date(item.package_date);
+                if (!isNaN(parsed.getTime())) {
+                    packageDate = parsed;
+                }
+            }
+
+            // Enrich with batch details if available (P3: /inventory/batch/{id})
+            const batchDetail = batchDetails.get(item.id_batch);
+
+            // Resolve traceability tag — try multiple possible field names (P2)
+            const metrcTag = item.tag
+                || item.metrc_tag
+                || item.batch_tag
+                || batchDetail?.tag
+                || batchDetail?.metrc_tag
+                || batchDetail?.batch_tag
+                || undefined;
+
+            // Resolve batch status
+            const batchStatus = item.status
+                || batchDetail?.status
+                || undefined;
+
+            // Resolve area name: inline > area lookup by id_area > batch detail
+            const areaId = item.id_area ?? batchDetail?.id_area;
+            const areaName = (areaId ? areaLookup.get(areaId) : undefined)
+                || item.area
+                || item.area_name
+                || batchDetail?.area
+                || batchDetail?.area_name
+                || undefined;
+
+            // Resolve barcode/SKU (may be separate from SKU in some setups)
+            const sku = item.sku
+                || item.barcode
+                || batchDetail?.barcode
+                || undefined;
+
+            // Resolve THC/CBD mg (absolute amounts)
+            const thcMg = item.thc_mg ?? batchDetail?.thc_mg ?? undefined;
+            const cbdMg = item.cbd_mg ?? batchDetail?.cbd_mg ?? undefined;
+
+            // Batch-level expiration/package date fallback from batch detail
+            if (!expirationDate && batchDetail?.date_expire) {
+                const parsed = new Date(batchDetail.date_expire);
+                if (!isNaN(parsed.getTime())) expirationDate = parsed;
+            }
+            if (!packageDate && batchDetail?.date_package) {
+                const parsed = new Date(batchDetail.date_package);
+                if (!isNaN(parsed.getTime())) packageDate = parsed;
+            }
+            if (!packageDate && batchDetail?.date_production) {
+                const parsed = new Date(batchDetail.date_production);
+                if (!isNaN(parsed.getTime())) packageDate = parsed;
+            }
+
             return {
                 externalId: item.id_item.toString(),
                 name: item.item,
                 brand: item.brand || 'Unknown',
                 category,
-                price,                                       // Use retail price or calculated from cost
-                cost: item.cost_of_good || undefined,        // COGS for margin visibility
-                stock: item.available,                       // Use available (not on_hand) for accurate stock
+                price,
+                cost: item.cost_of_good || undefined,        // Item-level COGS
+                batchCost: item.batch_cost_of_good || undefined, // Batch-level COGS
+                stock: item.available,                       // Available for sale
+                onHand: item.on_hand,                        // Total on hand (including reserved)
                 thcPercent: item.thc || undefined,
                 cbdPercent: item.cbd || undefined,
-                imageUrl: getPlaceholderImageForCategory(category), // Use category-based placeholder
-                expirationDate,                              // Batch expiration for clearance bundles
+                thcMg: thcMg || undefined,
+                cbdMg: cbdMg || undefined,
+                imageUrl: getPlaceholderImageForCategory(category),
+                expirationDate,
+                packageDate,
+                // Inventory metadata (P1)
+                sku: sku || undefined,
+                strain: item.strain || undefined,
+                uom: item.uom || undefined,
+                batchId: item.id_batch?.toString() || undefined,
+                // Traceability / batch enrichment (P2 + P3)
+                metrcTag: metrcTag || undefined,
+                batchStatus: batchStatus || undefined,
+                areaName: areaName || undefined,
                 rawData: item as unknown as Record<string, unknown>,
             };
         });

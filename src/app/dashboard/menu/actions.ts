@@ -221,7 +221,7 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
                  brandName: item.brand,
                  dispensaryId: locationId,
                  category: normalizeCategoryName(item.category),
-                 description: '', // DutchieClient doesn't currently bubble description, maybe add later
+                 description: '',
                  imageUrl: item.imageUrl || '',
 
                  price: item.price,
@@ -234,8 +234,27 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
                  inStock: (item.stock || 0) > 0,
                  stockCount: item.stock || 0,
 
-                 // COGS from POS — null means "not set", undefined skips field entirely
+                 // COGS — undefined skips field (preserves manually-entered values on merge)
                  ...(item.cost !== undefined ? { cost: item.cost } : {}),
+                 ...(item.batchCost !== undefined ? { batchCost: item.batchCost } : {}),
+
+                 // Inventory metadata (P1 — always present in Alleaves response)
+                 ...(item.sku !== undefined ? { sku: item.sku } : {}),
+                 ...(item.strain !== undefined ? { strain: item.strain } : {}),
+                 ...(item.uom !== undefined ? { uom: item.uom } : {}),
+                 ...(item.onHand !== undefined ? { onHand: item.onHand } : {}),
+                 ...(item.packageDate !== undefined ? { packageDate: item.packageDate } : {}),
+                 ...(item.expirationDate !== undefined ? { expirationDate: item.expirationDate } : {}),
+                 ...(item.batchId !== undefined ? { batchId: item.batchId } : {}),
+
+                 // Potency in mg (if provided by API)
+                 ...(item.thcMg !== undefined ? { thcMg: item.thcMg } : {}),
+                 ...(item.cbdMg !== undefined ? { cbdMg: item.cbdMg } : {}),
+
+                 // Traceability / area (P2+P3 — best-effort from batch enrichment)
+                 ...(item.metrcTag !== undefined ? { metrcTag: item.metrcTag } : {}),
+                 ...(item.batchStatus !== undefined ? { batchStatus: item.batchStatus } : {}),
+                 ...(item.areaName !== undefined ? { areaName: item.areaName } : {}),
 
                  source: 'pos',
                  externalId: item.externalId,
