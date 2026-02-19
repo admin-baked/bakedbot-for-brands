@@ -24,31 +24,40 @@ interface BeforeInstallPromptEvent extends Event {
 // Routes where PWA prompt should NOT appear (per onboarding v2 spec)
 const AUTH_ROUTES = ['/onboarding', '/login', '/brand-login', '/customer-login', '/dispensary-login', '/get-started', '/super-admin'];
 
+const DISMISSED_KEY = 'pwa-install-dismissed';
+
+function isPermanentlyDismissed(): boolean {
+    try {
+        return localStorage.getItem(DISMISSED_KEY) === 'true';
+    } catch {
+        return false;
+    }
+}
+
 export function PWAInstallPrompt() {
     const pathname = usePathname();
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
     const [showPrompt, setShowPrompt] = useState(false);
-    
+
     // Hide on auth/onboarding pages
     const isAuthPage = AUTH_ROUTES.some(route => pathname?.startsWith(route));
 
     useEffect(() => {
+        // Never show again if user dismissed it
+        if (isPermanentlyDismissed()) return;
+
+        // Never show if already installed as PWA
+        if (window.matchMedia('(display-mode: standalone)').matches) return;
+
         const handler = (e: Event) => {
-            // Prevent the mini-infobar from appearing on mobile
             e.preventDefault();
-            // Stash the event so it can be triggered later
+            // Double-check dismissal in handler (guards against race conditions)
+            if (isPermanentlyDismissed()) return;
             setDeferredPrompt(e as BeforeInstallPromptEvent);
-            // Show our custom install prompt
             setShowPrompt(true);
         };
 
         window.addEventListener('beforeinstallprompt', handler);
-
-        // Check if already installed
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-            setShowPrompt(false);
-        }
-
         return () => {
             window.removeEventListener('beforeinstallprompt', handler);
         };
@@ -57,38 +66,26 @@ export function PWAInstallPrompt() {
     const handleInstall = async () => {
         if (!deferredPrompt) return;
 
-        // Show the install prompt
         deferredPrompt.prompt();
-
-        // Wait for the user to respond to the prompt
         const { outcome } = await deferredPrompt.userChoice;
 
         if (outcome === 'accepted') {
             logger.info('User accepted the install prompt');
         }
 
-        // Clear the deferredPrompt
         setDeferredPrompt(null);
         setShowPrompt(false);
     };
 
     const handleDismiss = () => {
         setShowPrompt(false);
-        // Store dismissal in localStorage to not show again for 7 days
-        localStorage.setItem('pwa-install-dismissed', Date.now().toString());
-    };
-
-    // Don't show if dismissed recently
-    useEffect(() => {
-        const dismissed = localStorage.getItem('pwa-install-dismissed');
-        if (dismissed) {
-            const dismissedTime = parseInt(dismissed);
-            const sevenDays = 7 * 24 * 60 * 60 * 1000;
-            if (Date.now() - dismissedTime < sevenDays) {
-                setShowPrompt(false);
-            }
+        // Permanently dismissed — never show again on this device
+        try {
+            localStorage.setItem(DISMISSED_KEY, 'true');
+        } catch {
+            // localStorage not available (private mode etc.) — just hide for session
         }
-    }, []);
+    };
 
     // Hide on auth pages or if prompt not showing
     if (isAuthPage || !showPrompt) return null;
