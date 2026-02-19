@@ -526,26 +526,29 @@ export default function CRMTab() {
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        {user.approvalStatus === 'pending' && (
+                                                        {user.approvalStatus !== 'approved' && (
                                                             <>
                                                                 <Button
                                                                     variant="outline"
                                                                     size="sm"
-                                                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                                    className="h-8 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
                                                                     onClick={() => handleApproveUser(user.id, user.displayName)}
                                                                     title="Approve User"
                                                                 >
                                                                     <CheckCircle className="h-4 w-4" />
+                                                                    <span className="ml-1">Approve</span>
                                                                 </Button>
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                                    onClick={() => handleRejectUser(user.id, user.displayName)}
-                                                                    title="Reject User"
-                                                                >
-                                                                    <XCircle className="h-4 w-4" />
-                                                                </Button>
+                                                                {user.approvalStatus === 'pending' && (
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                        onClick={() => handleRejectUser(user.id, user.displayName)}
+                                                                        title="Reject User"
+                                                                    >
+                                                                        <XCircle className="h-4 w-4" />
+                                                                    </Button>
+                                                                )}
                                                             </>
                                                         )}
                                                         <Button

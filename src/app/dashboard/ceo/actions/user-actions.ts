@@ -12,9 +12,8 @@ export async function getAllUsers() {
         const { firestore: fs } = await createServerClient();
         await requireUser(['super_user']);
 
-        const usersSnap = await fs.collection('users').orderBy('createdAt', 'desc').get();
-
-        return usersSnap.docs.map((doc: any) => {
+        const usersSnap = await fs.collection('users').get();
+        const users = usersSnap.docs.map((doc: any) => {
 
             const data = doc.data();
             return {
@@ -29,6 +28,14 @@ export async function getAllUsers() {
                 approvalStatus: data.approvalStatus || 'approved',
             };
         });
+
+        users.sort((a, b) => {
+            const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return timeB - timeA;
+        });
+
+        return users.slice(0, 100);
     } catch (error) {
         console.error('Failed to fetch users:', error);
         return [];
@@ -86,6 +93,130 @@ export async function rejectUser(uid: string) {
         return { success: true, message: 'User rejected' };
     } catch (error: any) {
         return { success: false, message: error.message };
+    }
+}
+
+function coerceToDate(value: any): Date | null {
+    if (!value) return null;
+
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? null : value;
+    }
+
+    if (typeof value?.toDate === 'function') {
+        const d = value.toDate();
+        return d instanceof Date && !Number.isNaN(d.getTime()) ? d : null;
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    return null;
+}
+
+export async function backfillMissingUserCreatedAt(options?: {
+    dryRun?: boolean;
+    force?: boolean;
+}) {
+    try {
+        await requireUser(['super_user']);
+        const firestore = getAdminFirestore();
+
+        const dryRun = options?.dryRun ?? true;
+        const force = options?.force ?? false;
+        const markerRef = firestore.collection('_admin_tasks').doc('backfill_users_created_at_v1');
+        const markerSnap = await markerRef.get();
+
+        if (!force && markerSnap.exists && markerSnap.data()?.status === 'completed') {
+            const data = markerSnap.data();
+            return {
+                success: true,
+                alreadyCompleted: true,
+                dryRun,
+                message: 'Backfill already completed. Pass force=true to run again.',
+                completedAt: data?.completedAt || null,
+                previousRun: data || null,
+            };
+        }
+
+        const usersSnap = await firestore.collection('users').get();
+        const candidates: Array<{ ref: any; createdAt: Date | FieldValue; setUpdatedAt: boolean }> = [];
+        const sampleUserIds: string[] = [];
+
+        for (const doc of usersSnap.docs) {
+            const data = doc.data();
+            if (data.createdAt) continue;
+
+            const inferredCreatedAt =
+                coerceToDate(data.onboardingCompletedAt) ||
+                coerceToDate(data.approvedAt) ||
+                coerceToDate(data.lastLoginAt) ||
+                coerceToDate(data.updatedAt);
+
+            candidates.push({
+                ref: doc.ref,
+                createdAt: inferredCreatedAt || FieldValue.serverTimestamp(),
+                setUpdatedAt: !data.updatedAt,
+            });
+
+            if (sampleUserIds.length < 25) {
+                sampleUserIds.push(doc.id);
+            }
+        }
+
+        if (!dryRun && candidates.length > 0) {
+            const BATCH_SIZE = 400;
+            for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+                const chunk = candidates.slice(i, i + BATCH_SIZE);
+                const batch = firestore.batch();
+
+                for (const item of chunk) {
+                    const payload: Record<string, any> = { createdAt: item.createdAt };
+                    if (item.setUpdatedAt) {
+                        payload.updatedAt = FieldValue.serverTimestamp();
+                    }
+                    batch.update(item.ref, payload);
+                }
+
+                await batch.commit();
+            }
+        }
+
+        const result = {
+            success: true,
+            alreadyCompleted: false,
+            dryRun,
+            scannedUsers: usersSnap.size,
+            missingCreatedAt: candidates.length,
+            updatedUsers: dryRun ? 0 : candidates.length,
+            sampleUserIds,
+            message: dryRun
+                ? `Dry run complete: ${candidates.length} users are missing createdAt.`
+                : `Backfill complete: updated ${candidates.length} users.`,
+        };
+
+        if (!dryRun) {
+            await markerRef.set(
+                {
+                    status: 'completed',
+                    completedAt: new Date().toISOString(),
+                    scannedUsers: usersSnap.size,
+                    updatedUsers: candidates.length,
+                    runVersion: 'backfill_users_created_at_v1',
+                },
+                { merge: true }
+            );
+        }
+
+        return result;
+    } catch (error: any) {
+        console.error('Failed to backfill missing users.createdAt:', error);
+        return {
+            success: false,
+            message: error.message || 'Failed to backfill users.createdAt',
+        };
     }
 }
 

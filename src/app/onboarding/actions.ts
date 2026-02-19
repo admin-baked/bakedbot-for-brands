@@ -246,6 +246,7 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
 
     // 3. Update User Profile with Enterprise Context
     const organizationIds = orgId ? [orgId] : [];
+    const existingUserDoc = await userDocRef.get();
 
     // Build orgMemberships for vertical integration support
     const orgMemberships: Record<string, any> = {};
@@ -267,8 +268,13 @@ export async function completeOnboarding(prevState: any, formData: FormData) {
       orgMemberships,
       // Legacy mapping
       brandId: finalRole === 'brand' ? orgId : null,
-      locationId: newLocationId || null
+      locationId: newLocationId || null,
+      updatedAt: FieldValue.serverTimestamp()
     };
+
+    if (!existingUserDoc.exists) {
+      updatedUserProfile.createdAt = FieldValue.serverTimestamp();
+    }
 
     const updatedClaims = {
       role: finalRole,

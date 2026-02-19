@@ -1,7 +1,7 @@
 'use server';
 
 import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
-import { FieldPath, FieldValue, Query } from 'firebase-admin/firestore';
+import { FieldPath, FieldValue } from 'firebase-admin/firestore';
 import { requireUser } from '@/server/auth/auth';
 import { isBrandRole, isDispensaryRole, normalizeRole } from '@/types/roles';
 import { PLANS } from '@/lib/plans';
@@ -507,17 +507,7 @@ export async function getPlatformLeads(filters: CRMFilters = {}): Promise<CRMLea
 export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUser[]> {
     await requireUser(['super_user']);
     const firestore = getAdminFirestore();
-    let query: Query = firestore
-        .collection('users');
-        // .orderBy('createdAt', 'desc'); // REMOVED: Excludes users without createdAt
-
-    if (filters.limit) {
-        query = query.limit(filters.limit);
-    } else {
-        query = query.limit(200);
-    }
-
-    const snapshot = await query.get();
+    const snapshot = await firestore.collection('users').get();
 
     const rawUsers = snapshot.docs.map(doc => ({ id: doc.id, data: doc.data() as any }));
 
@@ -718,7 +708,8 @@ export async function getPlatformUsers(filters: CRMFilters = {}): Promise<CRMUse
         return timeB - timeA;
     });
 
-    return users;
+    const maxResults = filters.limit ?? 200;
+    return users.slice(0, maxResults);
 }
 
 /**
@@ -981,5 +972,3 @@ export async function deleteUserByEmail(email: string): Promise<string> {
     
     return result;
 }
-
-
