@@ -261,15 +261,15 @@ env:
   #   echo -n "redis-token" | gcloud secrets create UPSTASH_REDIS_TOKEN --data-file=- --project=studio-567050101-bc6e8
   #   firebase apphosting:secrets:grantaccess UPSTASH_REDIS_URL --backend=bakedbot-prod
   #   firebase apphosting:secrets:grantaccess UPSTASH_REDIS_TOKEN --backend=bakedbot-prod
-  # COMMENTED OUT UNTIL SECRETS ARE CREATED (caching/rate limiting disabled, app still works):
-  # - variable: UPSTASH_REDIS_URL
-  #   secret: UPSTASH_REDIS_URL
-  #   availability:
-  #     - RUNTIME
-  # - variable: UPSTASH_REDIS_TOKEN
-  #   secret: UPSTASH_REDIS_TOKEN
-  #   availability:
-  #     - RUNTIME
+  # Redis caching and rate limiting (Week 1+2 Production Readiness)
+  - variable: UPSTASH_REDIS_URL
+    secret: UPSTASH_REDIS_URL
+    availability:
+      - RUNTIME
+  - variable: UPSTASH_REDIS_TOKEN
+    secret: UPSTASH_REDIS_TOKEN
+    availability:
+      - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
     value: "https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app"
     availability:
