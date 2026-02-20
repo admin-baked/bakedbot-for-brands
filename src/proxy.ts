@@ -195,7 +195,7 @@ export async function proxy(request: NextRequest) {
     // AGE GATE ENFORCEMENT (21+)
     // ============================
     // Check if this is a cannabis menu route requiring age verification
-    // Skip age gate for: protected routes, API, signin pages, verify-age itself
+    // Skip age gate for: protected routes, API, signin pages, verify-age itself, main landing page
     const isMenuRoute =
         !isProtectedRoute &&
         !pathname.startsWith('/api/') &&
@@ -205,7 +205,7 @@ export async function proxy(request: NextRequest) {
         (
             pathname.match(/^\/[^/]+$/) || // Brand pages like /thrivesyracuse
             pathname.startsWith('/dispensaries/') ||
-            (pathname === '/' && (isBakedBotDomain || isCustomDomain))
+            (pathname === '/' && isCustomDomain) // Only custom domains at root (brand menus)
         );
 
     if (isMenuRoute) {
