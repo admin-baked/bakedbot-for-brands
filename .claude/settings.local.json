@@ -255,7 +255,16 @@
       "Bash(firebase use:*)",
       "Bash(chmod:*)",
       "Bash(bash:*)",
-      "Bash(gcloud scheduler jobs update:*)"
+      "Bash(gcloud scheduler jobs update:*)",
+      "Bash(gcloud scheduler jobs run:*)",
+      "Bash(wc:*)",
+      "Bash(gcloud secrets create:*)",
+      "Bash(node scripts/test-leafly-on-thrive-products.mjs:*)",
+      "Bash(gcloud secrets versions access:*)",
+      "WebFetch(domain:www.leafly.com)",
+      "Bash(node scripts/check-brand-logos.mjs:*)",
+      "WebFetch(domain:www.law.cornell.edu)",
+      "WebFetch(domain:www.ilga.gov)"
     ],
     "deny": [],
     "ask": []

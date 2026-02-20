@@ -4,6 +4,7 @@ import { requireUser } from '@/server/auth/auth';
 import { getAdminFirestore } from '@/firebase/admin';
 import { createServerClient } from '@/firebase/server-client';
 import { revalidatePath } from 'next/cache';
+import { FieldValue } from 'firebase-admin/firestore';
 import { ActionResult } from './types';
 
 

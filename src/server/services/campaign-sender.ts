@@ -9,6 +9,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import { sendGenericEmail } from '@/lib/email/dispatcher';
 import { BlackleafService } from '@/lib/notifications/blackleaf-service';
+import { getUsageWithLimits, incrementUsage } from '@/lib/metering/usage-service';
 import type { Campaign, CampaignRecipient, CampaignPerformance, CampaignChannel } from '@/types/campaign';
 import type { CustomerSegment } from '@/types/customers';
 
@@ -206,10 +207,43 @@ export async function executeCampaign(campaignId: string): Promise<{
         return { success: false, sent: 0, failed: 0, error: reason };
     }
 
+    // CRITICAL: Check campaign limit before sending
+    // Enforces tier-based monthly campaign quotas (scout=0, pro=3, growth/empire=unlimited)
+    const tierCheckDoc = await firestore.collection('tenants').doc(campaign.orgId).get();
+    const tierCheckData = tierCheckDoc.data();
+    const tierId = tierCheckData?.subscriptionTier || 'scout'; // Default to scout (most restrictive)
+
+    const usage = await getUsageWithLimits(campaign.orgId, tierId);
+    const campaignLimit = usage.metrics.customCampaigns;
+
+    // Block send if limit exceeded (for non-unlimited tiers)
+    if (!campaignLimit.unlimited && campaignLimit.used >= campaignLimit.limit) {
+        logger.warn('[CAMPAIGN_SENDER] Blocked: campaign limit exceeded', {
+            campaignId,
+            orgId: campaign.orgId,
+            tierId,
+            used: campaignLimit.used,
+            limit: campaignLimit.limit,
+        });
+
+        await firestore.collection('campaigns').doc(campaignId).update({
+            status: 'draft',
+            updatedAt: new Date(),
+        });
+
+        return {
+            success: false,
+            sent: 0,
+            failed: 0,
+            error: `Campaign limit exceeded: ${campaignLimit.used}/${campaignLimit.limit} campaigns sent this month. Upgrade your plan to send more.`,
+        };
+    }
+
     logger.info('[CAMPAIGN_SENDER] Executing campaign', {
         campaignId,
         name: campaign.name,
         channels: campaign.channels,
+        campaignUsage: `${campaignLimit.used}/${campaignLimit.unlimited ? '∞' : campaignLimit.limit}`,
     });
 
     // Mark as sending
@@ -320,11 +354,15 @@ export async function executeCampaign(campaignId: string): Promise<{
         updatedAt: new Date(),
     });
 
+    // Increment campaign usage counter (for tier limit enforcement)
+    await incrementUsage(campaign.orgId, 'customCampaignsUsed', 1);
+
     logger.info('[CAMPAIGN_SENDER] Campaign execution complete', {
         campaignId,
         sent: sentCount,
         failed: failedCount,
         totalRecipients: recipients.length,
+        campaignUsageIncremented: true,
     });
 
     return { success: true, sent: sentCount, failed: failedCount };

@@ -444,6 +444,214 @@ describe('executeCampaign', () => {
         });
     });
 
+    // =========================================================================
+    // COMPLIANCE GATE TESTS (Critical Fix)
+    // =========================================================================
+
+    it('blocks campaign when complianceStatus is "failed" and returns error', async () => {
+        const campaignData = makeCampaign({
+            status: 'scheduled',
+            complianceStatus: 'failed',
+            channels: ['email', 'sms'],
+            content: {
+                email: {
+                    channel: 'email',
+                    subject: 'Test',
+                    body: 'Test',
+                    complianceViolations: ['Medical claim detected', 'Age verification missing'],
+                },
+                sms: {
+                    channel: 'sms',
+                    body: 'Test',
+                    complianceViolations: ['TCPA opt-out missing'],
+                },
+            },
+        });
+
+        mockGet.mockResolvedValue({
+            exists: true,
+            id: 'camp_failed_compliance',
+            data: () => ({ ...campaignData }),
+        });
+
+        const result = await executeCampaign('camp_failed_compliance');
+
+        expect(result).toEqual({
+            success: false,
+            sent: 0,
+            failed: 0,
+            error: 'Compliance failed: Medical claim detected, Age verification missing; TCPA opt-out missing',
+        });
+
+        // Verify campaign status was updated to 'compliance_review'
+        expect(mockUpdate).toHaveBeenCalledWith({
+            status: 'compliance_review',
+            updatedAt: expect.any(Date),
+        });
+    });
+
+    it('blocks campaign when complianceStatus is undefined and returns error', async () => {
+        const campaignData = makeCampaign({
+            status: 'scheduled',
+            // complianceStatus is intentionally omitted
+        });
+
+        mockGet.mockResolvedValue({
+            exists: true,
+            id: 'camp_no_compliance',
+            data: () => ({ ...campaignData }),
+        });
+
+        const result = await executeCampaign('camp_no_compliance');
+
+        expect(result).toEqual({
+            success: false,
+            sent: 0,
+            failed: 0,
+            error: 'Campaign has not passed compliance review. Run Deebo check before sending.',
+        });
+
+        // Verify campaign status was updated to 'compliance_review'
+        expect(mockUpdate).toHaveBeenCalledWith({
+            status: 'compliance_review',
+            updatedAt: expect.any(Date),
+        });
+    });
+
+    it('blocks campaign when complianceStatus is "pending" and returns error', async () => {
+        const campaignData = makeCampaign({
+            status: 'scheduled',
+            complianceStatus: 'pending',
+        });
+
+        mockGet.mockResolvedValue({
+            exists: true,
+            id: 'camp_pending_compliance',
+            data: () => ({ ...campaignData }),
+        });
+
+        const result = await executeCampaign('camp_pending_compliance');
+
+        expect(result).toEqual({
+            success: false,
+            sent: 0,
+            failed: 0,
+            error: 'Campaign has not passed compliance review. Run Deebo check before sending.',
+        });
+
+        expect(mockUpdate).toHaveBeenCalledWith({
+            status: 'compliance_review',
+            updatedAt: expect.any(Date),
+        });
+    });
+
+    it('allows campaign to proceed when complianceStatus is "passed"', async () => {
+        const campaignData = makeCampaign({
+            status: 'approved',
+            complianceStatus: 'passed',
+            channels: ['email'],
+            content: {
+                email: {
+                    channel: 'email',
+                    subject: 'Hello {{firstName}}!',
+                    body: 'Thanks!',
+                },
+            },
+        });
+
+        const campaignSnap = {
+            exists: true,
+            id: 'camp_compliance_passed',
+            data: () => ({ ...campaignData }),
+        };
+
+        const customerDocs = {
+            docs: [
+                mockDocSnap('c1', {
+                    email: 'alice@example.com',
+                    firstName: 'Alice',
+                    segment: 'vip',
+                    totalSpent: 100,
+                    orderCount: 5,
+                }),
+            ],
+        };
+
+        const tenantSnap = {
+            exists: true,
+            data: () => ({ name: 'Test Org' }),
+        };
+
+        let getCalls = 0;
+        mockGet.mockImplementation(() => {
+            getCalls++;
+            if (getCalls === 1) return Promise.resolve(campaignSnap);
+            if (getCalls === 2) return Promise.resolve(customerDocs);
+            if (getCalls === 3) return Promise.resolve(tenantSnap);
+            return Promise.resolve({ exists: false, data: () => null });
+        });
+
+        mockWhere.mockReturnValue({ get: mockGet });
+
+        // Mock the batch
+        mockCollection.mockImplementation((name: string) => {
+            if (name === 'campaigns') {
+                return {
+                    doc: () => ({
+                        get: mockGet,
+                        update: mockUpdate,
+                        collection: () => ({
+                            doc: jest.fn().mockReturnValue({}),
+                        }),
+                    }),
+                };
+            }
+            if (name === 'customers') {
+                return { where: mockWhere };
+            }
+            if (name === 'tenants') {
+                return {
+                    doc: () => ({
+                        get: mockGet,
+                    }),
+                };
+            }
+            return { doc: mockDoc };
+        });
+
+        const { createServerClient } = await import('@/firebase/server-client');
+        (createServerClient as jest.Mock).mockResolvedValue({
+            firestore: {
+                collection: mockCollection,
+                batch: () => ({
+                    set: mockBatchSet,
+                    commit: mockBatchCommit,
+                }),
+            },
+        });
+
+        (sendGenericEmail as jest.Mock).mockResolvedValue({ success: true });
+
+        const result = await executeCampaign('camp_compliance_passed');
+
+        // Campaign should proceed normally
+        expect(result.success).toBe(true);
+        expect(result.sent).toBe(1);
+        expect(result.failed).toBe(0);
+
+        // Verify campaign was updated to 'sending' then 'sent' (not 'compliance_review')
+        expect(mockUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                status: 'sending',
+            }),
+        );
+        expect(mockUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({
+                status: 'sent',
+            }),
+        );
+    });
+
     it('returns success with 0 sent when audience is empty', async () => {
         // First get() call — campaign doc
         const campaignData = makeCampaign({ status: 'scheduled' });

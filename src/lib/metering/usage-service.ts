@@ -29,7 +29,8 @@ export type UsageMeteringMetric =
     | 'aiSessionsUsed'
     | 'creativeAssetsUsed'
     | 'competitorsTracked'
-    | 'zipCodesActive';
+    | 'zipCodesActive'
+    | 'customCampaignsUsed';
 
 export interface MonthlyUsageDoc {
     id: string;
@@ -42,6 +43,7 @@ export interface MonthlyUsageDoc {
     creativeAssetsUsed: number;
     competitorsTracked: number;
     zipCodesActive: number;
+    customCampaignsUsed: number;
     overageCharges: {
         sms: number;
         email: number;
@@ -66,6 +68,7 @@ export interface UsageWithLimits {
         creativeAssets: { used: number; limit: number; pct: number; unlimited: boolean };
         competitors: { used: number; limit: number; pct: number; unlimited: boolean };
         zipCodes: { used: number; limit: number; pct: number; unlimited: boolean };
+        customCampaigns: { used: number; limit: number; pct: number; unlimited: boolean };
     };
     overageCharges: MonthlyUsageDoc['overageCharges'];
     alertSentAt80Percent: boolean;
@@ -147,6 +150,7 @@ export async function getMonthlyUsage(
         creativeAssetsUsed: d.creativeAssetsUsed ?? 0,
         competitorsTracked: d.competitorsTracked ?? 0,
         zipCodesActive: d.zipCodesActive ?? 0,
+        customCampaignsUsed: d.customCampaignsUsed ?? 0,
         overageCharges: d.overageCharges ?? { sms: 0, email: 0, creativeAssets: 0, zipCodes: 0, competitors: 0, total: 0 },
         alertSentAt80Percent: d.alertSentAt80Percent ?? false,
         createdAt: d.createdAt ?? null,
@@ -175,6 +179,7 @@ export async function getUsageWithLimits(
         creativeAssets: usage?.creativeAssetsUsed ?? 0,
         competitors: usage?.competitorsTracked ?? 0,
         zipCodes: usage?.zipCodesActive ?? 0,
+        customCampaigns: usage?.customCampaignsUsed ?? 0,
     };
 
     const limits = {
@@ -185,6 +190,7 @@ export async function getUsageWithLimits(
         competitors: alloc.competitors,
         zipCodes: alloc.zipCodes,
         creativeAssets: alloc.creativeAssets,
+        customCampaigns: alloc.customCampaigns,
     };
 
     const buildMetric = (key: keyof typeof u) => {
@@ -206,6 +212,7 @@ export async function getUsageWithLimits(
         creativeAssets: buildMetric('creativeAssets'),
         competitors: buildMetric('competitors'),
         zipCodes: buildMetric('zipCodes'),
+        customCampaigns: buildMetric('customCampaigns'),
     };
 
     const atRisk = Object.entries(metrics)
