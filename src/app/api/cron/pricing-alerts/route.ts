@@ -11,6 +11,15 @@
  *   --http-method=GET
  *   --headers="Authorization=Bearer CRON_SECRET"
  *   --location=us-central1
+ *
+ * Cloud Scheduler:
+ *   Schedule: "0 * /6 * * *"  (every 6 hours)
+ *   gcloud scheduler jobs create http pricing-alerts \
+ *     --schedule="0 * /6 * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/pricing-alerts" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
  */
 
 import { NextRequest, NextResponse } from 'next/server';

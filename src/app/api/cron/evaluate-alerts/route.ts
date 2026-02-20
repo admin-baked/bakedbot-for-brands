@@ -2,6 +2,15 @@
 /**
  * Cron endpoint for evaluating alerts
  * Should be called every 5-15 minutes by Cloud Scheduler or Vercel Cron
+ *
+ * Cloud Scheduler:
+ *   Schedule: "* /15 * * * *"  (every 15 minutes)
+ *   gcloud scheduler jobs create http evaluate-alerts \
+ *     --schedule="* /15 * * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/evaluate-alerts" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
  */
 
 import { NextRequest, NextResponse } from 'next/server';

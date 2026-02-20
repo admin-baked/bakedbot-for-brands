@@ -1,3 +1,19 @@
+/**
+ * DayDay Daily Discovery Cron Endpoint
+ * GET /api/cron/dayday-discovery
+ *
+ * Processes 5 domestic cannabis markets per run for DayDay dispensary discovery.
+ *
+ * Cloud Scheduler:
+ *   Schedule: 0 6 * * *  (daily 6:00 AM ET)
+ *   gcloud scheduler jobs create http dayday-discovery \
+ *     --schedule="0 6 * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/dayday-discovery" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { runDayDayDailyDiscovery } from '@/server/jobs/dayday-daily-discovery';
 import { logger } from '@/lib/logger';

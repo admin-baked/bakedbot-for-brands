@@ -6,6 +6,7 @@
 import { geocodeLocation } from '@/server/services/geo-discovery';
 import { discovery } from '@/server/services/firecrawl';
 import { filterUrl, isDispensaryPlatform } from '@/server/agents/ezal-team/url-filter';
+import { logger } from '@/lib/logger';
 
 export async function searchDemoRetailers(zip: string) {
     // No requireUser() check - this is for public demo
@@ -18,10 +19,10 @@ export async function searchDemoRetailers(zip: string) {
 
         if (!coords) {
              // Fallback if geocoding fails, but still try search
-             console.warn("Could not geocode ZIP:", zip);
+             logger.warn('[Demo] Could not geocode ZIP:', { zip });
         }
 
-        console.log(`[Demo] Hunting for dispensaries in ${locationStr} using Firecrawl...`);
+        logger.info(`[Demo] Hunting for dispensaries in ${locationStr} using Firecrawl...`);
 
         // 1. Live Search via Firecrawl
         // Use optimized search query for dispensary menus
@@ -67,7 +68,7 @@ export async function searchDemoRetailers(zip: string) {
                 });
 
                 if (!urlCheck.allowed) {
-                    console.log(`[Demo] Filtered out: ${url} (${urlCheck.reason})`);
+                    logger.info(`[Demo] Filtered out: ${url} (${urlCheck.reason})`);
                     return false;
                 }
 
@@ -81,7 +82,7 @@ export async function searchDemoRetailers(zip: string) {
                     lowerTitle.startsWith('dispensaries in');
 
                 if (isBestOfList) {
-                    console.log(`[Demo] Filtered out listicle: ${lowerTitle}`);
+                    logger.info(`[Demo] Filtered out listicle: ${lowerTitle}`);
                     return false;
                 }
 
@@ -162,7 +163,7 @@ export async function searchDemoRetailers(zip: string) {
         if (targetIndex !== -1 && discovery.isConfigured()) {
             try {
                 const target = mapped[targetIndex];
-                console.log(`[Demo] Enriching top target: ${target.name} at ${target.menuUrl}`);
+                logger.info(`[Demo] Enriching top target: ${target.name} at ${target.menuUrl}`);
 
                 // Live Scrape
                 const scrapeResult = await discovery.discoverUrl(target.menuUrl, ['markdown']);
@@ -188,7 +189,7 @@ export async function searchDemoRetailers(zip: string) {
                     };
                 }
             } catch (err) {
-                 console.warn("[Demo] FireCrawl enrichment failed, falling back to basic data", err);
+                 logger.warn('[Demo] FireCrawl enrichment failed, falling back to basic data', { error: err instanceof Error ? err.message : String(err) });
                  // Mark as enriched anyway so UI shows "Scout" checked
                  mapped[targetIndex].isEnriched = true;
                  mapped[targetIndex].enrichmentSummary = "Verified via Agent: Site active (Enrichment timeout)";
@@ -207,7 +208,7 @@ export async function searchDemoRetailers(zip: string) {
 
         return { success: true, daa: mapped, location: locationStr };
     } catch (e) {
-        console.error("Discovery demo search failed", e);
+        logger.error('[Demo] Discovery demo search failed', { error: e instanceof Error ? e.message : String(e) });
         return { success: false, error: "Market Scout Search Failed" };
     }
 }
@@ -228,7 +229,7 @@ export async function sendDemoSMS(phoneNumber: string, messageBody: string) {
             return { success: false, error: 'Failed to send SMS via provider' };
         }
     } catch (e: any) {
-        console.error('[Demo] Send SMS failed:', e);
+        logger.error('[Demo] Send SMS failed:', { error: e.message });
         return { success: false, error: e.message };
     }
 }
@@ -250,7 +251,7 @@ export async function sendDemoEmail(email: string, htmlBody: string) {
             return { success: false, error: result.error || 'Failed to send Email' };
         }
     } catch (e: any) {
-        console.error('[Demo] Send Email failed:', e);
+        logger.error('[Demo] Send Email failed:', { error: e.message });
         return { success: false, error: e.message };
     }
 }

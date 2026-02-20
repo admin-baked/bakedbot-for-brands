@@ -17,6 +17,15 @@
  *   dryRun     boolean  Match but do NOT write (default: false)
  *   maxBrands  number   Limit how many brands to process
  *   retailerId string   Retailer to scope brands to (default: retail_thrive_syracuse)
+ *
+ * Cloud Scheduler:
+ *   Schedule: 0 3 * * *  (daily 3:00 AM ET — low traffic window)
+ *   gcloud scheduler jobs create http brand-website-image-sync \
+ *     --schedule="0 3 * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/brand-website-image-sync" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
  */
 
 import { NextRequest, NextResponse } from 'next/server';

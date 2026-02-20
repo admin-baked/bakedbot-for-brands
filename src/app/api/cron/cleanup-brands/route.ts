@@ -1,3 +1,20 @@
+/**
+ * Cleanup Brands Cron Endpoint
+ * GET /api/cron/cleanup-brands
+ *
+ * Deletes all brand SEO pages from the seo_pages_brand collection.
+ * Runs during the early-morning low-traffic window before SEO regeneration jobs.
+ *
+ * Cloud Scheduler:
+ *   Schedule: 0 2 * * *  (daily 2:00 AM ET)
+ *   gcloud scheduler jobs create http cleanup-brands \
+ *     --schedule="0 2 * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/cleanup-brands" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';

@@ -16,6 +16,15 @@
  *   forceRebuild  boolean  Re-scrape WeedMaps even if catalog is fresh (default: false)
  *   dryRun        boolean  Match products but do NOT write (default: false)
  *   allOrgs       boolean  Run for all orgs with POS config (default: false)
+ *
+ * Cloud Scheduler:
+ *   Schedule: 0 3 * * *  (daily 3:00 AM ET — low traffic window)
+ *   gcloud scheduler jobs create http weedmaps-image-sync \
+ *     --schedule="0 3 * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/weedmaps-image-sync" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{\"allOrgs\":true}"
  */
 
 import { NextRequest, NextResponse } from 'next/server';

@@ -17,6 +17,24 @@
  *   -H "Content-Type: application/json" \
  *   -d '{"reportType":"daily_intel","orgId":"org_thrive_syracuse"}'
  * ```
+ *
+ * Cloud Scheduler (daily intel — 9 AM ET):
+ *   Schedule: 0 9 * * *  (daily 9:00 AM ET)
+ *   gcloud scheduler jobs create http slack-reports-daily \
+ *     --schedule="0 9 * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/slack-reports" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{\"reportType\":\"daily_intel\"}"
+ *
+ * Cloud Scheduler (weekly analytics — Monday 8 AM ET):
+ *   Schedule: 0 8 * * 1  (weekly Monday 8:00 AM ET)
+ *   gcloud scheduler jobs create http slack-reports-weekly \
+ *     --schedule="0 8 * * 1" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/slack-reports" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{\"reportType\":\"weekly_analytics\"}"
  */
 
 import { NextRequest, NextResponse } from 'next/server';

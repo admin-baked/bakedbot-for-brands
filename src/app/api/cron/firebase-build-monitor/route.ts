@@ -1,6 +1,15 @@
 /**
  * Firebase Build Monitor Cron Endpoint
  * Called every 10 minutes by Cloud Scheduler
+ *
+ * Cloud Scheduler:
+ *   Schedule: "* /10 * * * *"  (every 10 minutes)
+ *   gcloud scheduler jobs create http firebase-build-monitor \
+ *     --schedule="* /10 * * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/firebase-build-monitor" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
  */
 
 import { NextRequest, NextResponse } from 'next/server';
