@@ -181,6 +181,31 @@ export async function executeCampaign(campaignId: string): Promise<{
         return { success: false, sent: 0, failed: 0, error: `Invalid status: ${campaign.status}` };
     }
 
+    // Compliance gate: block send if Deebo has not approved this campaign.
+    // complianceStatus is set to 'passed' by Deebo during campaign creation/review.
+    // This is a final safety check at the send layer — cannot be bypassed by status alone.
+    if (campaign.complianceStatus !== 'passed') {
+        const violations = campaign.channels
+            .map(ch => campaign.content[ch]?.complianceViolations?.join(', '))
+            .filter(Boolean)
+            .join('; ');
+        const reason = campaign.complianceStatus === 'failed'
+            ? `Compliance failed: ${violations || 'see compliance review'}`
+            : 'Campaign has not passed compliance review. Run Deebo check before sending.';
+
+        logger.warn('[CAMPAIGN_SENDER] Blocked: compliance gate', {
+            campaignId,
+            complianceStatus: campaign.complianceStatus ?? 'not_set',
+        });
+
+        await firestore.collection('campaigns').doc(campaignId).update({
+            status: 'compliance_review',
+            updatedAt: new Date(),
+        });
+
+        return { success: false, sent: 0, failed: 0, error: reason };
+    }
+
     logger.info('[CAMPAIGN_SENDER] Executing campaign', {
         campaignId,
         name: campaign.name,
