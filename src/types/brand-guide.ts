@@ -229,6 +229,7 @@ export interface BrandVoice {
 // ============================================================================
 
 export interface BrandMessaging {
+  brandName?: string;           // Extracted brand name (e.g., "Thrive Syracuse")
   tagline: string;
   alternateTaglines?: string[]; // A/B test variants
   positioning: string;          // "Premium craft cannabis for connoisseurs"
