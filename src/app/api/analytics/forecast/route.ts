@@ -12,6 +12,7 @@ import { forecastingService } from '@/lib/analytics/forecasting-service';
 import { getUserFromRequest } from '@/server/auth/auth-helpers';
 import { requireRole, requireBrandAccess } from '@/server/auth/rbac';
 import { logger } from '@/lib/logger';
+import { withCache, CachePrefix, CacheTTL } from '@/lib/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,7 +63,13 @@ export async function GET(req: NextRequest) {
         const searchParams = req.nextUrl.searchParams;
         const days = parseInt(searchParams.get('days') || '30', 10);
 
-        const forecast = await forecastingService.generateForecast(brandId, days);
+        // Use cache for forecast (10 min TTL) - expensive to compute
+        const forecast = await withCache(
+            CachePrefix.ANALYTICS,
+            `${brandId}:forecast:${days}`,
+            () => forecastingService.generateForecast(brandId, days),
+            CacheTTL.ANALYTICS
+        );
 
         return NextResponse.json(forecast);
     } catch (error: any) {
