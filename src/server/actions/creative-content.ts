@@ -343,6 +343,8 @@ export async function generateContent(
 
 /**
  * Approve content and optionally schedule
+ *
+ * CRITICAL: Server-side compliance gate — blocks publish if Deebo check fails
  */
 export async function approveContent(request: ApproveContentRequest): Promise<void> {
     const user = await requireUser();
@@ -356,6 +358,47 @@ export async function approveContent(request: ApproveContentRequest): Promise<vo
         if (!doc.exists) {
             throw new Error('Content not found');
         }
+
+        const content = doc.data() as CreativeContent;
+
+        // ========== COMPLIANCE GATE (SERVER-SIDE ENFORCEMENT) ==========
+        // Re-run Deebo compliance check at approval time (can't trust client-side badge)
+        // Block approval if content fails compliance
+        try {
+            const { deebo } = await import('@/server/agents/deebo');
+            const complianceResult = await deebo.checkContent(
+                'US', // TODO: Get jurisdiction from tenant settings
+                mapPlatformToChannel(content.platform),
+                content.caption
+            );
+
+            if (complianceResult.status === 'fail') {
+                logger.warn('[creative-content] Approval blocked — content failed Deebo compliance check', {
+                    contentId: request.contentId,
+                    violations: complianceResult.violations,
+                });
+                throw new Error(
+                    `Content failed compliance check: ${complianceResult.violations.join(', ')}`
+                );
+            }
+
+            if (complianceResult.status === 'warning') {
+                logger.info('[creative-content] Content approved with compliance warnings', {
+                    contentId: request.contentId,
+                    warnings: complianceResult.violations,
+                });
+            }
+        } catch (deeboErr) {
+            // If Deebo is unavailable, BLOCK the approval (fail-safe)
+            logger.error('[creative-content] Deebo compliance check failed — blocking approval', {
+                contentId: request.contentId,
+                error: String(deeboErr),
+            });
+            throw new Error(
+                'Compliance check unavailable. Cannot approve content without compliance verification.'
+            );
+        }
+        // ===============================================================
 
         // Generate QR code for approved content
         const qrResult = await generateCreativeQR({
@@ -590,6 +633,91 @@ export async function updateContentStatus(
     } catch (error) {
         logger.error('[creative-content] Failed to update status', { error });
         throw error;
+    }
+}
+
+/**
+ * Publish content (with compliance enforcement)
+ *
+ * CRITICAL: Server-side compliance gate — blocks publish if Deebo check fails
+ */
+export async function publishContent(
+    tenantId: string,
+    contentId: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        await requireUser();
+        const { firestore } = await createServerClient();
+
+        const ref = firestore.doc(`tenants/${tenantId}/${COLLECTION}/${contentId}`);
+        const doc = await ref.get();
+
+        if (!doc.exists) {
+            return { success: false, error: 'Content not found' };
+        }
+
+        const content = doc.data() as CreativeContent;
+
+        // ========== COMPLIANCE GATE (SERVER-SIDE ENFORCEMENT) ==========
+        // Re-run Deebo compliance check at publish time
+        // Block publish if content fails compliance
+        try {
+            const { deebo } = await import('@/server/agents/deebo');
+            const complianceResult = await deebo.checkContent(
+                'US', // TODO: Get jurisdiction from tenant settings
+                mapPlatformToChannel(content.platform),
+                content.caption
+            );
+
+            if (complianceResult.status === 'fail') {
+                logger.warn('[creative-content] Publish blocked — content failed Deebo compliance check', {
+                    contentId,
+                    violations: complianceResult.violations,
+                });
+                return {
+                    success: false,
+                    error: `Content failed compliance check: ${complianceResult.violations.join(', ')}`,
+                };
+            }
+
+            if (complianceResult.status === 'warning') {
+                logger.info('[creative-content] Content published with compliance warnings', {
+                    contentId,
+                    warnings: complianceResult.violations,
+                });
+            }
+        } catch (deeboErr) {
+            // If Deebo is unavailable, BLOCK the publish (fail-safe)
+            logger.error('[creative-content] Deebo compliance check failed — blocking publish', {
+                contentId,
+                error: String(deeboErr),
+            });
+            return {
+                success: false,
+                error: 'Compliance check unavailable. Cannot publish content without compliance verification.',
+            };
+        }
+        // ===============================================================
+
+        // Update status to published
+        await ref.update({
+            status: 'published',
+            publishedAt: new Date().toISOString(),
+            updatedAt: Date.now(),
+        });
+
+        logger.info('[creative-content] Content published', {
+            contentId,
+            platform: content.platform,
+        });
+
+        return { success: true };
+    } catch (error) {
+        logger.error('[creative-content] Failed to publish content', { error });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Failed to publish content',
+        };
     }
 }
 
