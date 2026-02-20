@@ -89,9 +89,8 @@ Only after Stages 1-4 are complete:
 
 **Recent work (2026-02-19):** See `memory/MEMORY.md` for full log.
 Key completed:
-- [Golden set eval runner] (`212e94ca`) — `node scripts/run-golden-eval.mjs --agent <agent> [--full]`; FAST mode (free), FULL mode (Claude Haiku ~$0.15/run); exit 1 on compliance fail.
-- [Spec-first workflow + golden sets] (`c3ab224d`) — spec-template, review-checklist, Workflow Protocol in prime.md, Smokey/Craig/Deebo golden set eval suites (65 total QA cases).
-- [Brand Guide multi-page crawl] (`8d873984`) — Extractor now scrapes /about-us, /about, /our-story etc. in parallel; 3k→5k content window for AI.
+- [Compliance infra] (`939c817b`, `7c85bcf8`) — NY/CA/IL regex rule packs; regulation monitor (weekly scrape → SHA-256 diff → Claude Haiku proposal → Drive + Slack); NEVER auto-modifies rule packs.
+- [Prod-readiness sweep] (`20664a99`) — Playbooks Edit/Duplicate/Delete handlers wired; 40× console→logger in 7 server files; Cloud Scheduler gcloud commands added to 21 cron routes.
 - [Menu Command Center] (`72f5f044`) — Live Preview tab, drag-to-reorder, per-card overlays, Full Screen toggle.
 - [Brand Guide onboarding overhaul] (`b9a24074`) — Fixed silent data-loss bugs; dispensary type smart voice defaults; logo preview.
 - [Mid-Tier Brand Logos Seed] (`7fe7f898`) — Seed script for mid-tier brand logos + upload utilities. See `scripts/seed-brand-logos.ts`.

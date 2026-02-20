@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (Golden set eval runner — `node scripts/run-golden-eval.mjs --agent deebo [--full]`)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (NY/CA/IL rule packs, regulation monitor, prod-readiness sweep)
 
 ---
 
