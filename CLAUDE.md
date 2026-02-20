@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (NY/CA/IL rule packs, regulation monitor, prod-readiness sweep)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-19 (Production Spec Initiative — .agent/specs/ created, 5 Tier 1 specs written)
 
 ---
 
