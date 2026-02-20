@@ -3,11 +3,10 @@
 
 
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2, Package, Sparkles, Check, Wand2, List } from 'lucide-react';
+import { Plus, Loader2, Package, Wand2, List } from 'lucide-react';
 import { useDispensaryId } from '@/hooks/use-dispensary-id';
 import { useEffect, useState, useCallback } from 'react';
 import { getBundles } from '@/app/actions/bundles';
-import { generateAIBundleSuggestions, createBundleFromSuggestion, type SuggestedBundle } from '@/app/actions/bundle-suggestions';
 import { BundleDeal } from '@/types/bundles';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -17,17 +16,8 @@ import {
     SheetHeader,
     SheetTitle,
 } from "@/components/ui/sheet";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog";
 import { BundleForm } from '@/components/dashboard/bundles/bundle-form';
 import { BundleRuleBuilder } from '@/components/dashboard/bundles/bundle-rule-builder';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function BundlesPage() {
@@ -37,12 +27,6 @@ export default function BundlesPage() {
     const { toast } = useToast();
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [selectedBundle, setSelectedBundle] = useState<BundleDeal | undefined>(undefined);
-
-    // AI Suggestions state
-    const [isSuggestDialogOpen, setIsSuggestDialogOpen] = useState(false);
-    const [suggestions, setSuggestions] = useState<SuggestedBundle[]>([]);
-    const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-    const [creatingSuggestion, setCreatingSuggestion] = useState<string | null>(null);
 
     const fetchBundles = useCallback(async () => {
         if (!dispensaryId) return;
@@ -81,49 +65,6 @@ export default function BundlesPage() {
     const handleSuccess = () => {
         setIsSheetOpen(false);
         fetchBundles();
-    };
-
-    const handleAISuggest = async () => {
-        if (!dispensaryId) return;
-        setIsSuggestDialogOpen(true);
-        setLoadingSuggestions(true);
-        setSuggestions([]);
-
-        const result = await generateAIBundleSuggestions(dispensaryId);
-        setLoadingSuggestions(false);
-
-        if (result.success && result.suggestions) {
-            setSuggestions(result.suggestions);
-        } else {
-            toast({
-                title: "No Suggestions",
-                description: result.error || "Could not generate suggestions. Make sure you have products added.",
-                variant: "destructive"
-            });
-        }
-    };
-
-    const handleAcceptSuggestion = async (suggestion: SuggestedBundle) => {
-        if (!dispensaryId) return;
-        setCreatingSuggestion(suggestion.name);
-
-        const result = await createBundleFromSuggestion(dispensaryId, suggestion);
-        setCreatingSuggestion(null);
-
-        if (result.success) {
-            toast({
-                title: "Bundle Created",
-                description: `"${suggestion.name}" has been added as a draft. Review and activate it when ready.`,
-            });
-            setSuggestions(prev => prev.filter(s => s.name !== suggestion.name));
-            fetchBundles();
-        } else {
-            toast({
-                title: "Failed to Create",
-                description: result.error,
-                variant: "destructive"
-            });
-        }
     };
 
     if (idLoading || (loading && dispensaryId && bundles.length === 0)) {
@@ -165,13 +106,6 @@ export default function BundlesPage() {
                 </TabsContent>
 
                 <TabsContent value="bundles" className="space-y-4">
-                    <div className="flex justify-end">
-                        <Button variant="outline" onClick={handleAISuggest}>
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            Quick AI Suggestions
-                        </Button>
-                    </div>
-
                     <div className="grid gap-4">
                         {bundles.length === 0 ? (
                             <div className="p-12 border border-dashed rounded-lg bg-card/50 text-center text-muted-foreground flex flex-col items-center">
@@ -180,12 +114,7 @@ export default function BundlesPage() {
                                 </div>
                                 <h3 className="font-semibold text-lg mb-2">No bundles yet</h3>
                                 <p className="mb-4 max-w-sm">Use the AI Rule Builder to create your first margin-protected bundle deals.</p>
-                                <div className="flex gap-2">
-                                    <Button onClick={handleAISuggest} variant="outline">
-                                        <Sparkles className="h-4 w-4 mr-2" />Quick Suggestions
-                                    </Button>
-                                    <Button onClick={handleCreateOpen}>Manual Create</Button>
-                                </div>
+                                <Button onClick={handleCreateOpen} variant="outline">Create Manually</Button>
                             </div>
                         ) : (
                             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -241,61 +170,6 @@ export default function BundlesPage() {
                     )}
                 </SheetContent>
             </Sheet>
-
-            {/* AI Suggestions Dialog */}
-            <Dialog open={isSuggestDialogOpen} onOpenChange={setIsSuggestDialogOpen}>
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Sparkles className="h-5 w-5 text-primary" />
-                            AI Bundle Suggestions
-                        </DialogTitle>
-                        <DialogDescription>
-                            Based on your product catalog, here are some bundle ideas. Click to add them as drafts.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto">
-                        {loadingSuggestions ? (
-                            <div className="flex items-center justify-center py-12">
-                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                            </div>
-                        ) : suggestions.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                                <p>No suggestions available. Try adding more products first.</p>
-                            </div>
-                        ) : (
-                            suggestions.map((suggestion, idx) => (
-                                <Card key={idx} className="p-4">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <h4 className="font-semibold">{suggestion.name}</h4>
-                                            {suggestion.badgeText && (
-                                                <Badge variant="secondary" className="mt-1">{suggestion.badgeText}</Badge>
-                                            )}
-                                        </div>
-                                        <Badge className="bg-green-100 text-green-700">{suggestion.savingsPercent}% OFF</Badge>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground mb-3">{suggestion.description}</p>
-                                    <div className="text-xs text-muted-foreground mb-3">
-                                        Products: {suggestion.products.map(p => p.name).join(', ')}
-                                    </div>
-                                    <Button
-                                        size="sm"
-                                        onClick={() => handleAcceptSuggestion(suggestion)}
-                                        disabled={creatingSuggestion === suggestion.name}
-                                    >
-                                        {creatingSuggestion === suggestion.name ? (
-                                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Adding...</>
-                                        ) : (
-                                            <><Check className="h-4 w-4 mr-2" />Add as Draft</>
-                                        )}
-                                    </Button>
-                                </Card>
-                            ))
-                        )}
-                    </div>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

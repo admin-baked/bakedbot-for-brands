@@ -24,6 +24,7 @@ import {
 import {
     parseNaturalLanguageRule,
     getSmartPresets,
+    generateAIBundleSuggestions,
     createBundleFromSuggestion,
     type SuggestedBundle,
 } from '@/app/actions/bundle-suggestions';
@@ -54,6 +55,7 @@ export function BundleRuleBuilder({ orgId, onBundleCreated }: BundleRuleBuilderP
     const [rulePrompt, setRulePrompt] = useState('');
     const [minMargin, setMinMargin] = useState(15);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isGeneratingAll, setIsGeneratingAll] = useState(false);
     const [presets, setPresets] = useState<Array<{
         label: string;
         prompt: string;
@@ -147,8 +149,66 @@ export function BundleRuleBuilder({ orgId, onBundleCreated }: BundleRuleBuilderP
         }
     };
 
+    const handleGenerateAllSuggestions = async () => {
+        if (!orgId) return;
+
+        setIsGeneratingAll(true);
+        setSuggestions([]);
+
+        try {
+            const result = await generateAIBundleSuggestions(orgId);
+
+            if (result.success && result.suggestions && result.suggestions.length > 0) {
+                setSuggestions(result.suggestions);
+                toast({
+                    title: "Suggestions Ready",
+                    description: `Generated ${result.suggestions.length} bundle suggestions based on inventory analysis and margins.`,
+                });
+            } else {
+                toast({
+                    title: "No Suggestions",
+                    description: result.error || "Could not generate suggestions. Add more products to your catalog first.",
+                    variant: "destructive",
+                });
+            }
+        } catch {
+            toast({
+                title: "Error",
+                description: "Failed to generate suggestions. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsGeneratingAll(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
+            {/* Auto-Generate All Bundles Section */}
+            <Card className="border-primary/20 bg-primary/5">
+                <CardContent className="flex items-center justify-between py-4">
+                    <div>
+                        <h3 className="font-semibold">Auto-Generate Bundle Suggestions</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Let AI analyze your inventory and margins to suggest optimal bundles
+                        </p>
+                    </div>
+                    <Button onClick={handleGenerateAllSuggestions} disabled={isGeneratingAll}>
+                        {isGeneratingAll ? (
+                            <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Analyzing...
+                            </>
+                        ) : (
+                            <>
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Generate All Suggestions
+                            </>
+                        )}
+                    </Button>
+                </CardContent>
+            </Card>
+
             {/* Margin Protection Banner */}
             <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
                 <CardContent className="flex items-center gap-3 py-3">
