@@ -180,18 +180,24 @@ export async function createFolder(input: CreateFolderInput): Promise<DriveActio
  */
 export async function getFolderContents(
   folderId: string | null,
-  options?: { category?: DriveCategory; sortBy?: 'name' | 'date' | 'size' }
+  options?: {
+    category?: DriveCategory;
+    sortBy?: 'name' | 'date' | 'size';
+    limit?: number;
+    cursor?: string; // File ID to start after (for pagination)
+  }
 ): Promise<DriveActionResult<DriveListResult>> {
   try {
     const user = await requireUser(['super_user', 'brand', 'dispensary']);
     const db = getAdminFirestore();
+    const pageSize = options?.limit || 100;
 
     // Initialize system folders if this is the root view
     if (folderId === null) {
       await initializeSystemFolders();
     }
 
-    // Get subfolders
+    // Get subfolders (no pagination - typically <50 folders per directory)
     let foldersQuery = db
       .collection(COLLECTIONS.FOLDERS)
       .where('ownerId', '==', user.uid)
@@ -201,7 +207,8 @@ export async function getFolderContents(
     const foldersSnapshot = await foldersQuery.get();
     const folders = foldersSnapshot.docs.map((doc) => toFolder(doc.data() as DriveFolderDoc));
 
-    // Get files
+    // Get files with pagination
+    const sortBy = options?.sortBy || 'date';
     let filesQuery = db
       .collection(COLLECTIONS.FILES)
       .where('ownerId', '==', user.uid)
@@ -212,19 +219,42 @@ export async function getFolderContents(
       filesQuery = filesQuery.where('category', '==', options.category);
     }
 
+    // Order by sortBy field for Firestore-level pagination
+    if (sortBy === 'date') {
+      filesQuery = filesQuery.orderBy('createdAt', 'desc');
+    } else if (sortBy === 'size') {
+      filesQuery = filesQuery.orderBy('size', 'desc');
+    } else {
+      filesQuery = filesQuery.orderBy('name', 'asc');
+    }
+
+    // Apply cursor pagination
+    if (options?.cursor) {
+      const cursorDoc = await db.collection(COLLECTIONS.FILES).doc(options.cursor).get();
+      if (cursorDoc.exists) {
+        filesQuery = filesQuery.startAfter(cursorDoc);
+      }
+    }
+
+    // Fetch pageSize+1 to check if there are more pages
+    filesQuery = filesQuery.limit(pageSize + 1);
     const filesSnapshot = await filesQuery.get();
     const files = filesSnapshot.docs.map((doc) => toFile(doc.data() as DriveFileDoc));
 
-    // Sort
-    const sortBy = options?.sortBy || 'date';
+    // Check if there are more pages
+    const hasMore = files.length > pageSize;
+    if (hasMore) {
+      files.pop(); // Remove the extra file
+    }
+
+    // Next cursor is the ID of the last file
+    const nextCursor = hasMore && files.length > 0 ? files[files.length - 1].id : undefined;
+
+    // Sort folders (in-memory, since no pagination)
     if (sortBy === 'name') {
       folders.sort((a, b) => a.name.localeCompare(b.name));
-      files.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortBy === 'date') {
       folders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-      files.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    } else if (sortBy === 'size') {
-      files.sort((a, b) => b.size - a.size);
     }
 
     // Build breadcrumbs
@@ -240,13 +270,13 @@ export async function getFolderContents(
       }
     }
 
-    // Calculate totals
+    // Calculate totals (only for current page of files)
     const totalSize = files.reduce((sum, f) => sum + f.size, 0);
     const totalCount = folders.length + files.length;
 
     return {
       success: true,
-      data: { folders, files, breadcrumbs, totalSize, totalCount },
+      data: { folders, files, breadcrumbs, totalSize, totalCount, nextCursor, hasMore },
     };
   } catch (error) {
     logger.error('Failed to get folder contents', { error, folderId });
