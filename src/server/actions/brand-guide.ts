@@ -117,7 +117,7 @@ export async function createBrandGuide(
     // Create initial version
     await repo.createVersion(input.brandId, {
       version: 1,
-      timestamp: Timestamp.now(),
+      timestamp: new Date(),
       updatedBy: input.brandId,
       changes: [
         {
@@ -205,7 +205,7 @@ export async function updateBrandGuide(
 
       await repo.createVersion(input.brandId, {
         version: current.version + 1,
-        timestamp: Timestamp.now(),
+        timestamp: new Date(),
         updatedBy: input.brandId,
         changes,
         snapshot: { ...current, ...input.updates },
