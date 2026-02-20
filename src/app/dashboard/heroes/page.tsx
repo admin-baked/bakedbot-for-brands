@@ -187,6 +187,7 @@ export default function HeroesPage() {
                 <TabsContent value="ai-builder" className="space-y-4">
                     {dispensaryId && (
                         <HeroGeneratorInline
+                            orgId={dispensaryId}
                             onComplete={fetchHeroes}
                         />
                     )}

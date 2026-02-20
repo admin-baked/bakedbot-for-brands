@@ -47,7 +47,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from '@/lib/utils';
-import { useDispensaryId } from '@/hooks/use-dispensary-id';
+import { logger } from '@/lib/logger';
 import { createHero } from '@/app/actions/heroes';
 import {
     generateAIHeroSuggestions,
@@ -70,17 +70,18 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 };
 
 interface HeroGeneratorInlineProps {
+    orgId: string;
     onComplete?: (heroData: Hero) => void;
     initialPrompt?: string;
     className?: string;
 }
 
 export function HeroGeneratorInline({
+    orgId,
     onComplete,
     initialPrompt = '',
     className
 }: HeroGeneratorInlineProps) {
-    const { dispensaryId } = useDispensaryId();
     const { toast } = useToast();
 
     // Manual builder state
@@ -120,16 +121,16 @@ export function HeroGeneratorInline({
     // Load smart presets on mount
     useEffect(() => {
         async function loadPresets() {
-            if (!dispensaryId) return;
+            if (!orgId) return;
             setLoadingPresets(true);
-            const result = await getHeroPresets(dispensaryId);
+            const result = await getHeroPresets(orgId);
             if (result.success && result.presets) {
                 setPresets(result.presets);
             }
             setLoadingPresets(false);
         }
         loadPresets();
-    }, [dispensaryId]);
+    }, [orgId]);
 
     const handlePresetClick = (prompt: string) => {
         setRulePrompt(prompt);
@@ -145,7 +146,7 @@ export function HeroGeneratorInline({
             return;
         }
 
-        if (!dispensaryId) {
+        if (!orgId) {
             toast({
                 title: "Organization Required",
                 description: "Could not determine your organization.",
@@ -158,7 +159,7 @@ export function HeroGeneratorInline({
         setSuggestions([]);
 
         try {
-            const result = await parseNaturalLanguageHero(dispensaryId, rulePrompt);
+            const result = await parseNaturalLanguageHero(orgId, rulePrompt);
 
             if (result.success && result.suggestion) {
                 setSuggestions([result.suggestion]);
@@ -185,7 +186,7 @@ export function HeroGeneratorInline({
     };
 
     const handleGenerateAllSuggestions = async () => {
-        if (!dispensaryId) {
+        if (!orgId) {
             toast({
                 title: "Organization Required",
                 description: "Could not determine your organization.",
@@ -198,7 +199,7 @@ export function HeroGeneratorInline({
         setSuggestions([]);
 
         try {
-            const result = await generateAIHeroSuggestions(dispensaryId);
+            const result = await generateAIHeroSuggestions(orgId);
 
             if (result.success && result.suggestions && result.suggestions.length > 0) {
                 setSuggestions(result.suggestions);
@@ -225,12 +226,12 @@ export function HeroGeneratorInline({
     };
 
     const handleAcceptSuggestion = async (suggestion: HeroSuggestion) => {
-        if (!dispensaryId) return;
+        if (!orgId) return;
 
         setCreatingSuggestion(suggestion.brandName);
 
         try {
-            const result = await createHeroFromSuggestion(dispensaryId, suggestion);
+            const result = await createHeroFromSuggestion(orgId, suggestion);
 
             if (result.success && result.data) {
                 toast({
@@ -281,7 +282,7 @@ export function HeroGeneratorInline({
             return;
         }
 
-        if (!dispensaryId) {
+        if (!orgId) {
             toast({
                 title: "Organization Required",
                 description: "Could not determine your organization.",
@@ -294,7 +295,7 @@ export function HeroGeneratorInline({
 
         try {
             const result = await createHero({
-                orgId: dispensaryId,
+                orgId: orgId,
                 brandName,
                 brandLogo: brandLogo || undefined,
                 tagline,
