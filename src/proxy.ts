@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCorsHeaders, CORS_PREFLIGHT_HEADERS, isOriginAllowed } from './lib/cors';
+import { checkRateLimit } from './middleware/rate-limit';
 
 /**
  * Proxy for route protection, authentication, CORS, CSRF, and custom domain routing.
@@ -162,6 +163,33 @@ export async function proxy(request: NextRequest) {
     const isAccountRoute = pathname.startsWith('/account');
     const isOnboardingRoute = pathname === '/onboarding';
     const isProtectedRoute = isDashboardRoute || isAccountRoute || isOnboardingRoute;
+
+    // ============================
+    // RATE LIMITING (PUBLIC ROUTES)
+    // ============================
+    // Apply rate limiting to all public routes (menus, API, etc.)
+    // Skip rate limiting for:
+    // - Protected dashboard routes (already auth-gated)
+    // - Cron endpoints (authenticated via CRON_SECRET header)
+    // - Next.js internal routes (_next/)
+    if (!isProtectedRoute && !pathname.startsWith('/api/cron/') && !pathname.startsWith('/_next/')) {
+        const ip =
+            request.headers.get('x-forwarded-for') ||
+            request.headers.get('x-real-ip') ||
+            '127.0.0.1';
+
+        const { success, remaining } = await checkRateLimit(ip);
+
+        if (!success) {
+            return new NextResponse('Too Many Requests', {
+                status: 429,
+                headers: {
+                    'Retry-After': '60',
+                    'X-RateLimit-Remaining': String(remaining || 0),
+                },
+            });
+        }
+    }
 
     // ============================
     // AGE GATE ENFORCEMENT (21+)
