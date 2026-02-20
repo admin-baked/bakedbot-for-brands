@@ -2,6 +2,7 @@
 // src/app/api/cannmenus/product-search/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import { withCache, CachePrefix, CacheTTL } from '@/lib/cache';
 
 // Note: Using GET for simplicity in dev console, but should be POST for production search
 export async function GET(req: NextRequest) {
@@ -33,23 +34,33 @@ export async function GET(req: NextRequest) {
   if (limit) url.searchParams.set("limit", limit);
   if (page) url.searchParams.set("page", page);
 
-  const resp = await fetch(url.toString(), {
-    headers: {
-      "Accept": "application/json",
-      "User-Agent": "BakedBot/1.0",
-      "X-Token": apiKey.trim().replace(/^['"']|['"']$/g, ""),
-    },
-  });
+  // Build cache key from query params
+  const cacheKey = `${retailers}:${fortyTonsBrandId}:${limit || 'default'}:${page || '1'}`;
 
-  const data = await resp.json();
+  // Cache external API calls (5 min TTL) - reduces latency and external API costs
+  const result = await withCache(
+    CachePrefix.PRODUCTS,
+    `cannmenus:${cacheKey}`,
+    async () => {
+      const resp = await fetch(url.toString(), {
+        headers: {
+          "Accept": "application/json",
+          "User-Agent": "BakedBot/1.0",
+          "X-Token": apiKey.trim().replace(/^['"']|['"']$/g, ""),
+        },
+      });
 
-  return NextResponse.json(
-    {
-      source: "next-api:cannmenus:product-search (live)",
-      status: resp.status,
-      data: data.data || data, // Handle different data structures
+      const data = await resp.json();
+
+      return {
+        source: "next-api:cannmenus:product-search (live)",
+        status: resp.status,
+        data: data.data || data,
+      };
     },
-    { status: resp.status }
+    CacheTTL.PRODUCTS
   );
+
+  return NextResponse.json(result, { status: result.status });
 }
 
