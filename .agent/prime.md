@@ -90,8 +90,8 @@ Only after Stages 1-4 are complete:
 
 **Recent work (2026-02-19):** See `memory/MEMORY.md` for full log.
 Key completed:
-- [Production Spec Initiative] — `.agent/specs/` created; 5 Tier 1 production specs written (Campaign, POS/Menu, Compliance, Billing, Public Menu). Critical gaps identified.
-- [Compliance infra] (`939c817b`, `7c85bcf8`) — NY/CA/IL regex rule packs; regulation monitor (weekly scrape → SHA-256 diff → Claude Haiku proposal → Drive + Slack).
+- [Critical Tier 1 Gap Fixes] (`c5e653ca`) — Campaign sender cron auth bypass fix; Deebo compliance gate in executeCampaign(); Authorize.net webhook receiver (HMAC-SHA512 signature validation).
+- [Production Spec Initiative] (`e9fea945`) — `.agent/specs/` created; 5 Tier 1 production specs written (Campaign, POS/Menu, Compliance, Billing, Public Menu).
 - [The Herbalist Samui — International Pilot] (`abf56b8e`) — First international dispensary on BakedBot. Koh Samui, Thailand. Org `dispensary_herbalistsamui`, 22 demo products (THB ฿ pricing), 4 local competitors, Cloud Scheduler daily CI at 9 AM Bangkok, invites to jack@bakedbot.ai + bryan@thebeachsamui.com. See `scripts/seed-herbalist-samui.ts` + `HERBALIST_SAMUI_SETUP.md`.
 - [Multi-Region ISR: Thailand/Koh Samui] (`f9b85263`) — New `/destination/[country]/[city]` route structure with 4-hour ISR cache. RTRVR-powered Google Maps scraping, multi-currency (THB/VND/KHR/USD), GitHub Actions daily automation (3 AM UTC). Seeded 4 Koh Samui dispensaries. See `src/app/destination/` + `src/server/services/growth/international-discovery.ts`.
 
