@@ -10,6 +10,7 @@ import { createServerClient } from '@/firebase/server-client';
 import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves';
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
 import { logger } from '@/lib/logger';
+import { invalidateCache, CachePrefix } from '@/lib/cache';
 
 export interface SyncResult {
     success: boolean;
@@ -252,6 +253,10 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
             ordersCount: orders.length,
             duration: Date.now() - startTime,
         });
+
+        // Invalidate products cache so public API serves fresh data
+        await invalidateCache(CachePrefix.PRODUCTS, orgId);
+        logger.info('[POS_SYNC] Invalidated products cache', { orgId });
 
         return {
             success: true,
