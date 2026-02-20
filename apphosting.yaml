@@ -254,21 +254,22 @@ env:
     secret: SLACK_SIGNING_SECRET@2
     availability:
       - RUNTIME
-  # Rate Limiting (Upstash Redis) - Production Readiness Week 1
+  # Rate Limiting + Caching (Upstash Redis) - Production Readiness Week 1+2
   # Setup: Create Upstash Redis instance (free tier: 10k req/day) at upstash.com
   # Then run:
   #   echo -n "redis-url" | gcloud secrets create UPSTASH_REDIS_URL --data-file=- --project=studio-567050101-bc6e8
   #   echo -n "redis-token" | gcloud secrets create UPSTASH_REDIS_TOKEN --data-file=- --project=studio-567050101-bc6e8
   #   firebase apphosting:secrets:grantaccess UPSTASH_REDIS_URL --backend=bakedbot-prod
   #   firebase apphosting:secrets:grantaccess UPSTASH_REDIS_TOKEN --backend=bakedbot-prod
-  - variable: UPSTASH_REDIS_URL
-    secret: UPSTASH_REDIS_URL
-    availability:
-      - RUNTIME
-  - variable: UPSTASH_REDIS_TOKEN
-    secret: UPSTASH_REDIS_TOKEN
-    availability:
-      - RUNTIME
+  # COMMENTED OUT UNTIL SECRETS ARE CREATED (caching/rate limiting disabled, app still works):
+  # - variable: UPSTASH_REDIS_URL
+  #   secret: UPSTASH_REDIS_URL
+  #   availability:
+  #     - RUNTIME
+  # - variable: UPSTASH_REDIS_TOKEN
+  #   secret: UPSTASH_REDIS_TOKEN
+  #   availability:
+  #     - RUNTIME
   - variable: NEXT_PUBLIC_APP_URL
     value: "https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app"
     availability:
