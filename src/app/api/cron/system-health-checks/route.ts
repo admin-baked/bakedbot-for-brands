@@ -14,6 +14,15 @@
  * 4. database_latency: Query performance
  *
  * Returns: { success, runId, results, timestamp, durationMs }
+ *
+ * Cloud Scheduler:
+ *   Schedule: "* /30 * * * *"  (every 30 minutes)
+ *   gcloud scheduler jobs create http system-health-checks \
+ *     --schedule="* /30 * * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/system-health-checks" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
  */
 
 import { NextRequest, NextResponse } from 'next/server';

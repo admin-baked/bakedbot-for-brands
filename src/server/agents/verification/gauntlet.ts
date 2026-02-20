@@ -1,5 +1,6 @@
 import { Evaluator, VerificationContext, VerificationResult } from './types';
 import { DecisionLogService, EvaluatorResult } from '@/server/services/context-os';
+import { logger } from '@/lib/logger';
 
 export class Gauntlet {
     constructor(private evaluators: Evaluator[]) {}
@@ -15,11 +16,11 @@ export class Gauntlet {
         let suggestion = '';
         const evaluatorResults: EvaluatorResult[] = [];
 
-        console.log(`[Gauntlet] Starting verification for agent ${context.agentId}...`);
+        logger.info(`[Gauntlet] Starting verification for agent ${context.agentId}...`);
 
         for (const evaluator of this.evaluators) {
             try {
-                console.log(`[Gauntlet] Running evaluator: ${evaluator.name}`);
+                logger.info(`[Gauntlet] Running evaluator: ${evaluator.name}`);
                 const result = await evaluator.audit(content, context);
                 
                 // Collect results for Context OS
@@ -42,7 +43,7 @@ export class Gauntlet {
                     lowestScore = result.score;
                 }
             } catch (error) {
-                console.error(`[Gauntlet] Evaluator ${evaluator.name} crashed:`, error);
+                logger.error(`[Gauntlet] Evaluator ${evaluator.name} crashed:`, { error: error instanceof Error ? error.message : String(error) });
                 allIssues.push(`Evaluator ${evaluator.name} failed to execute.`);
                 evaluatorResults.push({
                     evaluatorName: evaluator.name,
@@ -67,14 +68,14 @@ export class Gauntlet {
             );
             
             await DecisionLogService.logDecision(decisionData);
-            console.log(`[Gauntlet] Decision logged to Context OS`);
+            logger.info(`[Gauntlet] Decision logged to Context OS`);
         } catch (logError) {
             // Don't fail verification if logging fails
-            console.error(`[Gauntlet] Failed to log to Context OS:`, logError);
+            logger.error(`[Gauntlet] Failed to log to Context OS:`, { error: logError instanceof Error ? logError.message : String(logError) });
         }
 
         if (passed) {
-            console.log(`[Gauntlet] Verification PASSED.`);
+            logger.info(`[Gauntlet] Verification PASSED.`);
             return {
                 passed: true,
                 score: lowestScore,
@@ -83,7 +84,7 @@ export class Gauntlet {
             };
         }
 
-        console.log(`[Gauntlet] Verification FAILED with ${allIssues.length} issues.`);
+        logger.info(`[Gauntlet] Verification FAILED with ${allIssues.length} issues.`);
         return {
             passed: false,
             score: lowestScore,

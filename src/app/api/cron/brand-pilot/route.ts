@@ -1,3 +1,19 @@
+/**
+ * Brand Pilot Cron Endpoint
+ * GET /api/cron/brand-pilot
+ *
+ * Discovers and seeds new cannabis brands for a given city/state market.
+ *
+ * Cloud Scheduler:
+ *   Schedule: 0 8 * * *  (daily 8:00 AM ET)
+ *   gcloud scheduler jobs create http brand-pilot \
+ *     --schedule="0 8 * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/brand-pilot" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { runBrandPilotJob } from '@/server/jobs/brand-discovery-job';
 import { logger } from '@/lib/logger';

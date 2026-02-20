@@ -1,3 +1,21 @@
+/**
+ * Usage Alerts Cron Endpoint
+ * POST /api/cron/usage-alerts
+ *
+ * Checks all active subscriptions for metrics >= 80% of tier limits
+ * (SMS, emails, creative assets, competitors) and sends alert emails + inbox notifications.
+ * Alert is sent once per billing period (guarded by alertSentAt80Percent flag).
+ *
+ * Cloud Scheduler:
+ *   Schedule: 0 * * * *  (every hour)
+ *   gcloud scheduler jobs create http usage-alerts \
+ *     --schedule="0 * * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/usage-alerts" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
 import { TIERS, type TierId } from '@/config/tiers';

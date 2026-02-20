@@ -3,6 +3,15 @@
  *
  * Runs hourly to publish blog posts that have reached their scheduled publish time.
  * Finds posts with status='scheduled' and scheduledAt <= now, then publishes them.
+ *
+ * Cloud Scheduler:
+ *   Schedule: 0 * * * *  (every hour)
+ *   gcloud scheduler jobs create http publish-scheduled-posts \
+ *     --schedule="0 * * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/publish-scheduled-posts" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
  */
 
 import { NextResponse } from 'next/server';

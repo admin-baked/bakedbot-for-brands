@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ai } from '@/ai/genkit';
+import { logger } from '@/lib/logger';
 import waRetailRules from './rules/wa-retail.json';
 import nyRetailRules from './rules/ny-retail.json';
 import caRetailRules from './rules/ca-retail.json';
@@ -141,7 +142,7 @@ export const deebo = {
       return JSON.parse(jsonStr) as ComplianceResult;
 
     } catch (error) {
-      console.error("Deebo Genkit Error:", error);
+      logger.error('[Deebo] Genkit Error:', { error: error instanceof Error ? error.message : String(error) });
       return {
         status: 'fail',
         violations: ['Compliance check failed due to system error.'],

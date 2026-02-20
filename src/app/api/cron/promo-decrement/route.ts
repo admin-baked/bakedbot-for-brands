@@ -1,3 +1,21 @@
+/**
+ * Promo Decrement Cron Endpoint
+ * POST /api/cron/promo-decrement
+ *
+ * Decrements free_months promo counters on active subscriptions once per month.
+ * Sends expiring (1 month left) and expired (0 months left) email notifications.
+ * Runs at midnight on the 1st of each month to align with billing cycles.
+ *
+ * Cloud Scheduler:
+ *   Schedule: 0 0 1 * *  (monthly — 1st of month midnight ET)
+ *   gcloud scheduler jobs create http promo-decrement \
+ *     --schedule="0 0 1 * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/promo-decrement" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/firebase/server-client';
 import { TIERS, type TierId } from '@/config/tiers';

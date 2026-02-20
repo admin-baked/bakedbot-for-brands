@@ -184,7 +184,7 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
             skillInstructions = loadedSkills.map(s => `\n[SKILL: ${s.name}]\n${s.instructions}`).join('\n');
 
         } catch (error) {
-            console.error('[AgentRunner] Failed to inject skills:', error);
+            logger.error('[AgentRunner] Failed to inject skills:', { error });
         }
     }
 
@@ -247,7 +247,7 @@ async function triggerAgentRun(agentName: string, stimulus?: string, brandIdOver
             });
         }
     } catch (error) {
-        console.warn('Failed to load Talk Tracks:', error);
+        logger.warn('[AgentRunner] Failed to load Talk Tracks:', { error });
     }
 
     let currentStimulus = (stimulus || '') + trainingContext;
@@ -559,7 +559,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 try {
                     const content = Buffer.from(file.base64.split(',')[1], 'base64').toString('utf-8');
                     finalMessage += `\n\n--- File: ${file.name} ---\n${content.substring(0, 2000)}\n--- End File ---\n`;
-                } catch (e) { console.error('Failed to decode file', e); }
+                } catch (e) { logger.error('[AgentRunner] Failed to decode file', { error: e instanceof Error ? e.message : String(e) }); }
             } else {
                 finalMessage += `\n- ${file.name} (${file.type})`;
             }
@@ -666,7 +666,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                     finalMessage += brandContextString;
                 }
             } catch (e) {
-                console.warn('Failed to inject brand context:', e);
+                logger.warn('[AgentRunner] Failed to inject brand context:', { error: e instanceof Error ? e.message : String(e) });
             }
         }
 
@@ -890,7 +890,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 }
             }
         } catch (e) {
-            console.warn('KB Access failed', e);
+            logger.warn('[AgentRunner] KB Access failed', { error: e instanceof Error ? e.message : String(e) });
         }
 
         const metadata = {
@@ -1072,7 +1072,7 @@ All agents are online and ready. Type an agent name or describe your task to get
             } catch (e) { }
         } else if (agentInfo && !canAccessAgent && agentInfo.id !== 'general' && agentInfo.id !== 'puff') {
             // Log blocked access attempt for security auditing
-            console.warn(`[Security] Role '${role}' attempted to access restricted agent '${agentInfo.id}'`);
+            logger.warn(`[Security] Role '${role}' attempted to access restricted agent '${agentInfo.id}'`);
         }
 
         // 3. Web Search (Explicit Triggers Only)
@@ -1243,7 +1243,7 @@ All agents are online and ready. Type an agent name or describe your task to get
                 };
             } catch (claudeError: any) {
                 // Log error but fall through to Gemini fallback
-                console.warn('Claude tool execution failed, falling back to Gemini:', claudeError.message);
+                logger.warn('[AgentRunner] Claude tool execution failed, falling back to Gemini:', { error: claudeError.message });
                 await emitThought(jobId, 'Fallback', 'Using Gemini for response generation...');
             }
         }
@@ -1310,7 +1310,7 @@ All agents are online and ready. Type an agent name or describe your task to get
 
         // In a real production env, we'd persist this:
         // await logService.record(structuredLogs);
-        console.log('[Structured Logs]', JSON.stringify(structuredLogs, null, 2));
+        logger.info('[AgentRunner] Structured Logs', { structuredLogs });
 
         // --- AGENTIC EVAL GATE ---
         // If it's a compliance task or involves Deebo, run compliance evals
@@ -1360,7 +1360,7 @@ All agents are online and ready. Type an agent name or describe your task to get
 
     } catch (e: any) {
         await emitThought(jobId, 'Error', `Failed: ${e.message}`);
-        console.error("Runner Error:", e);
+        logger.error('[AgentRunner] Runner Error:', { error: e.message });
         return {
             content: `Error: ${e.message}`,
             toolCalls: executedTools,

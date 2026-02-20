@@ -1,3 +1,20 @@
+/**
+ * SEO Pilot Cron Endpoint
+ * GET /api/cron/seo-pilot
+ *
+ * Generates SEO pages for cannabis dispensaries in a given city/state market.
+ * Runs in the early morning before peak traffic to avoid contention with brand cleanup.
+ *
+ * Cloud Scheduler:
+ *   Schedule: 0 4 * * *  (daily 4:00 AM ET)
+ *   gcloud scheduler jobs create http seo-pilot \
+ *     --schedule="0 4 * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/seo-pilot" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { runChicagoPilotJob } from '@/server/jobs/seo-generator';
 import { logger } from '@/lib/logger';

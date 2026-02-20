@@ -28,6 +28,7 @@ import { useUser } from '@/firebase/auth/use-user';
 import { useState, useEffect, Suspense } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/client';
+import { logger } from '@/lib/logger';
 
 export default function SettingsPage() {
   const { role, isBrandRole, isDispensaryRole, hasBrandAdminAccess, hasDispensaryAdminAccess, isSuperUser } = useUserRole();
@@ -56,7 +57,7 @@ export default function SettingsPage() {
         if (snap.exists()) {
           setPlanId(snap.data()?.planId);
         }
-      }).catch(console.error);
+      }).catch((e) => logger.error('[Settings] Failed to fetch tenant planId', { error: e instanceof Error ? e.message : String(e) }));
     }
   }, [user, isBrandRole, isDispensaryRole, isSuperUser]);
 

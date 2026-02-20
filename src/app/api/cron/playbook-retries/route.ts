@@ -3,6 +3,15 @@
  *
  * Triggered by Cloud Scheduler every 5 minutes
  * Processes pending webhook retries with exponential backoff
+ *
+ * Cloud Scheduler:
+ *   Schedule: "* /5 * * * *"  (every 5 minutes)
+ *   gcloud scheduler jobs create http playbook-retries \
+ *     --schedule="* /5 * * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/playbook-retries" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
  */
 
 import { NextRequest, NextResponse } from 'next/server';

@@ -1,3 +1,20 @@
+/**
+ * DayDay Weekly Review Cron Endpoint
+ * GET /api/cron/dayday-review
+ *
+ * Runs the DayDay weekly review job that aggregates and reports on discovery results.
+ * Note: Despite the "daily" path name, this invokes runDayDayWeeklyReview — weekly cadence.
+ *
+ * Cloud Scheduler:
+ *   Schedule: 0 13 * * 1  (weekly Monday 8:00 AM ET / 1:00 PM UTC)
+ *   gcloud scheduler jobs create http dayday-review \
+ *     --schedule="0 13 * * 1" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/dayday-review" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { runDayDayWeeklyReview } from '@/server/jobs/dayday-weekly-review';
 import { logger } from '@/lib/logger';

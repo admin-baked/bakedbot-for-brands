@@ -7,6 +7,15 @@
  *
  * Cloud Scheduler: 0 9 * * 1 (9 AM UTC Monday — adjust per timezone)
  * Authentication: Bearer CRON_SECRET
+ *
+ * Cloud Scheduler:
+ *   Schedule: 0 9 * * 1  (weekly Monday 9:00 AM UTC / ~4:00 AM ET)
+ *   gcloud scheduler jobs create http playbooks-weekly \
+ *     --schedule="0 9 * * 1" --time-zone="UTC" \
+ *     --uri="https://<domain>/api/cron/playbooks/weekly" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
  */
 
 import { NextRequest, NextResponse } from 'next/server';

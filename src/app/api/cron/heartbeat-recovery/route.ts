@@ -3,6 +3,15 @@
  *
  * Runs independently from the regular heartbeat checks to detect and recover failures.
  * Frequency: Every 5 minutes (catches failures quickly)
+ *
+ * Cloud Scheduler:
+ *   Schedule: "* /5 * * * *"  (every 5 minutes)
+ *   gcloud scheduler jobs create http heartbeat-recovery \
+ *     --schedule="* /5 * * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/heartbeat-recovery" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
  */
 
 import { NextRequest, NextResponse } from 'next/server';

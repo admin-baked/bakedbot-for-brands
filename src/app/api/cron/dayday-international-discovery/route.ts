@@ -3,7 +3,17 @@
  * POST /api/cron/dayday-international-discovery
  * Triggered daily by GitHub Actions (.github/workflows/dayday-international.yaml)
  *
- * Runs RTRVR-powered Google Maps scraping for international cannabis dispensary discovery
+ * Runs RTRVR-powered Google Maps scraping for international cannabis dispensary discovery.
+ * Processes 2 international markets per run (rate-limited due to scraping overhead).
+ *
+ * Cloud Scheduler:
+ *   Schedule: 0 7 * * *  (daily 7:00 AM ET)
+ *   gcloud scheduler jobs create http dayday-international-discovery \
+ *     --schedule="0 7 * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/dayday-international-discovery" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
  */
 
 import { NextRequest, NextResponse } from 'next/server';

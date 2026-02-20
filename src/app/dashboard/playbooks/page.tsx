@@ -37,11 +37,13 @@ export default function PlaybooksPage() {
     const [playbookStates, setPlaybookStates] = useState<Record<string, boolean>>(() =>
         Object.fromEntries(PLAYBOOKS.map((pb) => [pb.id, pb.active]))
     );
+    const [customPlaybooks, setCustomPlaybooks] = useState<Playbook[]>([]);
+    const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set());
 
     // IMPORTANT: All hooks must be called before any early returns
     // Filter playbooks by search and category
     const filteredPlaybooks = useMemo(() => {
-        let result = PLAYBOOKS;
+        let result = [...PLAYBOOKS, ...customPlaybooks].filter((pb) => !deletedIds.has(pb.id));
 
         // Apply category filter
         if (activeFilter !== 'All') {
@@ -66,7 +68,7 @@ export default function PlaybooksPage() {
             ...pb,
             active: playbookStates[pb.id] ?? pb.active,
         }));
-    }, [searchQuery, activeFilter, playbookStates]);
+    }, [searchQuery, activeFilter, playbookStates, customPlaybooks, deletedIds]);
 
     const handleRunPlaybook = (playbook: Playbook) => {
         setSelectedPrompt(playbook.prompt);
@@ -82,28 +84,42 @@ export default function PlaybooksPage() {
     };
 
     const handleEditPlaybook = (playbook: Playbook) => {
+        setSelectedPrompt(
+            `Edit the playbook named "${playbook.title}".\n\nCurrent description: ${playbook.description}\nType: ${playbook.type}\nTags: ${playbook.tags.join(', ')}\n\nPlease suggest improvements or ask me what I'd like to change.`
+        );
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         toast({
             title: 'Edit Playbook',
-            description: `Opening editor for "${playbook.title}"...`,
+            description: `Agent chat is ready to edit "${playbook.title}".`,
         });
-        // TODO: Navigate to playbook editor
     };
 
     const handleDuplicatePlaybook = (playbook: Playbook) => {
+        const duplicateId = `${playbook.id}_copy_${Date.now()}`;
+        const duplicate: Playbook = {
+            ...playbook,
+            id: duplicateId,
+            title: `Copy of ${playbook.title}`,
+            active: false,
+            status: 'disabled',
+        };
+        setCustomPlaybooks((prev) => [...prev, duplicate]);
+        setPlaybookStates((prev) => ({ ...prev, [duplicateId]: false }));
         toast({
             title: 'Playbook Duplicated',
-            description: `"${playbook.title}" has been duplicated.`,
+            description: `"Copy of ${playbook.title}" has been added to your playbooks.`,
         });
-        // TODO: Implement duplicate via server action
     };
 
     const handleDeletePlaybook = (playbook: Playbook) => {
+        if (!confirm(`Are you sure you want to delete "${playbook.title}"? This action cannot be undone.`)) {
+            return;
+        }
+        setDeletedIds((prev) => new Set([...prev, playbook.id]));
         toast({
-            variant: 'destructive',
             title: 'Playbook Deleted',
             description: `"${playbook.title}" has been removed.`,
         });
-        // TODO: Implement delete via server action
     };
 
     const handleCreateFromScratch = async (data: {

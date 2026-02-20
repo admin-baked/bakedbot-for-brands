@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useUser } from '@/firebase/auth/use-user';
 import { useOptionalFirebase } from '@/firebase/use-optional-firebase';
 import { collection, query, where, getDocs, limit, doc, getDoc } from 'firebase/firestore';
+import { logger } from '@/lib/logger';
 
 export function useBrandId() {
     const { user, isUserLoading } = useUser();
@@ -69,7 +70,7 @@ export function useBrandId() {
                                     }
                                 }
                             }
-                        } catch (e) { console.warn('Error fetching user profile fallback', e); }
+                        } catch (e) { logger.warn('[useBrandId] Error fetching user profile fallback', { error: e instanceof Error ? e.message : String(e) }); }
 
                         // Fallback for demo or dev
                         // If user role is brand but no brand found, maybe use demo?
@@ -81,7 +82,7 @@ export function useBrandId() {
                 } catch (error: any) {
                     // Suppress permission errors (common for non-brand users)
                     if (error?.code !== 'permission-denied') {
-                        console.warn('Error fetching brand ID:', error);
+                        logger.warn('[useBrandId] Error fetching brand ID:', { error: error instanceof Error ? error.message : String(error) });
                     }
                 }
             }

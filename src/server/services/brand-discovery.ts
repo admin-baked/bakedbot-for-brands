@@ -3,6 +3,7 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { BrandSEOPage } from '@/types/foot-traffic';
 import { z } from 'zod';
 import { upsertBrand } from './crm-service';
+import { logger } from '@/lib/logger';
 
 // Schema for brand data extraction
 const BrandDataSchema = z.object({
@@ -41,7 +42,7 @@ export class BrandDiscoveryService {
     async discoverBrands(city: string, state: string): Promise<{ name: string; url: string }[]> {
         // Query to find dispensary brand lists, e.g. "Sunnyside Chicago brands", "Curaleaf brands", etc.
         const query = `dispensary in ${city} ${state} "brands" page`;
-        console.log(`[BrandDiscovery] Searching for dispensary menus: ${query}`);
+        logger.info(`[BrandDiscovery] Searching for dispensary menus: ${query}`);
         
         try {
             // 1. Search for dispensary brand pages
@@ -59,7 +60,7 @@ export class BrandDiscoveryService {
                 .slice(0, 3) // Take top 3 dispensary brand lists
                 .map((r: any) => r.url);
 
-            console.log(`[BrandDiscovery] Found dispensary pages:`, menuPages);
+            logger.info(`[BrandDiscovery] Found dispensary pages:`, { menuPages });
 
             // 2. Extract brands from each dispensary page
             const allBrands: { name: string; url: string }[] = [];
@@ -73,7 +74,7 @@ export class BrandDiscoveryService {
             });
 
             for (const url of menuPages) {
-                console.log(`[BrandDiscovery] Discovering brands from ${url}...`);
+                logger.info(`[BrandDiscovery] Discovering brands from ${url}...`);
                 try {
                     const data = await this.discovery.extractData(url, extractionSchema);
                     if (data && data.brands && Array.isArray(data.brands)) {
@@ -94,7 +95,7 @@ export class BrandDiscoveryService {
                         });
                     }
                 } catch (e) {
-                    console.error(`[BrandDiscovery] Failed to extract from ${url}:`, e);
+                    logger.error(`[BrandDiscovery] Failed to extract from ${url}:`, { error: e instanceof Error ? e.message : String(e) });
                 }
             }
 
@@ -108,11 +109,11 @@ export class BrandDiscoveryService {
             });
 
             const finalList = Array.from(uniqueBrands.values()).slice(0, 30); // Higher limit (30) as menus have many brands
-            console.log(`[BrandDiscovery] Extracted ${finalList.length} unique brands from dispensary menus`);
+            logger.info(`[BrandDiscovery] Extracted ${finalList.length} unique brands from dispensary menus`);
             
             return finalList;
         } catch (error) {
-            console.error('[BrandDiscovery] Search failed:', error);
+            logger.error('[BrandDiscovery] Search failed:', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }
@@ -127,7 +128,7 @@ export class BrandDiscoveryService {
         state: string,
         zipCodes: string[]
     ): Promise<Partial<BrandSEOPage> | { error: string }> {
-        console.log(`[BrandDiscovery] Creating page for: ${brandName}`);
+        logger.info(`[BrandDiscovery] Creating page for: ${brandName}`);
         
         try {
             // Generate identifiers
@@ -152,7 +153,7 @@ export class BrandDiscoveryService {
                     logoUrl = extractResult.logo || '';
                 }
             } catch (e) {
-                console.log(`[BrandDiscovery] Extraction failed for ${url}, falling back to defaults`, e);
+                logger.info(`[BrandDiscovery] Extraction failed for ${url}, falling back to defaults`, { error: e instanceof Error ? e.message : String(e) });
             }
 
             // Fallback: If extraction failed or returned nothing, try basic discovery
@@ -193,7 +194,7 @@ export class BrandDiscoveryService {
                 }
             };
         } catch (error: any) {
-            console.error(`[BrandDiscovery] Failed to create page for ${brandName}:`, error);
+            logger.error(`[BrandDiscovery] Failed to create page for ${brandName}:`, { error: error.message || String(error) });
             return { error: error.message || String(error) };
         }
     }
@@ -205,7 +206,7 @@ export class BrandDiscoveryService {
         if (!page.id) throw new Error('Page ID missing');
         const db = getAdminFirestore();
         await db.collection('seo_pages_brand').doc(page.id).set(page, { merge: true });
-        console.log(`[BrandDiscovery] Saved page ${page.id} for ${page.brandName}`);
+        logger.info(`[BrandDiscovery] Saved page ${page.id} for ${page.brandName}`);
 
         // Sync to CRM
         try {
@@ -219,9 +220,9 @@ export class BrandDiscoveryService {
                     seoPageId: page.id
                 }
             );
-            console.log(`[BrandDiscovery] Synced ${page.brandName} to CRM`);
+            logger.info(`[BrandDiscovery] Synced ${page.brandName} to CRM`);
         } catch (crmError) {
-            console.error(`[BrandDiscovery] CRM Sync failed for ${page.brandName}:`, crmError);
+            logger.error(`[BrandDiscovery] CRM Sync failed for ${page.brandName}:`, { error: crmError instanceof Error ? crmError.message : String(crmError) });
         }
     }
 }

@@ -3,6 +3,15 @@
  *
  * Daily template health check + alert system
  * Runs via Cloud Scheduler (daily at 9 AM EST)
+ *
+ * Cloud Scheduler:
+ *   Schedule: 0 9 * * *  (daily 9:00 AM ET)
+ *   gcloud scheduler jobs create http template-health-check \
+ *     --schedule="0 9 * * *" --time-zone="America/New_York" \
+ *     --uri="https://<domain>/api/cron/template-health-check" \
+ *     --http-method=POST \
+ *     --headers="Authorization=Bearer $CRON_SECRET,Content-Type=application/json" \
+ *     --message-body="{}"
  */
 
 import { NextRequest, NextResponse } from 'next/server';
