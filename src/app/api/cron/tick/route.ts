@@ -151,3 +151,10 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, pulse: 'error', error: error.message }, { status: 500 });
     }
 }
+/**
+ * POST handler for Cloud Scheduler compatibility
+ * Cloud Scheduler sends POST requests by default
+ */
+export async function POST(request: NextRequest) {
+    return GET(request);
+}

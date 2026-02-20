@@ -71,3 +71,10 @@ export async function GET(request: NextRequest) {
         );
     }
 }
+/**
+ * POST handler for Cloud Scheduler compatibility
+ * Cloud Scheduler sends POST requests by default
+ */
+export async function POST(request: NextRequest) {
+    return GET(request);
+}
