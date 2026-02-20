@@ -62,8 +62,16 @@ export function makeProductRepo(db: Firestore) {
      *
      * For POS-integrated brands (like Thrive Syracuse), fetches from tenant publicViews.
      * Otherwise, fetches from the legacy products collection.
+     *
+     * @param brandId - Brand identifier
+     * @param options - Optional pagination parameters
+     * @param options.limit - Number of products to fetch (default: all)
+     * @param options.cursor - Product ID to start after for pagination
      */
-    async getAllByBrand(brandId: string): Promise<Product[]> {
+    async getAllByBrand(
+      brandId: string,
+      options?: { limit?: number; cursor?: string }
+    ): Promise<Product[]> {
       const effectiveBrandId = brandId && brandId.trim() !== '' ? brandId : DEMO_BRAND_ID;
 
       // Check if brand has orgId (for dispensary/POS integrated brands)
@@ -107,13 +115,37 @@ export function makeProductRepo(db: Firestore) {
           // If brand has orgId, fetch from tenant publicViews
           if (orgId) {
             logger.info(`Fetching products from tenant catalog for brand: ${effectiveBrandId}, org: ${orgId}`);
-            const tenantProductsSnapshot = await db
+            const baseQuery = db
               .collection('tenants')
               .doc(orgId)
               .collection('publicViews')
               .doc('products')
-              .collection('items')
-              .get();
+              .collection('items');
+
+            // Build query with pagination
+            let query: FirebaseFirestore.Query = baseQuery;
+
+            // Apply cursor pagination if specified
+            if (options?.cursor) {
+              const cursorDoc = await db
+                .collection('tenants')
+                .doc(orgId)
+                .collection('publicViews')
+                .doc('products')
+                .collection('items')
+                .doc(options.cursor)
+                .get();
+              if (cursorDoc.exists) {
+                query = query.startAfter(cursorDoc);
+              }
+            }
+
+            // Apply limit if specified
+            if (options?.limit) {
+              query = query.limit(options.limit);
+            }
+
+            const tenantProductsSnapshot = await query.get();
 
             if (!tenantProductsSnapshot.empty) {
               // Map tenant products to Product type
@@ -146,13 +178,37 @@ export function makeProductRepo(db: Firestore) {
       if (effectiveBrandId.startsWith('org_')) {
         logger.info(`Trying direct tenant lookup for orgId: ${effectiveBrandId}`);
         try {
-          const tenantProductsSnapshot = await db
+          const baseQuery = db
             .collection('tenants')
             .doc(effectiveBrandId)
             .collection('publicViews')
             .doc('products')
-            .collection('items')
-            .get();
+            .collection('items');
+
+          // Build query with pagination
+          let query: FirebaseFirestore.Query = baseQuery;
+
+          // Apply cursor pagination if specified
+          if (options?.cursor) {
+            const cursorDoc = await db
+              .collection('tenants')
+              .doc(effectiveBrandId)
+              .collection('publicViews')
+              .doc('products')
+              .collection('items')
+              .doc(options.cursor)
+              .get();
+            if (cursorDoc.exists) {
+              query = query.startAfter(cursorDoc);
+            }
+          }
+
+          // Apply limit if specified
+          if (options?.limit) {
+            query = query.limit(options.limit);
+          }
+
+          const tenantProductsSnapshot = await query.get();
 
           if (!tenantProductsSnapshot.empty) {
             logger.info(`Found ${tenantProductsSnapshot.size} products in tenant catalog`);
@@ -180,7 +236,22 @@ export function makeProductRepo(db: Firestore) {
       }
 
       // Final fallback to legacy products collection
-      const snapshot = await productCollection.where('brandId', '==', effectiveBrandId).get();
+      let legacyQuery: FirebaseFirestore.Query = productCollection.where('brandId', '==', effectiveBrandId);
+
+      // Apply cursor pagination if specified
+      if (options?.cursor) {
+        const cursorDoc = await productCollection.doc(options.cursor).get();
+        if (cursorDoc.exists) {
+          legacyQuery = legacyQuery.startAfter(cursorDoc);
+        }
+      }
+
+      // Apply limit if specified
+      if (options?.limit) {
+        legacyQuery = legacyQuery.limit(options.limit);
+      }
+
+      const snapshot = await legacyQuery.get();
       if (snapshot.empty) {
         logger.info(`No products found for brandId: ${effectiveBrandId}`);
         return [];
@@ -194,10 +265,33 @@ export function makeProductRepo(db: Firestore) {
      * Checks multiple sources:
      * 1. Legacy products collection (where dispensaryId == locationId)
      * 2. Tenant catalog (tenants/{locationId}/publicViews/products/items)
+     *
+     * @param locationId - Location identifier
+     * @param options - Optional pagination parameters
+     * @param options.limit - Number of products to fetch (default: all)
+     * @param options.cursor - Product ID to start after for pagination
      */
-    async getAllByLocation(locationId: string): Promise<Product[]> {
+    async getAllByLocation(
+      locationId: string,
+      options?: { limit?: number; cursor?: string }
+    ): Promise<Product[]> {
       // 1. Try legacy products collection first
-      const snapshot = await productCollection.where('dispensaryId', '==', locationId).get();
+      let legacyQuery: FirebaseFirestore.Query = productCollection.where('dispensaryId', '==', locationId);
+
+      // Apply cursor pagination if specified
+      if (options?.cursor) {
+        const cursorDoc = await productCollection.doc(options.cursor).get();
+        if (cursorDoc.exists) {
+          legacyQuery = legacyQuery.startAfter(cursorDoc);
+        }
+      }
+
+      // Apply limit if specified
+      if (options?.limit) {
+        legacyQuery = legacyQuery.limit(options.limit);
+      }
+
+      const snapshot = await legacyQuery.get();
       if (!snapshot.empty) {
         logger.info(`Found ${snapshot.size} products in legacy collection for locationId: ${locationId}`);
         return snapshot.docs.map(doc => doc.data() as Product);
@@ -205,13 +299,37 @@ export function makeProductRepo(db: Firestore) {
 
       // 2. Try tenant catalog (for POS-integrated dispensaries)
       try {
-        const tenantProductsSnapshot = await db
+        const baseQuery = db
           .collection('tenants')
           .doc(locationId)
           .collection('publicViews')
           .doc('products')
-          .collection('items')
-          .get();
+          .collection('items');
+
+        // Build query with pagination
+        let query: FirebaseFirestore.Query = baseQuery;
+
+        // Apply cursor pagination if specified
+        if (options?.cursor) {
+          const cursorDoc = await db
+            .collection('tenants')
+            .doc(locationId)
+            .collection('publicViews')
+            .doc('products')
+            .collection('items')
+            .doc(options.cursor)
+            .get();
+          if (cursorDoc.exists) {
+            query = query.startAfter(cursorDoc);
+          }
+        }
+
+        // Apply limit if specified
+        if (options?.limit) {
+          query = query.limit(options.limit);
+        }
+
+        const tenantProductsSnapshot = await query.get();
 
         if (!tenantProductsSnapshot.empty) {
           logger.info(`Found ${tenantProductsSnapshot.size} products in tenant catalog for locationId: ${locationId}`);
