@@ -29,6 +29,8 @@ import {
     type SuggestedBundle,
 } from '@/app/actions/bundle-suggestions';
 import { useToast } from '@/hooks/use-toast';
+import { BundlePreview } from './bundle-preview';
+import type { BundleDeal } from '@/types/bundles';
 import {
     Tooltip,
     TooltipContent,
@@ -66,6 +68,8 @@ export function BundleRuleBuilder({ orgId, onBundleCreated }: BundleRuleBuilderP
     const [loadingPresets, setLoadingPresets] = useState(true);
     const [suggestions, setSuggestions] = useState<SuggestedBundle[]>([]);
     const [creatingSuggestion, setCreatingSuggestion] = useState<string | null>(null);
+    const [lastCreatedBundle, setLastCreatedBundle] = useState<BundleDeal | null>(null);
+    const [showCreatedPreview, setShowCreatedPreview] = useState(false);
 
     // Load smart presets on mount
     useEffect(() => {
@@ -130,11 +134,13 @@ export function BundleRuleBuilder({ orgId, onBundleCreated }: BundleRuleBuilderP
         try {
             const result = await createBundleFromSuggestion(orgId, suggestion);
 
-            if (result.success) {
+            if (result.success && result.data) {
                 toast({
                     title: "Bundle Created",
                     description: `"${suggestion.name}" has been added as a draft.`,
                 });
+                setLastCreatedBundle(result.data);
+                setShowCreatedPreview(true);
                 setSuggestions(prev => prev.filter(s => s.name !== suggestion.name));
                 onBundleCreated?.();
             } else {
@@ -432,6 +438,23 @@ export function BundleRuleBuilder({ orgId, onBundleCreated }: BundleRuleBuilderP
                     </ul>
                 </CardContent>
             </Card>
+
+            {/* Created Bundle Preview */}
+            {showCreatedPreview && lastCreatedBundle && (
+                <BundlePreview
+                    bundle={lastCreatedBundle}
+                    onEdit={() => {
+                        // Open editor with bundle pre-loaded
+                        // For now, just hide preview and user can manually find bundle
+                        setShowCreatedPreview(false);
+                    }}
+                    onCreateAnother={() => {
+                        setShowCreatedPreview(false);
+                        setSuggestions([]);
+                        setRulePrompt('');
+                    }}
+                />
+            )}
         </div>
     );
 }

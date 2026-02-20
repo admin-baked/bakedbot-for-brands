@@ -374,7 +374,7 @@ export async function generateAIBundleSuggestions(orgId: string): Promise<{ succ
 export async function createBundleFromSuggestion(
     orgId: string,
     suggestion: SuggestedBundle
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; data?: BundleDeal; error?: string }> {
     try {
         const bundleProducts: BundleProduct[] = suggestion.products.map(p => ({
             productId: p.id,
