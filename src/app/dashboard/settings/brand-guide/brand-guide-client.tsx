@@ -335,11 +335,8 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         .replace(/[-_]/g, ' ')
         .replace(/\b\w/g, (c: string) => c.toUpperCase());
 
-      const extractedBrandName: string =
-        aiExtractedBrandName || titleDerivedName || domainFallback;
-
       // Filter out AI placeholder values that look like "Unknown - ..." or "Unable to extract..."
-      const cleanTagline = (value: string | undefined): string => {
+      const cleanExtractedValue = (value: string | undefined): string => {
         if (!value) return '';
         const lower = value.toLowerCase().trim();
         if (
@@ -358,17 +355,21 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         return value;
       };
 
+      // Clean AI-extracted brand name, falling back to title or domain
+      const extractedBrandName: string =
+        cleanExtractedValue(aiExtractedBrandName) || titleDerivedName || domainFallback;
+
       // Only pre-fill if the user hasn't already completed step 1
       if (!step1Data) {
         setStep1Data({
           brandName: extractedBrandName,
           // Fallback chain: positioning (clearest) → valuePropositions[0] → metadata.description
           description:
-            cleanTagline((result as any).messaging?.positioning) ||
-            cleanTagline((result as any).messaging?.valuePropositions?.[0]) ||
-            cleanTagline((result as any).metadata?.description) ||
+            cleanExtractedValue((result as any).messaging?.positioning) ||
+            cleanExtractedValue((result as any).messaging?.valuePropositions?.[0]) ||
+            cleanExtractedValue((result as any).metadata?.description) ||
             '',
-          tagline: cleanTagline((result as any).messaging?.tagline),
+          tagline: cleanExtractedValue((result as any).messaging?.tagline),
         });
       }
 
