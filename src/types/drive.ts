@@ -360,6 +360,8 @@ export interface DriveListResult {
   breadcrumbs: Array<{ id: string; name: string; path: string }>;
   totalSize: number;
   totalCount: number;
+  nextCursor?: string; // File ID to fetch next page (cursor-based pagination)
+  hasMore?: boolean; // Whether there are more files to load
 }
 
 export interface DriveShareLinkResult {
