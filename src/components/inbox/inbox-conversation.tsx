@@ -1189,6 +1189,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                             {showBundleGenerator && (
                                 <div className="mt-4">
                                     <BundleGeneratorInline
+                                        orgId={thread.orgId}
                                         onComplete={handleCompleteBundle}
                                         initialPrompt={bundleInitialPrompt}
                                     />
@@ -1260,6 +1261,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                             {showBundleGenerator && (
                                 <div className="mt-4">
                                     <BundleGeneratorInline
+                                        orgId={thread.orgId}
                                         onComplete={handleCompleteBundle}
                                         initialPrompt={bundleInitialPrompt}
                                     />

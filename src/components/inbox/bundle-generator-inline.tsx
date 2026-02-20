@@ -3,119 +3,245 @@
 /**
  * Inline Bundle Generator
  *
- * AI-powered bundle creation tool that appears inline in the chat conversation.
+ * AI-powered bundle creation tool matching the Carousel/Hero Builder pattern.
+ * Includes auto-generation, smart presets, natural language input, margin protection, and manual builder.
  */
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Package, Sparkles, Wand2, Plus, X, Loader2, Tag, Percent } from 'lucide-react';
+import {
+    Package,
+    Sparkles,
+    Wand2,
+    Plus,
+    X,
+    Loader2,
+    Tag,
+    Percent,
+    Check,
+    Clock,
+    Layers,
+    Gift,
+    AlertTriangle,
+    ShieldCheck,
+    TrendingUp,
+    Info,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
-import { useDispensaryId } from '@/hooks/use-dispensary-id';
 import { ProductPicker } from '@/components/dashboard/carousels/product-picker';
 import { createBundle } from '@/app/actions/bundles';
+import {
+    generateAIBundleSuggestions,
+    getSmartPresets,
+    parseNaturalLanguageRule,
+    createBundleFromSuggestion,
+    type SuggestedBundle,
+} from '@/app/actions/bundle-suggestions';
 import { useToast } from '@/hooks/use-toast';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { BundleDeal, BundleType } from '@/types/bundles';
 
 interface BundleGeneratorInlineProps {
+    orgId: string;
     onComplete?: (bundleData: BundleDeal) => void;
     initialPrompt?: string;
     className?: string;
 }
 
+const ICON_MAP: Record<string, React.ReactNode> = {
+    clock: <Clock className="h-4 w-4" />,
+    package: <Package className="h-4 w-4" />,
+    layers: <Layers className="h-4 w-4" />,
+    percent: <Percent className="h-4 w-4" />,
+    gift: <Gift className="h-4 w-4" />,
+    'alert-triangle': <AlertTriangle className="h-4 w-4" />,
+};
+
 export function BundleGeneratorInline({
+    orgId,
     onComplete,
     initialPrompt = '',
     className
 }: BundleGeneratorInlineProps) {
+    const { toast } = useToast();
+
+    // UI State
+    const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [loadingPresets, setLoadingPresets] = useState(true);
+    const [showManualBuilder, setShowManualBuilder] = useState(false);
+
+    // Data State
+    const [suggestions, setSuggestions] = useState<SuggestedBundle[]>([]);
+    const [presets, setPresets] = useState<Array<{
+        label: string;
+        prompt: string;
+        icon: string;
+        available: boolean;
+        reason?: string;
+    }>>([]);
+    const [rulePrompt, setRulePrompt] = useState(initialPrompt);
+    const [creatingSuggestion, setCreatingSuggestion] = useState<string | null>(null);
+
+    // Bundle-specific State
+    const [minMargin, setMinMargin] = useState(15);
+
+    // Manual builder state
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [bundleType, setBundleType] = useState<BundleType>('mix_match');
     const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
     const [discountPercent, setDiscountPercent] = useState(0);
     const [fixedPrice, setFixedPrice] = useState(0);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [aiPrompt, setAiPrompt] = useState(initialPrompt);
-    const [showManualBuilder, setShowManualBuilder] = useState(false);
-    const [aiSuggestion, setAiSuggestion] = useState<{
-        name: string;
-        description: string;
-        type: BundleType;
-        discountPercent?: number;
-        reasoning: string;
-    } | null>(null);
 
-    const { dispensaryId } = useDispensaryId();
-    const { toast } = useToast();
+    // Load smart presets on mount
+    useEffect(() => {
+        async function loadPresets() {
+            if (!orgId) return;
+            setLoadingPresets(true);
+            const result = await getSmartPresets(orgId);
+            if (result.success && result.presets) {
+                setPresets(result.presets);
+            }
+            setLoadingPresets(false);
+        }
+        loadPresets();
+    }, [orgId]);
 
-    const generateWithAI = async () => {
-        if (!aiPrompt.trim()) {
+    const handlePresetClick = (prompt: string) => {
+        setRulePrompt(prompt);
+    };
+
+    const handleGenerateAllSuggestions = async () => {
+        if (!orgId) {
             toast({
-                title: "Prompt Required",
-                description: "Please describe the bundle you want to create.",
-                variant: "destructive"
+                title: "Organization Required",
+                description: "Could not determine your organization.",
+                variant: "destructive",
             });
             return;
         }
 
-        setIsGenerating(true);
+        setIsGeneratingAll(true);
+        setSuggestions([]);
 
         try {
-            // Call AI to generate bundle suggestions
-            const response = await fetch('/api/ai/bundle-suggest', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prompt: aiPrompt,
-                    orgId: dispensaryId,
-                }),
-            });
+            const result = await generateAIBundleSuggestions(orgId);
 
-            if (!response.ok) throw new Error('Failed to generate suggestions');
-
-            const data = await response.json();
-
-            if (data.success && data.suggestion) {
-                setAiSuggestion(data.suggestion);
-                setName(data.suggestion.name);
-                setDescription(data.suggestion.description);
-                setBundleType(data.suggestion.type || 'mix_match');
-
-                if (data.suggestion.discountPercent) {
-                    setDiscountPercent(data.suggestion.discountPercent);
-                }
-
-                // If AI suggested products, pre-select them
-                if (data.suggestion.productIds) {
-                    setSelectedProductIds(data.suggestion.productIds);
-                }
-
-                setShowManualBuilder(true);
-
+            if (result.success && result.suggestions && result.suggestions.length > 0) {
+                setSuggestions(result.suggestions);
                 toast({
-                    title: "AI Suggestion Ready!",
-                    description: "Review and customize your bundle below.",
+                    title: "Suggestions Ready",
+                    description: `Generated ${result.suggestions.length} bundle suggestions based on inventory analysis.`,
+                });
+            } else {
+                toast({
+                    title: "No Suggestions",
+                    description: result.error || "Could not generate suggestions. Add more products first.",
+                    variant: "destructive",
                 });
             }
-        } catch (error) {
-            console.error('Error generating AI suggestion:', error);
+        } catch {
             toast({
-                title: "Generation Failed",
-                description: "Couldn't generate suggestions. Try manual mode instead.",
-                variant: "destructive"
+                title: "Error",
+                description: "Failed to generate suggestions. Please try again.",
+                variant: "destructive",
             });
         } finally {
-            setIsGenerating(false);
+            setIsGeneratingAll(false);
         }
     };
 
-    const handleCreateBundle = async () => {
+    const handleGenerateFromPrompt = async () => {
+        if (!rulePrompt.trim()) {
+            toast({
+                title: "Enter a Description",
+                description: "Please describe what bundle you'd like to create.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        if (!orgId) {
+            toast({
+                title: "Organization Required",
+                description: "Could not determine your organization.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsProcessing(true);
+        setSuggestions([]);
+
+        try {
+            const result = await parseNaturalLanguageRule(orgId, rulePrompt, minMargin);
+
+            if (result.success && result.suggestions && result.suggestions.length > 0) {
+                setSuggestions(result.suggestions);
+                toast({
+                    title: "Bundles Generated",
+                    description: `Found ${result.suggestions.length} bundle(s) matching your criteria.`,
+                });
+            } else {
+                toast({
+                    title: "No Matching Bundles",
+                    description: result.error || "No products match your criteria. Try a different description.",
+                    variant: "destructive",
+                });
+            }
+        } catch {
+            toast({
+                title: "Error",
+                description: "Failed to process your request. Please try again.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    const handleAcceptSuggestion = async (suggestion: SuggestedBundle) => {
+        if (!orgId) return;
+
+        setCreatingSuggestion(suggestion.name);
+
+        try {
+            const result = await createBundleFromSuggestion(orgId, suggestion);
+
+            if (result.success) {
+                toast({
+                    title: "Bundle Created",
+                    description: `"${suggestion.name}" has been added as a draft.`,
+                });
+                setSuggestions(prev => prev.filter(s => s.name !== suggestion.name));
+                // Note: onComplete callback removed - bundle created successfully but data not returned by server action
+            } else {
+                toast({
+                    title: "Failed to Create",
+                    description: result.error || "Something went wrong.",
+                    variant: "destructive",
+                });
+            }
+        } finally {
+            setCreatingSuggestion(null);
+        }
+    };
+
+    const handleCreateManualBundle = async () => {
         if (!name.trim()) {
             toast({
                 title: "Name Required",
@@ -134,7 +260,7 @@ export function BundleGeneratorInline({
             return;
         }
 
-        if (!dispensaryId) {
+        if (!orgId) {
             toast({
                 title: "Organization Required",
                 description: "Could not determine your organization.",
@@ -143,10 +269,9 @@ export function BundleGeneratorInline({
             return;
         }
 
-        setIsGenerating(true);
+        setIsProcessing(true);
 
         try {
-            // Calculate bundle pricing
             const savingsPercent = bundleType === 'percentage' ? discountPercent : 0;
             const bundlePrice = bundleType === 'fixed_price' ? fixedPrice : 0;
 
@@ -154,17 +279,17 @@ export function BundleGeneratorInline({
                 name,
                 description,
                 type: bundleType,
-                status: 'active',
+                status: 'draft',
                 createdBy: 'dispensary',
-                products: [], // Will be populated based on productIds
+                products: [],
                 eligibleProductIds: selectedProductIds,
                 savingsPercent,
                 bundlePrice,
-                originalTotal: 0, // Calculate based on selected products
+                originalTotal: 0,
                 savingsAmount: 0,
                 currentRedemptions: 0,
                 featured: false,
-                orgId: dispensaryId,
+                orgId,
             });
 
             if (result.success && result.data) {
@@ -178,14 +303,13 @@ export function BundleGeneratorInline({
                 throw new Error(result.error || 'Failed to create bundle');
             }
         } catch (error: any) {
-            console.error('Error creating bundle:', error);
             toast({
                 title: "Creation Failed",
                 description: error.message || "Failed to create bundle. Please try again.",
                 variant: "destructive"
             });
         } finally {
-            setIsGenerating(false);
+            setIsProcessing(false);
         }
     };
 
@@ -205,110 +329,273 @@ export function BundleGeneratorInline({
                         <div className="flex-1">
                             <CardTitle className="text-lg">AI Bundle Designer</CardTitle>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                                Create a promotional bundle with AI assistance
+                                Create margin-protected promotional bundles with AI
                             </p>
                         </div>
-                        {aiSuggestion && (
-                            <Badge variant="outline" className="gap-1 border-green-500/30 text-green-400">
-                                <Sparkles className="h-3 w-3" />
-                                AI Assisted
-                            </Badge>
-                        )}
                     </div>
                 </CardHeader>
 
                 <CardContent className="space-y-6 pt-6">
-                    {!showManualBuilder ? (
-                        <>
-                            {/* AI Prompt Input */}
-                            <div className="space-y-2">
-                                <Label htmlFor="ai-prompt" className="text-sm font-semibold flex items-center gap-2">
-                                    <Wand2 className="h-4 w-4 text-green-400" />
-                                    Describe Your Bundle
-                                </Label>
-                                <Textarea
-                                    id="ai-prompt"
-                                    placeholder="E.g., Create a BOGO deal for our top flower strains, or a mix & match bundle with 20% off when you buy 3 edibles"
-                                    value={aiPrompt}
-                                    onChange={(e) => setAiPrompt(e.target.value)}
-                                    className="bg-background/50 border-white/10 min-h-[100px]"
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-                                            generateWithAI();
-                                        }
-                                    }}
-                                />
+                    {/* Auto-Generate All Section */}
+                    <Card className="border-primary/20 bg-primary/5">
+                        <CardContent className="flex items-center justify-between py-4">
+                            <div>
+                                <h3 className="font-semibold text-sm">Auto-Generate Suggestions</h3>
                                 <p className="text-xs text-muted-foreground">
-                                    Describe the deal type (BOGO, Mix & Match, % Off), products, and discount
+                                    Let AI analyze inventory and margins for optimal bundles
                                 </p>
                             </div>
+                            <Button
+                                size="sm"
+                                onClick={handleGenerateAllSuggestions}
+                                disabled={isGeneratingAll}
+                                className="bg-gradient-to-r from-green-500 to-emerald-500"
+                            >
+                                {isGeneratingAll ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        Analyzing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="h-4 w-4 mr-2" />
+                                        Generate All
+                                    </>
+                                )}
+                            </Button>
+                        </CardContent>
+                    </Card>
 
-                            {/* Action Buttons */}
-                            <div className="flex gap-2">
+                    {/* Margin Protection Banner */}
+                    <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
+                        <CardContent className="flex items-center gap-3 py-3">
+                            <ShieldCheck className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                                    Margin Protection Active
+                                </p>
+                                <p className="text-xs text-green-600 dark:text-green-400">
+                                    All bundles maintain minimum {minMargin}% margin
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Label htmlFor="margin-slider-inline" className="text-xs text-green-700 dark:text-green-300 whitespace-nowrap">
+                                    Min: {minMargin}%
+                                </Label>
+                                <Slider
+                                    id="margin-slider-inline"
+                                    value={[minMargin]}
+                                    onValueChange={([value]) => setMinMargin(value)}
+                                    min={5}
+                                    max={40}
+                                    step={1}
+                                    className="w-24"
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Smart Presets */}
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-base flex items-center gap-2">
+                                <Sparkles className="h-4 w-4 text-primary" />
+                                Smart Presets
+                            </CardTitle>
+                            <CardDescription>
+                                Quick-start bundles based on your inventory
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {loadingPresets ? (
+                                <div className="flex items-center justify-center py-6">
+                                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                </div>
+                            ) : presets.length === 0 ? (
+                                <p className="text-sm text-muted-foreground text-center py-4">
+                                    Add products to see smart bundle presets
+                                </p>
+                            ) : (
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                    <TooltipProvider>
+                                        {presets.map((preset, idx) => (
+                                            <Tooltip key={idx}>
+                                                <TooltipTrigger asChild>
+                                                    <Button
+                                                        variant={preset.available ? "outline" : "ghost"}
+                                                        className={`justify-start h-auto py-3 px-4 ${!preset.available ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                        onClick={() => preset.available && handlePresetClick(preset.prompt)}
+                                                        disabled={!preset.available}
+                                                    >
+                                                        <span className="flex items-center gap-2 text-left">
+                                                            {ICON_MAP[preset.icon] || <Layers className="h-4 w-4" />}
+                                                            <span className="text-sm truncate">{preset.label}</span>
+                                                        </span>
+                                                    </Button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p className="max-w-xs">
+                                                        {preset.available ? preset.prompt : preset.reason}
+                                                    </p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        ))}
+                                    </TooltipProvider>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Natural Language Input */}
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-base">Describe Your Bundle Rule</CardTitle>
+                            <CardDescription>
+                                Use natural language to create custom bundles. AI will find matching products.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Textarea
+                                placeholder="Example: Create a bundle with products expiring in the next 30-45 days with a 20% discount"
+                                value={rulePrompt}
+                                onChange={(e) => setRulePrompt(e.target.value)}
+                                className="min-h-[100px] resize-none bg-background/50 border-white/10"
+                            />
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Info className="h-3 w-3" />
+                                    <span>AI will parse your rule and validate margins</span>
+                                </div>
                                 <Button
-                                    onClick={generateWithAI}
-                                    disabled={isGenerating || !aiPrompt.trim()}
-                                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                                    onClick={handleGenerateFromPrompt}
+                                    disabled={isProcessing || !rulePrompt.trim()}
+                                    className="bg-gradient-to-r from-green-500 to-emerald-500"
                                 >
-                                    {isGenerating ? (
+                                    {isProcessing ? (
                                         <>
                                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Generating...
+                                            Analyzing...
                                         </>
                                     ) : (
                                         <>
-                                            <Sparkles className="h-4 w-4 mr-2" />
-                                            Generate with AI
+                                            <Wand2 className="h-4 w-4 mr-2" />
+                                            Generate Bundles
                                         </>
                                     )}
                                 </Button>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setShowManualBuilder(true)}
-                                    className="border-white/10"
-                                >
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    Manual
-                                </Button>
                             </div>
-                        </>
-                    ) : (
-                        <>
-                            {/* AI Suggestion Summary */}
-                            {aiSuggestion && (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="p-4 rounded-lg bg-green-500/10 border border-green-500/20"
-                                >
-                                    <div className="flex items-start gap-3">
-                                        <Sparkles className="h-5 w-5 text-green-400 mt-0.5" />
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium text-green-400 mb-1">AI Suggestion</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {aiSuggestion.reasoning}
-                                            </p>
-                                        </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-6 w-6"
-                                            onClick={() => {
-                                                setAiSuggestion(null);
-                                                setShowManualBuilder(false);
-                                                setName('');
-                                                setDescription('');
-                                                setSelectedProductIds([]);
-                                            }}
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </motion.div>
-                            )}
+                        </CardContent>
+                    </Card>
 
-                            {/* Bundle Details */}
-                            <div className="space-y-4">
+                    {/* Generated Suggestions */}
+                    {suggestions.length > 0 && (
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base flex items-center gap-2">
+                                    <TrendingUp className="h-4 w-4 text-primary" />
+                                    Bundle Suggestions
+                                </CardTitle>
+                                <CardDescription>
+                                    Review and add these bundles to your menu
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {suggestions.map((suggestion, idx) => (
+                                    <Card key={idx} className="p-4 bg-muted/30">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="flex-1">
+                                                <h4 className="font-semibold">{suggestion.name}</h4>
+                                                {suggestion.badgeText && (
+                                                    <Badge variant="secondary" className="mt-1">
+                                                        {suggestion.badgeText}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-2 items-center">
+                                                <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                                    {suggestion.savingsPercent}% OFF
+                                                </Badge>
+                                                {suggestion.marginImpact !== undefined && (
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger>
+                                                                <Badge variant="outline" className="text-xs">
+                                                                    <ShieldCheck className="h-3 w-3 mr-1" />
+                                                                    {suggestion.marginImpact}% margin
+                                                                </Badge>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                                <p>Estimated margin after discount</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground mb-3">
+                                            {suggestion.description}
+                                        </p>
+                                        <div className="text-xs text-muted-foreground mb-4">
+                                            <strong>Products:</strong>{' '}
+                                            {suggestion.products.map(p => p.name).join(', ')}
+                                        </div>
+                                        <div className="flex justify-end">
+                                            <Button
+                                                size="sm"
+                                                onClick={() => handleAcceptSuggestion(suggestion)}
+                                                disabled={creatingSuggestion === suggestion.name}
+                                                className="bg-gradient-to-r from-green-500 to-emerald-500"
+                                            >
+                                                {creatingSuggestion === suggestion.name ? (
+                                                    <>
+                                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                        Adding...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Check className="h-4 w-4 mr-2" />
+                                                        Add to Menu
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </Card>
+                                ))}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Example Prompts Helper */}
+                    <Card className="border-dashed">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm text-muted-foreground">Example Rules</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="text-xs text-muted-foreground space-y-1">
+                                <li>"Bundle products expiring in 30-45 days with 25% off"</li>
+                                <li>"Create a BOGO deal for all edibles"</li>
+                                <li>"Bundle high-stock items (50+ units) with 25% discount"</li>
+                                <li>"Mix and match 3 flower products with 15% off"</li>
+                                <li>"Create starter pack with one item from each category at 20% off"</li>
+                            </ul>
+                        </CardContent>
+                    </Card>
+
+                    {/* Manual Builder (collapsed by default) */}
+                    {showManualBuilder && (
+                        <Card>
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="text-base">Manual Bundle Builder</CardTitle>
+                                        <CardDescription>Customize every detail of your bundle</CardDescription>
+                                    </div>
+                                    <Button variant="ghost" size="sm" onClick={() => setShowManualBuilder(false)}>
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="bundle-name" className="text-sm font-semibold">
                                         Bundle Name
@@ -353,7 +640,6 @@ export function BundleGeneratorInline({
                                     </Select>
                                 </div>
 
-                                {/* Conditional fields based on bundle type */}
                                 {bundleType === 'percentage' && (
                                     <div className="space-y-2">
                                         <Label htmlFor="discount-percent" className="text-sm font-semibold flex items-center gap-2">
@@ -369,9 +655,6 @@ export function BundleGeneratorInline({
                                             onChange={(e) => setDiscountPercent(parseInt(e.target.value) || 0)}
                                             className="bg-background/50 border-white/10 w-32"
                                         />
-                                        <p className="text-xs text-muted-foreground">
-                                            Discount applied to selected products
-                                        </p>
                                     </div>
                                 )}
 
@@ -390,56 +673,64 @@ export function BundleGeneratorInline({
                                             onChange={(e) => setFixedPrice(parseFloat(e.target.value) || 0)}
                                             className="bg-background/50 border-white/10 w-32"
                                         />
-                                        <p className="text-xs text-muted-foreground">
-                                            Fixed price for the entire bundle
-                                        </p>
                                     </div>
                                 )}
-                            </div>
 
-                            {/* Product Picker */}
-                            {dispensaryId && (
-                                <div className="space-y-2">
-                                    <Label className="text-sm font-semibold">
-                                        Select Products
-                                    </Label>
-                                    <ProductPicker
-                                        orgId={dispensaryId}
-                                        selectedProductIds={selectedProductIds}
-                                        onSelectionChange={setSelectedProductIds}
-                                    />
+                                {orgId && (
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-semibold">
+                                            Select Products
+                                        </Label>
+                                        <ProductPicker
+                                            orgId={orgId}
+                                            selectedProductIds={selectedProductIds}
+                                            onSelectionChange={setSelectedProductIds}
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="flex gap-2 pt-4 border-t border-white/5">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setShowManualBuilder(false)}
+                                        disabled={isProcessing}
+                                        className="border-white/10"
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        onClick={handleCreateManualBundle}
+                                        disabled={isProcessing || !name.trim() || selectedProductIds.length === 0}
+                                        className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500"
+                                    >
+                                        {isProcessing ? (
+                                            <>
+                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                Creating...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Package className="h-4 w-4 mr-2" />
+                                                Create Bundle
+                                            </>
+                                        )}
+                                    </Button>
                                 </div>
-                            )}
+                            </CardContent>
+                        </Card>
+                    )}
 
-                            {/* Create Button */}
-                            <div className="flex gap-2 pt-4 border-t border-white/5">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setShowManualBuilder(false)}
-                                    disabled={isGenerating}
-                                    className="border-white/10"
-                                >
-                                    Back to AI
-                                </Button>
-                                <Button
-                                    onClick={handleCreateBundle}
-                                    disabled={isGenerating || !name.trim() || selectedProductIds.length === 0}
-                                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
-                                >
-                                    {isGenerating ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Creating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Package className="h-4 w-4 mr-2" />
-                                            Create Bundle
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-                        </>
+                    {!showManualBuilder && (
+                        <div className="flex justify-center">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowManualBuilder(true)}
+                                className="border-white/10"
+                            >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Show Manual Builder
+                            </Button>
+                        </div>
                     )}
                 </CardContent>
             </Card>
