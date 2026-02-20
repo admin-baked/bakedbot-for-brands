@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCorsHeaders, CORS_PREFLIGHT_HEADERS, isOriginAllowed } from './lib/cors';
-import { checkRateLimit } from './middleware/rate-limit';
+// TEMPORARILY DISABLED: Rate limiting causing Edge Runtime crash
+// import { checkRateLimit } from './middleware/rate-limit';
 
 /**
  * Proxy for route protection, authentication, CORS, CSRF, and custom domain routing.
@@ -165,13 +166,11 @@ export async function proxy(request: NextRequest) {
     const isProtectedRoute = isDashboardRoute || isAccountRoute || isOnboardingRoute;
 
     // ============================
-    // RATE LIMITING (PUBLIC ROUTES)
+    // RATE LIMITING (PUBLIC ROUTES) - TEMPORARILY DISABLED
     // ============================
-    // Apply rate limiting to all public routes (menus, API, etc.)
-    // Skip rate limiting for:
-    // - Protected dashboard routes (already auth-gated)
-    // - Cron endpoints (authenticated via CRON_SECRET header)
-    // - Next.js internal routes (_next/)
+    // DISABLED: Causing Edge Runtime crash - needs investigation
+    // TODO: Re-enable after fixing Edge Runtime compatibility
+    /*
     if (!isProtectedRoute && !pathname.startsWith('/api/cron/') && !pathname.startsWith('/_next/')) {
         const ip =
             request.headers.get('x-forwarded-for') ||
@@ -190,6 +189,7 @@ export async function proxy(request: NextRequest) {
             });
         }
     }
+    */
 
     // ============================
     // AGE GATE ENFORCEMENT (21+)
