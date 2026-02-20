@@ -53,6 +53,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { BundleDeal, BundleType } from '@/types/bundles';
+import { BundlePreview } from '@/components/dashboard/bundles/bundle-preview';
 
 interface BundleGeneratorInlineProps {
     orgId: string;
@@ -106,6 +107,10 @@ export function BundleGeneratorInline({
     const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
     const [discountPercent, setDiscountPercent] = useState(0);
     const [fixedPrice, setFixedPrice] = useState(0);
+
+    // Preview State
+    const [lastCreatedBundle, setLastCreatedBundle] = useState<BundleDeal | null>(null);
+    const [showCreatedPreview, setShowCreatedPreview] = useState(false);
 
     // Load smart presets on mount
     useEffect(() => {
@@ -222,13 +227,14 @@ export function BundleGeneratorInline({
         try {
             const result = await createBundleFromSuggestion(orgId, suggestion);
 
-            if (result.success) {
+            if (result.success && result.data) {
                 toast({
                     title: "Bundle Created",
                     description: `"${suggestion.name}" has been added as a draft.`,
                 });
+                setLastCreatedBundle(result.data);
+                setShowCreatedPreview(true);
                 setSuggestions(prev => prev.filter(s => s.name !== suggestion.name));
-                // Note: onComplete callback removed - bundle created successfully but data not returned by server action
             } else {
                 toast({
                     title: "Failed to Create",
@@ -734,6 +740,32 @@ export function BundleGeneratorInline({
                     )}
                 </CardContent>
             </Card>
+
+            {/* Created Bundle Preview */}
+            {showCreatedPreview && lastCreatedBundle && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    <BundlePreview
+                        bundle={lastCreatedBundle}
+                        onEdit={() => {
+                            // Hide preview when user wants to edit
+                            setShowCreatedPreview(false);
+                        }}
+                        onCreateAnother={() => {
+                            // Reset form and hide preview
+                            setShowCreatedPreview(false);
+                            setSuggestions([]);
+                            setRulePrompt('');
+                            setName('');
+                            setDescription('');
+                            setSelectedProductIds([]);
+                        }}
+                    />
+                </motion.div>
+            )}
         </motion.div>
     );
 }
