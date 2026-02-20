@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-19)
 
 **Recent work (2026-02-20):** See `memory/MEMORY.md` for full log.
-Key completed: [User account fix script] (`583ee5f0`)
+Key completed: [Tier 2 production specs] (`cee00809`): Deebo Compliance, BakedBot Drive
 
 ---
 

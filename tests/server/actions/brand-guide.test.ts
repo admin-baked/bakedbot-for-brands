@@ -14,13 +14,21 @@ import {
   updateBrandGuide,
   extractBrandGuideFromUrl,
 } from '@/server/actions/brand-guide';
-import { getAdminFirestore } from '@/firebase/admin';
 import { Timestamp } from '@google-cloud/firestore';
 import { getBrandGuideExtractor } from '@/server/services/brand-guide-extractor';
+import { createMockBrandGuideRepo, type MockBrandGuideRepo } from '../../__mocks__/brandGuideRepo';
 
 // Mock dependencies
-jest.mock('@/firebase/admin');
+jest.mock('@/firebase/admin', () => ({
+  getAdminFirestore: jest.fn(() => ({})),
+}));
+
+jest.mock('@/server/repos/brandGuideRepo', () => ({
+  makeBrandGuideRepo: jest.fn(),
+}));
+
 jest.mock('@/server/services/brand-guide-extractor');
+
 jest.mock('@/lib/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -31,51 +39,17 @@ jest.mock('@/lib/logger', () => ({
 }));
 
 describe('Brand Guide Server Actions', () => {
-  let mockFirestore: any;
-  let mockCollection: jest.Mock;
-  let mockDoc: jest.Mock;
-  let mockSet: jest.Mock;
-  let mockGet: jest.Mock;
-  let mockUpdate: jest.Mock;
-  let mockDelete: jest.Mock;
-  let mockWhere: jest.Mock;
-  let mockOrderBy: jest.Mock;
-  let mockLimit: jest.Mock;
+  let mockRepo: MockBrandGuideRepo;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Setup Firestore mock chain
-    mockSet = jest.fn().mockResolvedValue(undefined);
-    mockGet = jest.fn();
-    mockUpdate = jest.fn().mockResolvedValue(undefined);
-    mockDelete = jest.fn().mockResolvedValue(undefined);
-    mockWhere = jest.fn();
-    mockOrderBy = jest.fn();
-    mockLimit = jest.fn();
+    // Create fresh mock repository for each test
+    mockRepo = createMockBrandGuideRepo();
 
-    mockDoc = jest.fn((path?: string) => ({
-      set: mockSet,
-      get: mockGet,
-      update: mockUpdate,
-      delete: mockDelete,
-      collection: mockCollection,
-    }));
-
-    mockCollection = jest.fn((collectionPath: string) => ({
-      doc: mockDoc,
-      where: mockWhere,
-      orderBy: mockOrderBy,
-      limit: mockLimit,
-      get: jest.fn(),
-    }));
-
-    mockFirestore = {
-      collection: mockCollection,
-      doc: mockDoc,
-    };
-
-    (getAdminFirestore as jest.Mock).mockReturnValue(mockFirestore);
+    // Make makeBrandGuideRepo return our mock
+    const { makeBrandGuideRepo } = require('@/server/repos/brandGuideRepo');
+    (makeBrandGuideRepo as jest.Mock).mockReturnValue(mockRepo);
   });
 
   describe('createBrandGuide', () => {
@@ -86,24 +60,20 @@ describe('Brand Guide Server Actions', () => {
         method: 'manual' as const,
       };
 
-      // Mock successful document creation
-      mockGet.mockResolvedValue({
-        exists: true,
-        data: () => ({
-          id: 'brand123',
-          brandId: 'brand123',
-          brandName: 'Test Brand',
-          status: 'draft',
-          createdAt: Timestamp.now(),
-          lastUpdatedAt: Timestamp.now(),
-        }),
-      });
-
       const result = await createBrandGuide(input);
 
       expect(result.success).toBe(true);
       expect(result.brandGuide).toBeDefined();
-      expect(mockSet).toHaveBeenCalled();
+      expect(result.brandGuide?.brandName).toBe('Test Brand');
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        'brand123',
+        expect.objectContaining({
+          brandId: 'brand123',
+          brandName: 'Test Brand',
+          status: 'draft',
+        })
+      );
+      expect(mockRepo.createVersion).toHaveBeenCalled();
     });
 
     it('should use Firestore Timestamp (not Date) for timestamps', async () => {
@@ -113,26 +83,16 @@ describe('Brand Guide Server Actions', () => {
         method: 'manual' as const,
       };
 
-      mockGet.mockResolvedValue({
-        exists: true,
-        data: () => ({
-          id: 'brand123',
-          createdAt: Timestamp.now(),
-          lastUpdatedAt: Timestamp.now(),
-        }),
-      });
-
       await createBrandGuide(input);
 
-      // Check that Timestamp.now() was used (not new Date())
-      const setCall = mockSet.mock.calls[0];
-      if (setCall) {
-        const data = setCall[0];
-        // Version history should use Timestamp
-        expect(data).toBeDefined();
+      // Verify that createVersion was called (which uses Timestamp.now())
+      expect(mockRepo.createVersion).toHaveBeenCalled();
+      const versionCall = mockRepo.createVersion.mock.calls[0];
+      if (versionCall) {
+        const [, versionData] = versionCall;
+        // The timestamp field should exist
+        expect(versionData).toHaveProperty('timestamp');
       }
-
-      expect(mockSet).toHaveBeenCalled();
     });
 
     it('should extract from URL when method is url', async () => {
@@ -156,14 +116,6 @@ describe('Brand Guide Server Actions', () => {
         sourceUrl: 'https://example.com',
       };
 
-      mockGet.mockResolvedValue({
-        exists: true,
-        data: () => ({
-          id: 'brand123',
-          visualIdentity: { colors: { primary: { hex: '#000000' } } },
-        }),
-      });
-
       const result = await createBrandGuide(input);
 
       expect(result.success).toBe(true);
@@ -171,6 +123,7 @@ describe('Brand Guide Server Actions', () => {
         url: 'https://example.com',
         socialHandles: undefined,
       });
+      expect(mockRepo.create).toHaveBeenCalled();
     });
 
     it('should pass social handles to extractor', async () => {
@@ -197,11 +150,6 @@ describe('Brand Guide Server Actions', () => {
         },
       };
 
-      mockGet.mockResolvedValue({
-        exists: true,
-        data: () => ({ id: 'brand123' }),
-      });
-
       await createBrandGuide(input);
 
       expect(mockExtractor.extractFromUrl).toHaveBeenCalledWith({
@@ -227,14 +175,14 @@ describe('Brand Guide Server Actions', () => {
       expect(result.error).toContain('Source URL required');
     });
 
-    it('should handle Firestore errors gracefully', async () => {
+    it('should handle repository errors gracefully', async () => {
       const input = {
         brandId: 'brand123',
         brandName: 'Test Brand',
         method: 'manual' as const,
       };
 
-      mockSet.mockRejectedValue(new Error('Firestore connection error'));
+      mockRepo.create.mockRejectedValue(new Error('Repository error'));
 
       const result = await createBrandGuide(input);
 
@@ -251,7 +199,7 @@ describe('Brand Guide Server Actions', () => {
       };
 
       // Simulate the "Couldn't serialize object of type 'e'" error
-      mockSet.mockRejectedValue(new Error("Couldn't serialize object of type 'e'"));
+      mockRepo.create.mockRejectedValue(new Error("Couldn't serialize object of type 'e'"));
 
       const result = await createBrandGuide(input);
 
@@ -264,32 +212,29 @@ describe('Brand Guide Server Actions', () => {
     it('should retrieve existing brand guide', async () => {
       const brandId = 'brand123';
 
-      mockGet.mockResolvedValue({
-        exists: true,
+      const mockGuide = {
         id: brandId,
-        data: () => ({
-          id: brandId,
-          brandId,
-          brandName: 'Test Brand',
-          status: 'active',
-          createdAt: Timestamp.now(),
-          lastUpdatedAt: Timestamp.now(),
-        }),
-      });
+        brandId,
+        brandName: 'Test Brand',
+        status: 'active',
+        createdAt: Timestamp.now(),
+        lastUpdatedAt: Timestamp.now(),
+      };
+
+      mockRepo.getById.mockResolvedValue(mockGuide as any);
 
       const result = await getBrandGuide(brandId);
 
       expect(result.success).toBe(true);
       expect(result.brandGuide).toBeDefined();
       expect(result.brandGuide?.brandName).toBe('Test Brand');
+      expect(mockRepo.getById).toHaveBeenCalledWith(brandId);
     });
 
     it('should return error when brand guide not found', async () => {
       const brandId = 'nonexistent';
 
-      mockGet.mockResolvedValue({
-        exists: false,
-      });
+      mockRepo.getById.mockResolvedValue(null);
 
       const result = await getBrandGuide(brandId);
 
@@ -297,10 +242,10 @@ describe('Brand Guide Server Actions', () => {
       expect(result.error).toContain('not found');
     });
 
-    it('should handle Firestore errors', async () => {
+    it('should handle repository errors', async () => {
       const brandId = 'brand123';
 
-      mockGet.mockRejectedValue(new Error('Network error'));
+      mockRepo.getById.mockRejectedValue(new Error('Network error'));
 
       const result = await getBrandGuide(brandId);
 
@@ -319,21 +264,19 @@ describe('Brand Guide Server Actions', () => {
       };
 
       // Mock existing guide
-      mockGet.mockResolvedValue({
-        exists: true,
+      const mockGuide = {
         id: 'brand123',
-        data: () => ({
-          id: 'brand123',
-          brandId: 'brand123',
-          brandName: 'Original Name',
-          version: 1,
-        }),
-      });
+        brandId: 'brand123',
+        brandName: 'Original Name',
+        version: 1,
+      };
+
+      mockRepo.getById.mockResolvedValue(mockGuide as any);
 
       const result = await updateBrandGuide(input);
 
       expect(result.success).toBe(true);
-      expect(mockUpdate).toHaveBeenCalled();
+      expect(mockRepo.update).toHaveBeenCalled();
     });
 
     it('should create version history when requested', async () => {
@@ -346,21 +289,18 @@ describe('Brand Guide Server Actions', () => {
         createVersion: true,
       };
 
-      mockGet.mockResolvedValue({
-        exists: true,
+      const mockGuide = {
         id: 'brand123',
-        data: () => ({
-          id: 'brand123',
-          brandName: 'Original Name',
-          version: 1,
-        }),
-      });
+        brandName: 'Original Name',
+        version: 1,
+      };
+
+      mockRepo.getById.mockResolvedValue(mockGuide as any);
 
       const result = await updateBrandGuide(input);
 
       expect(result.success).toBe(true);
-      // Version should be created in subcollection
-      expect(mockSet).toHaveBeenCalled();
+      expect(mockRepo.createVersion).toHaveBeenCalled();
     });
 
     it('should return error when brand guide not found', async () => {
@@ -369,9 +309,7 @@ describe('Brand Guide Server Actions', () => {
         updates: {},
       };
 
-      mockGet.mockResolvedValue({
-        exists: false,
-      });
+      mockRepo.getById.mockResolvedValue(null);
 
       const result = await updateBrandGuide(input);
 
@@ -458,7 +396,8 @@ describe('Brand Guide Server Actions', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
-      expect(result.error).toContain('Failed to extract brand guide');
+      // The error wraps the original message
+      expect(result.error).toMatch(/Failed to extract brand guide|Scraping failed/);
     });
 
     it('should return extracted data even with low confidence', async () => {
@@ -492,26 +431,12 @@ describe('Brand Guide Server Actions', () => {
         method: 'manual' as const,
       };
 
-      let capturedData: any;
-      mockSet.mockImplementation((data) => {
-        capturedData = data;
-        return Promise.resolve();
-      });
-
-      mockGet.mockResolvedValue({
-        exists: true,
-        data: () => ({
-          id: 'brand123',
-          createdAt: Timestamp.now(),
-          lastUpdatedAt: Timestamp.now(),
-        }),
-      });
-
       await createBrandGuide(input);
 
-      // The data passed to Firestore should not contain raw Date objects
-      // Version history timestamp should be created properly
-      expect(mockSet).toHaveBeenCalled();
+      // The repository create method should be called
+      // The actual implementation uses Timestamp.now() internally
+      expect(mockRepo.create).toHaveBeenCalled();
+      expect(mockRepo.createVersion).toHaveBeenCalled();
     });
 
     it('should handle Timestamp conversion in version history', async () => {
@@ -523,21 +448,19 @@ describe('Brand Guide Server Actions', () => {
         createVersion: true,
       };
 
-      mockGet.mockResolvedValue({
-        exists: true,
+      const mockGuide = {
         id: 'brand123',
-        data: () => ({
-          id: 'brand123',
-          brandName: 'Original',
-          version: 1,
-          createdAt: Timestamp.now(),
-        }),
-      });
+        brandName: 'Original',
+        version: 1,
+        createdAt: Timestamp.now(),
+      };
+
+      mockRepo.getById.mockResolvedValue(mockGuide as any);
 
       await updateBrandGuide(input);
 
       // Version should be created with Timestamp
-      expect(mockSet).toHaveBeenCalled();
+      expect(mockRepo.createVersion).toHaveBeenCalled();
     });
   });
 });

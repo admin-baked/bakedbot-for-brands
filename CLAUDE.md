@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-20 (User account fix script for Firestore + Auth sync)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-20 (Tier 2 production specs: Deebo Compliance, BakedBot Drive)
 
 ---
 
