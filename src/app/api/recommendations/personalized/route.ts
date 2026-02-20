@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { recommendationEngine } from '@/lib/recommendations/engine';
 import { createServerClient } from '@/firebase/server-client';
+import { withCache, CachePrefix, CacheTTL } from '@/lib/cache';
 
 import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
@@ -25,7 +26,13 @@ export async function GET(req: NextRequest) {
         const searchParams = req.nextUrl.searchParams;
         const limit = parseInt(searchParams.get('limit') || '10', 10);
 
-        const recommendations = await recommendationEngine.getRecommendations(userId, limit);
+        // Cache recommendations (10 min TTL) - expensive to compute, can tolerate staleness
+        const recommendations = await withCache(
+            CachePrefix.ANALYTICS,
+            `recommendations:${userId}:${limit}`,
+            () => recommendationEngine.getRecommendations(userId, limit),
+            CacheTTL.ANALYTICS
+        );
 
         return NextResponse.json({ recommendations });
     } catch (error: any) {

@@ -14,6 +14,7 @@ import {
 } from '@/server/services/ezal';
 import { logger } from '@/lib/logger';
 import { InsightType, InsightSeverity } from '@/types/ezal-discovery';
+import { withCache, CachePrefix, invalidateCache } from '@/lib/cache';
 
 export async function GET(request: NextRequest) {
     try {
@@ -33,10 +34,17 @@ export async function GET(request: NextRequest) {
 
         // Price gap analysis mode
         if (mode === 'price_gaps') {
-            const gaps = await findPriceGaps(tenantId, {
-                brandName: brandName || undefined,
-                minGapPercent: 5,
-            });
+            // Cache price gaps (15 min TTL) - expensive analysis, changes infrequently
+            const cacheKey = `price_gaps:${tenantId}:${brandName || 'all'}`;
+            const gaps = await withCache(
+                CachePrefix.ANALYTICS,
+                cacheKey,
+                () => findPriceGaps(tenantId, {
+                    brandName: brandName || undefined,
+                    minGapPercent: 5,
+                }),
+                900 // 15 min
+            );
 
             return NextResponse.json({
                 success: true,
@@ -49,13 +57,20 @@ export async function GET(request: NextRequest) {
         const isMock = request.cookies.get('x-use-mock-data')?.value === 'true';
 
         // Default: recent insights
-        const insights = await getRecentInsights(tenantId, {
-            type: type || undefined,
-            brandName: brandName || undefined,
-            severity: severity || undefined,
-            limit: 50,
-            mock: isMock,
-        });
+        // Cache insights (10 min TTL) - expensive to compute, can tolerate staleness
+        const cacheKey = `insights:${tenantId}:${type || 'all'}:${brandName || 'all'}:${severity || 'all'}:${isMock}`;
+        const insights = await withCache(
+            CachePrefix.ANALYTICS,
+            cacheKey,
+            () => getRecentInsights(tenantId, {
+                type: type || undefined,
+                brandName: brandName || undefined,
+                severity: severity || undefined,
+                limit: 50,
+                mock: isMock,
+            }),
+            600 // 10 min
+        );
 
         return NextResponse.json({
             success: true,
@@ -100,6 +115,8 @@ export async function POST(request: NextRequest) {
         switch (action) {
             case 'dismiss':
                 await dismissInsight(tenantId, insightId);
+                // Invalidate insights cache for this tenant
+                await invalidateCache(CachePrefix.ANALYTICS, `insights:${tenantId}:*`);
                 return NextResponse.json({
                     success: true,
                     message: 'Insight dismissed',
@@ -113,6 +130,8 @@ export async function POST(request: NextRequest) {
                     );
                 }
                 await markInsightConsumed(tenantId, insightId, agentId);
+                // Invalidate insights cache for this tenant
+                await invalidateCache(CachePrefix.ANALYTICS, `insights:${tenantId}:*`);
                 return NextResponse.json({
                     success: true,
                     message: `Insight marked as consumed by ${agentId}`,
