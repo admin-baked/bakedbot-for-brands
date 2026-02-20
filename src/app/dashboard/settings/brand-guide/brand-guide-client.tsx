@@ -315,7 +315,8 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
       }
 
       // Step 1 — derive brand name from extracted data, website title, or URL domain
-      // Priority: explicit brandName → website page title → URL domain fallback
+      // Priority: AI-extracted brandName → website page title → URL domain fallback
+      const aiExtractedBrandName = (result as any).messaging?.brandName;
       const websiteTitle: string | undefined = (result as any).websiteTitle;
       const titleDerivedName = websiteTitle
         ? websiteTitle
@@ -327,14 +328,15 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
             .trim()
         : undefined;
 
+      const domainFallback = websiteUrl
+        .replace(/^https?:\/\//i, '')
+        .replace(/^www\./i, '')
+        .split('.')[0]
+        .replace(/[-_]/g, ' ')
+        .replace(/\b\w/g, (c: string) => c.toUpperCase());
+
       const extractedBrandName: string =
-        titleDerivedName ||
-        websiteUrl
-          .replace(/^https?:\/\//i, '')
-          .replace(/^www\./i, '')
-          .split('.')[0]
-          .replace(/[-_]/g, ' ')
-          .replace(/\b\w/g, (c: string) => c.toUpperCase());
+        aiExtractedBrandName || titleDerivedName || domainFallback;
 
       // Filter out AI placeholder values that look like "Unknown - ..." or "Unable to extract..."
       const cleanTagline = (value: string | undefined): string => {
@@ -360,10 +362,10 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
       if (!step1Data) {
         setStep1Data({
           brandName: extractedBrandName,
-          // Fallback chain: valuePropositions[0] → positioning → metadata.description
+          // Fallback chain: positioning (clearest) → valuePropositions[0] → metadata.description
           description:
-            cleanTagline((result as any).messaging?.valuePropositions?.[0]) ||
             cleanTagline((result as any).messaging?.positioning) ||
+            cleanTagline((result as any).messaging?.valuePropositions?.[0]) ||
             cleanTagline((result as any).metadata?.description) ||
             '',
           tagline: cleanTagline((result as any).messaging?.tagline),

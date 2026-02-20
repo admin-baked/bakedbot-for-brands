@@ -492,16 +492,23 @@ Description: ${website.metadata.description || 'Unknown'}
 Content sample: ${website.content.substring(0, 5000)}
 
 Extract and structure:
-1. Tagline (if present)
-2. Positioning statement
-3. Mission statement (if present)
-4. Key value propositions
-5. Brand story elements
+1. **Brand Name** - The exact business name as it appears on the website (e.g., "Thrive Syracuse", not "thrivesyracuse.com")
+2. **Tagline** - Short catchphrase or slogan (usually 2-6 words, appears near the brand name or in hero sections)
+3. **Positioning statement** - How the brand describes itself (1-2 sentences)
+4. **Mission statement** - If explicitly stated (look for "Our Mission", "What We Do", etc.)
+5. **Value propositions** - Key benefits or unique selling points (usually 2-4 bullet points from About Us)
+6. **Brand story** - Origin story, values, and differentiators from About Us content
+
+IMPORTANT:
+- Extract the brand name EXACTLY as written on the page (proper spacing and capitalization)
+- Tagline should be SHORT (not a full sentence) - look for text near logos or in hero sections
+- For descriptions, use the first clear sentence from About Us that explains what they do
 
 Return a JSON object with this structure:
 {
-  "tagline": "Brand tagline",
-  "positioning": "How the brand positions itself",
+  "brandName": "Exact brand name from the page",
+  "tagline": "Short slogan or catchphrase",
+  "positioning": "How the brand positions itself (1-2 sentences)",
   "missionStatement": "Mission statement if found",
   "valuePropositions": ["Value prop 1", "Value prop 2", "Value prop 3"],
   "brandStory": {
