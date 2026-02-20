@@ -163,6 +163,36 @@ export async function proxy(request: NextRequest) {
     const isOnboardingRoute = pathname === '/onboarding';
     const isProtectedRoute = isDashboardRoute || isAccountRoute || isOnboardingRoute;
 
+    // ============================
+    // AGE GATE ENFORCEMENT (21+)
+    // ============================
+    // Check if this is a cannabis menu route requiring age verification
+    // Skip age gate for: protected routes, API, signin pages, verify-age itself
+    const isMenuRoute =
+        !isProtectedRoute &&
+        !pathname.startsWith('/api/') &&
+        !pathname.startsWith('/signin') &&
+        !pathname.startsWith('/verify-age') &&
+        !pathname.startsWith('/_next/') &&
+        (
+            pathname.match(/^\/[^/]+$/) || // Brand pages like /thrivesyracuse
+            pathname.startsWith('/dispensaries/') ||
+            (pathname === '/' && (isBakedBotDomain || isCustomDomain))
+        );
+
+    if (isMenuRoute) {
+        const ageVerified = request.cookies.get('age_verified');
+
+        // If no age verification cookie, redirect to server-rendered age gate
+        // This prevents bypass via JavaScript disabling
+        if (!ageVerified) {
+            const url = request.nextUrl.clone();
+            url.pathname = '/verify-age';
+            url.searchParams.set('return_to', pathname + request.nextUrl.search);
+            return NextResponse.redirect(url);
+        }
+    }
+
     // CEO dashboard requires server-side role verification
     // This is no longer allowed to be handled client-side via localStorage
     const isCeoDashboard = pathname.startsWith('/dashboard/ceo');

@@ -25,6 +25,7 @@ import { AlertCircle, PartyPopper, X, Mail, Sparkles, Gift } from 'lucide-react'
 import { captureEmailLead } from '@/server/actions/email-capture';
 import { checkFirstOrderEligibility } from '@/lib/checkout/first-order-discount';
 import { createFirstOrderCoupon } from '@/app/actions/first-order-coupon';
+import { setAgeVerificationCookie } from '@/server/actions/age-verification';
 import { logger } from '@/lib/logger';
 
 interface AgeGateSimpleWithEmailProps {
@@ -63,14 +64,18 @@ export function AgeGateSimpleWithEmail({
         setStep('underage');
     };
 
-    const handleSkip = () => {
-        // Store age verification and continue without email
+    const handleSkip = async () => {
+        // Store age verification (client-side for UX)
         const verification = {
             verified: true,
             timestamp: Date.now(),
             expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
         };
         localStorage.setItem('age_verified', JSON.stringify(verification));
+
+        // CRITICAL: Set HTTP-only cookie for server-side enforcement
+        // This prevents bypass via JavaScript disabling
+        await setAgeVerificationCookie();
 
         logger.info('[AgeGateSimpleWithEmail] User skipped email capture');
         onVerified();
@@ -89,13 +94,17 @@ export function AgeGateSimpleWithEmail({
         setIsSubmitting(true);
 
         try {
-            // Store age verification
+            // Store age verification (client-side for UX)
             const verification = {
                 verified: true,
                 timestamp: Date.now(),
                 expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
             };
             localStorage.setItem('age_verified', JSON.stringify(verification));
+
+            // CRITICAL: Set HTTP-only cookie for server-side enforcement
+            // This prevents bypass via JavaScript disabling
+            await setAgeVerificationCookie();
 
             // Check first-order discount eligibility and generate code
             let generatedDiscountCode: string | undefined;

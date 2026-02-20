@@ -43,7 +43,13 @@ Features are grouped by business criticality:
 | Public Menu Pages | `tier1-public-menu-pages.md` | 🟡 Draft |
 
 ### Tier 2 — Core Product
-_Specs to be written in Session 2._
+| Feature | File | Status |
+|---------|------|--------|
+| Inbox + Artifact Pipeline | `tier2-inbox-artifacts.md` | 🔴 Gaps Identified |
+| Creative Studio (Command Center) | `tier2-creative-studio.md` | 🔴 Gaps Identified |
+| Brand Guide + Onboarding | `tier2-brand-guide-onboarding.md` | 🔴 Gaps Identified |
+| Playbooks System | `tier2-playbooks.md` | 🔴 Gaps Identified |
+| Analytics (Pops Agent) | `tier2-analytics-pops.md` | 🔴 Gaps Identified |
 
 ### Tier 3 — Supporting Systems
 _Specs to be written in Session 3._

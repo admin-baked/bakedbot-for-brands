@@ -286,3 +286,65 @@ export async function verifyAgeSimple(): Promise<{ allowed: boolean; minAge: 21 
         minAge: 21
     };
 }
+
+// ============================================================================
+// Server-Side Cookie Management (HTTP-only, secure)
+// ============================================================================
+
+const AGE_COOKIE_NAME = 'age_verified';
+const AGE_COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
+
+/**
+ * Set age verification cookie (HTTP-only, secure)
+ * Called from client-side age gate component after user confirms 21+
+ *
+ * This provides server-side enforcement at the middleware layer,
+ * preventing bypass via JavaScript disabling.
+ */
+export async function setAgeVerificationCookie(): Promise<{ success: boolean }> {
+    try {
+        const { cookies } = await import('next/headers');
+        const cookieStore = await cookies();
+
+        cookieStore.set(AGE_COOKIE_NAME, 'true', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: AGE_COOKIE_MAX_AGE,
+            path: '/',
+        });
+
+        logger.info('[AgeGate] Age verification cookie set', {
+            maxAge: AGE_COOKIE_MAX_AGE,
+        });
+
+        return { success: true };
+    } catch (error) {
+        logger.error('[AgeGate] Failed to set cookie', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return { success: false };
+    }
+}
+
+/**
+ * Clear age verification cookie
+ * Used for testing or if user requests to reset
+ */
+export async function clearAgeVerificationCookie(): Promise<{ success: boolean }> {
+    try {
+        const { cookies } = await import('next/headers');
+        const cookieStore = await cookies();
+
+        cookieStore.delete(AGE_COOKIE_NAME);
+
+        logger.info('[AgeGate] Age verification cookie cleared');
+
+        return { success: true };
+    } catch (error) {
+        logger.error('[AgeGate] Failed to clear cookie', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return { success: false };
+    }
+}
