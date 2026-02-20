@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-19)
 
 **Recent work (2026-02-20):** See `memory/MEMORY.md` for full log.
-Key completed: [Emergency rate limiting disable] (`b6a832f5`), [Cron POST handlers] (`8535aa0c`, `12ec9b39`)
+Key completed: [Rate limiting Edge fix] (`625a548a`), [8 cron POST handlers] (`8535aa0c`, `12ec9b39`)
 
 ---
 
