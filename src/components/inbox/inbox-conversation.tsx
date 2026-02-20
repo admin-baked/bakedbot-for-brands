@@ -1178,6 +1178,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                             {showHeroGenerator && (
                                 <div className="mt-4">
                                     <HeroGeneratorInline
+                                        orgId={thread.orgId}
                                         onComplete={handleCompleteHero}
                                         initialPrompt={heroInitialPrompt}
                                     />
@@ -1248,6 +1249,7 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                             {showHeroGenerator && (
                                 <div className="mt-4">
                                     <HeroGeneratorInline
+                                        orgId={thread.orgId}
                                         onComplete={handleCompleteHero}
                                         initialPrompt={heroInitialPrompt}
                                     />
