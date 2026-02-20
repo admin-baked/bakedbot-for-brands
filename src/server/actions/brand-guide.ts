@@ -7,6 +7,7 @@
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
+import { Timestamp } from '@google-cloud/firestore';
 import { makeBrandGuideRepo } from '@/server/repos/brandGuideRepo';
 import { getBrandGuideExtractor } from '@/server/services/brand-guide-extractor';
 import { getBrandVoiceAnalyzer } from '@/server/services/brand-voice-analyzer';
@@ -116,7 +117,7 @@ export async function createBrandGuide(
     // Create initial version
     await repo.createVersion(input.brandId, {
       version: 1,
-      timestamp: new Date(),
+      timestamp: Timestamp.now(),
       updatedBy: input.brandId,
       changes: [
         {
@@ -204,7 +205,7 @@ export async function updateBrandGuide(
 
       await repo.createVersion(input.brandId, {
         version: current.version + 1,
-        timestamp: new Date(),
+        timestamp: Timestamp.now(),
         updatedBy: input.brandId,
         changes,
         snapshot: { ...current, ...input.updates },
