@@ -14,7 +14,7 @@ import {
 } from '@/server/services/ezal';
 import { logger } from '@/lib/logger';
 import { InsightType, InsightSeverity } from '@/types/ezal-discovery';
-import { withCache, CachePrefix, invalidateCache } from '@/lib/cache';
+import { withCache, CachePrefix, invalidateCachePattern } from '@/lib/cache';
 
 export async function GET(request: NextRequest) {
     try {
@@ -115,8 +115,8 @@ export async function POST(request: NextRequest) {
         switch (action) {
             case 'dismiss':
                 await dismissInsight(tenantId, insightId);
-                // Invalidate insights cache for this tenant
-                await invalidateCache(CachePrefix.ANALYTICS, `insights:${tenantId}:*`);
+                // Invalidate insights cache for this tenant (all filter combinations)
+                await invalidateCachePattern(`${CachePrefix.ANALYTICS}:insights:${tenantId}:*`);
                 return NextResponse.json({
                     success: true,
                     message: 'Insight dismissed',
@@ -130,8 +130,8 @@ export async function POST(request: NextRequest) {
                     );
                 }
                 await markInsightConsumed(tenantId, insightId, agentId);
-                // Invalidate insights cache for this tenant
-                await invalidateCache(CachePrefix.ANALYTICS, `insights:${tenantId}:*`);
+                // Invalidate insights cache for this tenant (all filter combinations)
+                await invalidateCachePattern(`${CachePrefix.ANALYTICS}:insights:${tenantId}:*`);
                 return NextResponse.json({
                     success: true,
                     message: `Insight marked as consumed by ${agentId}`,
