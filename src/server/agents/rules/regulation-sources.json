@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "description": "Official regulatory sources monitored weekly for cannabis advertising rule changes. NEVER auto-modify rule packs — all proposals require human review.",
+  "last_reviewed": "2026-02-19",
+  "sources": [
+    {
+      "id": "ny_ocm_advertising",
+      "jurisdiction": "NY",
+      "channel": "retail",
+      "label": "NY OCM Cannabis Advertising Rules — 9 NYCRR §129.3",
+      "url": "https://www.law.cornell.edu/regulations/new-york/9-NYCRR-129.3",
+      "rule_pack_file": "ny-retail.json",
+      "notes": "Primary source for NY advertising prohibitions. Updated Jan 8, 2026."
+    },
+    {
+      "id": "ca_dcc_advertising",
+      "jurisdiction": "CA",
+      "channel": "retail",
+      "label": "CA DCC Cannabis Advertising — BPC §§26150-26156",
+      "url": "https://leginfo.legislature.ca.gov/faces/codes_displayText.xhtml?chapter=15.&division=10.&lawCode=BPC",
+      "rule_pack_file": "ca-retail.json",
+      "notes": "Primary source for CA advertising prohibitions. Updated Jan 1, 2026."
+    },
+    {
+      "id": "il_ccb_advertising",
+      "jurisdiction": "IL",
+      "channel": "retail",
+      "label": "IL CRTA Cannabis Advertising — 410 ILCS 705/55-21",
+      "url": "https://www.ilga.gov/documents/legislation/ilcs/documents/041007050K55-21.htm",
+      "rule_pack_file": "il-retail.json",
+      "notes": "Primary advertising prohibitions statute."
+    },
+    {
+      "id": "il_ccb_admin_rules",
+      "jurisdiction": "IL",
+      "channel": "retail",
+      "label": "IL CCB Administrative Rules — 68 Ill. Adm. Code §1290.450",
+      "url": "https://www.ilga.gov/commission/jcar/admincode/068/068012900G04550R.html",
+      "rule_pack_file": "il-retail.json",
+      "notes": "Supplemental IL admin code for advertising restrictions."
+    },
+    {
+      "id": "wa_lcb_advertising",
+      "jurisdiction": "WA",
+      "channel": "retail",
+      "label": "WA LCB Cannabis Advertising — WAC 314-55-155",
+      "url": "https://app.leg.wa.gov/wac/default.aspx?cite=314-55-155",
+      "rule_pack_file": "wa-retail.json",
+      "notes": "Primary WA advertising rules."
+    }
+  ]
+}
