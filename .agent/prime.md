@@ -78,7 +78,8 @@ Only after Stages 1-4 are complete:
 | File | Purpose | When to read |
 |---|---|---|
 | `.agent/prime.md` | Startup context + workflow protocol | Every session (auto-loaded) |
-| `.agent/spec-template.md` | Structured spec format | Before any implementation |
+| `.agent/spec-template.md` | Structured spec format (task-level) | Before any implementation |
+| `.agent/specs/` | **Production specs** — acceptance criteria, known gaps per feature | Before touching a major feature |
 | `.agent/review-checklist.md` | Self-review gates | After implementation, before commit |
 | `.agent/golden-sets/*.json` | Eval datasets for LLM changes | When code touches agent prompts/behavior |
 | `.agent/constitution.md` | Full engineering principles | Reference for edge cases and disputes |
@@ -89,13 +90,8 @@ Only after Stages 1-4 are complete:
 
 **Recent work (2026-02-19):** See `memory/MEMORY.md` for full log.
 Key completed:
-- [Compliance infra] (`939c817b`, `7c85bcf8`) — NY/CA/IL regex rule packs; regulation monitor (weekly scrape → SHA-256 diff → Claude Haiku proposal → Drive + Slack); NEVER auto-modifies rule packs.
-- [Prod-readiness sweep] (`20664a99`) — Playbooks Edit/Duplicate/Delete handlers wired; 40× console→logger in 7 server files; Cloud Scheduler gcloud commands added to 21 cron routes.
-- [Menu Command Center] (`72f5f044`) — Live Preview tab, drag-to-reorder, per-card overlays, Full Screen toggle.
-- [Brand Guide onboarding overhaul] (`b9a24074`) — Fixed silent data-loss bugs; dispensary type smart voice defaults; logo preview.
-- [Mid-Tier Brand Logos Seed] (`7fe7f898`) — Seed script for mid-tier brand logos + upload utilities. See `scripts/seed-brand-logos.ts`.
-- [Linus Slack Timeout Fix] (`1d9f7aaf`) — Linus timeout raised 55s → 240s; harness iteration cap set to 8. Prevents Slack reply timeouts on complex CTO queries.
-- [Heartbeat Gray Pulse Fix] (`92d8345f`) — Permanent fix for gray pulse on orgs without tenant doc. Heartbeat now resolves correctly for all org types.
+- [Production Spec Initiative] — `.agent/specs/` created; 5 Tier 1 production specs written (Campaign, POS/Menu, Compliance, Billing, Public Menu). Critical gaps identified.
+- [Compliance infra] (`939c817b`, `7c85bcf8`) — NY/CA/IL regex rule packs; regulation monitor (weekly scrape → SHA-256 diff → Claude Haiku proposal → Drive + Slack).
 - [The Herbalist Samui — International Pilot] (`abf56b8e`) — First international dispensary on BakedBot. Koh Samui, Thailand. Org `dispensary_herbalistsamui`, 22 demo products (THB ฿ pricing), 4 local competitors, Cloud Scheduler daily CI at 9 AM Bangkok, invites to jack@bakedbot.ai + bryan@thebeachsamui.com. See `scripts/seed-herbalist-samui.ts` + `HERBALIST_SAMUI_SETUP.md`.
 - [Multi-Region ISR: Thailand/Koh Samui] (`f9b85263`) — New `/destination/[country]/[city]` route structure with 4-hour ISR cache. RTRVR-powered Google Maps scraping, multi-currency (THB/VND/KHR/USD), GitHub Actions daily automation (3 AM UTC). Seeded 4 Koh Samui dispensaries. See `src/app/destination/` + `src/server/services/growth/international-discovery.ts`.
 
@@ -180,23 +176,26 @@ node scripts/promote-super-user-by-email.mjs <EMAIL>
 
 ## 🗂️ Completed Systems (Quick Reference)
 
-> All detailed docs in `.agent/refs/` — load on demand, not upfront.
+> Architecture docs: `.agent/refs/` | Production specs (acceptance criteria + gaps): `.agent/specs/`
 
-| System | Status | Key Ref |
-|--------|--------|---------|
-| Alleaves POS (Thrive) | ✅ 95% data capture | `refs/alleaves-pos.md` |
-| BakedBot Drive (viewer/editor/AI) | ✅ Live | `src/components/drive/` |
-| NY OCM Delivery System | ✅ 6 phases | `refs/delivery-system.md` |
-| Slack Agent Integration | ✅ 14 channels | `memory/slack.md` |
-| Heartbeat + Auto-recovery | ✅ 99.9% uptime | `memory/platform.md` |
-| Playbook Engine (23 playbooks) | ✅ Empire tier live | `memory/playbooks.md` |
-| Super User Agent Tools (28) | ✅ All wired | `refs/super-user-agent-tools.md` |
-| Vibe Builder | ✅ + 150 tests | `refs/vibe-builder-spec.md` |
-| Billing (Phases 1-10) | ✅ Tests passing | `refs/` (various) |
-| Creative Studio (Canva-style) | ✅ 3-panel layout | `src/app/dashboard/creative/` |
-| Help Center (50 articles) | ✅ Feb 2026 | `src/app/help/` |
-| Pilot Customers | ✅ Thrive (US) + Herbalist Samui (🇹🇭 INT'L) | `memory/customers.md` + `HERBALIST_SAMUI_SETUP.md` |
-| International ISR Pages | ✅ Thailand/Koh Samui live | `src/app/destination/` |
+| System | Status | Key Ref | Production Spec |
+|--------|--------|---------|----------------|
+| Alleaves POS (Thrive) | ✅ 95% data capture | `refs/alleaves-pos.md` | `specs/tier1-pos-menu-sync.md` |
+| BakedBot Drive (viewer/editor/AI) | ✅ Live | `src/components/drive/` | — |
+| NY OCM Delivery System | ✅ 6 phases | `refs/delivery-system.md` | — |
+| Slack Agent Integration | ✅ 14 channels | `memory/slack.md` | — |
+| Heartbeat + Auto-recovery | ✅ 99.9% uptime | `memory/platform.md` | — |
+| Playbook Engine (23 playbooks) | ✅ Empire tier live | `memory/playbooks.md` | — |
+| Super User Agent Tools (28) | ✅ All wired | `refs/super-user-agent-tools.md` | — |
+| Vibe Builder | ✅ + 150 tests | `refs/vibe-builder-spec.md` | — |
+| Billing (Phases 1-10) | ✅ Tests passing | `refs/` (various) | `specs/tier1-billing.md` |
+| Creative Studio (Canva-style) | ✅ 3-panel layout | `src/app/dashboard/creative/` | — |
+| Help Center (50 articles) | ✅ Feb 2026 | `src/app/help/` | — |
+| Campaign System (Craig) | ✅ SMS+Email+Deebo gate | `refs/agents.md` | `specs/tier1-campaign-system.md` |
+| Compliance (Deebo) | ✅ NY/CA/IL rules + monitor | `refs/agents.md` | `specs/tier1-compliance-deebo.md` |
+| Public Menu Pages | ✅ Brand + Dispensary + ISR | `refs/pages-brand.md` | `specs/tier1-public-menu-pages.md` |
+| Pilot Customers | ✅ Thrive (US) + Herbalist Samui (🇹🇭 INT'L) | `memory/customers.md` + `HERBALIST_SAMUI_SETUP.md` | — |
+| International ISR Pages | ✅ Thailand/Koh Samui live | `src/app/destination/` | — |
 
 ---
 
