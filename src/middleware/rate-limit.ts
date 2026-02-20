@@ -13,7 +13,8 @@
 
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
-import { logger } from '@/lib/logger';
+// Note: Cannot use @/lib/logger in Edge Runtime (middleware)
+// Google Cloud Logging is Node.js-only; use console for Edge
 
 // Initialize Redis client (lazy initialization — only if env vars present)
 let redis: Redis | null = null;
@@ -26,7 +27,7 @@ function initializeRateLimit() {
     const redisToken = process.env.UPSTASH_REDIS_TOKEN;
 
     if (!redisUrl || !redisToken) {
-        logger.warn(
+        console.warn(
             '[RateLimit] UPSTASH_REDIS_URL or UPSTASH_REDIS_TOKEN not configured — rate limiting disabled'
         );
         return null;
@@ -48,7 +49,7 @@ function initializeRateLimit() {
         prefix: 'bakedbot:ratelimit',
     });
 
-    logger.info('[RateLimit] Initialized with 100 req/min sliding window');
+    console.log('[RateLimit] Initialized with 100 req/min sliding window');
     return rateLimit;
 }
 
@@ -76,7 +77,7 @@ export async function checkRateLimit(
         const { success, limit, remaining, reset } = await limiter.limit(ip);
 
         if (!success) {
-            logger.warn('[RateLimit] Rate limit exceeded', {
+            console.warn('[RateLimit] Rate limit exceeded', {
                 ip,
                 limit,
                 remaining,
@@ -88,7 +89,7 @@ export async function checkRateLimit(
     } catch (error) {
         // On error (Redis down, network issue), fail open (allow request)
         // This prevents rate limiting from causing site-wide outages
-        logger.error('[RateLimit] Failed to check rate limit — allowing request', {
+        console.error('[RateLimit] Failed to check rate limit — allowing request', {
             ip,
             error: error instanceof Error ? error.message : String(error),
         });
