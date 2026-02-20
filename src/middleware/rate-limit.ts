@@ -6,7 +6,7 @@
  * - Distributed rate limiting (works across multiple server instances)
  * - Persistent storage (survives server restarts)
  * - Sliding window algorithm (more accurate than fixed window)
- * - Analytics and monitoring support
+ * - Edge Runtime compatible (analytics disabled due to Edge issues)
  *
  * Fallback: If Redis not configured, allows all requests (fail-open)
  */
@@ -45,7 +45,7 @@ function initializeRateLimit() {
     rateLimit = new Ratelimit({
         redis,
         limiter: Ratelimit.slidingWindow(100, '1 m'),
-        analytics: true,
+        analytics: false, // DISABLED: analytics has Edge Runtime compatibility issues
         prefix: 'bakedbot:ratelimit',
     });
 

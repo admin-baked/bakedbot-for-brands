@@ -129,9 +129,18 @@ export function ProductsDataTable<TData extends Product, TValue>({
           title: 'Sync Complete',
           description: `${result.count || 0} products from ${result.provider || 'POS'}${removed > 0 ? ` · ${removed} stale removed` : ''}.`
         });
-        // Refresh both the page data AND the POS config (so count badge updates)
+
+        // Wait for server-side revalidation to complete before refreshing
+        // This ensures the new data is ready when router.refresh() executes
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Refresh the page data first (triggers server component re-render)
         router.refresh();
-        getPosConfig().then(cfg => setPosConfig(cfg));
+
+        // Then update POS config after a brief delay to ensure page data loaded
+        await new Promise(resolve => setTimeout(resolve, 300));
+        const updatedConfig = await getPosConfig();
+        setPosConfig(updatedConfig);
       } else {
         toast({
           variant: 'destructive',

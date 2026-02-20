@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getCorsHeaders, CORS_PREFLIGHT_HEADERS, isOriginAllowed } from './lib/cors';
-// TEMPORARILY DISABLED: Rate limiting causing Edge Runtime crash
-// import { checkRateLimit } from './middleware/rate-limit';
+import { checkRateLimit } from './middleware/rate-limit';
 
 /**
  * Proxy for route protection, authentication, CORS, CSRF, and custom domain routing.
@@ -166,30 +165,35 @@ export async function proxy(request: NextRequest) {
     const isProtectedRoute = isDashboardRoute || isAccountRoute || isOnboardingRoute;
 
     // ============================
-    // RATE LIMITING (PUBLIC ROUTES) - TEMPORARILY DISABLED
+    // RATE LIMITING (PUBLIC ROUTES)
     // ============================
-    // DISABLED: Causing Edge Runtime crash - needs investigation
-    // TODO: Re-enable after fixing Edge Runtime compatibility
-    /*
+    // Rate limiting with fail-safe: if it crashes, allow request through
+    // Analytics disabled due to Edge Runtime compatibility issues
     if (!isProtectedRoute && !pathname.startsWith('/api/cron/') && !pathname.startsWith('/_next/')) {
-        const ip =
-            request.headers.get('x-forwarded-for') ||
-            request.headers.get('x-real-ip') ||
-            '127.0.0.1';
+        try {
+            const ip =
+                request.headers.get('x-forwarded-for') ||
+                request.headers.get('x-real-ip') ||
+                '127.0.0.1';
 
-        const { success, remaining } = await checkRateLimit(ip);
+            const { success, remaining } = await checkRateLimit(ip);
 
-        if (!success) {
-            return new NextResponse('Too Many Requests', {
-                status: 429,
-                headers: {
-                    'Retry-After': '60',
-                    'X-RateLimit-Remaining': String(remaining || 0),
-                },
-            });
+            if (!success) {
+                return new NextResponse('Too Many Requests', {
+                    status: 429,
+                    headers: {
+                        'Retry-After': '60',
+                        'X-RateLimit-Remaining': String(remaining || 0),
+                    },
+                });
+            }
+        } catch (error) {
+            // CRITICAL: If rate limiting crashes, fail OPEN (allow request)
+            // This prevents rate limiting from taking down the entire site
+            console.error('[Proxy] Rate limit check failed, allowing request:', error);
+            // Continue to next middleware step
         }
     }
-    */
 
     // ============================
     // AGE GATE ENFORCEMENT (21+)

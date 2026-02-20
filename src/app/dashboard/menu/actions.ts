@@ -378,9 +378,13 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
             'posConfig.lastSyncCount': count,   // POS authoritative product count
         });
 
+        // 7. Revalidate paths synchronously before returning to ensure fresh data on next request
         const { revalidatePath } = await import('next/cache');
         revalidatePath('/dashboard/menu');
         revalidatePath('/dashboard/products');
+
+        // Give Next.js cache a moment to clear (prevents stale data on immediate router.refresh())
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         return { success: true, count, provider, removed: staleIds.length };
 
