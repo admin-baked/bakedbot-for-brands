@@ -208,7 +208,14 @@ export async function getInboxThreads(options?: {
     status?: InboxThreadStatus;
     limit?: number;
     orgId?: string;
-}): Promise<{ success: boolean; threads?: InboxThread[]; error?: string }> {
+    cursor?: string; // Document ID to start after (for pagination)
+}): Promise<{
+    success: boolean;
+    threads?: InboxThread[];
+    nextCursor?: string;
+    hasMore?: boolean;
+    error?: string;
+}> {
     try {
         const user = await getServerSessionUser();
         if (!user) {
@@ -216,7 +223,13 @@ export async function getInboxThreads(options?: {
         }
 
         const db = getDb();
-        let query = db.collection(INBOX_THREADS_COLLECTION).where('userId', '==', user.uid);
+        const pageSize = options?.limit || 50;
+
+        let query = db
+            .collection(INBOX_THREADS_COLLECTION)
+            .where('userId', '==', user.uid)
+            .orderBy('lastActivityAt', 'desc') // Firestore-level sort (requires composite index)
+            .limit(pageSize + 1); // Fetch +1 to check if there are more pages
 
         // Apply filters
         if (options?.type) {
@@ -229,7 +242,15 @@ export async function getInboxThreads(options?: {
             query = query.where('orgId', '==', options.orgId);
         }
 
-        const snapshot = await query.limit(options?.limit || 50).get();
+        // Cursor-based pagination: start after the cursor document
+        if (options?.cursor) {
+            const cursorDoc = await db.collection(INBOX_THREADS_COLLECTION).doc(options.cursor).get();
+            if (cursorDoc.exists) {
+                query = query.startAfter(cursorDoc);
+            }
+        }
+
+        const snapshot = await query.get();
 
         const threads: InboxThread[] = [];
         snapshot.forEach((doc) => {
@@ -237,14 +258,16 @@ export async function getInboxThreads(options?: {
             threads.push(serializeThread(data));
         });
 
-        // Sort by lastActivityAt descending (in-memory to avoid composite index)
-        threads.sort((a, b) => {
-            const aTime = new Date(a.lastActivityAt).getTime();
-            const bTime = new Date(b.lastActivityAt).getTime();
-            return bTime - aTime;
-        });
+        // Check if there are more pages
+        const hasMore = threads.length > pageSize;
+        if (hasMore) {
+            threads.pop(); // Remove the extra document
+        }
 
-        return { success: true, threads };
+        // Next cursor is the ID of the last document
+        const nextCursor = hasMore && threads.length > 0 ? threads[threads.length - 1].id : undefined;
+
+        return { success: true, threads, nextCursor, hasMore };
     } catch (error) {
         logger.error('Failed to get inbox threads', { error });
         return { success: false, error: 'Failed to get threads' };
