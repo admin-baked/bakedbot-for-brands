@@ -159,6 +159,10 @@ export interface InboxThread {
     customerEmail?: string;
     customerSegment?: string;     // Cached segment at thread creation
 
+    // Routing context (for internal support threads)
+    assignedToRole?: 'super_user' | 'super_admin';  // Routes thread to Super User inbox
+    assignedToUserId?: string;                       // Routes thread to specific user
+
     // Organization features
     isPinned?: boolean;          // Pin to top of list
     tags?: string[];             // Custom tags for filtering

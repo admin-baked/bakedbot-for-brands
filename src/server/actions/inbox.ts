@@ -209,6 +209,7 @@ export async function getInboxThreads(options?: {
     limit?: number;
     orgId?: string;
     cursor?: string; // Document ID to start after (for pagination)
+    showAllSupportThreads?: boolean; // Super Users: fetch all support threads assigned to them
 }): Promise<{
     success: boolean;
     threads?: InboxThread[];
@@ -224,12 +225,25 @@ export async function getInboxThreads(options?: {
 
         const db = getDb();
         const pageSize = options?.limit || 50;
+        const isSuperUser = user.role === 'super_user' || user.role === 'super_admin';
 
-        let query = db
-            .collection(INBOX_THREADS_COLLECTION)
-            .where('userId', '==', user.uid)
-            .orderBy('lastActivityAt', 'desc') // Firestore-level sort (requires composite index)
-            .limit(pageSize + 1); // Fetch +1 to check if there are more pages
+        let query;
+
+        // Super Users with showAllSupportThreads flag see all support threads assigned to them
+        if (isSuperUser && options?.showAllSupportThreads) {
+            query = db
+                .collection(INBOX_THREADS_COLLECTION)
+                .where('assignedToRole', '==', 'super_user')
+                .orderBy('lastActivityAt', 'desc')
+                .limit(pageSize + 1);
+        } else {
+            // Normal users see only threads they created
+            query = db
+                .collection(INBOX_THREADS_COLLECTION)
+                .where('userId', '==', user.uid)
+                .orderBy('lastActivityAt', 'desc') // Firestore-level sort (requires composite index)
+                .limit(pageSize + 1); // Fetch +1 to check if there are more pages
+        }
 
         // Apply filters
         if (options?.type) {
@@ -295,8 +309,12 @@ export async function getInboxThread(
 
         const thread = doc.data() as InboxThread;
 
-        // Verify ownership
-        if (thread.userId !== user.uid) {
+        // Verify ownership or Super User access to support threads
+        const isSuperUser = user.role === 'super_user' || user.role === 'super_admin';
+        const isOwner = thread.userId === user.uid;
+        const isAssignedSupport = isSuperUser && thread.assignedToRole === 'super_user';
+
+        if (!isOwner && !isAssignedSupport) {
             return { success: false, error: 'Unauthorized' };
         }
 
