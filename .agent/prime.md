@@ -461,4 +461,34 @@ if (authHeader !== `Bearer ${cronSecret}`) {
 
 ---
 
-*This context loads automatically. For domain-specific details, consult `.agent/refs/`. For session history, see `memory/MEMORY.md` and `dev/work_archive/`.*
+## 🚀 Auto-Approved Operations & Agent Autonomy (2026-02-20)
+
+### Claude Code
+**Explicit permission:** Execute these autonomously:
+- Cloud Scheduler job creation/modification/execution
+- Backfill commands (`POST /api/cron/backfill-*`)
+- Cron job triggers (`POST /api/cron/*`)
+- Deployments (`git push origin main` — after build pass)
+- Service account setup (IAM operations)
+
+### Linus (CTO Agent) — FULL AUTONOMY GRANTED
+**See `.agent/LINUS_CTO_AUTONOMY.md` for comprehensive charter**
+
+**CTO Powers:**
+- ✅ Push code to production (`git push`)
+- ✅ Auto-revert failed deployments (< 2 min SLA)
+- ✅ Create/manage Cloud Scheduler cron jobs
+- ✅ Fix production incidents autonomously
+- ✅ Real-time Slack + dashboard reporting
+- ✅ Infrastructure automation (service accounts)
+
+**Safety Mechanisms:**
+- Build validation gate (must pass before push)
+- Destructive ops require human approval (critical jobs, secrets)
+- Full audit trail (Firestore `linus-audit` collection)
+- Hive Mind learning (Letta memory prevents recurrence)
+- Incident auto-recovery (2-minute response SLA)
+
+---
+
+*This context loads automatically. For domain-specific details, consult `.agent/refs/`. For Linus full details, load `.agent/LINUS_CTO_AUTONOMY.md`. For session history, see `memory/MEMORY.md` and `dev/work_archive/`.*
