@@ -373,7 +373,7 @@ export async function generateAIBundleSuggestions(orgId: string): Promise<{ succ
  */
 export async function createBundleFromSuggestion(
     orgId: string,
-    suggestion: SuggestedBundle
+    suggestion: SuggestedBundle & { customPrice?: number }
 ): Promise<{ success: boolean; data?: BundleDeal; error?: string }> {
     try {
         const bundleProducts: BundleProduct[] = suggestion.products.map(p => ({
@@ -385,7 +385,21 @@ export async function createBundleFromSuggestion(
         }));
 
         const originalTotal = suggestion.products.reduce((sum, p) => sum + p.price, 0);
-        const bundlePrice = originalTotal * (1 - suggestion.savingsPercent / 100);
+
+        // Use custom price if provided, otherwise calculate from savings percent
+        let bundlePrice: number;
+        let savingsPercent: number;
+        let savingsAmount: number;
+
+        if (suggestion.customPrice !== undefined) {
+            bundlePrice = suggestion.customPrice;
+            savingsAmount = Math.round((originalTotal - bundlePrice) * 100) / 100;
+            savingsPercent = originalTotal > 0 ? Math.round((savingsAmount / originalTotal) * 100) : 0;
+        } else {
+            bundlePrice = originalTotal * (1 - suggestion.savingsPercent / 100);
+            savingsAmount = Math.round((originalTotal - bundlePrice) * 100) / 100;
+            savingsPercent = suggestion.savingsPercent;
+        }
 
         const result = await createBundle({
             name: suggestion.name,
@@ -396,8 +410,8 @@ export async function createBundleFromSuggestion(
             products: bundleProducts,
             originalTotal,
             bundlePrice: Math.round(bundlePrice * 100) / 100,
-            savingsAmount: Math.round((originalTotal - bundlePrice) * 100) / 100,
-            savingsPercent: suggestion.savingsPercent,
+            savingsAmount,
+            savingsPercent,
             badgeText: suggestion.badgeText,
             featured: false,
         });
