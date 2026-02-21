@@ -21,8 +21,8 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-02-21)
 
-**Recent work (2026-02-20):** See `memory/MEMORY.md` for full log.
-Key completed: [Cron Security Hardening] — Fixed 4 unsafe routes, centralized `requireCronSecret()` helper, webhook hardening (fail-hard in prod), 57 test cases (auth/RBAC/sanitization)
+**Recent work (2026-02-21):** See `memory/MEMORY.md` for full log.
+Key completed: [Phase 4A] (`1b61506d`) — auto-reject cron + [Phase 4B] (`03ef8a61`) — hero carousel polish (auth, Firebase upload, tests)
 
 ---
 
