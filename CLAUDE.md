@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-20 (AI Price Recommendations + Bundle Generator Fix — 3 phases pricing, manual toggle fallback, 28 tests passing)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-20 (Smokey FAB Positioning Fix — expanded BLOCKED_ROUTES to hide on content-heavy dashboard pages)
 
 ---
 
