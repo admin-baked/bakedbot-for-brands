@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
-import { autoRejectExpiredRequests } from '@/server/services/approval-queue';
+import { autoRejectExpiredRequests, type ApprovalRequest } from '@/server/services/approval-queue';
 import { notifyApprovalRejected } from '@/server/services/approval-notifications';
 import { getAdminFirestore } from '@/firebase/admin';
 
@@ -74,12 +74,8 @@ async function getAutoRejectedRequests(
 async function notifyAutoRejections(requests: Record<string, any>[]): Promise<void> {
   for (const request of requests) {
     try {
-      // Create a notification-compatible object
-      const notificationData = {
-        ...request,
-        rejectionReason: 'Auto-rejected: request expired after 7 days without approval',
-      };
-      await notifyApprovalRejected(notificationData, 'system');
+      // Send rejection notification with full request data
+      await notifyApprovalRejected(request as unknown as ApprovalRequest, 'system');
     } catch (error) {
       logger.warn('[AutoRejectCron] Failed to send rejection notification', {
         error: error instanceof Error ? error.message : String(error),
