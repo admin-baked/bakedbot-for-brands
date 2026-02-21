@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-20 (Security: Cron CRON_SECRET hardening (4 routes fixed), webhook verification (fail-hard in prod), 57 test cases, centralized auth helper)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-21 (Phase 4A: auto-reject cron ✅ + Phase 4B: hero carousel polish ✅)
 
 ---
 
