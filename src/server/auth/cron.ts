@@ -30,10 +30,10 @@ import { logger } from '@/lib/logger';
  * }
  * ```
  */
-export function requireCronSecret(
+export async function requireCronSecret(
   req: NextRequest,
   serviceName: string = 'CRON'
-): NextResponse | null {
+): Promise<NextResponse | null> {
   const cronSecret = process.env.CRON_SECRET;
 
   // CRITICAL: Check if secret is configured before using it

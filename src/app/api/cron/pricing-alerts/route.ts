@@ -37,7 +37,7 @@ export const maxDuration = 120; // 2 minutes max
 
 export async function GET(req: NextRequest) {
   // Authorize
-  const authError = requireCronSecret(req, 'PRICING_ALERTS');
+  const authError = await requireCronSecret(req, 'PRICING_ALERTS');
   if (authError) {
     return authError;
   }
@@ -136,7 +136,7 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   // Authorize
-  const authError = requireCronSecret(req, 'PRICING_ALERTS_MANUAL');
+  const authError = await requireCronSecret(req, 'PRICING_ALERTS_MANUAL');
   if (authError) {
     return authError;
   }

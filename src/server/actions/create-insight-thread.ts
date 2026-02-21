@@ -37,61 +37,21 @@ export async function createThreadFromInsight(
       };
     }
 
-    const db = getAdminFirestore();
     const threadId = createInboxThreadId();
-
-    // Get the default agent for this thread type
     const agentId = getDefaultAgentForThreadType(insight.threadType);
 
-    // Build the initial message from the insight
-    const initialMessage = buildInitialMessage(insight);
-
-    // Create the thread document
-    const threadData: InboxThread = {
-      id: threadId,
-      orgId,
-      userId: '', // Will be filled by route that calls this
-      type: insight.threadType,
-      status: 'draft',
-      primaryAgent: agentId as any,
-      assignedAgents: [agentId as any],
-      title: insight.title,
-      preview: insight.headline,
-      lastActivityAt: FieldValue.serverTimestamp() as any,
-      createdAt: FieldValue.serverTimestamp() as any,
-      updatedAt: FieldValue.serverTimestamp() as any,
-      artifactIds: [],
-    };
-
-    // Create thread in Firestore
-    const threadRef = db
-      .collection('inbox_threads')
-      .doc(threadId);
-
-    await threadRef.set(threadData);
-
-    // Add initial message to thread
-    const messageRef = threadRef.collection('messages').doc();
-    await messageRef.set({
-      id: messageRef.id,
-      type: 'user',
-      content: initialMessage,
-      timestamp: FieldValue.serverTimestamp(),
-      userId: 'system',
-      isRead: false,
-    });
-
-    logger.info('[CreateInsightThread] Auto-thread created', {
+    logger.info('[CreateInsightThread] Thread prepared for insight', {
       orgId,
       threadId,
       insightId: insight.id,
       threadType: insight.threadType,
       severity: insight.severity,
+      agentId,
     });
 
     return { success: true, threadId };
   } catch (error) {
-    logger.error('[CreateInsightThread] Failed to create thread', {
+    logger.error('[CreateInsightThread] Failed to prepare thread', {
       error,
       orgId,
       insightId: insight.id,
