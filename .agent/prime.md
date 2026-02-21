@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-21)
 
 **Recent work (2026-02-21):** See `memory/MEMORY.md` for full log.
-Key completed: [Phase 5A] (`12fd7b33`) — URL category filter + [Phase 5B] (`bd9645a0`) — full filter sync + effect parity (search/sort/effects → URL)
+Key completed: [WordPress Theme System] (`551d7479`) — Full CRUD + public rendering + 52 tests + QA guide; [Build Fixes] (hero-slides, approvals, storage imports)
 
 ---
 
