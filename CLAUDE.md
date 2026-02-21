@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-21 (Proactive Inbox Insights: Phase 1-3 Complete — 4 insight generators, Slack notifications, auto-threading, 4 Cloud Scheduler jobs enabled)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-20 (Security: Cron CRON_SECRET hardening (4 routes fixed), webhook verification (fail-hard in prod), 57 test cases, centralized auth helper)
 
 ---
 
