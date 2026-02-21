@@ -5,19 +5,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface HeroSlide {
-  id: string;
-  title: string;
-  subtitle?: string;
-  description?: string;
-  ctaText?: string;
-  ctaLink?: string;
-  image?: string;
-  backgroundColor?: string;
-  textColor?: string;
-  alignment?: 'left' | 'center' | 'right';
-}
+import type { HeroSlide } from '@/types/hero-slides';
 
 interface HeroCarouselProps {
   slides?: HeroSlide[];
@@ -29,43 +17,67 @@ interface HeroCarouselProps {
 const defaultSlides: HeroSlide[] = [
   {
     id: '1',
+    orgId: 'default',
     title: '20% OFF ALL FLOWER',
     subtitle: 'Happy Hour Special',
     description: 'Every day from 8AM - 12PM. The best deals in town!',
     ctaText: 'Shop Flower',
-    ctaLink: '#flower',
+    ctaAction: 'scroll',
+    ctaTarget: 'products',
     backgroundColor: '#16a34a',
-    alignment: 'left',
+    textAlign: 'left',
+    displayOrder: 0,
+    active: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: '2',
+    orgId: 'default',
     title: 'BUY 2 VAPES, GET 1 FREE',
     subtitle: 'Limited Time Offer',
     description: 'Mix & match any cartridges or disposables.',
     ctaText: 'Shop Vapes',
-    ctaLink: '#vapes',
+    ctaAction: 'scroll',
+    ctaTarget: 'products',
     backgroundColor: '#8b5cf6',
-    alignment: 'center',
+    textAlign: 'center',
+    displayOrder: 1,
+    active: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: '3',
+    orgId: 'default',
     title: 'NEW ARRIVALS',
     subtitle: 'Fresh Drop',
     description: 'Check out the latest from Cookies, Stiiizy & more.',
     ctaText: 'See What\'s New',
-    ctaLink: '#new',
+    ctaAction: 'scroll',
+    ctaTarget: 'products',
     backgroundColor: '#1a1a2e',
-    alignment: 'right',
+    textAlign: 'right',
+    displayOrder: 2,
+    active: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   {
     id: '4',
+    orgId: 'default',
     title: 'FIRST TIME CUSTOMERS',
     subtitle: '25% OFF Your First Order',
     description: 'Use code WELCOME25 at checkout.',
     ctaText: 'Start Shopping',
-    ctaLink: '#products',
+    ctaAction: 'scroll',
+    ctaTarget: 'products',
     backgroundColor: '#dc2626',
-    alignment: 'center',
+    textAlign: 'center',
+    displayOrder: 3,
+    active: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
 ];
 
@@ -105,6 +117,15 @@ export function HeroCarousel({
     right: 'items-end text-right',
   };
 
+  const handleCtaClick = (slide: HeroSlide) => {
+    if (slide.ctaAction === 'scroll' && slide.ctaTarget) {
+      const element = document.getElementById(slide.ctaTarget);
+      element?.scrollIntoView({ behavior: 'smooth' });
+    } else if (slide.ctaAction === 'link' && slide.ctaTarget) {
+      window.location.href = slide.ctaTarget;
+    }
+  };
+
   return (
     <div
       className="relative w-full overflow-hidden"
@@ -126,9 +147,9 @@ export function HeroCarousel({
               style={{ backgroundColor: slide.backgroundColor || primaryColor }}
             >
               {/* Background Image */}
-              {slide.image && (
+              {slide.imageUrl && (
                 <Image
-                  src={slide.image}
+                  src={slide.imageUrl}
                   alt={slide.title}
                   fill
                   className="object-cover"
@@ -151,7 +172,7 @@ export function HeroCarousel({
                 <div
                   className={cn(
                     'flex flex-col max-w-2xl mx-auto md:mx-0',
-                    alignmentClasses[slide.alignment || 'left']
+                    alignmentClasses[slide.textAlign || 'left']
                   )}
                 >
                   {slide.subtitle && (
@@ -161,7 +182,6 @@ export function HeroCarousel({
                   )}
                   <h2
                     className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight"
-                    style={{ color: slide.textColor || 'white' }}
                   >
                     {slide.title}
                   </h2>
@@ -170,10 +190,11 @@ export function HeroCarousel({
                       {slide.description}
                     </p>
                   )}
-                  {slide.ctaText && (
+                  {slide.ctaText && (slide.ctaAction !== 'none') && (
                     <Button
                       size="lg"
                       className="w-fit bg-white text-black hover:bg-white/90 font-bold gap-2 px-8"
+                      onClick={() => handleCtaClick(slide)}
                     >
                       {slide.ctaText}
                       <ArrowRight className="h-5 w-5" />

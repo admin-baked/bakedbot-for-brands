@@ -10,6 +10,7 @@ import DispensaryLocator from '@/components/dispensary-locator';
 import { DispensaryHeader } from '@/components/dispensary/dispensary-header';
 import { BrandMenuClient } from './brand-menu-client';
 import { getActiveBundles } from '@/app/actions/bundles';
+import { getHeroSlides } from '@/app/actions/hero-slides';
 import { MenuWithAgeGate } from '@/components/menu/menu-with-age-gate';
 import { getPublicMenuSettings } from '@/server/actions/loyalty-settings';
 
@@ -92,6 +93,14 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
         console.error('Failed to fetch bundles:', e);
     }
 
+    // Fetch active hero slides for this brand/org
+    let heroSlides: import('@/types/hero-slides').HeroSlide[] = [];
+    try {
+        heroSlides = await getHeroSlides(brand.id);
+    } catch (e) {
+        console.error('Failed to fetch hero slides:', e);
+    }
+
     // Fetch public loyalty/menu display settings (no auth required)
     const publicMenuSettings = await getPublicMenuSettings(brand.id).catch(() => null);
 
@@ -107,6 +116,7 @@ export default async function BrandPage({ params }: { params: Promise<{ brand: s
                     retailers={retailers}
                     brandSlug={brandParam}
                     bundles={bundles}
+                    heroSlides={heroSlides}
                     featuredBrands={featuredBrands}
                     carousels={carousels}
                     publicMenuSettings={publicMenuSettings}
