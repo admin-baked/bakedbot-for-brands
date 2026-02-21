@@ -1465,6 +1465,71 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: ['commitHash', 'status', 'duration']
         }
+    },
+    // ========================================================================
+    // PHASE 3: APPROVAL GATES - Destructive Operation Safety
+    // ========================================================================
+    {
+        name: 'create_approval_request',
+        description: 'Request approval for a destructive infrastructure operation. Use before executing Cloud Scheduler jobs, rotating secrets, deleting collections, or modifying IAM roles.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                operationType: {
+                    type: 'string',
+                    description: 'Type of operation requiring approval',
+                    enum: [
+                        'cloud_scheduler_create',
+                        'cloud_scheduler_delete',
+                        'cloud_scheduler_modify',
+                        'secret_rotate',
+                        'firestore_delete_collection',
+                        'iam_role_change',
+                        'payment_config_change',
+                        'environment_variable_change',
+                        'service_account_key_rotate',
+                        'database_migration'
+                    ]
+                },
+                targetResource: {
+                    type: 'string',
+                    description: 'Name or identifier of the resource (e.g., "heartbeat-recovery" for a Cloud Scheduler job)'
+                },
+                action: {
+                    type: 'string',
+                    description: 'Specific action being performed',
+                    enum: ['create', 'update', 'delete', 'rotate']
+                },
+                reason: {
+                    type: 'string',
+                    description: 'Why this operation is necessary (e.g., "Auto-recovery from systematic failure pattern")'
+                },
+                riskLevel: {
+                    type: 'string',
+                    description: 'Risk assessment of this operation',
+                    enum: ['low', 'medium', 'high', 'critical']
+                },
+                estimatedMonthlyCost: {
+                    type: 'number',
+                    description: 'Estimated monthly cost impact in USD (optional, for cost-affecting operations)'
+                }
+            },
+            required: ['operationType', 'targetResource', 'action', 'reason', 'riskLevel']
+        }
+    },
+    {
+        name: 'check_approval_status',
+        description: 'Check if an approval request has been approved, rejected, or is still pending. Use after creating a request to determine next steps.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                requestId: {
+                    type: 'string',
+                    description: 'Approval request ID returned by create_approval_request'
+                }
+            },
+            required: ['requestId']
+        }
     }
 ];
 
@@ -3614,6 +3679,94 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                 return {
                     success: true,
                     message: `Recorded build status for ${commitHash.slice(0, 8)}`
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        // Phase 3: Approval Gates
+        case 'create_approval_request': {
+            try {
+                const {
+                    createApprovalRequest
+                } = await import('@/server/services/approval-queue');
+                const {
+                    operationType,
+                    targetResource,
+                    action,
+                    reason,
+                    riskLevel,
+                    estimatedMonthlyCost
+                } = input as {
+                    operationType: string;
+                    targetResource: string;
+                    action: string;
+                    reason: string;
+                    riskLevel: string;
+                    estimatedMonthlyCost?: number;
+                };
+
+                const result = await createApprovalRequest(
+                    operationType as any,
+                    {
+                        targetResource,
+                        action: action as any,
+                        reason,
+                        riskLevel: riskLevel as any,
+                        estimatedCost: estimatedMonthlyCost ? {
+                            service: 'Cloud Scheduler',
+                            costBefore: 0,
+                            costAfter: estimatedMonthlyCost,
+                            estimatedMonthly: estimatedMonthlyCost
+                        } : undefined
+                    },
+                    'linus-agent'
+                );
+
+                return {
+                    success: true,
+                    requestId: result.requestId,
+                    status: result.status,
+                    message: `Approval request created. ID: ${result.requestId}. Super Users notified.`,
+                    dashboardUrl: `https://bakedbot-prod.web.app/dashboard/linus-approvals?request=${result.requestId}`
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'check_approval_status': {
+            try {
+                const {
+                    getApprovalRequest
+                } = await import('@/server/services/approval-queue');
+                const { requestId } = input as { requestId: string };
+
+                const approval = await getApprovalRequest(requestId);
+                if (!approval) {
+                    return {
+                        success: false,
+                        error: `Approval request ${requestId} not found`
+                    };
+                }
+
+                return {
+                    success: true,
+                    requestId: approval.id,
+                    status: approval.status,
+                    operationType: approval.operationType,
+                    approvedBy: approval.approvedBy,
+                    rejectionReason: approval.rejectionReason,
+                    message: approval.status === 'pending'
+                        ? 'Awaiting Super User approval'
+                        : approval.status === 'approved'
+                        ? 'Approved. Ready to execute.'
+                        : approval.status === 'rejected'
+                        ? `Rejected: ${approval.rejectionReason}`
+                        : approval.status === 'executed'
+                        ? 'Executed successfully'
+                        : 'Execution failed'
                 };
             } catch (e: any) {
                 return { success: false, error: e.message };
