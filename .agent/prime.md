@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-20)
 
 **Recent work (2026-02-20):** See `memory/MEMORY.md` for full log.
-Key completed: [Proactive Inbox Insights System] - Phase 1-3 (insight generators, Slack notifications, auto-threading, regulatory alerts, competitive pricing); 4 Cloud Scheduler jobs enabled
+Key completed: [Tier 3 revenue specs] (`0425a265`): Bundle Deals (70%), Loyalty (60%), Pricing (75%), Segmentation (65%)
 
 ---
 
