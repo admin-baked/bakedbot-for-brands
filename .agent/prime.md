@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-20)
 
 **Recent work (2026-02-20):** See `memory/MEMORY.md` for full log.
-Key completed: [Linus CTO Phase 1 - Autonomy Charter + 5-Week Roadmap] (autonomy charter `.agent/LINUS_CTO_AUTONOMY.md`, activation guide + phase 1 setup guide created; Phase 1 starts Feb 20-26; Phase 1 success criteria: Firestore audit collection, Slack channels, IAM grants, end-to-end code push test)
+Key completed: [Linus CTO Phase 3 - Safety Gates Core] (`.agent/LINUS_PHASE3_SAFETY_GATES.md` 2.2k-line spec complete; approval-queue service + dashboard + Linus agent tools deployed; `6e1ed018` + `38766e09`; pending: Slack notifications, test suite)
 
 ---
 
