@@ -21,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ShoppingCart, Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useStore } from '@/hooks/use-store';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { Product, Retailer } from '@/types/domain';
 import type { BundleDeal } from '@/types/bundles';
 import { MenuInfoBar } from '@/components/demo/menu-info-bar';
@@ -59,12 +59,19 @@ const CATEGORY_ORDER = ['Flower', 'Pre-roll', 'Vapes', 'Edibles', 'Concentrates'
 const DEFAULT_PRIMARY_COLOR = '#16a34a';
 
 export function DispensaryMenuClient({ dispensary, products, bundles = [], publicMenuSettings }: DispensaryMenuClientProps) {
+  // URL params for all filtering
+  const searchParams = useSearchParams();
+  const urlCategory = searchParams.get('category') || 'all';
+  const urlSort = searchParams.get('sort') || 'popular';
+  const urlSearch = searchParams.get('q') || '';
+  const urlEffect = searchParams.get('effect') || null;
+
   // Product state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<string>('popular');
-  const [effectFilter, setEffectFilter] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState(urlSearch);
+  const [categoryFilter, setCategoryFilter] = useState<string>(urlCategory);
+  const [sortBy, setSortBy] = useState<string>(urlSort);
+  const [effectFilter, setEffectFilter] = useState<string | null>(urlEffect);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
   // Cart state
@@ -87,6 +94,14 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
       setFavorites(new Set(JSON.parse(storedFavorites)));
     }
   }, [dispensary.id]);
+
+  // Sync all filters with URL params
+  useEffect(() => {
+    setCategoryFilter(urlCategory);
+    setSortBy(urlSort);
+    setSearchQuery(urlSearch);
+    setEffectFilter(urlEffect);
+  }, [urlCategory, urlSort, urlSearch, urlEffect]);
 
   const toggleFavorite = (productId: string) => {
     const newFavorites = new Set(favorites);
@@ -194,31 +209,46 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
     return undefined;
   };
 
-  // Handlers for search and category
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleCategorySelect = (category: string) => {
-    setCategoryFilter(category);
-
-    // Update URL without page reload
+  // Helper to update URL with current filter state
+  const updateUrlParams = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(window.location.search);
-    if (category === 'all') {
-      params.delete('category');  // Remove param for 'all' (cleaner URL)
-    } else {
-      params.set('category', category);
-    }
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (!value || value === 'all' || value === 'popular' || value === '') {
+        params.delete(key);  // Remove default values for cleaner URLs
+      } else {
+        params.set(key, value);
+      }
+    });
 
     const newUrl = params.toString()
       ? `${window.location.pathname}?${params.toString()}`
       : window.location.pathname;
 
-    router.push(newUrl, { scroll: false });  // Update URL without scroll reset
+    router.push(newUrl, { scroll: false });
+  };
 
-    // Scroll to products section
+  // Handlers for search and category
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    updateUrlParams({ q: query });
     document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCategorySelect = (category: string) => {
+    setCategoryFilter(category);
+    updateUrlParams({ category });
+    document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+    updateUrlParams({ sort: value });
+  };
+
+  const handleEffectSelect = (effect: string | null) => {
+    setEffectFilter(effect);
+    updateUrlParams({ effect });
   };
 
   // Convert bundles for display
@@ -377,11 +407,11 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
                   <Input
                     placeholder="Search products..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => handleSearch(e.target.value)}
                     className="pl-10"
                   />
                 </div>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <Select value={categoryFilter} onValueChange={handleCategorySelect}>
                   <SelectTrigger className="w-[160px]">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
@@ -392,7 +422,7 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy} onValueChange={handleSortChange}>
                   <SelectTrigger className="w-[160px]">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
@@ -413,7 +443,7 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
                 {allEffects.map((effect) => (
                   <button
                     key={effect}
-                    onClick={() => setEffectFilter(effectFilter === effect ? null : effect)}
+                    onClick={() => handleEffectSelect(effectFilter === effect ? null : effect)}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
                       effectFilter === effect
                         ? 'text-white border-transparent'
@@ -426,7 +456,7 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
                 ))}
                 {effectFilter && (
                   <button
-                    onClick={() => setEffectFilter(null)}
+                    onClick={() => handleEffectSelect(null)}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm text-muted-foreground border border-border hover:border-destructive hover:text-destructive transition-all"
                   >
                     <X className="h-3 w-3" />
