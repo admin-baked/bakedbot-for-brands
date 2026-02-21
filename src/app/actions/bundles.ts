@@ -216,40 +216,77 @@ export async function getActiveBundles(orgId: string): Promise<BundleDeal[]> {
         if (!orgId) return [];
 
         const db = getAdminFirestore();
-        const snapshot = await db.collection(BUNDLES_COLLECTION)
+
+        // Helper to convert Firestore Timestamps to ISO strings
+        const toISOString = (val: any): string | undefined => {
+            if (!val) return undefined;
+            if (val.toDate) return val.toDate().toISOString();
+            if (val instanceof Date) return val.toISOString();
+            if (typeof val === 'string') return val;
+            return undefined;
+        };
+
+        // Try with composite index first (requires index for orgId + status + createdAt)
+        try {
+            const snapshot = await db.collection(BUNDLES_COLLECTION)
+                .where('orgId', '==', orgId)
+                .where('status', '==', 'active')
+                .orderBy('createdAt', 'desc')
+                .limit(10)
+                .get();
+
+            if (!snapshot.empty) {
+                return snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        ...data,
+                        id: doc.id,
+                        createdAt: toISOString(data.createdAt) || new Date().toISOString(),
+                        updatedAt: toISOString(data.updatedAt) || new Date().toISOString(),
+                        startDate: toISOString(data.startDate),
+                        endDate: toISOString(data.endDate),
+                    };
+                }) as unknown as BundleDeal[];
+            }
+        } catch (indexError: any) {
+            // Index might not exist, fall back to simpler query
+            logger.warn('[Bundles] Composite index query failed, falling back to simple filter', { error: indexError?.message });
+        }
+
+        // Fallback: Query by orgId only and filter in memory
+        const fallbackSnapshot = await db.collection(BUNDLES_COLLECTION)
             .where('orgId', '==', orgId)
-            .where('status', '==', 'active')
-            .orderBy('createdAt', 'desc')
-            .limit(10)
             .get();
 
-        // Convert Firestore Timestamps to ISO strings for serialization
-        // (Date objects cannot be passed from Server to Client Components)
-        return snapshot.docs.map(doc => {
-            const data = doc.data();
-            const toISOString = (val: any): string | undefined => {
-                if (!val) return undefined;
-                if (val.toDate) return val.toDate().toISOString();
-                if (val instanceof Date) return val.toISOString();
-                if (typeof val === 'string') return val;
-                return undefined;
-            };
-
-            return {
-                ...data,
-                id: doc.id,
-                createdAt: toISOString(data.createdAt) || new Date().toISOString(),
-                updatedAt: toISOString(data.updatedAt) || new Date().toISOString(),
-                startDate: toISOString(data.startDate),
-                endDate: toISOString(data.endDate),
-            };
-        }) as unknown as BundleDeal[];
-    } catch (error: any) {
-        if (error?.code === 16 || error?.message?.includes('UNAUTHENTICATED')) {
-            // console.warn('[Bundles] Skipped due to missing credentials (local dev)');
+        if (fallbackSnapshot.empty) {
+            logger.warn(`[Bundles] No bundles found for orgId: ${orgId}`);
             return [];
         }
-        console.error('Error fetching active bundles:', error);
+
+        return fallbackSnapshot.docs
+            .filter(doc => doc.data().status === 'active')
+            .sort((a, b) => {
+                const timeA = a.data().createdAt?.toDate?.() || new Date(0);
+                const timeB = b.data().createdAt?.toDate?.() || new Date(0);
+                return timeB.getTime() - timeA.getTime();
+            })
+            .slice(0, 10)
+            .map(doc => {
+                const data = doc.data();
+                return {
+                    ...data,
+                    id: doc.id,
+                    createdAt: toISOString(data.createdAt) || new Date().toISOString(),
+                    updatedAt: toISOString(data.updatedAt) || new Date().toISOString(),
+                    startDate: toISOString(data.startDate),
+                    endDate: toISOString(data.endDate),
+                };
+            }) as unknown as BundleDeal[];
+    } catch (error: any) {
+        if (error?.code === 16 || error?.message?.includes('UNAUTHENTICATED')) {
+            return [];
+        }
+        logger.error('[Bundles] Error fetching active bundles:', { error: error instanceof Error ? error.message : String(error) });
         return [];
     }
 }
