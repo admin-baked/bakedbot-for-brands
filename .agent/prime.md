@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-20)
 
 **Recent work (2026-02-20):** See `memory/MEMORY.md` for full log.
-Key completed: [Brand Guide Extraction Fix] (`8153a25d`), [Smokey FAB Positioning] (auto-hide refinement)
+Key completed: [Proactive Inbox Insights System] - Phase 1-3 (insight generators, Slack notifications, auto-threading, regulatory alerts, competitive pricing); 4 Cloud Scheduler jobs enabled
 
 ---
 
