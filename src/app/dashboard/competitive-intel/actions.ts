@@ -24,6 +24,7 @@ export type CompetitorSnapshot = {
     nextUpdate: Date;
     updateFrequency: 'weekly' | 'daily' | 'live';
     canRefresh: boolean;
+    maxCompetitors: number; // Plan-based limit (scout=3, pro=10, growth=20, empire=1000)
 };
 
 /**
@@ -122,6 +123,7 @@ export async function getCompetitors(orgId: string): Promise<CompetitorSnapshot>
         nextUpdate,
         updateFrequency,
         canRefresh,
+        maxCompetitors: limits.maxCompetitors,
     };
 }
 

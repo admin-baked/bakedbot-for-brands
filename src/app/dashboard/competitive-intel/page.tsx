@@ -143,7 +143,10 @@ export default function CompetitiveIntelPage() {
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <CompetitorSetupWizard hasCompetitors={(snapshot?.competitors.length || 0) > 0} />
+                    <CompetitorSetupWizard
+                        hasCompetitors={(snapshot?.competitors.length || 0) > 0}
+                        maxCompetitors={snapshot?.maxCompetitors || 1000}
+                    />
                     <Button variant="outline" size="sm" onClick={() => setShowAddForm(!showAddForm)}>
                         <Plus className="h-4 w-4 mr-2" />
                         Add Manual
