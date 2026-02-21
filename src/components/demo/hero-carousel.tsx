@@ -7,8 +7,25 @@ import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { HeroSlide } from '@/types/hero-slides';
 
+type SlideInput = (HeroSlide | {
+  id: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  image?: string;
+  backgroundColor?: string;
+}) & {
+  imageUrl?: string;
+  image?: string;
+  textAlign?: 'left' | 'center' | 'right';
+  ctaAction?: 'scroll' | 'link' | 'none';
+  ctaTarget?: string;
+};
+
 interface HeroCarouselProps {
-  slides?: HeroSlide[];
+  slides?: SlideInput[];
   autoPlay?: boolean;
   interval?: number;
   primaryColor?: string;
@@ -117,12 +134,19 @@ export function HeroCarousel({
     right: 'items-end text-right',
   };
 
-  const handleCtaClick = (slide: HeroSlide) => {
-    if (slide.ctaAction === 'scroll' && slide.ctaTarget) {
-      const element = document.getElementById(slide.ctaTarget);
-      element?.scrollIntoView({ behavior: 'smooth' });
-    } else if (slide.ctaAction === 'link' && slide.ctaTarget) {
-      window.location.href = slide.ctaTarget;
+  const handleCtaClick = (slide: SlideInput) => {
+    // Handle HeroSlide type
+    if ('ctaAction' in slide && 'ctaTarget' in slide) {
+      if (slide.ctaAction === 'scroll' && slide.ctaTarget) {
+        const element = document.getElementById(slide.ctaTarget);
+        element?.scrollIntoView({ behavior: 'smooth' });
+      } else if (slide.ctaAction === 'link' && slide.ctaTarget) {
+        window.location.href = slide.ctaTarget;
+      }
+    }
+    // Handle CarouselSlide type
+    else if ('ctaLink' in slide && slide.ctaLink) {
+      window.location.href = slide.ctaLink;
     }
   };
 
@@ -147,9 +171,9 @@ export function HeroCarousel({
               style={{ backgroundColor: slide.backgroundColor || primaryColor }}
             >
               {/* Background Image */}
-              {slide.imageUrl && (
+              {('imageUrl' in slide ? slide.imageUrl : slide.image) && (
                 <Image
-                  src={slide.imageUrl}
+                  src={('imageUrl' in slide ? slide.imageUrl : slide.image) as string}
                   alt={slide.title}
                   fill
                   className="object-cover"
@@ -172,7 +196,7 @@ export function HeroCarousel({
                 <div
                   className={cn(
                     'flex flex-col max-w-2xl mx-auto md:mx-0',
-                    alignmentClasses[slide.textAlign || 'left']
+                    alignmentClasses[('textAlign' in slide ? slide.textAlign : 'left') || 'left']
                   )}
                 >
                   {slide.subtitle && (
@@ -190,7 +214,7 @@ export function HeroCarousel({
                       {slide.description}
                     </p>
                   )}
-                  {slide.ctaText && (slide.ctaAction !== 'none') && (
+                  {slide.ctaText && (('ctaAction' in slide && slide.ctaAction !== 'none') || ('ctaLink' in slide && slide.ctaLink)) && (
                     <Button
                       size="lg"
                       className="w-fit bg-white text-black hover:bg-white/90 font-bold gap-2 px-8"

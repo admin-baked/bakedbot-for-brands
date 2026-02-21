@@ -76,8 +76,8 @@ export async function selectBundleImageFromProducts(bundleProducts: BundleProduc
 
         // Priority 3: No image found
         return undefined;
-    } catch (error) {
-        logger.error('[Bundles] Error selecting bundle image:', error);
+    } catch (error: unknown) {
+        logger.error('[Bundles] Error selecting bundle image:', { error: error instanceof Error ? error.message : String(error) });
         return undefined;
     }
 }
