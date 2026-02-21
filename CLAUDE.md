@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-20 (Competitive Intel audit + Empire unlocks verified, setup wizard state sync fix)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-20 (Smokey Dashboard Support Hub: internal support system for brand/dispensary admins)
 
 ---
 
