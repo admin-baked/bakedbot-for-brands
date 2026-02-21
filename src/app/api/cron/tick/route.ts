@@ -6,15 +6,16 @@ import { CronExpressionParser } from 'cron-parser';
 import { executePlaybook } from '@/server/tools/playbook-manager';
 import { taskScheduler } from '@/server/services/browser-automation';
 import { logger } from '@/lib/logger';
+import { requireCronSecret } from '@/server/auth/cron';
 
 export const dynamic = 'force-dynamic'; // Prevent caching
 export const maxDuration = 60; // Allow 1 minute for processing
 
 export async function GET(req: NextRequest) {
     // 1. Authorization
-    const authHeader = req.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-        return new NextResponse('Unauthorized', { status: 401 });
+    const authError = requireCronSecret(req, 'TICK');
+    if (authError) {
+        return authError;
     }
 
     const db = getAdminFirestore();

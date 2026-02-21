@@ -24,9 +24,17 @@ import { Timestamp } from 'firebase-admin/firestore';
 // Signature header: X-ANET-Signature
 async function verifySignature(body: string, signatureHeader: string): Promise<boolean> {
     const notifKey = process.env.AUTHNET_NOTIFICATION_KEY;
+
+    // CRITICAL SECURITY: Fail hard in production if notification key is missing
+    // Allows bypass only in development/sandbox for testing
     if (!notifKey) {
-        logger.warn('[AuthNet Webhook] AUTHNET_NOTIFICATION_KEY not set — skipping verification');
-        return true; // Allow in dev/sandbox
+        if (process.env.NODE_ENV === 'production') {
+            logger.error('[AuthNet Webhook] AUTHNET_NOTIFICATION_KEY not configured in production — webhook verification FAILED');
+            return false; // Reject all unsigned webhooks in production
+        }
+        // Allow in dev/sandbox for local testing
+        logger.warn('[AuthNet Webhook] AUTHNET_NOTIFICATION_KEY not set — skipping verification (dev/sandbox only)');
+        return true;
     }
 
     try {
