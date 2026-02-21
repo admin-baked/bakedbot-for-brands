@@ -19,18 +19,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runInternationalDiscovery } from '@/server/jobs/dayday-international-discovery';
 import { logger } from '@/lib/logger';
+import { requireCronSecret } from '@/server/auth/cron';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes max
 
 export async function POST(req: NextRequest) {
     // 1. Verify CRON_SECRET
-    const authHeader = req.headers.get('authorization');
-    const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
-
-    if (authHeader !== expectedAuth) {
-        logger.warn('[IntlDiscoveryCron] Unauthorized request');
-        return new NextResponse('Unauthorized', { status: 401 });
+    const authError = requireCronSecret(req, 'INTL_DISCOVERY');
+    if (authError) {
+        return authError;
     }
 
     try {

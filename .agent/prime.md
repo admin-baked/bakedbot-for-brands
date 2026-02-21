@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-20)
 
 **Recent work (2026-02-20):** See `memory/MEMORY.md` for full log.
-Key completed: [Tier 3 revenue specs] (`0425a265`): Bundle Deals (70%), Loyalty (60%), Pricing (75%), Segmentation (65%)
+Key completed: [Phase 6 Sales Analytics] (`cbf24eb8`): Deployed order-analytics service, checkout/POS hooks, daily rollup cron, 73+ tests (89% coverage)
 
 ---
 

@@ -25,6 +25,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
+import { requireCronSecret } from '@/server/auth/cron';
 import {
   getPricingAlertConfig,
   checkCompetitorPriceChanges,
@@ -36,9 +37,9 @@ export const maxDuration = 120; // 2 minutes max
 
 export async function GET(req: NextRequest) {
   // Authorize
-  const authHeader = req.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new NextResponse('Unauthorized', { status: 401 });
+  const authError = requireCronSecret(req, 'PRICING_ALERTS');
+  if (authError) {
+    return authError;
   }
 
   const startTime = Date.now();
@@ -135,9 +136,9 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   // Authorize
-  const authHeader = req.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new NextResponse('Unauthorized', { status: 401 });
+  const authError = requireCronSecret(req, 'PRICING_ALERTS_MANUAL');
+  if (authError) {
+    return authError;
   }
 
   try {
