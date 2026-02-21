@@ -79,6 +79,13 @@ export interface BundleDeal {
     createdAt: Date;
     updatedAt: Date;
     orgId: string;
+
+    // Redemption History
+    redemptionHistory?: {
+        date: Date;
+        customerId: string;
+        orderId: string;
+    }[];
 }
 
 export interface BrandBundleProposal {

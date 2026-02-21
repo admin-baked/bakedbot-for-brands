@@ -118,6 +118,14 @@ export function OversizedProductCard({
 
         {/* Top Badges */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-2">
+          {/* Trending Badge */}
+          {product.trending && (
+            <Badge className="bg-orange-500 text-white font-bold px-3 py-1 flex items-center gap-1">
+              <Zap className="h-3 w-3" />
+              Trending
+            </Badge>
+          )}
+
           {/* Deal Badge */}
           {dealBadge && (
             <Badge className="bg-red-500 text-white font-bold px-3 py-1">

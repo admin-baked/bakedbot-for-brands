@@ -522,18 +522,36 @@ Return a JSON object with this structure:
       const response = await callClaude({
         userMessage: prompt,
         systemPrompt:
-          'You are a brand strategist. Extract messaging elements and return valid JSON only.',
+          'You are a brand strategist. Extract messaging elements and return valid JSON only, wrapped in a ```json code block if needed.',
         maxTokens: 1500,
       });
 
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in AI response');
+      // Try to extract JSON from code block first, then fallback to direct parsing
+      let jsonMatch = response.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      let jsonStr = jsonMatch ? jsonMatch[1] : null;
+
+      if (!jsonStr) {
+        // Fallback: try to find raw JSON
+        jsonMatch = response.match(/\{[\s\S]*\}/);
+        jsonStr = jsonMatch ? jsonMatch[0] : null;
       }
 
-      return JSON.parse(jsonMatch[0]);
+      if (!jsonStr) {
+        logger.warn('No JSON found in messaging extraction response', { url: website.url, response: response.substring(0, 200) });
+        return this.createFallbackMessaging(website);
+      }
+
+      const parsed = JSON.parse(jsonStr);
+
+      // Validate that we got meaningful data (not all placeholders)
+      if (!parsed.brandName && !parsed.positioning && !parsed.tagline && !parsed.missionStatement) {
+        logger.warn('Extracted messaging has no meaningful data', { url: website.url, parsed });
+        return this.createFallbackMessaging(website);
+      }
+
+      return parsed;
     } catch (error) {
-      logger.error('Messaging extraction failed', { error });
+      logger.error('Messaging extraction failed', { error, url: website.url });
       return this.createFallbackMessaging(website);
     }
   }
@@ -787,10 +805,23 @@ Return a JSON object with this structure:
    * Create fallback messaging
    */
   private createFallbackMessaging(website: WebsiteAnalysis): Partial<BrandMessaging> {
+    // Extract brand name from title (strip common suffixes)
+    const titleDerivedName = website.metadata.title
+      ? website.metadata.title
+          .split(/\s*[\|\-–]\s*/)[0]
+          .replace(/\.(com|net|org|io|co|ca|us|biz|info)(\s.*)?$/i, '')
+          .trim()
+      : 'Cannabis Brand';
+
     return {
-      tagline: website.metadata.description || '',
-      positioning: `Cannabis brand - ${website.metadata.title || 'Unknown'}`,
-      valuePropositions: [],
+      brandName: titleDerivedName,
+      tagline: website.metadata.description
+        ? website.metadata.description.split('.')[0].trim().substring(0, 100)
+        : '',
+      positioning: website.metadata.description || `Cannabis brand based in your area`,
+      valuePropositions: website.metadata.description
+        ? [website.metadata.description.substring(0, 150)]
+        : [],
     };
   }
 }
