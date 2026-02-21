@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-20 (Thrive Menu Audit & Real Data Integration: bundle system overhaul, hero carousel admin, sales analytics foundation)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-20 (Proactive Inbox Insights: Money Mike velocity alerts + Smokey customer churn/loyalty insights, hourly generators, Firestore storage, 24h TTL)
 
 ---
 
