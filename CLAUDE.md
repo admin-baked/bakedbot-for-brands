@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-21 (WordPress Theme Management System complete - full CRUD, public rendering, 52 unit tests, 38+ QA cases, Marcus/Andrews testing guide, 4 build fixes)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-21 (Menu Category Filtering Bug Fixed - dispensary menu category clicks now work; WordPress Theme System complete)
 
 ---
 
