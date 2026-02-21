@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-20)
 
 **Recent work (2026-02-20):** See `memory/MEMORY.md` for full log.
-Key completed: [AI Price Recommendations] (`dc09a26d`), [Bundle Generator Fix] (`01e38357`) — 3-phase pricing system + manual toggle, 28 tests passing
+Key completed: [Smokey FAB Positioning Fix] (expanded BLOCKED_ROUTES to hide on 14 content-heavy dashboard pages)
 
 ---
 
