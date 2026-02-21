@@ -5,6 +5,10 @@ import { logger } from '@/lib/monitoring';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { OrderStatus } from '@/types/orders';
 import { sendOrderNotification } from './order-notifications';
+import { BundleRedemptionService } from '@/server/services/bundle-redemption';
+import { LoyaltySyncService } from '@/server/services/loyalty-sync';
+import { TierAdvancementService } from '@/server/services/tier-advancement';
+import type { LoyaltySettings } from '@/types/customers';
 
 /**
  * Accept an order (dispensary confirms they will fulfill)
@@ -94,7 +98,8 @@ export async function fulfillOrder(orderId: string): Promise<{ success: boolean;
             return { success: false, error: 'Order not found' };
         }
 
-        const currentStatus = orderDoc.data()?.status as OrderStatus;
+        const orderData = orderDoc.data();
+        const currentStatus = orderData?.status as OrderStatus;
         if (!['ready', 'preparing'].includes(currentStatus)) {
             return { success: false, error: `Cannot fulfill order with status: ${currentStatus}` };
         }
@@ -109,6 +114,92 @@ export async function fulfillOrder(orderId: string): Promise<{ success: boolean;
 
         // Send completion notification
         await sendOrderNotification(orderId, 'completed');
+
+        // Post-fulfillment tasks (non-blocking)
+        // 1. Track bundle redemptions
+        if (orderData?.bundleId && orderData?.customerId && orderData?.orgId) {
+            const redemptionService = new BundleRedemptionService();
+            const redemptionResult = await redemptionService.recordRedemption(
+                orderData.bundleId,
+                orderData.customerId,
+                orderId,
+                orderData.orgId
+            );
+
+            if (!redemptionResult.success) {
+                logger.warn('Bundle redemption tracking failed (non-fatal)', {
+                    orderId,
+                    bundleId: orderData.bundleId,
+                    error: redemptionResult.error,
+                });
+            }
+        }
+
+        // 2. Award loyalty points and check tier advancement
+        if (orderData?.customerId && orderData?.orgId && orderData?.total) {
+            try {
+                // Fetch loyalty settings
+                const loyaltySettingsDoc = await firestore
+                    .collection('tenants')
+                    .doc(orderData.orgId)
+                    .collection('settings')
+                    .doc('loyalty')
+                    .get();
+
+                if (loyaltySettingsDoc.exists) {
+                    const loyaltySettings = loyaltySettingsDoc.data() as LoyaltySettings;
+
+                    // Award points (uses transaction for atomic increment)
+                    const loyaltySyncService = new LoyaltySyncService(
+                        {} as any, // ALLeavesClient not needed for this method
+                        undefined
+                    );
+
+                    const pointsResult = await loyaltySyncService.awardPointsForOrder(
+                        orderData.customerId,
+                        orderData.orgId,
+                        orderData.total,
+                        orderId,
+                        loyaltySettings,
+                        orderData.equityStatus || false
+                    );
+
+                    if (pointsResult.success) {
+                        logger.info('Loyalty points awarded', {
+                            orderId,
+                            pointsAwarded: pointsResult.pointsAwarded,
+                        });
+
+                        // Check tier advancement (instant check after order)
+                        const tierService = new TierAdvancementService();
+                        const tierResult = await tierService.assignTierForCustomer(
+                            orderData.customerId,
+                            orderData.orgId,
+                            loyaltySettings
+                        );
+
+                        if (tierResult && tierResult.promoted) {
+                            logger.info('Customer promoted to new tier', {
+                                orderId,
+                                customerId: orderData.customerId,
+                                from: tierResult.previousTier,
+                                to: tierResult.newTier,
+                            });
+                        }
+                    } else {
+                        logger.warn('Loyalty points award failed (non-fatal)', {
+                            orderId,
+                            error: pointsResult.error,
+                        });
+                    }
+                }
+            } catch (loyaltyError: any) {
+                logger.warn('Loyalty processing failed (non-fatal)', {
+                    orderId,
+                    error: loyaltyError.message,
+                });
+            }
+        }
 
         return { success: true };
     } catch (error: any) {
