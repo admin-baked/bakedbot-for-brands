@@ -60,12 +60,13 @@ export function Step1Dialog({ open, onOpenChange, onComplete, initialData }: Ste
   // populate the fields so the user can review and edit before saving.
   useEffect(() => {
     if (open && initialData) {
-      if (initialData.brandName) setBrandName(initialData.brandName);
-      if (initialData.description) setDescription(initialData.description);
-      if (initialData.tagline) setTagline(initialData.tagline);
-      if (initialData.city) setCity(initialData.city);
-      if (initialData.state) setState(initialData.state);
-      if (initialData.dispensaryType) setDispensaryType(initialData.dispensaryType);
+      // Update any field that exists in initialData (including empty strings)
+      if ('brandName' in initialData) setBrandName(initialData.brandName || '');
+      if ('description' in initialData) setDescription(initialData.description || '');
+      if ('tagline' in initialData) setTagline(initialData.tagline || '');
+      if ('city' in initialData) setCity(initialData.city || '');
+      if ('state' in initialData) setState(initialData.state || '');
+      if ('dispensaryType' in initialData) setDispensaryType(initialData.dispensaryType || '');
     }
   }, [open, initialData]);
 
@@ -231,9 +232,9 @@ export function Step2Dialog({ open, onOpenChange, onComplete, initialData }: Ste
   // Pre-fill when dialog opens with extracted data
   useEffect(() => {
     if (open && initialData) {
-      if (initialData.primaryColor) setPrimaryColor(initialData.primaryColor);
-      if (initialData.secondaryColor) setSecondaryColor(initialData.secondaryColor);
-      if (initialData.logoUrl) setLogoUrl(initialData.logoUrl);
+      if ('primaryColor' in initialData && initialData.primaryColor) setPrimaryColor(initialData.primaryColor);
+      if ('secondaryColor' in initialData && initialData.secondaryColor) setSecondaryColor(initialData.secondaryColor);
+      if ('logoUrl' in initialData && initialData.logoUrl) setLogoUrl(initialData.logoUrl);
     }
   }, [open, initialData]);
 

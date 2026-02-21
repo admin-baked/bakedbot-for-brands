@@ -11,6 +11,7 @@ import { ALLeavesClient, type ALLeavesConfig } from '@/lib/pos/adapters/alleaves
 import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
 import { logger } from '@/lib/logger';
 import { invalidateCache, CachePrefix } from '@/lib/cache';
+import { recordProductSale } from '@/server/services/order-analytics';
 
 export interface SyncResult {
     success: boolean;
@@ -82,6 +83,7 @@ async function persistOrdersToFirestore(
     let batch = firestore.batch();
     let batchCount = 0;
     let total = 0;
+    const ordersToTrack = []; // Track orders for sales analytics
 
     const mapStatus = (s: string): string => {
         const map: Record<string, string> = {
@@ -109,6 +111,14 @@ async function persistOrdersToFirestore(
         const customerEmail = ao.customer?.email || ao.email || ao.customer_email || 'no-email@alleaves.local';
         const customerPhone = ao.customer?.phone || ao.phone || ao.customer_phone || '';
 
+        const items = (ao.items || []).map((item: any) => ({
+            productId: item.id_item?.toString() || item.product_id?.toString() || 'unknown',
+            name: item.item || item.product_name || 'Unknown Item',
+            qty: parseInt(item.quantity || 1),
+            price: parseFloat(item.price || item.unit_price || 0),
+            category: item.category || 'other',
+        }));
+
         const docRef = firestore.collection('orders').doc(docId);
         batch.set(docRef, {
             id: docId,
@@ -117,13 +127,7 @@ async function persistOrdersToFirestore(
             userId: ao.customer?.id?.toString() || ao.id_customer?.toString() || 'alleaves_customer',
             status: mapStatus(ao.status),
             customer: { name: customerName, email: customerEmail, phone: customerPhone },
-            items: (ao.items || []).map((item: any) => ({
-                productId: item.id_item?.toString() || item.product_id?.toString() || 'unknown',
-                name: item.item || item.product_name || 'Unknown Item',
-                qty: parseInt(item.quantity || 1),
-                price: parseFloat(item.price || item.unit_price || 0),
-                category: item.category || 'other',
-            })),
+            items,
             totals: {
                 subtotal: parseFloat(ao.subtotal || 0),
                 tax: parseFloat(ao.tax || 0),
@@ -135,6 +139,18 @@ async function persistOrdersToFirestore(
             createdAt: Timestamp.fromDate(orderDate),
             updatedAt: Timestamp.fromDate(updatedDate),
         }, { merge: true }); // merge so status updates from BakedBot aren't overwritten
+
+        // Track order for sales analytics (only completed/ready orders)
+        const status = mapStatus(ao.status);
+        if (status === 'completed' || status === 'ready') {
+            ordersToTrack.push({
+                orderId: docId,
+                customerId: ao.customer?.id?.toString() || ao.id_customer?.toString() || 'alleaves_customer',
+                items,
+                totalAmount: parseFloat(ao.total || ao.amount || 0),
+                purchasedAt: orderDate,
+            });
+        }
 
         batchCount++;
         total++;
@@ -151,6 +167,40 @@ async function persistOrdersToFirestore(
     }
 
     logger.info('[POS_SYNC] Persisted orders to Firestore', { orgId, total });
+
+    // Record sales analytics for completed orders (async, don't block)
+    if (ordersToTrack.length > 0) {
+        setImmediate(async () => {
+            try {
+                for (const order of ordersToTrack) {
+                    try {
+                        await recordProductSale(orgId, {
+                            customerId: order.customerId,
+                            orderId: order.orderId,
+                            items: order.items.map(item => ({
+                                productId: item.productId,
+                                quantity: item.qty,
+                                price: item.price,
+                            })),
+                            totalAmount: order.totalAmount,
+                            purchasedAt: order.purchasedAt,
+                        });
+                    } catch (error) {
+                        logger.warn('[POS_SYNC] Failed to record sale for order', {
+                            orderId: order.orderId,
+                            error: error instanceof Error ? error.message : String(error),
+                        });
+                    }
+                }
+                logger.info('[POS_SYNC] Sales analytics recorded', { orgId, ordersTracked: ordersToTrack.length });
+            } catch (error) {
+                logger.error('[POS_SYNC] Sales tracking batch failed', {
+                    orgId,
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            }
+        });
+    }
 }
 
 /**

@@ -27,9 +27,56 @@ import { deeboCheckCheckout } from '@/server/agents/deebo';
 import { createServerClient } from '@/firebase/server-client';
 import { withProtection } from '@/server/middleware/with-protection';
 import { processPaymentSchema, type ProcessPaymentRequest } from '../../schemas';
+import { recordProductSale } from '@/server/services/order-analytics';
 
 // Force dynamic rendering - prevents build-time evaluation of agent dependencies
 export const dynamic = 'force-dynamic';
+
+/**
+ * Record sales analytics for a completed order (async, non-blocking)
+ */
+async function recordSalesForOrder(orderId: string, orgId: string, firestore: any) {
+    try {
+        const orderDoc = await firestore.collection('orders').doc(orderId).get();
+        if (!orderDoc.exists) {
+            logger.warn('[CHECKOUT] Order not found for sales tracking', { orderId });
+            return;
+        }
+
+        const order = orderDoc.data();
+        if (!order?.items || order.items.length === 0) {
+            logger.warn('[CHECKOUT] Order has no items for sales tracking', { orderId });
+            return;
+        }
+
+        // Convert order items to recordProductSale format
+        const salesItems = order.items.map((item: any) => ({
+            productId: item.productId,
+            quantity: item.qty || item.quantity || 1,
+            price: item.price,
+        }));
+
+        const customerId = order.userId || 'checkout_customer';
+        const totalAmount = order.totals?.total || order.amount || 0;
+        const purchasedAt = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+
+        await recordProductSale(orgId, {
+            customerId,
+            orderId,
+            items: salesItems,
+            totalAmount,
+            purchasedAt,
+        });
+
+        logger.info('[CHECKOUT] Sales recorded for order', { orderId, itemCount: order.items.length });
+    } catch (error) {
+        logger.warn('[CHECKOUT] Failed to record sales for order', {
+            orderId,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        // Non-blocking - don't throw, just log
+    }
+}
 
 export const POST = withProtection(
     async (req: NextRequest, data?: ProcessPaymentRequest) => {
@@ -124,6 +171,12 @@ export const POST = withProtection(
                         paymentStatus: 'pending_pickup',
                         updatedAt: new Date().toISOString()
                     });
+
+                    // Record sales asynchronously (non-blocking)
+                    setImmediate(async () => {
+                        const { firestore: fs } = await createServerClient();
+                        await recordSalesForOrder(orderId, customer?.orgId || brand.id, fs);
+                    });
                 }
 
                 logger.info('[P0-PAY-SMOKEYPAY] Dispensary direct payment selected', { orderId });
@@ -151,16 +204,25 @@ export const POST = withProtection(
                 }
 
                 // Update order with Smokey Pay transaction details
+                const cannpaySuccessful = status === 'Success' || status === 'Settled';
                 if (orderId) {
                     const { firestore } = await createServerClient();
                     await firestore.collection('orders').doc(orderId).update({
                         paymentMethod: 'cannpay',
-                        paymentStatus: status === 'Success' || status === 'Settled' ? 'paid' : 'failed',
+                        paymentStatus: cannpaySuccessful ? 'paid' : 'failed',
                         'canpay.transactionNumber': transactionNumber,
                         'canpay.status': status,
                         'canpay.completedAt': new Date().toISOString(),
                         updatedAt: new Date().toISOString()
                     });
+
+                    // Record sales asynchronously if payment successful (non-blocking)
+                    if (cannpaySuccessful) {
+                        setImmediate(async () => {
+                            const { firestore: fs } = await createServerClient();
+                            await recordSalesForOrder(orderId, customer?.orgId || brand.id, fs);
+                        });
+                    }
                 }
 
                 logger.info('[P0-PAY-SMOKEYPAY] Smokey Pay payment completed', {
@@ -171,7 +233,7 @@ export const POST = withProtection(
                 });
 
                 return NextResponse.json({
-                    success: status === 'Success' || status === 'Settled',
+                    success: cannpaySuccessful,
                     paymentMethod: 'cannpay',
                     transactionId: transactionNumber,
                     message: status === 'Success' ? 'Payment successful' : 'Payment failed',
@@ -195,16 +257,25 @@ export const POST = withProtection(
                 }
 
                 // Update order with Aeropay transaction details
+                const aeropaySuccessful = status === 'completed';
                 if (orderId) {
                     const { firestore } = await createServerClient();
                     await firestore.collection('orders').doc(orderId).update({
                         paymentMethod: 'aeropay',
-                        paymentStatus: status === 'completed' ? 'paid' : 'failed',
+                        paymentStatus: aeropaySuccessful ? 'paid' : 'failed',
                         'aeropay.transactionId': transactionId,
                         'aeropay.status': status,
                         'aeropay.completedAt': new Date().toISOString(),
                         updatedAt: new Date().toISOString()
                     });
+
+                    // Record sales asynchronously if payment successful (non-blocking)
+                    if (aeropaySuccessful) {
+                        setImmediate(async () => {
+                            const { firestore: fs } = await createServerClient();
+                            await recordSalesForOrder(orderId, customer?.orgId || brand.id, fs);
+                        });
+                    }
                 }
 
                 logger.info('[AEROPAY-INTEGRATION] Aeropay payment completed', {
@@ -214,10 +285,10 @@ export const POST = withProtection(
                 });
 
                 return NextResponse.json({
-                    success: status === 'completed',
+                    success: aeropaySuccessful,
                     paymentMethod: 'aeropay',
                     transactionId,
-                    message: status === 'completed' ? 'Payment successful' : 'Payment failed',
+                    message: aeropaySuccessful ? 'Payment successful' : 'Payment failed',
                     complianceValidated: true
                 });
             }
@@ -246,6 +317,12 @@ export const POST = withProtection(
                             paymentStatus: 'paid',
                             paymentProvider: 'authorize_net',
                             updatedAt: new Date().toISOString()
+                        });
+
+                        // Record sales asynchronously (non-blocking)
+                        setImmediate(async () => {
+                            const { firestore: fs } = await createServerClient();
+                            await recordSalesForOrder(orderId, customer?.orgId || brand.id, fs);
                         });
                     }
 
