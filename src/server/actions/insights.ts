@@ -701,14 +701,13 @@ export async function getInsightsForOrg(
         // Deserialize Firestore documents
         const insights = snapshot.docs
             .map((doc) => {
-                const data = doc.data();
+                const data = doc.data() as any;
+                const generatedAt = data.generatedAt?.toDate ? data.generatedAt.toDate() : new Date();
                 return {
                     ...data,
                     id: doc.id,
-                    generatedAt: data.generatedAt?.toDate ? data.generatedAt.toDate() : new Date(),
-                    expiresAt: data.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(),
-                    lastUpdated: data.generatedAt?.toDate ? data.generatedAt.toDate() : new Date(),
-                } as InsightCard;
+                    lastUpdated: generatedAt,
+                } as unknown as InsightCard;
             });
 
         // De-duplicate by category (keep most recent per category)
@@ -749,7 +748,7 @@ function deduplicateByCategory(insights: InsightCard[]): InsightCard[] {
         const existing = byCategory.get(insight.category);
         if (!existing) {
             byCategory.set(insight.category, insight);
-        } else if (insight.generatedAt > existing.generatedAt) {
+        } else if (insight.lastUpdated > existing.lastUpdated) {
             // Replace with newer insight
             byCategory.set(insight.category, insight);
         }
@@ -772,7 +771,7 @@ function prioritizeBySeverity(insights: InsightCard[]): InsightCard[] {
     return insights.sort(
         (a, b) =>
             (severityScore[a.severity] || 2) - (severityScore[b.severity] || 2) ||
-            b.generatedAt.getTime() - a.generatedAt.getTime()
+            b.lastUpdated.getTime() - a.lastUpdated.getTime()
     );
 }
 

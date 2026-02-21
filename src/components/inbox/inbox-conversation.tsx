@@ -1186,6 +1186,18 @@ export function InboxConversation({ thread, artifacts, className }: InboxConvers
                             )}
 
                             {/* Show Bundle Generator inline for empty bundle threads */}
+                            {!showBundleGenerator && thread.type !== 'bundle' && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowBundleGenerator(true)}
+                                    className="mt-2 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                                >
+                                    <Sparkles className="h-4 w-4 mr-2" />
+                                    Show Bundle Creator
+                                </Button>
+                            )}
+
                             {showBundleGenerator && (
                                 <div className="mt-4">
                                     <BundleGeneratorInline
