@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-20)
 
 **Recent work (2026-02-20):** See `memory/MEMORY.md` for full log.
-Key completed: [Phase 6 Sales Analytics] (backfill + scheduler pending deploy); [Thrive Menu Complete (6/6 phases)] — bundles, images, carousels, heroes, categories, analytics with 73+ tests (89% coverage)
+Key completed: [AI Price Recommendations] (`dc09a26d`), [Bundle Generator Fix] (`01e38357`) — 3-phase pricing system + manual toggle, 28 tests passing
 
 ---
 
