@@ -473,6 +473,123 @@ export class LoyaltySyncService {
   }
 
   /**
+   * Calculate points for a specific order
+   * Formula: points = Math.floor(orderTotal * pointsPerDollar * equityMultiplier)
+   */
+  calculatePointsForOrder(
+    orderTotal: number,
+    loyaltySettings: LoyaltySettings,
+    isEquityCustomer: boolean = false
+  ): number {
+    const basePoints = orderTotal * loyaltySettings.pointsPerDollar;
+
+    const equityBonus = isEquityCustomer
+      ? basePoints * (loyaltySettings.equityMultiplier - 1)
+      : 0;
+
+    const totalPoints = Math.floor(basePoints + equityBonus);
+
+    logger.debug('[LoyaltySync] Points calculated for order', {
+      orderTotal,
+      basePoints,
+      equityBonus,
+      totalPoints,
+      isEquityCustomer,
+    });
+
+    return totalPoints;
+  }
+
+  /**
+   * Award points to customer after order completion
+   * Called by order confirmation handler
+   */
+  async awardPointsForOrder(
+    customerId: string,
+    orgId: string,
+    orderTotal: number,
+    orderId: string,
+    loyaltySettings: LoyaltySettings,
+    isEquityCustomer: boolean = false
+  ): Promise<{ success: boolean; pointsAwarded: number; error?: string }> {
+    try {
+      const pointsToAward = this.calculatePointsForOrder(
+        orderTotal,
+        loyaltySettings,
+        isEquityCustomer
+      );
+
+      const customerRef = this.firestore
+        .collection('customers')
+        .doc(`${orgId}_${customerId}`);
+
+      // Use Firestore transaction for atomic increment
+      await this.firestore.runTransaction(async (transaction) => {
+        const customerDoc = await transaction.get(customerRef);
+
+        if (!customerDoc.exists) {
+          throw new Error('Customer not found');
+        }
+
+        const profile = customerDoc.data() as CustomerProfile;
+        const currentPoints = profile.points || 0;
+        const newPoints = currentPoints + pointsToAward;
+
+        transaction.update(customerRef, {
+          points: newPoints,
+          updatedAt: new Date(),
+        });
+
+        // Record points earned activity
+        const activityRef = this.firestore.collection('customer_activities').doc();
+
+        transaction.set(activityRef, {
+          id: activityRef.id,
+          customerId,
+          orgId,
+          type: 'points_earned',
+          description: `Earned ${pointsToAward} points from order`,
+          metadata: {
+            orderId,
+            orderTotal,
+            pointsAwarded: pointsToAward,
+            previousPoints: currentPoints,
+            newPoints,
+            isEquityBonus: isEquityCustomer,
+          },
+          createdAt: new Date(),
+        });
+      });
+
+      logger.info('[LoyaltySync] Points awarded', {
+        customerId,
+        orderId,
+        pointsAwarded: pointsToAward,
+        orderTotal,
+        isEquityCustomer,
+      });
+
+      return {
+        success: true,
+        pointsAwarded: pointsToAward,
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error('[LoyaltySync] Failed to award points', {
+        customerId,
+        orderId,
+        error: errorMsg,
+      });
+
+      return {
+        success: false,
+        pointsAwarded: 0,
+        error: errorMsg,
+      };
+    }
+  }
+
+  /**
    * Update customer profile in Firestore
    */
   private async updateCustomerProfile(
