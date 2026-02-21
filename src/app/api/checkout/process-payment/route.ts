@@ -35,7 +35,7 @@ export const dynamic = 'force-dynamic';
 /**
  * Record sales analytics for a completed order (async, non-blocking)
  */
-async function recordSalesForOrder(orderId: string, orgId: string, firestore: any) {
+async function recordSalesForOrder(orderId: string, firestore: any) {
     try {
         const orderDoc = await firestore.collection('orders').doc(orderId).get();
         if (!orderDoc.exists) {
@@ -46,6 +46,12 @@ async function recordSalesForOrder(orderId: string, orgId: string, firestore: an
         const order = orderDoc.data();
         if (!order?.items || order.items.length === 0) {
             logger.warn('[CHECKOUT] Order has no items for sales tracking', { orderId });
+            return;
+        }
+
+        const orgId = order.orgId || order.brandId;
+        if (!orgId) {
+            logger.warn('[CHECKOUT] Order missing orgId/brandId for sales tracking', { orderId });
             return;
         }
 
@@ -175,7 +181,7 @@ export const POST = withProtection(
                     // Record sales asynchronously (non-blocking)
                     setImmediate(async () => {
                         const { firestore: fs } = await createServerClient();
-                        await recordSalesForOrder(orderId, customer?.orgId || brand.id, fs);
+                        await recordSalesForOrder(orderId, fs);
                     });
                 }
 
@@ -220,7 +226,7 @@ export const POST = withProtection(
                     if (cannpaySuccessful) {
                         setImmediate(async () => {
                             const { firestore: fs } = await createServerClient();
-                            await recordSalesForOrder(orderId, customer?.orgId || brand.id, fs);
+                            await recordSalesForOrder(orderId, fs);
                         });
                     }
                 }
@@ -273,7 +279,7 @@ export const POST = withProtection(
                     if (aeropaySuccessful) {
                         setImmediate(async () => {
                             const { firestore: fs } = await createServerClient();
-                            await recordSalesForOrder(orderId, customer?.orgId || brand.id, fs);
+                            await recordSalesForOrder(orderId, fs);
                         });
                     }
                 }
@@ -322,7 +328,7 @@ export const POST = withProtection(
                         // Record sales asynchronously (non-blocking)
                         setImmediate(async () => {
                             const { firestore: fs } = await createServerClient();
-                            await recordSalesForOrder(orderId, customer?.orgId || brand.id, fs);
+                            await recordSalesForOrder(orderId, fs);
                         });
                     }
 
