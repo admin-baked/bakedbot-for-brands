@@ -214,8 +214,8 @@ export function BundleGeneratorInline({
                         suggestion.products.reduce((sum, p) => sum + p.price, 0) * (1 - suggestion.savingsPercent / 100),
                         minMargin
                     );
-                    if (priceRec.success) {
-                        recommendations[suggestion.name] = priceRec;
+                    if (priceRec.success && priceRec.data) {
+                        recommendations[suggestion.name] = priceRec.data;
                     }
                 }
 
