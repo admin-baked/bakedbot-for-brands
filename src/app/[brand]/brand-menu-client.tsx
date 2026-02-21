@@ -249,10 +249,19 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           case 'popular': {
             // Featured products always float to the top
             if (a.featured !== b.featured) return a.featured ? -1 : 1;
-            // Custom operator sort order wins; likes as tiebreaker
+            // Custom sort order wins
             const aOrder = a.sortOrder ?? 9999;
             const bOrder = b.sortOrder ?? 9999;
             if (aOrder !== bOrder) return aOrder - bOrder;
+            // Sales velocity (units per day) prioritized over likes
+            const aVelocity = a.salesVelocity || 0;
+            const bVelocity = b.salesVelocity || 0;
+            if (aVelocity !== bVelocity) return bVelocity - aVelocity;
+            // Sales count as secondary metric
+            const aSalesCount = a.salesCount || 0;
+            const bSalesCount = b.salesCount || 0;
+            if (aSalesCount !== bSalesCount) return bSalesCount - aSalesCount;
+            // Likes as final tiebreaker
             return (b.likes || 0) - (a.likes || 0);
           }
           case 'thc-high': return (b.thcPercent || 0) - (a.thcPercent || 0);

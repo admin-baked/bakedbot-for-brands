@@ -133,6 +133,14 @@ export type Product = {
     dynamicPricingBadge?: string | null; // Badge text to display (e.g., "20% OFF")
     dynamicPricingReason?: string | null; // Reason for price change (e.g., "Clearance - Expiring Soon")
     dynamicPricingUpdatedAt?: Date | string; // Timestamp of last dynamic pricing update
+
+    // Sales Analytics Fields
+    salesCount?: number; // Total units sold (all-time)
+    salesLast7Days?: number; // Rolling 7-day sales count
+    salesLast30Days?: number; // Rolling 30-day sales count
+    salesVelocity?: number; // Units per day (7-day average for trending calculation)
+    lastSaleAt?: Date; // Most recent purchase timestamp
+    trending?: boolean; // Auto-calculated: high velocity + recent sales
 };
 
 export type Retailer = {
