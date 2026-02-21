@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-21 (Phase 4A: auto-reject cron ✅ + Phase 4B: hero carousel polish ✅)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-21 (Phase 5A: URL category filter ✅ + Phase 5B: Full filter sync + effect parity ✅)
 
 ---
 
