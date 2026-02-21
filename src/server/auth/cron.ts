@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * Cron Security Module
  * Centralized authorization for cron routes to prevent auth bypass vulnerabilities

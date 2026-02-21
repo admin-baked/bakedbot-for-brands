@@ -8,10 +8,10 @@
  * - Check time window constraints (daysOfWeek, timeStart/timeEnd)
  *
  * Cloud Scheduler config:
- * - Schedule: " /5 * * * *" (every 5 minutes)
- * - URL: https://bakedbot-prod.web.app/api/cron/bundle-transitions
+ * - Schedule: every 5 minutes
+ * - URL: https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app/api/cron/bundle-transitions
  * - Method: POST
- * - Headers: Authorization: Bearer ${CRON_SECRET}
+ * - Headers: Authorization: Bearer CRON_SECRET
  */
 
 import { NextRequest, NextResponse } from 'next/server';
