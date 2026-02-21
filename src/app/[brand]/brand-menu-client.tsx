@@ -29,7 +29,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Search, Store, Truck, Cookie, Shirt, Leaf, Wind, Sparkles, Droplet, Heart, Package } from 'lucide-react';
+import { ShoppingCart, Search, Store, Truck, Cookie, Shirt, Leaf, Wind, Sparkles, Droplet, Heart, Package, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
 import type { Product, Retailer, Brand } from '@/types/domain';
@@ -101,9 +101,12 @@ const DEFAULT_PRIMARY_COLOR = '#16a34a';
 type BrandView = 'shop' | 'locator' | 'checkout' | 'shipping-checkout';
 
 export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [], heroSlides = [], featuredBrands = [], carousels = [], publicMenuSettings, isManageMode = false, onProductReorder, onToggleFeatured }: BrandMenuClientProps) {
-  // URL params for category filtering
+  // URL params for all filtering
   const searchParams = useSearchParams();
   const urlCategory = searchParams.get('category') || 'all';
+  const urlSort = searchParams.get('sort') || 'popular';
+  const urlSearch = searchParams.get('q') || '';
+  const urlEffect = searchParams.get('effect') || null;
 
   // Check if a URL is a real product image (not a stock photo or placeholder)
   const isRealImage = (url?: string): boolean => {
@@ -129,10 +132,11 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
 
   // Product state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(urlSearch);
   const [categoryFilter, setCategoryFilter] = useState<string>(urlCategory);
-  const [sortBy, setSortBy] = useState<string>('popular');
+  const [sortBy, setSortBy] = useState<string>(urlSort);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [effectFilter, setEffectFilter] = useState<string | null>(urlEffect);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   // Cart state
@@ -178,10 +182,13 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     }
   }, [brand.id]);
 
-  // Sync category filter with URL params
+  // Sync all filters with URL params
   useEffect(() => {
     setCategoryFilter(urlCategory);
-  }, [urlCategory]);
+    setSortBy(urlSort);
+    setSearchQuery(urlSearch);
+    setEffectFilter(urlEffect);
+  }, [urlCategory, urlSort, urlSearch, urlEffect]);
 
   // Show/hide back to top button on scroll
   useEffect(() => {
@@ -243,7 +250,8 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           product.description?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
-        return matchesSearch && matchesCategory;
+        const matchesEffect = !effectFilter || product.effects?.includes(effectFilter);
+        return matchesSearch && matchesCategory && matchesEffect;
       })
       .sort((a, b) => {
         switch (sortBy) {
@@ -271,7 +279,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           default: return a.name.localeCompare(b.name);
         }
       });
-  }, [allProducts, searchQuery, categoryFilter, sortBy]);
+  }, [allProducts, searchQuery, categoryFilter, sortBy, effectFilter]);
 
   // Get unique categories (normalized, for filter dropdown)
   const categories = useMemo(() => {
@@ -279,6 +287,13 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     // Include any categories not in CATEGORY_ORDER (e.g., Seeds, Capsules)
     const extra = cats.filter(c => !CATEGORY_ORDER.includes(c)).sort();
     return [...CATEGORY_ORDER.filter(c => cats.includes(c)), ...extra];
+  }, [allProducts]);
+
+  // All unique effects across the menu (for filter pills)
+  const allEffects = useMemo(() => {
+    const effectSet = new Set<string>();
+    allProducts.forEach(p => p.effects?.forEach(e => effectSet.add(e)));
+    return Array.from(effectSet).slice(0, 8);
   }, [allProducts]);
 
   // Build category grid data with actual counts from products
@@ -337,31 +352,46 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     return undefined;
   };
 
-  // Handlers for search and category
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleCategorySelect = (category: string) => {
-    setCategoryFilter(category);
-
-    // Update URL without page reload
+  // Helper to update URL with current filter state
+  const updateUrlParams = (updates: Record<string, string | null>) => {
     const params = new URLSearchParams(window.location.search);
-    if (category === 'all') {
-      params.delete('category');  // Remove param for 'all' (cleaner URL)
-    } else {
-      params.set('category', category);
-    }
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (!value || value === 'all' || value === 'popular' || value === '') {
+        params.delete(key);  // Remove default values for cleaner URLs
+      } else {
+        params.set(key, value);
+      }
+    });
 
     const newUrl = params.toString()
       ? `${window.location.pathname}?${params.toString()}`
       : window.location.pathname;
 
-    router.push(newUrl, { scroll: false });  // Update URL without scroll reset
+    router.push(newUrl, { scroll: false });
+  };
 
-    // Scroll to products section
+  // Handlers for search and category
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    updateUrlParams({ q: query });
     document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCategorySelect = (category: string) => {
+    setCategoryFilter(category);
+    updateUrlParams({ category });
+    document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+    updateUrlParams({ sort: value });
+  };
+
+  const handleEffectSelect = (effect: string | null) => {
+    setEffectFilter(effect);
+    updateUrlParams({ effect });
   };
 
   // Handle dispensary selection
@@ -992,11 +1022,11 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
                   <Input
                     placeholder="Search products..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => handleSearch(e.target.value)}
                     className="pl-10"
                   />
                 </div>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <Select value={categoryFilter} onValueChange={handleCategorySelect}>
                   <SelectTrigger className="w-[160px]">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
@@ -1007,7 +1037,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy} onValueChange={handleSortChange}>
                   <SelectTrigger className="w-[160px]">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
@@ -1021,6 +1051,38 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
                 </Select>
               </div>
             </div>
+
+            {/* Effect Filter Pills */}
+            {allEffects.length > 0 && (
+              <div className="mb-6 flex flex-wrap gap-2 items-center">
+                <span className="text-sm font-medium text-muted-foreground">Effects:</span>
+                {allEffects.map((effect) => (
+                  <button
+                    key={effect}
+                    onClick={() => handleEffectSelect(effectFilter === effect ? null : effect)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      effectFilter === effect
+                        ? 'text-white'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                    style={{
+                      backgroundColor: effectFilter === effect ? primaryColor : undefined,
+                    }}
+                  >
+                    {effect}
+                  </button>
+                ))}
+                {effectFilter && (
+                  <button
+                    onClick={() => handleEffectSelect(null)}
+                    className="px-3 py-1.5 rounded-full text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 flex items-center gap-1"
+                  >
+                    <X className="h-3 w-3" />
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Products Grid */}
             {filteredProducts.length === 0 ? (
