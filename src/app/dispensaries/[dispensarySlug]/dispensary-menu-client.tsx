@@ -202,6 +202,22 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
 
   const handleCategorySelect = (category: string) => {
     setCategoryFilter(category);
+
+    // Update URL without page reload
+    const params = new URLSearchParams(window.location.search);
+    if (category === 'all') {
+      params.delete('category');  // Remove param for 'all' (cleaner URL)
+    } else {
+      params.set('category', category);
+    }
+
+    const newUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+
+    router.push(newUrl, { scroll: false });  // Update URL without scroll reset
+
+    // Scroll to products section
     document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
   };
 
