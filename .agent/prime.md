@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-21)
 
 **Recent work (2026-02-21):** See `memory/MEMORY.md` for full log.
-Key completed: [WordPress Theme System] (`551d7479`) — Full CRUD + public rendering + 52 tests + QA guide; [Build Fixes] (hero-slides, approvals, storage imports)
+Key completed: [Menu Category Filtering Bug Fixed] (`85112e27`) — Dispensary menu category clicks now filter products; [WordPress Theme System] (`551d7479`) — Full CRUD + public rendering + 52 tests
 
 ---
 
