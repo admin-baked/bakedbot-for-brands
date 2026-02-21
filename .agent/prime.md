@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-20)
 
 **Recent work (2026-02-20):** See `memory/MEMORY.md` for full log.
-Key completed: [Smokey FAB Positioning Fix] (expanded BLOCKED_ROUTES to hide on 14 content-heavy dashboard pages)
+Key completed: [Brand Guide Extraction Fix] (`8153a25d`), [Smokey FAB Positioning] (auto-hide refinement)
 
 ---
 
