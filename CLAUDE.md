@@ -188,6 +188,39 @@ Load from `.agent/refs/` on-demand (conserve context):
 
 ---
 
+## 🚀 Auto-Approved Operations (Production Automation)
+
+### Claude Code (This Tool)
+Claude can execute autonomously without asking:
+- Cloud Scheduler job creation/modification/execution
+- Backfill commands (90-day historical data import)
+- Manual cron job triggers
+- Deployment commands (`git push origin main`)
+- Service account setup (IAM operations)
+
+### Linus (CTO Agent)
+Linus has **comprehensive CTO autonomy**. See `.agent/LINUS_CTO_AUTONOMY.md` for full charter.
+
+**Core Autonomy:**
+| Domain | Linus Can | Examples |
+|--------|-----------|----------|
+| **Code Management** | Push to main, create branches, revert | `git push`, `git commit`, `git revert` |
+| **Build & Test** | Run full suite, analyze failures | `npm run check:types`, `npm test` |
+| **Deployment** | GO/NO-GO decisions, deploy to production | Firebase App Hosting push |
+| **Incident Response** | Auto-revert failed deployments, fix issues | Deploy failure → auto-revert ✅ |
+| **Cron Jobs** | Create/modify Cloud Scheduler | `gcloud scheduler jobs create http ...` |
+| **Infrastructure** | Service accounts, IAM roles | Create automated deployment accounts |
+| **Reporting** | Real-time Slack + dashboard updates | Auto-notify on deploy/incident |
+
+**Safety Mechanisms:**
+- ✅ Build must pass before push (hard gate)
+- ✅ Deployment failure → auto-revert within 2 minutes
+- ✅ Destructive ops (delete critical jobs) require human approval
+- ✅ Full audit trail in Firestore (every action logged)
+- ✅ Hive Mind memory (learns from incidents)
+
+---
+
 ## 🔚 Session End: "Update recent work"
 
 When the user says **"Update recent work"** (or similar), execute this checklist automatically — no questions:
