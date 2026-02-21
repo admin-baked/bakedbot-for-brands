@@ -45,6 +45,7 @@ import {
     createBundleFromSuggestion,
     type SuggestedBundle,
 } from '@/app/actions/bundle-suggestions';
+import { getBundlePriceSuggestion } from '@/app/actions/dynamic-pricing';
 import { useToast } from '@/hooks/use-toast';
 import {
     Tooltip,
@@ -111,6 +112,11 @@ export function BundleGeneratorInline({
     // Preview State
     const [lastCreatedBundle, setLastCreatedBundle] = useState<BundleDeal | null>(null);
     const [showCreatedPreview, setShowCreatedPreview] = useState(false);
+
+    // Price Recommendation State
+    const [editingPrices, setEditingPrices] = useState<Record<string, number>>({});
+    const [priceRecommendations, setPriceRecommendations] = useState<Record<string, any>>({});
+    const [isLoadingPrices, setIsLoadingPrices] = useState(false);
 
     // Load smart presets on mount
     useEffect(() => {
@@ -197,6 +203,25 @@ export function BundleGeneratorInline({
 
             if (result.success && result.suggestions && result.suggestions.length > 0) {
                 setSuggestions(result.suggestions);
+
+                // Fetch AI price recommendations for each suggestion
+                setIsLoadingPrices(true);
+                const recommendations: Record<string, any> = {};
+
+                for (const suggestion of result.suggestions) {
+                    const priceRec = await getBundlePriceSuggestion(
+                        suggestion.products,
+                        suggestion.products.reduce((sum, p) => sum + p.price, 0) * (1 - suggestion.savingsPercent / 100),
+                        minMargin
+                    );
+                    if (priceRec.success) {
+                        recommendations[suggestion.name] = priceRec;
+                    }
+                }
+
+                setPriceRecommendations(recommendations);
+                setIsLoadingPrices(false);
+
                 toast({
                     title: "Bundles Generated",
                     description: `Found ${result.suggestions.length} bundle(s) matching your criteria.`,
@@ -225,7 +250,16 @@ export function BundleGeneratorInline({
         setCreatingSuggestion(suggestion.name);
 
         try {
-            const result = await createBundleFromSuggestion(orgId, suggestion);
+            // Check if user edited the price
+            const customPrice = editingPrices[suggestion.name];
+
+            // Prepare suggestion with custom price if provided
+            const suggestionWithPrice = {
+                ...suggestion,
+                customPrice,
+            };
+
+            const result = await createBundleFromSuggestion(orgId, suggestionWithPrice as any);
 
             if (result.success && result.data) {
                 toast({
@@ -545,6 +579,53 @@ export function BundleGeneratorInline({
                                             <strong>Products:</strong>{' '}
                                             {suggestion.products.map(p => p.name).join(', ')}
                                         </div>
+
+                                        {/* AI Price Recommendation */}
+                                        {priceRecommendations[suggestion.name] && (
+                                            <Card className="mt-3 mb-4 border-blue-200 bg-blue-50 dark:border-blue-900/50 dark:bg-blue-950/20">
+                                                <CardContent className="p-3">
+                                                    <div className="flex items-start gap-2 mb-3">
+                                                        <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                                                        <div className="flex-1">
+                                                            <p className="text-xs font-medium text-blue-800 dark:text-blue-200">
+                                                                AI Recommended Price
+                                                            </p>
+                                                            <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mt-0.5">
+                                                                ${priceRecommendations[suggestion.name].suggestedPrice?.toFixed(2) || 'N/A'}
+                                                            </p>
+                                                            <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                                                                {priceRecommendations[suggestion.name].reasoning}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Price Slider */}
+                                                    {priceRecommendations[suggestion.name].priceRange && (
+                                                        <div className="space-y-2">
+                                                            <Label className="flex items-center justify-between text-xs">
+                                                                <span>Adjust Final Price</span>
+                                                                <span className="font-semibold text-blue-900 dark:text-blue-100">
+                                                                    ${(editingPrices[suggestion.name] ?? priceRecommendations[suggestion.name].suggestedPrice).toFixed(2)}
+                                                                </span>
+                                                            </Label>
+                                                            <Slider
+                                                                value={[editingPrices[suggestion.name] ?? priceRecommendations[suggestion.name].suggestedPrice]}
+                                                                onValueChange={(v) => setEditingPrices({...editingPrices, [suggestion.name]: v[0]})}
+                                                                min={priceRecommendations[suggestion.name].priceRange.min}
+                                                                max={priceRecommendations[suggestion.name].priceRange.max}
+                                                                step={0.50}
+                                                                className="py-2"
+                                                            />
+                                                            <div className="flex justify-between text-xs text-muted-foreground">
+                                                                <span>Min: ${priceRecommendations[suggestion.name].priceRange.min.toFixed(2)}</span>
+                                                                <span>Max: ${priceRecommendations[suggestion.name].priceRange.max.toFixed(2)}</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+                                        )}
+
                                         <div className="flex justify-end">
                                             <Button
                                                 size="sm"
