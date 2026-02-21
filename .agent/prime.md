@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-20)
 
 **Recent work (2026-02-20):** See `memory/MEMORY.md` for full log.
-Key completed: [Cron Security Hardening] (`ad078e46`): Fixed 4 unsafe routes, centralized auth helper, webhook verification fix, 57 test cases
+Key completed: [6 critical revenue gaps] (`44031fa3`): Bundle Scheduling, Bundle Redemption, Loyalty Points, Tier Advancement, Loyalty Redemption, Churn Prediction (2,600 lines, 65 tests passing)
 
 ---
 
