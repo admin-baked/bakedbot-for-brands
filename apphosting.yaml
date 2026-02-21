@@ -111,6 +111,13 @@ env:
     secret: CLAUDE_API_KEY
     availability:
       - RUNTIME
+  # Linus CTO Agent - Service Account for autonomous cloud operations
+  # Setup: Created with gcloud iam service-accounts keys create + firebase apphosting:secrets:grantaccess
+  # Linus uses this to authenticate gcloud/firebase CLI for Cloud Scheduler, IAM, Secrets, etc.
+  - variable: LINUS_SERVICE_ACCOUNT_KEY
+    secret: LINUS_SERVICE_ACCOUNT_KEY@1
+    availability:
+      - RUNTIME
   - variable: GEMINI_API_KEY
     secret: GEMINI_API_KEY@5
     availability:
