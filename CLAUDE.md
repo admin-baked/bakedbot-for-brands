@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-20 (Proactive Inbox Insights: Money Mike velocity alerts + Smokey customer churn/loyalty insights, hourly generators, Firestore storage, 24h TTL)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-20 (Phase 6: Thrive Menu Sales Analytics — 73+ tests, 89% coverage, Cloud Function backfill, daily Cloud Scheduler rollup, all 6 phases complete)
 
 ---
 

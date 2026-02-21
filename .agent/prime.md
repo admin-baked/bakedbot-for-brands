@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-20)
 
 **Recent work (2026-02-20):** See `memory/MEMORY.md` for full log.
-Key completed: [Proactive Inbox Insights] (`54798cee`): Money Mike velocity alerts (top sellers, expiring, slow movers) + Smokey customer insights (churn risk, new vs returning, VIP performance); hourly Cloud Scheduler cron jobs; Firestore insights collection with 24h TTL
+Key completed: [Phase 6 Sales Analytics] (backfill + scheduler pending deploy); [Thrive Menu Complete (6/6 phases)] — bundles, images, carousels, heroes, categories, analytics with 73+ tests (89% coverage)
 
 ---
 
