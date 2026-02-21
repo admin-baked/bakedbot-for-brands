@@ -28,76 +28,19 @@ interface BundleDealsSectionProps {
   primaryColor?: string;
 }
 
-const defaultBundles: BundleDeal[] = [
-  {
-    id: '1',
-    name: 'Starter Pack',
-    description: 'Pre-roll + Gummies + Grinder',
-    originalPrice: 55,
-    bundlePrice: 40,
-    savingsPercent: 27,
-    badge: 'BEST SELLER',
-    backgroundColor: '#16a34a',
-  },
-  {
-    id: '2',
-    name: 'Weekend Vibes',
-    description: 'Any 3 Edibles for $50',
-    originalPrice: 66,
-    bundlePrice: 50,
-    savingsPercent: 24,
-    badge: 'POPULAR',
-    backgroundColor: '#8b5cf6',
-  },
-  {
-    id: '3',
-    name: 'Concentrate Bundle',
-    description: 'Live Resin + Badder + Diamonds',
-    originalPrice: 160,
-    bundlePrice: 120,
-    savingsPercent: 25,
-    badge: 'PREMIUM',
-    backgroundColor: '#f59e0b',
-  },
-  {
-    id: '4',
-    name: 'Vape Trio',
-    description: '3 Cartridges for $100',
-    originalPrice: 135,
-    bundlePrice: 100,
-    savingsPercent: 26,
-    backgroundColor: '#3b82f6',
-  },
-  {
-    id: '5',
-    name: 'Sleep Bundle',
-    description: 'Indica Flower + Sleep Tincture',
-    originalPrice: 100,
-    bundlePrice: 75,
-    savingsPercent: 25,
-    badge: 'NEW',
-    backgroundColor: '#6366f1',
-  },
-  {
-    id: '6',
-    name: 'First Timer Pack',
-    description: 'CBD Pre-roll + 1:1 Gummies',
-    originalPrice: 38,
-    bundlePrice: 28,
-    savingsPercent: 26,
-    badge: 'LOW THC',
-    backgroundColor: '#10b981',
-  },
-];
-
 export function BundleDealsSection({
-  bundles = defaultBundles,
+  bundles = [],
   title = 'Bundle Deals',
   subtitle = 'Save more when you bundle! Curated packs at special prices.',
   onBundleClick,
   primaryColor = '#16a34a',
 }: BundleDealsSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Don't render if no bundles exist
+  if (!bundles || bundles.length === 0) {
+    return null;
+  }
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {

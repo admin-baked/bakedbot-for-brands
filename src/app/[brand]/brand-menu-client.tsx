@@ -33,6 +33,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
 import type { Product, Retailer, Brand } from '@/types/domain';
 import type { BundleDeal } from '@/types/bundles';
+import type { HeroSlide } from '@/types/hero-slides';
 import type { FeaturedBrand } from '@/server/actions/featured-brands';
 import type { Carousel } from '@/types/carousels';
 
@@ -67,6 +68,7 @@ interface BrandMenuClientProps {
   retailers: Retailer[];
   brandSlug: string;
   bundles?: BundleDeal[];
+  heroSlides?: HeroSlide[];
   featuredBrands?: FeaturedBrand[];
   carousels?: Carousel[];
   publicMenuSettings?: PublicMenuSettings | null;
@@ -97,7 +99,7 @@ const DEFAULT_PRIMARY_COLOR = '#16a34a';
 
 type BrandView = 'shop' | 'locator' | 'checkout' | 'shipping-checkout';
 
-export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [], featuredBrands = [], carousels = [], publicMenuSettings, isManageMode = false, onProductReorder, onToggleFeatured }: BrandMenuClientProps) {
+export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [], heroSlides = [], featuredBrands = [], carousels = [], publicMenuSettings, isManageMode = false, onProductReorder, onToggleFeatured }: BrandMenuClientProps) {
   // Check if a URL is a real product image (not a stock photo or placeholder)
   const isRealImage = (url?: string): boolean => {
     if (!url || url.trim() === '') return false;
@@ -483,7 +485,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
 
         <main className="flex-1">
           {/* Hero Carousel */}
-          <HeroCarousel primaryColor={primaryColor} />
+          <HeroCarousel slides={heroSlides.length > 0 ? heroSlides : undefined} primaryColor={primaryColor} />
 
           {/* Loyalty & Discount Bar */}
           {publicMenuSettings && (

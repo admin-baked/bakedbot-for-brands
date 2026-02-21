@@ -1,12 +1,86 @@
 'use server';
 
 import { getAdminFirestore } from '@/firebase/admin';
-import { BundleDeal } from '@/types/bundles';
+import { BundleDeal, BundleProduct } from '@/types/bundles';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const BUNDLES_COLLECTION = 'bundles';
+
+/**
+ * Derive the brands/{id} doc ID from a brand display name
+ * Matches pattern used in featured-brands.ts
+ */
+function toBrandId(name: string): string {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return `brand_${slug.replace(/-/g, '_')}`;
+}
+
+/**
+ * Select bundle image from products using priority ranking:
+ * 1. Logo of most common brand in bundle
+ * 2. Image of highest-priced product
+ * 3. Fallback to undefined (component will use background color)
+ */
+export async function selectBundleImageFromProducts(bundleProducts: BundleProduct[]): Promise<string | undefined> {
+    try {
+        if (!bundleProducts || bundleProducts.length === 0) {
+            return undefined;
+        }
+
+        const db = getAdminFirestore();
+
+        // Priority 1: Count brands and get most common
+        const brandCounts = new Map<string, number>();
+        bundleProducts.forEach(p => {
+            if (p.brand && p.brand !== 'Unknown') {
+                brandCounts.set(p.brand, (brandCounts.get(p.brand) || 0) + 1);
+            }
+        });
+
+        // Find top brand
+        let topBrand: string | undefined;
+        let maxCount = 0;
+        for (const [brand, count] of brandCounts.entries()) {
+            if (count > maxCount) {
+                topBrand = brand;
+                maxCount = count;
+            }
+        }
+
+        // Try to get brand logo
+        if (topBrand) {
+            try {
+                const brandDoc = await db.collection('brands').doc(toBrandId(topBrand)).get();
+                if (brandDoc.exists) {
+                    const data = brandDoc.data();
+                    if (data?.logoUrl) {
+                        return data.logoUrl;
+                    }
+                }
+            } catch (e) {
+                logger.warn(`[Bundles] Failed to fetch brand logo for ${topBrand}: ${e}`);
+            }
+        }
+
+        // Priority 2: Use image from highest-priced product
+        const topProduct = bundleProducts.reduce((max, p) =>
+            p.originalPrice > max.originalPrice ? p : max
+        );
+
+        if (topProduct.imageUrl && !topProduct.imageUrl.includes('placeholder')) {
+            return topProduct.imageUrl;
+        }
+
+        // Priority 3: No image found
+        return undefined;
+    } catch (error) {
+        logger.error('[Bundles] Error selecting bundle image:', error);
+        return undefined;
+    }
+}
 
 // Schema for creation validation
 const CreateBundleSchema = z.object({
