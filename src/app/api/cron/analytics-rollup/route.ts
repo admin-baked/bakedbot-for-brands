@@ -1,127 +1,98 @@
 /**
- * Analytics Rollup Cron Job
+ * Cron Endpoint: Daily Analytics Rollup
  *
- * Endpoint to be called by a cron service (e.g., Google Cloud Scheduler) daily at 3 AM
- * to update sales analytics metrics and trending status for products.
+ * Recalculates trending metrics for all products across all organizations.
+ * Scheduled to run daily at 3 AM UTC via Cloud Scheduler.
  *
- * Processes:
- * - Recalculate sales velocity (units per day) for all products
- * - Update trending status based on velocity and recency
- * - Decay old sales counts (optional: could implement rolling window here)
- *
- * Call frequency: Daily at 3 AM (off-peak hours to avoid impacting checkout)
- *
- * Example setup in Cloud Scheduler:
- * gcloud scheduler jobs create http analytics-rollup \
- *   --location=us-central1 \
- *   --schedule="0 3 * * *" \
- *   --http-method=POST \
- *   --uri=https://bakedbot.ai/api/cron/analytics-rollup \
- *   --headers="Authorization=Bearer $CRON_SECRET"
+ * Endpoint: POST /api/cron/analytics-rollup
+ * Auth: CRON_SECRET header required
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/firebase/admin';
-import { Product } from '@/types/products';
-import { logger } from '@/lib/logger';
+import { getFirestore } from '@google-cloud/firestore';
 import { runAnalyticsRollup } from '@/server/services/order-analytics';
+import { logger } from '@/lib/logger';
 
-export const maxDuration = 300; // 5 minutes
+const CRON_SECRET = process.env.CRON_SECRET;
 
 export async function POST(request: NextRequest) {
-    try {
-        // Verify cron secret
-        const authHeader = request.headers.get('authorization');
-        const cronSecret = process.env.CRON_SECRET;
+  // Verify CRON_SECRET
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : null;
 
-        if (!cronSecret) {
-            logger.error('[CRON] CRON_SECRET is not configured');
-            return NextResponse.json(
-                { error: 'Server misconfiguration' },
-                { status: 500 }
-            );
-        }
+  if (!CRON_SECRET || bearerToken !== CRON_SECRET) {
+    logger.warn('[CRON] Unauthorized analytics rollup attempt', {
+      ip: request.headers.get('x-forwarded-for'),
+    });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-        if (authHeader !== `Bearer ${cronSecret}`) {
-            logger.warn('[CRON] Invalid cron secret attempt for analytics-rollup');
-            return NextResponse.json(
-                { error: 'Invalid authorization' },
-                { status: 401 }
-            );
-        }
+  try {
+    logger.info('[CRON] Starting analytics rollup');
 
-        logger.info('[CRON] Starting analytics rollup');
+    const db = getFirestore();
 
-        const now = new Date();
-        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // Get all organizations (from users collection)
+    const usersSnapshot = await db.collection('users').get();
+    const orgIds = new Set<string>();
 
-        // Query all orgs (via unique orgIds in products collection)
-        const productsSnapshot = await db.collection('products').get();
+    usersSnapshot.docs.forEach(doc => {
+      const orgId = doc.data().orgId;
+      if (orgId) orgIds.add(orgId);
+    });
 
-        const orgIds = new Set<string>();
-        for (const doc of productsSnapshot.docs) {
-            const product = doc.data() as Product;
-            if (product.orgId) {
-                orgIds.add(product.orgId);
-            }
-        }
+    const orgList = Array.from(orgIds);
+    logger.info('[CRON] Found orgs to process', { count: orgList.length });
 
-        logger.info('[CRON] Found orgs to process', { count: orgIds.size });
+    // Run rollup for each org
+    let successCount = 0;
+    let failureCount = 0;
 
-        // Run rollup for each org
-        let successCount = 0;
-        let failureCount = 0;
-
-        for (const orgId of orgIds) {
-            try {
-                await runAnalyticsRollup(orgId);
-                successCount++;
-            } catch (error) {
-                logger.error('[CRON] Rollup failed for org', {
-                    error: error instanceof Error ? error.message : String(error),
-                    orgId,
-                });
-                failureCount++;
-            }
-        }
-
-        logger.info('[CRON] Analytics rollup completed', {
-            orgsProcessed: successCount,
-            orgsFailed: failureCount,
-            timestamp: new Date().toISOString(),
+    for (const orgId of orgList) {
+      try {
+        await runAnalyticsRollup(orgId);
+        successCount++;
+      } catch (error) {
+        logger.error('[CRON] Rollup failed for org', {
+          orgId,
+          error: error instanceof Error ? error.message : String(error),
         });
-
-        return NextResponse.json({
-            success: true,
-            timestamp: new Date().toISOString(),
-            results: {
-                orgsProcessed: successCount,
-                orgsFailed: failureCount,
-            },
-        });
-    } catch (error) {
-        logger.error('[CRON] Analytics rollup failed', {
-            error: error instanceof Error ? error.message : String(error),
-        });
-        return NextResponse.json(
-            {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-                timestamp: new Date().toISOString(),
-            },
-            { status: 500 }
-        );
+        failureCount++;
+      }
     }
+
+    logger.info('[CRON] Rollup completed', {
+      successful: successCount,
+      failed: failureCount,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Analytics rollup completed',
+      results: {
+        orgsProcessed: orgList.length,
+        successful: successCount,
+        failed: failureCount,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    logger.error('[CRON] Analytics rollup error', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
+  }
 }
 
-// Also support GET for manual testing
+// Also accept GET for manual testing
 export async function GET(request: NextRequest) {
-    logger.info('[CRON] Analytics rollup GET request received');
-    return NextResponse.json({
-        message: 'Analytics rollup endpoint. Use POST with CRON_SECRET header.',
-        example: {
-            method: 'POST',
-            header: 'Authorization: Bearer $CRON_SECRET',
-        },
-    });
+  return POST(request);
 }
