@@ -18,7 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShoppingCart, Search, X } from 'lucide-react';
+import { ShoppingCart, Search, X, Leaf, Wind, Cookie, Sparkles, Droplet, Heart, Package, Shirt } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useStore } from '@/hooks/use-store';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -183,10 +183,56 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
     return grouped;
   }, [products]);
 
-  // Get unique categories
+  // Get unique categories (normalized)
   const categories = useMemo(() => {
     const cats = Array.from(new Set(products.map(p => p.category)));
-    return CATEGORY_ORDER.filter(c => cats.includes(c));
+    // Include any categories not in CATEGORY_ORDER (e.g., Seeds, Capsules, Beverages)
+    const extra = cats.filter(c => !CATEGORY_ORDER.includes(c)).sort();
+    return [...CATEGORY_ORDER.filter(c => cats.includes(c)), ...extra];
+  }, [products]);
+
+  // Build category grid data with actual counts from products (dynamic, not hardcoded)
+  const categoryGridData = useMemo(() => {
+    const categoryCounts: Record<string, number> = {};
+    products.forEach(p => {
+      if (p.category) {
+        categoryCounts[p.category] = (categoryCounts[p.category] || 0) + 1;
+      }
+    });
+
+    // Map icon definitions to categories
+    const categoryIcons: Record<string, any> = {
+      'Flower': Leaf,
+      'Pre-roll': Wind,
+      'Pre-Rolls': Wind,
+      'Vapes': Wind,
+      'Edibles': Cookie,
+      'Concentrates': Sparkles,
+      'Tinctures': Droplet,
+      'Topicals': Heart,
+      'Accessories': Package,
+      'Merchandise': Shirt,
+      'Apparel': Shirt,
+      'Beverages': Package,
+      'Capsules': Package,
+      'Seeds': Package,
+    };
+
+    return Object.entries(categoryCounts)
+      .map(([name, count]) => ({
+        id: name.toLowerCase().replace(/\s+/g, '-'),
+        name,
+        icon: categoryIcons[name],
+        productCount: count,
+      }))
+      .sort((a, b) => {
+        const aIndex = CATEGORY_ORDER.indexOf(a.name);
+        const bIndex = CATEGORY_ORDER.indexOf(b.name);
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+        if (aIndex !== -1) return -1;
+        if (bIndex !== -1) return 1;
+        return a.name.localeCompare(b.name);
+      });
   }, [products]);
 
   // Featured products (highest likes or first 8)
@@ -336,12 +382,19 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
           primaryColor={primaryColor}
         />
 
-        {/* Category Grid */}
-        <CategoryGrid
-          title="Shop by Category"
-          onCategoryClick={handleCategorySelect}
-          primaryColor={primaryColor}
-        />
+        {/* Category Grid - Dynamic from actual products */}
+        {categoryGridData.length > 0 && (
+          <CategoryGrid
+            title="Shop by Category"
+            categories={categoryGridData}
+            onCategoryClick={(categoryId) => {
+              // Map category ID back to normalized category name
+              const cat = categoryGridData.find(c => c.id === categoryId);
+              if (cat) handleCategorySelect(cat.name);
+            }}
+            primaryColor={primaryColor}
+          />
+        )}
 
         {/* Bundle Deals */}
         <BundleDealsSection
