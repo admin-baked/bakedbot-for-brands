@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-21)
 
 **Recent work (2026-02-21):** See `memory/MEMORY.md` for full log.
-Key completed: [Phase 4A] (`1b61506d`) — auto-reject cron + [Phase 4B] (`03ef8a61`) — hero carousel polish (auth, Firebase upload, tests)
+Key completed: [Phase 5A] (`12fd7b33`) — URL category filter + [Phase 5B] (`bd9645a0`) — full filter sync + effect parity (search/sort/effects → URL)
 
 ---
 
