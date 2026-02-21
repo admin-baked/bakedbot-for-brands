@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { DashboardSidebar } from '@/components/dashboard/sidebar';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { NavigationProgress } from '@/components/navigation-progress';
+import SmokeyFloatingButton from '@/components/dashboard/smokey-support-button';
 import type { ReactNode } from 'react';
 import { withAuth } from '@/lib/with-auth';
 
@@ -23,6 +24,9 @@ function DashboardLayoutContent({ children }: { children: ReactNode }) {
                     </ErrorBoundary>
                 </div>
             </SidebarInset>
+
+            {/* Smokey Support Hub - Floating Action Button */}
+            <SmokeyFloatingButton />
         </SidebarProvider>
     );
 }

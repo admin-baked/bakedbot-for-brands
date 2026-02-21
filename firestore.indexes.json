@@ -1145,6 +1145,20 @@
                     "order": "DESCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "inbox_threads",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "assignedToRole",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "lastActivityAt",
+                    "order": "DESCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []
