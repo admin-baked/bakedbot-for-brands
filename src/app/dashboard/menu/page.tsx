@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { normalizeCategoryName } from '@/lib/utils/product-image';
 import { BrandMenuClient } from '@/app/[brand]/brand-menu-client';
 import type { Product as DomainProduct, Retailer } from '@/types/domain';
+import { ThemeManager } from '@/components/dashboard/theme-manager';
 
 interface Product {
     id: string;
@@ -158,7 +159,7 @@ export default function MenuPage() {
     } | null>(null);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [fullScreen, setFullScreen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'preview' | 'products'>('preview');
+    const [activeTab, setActiveTab] = useState<'preview' | 'products' | 'themes'>('preview');
     const previewFetchedRef = useRef(false);
 
     const handleSync = async () => {
@@ -391,6 +392,10 @@ export default function MenuPage() {
                         <TabsTrigger value="products" className="gap-2">
                             <Table2 className="h-4 w-4" />
                             Products ({products.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="themes" className="gap-2">
+                            <Zap className="h-4 w-4" />
+                            Themes
                         </TabsTrigger>
                     </TabsList>
 
@@ -664,6 +669,11 @@ export default function MenuPage() {
                             </Card>
                         </>
                     )}
+                </TabsContent>
+
+                {/* Themes Tab */}
+                <TabsContent value="themes" className="mt-4">
+                  <ThemeManager orgId="" />
                 </TabsContent>
             </Tabs>
         </div>
