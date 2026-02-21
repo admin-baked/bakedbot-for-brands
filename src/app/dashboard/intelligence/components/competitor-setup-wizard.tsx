@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,11 @@ export function CompetitorSetupWizard({ hasCompetitors, overrideRole, maxCompeti
     const searchType = overrideRole || (userRole === 'brand' ? 'brand' : 'dispensary');
     const [open, setOpen] = useState(!hasCompetitors);
     const [step, setStep] = useState(1);
+
+    // Sync dialog state with hasCompetitors prop (fixes state drift when competitors load after mount)
+    useEffect(() => {
+        setOpen(!hasCompetitors);
+    }, [hasCompetitors]);
     
     // Search Inputs
     const [mode, setMode] = useState<'zip' | 'city'>('city');
