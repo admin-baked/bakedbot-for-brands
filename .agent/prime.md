@@ -398,6 +398,29 @@ firebase apphosting:secrets:grantaccess SECRET_NAME --backend=bakedbot-prod
 # Reference in apphosting.yaml as SECRET_NAME@1
 ```
 
+### Firebase App Hosting URL Gotcha: NOT `.web.app`
+
+**Problem:** Firebase App Hosting uses a different URL format than traditional Firebase Hosting.
+
+**Wrong URL:** `https://bakedbot-prod.web.app` (404 - Site Not Found)
+**Correct URL:** `https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app`
+
+**Format:** `https://{backend}--{project}.{region}.hosted.app`
+
+**Impact:**
+- All test scripts must use the correct App Hosting URL
+- Cloud Scheduler cron jobs must target the App Hosting URL
+- API calls from external services must use the App Hosting URL
+
+**Example Fix:**
+```typescript
+// ❌ BAD
+const BASE_URL = 'https://bakedbot-prod.web.app';
+
+// ✅ GOOD
+const BASE_URL = 'https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app';
+```
+
 ### Next.js Build Gotcha: Runtime-Only Environment Variables
 
 **Problem:** Next.js evaluates modules at build time. SDKs initialized with runtime secrets at module scope will fail the build even with `export const dynamic = 'force-dynamic'`.

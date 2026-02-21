@@ -19,7 +19,7 @@ const args = process.argv.slice(2).reduce((acc, arg) => {
 }, {});
 
 const ORG_ID = args.org || 'org_thrive_syracuse';
-const BASE_URL = args.url || 'https://bakedbot-prod.web.app';
+const BASE_URL = args.url || 'https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app';
 const CRON_SECRET = process.env.CRON_SECRET;
 
 if (!CRON_SECRET) {
