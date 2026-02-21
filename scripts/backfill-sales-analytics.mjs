@@ -14,8 +14,8 @@
  *   node scripts/backfill-sales-analytics.mjs org_thrive_syracuse 365
  */
 
-import { initializeApp, cert } from 'firebase-admin/app.js';
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore.js';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import fs from 'fs';
 import path from 'path';
 
@@ -31,7 +31,17 @@ if (!orgId) {
 // Initialize Firebase Admin
 const serviceAccountPath = path.resolve('.secrets/serviceAccountKey.json');
 if (!fs.existsSync(serviceAccountPath)) {
-    console.error(`Service account key not found at ${serviceAccountPath}`);
+    console.error(`\n❌ Service account key not found at ${serviceAccountPath}`);
+    console.error('\nTo run this script, you need:');
+    console.error('1. Download service account key from Firebase Console');
+    console.error('2. Save to: .secrets/serviceAccountKey.json');
+    console.error('3. Add .secrets/ to .gitignore (already done)');
+    console.error('\nFor production deployment via Cloud Scheduler:');
+    console.error('1. Create Cloud Task or Cloud Function');
+    console.error('2. Use Application Default Credentials (ADC)');
+    console.error('3. Run: gcloud functions deploy backfill-sales ...');
+    console.error('\nOr run locally with Firebase emulator:');
+    console.error('firebase emulators:start --import=/path/to/data\n');
     process.exit(1);
 }
 

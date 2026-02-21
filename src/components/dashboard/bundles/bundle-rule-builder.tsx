@@ -248,9 +248,9 @@ export function BundleRuleBuilder({ orgId, onBundleCreated }: BundleRuleBuilderP
 
             const priceRec = await getBundlePriceSuggestion(selectedProdsData, originalTotal, minMargin);
 
-            if (priceRec.success) {
-                setManualPriceRec(priceRec);
-                setManualPrice(priceRec.suggestedPrice);
+            if (priceRec.success && priceRec.data) {
+                setManualPriceRec(priceRec.data);
+                setManualPrice(priceRec.data.suggestedPrice);
                 toast({
                     title: "Price Recommendation",
                     description: "AI has suggested an optimal bundle price.",

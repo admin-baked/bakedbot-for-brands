@@ -79,7 +79,7 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
   /**
    * Fetch customer segment summary
    */
-  private async getSegments(): Promise<SegmentData | null> {
+  private async getSegments(): Promise<Record<string, unknown> | null> {
     try {
       const result = await getSegmentSummary(this.orgId);
       return result?.segments || null;
@@ -95,25 +95,17 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
   /**
    * Create churn risk insight card
    */
-  private createChurnRiskInsight(
-    atRiskCustomers: Array<{
-      id: string;
-      name?: string;
-      email?: string;
-      totalSpent?: number;
-      daysSinceLastOrder?: number;
-    }>
-  ): InsightCard {
+  private createChurnRiskInsight(atRiskCustomers: Record<string, unknown>[]): InsightCard {
     // Get top 10 by LTV
     const topAtRisk = atRiskCustomers
-      .sort((a, b) => (b.totalSpent || 0) - (a.totalSpent || 0))
+      .sort((a, b) => ((b as any).totalSpent || 0) - ((a as any).totalSpent || 0))
       .slice(0, 10);
 
-    const totalLTVAtRisk = topAtRisk.reduce((sum, c) => sum + (c.totalSpent || 0), 0);
+    const totalLTVAtRisk = topAtRisk.reduce((sum, c) => sum + ((c as any).totalSpent || 0), 0);
     const avgDaysSinceOrder =
       topAtRisk.length > 0
         ? Math.round(
-            topAtRisk.reduce((sum, c) => sum + (c.daysSinceLastOrder || 0), 0) / topAtRisk.length
+            topAtRisk.reduce((sum, c) => sum + ((c as any).daysSinceLastOrder || 0), 0) / topAtRisk.length
           )
         : 0;
 
@@ -142,10 +134,12 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
   /**
    * Create new vs returning customer mix insight
    */
-  private createNewVsReturningInsight(segments: SegmentData): InsightCard {
-    const newCount = segments.new?.count || 0;
+  private createNewVsReturningInsight(segments: Record<string, unknown>): InsightCard {
+    const newCount = ((segments.new as any)?.count || 0) as number;
     const returningCount =
-      (segments.loyal?.count || 0) + (segments.frequent?.count || 0) + (segments.vip?.count || 0);
+      (((segments.loyal as any)?.count || 0) +
+        ((segments.frequent as any)?.count || 0) +
+        ((segments.vip as any)?.count || 0)) as number;
     const totalActive = newCount + returningCount;
     const returningPercent =
       totalActive > 0 ? Math.round((returningCount / totalActive) * 100) : 0;
@@ -173,11 +167,11 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
   /**
    * Create loyalty and VIP performance insight
    */
-  private createLoyaltyInsight(segments: SegmentData): InsightCard {
-    const vipCount = segments.vip?.count || 0;
-    const vipLTV = segments.vip?.totalSpent || 0;
-    const loyalCount = segments.loyal?.count || 0;
-    const loyalLTV = segments.loyal?.totalSpent || 0;
+  private createLoyaltyInsight(segments: Record<string, unknown>): InsightCard {
+    const vipCount = ((segments.vip as any)?.count || 0) as number;
+    const vipLTV = ((segments.vip as any)?.totalSpent || 0) as number;
+    const loyalCount = ((segments.loyal as any)?.count || 0) as number;
+    const loyalLTV = ((segments.loyal as any)?.totalSpent || 0) as number;
 
     const totalVIPLTV = vipCount > 0 ? vipLTV : 0;
     const totalLoyalLTV = loyalCount > 0 ? loyalLTV : 0;
@@ -186,7 +180,7 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
     const avgVIPSpend = vipCount > 0 ? Math.round(totalVIPLTV / vipCount) : 0;
 
     // Calculate concentration of VIP spend
-    const totalAllSpent = Object.values(segments).reduce((sum, s) => sum + (s.totalSpent || 0), 0);
+    const totalAllSpent = Object.values(segments).reduce((sum, s) => sum + (((s as any)?.totalSpent || 0) as number), 0);
     const vipConcentration =
       totalAllSpent > 0 ? Math.round((totalVIPLTV / totalAllSpent) * 100) : 0;
 
