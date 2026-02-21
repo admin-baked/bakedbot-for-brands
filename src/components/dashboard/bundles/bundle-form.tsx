@@ -29,6 +29,17 @@ const formSchema = z.object({
     description: z.string().optional(),
     type: z.enum(['bogo', 'mix_match', 'percentage', 'fixed_price', 'tiered']),
     status: z.enum(['draft', 'active', 'scheduled', 'expired', 'paused']),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+}).refine((data) => {
+    // If both dates are provided, start must be before end
+    if (data.startDate && data.endDate) {
+        return new Date(data.startDate) < new Date(data.endDate);
+    }
+    return true;
+}, {
+    message: "Start date must be before end date",
+    path: ["endDate"],
 });
 
 interface BundleFormProps {
@@ -49,17 +60,26 @@ export function BundleForm({ initialData, orgId, onSuccess, onCancel }: BundleFo
             description: initialData?.description || "",
             type: initialData?.type || "mix_match",
             status: initialData?.status || "draft",
+            startDate: initialData?.startDate ? new Date(initialData.startDate).toISOString().split('T')[0] : "",
+            endDate: initialData?.endDate ? new Date(initialData.endDate).toISOString().split('T')[0] : "",
         },
     });
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
         try {
+            // Convert string dates to Date objects
+            const bundleData = {
+                ...values,
+                startDate: values.startDate ? new Date(values.startDate) : undefined,
+                endDate: values.endDate ? new Date(values.endDate) : undefined,
+            };
+
             let result;
             if (initialData) {
-                result = await updateBundle(initialData.id, values);
+                result = await updateBundle(initialData.id, bundleData);
             } else {
-                result = await createBundle({ ...values, orgId, createdBy: 'dispensary' });
+                result = await createBundle({ ...bundleData, orgId, createdBy: 'dispensary' });
             }
 
             if (result.success) {
@@ -162,6 +182,41 @@ export function BundleForm({ initialData, orgId, onSuccess, onCancel }: BundleFo
                             </FormItem>
                         )}
                     />
+                </div>
+
+                <div className="border-t pt-4">
+                    <h3 className="text-sm font-semibold mb-4">Scheduling (Optional)</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                            control={form.control}
+                            name="startDate"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Start Date</FormLabel>
+                                    <FormControl>
+                                        <Input type="date" {...field} />
+                                    </FormControl>
+                                    <FormDescription>Bundle becomes active on this date</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="endDate"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>End Date</FormLabel>
+                                    <FormControl>
+                                        <Input type="date" {...field} />
+                                    </FormControl>
+                                    <FormDescription>Bundle expires on this date</FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4">

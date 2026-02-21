@@ -15,6 +15,8 @@ export interface BundleProduct {
     originalPrice: number;
     bundlePrice?: number; // For fixed-price bundles
     discountPercent?: number; // For percentage bundles
+    brand?: string; // Brand name for image selection
+    imageUrl?: string; // Product image URL
 }
 
 export interface BundleDeal {

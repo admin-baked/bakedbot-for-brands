@@ -86,8 +86,8 @@ export async function getAllHeroSlides(orgId: string): Promise<{ success: boolea
         });
 
         return { success: true, data: slides };
-    } catch (error) {
-        logger.error('[HeroSlides] Error fetching all slides:', error);
+    } catch (error: unknown) {
+        logger.error('[HeroSlides] Error fetching all slides:', { error: error instanceof Error ? error.message : String(error) });
         return { success: false, error: 'Failed to fetch hero slides' };
     }
 }
@@ -121,8 +121,8 @@ export async function createHeroSlide(
         logger.info(`[HeroSlides] Created slide ${id} for org ${orgId}`);
 
         return { success: true, data: newSlide };
-    } catch (error) {
-        logger.error('[HeroSlides] Error creating slide:', error);
+    } catch (error: unknown) {
+        logger.error('[HeroSlides] Error creating slide:', { error: error instanceof Error ? error.message : String(error) });
         return { success: false, error: 'Failed to create hero slide' };
     }
 }
@@ -147,8 +147,8 @@ export async function updateHeroSlide(
         logger.info(`[HeroSlides] Updated slide ${id}`);
 
         return { success: true };
-    } catch (error) {
-        logger.error('[HeroSlides] Error updating slide:', error);
+    } catch (error: unknown) {
+        logger.error('[HeroSlides] Error updating slide:', { error: error instanceof Error ? error.message : String(error) });
         return { success: false, error: 'Failed to update hero slide' };
     }
 }
@@ -167,8 +167,8 @@ export async function deleteHeroSlide(id: string): Promise<{ success: boolean; e
         logger.info(`[HeroSlides] Deleted slide ${id}`);
 
         return { success: true };
-    } catch (error) {
-        logger.error('[HeroSlides] Error deleting slide:', error);
+    } catch (error: unknown) {
+        logger.error('[HeroSlides] Error deleting slide:', { error: error instanceof Error ? error.message : String(error) });
         return { success: false, error: 'Failed to delete hero slide' };
     }
 }
@@ -194,8 +194,8 @@ export async function reorderHeroSlides(
         logger.info(`[HeroSlides] Reordered ${slides.length} slides`);
 
         return { success: true };
-    } catch (error) {
-        logger.error('[HeroSlides] Error reordering slides:', error);
+    } catch (error: unknown) {
+        logger.error('[HeroSlides] Error reordering slides:', { error: error instanceof Error ? error.message : String(error) });
         return { success: false, error: 'Failed to reorder hero slides' };
     }
 }
