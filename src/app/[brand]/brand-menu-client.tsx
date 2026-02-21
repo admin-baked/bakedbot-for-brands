@@ -22,7 +22,7 @@
  */
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { normalizeCategoryName } from '@/lib/utils/product-image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -153,6 +153,9 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
 
   // Refs
   const pageRef = useRef<HTMLDivElement>(null);
+
+  // Router for URL updates
+  const router = useRouter();
 
   // Extract theme colors with fallbacks
   const primaryColor = brand.theme?.primaryColor || DEFAULT_PRIMARY_COLOR;
@@ -342,6 +345,22 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
 
   const handleCategorySelect = (category: string) => {
     setCategoryFilter(category);
+
+    // Update URL without page reload
+    const params = new URLSearchParams(window.location.search);
+    if (category === 'all') {
+      params.delete('category');  // Remove param for 'all' (cleaner URL)
+    } else {
+      params.set('category', category);
+    }
+
+    const newUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname;
+
+    router.push(newUrl, { scroll: false });  // Update URL without scroll reset
+
+    // Scroll to products section
     document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
   };
 
