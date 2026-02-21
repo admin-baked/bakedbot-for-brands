@@ -21,8 +21,8 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-02-21)
 
-**Recent work (2026-02-21):** See `memory/MEMORY.md` for full log.
-Key completed: [Proactive Inbox Insights System] (Phase 1-3) — 4 insight generators (Money Mike/Smokey/Deebo/Ezal), Slack notifications, auto-threading, 4 Cloud Scheduler jobs
+**Recent work (2026-02-20):** See `memory/MEMORY.md` for full log.
+Key completed: [Cron Security Hardening] — Fixed 4 unsafe routes, centralized `requireCronSecret()` helper, webhook hardening (fail-hard in prod), 57 test cases (auth/RBAC/sanitization)
 
 ---
 
