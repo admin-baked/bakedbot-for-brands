@@ -28,11 +28,7 @@ interface PricingAlert {
 
 export class CompetitivePricingInsightsGenerator extends InsightGeneratorBase {
   constructor(orgId: string) {
-    super();
-    this.orgId = orgId;
-    this.agentId = 'ezal';
-    this.agentName = 'Ezal';
-    this.category = 'market';
+    super(orgId, 'ezal', 'Ezal', 'market');
   }
 
   async generate(): Promise<InsightCard[]> {

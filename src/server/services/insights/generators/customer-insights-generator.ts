@@ -180,9 +180,9 @@ export class CustomerInsightsGenerator extends InsightGeneratorBase {
     const avgVIPSpend = vipCount > 0 ? Math.round(totalVIPLTV / vipCount) : 0;
 
     // Calculate concentration of VIP spend
-    const totalAllSpent = Object.values(segments).reduce((sum, s) => sum + (((s as any)?.totalSpent || 0) as number), 0);
+    const totalAllSpent = Object.values(segments).reduce((sum: number, s) => sum + (((s as any)?.totalSpent || 0) as number), 0);
     const vipConcentration =
-      totalAllSpent > 0 ? Math.round((totalVIPLTV / totalAllSpent) * 100) : 0;
+      totalAllSpent > 0 ? Math.round((totalVIPLTV / (totalAllSpent as number)) * 100) : 0;
 
     return this.createInsight({
       title: 'LOYALTY PERFORMANCE',

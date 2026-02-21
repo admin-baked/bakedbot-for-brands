@@ -51,25 +51,16 @@ export async function createThreadFromInsight(
       id: threadId,
       orgId,
       userId: '', // Will be filled by route that calls this
-      threadType: insight.threadType,
-      status: 'open',
-      agentId,
-      agentName: insight.agentName,
+      type: insight.threadType,
+      status: 'draft',
+      primaryAgent: agentId as any,
+      assignedAgents: [agentId as any],
       title: insight.title,
+      preview: insight.headline,
       lastActivityAt: FieldValue.serverTimestamp() as any,
       createdAt: FieldValue.serverTimestamp() as any,
       updatedAt: FieldValue.serverTimestamp() as any,
-      messageCount: 1,
-      hasUnread: true,
-      isMuted: false,
-      isArchived: false,
-      isEscalated: false,
-      priority: insight.severity === 'critical' ? 'high' : 'normal',
-      metadata: {
-        sourceInsightId: insight.id,
-        sourceInsightTitle: insight.title,
-        sourceInsightSeverity: insight.severity,
-      },
+      artifactIds: [],
     };
 
     // Create thread in Firestore

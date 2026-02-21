@@ -25,11 +25,7 @@ interface RegulationSnapshot {
 
 export class RegulatoryInsightsGenerator extends InsightGeneratorBase {
   constructor(orgId: string) {
-    super();
-    this.orgId = orgId;
-    this.agentId = 'deebo';
-    this.agentName = 'Deebo';
-    this.category = 'compliance';
+    super(orgId, 'deebo', 'Deebo', 'compliance');
   }
 
   async generate(): Promise<InsightCard[]> {
@@ -217,7 +213,7 @@ export class RegulatoryInsightsGenerator extends InsightGeneratorBase {
       severity: 'critical',
       actionable: true,
       ctaLabel: 'Review Changes',
-      threadType: 'compliance',
+      threadType: 'compliance_audit',
       threadPrompt: `New regulatory changes detected in ${jurisdiction}. The regulations have been updated or new guidance issued. Please review the following changes and advise on any required operational modifications:\n\n${change.proposedModifications || change.content.substring(0, 500)}`,
       dataSource: 'Regulation Monitor (Deebo)',
     });
@@ -248,7 +244,7 @@ export class RegulatoryInsightsGenerator extends InsightGeneratorBase {
       severity: deadline.severity,
       actionable: true,
       ctaLabel: 'Create Compliance Task',
-      threadType: 'compliance',
+      threadType: 'compliance_audit',
       threadPrompt: `We have a compliance deadline coming up: ${deadline.title} due on ${dateStr} (${daysUntilDue} days away). Requirement: ${deadline.requirement}. Please help me create a task or action plan to ensure compliance.`,
       dataSource: `Compliance Calendar (${deadline.jurisdiction})`,
     });

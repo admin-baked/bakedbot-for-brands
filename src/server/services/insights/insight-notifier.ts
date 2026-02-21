@@ -114,12 +114,15 @@ export async function notifySlackOnCriticalInsights(
     };
 
     // Send to Slack
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(message),
-      timeout: 5000,
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       logger.error('[InsightNotifier] Failed to send Slack notification', {
