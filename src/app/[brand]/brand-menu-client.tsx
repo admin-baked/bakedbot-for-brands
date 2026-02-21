@@ -21,7 +21,8 @@
  * - Smokey AI Chatbot
  */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { normalizeCategoryName } from '@/lib/utils/product-image';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -100,6 +101,10 @@ const DEFAULT_PRIMARY_COLOR = '#16a34a';
 type BrandView = 'shop' | 'locator' | 'checkout' | 'shipping-checkout';
 
 export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles = [], heroSlides = [], featuredBrands = [], carousels = [], publicMenuSettings, isManageMode = false, onProductReorder, onToggleFeatured }: BrandMenuClientProps) {
+  // URL params for category filtering
+  const searchParams = useSearchParams();
+  const urlCategory = searchParams.get('category') || 'all';
+
   // Check if a URL is a real product image (not a stock photo or placeholder)
   const isRealImage = (url?: string): boolean => {
     if (!url || url.trim() === '') return false;
@@ -125,9 +130,10 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
   // Product state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>(urlCategory);
   const [sortBy, setSortBy] = useState<string>('popular');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   // Cart state
   const [cartOpen, setCartOpen] = useState(false);
@@ -144,6 +150,9 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     phone?: string;
     hours?: string;
   } | null>(null);
+
+  // Refs
+  const pageRef = useRef<HTMLDivElement>(null);
 
   // Extract theme colors with fallbacks
   const primaryColor = brand.theme?.primaryColor || DEFAULT_PRIMARY_COLOR;
@@ -165,6 +174,32 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
       setFavorites(new Set(JSON.parse(storedFavorites)));
     }
   }, [brand.id]);
+
+  // Sync category filter with URL params
+  useEffect(() => {
+    setCategoryFilter(urlCategory);
+  }, [urlCategory]);
+
+  // Show/hide back to top button on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (typeof window !== 'undefined') {
+        setShowBackToTop(window.scrollY > 300);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Back to top functionality
+  const scrollToTop = () => {
+    if (pageRef.current) {
+      pageRef.current.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   const toggleFavorite = (productId: string) => {
     const newFavorites = new Set(favorites);
@@ -469,7 +504,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
   // Render dispensary-style menu with hero carousel, featured brands, deals
   if (isDispensaryMenu) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-background flex flex-col" ref={pageRef}>
         {/* Dispensary Header */}
         <DemoHeader
           brandName={brand.name}
@@ -774,7 +809,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
   // ============================================
   // Default: Shopping view
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col" ref={pageRef}>
       <BrandMenuHeader
         brandName={brand.name}
         brandLogo={brand.logoUrl}
@@ -1098,6 +1133,21 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
         initialOpen={false}
         chatbotConfig={brand.chatbotConfig}
       />
+
+      {/* Back to Top Button */}
+      {showBackToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-40 bg-white rounded-full shadow-lg p-3 hover:shadow-xl transition-shadow flex items-center justify-center"
+          style={{ backgroundColor: primaryColor }}
+          title="Back to top"
+          aria-label="Back to top"
+        >
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
