@@ -19,8 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { createHeroSlide, updateHeroSlide } from '@/app/actions/hero-slides';
 import { HeroSlide } from '@/types/hero-slides';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Loader2, Upload, X } from 'lucide-react';
 
 const formSchema = z.object({
     title: z.string().min(2, { message: "Title must be at least 2 characters." }),
@@ -54,6 +54,12 @@ interface HeroSlideFormProps {
 export function HeroSlideForm({ initialData, orgId, onSuccess, onCancel }: HeroSlideFormProps) {
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(initialData?.imageUrl || null);
+    const [isDragging, setIsDragging] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const form = useForm({
         resolver: zodResolver(formSchema),
@@ -71,18 +77,131 @@ export function HeroSlideForm({ initialData, orgId, onSuccess, onCancel }: HeroS
         },
     });
 
+    const handleFileSelect = (file: File) => {
+        if (!file.type.startsWith('image/')) {
+            toast({
+                variant: "destructive",
+                title: "Invalid file",
+                description: "Please select an image file.",
+            });
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            toast({
+                variant: "destructive",
+                title: "File too large",
+                description: "Image must be less than 5MB.",
+            });
+            return;
+        }
+
+        setSelectedFile(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            setPreviewUrl(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileSelect(files[0]);
+        }
+    };
+
+    const uploadImage = async (): Promise<string | null> => {
+        if (!selectedFile) return form.getValues('imageUrl') || null;
+
+        setIsUploading(true);
+        setUploadProgress(0);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('orgId', orgId);
+
+            const xhr = new XMLHttpRequest();
+
+            return new Promise((resolve, reject) => {
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const progress = Math.round((e.loaded / e.total) * 100);
+                        setUploadProgress(progress);
+                    }
+                });
+
+                xhr.addEventListener('load', () => {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.success) {
+                            setSelectedFile(null);
+                            resolve(response.url);
+                        } else {
+                            reject(new Error(response.error || 'Upload failed'));
+                        }
+                    } else {
+                        reject(new Error('Upload failed'));
+                    }
+                });
+
+                xhr.addEventListener('error', () => {
+                    reject(new Error('Upload failed'));
+                });
+
+                xhr.open('POST', '/api/upload/hero-slides');
+                xhr.send(formData);
+            });
+        } catch (error) {
+            toast({
+                variant: "destructive",
+                title: "Upload failed",
+                description: error instanceof Error ? error.message : "Failed to upload image.",
+            });
+            return null;
+        } finally {
+            setIsUploading(false);
+            setUploadProgress(0);
+        }
+    };
+
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsSubmitting(true);
         try {
+            // Upload image if file was selected
+            let imageUrl = values.imageUrl;
+            if (selectedFile) {
+                const uploadedUrl = await uploadImage();
+                if (!uploadedUrl) {
+                    setIsSubmitting(false);
+                    return;
+                }
+                imageUrl = uploadedUrl;
+            }
+
             let result;
             if (initialData) {
                 result = await updateHeroSlide(initialData.id, {
                     ...initialData,
                     ...values,
+                    imageUrl,
                 });
             } else {
                 result = await createHeroSlide(orgId, {
                     ...values,
+                    imageUrl,
                     orgId,
                     displayOrder: 0,
                 } as any);
@@ -209,21 +328,99 @@ export function HeroSlideForm({ initialData, orgId, onSuccess, onCancel }: HeroS
                     />
                 </div>
 
-                {/* Image URL */}
-                <FormField
-                    control={form.control}
-                    name="imageUrl"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Image URL (Optional)</FormLabel>
-                            <FormControl>
-                                <Input placeholder="https://example.com/image.jpg" {...field} />
-                            </FormControl>
-                            <FormDescription>Optional background image for the slide</FormDescription>
-                            <FormMessage />
-                        </FormItem>
+                {/* Image Upload */}
+                <div className="space-y-3">
+                    <FormLabel>Image (Optional)</FormLabel>
+
+                    {/* Image Preview */}
+                    {previewUrl && (
+                        <div className="relative">
+                            <img
+                                src={previewUrl}
+                                alt="Preview"
+                                className="w-full h-48 object-cover rounded-lg border border-gray-200"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setPreviewUrl(null);
+                                    setSelectedFile(null);
+                                    form.setValue('imageUrl', '');
+                                    if (fileInputRef.current) fileInputRef.current.value = '';
+                                }}
+                                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
                     )}
-                />
+
+                    {/* Upload Progress */}
+                    {isUploading && (
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-sm text-gray-600">
+                                <span>Uploading...</span>
+                                <span>{uploadProgress}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                    className="bg-blue-500 h-2 rounded-full transition-all"
+                                    style={{ width: `${uploadProgress}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Drag & Drop Zone */}
+                    {!previewUrl && !isUploading && (
+                        <div
+                            onClick={() => fileInputRef.current?.click()}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                                isDragging
+                                    ? 'border-blue-500 bg-blue-50'
+                                    : 'border-gray-300 hover:border-gray-400 bg-gray-50 hover:bg-gray-100'
+                            }`}
+                        >
+                            <Upload className="h-6 w-6 mx-auto mb-2 text-gray-500" />
+                            <p className="text-sm font-medium text-gray-700">Drop image here or click to select</p>
+                            <p className="text-xs text-gray-500 mt-1">JPG, PNG, WebP • Max 5MB</p>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    if (e.target.files?.[0]) {
+                                        handleFileSelect(e.target.files[0]);
+                                    }
+                                }}
+                                className="hidden"
+                            />
+                        </div>
+                    )}
+
+                    {/* Manual URL Input */}
+                    <FormField
+                        control={form.control}
+                        name="imageUrl"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel className="text-xs">Or enter image URL</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        placeholder="https://example.com/image.jpg"
+                                        {...field}
+                                        disabled={selectedFile !== null || isUploading}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormDescription>Optional background image for the slide</FormDescription>
+                </div>
 
                 {/* CTA Section */}
                 <div className="border-t pt-4">

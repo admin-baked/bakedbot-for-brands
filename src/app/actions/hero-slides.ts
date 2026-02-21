@@ -5,8 +5,39 @@ import { HeroSlide, HeroSlideInput } from '@/types/hero-slides';
 import { revalidatePath } from 'next/cache';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
+import { requireUser } from '@/server/auth/auth';
 
 const HERO_SLIDES_COLLECTION = 'hero_slides';
+
+/**
+ * Verify user has access to the specified org
+ */
+async function verifyOrgAccess(userId: string, targetOrgId: string): Promise<boolean> {
+    try {
+        const db = getAdminFirestore();
+        const userDoc = await db.collection('users').doc(userId).get();
+
+        if (!userDoc.exists) {
+            logger.warn(`[HeroSlides] User ${userId} not found`);
+            return false;
+        }
+
+        const userData = userDoc.data();
+        const userOrgId = userData?.currentOrgId || userData?.orgId;
+
+        if (userOrgId !== targetOrgId) {
+            logger.warn(`[HeroSlides] Org mismatch: user ${userId} (${userOrgId}) vs target (${targetOrgId})`);
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        logger.error('[HeroSlides] Error verifying org access:', {
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return false;
+    }
+}
 
 /**
  * Get active hero slides for public menu display (no auth required)
@@ -93,7 +124,7 @@ export async function getAllHeroSlides(orgId: string): Promise<{ success: boolea
 }
 
 /**
- * Create a new hero slide
+ * Create a new hero slide (requires authentication and org access)
  */
 export async function createHeroSlide(
     orgId: string,
@@ -102,6 +133,13 @@ export async function createHeroSlide(
     try {
         if (!orgId) throw new Error('Organization ID is required');
         if (!data.title || !data.description) throw new Error('Title and description are required');
+
+        const user = await requireUser();
+        const hasAccess = await verifyOrgAccess(user.uid, orgId);
+        if (!hasAccess) {
+            logger.warn(`[HeroSlides] User ${user.uid} denied create access to org ${orgId}`);
+            return { success: false, error: 'Unauthorized' };
+        }
 
         const id = uuidv4();
         const db = getAdminFirestore();
@@ -118,7 +156,7 @@ export async function createHeroSlide(
         await db.collection(HERO_SLIDES_COLLECTION).doc(id).set(newSlide);
 
         revalidatePath('/dashboard');
-        logger.info(`[HeroSlides] Created slide ${id} for org ${orgId}`);
+        logger.info(`[HeroSlides] Created slide ${id} for org ${orgId} by user ${user.uid}`);
 
         return { success: true, data: newSlide };
     } catch (error: unknown) {
@@ -128,7 +166,7 @@ export async function createHeroSlide(
 }
 
 /**
- * Update an existing hero slide
+ * Update an existing hero slide (requires authentication and org access)
  */
 export async function updateHeroSlide(
     id: string,
@@ -137,14 +175,28 @@ export async function updateHeroSlide(
     try {
         if (!id) throw new Error('Slide ID is required');
 
+        const user = await requireUser();
         const db = getAdminFirestore();
+
+        const slideDoc = await db.collection(HERO_SLIDES_COLLECTION).doc(id).get();
+        if (!slideDoc.exists) {
+            return { success: false, error: 'Slide not found' };
+        }
+
+        const slideData = slideDoc.data()!;
+        const hasAccess = await verifyOrgAccess(user.uid, slideData.orgId);
+        if (!hasAccess) {
+            logger.warn(`[HeroSlides] User ${user.uid} denied update access to slide ${id}`);
+            return { success: false, error: 'Unauthorized' };
+        }
+
         await db.collection(HERO_SLIDES_COLLECTION).doc(id).update({
             ...data,
             updatedAt: new Date(),
         });
 
         revalidatePath('/dashboard');
-        logger.info(`[HeroSlides] Updated slide ${id}`);
+        logger.info(`[HeroSlides] Updated slide ${id} by user ${user.uid}`);
 
         return { success: true };
     } catch (error: unknown) {
@@ -154,17 +206,31 @@ export async function updateHeroSlide(
 }
 
 /**
- * Delete a hero slide
+ * Delete a hero slide (requires authentication and org access)
  */
 export async function deleteHeroSlide(id: string): Promise<{ success: boolean; error?: string }> {
     try {
         if (!id) throw new Error('Slide ID is required');
 
+        const user = await requireUser();
         const db = getAdminFirestore();
+
+        const slideDoc = await db.collection(HERO_SLIDES_COLLECTION).doc(id).get();
+        if (!slideDoc.exists) {
+            return { success: false, error: 'Slide not found' };
+        }
+
+        const slideData = slideDoc.data()!;
+        const hasAccess = await verifyOrgAccess(user.uid, slideData.orgId);
+        if (!hasAccess) {
+            logger.warn(`[HeroSlides] User ${user.uid} denied delete access to slide ${id}`);
+            return { success: false, error: 'Unauthorized' };
+        }
+
         await db.collection(HERO_SLIDES_COLLECTION).doc(id).delete();
 
         revalidatePath('/dashboard');
-        logger.info(`[HeroSlides] Deleted slide ${id}`);
+        logger.info(`[HeroSlides] Deleted slide ${id} by user ${user.uid}`);
 
         return { success: true };
     } catch (error: unknown) {
@@ -174,15 +240,35 @@ export async function deleteHeroSlide(id: string): Promise<{ success: boolean; e
 }
 
 /**
- * Reorder hero slides by updating displayOrder
+ * Reorder hero slides by updating displayOrder (requires authentication and org access)
  */
 export async function reorderHeroSlides(
     slides: { id: string; displayOrder: number }[]
 ): Promise<{ success: boolean; error?: string }> {
     try {
-        const db = getAdminFirestore();
-        const batch = db.batch();
+        if (!slides || slides.length === 0) {
+            return { success: false, error: 'No slides to reorder' };
+        }
 
+        const user = await requireUser();
+        const db = getAdminFirestore();
+
+        // Verify user has access to all slides in the batch
+        for (const slide of slides) {
+            const slideDoc = await db.collection(HERO_SLIDES_COLLECTION).doc(slide.id).get();
+            if (!slideDoc.exists) {
+                return { success: false, error: `Slide ${slide.id} not found` };
+            }
+
+            const slideData = slideDoc.data()!;
+            const hasAccess = await verifyOrgAccess(user.uid, slideData.orgId);
+            if (!hasAccess) {
+                logger.warn(`[HeroSlides] User ${user.uid} denied reorder access to slide ${slide.id}`);
+                return { success: false, error: 'Unauthorized' };
+            }
+        }
+
+        const batch = db.batch();
         slides.forEach(slide => {
             const docRef = db.collection(HERO_SLIDES_COLLECTION).doc(slide.id);
             batch.update(docRef, { displayOrder: slide.displayOrder, updatedAt: new Date() });
@@ -191,7 +277,7 @@ export async function reorderHeroSlides(
         await batch.commit();
 
         revalidatePath('/dashboard');
-        logger.info(`[HeroSlides] Reordered ${slides.length} slides`);
+        logger.info(`[HeroSlides] Reordered ${slides.length} slides by user ${user.uid}`);
 
         return { success: true };
     } catch (error: unknown) {
