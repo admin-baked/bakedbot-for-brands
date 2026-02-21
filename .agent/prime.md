@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-21)
 
 **Recent work (2026-02-21):** See `memory/MEMORY.md` for full log.
-Key completed: [Build Hotfix] (`a9a4b086`) — Fixed 8 TypeScript errors + made cron auth async; [Linus CTO Phase 3] (`38766e09`) — approval-queue service + dashboard deployed
+Key completed: [Persistent Auth Setup] (`8bc697d3`) — Claude Code + Linus now have autonomous cloud credentials (ADC + service account key); no more login friction; [Revenue Systems Production] — 6 gaps identified, 4 Firestore indexes, loyalty settings deployed
 
 ---
 
