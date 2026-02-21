@@ -8,6 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { InventoryVelocityGenerator } from '@/server/services/insights/generators/inventory-velocity-generator';
+import { notifySlackOnCriticalInsights } from '@/server/services/insights/insight-notifier';
+import { createThreadsFromInsights } from '@/server/actions/create-insight-thread';
 import { getAdminFirestore } from '@/firebase/admin';
 
 export const dynamic = 'force-dynamic';
@@ -45,15 +47,26 @@ export async function GET(request: NextRequest) {
         const generator = new InventoryVelocityGenerator(orgId);
         const insights = await generator.generate();
 
+        // Send Slack notifications for critical/warning insights
+        const slackResult = await notifySlackOnCriticalInsights(orgId, insights);
+
+        // Auto-create threads for critical insights
+        const threadResult = await createThreadsFromInsights(orgId, insights);
+
         results.push({
           orgId,
           success: true,
           insightsGenerated: insights.length,
+          slackNotified: slackResult.notified,
+          criticalCount: slackResult.count,
+          threadsCreated: threadResult.created,
         });
 
         logger.info('[Cron] Velocity insights generated', {
           orgId,
           count: insights.length,
+          slackNotified: slackResult.notified,
+          threadsCreated: threadResult.created,
         });
       } catch (error) {
         logger.error('[Cron] Failed to generate velocity insights', { error, orgId });
