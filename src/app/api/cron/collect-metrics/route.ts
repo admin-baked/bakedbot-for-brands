@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
 
     // Check CRON_SECRET as fallback auth method
-    const cronAuthError = requireCronSecret(request, 'COLLECT_METRICS');
+    const cronAuthError = await requireCronSecret(request, 'COLLECT_METRICS');
 
     // If CRON_SECRET check failed and no OIDC header present, reject in production
     if (cronAuthError && !authHeader && process.env.NODE_ENV === 'production') {

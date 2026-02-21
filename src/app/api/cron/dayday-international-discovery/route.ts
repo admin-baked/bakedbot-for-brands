@@ -26,7 +26,7 @@ export const maxDuration = 300; // 5 minutes max
 
 export async function POST(req: NextRequest) {
     // 1. Verify CRON_SECRET
-    const authError = requireCronSecret(req, 'INTL_DISCOVERY');
+    const authError = await requireCronSecret(req, 'INTL_DISCOVERY');
     if (authError) {
         return authError;
     }

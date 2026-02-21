@@ -13,7 +13,7 @@ export const maxDuration = 60; // Allow 1 minute for processing
 
 export async function GET(req: NextRequest) {
     // 1. Authorization
-    const authError = requireCronSecret(req, 'TICK');
+    const authError = await requireCronSecret(req, 'TICK');
     if (authError) {
         return authError;
     }
