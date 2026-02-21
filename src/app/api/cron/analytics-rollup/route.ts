@@ -9,7 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirestore } from '@google-cloud/firestore';
+import { getAdminFirestore } from '@/firebase/admin';
 import { runAnalyticsRollup } from '@/server/services/order-analytics';
 import { logger } from '@/lib/logger';
 
@@ -32,13 +32,13 @@ export async function POST(request: NextRequest) {
   try {
     logger.info('[CRON] Starting analytics rollup');
 
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     // Get all organizations (from users collection)
     const usersSnapshot = await db.collection('users').get();
     const orgIds = new Set<string>();
 
-    usersSnapshot.docs.forEach(doc => {
+    usersSnapshot.docs.forEach((doc: any) => {
       const orgId = doc.data().orgId;
       if (orgId) orgIds.add(orgId);
     });

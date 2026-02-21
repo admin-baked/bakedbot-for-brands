@@ -1,10 +1,9 @@
 'use server';
 
-import { db } from '@/firebase/admin';
+import { getAdminFirestore } from '@/firebase/admin';
 import { Product } from '@/types/products';
 import { BundleDeal } from '@/types/bundles';
 import { logger } from '@/lib/logger';
-import { FieldValue } from '@google-cloud/firestore';
 
 /**
  * Order Analytics Service
@@ -32,6 +31,7 @@ interface OrderData {
  */
 export async function recordProductSale(orgId: string, orderData: OrderData): Promise<void> {
     try {
+        const db = getAdminFirestore();
         const batch = db.batch();
         const now = new Date();
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -134,6 +134,7 @@ export async function recordProductSale(orgId: string, orderData: OrderData): Pr
  */
 export async function runAnalyticsRollup(orgId: string): Promise<void> {
     try {
+        const db = getAdminFirestore();
         logger.info('[OrderAnalytics] Starting analytics rollup', { orgId });
 
         const now = new Date();
@@ -193,6 +194,7 @@ export async function runAnalyticsRollup(orgId: string): Promise<void> {
  */
 export async function backfillHistoricalSalesData(orgId: string, lookbackDays: number = 90): Promise<{ processed: number; updated: number }> {
     try {
+        const db = getAdminFirestore();
         logger.info('[OrderAnalytics] Starting historical backfill', { orgId, lookbackDays });
 
         const lookbackDate = new Date();

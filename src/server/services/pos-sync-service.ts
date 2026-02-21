@@ -83,7 +83,7 @@ async function persistOrdersToFirestore(
     let batch = firestore.batch();
     let batchCount = 0;
     let total = 0;
-    const ordersToTrack = []; // Track orders for sales analytics
+    const ordersToTrack: { orderId: string; customerId: string; items: Array<{ productId: string; qty: number; price: number }>; totalAmount: number; purchasedAt: Date }[] = []; // Track orders for sales analytics
 
     const mapStatus = (s: string): string => {
         const map: Record<string, string> = {
