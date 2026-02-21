@@ -15,11 +15,27 @@ import { usePathname } from 'next/navigation';
 import { useUserRole } from '@/hooks/use-user-role';
 import SmokeySupportPanel from './smokey-support-panel';
 
+// Routes where FAB should NOT appear (interactive/form-heavy pages where it would block UI)
 const BLOCKED_ROUTES = [
   '/dashboard/inbox',
   '/dashboard/campaigns/new',
+  '/dashboard/campaigns/edit',
   '/dashboard/creative',
   '/dashboard/craig/campaigns',
+  '/dashboard/products',
+  '/dashboard/menu',
+  '/dashboard/apps',
+  '/dashboard/settings',
+  '/dashboard/brand-page',
+  '/dashboard/brand-guide',
+  '/dashboard/playbooks',
+  '/dashboard/drive',
+  '/dashboard/loyalty-settings',
+  '/dashboard/email-warmup',
+  '/dashboard/orders',
+  '/dashboard/audience',
+  '/dashboard/delivery',
+  '/dashboard/dispensary',
 ];
 
 export function SmokeyFloatingButton() {
