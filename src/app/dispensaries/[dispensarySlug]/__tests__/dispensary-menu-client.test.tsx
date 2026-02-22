@@ -6,6 +6,16 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
+const mockPush = jest.fn();
+let mockSearchParams = new URLSearchParams();
+
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({
+        push: mockPush,
+    }),
+    useSearchParams: () => mockSearchParams,
+}));
+
 // Mock all external dependencies
 jest.mock('@/hooks/use-store', () => ({
     useStore: () => ({
@@ -14,6 +24,9 @@ jest.mock('@/hooks/use-store', () => ({
         clearCart: jest.fn(),
         removeFromCart: jest.fn(),
         updateQuantity: jest.fn(),
+        setSelectedRetailerId: jest.fn(),
+        setPurchaseMode: jest.fn(),
+        setSelectedBrandId: jest.fn(),
     }),
 }));
 
@@ -43,9 +56,36 @@ jest.mock('@/components/demo/featured-brands-carousel', () => ({
 jest.mock('@/components/demo/category-grid', () => ({
     CategoryGrid: ({ onCategoryClick }: any) => (
         <div data-testid="category-grid">
-            <button onClick={() => onCategoryClick('Flower')}>Flower</button>
+            <button data-testid="category-grid-flower-btn" onClick={() => onCategoryClick('flower')}>
+                Flower
+            </button>
+            <button data-testid="category-grid-pre-roll-btn" onClick={() => onCategoryClick('pre-roll')}>
+                Pre-roll
+            </button>
         </div>
     ),
+}));
+
+jest.mock('@/components/ui/select', () => ({
+    Select: ({ children, onValueChange }: any) => (
+        <div>
+            {React.Children.map(children, (child: any) =>
+                React.isValidElement(child) ? React.cloneElement(child, { onValueChange }) : child
+            )}
+        </div>
+    ),
+    SelectContent: ({ children, onValueChange }: any) => (
+        <div>
+            {React.Children.map(children, (child: any) =>
+                React.isValidElement(child) ? React.cloneElement(child, { onValueChange }) : child
+            )}
+        </div>
+    ),
+    SelectItem: ({ children, value, onValueChange }: any) => (
+        <button onClick={() => onValueChange?.(value)}>{children}</button>
+    ),
+    SelectTrigger: ({ children }: any) => <button role="combobox">{children}</button>,
+    SelectValue: ({ placeholder }: any) => <span>{placeholder}</span>,
 }));
 
 jest.mock('@/components/demo/bundle-deals-section', () => ({
@@ -92,6 +132,12 @@ jest.mock('@/components/chatbot', () => ({
 // Import after mocks
 import { DispensaryMenuClient } from '../dispensary-menu-client';
 import type { Product, Retailer } from '@/types/domain';
+
+beforeEach(() => {
+    mockSearchParams = new URLSearchParams();
+    mockPush.mockClear();
+    window.HTMLElement.prototype.scrollIntoView = jest.fn();
+});
 
 describe('DispensaryMenuClient', () => {
     const mockDispensary: Retailer & { primaryColor?: string; hours?: string } = {
@@ -241,7 +287,7 @@ describe('DispensaryMenuClient', () => {
         );
 
         // Click on Flower category
-        fireEvent.click(screen.getByText('Flower'));
+        fireEvent.click(screen.getByTestId('category-grid-flower-btn'));
 
         // Should now show only 1 product (Blue Dream)
         await waitFor(() => {
@@ -334,16 +380,19 @@ describe('DispensaryMenuClient - Search and Filter', () => {
         );
 
         // Find and click the sort dropdown
-        const sortTrigger = screen.getByRole('combobox', { name: /sort by/i });
+        const sortTrigger = screen.getAllByRole('combobox')[1];
         fireEvent.click(sortTrigger);
 
         // Select price low to high
         const priceLowOption = await screen.findByText('Price: Low to High');
         fireEvent.click(priceLowOption);
 
-        // First product should now be the cheapest (Gummy Bears at $25)
-        const productCards = screen.getAllByTestId(/product-card/);
-        expect(productCards[0]).toHaveTextContent('Gummy Bears');
+        await waitFor(() => {
+            expect(mockPush).toHaveBeenCalledWith(
+                expect.stringContaining('sort=price-low'),
+                { scroll: false }
+            );
+        });
     });
 
     it('should clear filters when clear button is clicked', async () => {
@@ -354,11 +403,13 @@ describe('DispensaryMenuClient - Search and Filter', () => {
             />
         );
 
-        // Select a category first
-        fireEvent.click(screen.getByText('Flower'));
+        // Apply a search query that yields no results
+        fireEvent.change(screen.getByPlaceholderText('Search products...'), {
+            target: { value: 'no-match-query' },
+        });
 
         await waitFor(() => {
-            expect(screen.getByText('2 products available')).toBeInTheDocument();
+            expect(screen.getByText('No products found')).toBeInTheDocument();
         });
 
         // Click clear filters
@@ -367,5 +418,73 @@ describe('DispensaryMenuClient - Search and Filter', () => {
         await waitFor(() => {
             expect(screen.getByText('3 products available')).toBeInTheDocument();
         });
+    });
+});
+
+describe('DispensaryMenuClient - URL Filters (Phase 5A/5B)', () => {
+    const mockDispensary: Retailer = {
+        id: 'disp-url',
+        name: 'URL Test Dispensary',
+        address: '123 Test St',
+        city: 'Test City',
+        state: 'TS',
+        zip: '12345',
+    };
+
+    const mockProducts: Product[] = [
+        {
+            id: 'prod-pre-roll',
+            name: 'Classic Pre-roll',
+            category: 'Pre-roll',
+            price: 20,
+            imageUrl: '',
+            imageHint: '',
+            description: 'Classic',
+            brandId: 'brand-1',
+            likes: 1,
+            effects: ['Relaxed'],
+        },
+        {
+            id: 'prod-edible',
+            name: 'Night Gummies',
+            category: 'Edibles',
+            price: 25,
+            imageUrl: '',
+            imageHint: '',
+            description: 'Night',
+            brandId: 'brand-2',
+            likes: 1,
+            effects: ['Sleepy'],
+        },
+    ];
+
+    it('applies category/effect query params on initial render', () => {
+        mockSearchParams = new URLSearchParams('category=Pre-roll&effect=Relaxed');
+
+        render(
+            <DispensaryMenuClient
+                dispensary={mockDispensary}
+                products={mockProducts}
+            />
+        );
+
+        expect(screen.getByText('1 products available')).toBeInTheDocument();
+    });
+
+    it('maps category grid IDs back to category names and updates URL', () => {
+        render(
+            <DispensaryMenuClient
+                dispensary={mockDispensary}
+                products={mockProducts}
+            />
+        );
+
+        fireEvent.click(screen.getByTestId('category-grid-pre-roll-btn'));
+
+        expect(mockPush).toHaveBeenCalledWith(
+            expect.stringContaining('category=Pre-roll'),
+            { scroll: false }
+        );
+        expect(screen.getByText('1 products available')).toBeInTheDocument();
     });
 });
