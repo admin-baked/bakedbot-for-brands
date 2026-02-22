@@ -35,6 +35,8 @@ npm run check:types
 
 **All 21 npm scripts deployed 2026-02-22** — Use these for automation, testing, compliance, and observability.
 
+**Linus can execute any super power via Slack:** `@linus execute execute_super_power script=<script-name> options=<cli-options>`
+
 ### Tier 1: Foundational
 | Command | Purpose |
 |---------|---------|
@@ -66,6 +68,15 @@ npm run check:types
 | `npm run audit:costs` | Analyze Firestore query costs (scans $5-15/mo, optimal $0.10-0.50/mo) |
 
 **Details:** See `.agent/specs/` for full super powers documentation.
+
+**Linus Slack Usage Examples:**
+```
+@linus execute execute_super_power script=fix-build options=--apply
+@linus execute execute_super_power script=audit-indexes
+@linus execute execute_super_power script=audit-schema options=--orgId=org_thrive_syracuse
+@linus execute execute_super_power script=setup-secrets options=--deploy
+@linus execute execute_super_power script=check-compliance options=--text="Buy weed today"
+```
 
 ---
 
@@ -244,6 +255,7 @@ Linus has **comprehensive CTO autonomy**. See `.agent/LINUS_CTO_AUTONOMY.md` for
 |--------|-----------|----------|
 | **Code Management** | Push to main, create branches, revert | `git push`, `git commit`, `git revert` |
 | **Build & Test** | Run full suite, analyze failures | `npm run check:types`, `npm test` |
+| **Developer Productivity** | Execute super power scripts autonomously | `execute_super_power script=fix-build options=--apply` |
 | **Deployment** | GO/NO-GO decisions, deploy to production | Firebase App Hosting push |
 | **Incident Response** | Auto-revert failed deployments, fix issues | Deploy failure → auto-revert ✅ |
 | **Cron Jobs** | Create/modify Cloud Scheduler | `gcloud scheduler jobs create http ...` |
