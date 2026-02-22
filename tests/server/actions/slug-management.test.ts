@@ -104,7 +104,7 @@ describe('Slug Management', () => {
 
       mockGet
         .mockResolvedValueOnce({ exists: true, data: () => ({ originalBrandId: 'test-user-123' }) }) // brands doc
-        .mockResolvedValueOnce({ exists: false }); // user doc doesn't exist
+        .mockResolvedValueOnce({ exists: false, data: () => undefined }); // user doc doesn't exist
 
       const result = await checkSlugAvailability('thrivesyracuse');
 
