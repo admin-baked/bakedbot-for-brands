@@ -21,8 +21,8 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-02-22)
 
-**Recent work (2026-02-22):** See `memory/MEMORY.md` for full log.
-Key completed: [Firebase Secret Version Fix] (`032d5ea7`) — Added @1 to 19 secrets in apphosting.yaml; [Missing Test Files] (`4a3914f3`) — Added rate-limit, slug-management, cron-auth test suites (1,044 lines)
+**Recent work (2026-02-23):** See `memory/MEMORY.md` for full log.
+Key completed: [Phase 1 Comprehensive Unit Tests] (`473a6ccc`) — 78 tests across slug-management (ownership fix 916a5cd3, idempotency), cron-auth (500/401 errors, fail-open), rate-limit (Redis config, Edge Runtime fix)
 
 ---
 
