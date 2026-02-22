@@ -5,15 +5,18 @@
  *
  * Floating action button (FAB) that opens the Smokey support panel.
  * Features smart positioning to avoid blocking critical UI elements.
+ * Help content is shown inline within the panel (no modal overlay).
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Card } from '@/components/ui/card';
 import { Sparkles, X, ChevronLeft } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useUserRole } from '@/hooks/use-user-role';
 import SmokeySupportPanel from './smokey-support-panel';
+import HelpSearchEnhanced from '@/components/help/help-search-enhanced';
+import MessageSupportDialog from './message-support-dialog';
 
 // Routes where FAB should NOT appear (interactive/form-heavy pages where it would block UI)
 const BLOCKED_ROUTES = [
@@ -40,6 +43,8 @@ const BLOCKED_ROUTES = [
 
 export function SmokeyFloatingButton() {
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState<'home' | 'help'>('home');
+  const [messagingOpen, setMessagingOpen] = useState(false);
   const [shouldHide, setShouldHide] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const pathname = usePathname();
@@ -81,14 +86,23 @@ export function SmokeyFloatingButton() {
     return null;
   }
 
+  const handleHelpClick = useCallback(() => {
+    setView('help');
+  }, []);
+
+  const handleBackClick = useCallback(() => {
+    setView('home');
+  }, []);
+
   return (
     <>
       {/* Floating Action Button */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-2 items-end z-50">
-        {/* Dismiss notice */}
-        <div className="bg-muted text-muted-foreground text-xs px-2 py-1 rounded opacity-75">
-          Need help? Click the button →
-        </div>
+        {open && !dismissed ? null : (
+          <div className="bg-muted text-muted-foreground text-xs px-2 py-1 rounded opacity-75">
+            Need help? Click the button →
+          </div>
+        )}
 
         {/* FAB */}
         <Button
@@ -100,44 +114,67 @@ export function SmokeyFloatingButton() {
         </Button>
       </div>
 
-      {/* Dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
+      {/* Inline Panel (not a modal overlay) */}
+      {open && !dismissed && (
+        <div className="fixed bottom-24 right-6 z-50 w-[360px] shadow-2xl rounded-2xl border bg-background overflow-hidden">
+          {/* Panel Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
+            <div className="flex items-center gap-2">
+              {view === 'help' && (
+                <button
+                  onClick={handleBackClick}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  title="Back"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+              )}
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5" />
-                Smokey Support Hub
+                <span className="font-semibold text-sm">
+                  {view === 'home' ? 'Smokey Support' : 'Help Center'}
+                </span>
               </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="mt-4">
-            <SmokeySupportPanel />
-          </div>
-
-          {/* Dismiss option at bottom */}
-          <div className="mt-4 pt-3 border-t">
+            </div>
             <button
               onClick={() => {
                 setOpen(false);
-                handleDismiss();
+                setView('home');
               }}
-              className="w-full text-xs text-muted-foreground hover:text-foreground py-2 px-2 rounded hover:bg-muted transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              title="Close"
             >
-              Dismiss this help button
+              <X className="h-5 w-5" />
             </button>
           </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* Show reopen button in header if dismissed */}
+          {/* Panel Content */}
+          <div className="overflow-y-auto max-h-[60vh] p-4">
+            {view === 'home' ? (
+              <SmokeySupportPanel onHelpClick={handleHelpClick} />
+            ) : (
+              <HelpSearchEnhanced userRole={role || undefined} />
+            )}
+          </div>
+
+          {/* Panel Footer (only on home view) */}
+          {view === 'home' && (
+            <div className="border-t px-4 py-3 bg-muted/20">
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  handleDismiss();
+                }}
+                className="w-full text-xs text-muted-foreground hover:text-foreground py-2 px-2 rounded hover:bg-muted transition-colors"
+              >
+                Dismiss this help button
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Show reopen button if dismissed */}
       {dismissed && (
         <button
           onClick={handleReopen}
@@ -150,6 +187,9 @@ export function SmokeyFloatingButton() {
           </span>
         </button>
       )}
+
+      {/* Message Support Dialog (still a modal since it's a form) */}
+      <MessageSupportDialog open={messagingOpen} onOpenChange={setMessagingOpen} />
     </>
   );
 }

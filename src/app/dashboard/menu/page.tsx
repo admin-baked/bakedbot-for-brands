@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Loader2, Search, ShoppingBag, RefreshCw, DollarSign, AlertTriangle,
     Pencil, Check, X, Tag, Package, MessageSquare, Zap, ExternalLink,
-    Eye, Maximize2, Minimize2, LayoutGrid, Table2
+    Eye, Maximize2, Minimize2, LayoutGrid, Table2, Bot
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -29,6 +29,7 @@ import { normalizeCategoryName } from '@/lib/utils/product-image';
 import { BrandMenuClient } from '@/app/[brand]/brand-menu-client';
 import type { Product as DomainProduct, Retailer } from '@/types/domain';
 import { ThemeManager } from '@/components/dashboard/theme-manager';
+import Chatbot from '@/components/chatbot';
 
 interface Product {
     id: string;
@@ -159,7 +160,8 @@ export default function MenuPage() {
     } | null>(null);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [fullScreen, setFullScreen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'preview' | 'products' | 'themes'>('preview');
+    const [activeTab, setActiveTab] = useState<'preview' | 'products' | 'themes' | 'budtender'>('preview');
+    const [budtenderOpen, setBudtenderOpen] = useState(false);
     const previewFetchedRef = useRef(false);
 
     const handleSync = async () => {
@@ -265,6 +267,13 @@ export default function MenuPage() {
         loadPreviewData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Reset budtender open state when switching away from budtender tab
+    useEffect(() => {
+        if (activeTab !== 'budtender') {
+            setBudtenderOpen(false);
+        }
+    }, [activeTab]);
 
     const handleCostSaved = (id: string, cost: number | null) => {
         setProducts(prev => prev.map(p => p.id === id ? { ...p, cost: cost ?? undefined } : p));
@@ -381,8 +390,8 @@ export default function MenuPage() {
                 </div>
             )}
 
-            {/* Tabs: Preview / Products */}
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'preview' | 'products')}>
+            {/* Tabs: Preview / Products / Themes / Budtender */}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'preview' | 'products' | 'themes' | 'budtender')}>
                 <div className="flex items-center justify-between">
                     <TabsList>
                         <TabsTrigger value="preview" className="gap-2">
@@ -396,6 +405,10 @@ export default function MenuPage() {
                         <TabsTrigger value="themes" className="gap-2">
                             <Zap className="h-4 w-4" />
                             Themes
+                        </TabsTrigger>
+                        <TabsTrigger value="budtender" className="gap-2">
+                            <Bot className="h-4 w-4" />
+                            Ask Smokey
                         </TabsTrigger>
                     </TabsList>
 
@@ -675,7 +688,75 @@ export default function MenuPage() {
                 <TabsContent value="themes" className="mt-4">
                   <ThemeManager orgId="" />
                 </TabsContent>
+
+                {/* Ask Smokey Tab */}
+                <TabsContent value="budtender" className="mt-4 space-y-4">
+                  {domainProducts.length === 0 ? (
+                    <Card>
+                      <CardContent className="flex flex-col items-center justify-center py-16">
+                        <Bot className="h-12 w-12 text-muted-foreground mb-4" />
+                        <p className="text-lg font-medium">No products to test</p>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Sync your products first to test Smokey with your catalog.
+                        </p>
+                        <Button asChild variant="outline">
+                          <a href="#products">Sync Products</a>
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <>
+                      {/* Status Card */}
+                      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-2 mb-3">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-sm font-medium">
+                              Smokey is loaded with {domainProducts.length} product{domainProducts.length !== 1 ? 's' : ''} from your catalog
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            Chat with Smokey as your customers would. Ask for product recommendations, strain effects, THC/CBD info, and upsells.
+                          </p>
+                          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                            <div>• Product recommendations</div>
+                            <div>• Strain & effect info</div>
+                            <div>• THC/CBD comparisons</div>
+                            <div>• Upsell suggestions</div>
+                            <div>• Compliance-safe responses</div>
+                            <div>• Customer segmentation</div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Open Chat Button */}
+                      <div className="space-y-2">
+                        <Button
+                          size="lg"
+                          onClick={() => setBudtenderOpen(true)}
+                          className="gap-2 w-full"
+                        >
+                          <Bot className="h-5 w-5" />
+                          Open Smokey Chat
+                        </Button>
+                        <p className="text-xs text-muted-foreground text-center">
+                          The chat window will appear in the bottom-right corner, exactly as customers see it.
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </TabsContent>
             </Tabs>
+
+            {/* Chatbot Component (rendered at root level for fixed positioning) */}
+            {domainProducts.length > 0 && previewData?.brand && activeTab === 'budtender' && (
+              <Chatbot
+                products={domainProducts}
+                brandId={previewData.brand.id}
+                initialOpen={budtenderOpen}
+                chatbotConfig={previewData.brand.chatbotConfig}
+              />
+            )}
         </div>
     );
 }
