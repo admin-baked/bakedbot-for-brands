@@ -125,4 +125,201 @@ describe('Bundle Actions', () => {
             expect(mockDelete).toHaveBeenCalled();
         });
     });
+
+    describe('Bundle Scheduling', () => {
+        it('persists startDate and endDate for scheduled bundles', async () => {
+            const now = new Date();
+            const startDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Tomorrow
+            const endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // Next week
+
+            const bundleData = {
+                name: 'Scheduled Bundle',
+                orgId: 'org123',
+                type: 'bogo' as const,
+                status: 'scheduled' as const,
+                startDate,
+                endDate,
+            };
+
+            const result = await createBundle(bundleData);
+
+            expect(result.success).toBe(true);
+            expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
+                startDate: expect.any(Date),
+                endDate: expect.any(Date),
+                status: 'scheduled',
+            }));
+        });
+
+        it('fetches bundles ordered by createdAt desc', async () => {
+            mockGet.mockResolvedValueOnce({
+                docs: [
+                    {
+                        id: 'b1',
+                        data: () => ({
+                            name: 'Bundle 1',
+                            orgId: 'org123',
+                            createdAt: new Date('2026-02-20'),
+                            updatedAt: new Date('2026-02-20'),
+                        })
+                    },
+                    {
+                        id: 'b2',
+                        data: () => ({
+                            name: 'Bundle 2',
+                            orgId: 'org123',
+                            createdAt: new Date('2026-02-15'),
+                            updatedAt: new Date('2026-02-15'),
+                        })
+                    }
+                ]
+            });
+
+            const result = await getBundles('org123');
+
+            expect(result.success).toBe(true);
+            expect(result.data).toHaveLength(2);
+            expect(mockOrderBy).toHaveBeenCalledWith('createdAt', 'desc');
+        });
+
+        it('converts Firestore Timestamps to ISO strings', async () => {
+            const firestoreTimestamp = {
+                toDate: () => new Date('2026-02-20T10:00:00Z'),
+            };
+
+            mockGet.mockResolvedValueOnce({
+                docs: [
+                    {
+                        id: 'b1',
+                        data: () => ({
+                            name: 'Bundle 1',
+                            orgId: 'org123',
+                            startDate: firestoreTimestamp,
+                            endDate: firestoreTimestamp,
+                            createdAt: firestoreTimestamp,
+                            updatedAt: firestoreTimestamp,
+                        })
+                    }
+                ]
+            });
+
+            const result = await getBundles('org123');
+
+            expect(result.success).toBe(true);
+            expect(result.data?.[0].startDate).toEqual(expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/));
+            expect(result.data?.[0].endDate).toEqual(expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/));
+        });
+    });
+
+    describe('Bundle Redemption Tracking', () => {
+        it('initializes bundle with zero current redemptions', async () => {
+            const bundleData = {
+                name: 'Redemption Test',
+                orgId: 'org123',
+                type: 'percentage' as const,
+                status: 'active' as const,
+            };
+
+            const result = await createBundle(bundleData);
+
+            expect(result.success).toBe(true);
+            expect(result.data?.currentRedemptions).toBe(0);
+        });
+
+        it('increments current redemptions on bundle update', async () => {
+            const updateData = {
+                currentRedemptions: 5,
+            };
+
+            const result = await updateBundle('b1', updateData);
+
+            expect(result.success).toBe(true);
+            expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+                currentRedemptions: 5,
+            }));
+        });
+
+        it('includes perCustomerLimit in bundle data', async () => {
+            mockGet.mockResolvedValueOnce({
+                docs: [
+                    {
+                        id: 'b1',
+                        data: () => ({
+                            name: 'Limited Bundle',
+                            orgId: 'org123',
+                            perCustomerLimit: 3,
+                            currentRedemptions: 2,
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                        })
+                    }
+                ]
+            });
+
+            const result = await getBundles('org123');
+
+            expect(result.success).toBe(true);
+            expect(result.data?.[0].perCustomerLimit).toBe(3);
+            expect(result.data?.[0].currentRedemptions).toBe(2);
+        });
+
+        it('updates redemption count atomically with updatedAt timestamp', async () => {
+            const updateData = {
+                currentRedemptions: 10,
+            };
+
+            await updateBundle('b1', updateData);
+
+            expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
+                currentRedemptions: 10,
+                updatedAt: expect.any(Date),
+            }));
+        });
+    });
+
+    describe('Bundle Savings Calculation', () => {
+        it('stores original total and bundle price for savings calculation', async () => {
+            const bundleData = {
+                name: 'Deal',
+                orgId: 'org123',
+                type: 'fixed_price' as const,
+                originalTotal: 100,
+                bundlePrice: 79.99,
+                savingsAmount: 20.01,
+                savingsPercent: 20,
+            };
+
+            const result = await createBundle(bundleData);
+
+            expect(result.success).toBe(true);
+            expect(result.data?.originalTotal).toBe(100);
+            expect(result.data?.bundlePrice).toBe(79.99);
+            expect(result.data?.savingsPercent).toBe(20);
+        });
+
+        it('fetches bundle products with pricing info', async () => {
+            mockGet.mockResolvedValueOnce({
+                docs: [
+                    {
+                        id: 'b1',
+                        data: () => ({
+                            name: 'Bundle',
+                            orgId: 'org123',
+                            products: [
+                                { id: 'p1', name: 'Product 1', originalPrice: 50, bundlePrice: 40 },
+                                { id: 'p2', name: 'Product 2', originalPrice: 50, bundlePrice: 40 },
+                            ],
+                            createdAt: new Date(),
+                            updatedAt: new Date(),
+                        })
+                    }
+                ]
+            });
+
+            const result = await getBundles('org123');
+
+            expect(result.success).toBe(true);
+            expect(result.data?.[0].products).toHaveLength(2);
+        });
+    });
 });
