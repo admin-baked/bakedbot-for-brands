@@ -1,0 +1,7 @@
+
+> nextn@0.1.0 check:types
+> node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc --noEmit
+
+src/app/[brand]/brands/[brandName]/page.tsx(37,39): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/[brand]/brands/[brandName]/page.tsx(69,42): error TS7006: Parameter 'prod' implicitly has an 'any' type.
+src/app/[brand]/brands/[brandName]/page.tsx(69,64): error TS2339: Property 'id' does not exist on type 'BundleProduct'.

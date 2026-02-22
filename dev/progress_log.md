@@ -1,3 +1,59 @@
+## Session: 2026-02-21 (Dispensary Dashboard Production Readiness Audit — Phase 3)
+### Task ID
+feat_production_readiness_audit_phase3
+
+### Summary
+Audited the Dispensary Dashboard on production (`https://bakedbot.ai`) as `thrivesyracuse@bakedbot.ai` (dispensary_admin, Empire). Verified Inbox (Today's Briefing with 4 AI agents), Menu (1,178 products from Alleaves POS), and code-reviewed Heroes, Carousels, Orders, Customers, and Campaigns pages. All dispensary routes enforce correct RBAC. Documented COGS data gap (1,178 products missing cost data), brand page setup UX issue, and stale thread cleanup opportunity.
+
+### Key Changes
+*   **DOCS**: `dev/DISPENSARY_DASHBOARD_TESTING_2026-02-21.md` — Permanent dispensary audit record.
+*   **MEDIA**: 2 production screenshots captured (Inbox, Menu Dashboard).
+*   **CODE REVIEW**: Heroes, Carousels, Orders, Customers, Campaigns all verified for dispensary role authorization and performance patterns.
+
+### Verification Results
+*   **Inbox (Today's Briefing)**: ✅ PASS (4 agents live: Pops, Ezal, Mrs. Parker, Deebo)
+*   **Menu Dashboard**: ✅ PASS (POS sync active, 1178 products)
+*   **Hero Banners**: ✅ CODE VERIFIED (AI Builder + manual creation)
+*   **Carousels**: ✅ CODE VERIFIED (AI Builder + Rule Builder)
+*   **Orders**: ✅ CODE VERIFIED (SSR prefetch, timestamp serialization)
+*   **Customers**: ✅ CODE VERIFIED (force-dynamic, client-loaded for scale)
+*   **Campaigns**: ✅ CODE VERIFIED (Email/SMS, Suspense skeleton)
+*   **RBAC**: ✅ PASS (no brand/CEO data leakage in dispensary context)
+
+### Issues Found
+*   ⚠️ COGS warning: 1,178 products missing cost data (no bulk import tool)
+*   ⚠️ Brand page not configured for Empire (Live Preview shows CTA)
+*   ⚠️ Multiple stale empty threads in Inbox
+
+### New Tasks Created
+*   None
+
+---
+
+## Session: 2026-02-21 (Brand Dashboard Production Readiness Audit)
+### Task ID
+feat_production_readiness_audit_phase2
+
+### Summary
+Completed a comprehensive production readiness audit of the Brand Dashboard (Phase 2). Verified 100% of core features including Menu Management (Alleaves POS), Brand Guide (AI Asset Gen), Creative Studio (Social AI), Marketing Campaigns (Email/SMS), CRM (Behavioral Segmentation), and Unified Inbox. Captured 195 screenshots documenting UI states and logic verification. All screenshots uploaded to the public global assets bucket.
+
+### Key Changes
+*   **DOCS**: `dev/BRAND_DASHBOARD_TESTING_2026-02-21.md` - Permanent audit record.
+*   **SCRIPTS**: `scripts/upload-audit-media.mjs` - Utility for bulk public uploads to Firebase Storage.
+*   **MEDIA**: 195 screenshots uploaded to `gs://bakedbot-global-assets/audit-results/2026-02-21/`.
+
+### Verification Results
+*   **Brand Guide**: ✅ PASS (AI kit generation verified)
+*   **Menu Sync**: ✅ PASS (Alleaves integration verified)
+*   **Marketing**: ✅ PASS (Campaign wizard & Creative Studio verified)
+*   **CRM**: ✅ PASS (Behavioral segmentation verified)
+*   **Inbox**: ✅ PASS (Unified thread view verified)
+
+### Result: ✅ Complete
+Phase 2 (Brand Dashboard) of the Production Readiness Audit is complete.
+
+---
+
 ## Session: 2026-02-20 (Week 2 Feature Tests - Cache & Pagination)
 ### Task ID
 feat_week2_feature_tests
@@ -1424,8 +1480,8 @@ dashboard_prompt_routing_and_squad
 
 ### Summary
 Implemented "Hybrid Intelligence Protocol" routing in the Dashboard Chat (`runAgentChat`) to intelligent switch between specialized agents based on user intent.
-- **Unified Squad**: Updated `personas.ts` to include the full Agent Squad (Money Mike, Smokey, Craig, Pops, Ezal, Deebo) with specific system prompts and capabilities.
-- **Smart Routing**: Integrated `analyzeQuery` to route financial queries to Money Mike, marketing to Craig, compliance to Deebo, etc., overriding the default "Puff" persona.
+-   **Unified Squad**: Updated `personas.ts` to include the full Agent Squad (Money Mike, Smokey, Craig, Pops, Ezal, Deebo) with specific system prompts and capabilities.
+-   **Smart Routing**: Integrated `analyzeQuery` to route financial queries to Money Mike, marketing to Craig, compliance to Deebo, etc., overriding the default "Puff" persona.
 
 ### Key Changes
 *   **UPDATE**: `src/app/dashboard/ceo/agents/personas.ts` - Added full Squad definitions and legacy aliases.
@@ -1442,8 +1498,8 @@ white_screen_crash_fix
 
 ### Summary
 Fixed a critical UI crash where the chat interface would go white when an agent returned a raw object (e.g., competitive intelligence snapshot) instead of a string.
-- **Defensive Rendering**: Updated `puff-chat.tsx` to safely stringify objects before rendering, preventing React error #31 ("Objects are not valid as a React child").
-- **Terminology Update**: Renamed "Active Scrapers" to "Active Sources" in `ezal-tab.tsx` to align with "Agent Discovery" branding.
+-   **Defensive Rendering**: Updated `puff-chat.tsx` to safely stringify objects before rendering, preventing React error #31 ("Objects are not valid as a React child").
+-   **Terminology Update**: Renamed "Active Scrapers" to "Active Sources" in `ezal-tab.tsx` to align with "Agent Discovery" branding.
 
 ### Key Changes
 *   **FIX**: `src/app/dashboard/ceo/components/puff-chat.tsx` - Added `typeof content === 'string'` checks in `TypewriterText` and `ReactMarkdown`.
@@ -1486,16 +1542,16 @@ invitation_feature_build_fixes
 
 ### Summary
 Fixed build errors preventing deployment and implemented the "Invite User" feature in the Super Admin sidebar.
-- **Build Fixes**:
-    - Resolved `use server` error in `weedmaps.ts` by removing the directive (utility file).
-    - Fixed TypeScript error in `default-playbooks.ts` by renaming `tool` to `action` in `PlaybookStep` objects.
-- **Feature**:
-    - Added "Invite Team Member" button to `SuperAdminSidebar`.
-    - Integrated `InviteUserDialog` with role restrictions.
-- **Testing**:
-    - Added unit test `super-admin-sidebar.test.tsx`.
-    - **NOTE**: Unit test is currently failing due to React Context issues. Added `task_test_super_admin_sidebar_invite` to backlog.
-    - `npm run check:types` passed.
+-   **Build Fixes**:
+    -   Resolved `use server` error in `weedmaps.ts` by removing the directive (utility file).
+    -   Fixed TypeScript error in `default-playbooks.ts` by renaming `tool` to `action` in `PlaybookStep` objects.
+-   **Feature**:
+    -   Added "Invite Team Member" button to `SuperAdminSidebar`.
+    -   Integrated `InviteUserDialog` with role restrictions.
+-   **Testing**:
+    -   Added unit test `super-admin-sidebar.test.tsx`.
+    -   **NOTE**: Unit test is currently failing due to React Context issues. Added `task_test_super_admin_sidebar_invite` to backlog.
+    -   `npm run check:types` passed.
 
 ### Tests Run
 *   `npm run check:types` (Passed ✅)
@@ -1512,11 +1568,11 @@ agent_intelligence_prompts_optimization
 
 ### Summary
 Enhanced the agentic layer with role-specific intelligence, structured competitive reporting, and Super User power tools.
-- **Dynamic Preset Prompts**: Implemented role-based prompt chips with randomization logic in `quick-start-cards.ts`. Users now see fresh, high-leverage actions on each login, with a focus on Platform/BizDev for Super Users.
-- **Structured Competitive Snapshots**: Refined the `ezal` persona and global instructions in `.agent/prime.md` to strictly follow a :fire:-led structured format for market intelligence reports.
-- **Super User Codebase Access**: Built a `dev.readCodebase` tool for Super Users, allowing them to inspect the source code directly (restricted to the `src/` directory) for better technical context.
-- **Agent Protocol Improvements**: Standardized the concept of "Playbooks" as reusable automations and ensured agents request user permissions for Google integrations.
-- **Outcome**: The agentic layer is more responsive, role-aware, and provides structured, professional-grade intelligence reports.
+-   **Dynamic Preset Prompts**: Implemented role-based prompt chips with randomization logic in `quick-start-cards.ts`. Users now see fresh, high-leverage actions on each login, with a focus on Platform/BizDev for Super Users.
+-   **Structured Competitive Snapshots**: Refined the `ezal` persona and global instructions in `.agent/prime.md` to strictly follow a :fire:-led structured format for market intelligence reports.
+-   **Super User Codebase Access**: Built a `dev.readCodebase` tool for Super Users, allowing them to inspect the source code directly (restricted to the `src/` directory) for better technical context.
+-   **Agent Protocol Improvements**: Standardized the concept of "Playbooks" as reusable automations and ensured agents request user permissions for Google integrations.
+-   **Outcome**: The agentic layer is more responsive, role-aware, and provides structured, professional-grade intelligence reports.
 
 ## Session: 2025-12-31 (Firestore Fix & Discovery Hub Refinement)
 ### Task ID
@@ -1524,13 +1580,13 @@ firestore_undefined_discovery_hub_polish
 
 ### Summary
 Resolved critical Firestore errors and finalized the Discovery Hub with full type safety and enhanced features.
-- **Firestore Fix**: Enabled `ignoreUndefinedProperties: true` in `src/firebase/server-client.ts`. This globally allows Firestore to ignore `undefined` values during writes, preventing crashes in Agentic flows like Smokey Chat.
-- **Discovery Hub Refinement**: 
-    - Resolved widespread TypeScript errors in `foot-traffic-tab.tsx` and `crm-tab.tsx` by correcting hook ordering, adding missing imports (`useMemo`), and fixing function signatures.
-    - Added "Dispensary Pages" tab with sorting and pagination.
-    - Implemented "Invite to Claim" monetization flow with personalized emails.
-    - Automated CRM lead sync for discovered entities.
-- **Outcome**: The Discovery Hub is now a stable, high-performance engine for national discovery and monetization.
+-   **Firestore Fix**: Enabled `ignoreUndefinedProperties: true` in `src/firebase/server-client.ts`. This globally allows Firestore to ignore `undefined` values during writes, preventing crashes in Agentic flows like Smokey Chat.
+-   **Discovery Hub Refinement**:
+    -   Resolved widespread TypeScript errors in `foot-traffic-tab.tsx` and `crm-tab.tsx` by correcting hook ordering, adding missing imports (`useMemo`), and fixing function signatures.
+    -   Added "Dispensary Pages" tab with sorting and pagination.
+    -   Implemented "Invite to Claim" monetization flow with personalized emails.
+    -   Automated CRM lead sync for discovered entities.
+-   **Outcome**: The Discovery Hub is now a stable, high-performance engine for national discovery and monetization.
 
 ### Key Changes
 *   **FIX**: `src/firebase/server-client.ts`: Globally enabled `ignoreUndefinedProperties`.
@@ -1548,18 +1604,18 @@ fix_dispensary_signup_auth
 
 ### Summary
 Fixed a critical bug in the dispensary signup flow where using email/password authentication failed to create a server-side session cookie.
-- **Outcome**: Success. Dispensary signup flow now works correctly.
+-   **Outcome**: Success. Dispensary signup flow now works correctly.
 
 ## Session: Fix Chat UI & Episodic Thinking
-- **Goal**: Implement episodic thinking effects, typewriter streaming, and layout fixes for chat.
-- **Changes**:
-    - Modified `src/app/dashboard/ceo/components/puff-chat.tsx` to simulate "thinking steps" in Demo mode.
-    - Implemented auto-expanding textarea and reduced UI whitespace.
-    - Fixed typewriter effect trigger for async jobs and demo responses.
-- **Testing**:
-    - Updated `puff-chat.test.tsx` (mocked JSDOM methods).
-    - NOTE: Integration tests for demo API are currently skipped due to JSDOM async timing issues, but code logic is verified.
-- **Outcome**: UI logic implemented and unit tests updated (partial pass).
+-   **Goal**: Implement episodic thinking effects, typewriter streaming, and layout fixes for chat.
+-   **Changes**:
+    -   Modified `src/app/dashboard/ceo/components/puff-chat.tsx` to simulate "thinking steps" in Demo mode.
+    -   Implemented auto-expanding textarea and reduced UI whitespace.
+    -   Fixed typewriter effect trigger for async jobs and demo responses.
+-   **Testing**:
+    -   Updated `puff-chat.test.tsx` (mocked JSDOM methods).
+    -   NOTE: Integration tests for demo API are currently skipped due to JSDOM async timing issues, but code logic is verified.
+-   **Outcome**: UI logic implemented and unit tests updated (partial pass).
 
 ### Key Changes
 *   **FIX**: `src/app/onboarding/onboarding-client.tsx`: Added session cookie creation logic to `handleEmailSignUp` and `handleGoogleSignUp`.
@@ -1584,10 +1640,10 @@ Integrated Claude (Anthropic) as the dedicated model for tool calling in the Bak
 *   **MOD**: `src/server/agents/agent-runner.ts` - Added Claude routing branch for Super Users
 
 ### Features
-- Claude Sonnet 4 (`claude-sonnet-4-20250514`) for tool calling
-- Agentic loop with automatic tool iteration until completion
-- `shouldUseClaudeTools()` detection for action/integration patterns
-- Automatic fallback to Gemini if Claude unavailable
+-   Claude Sonnet 4 (`claude-sonnet-4-20250514`) for tool calling
+-   Agentic loop with automatic tool iteration until completion
+-   `shouldUseClaudeTools()` detection for action/integration patterns
+-   Automatic fallback to Gemini if Claude unavailable
 
 ### Tests
 *   `tests/ai/claude.test.ts` - 7 passing unit tests
@@ -1684,19 +1740,19 @@ Audited Customer Dashboard for production readiness. Replaced extensive hardcode
 
 ### Key Changes
 *   **NEW**: `src/app/dashboard/customer/actions.ts`:
-    - Created `getCustomerDashboardData()` function
-    - Fetches: profile, rewards, deals, favorites, active orders, cart
-    - Returns typed `CustomerDashboardData` interface
+    -   Created `getCustomerDashboardData()` function
+    -   Fetches: profile, rewards, deals, favorites, active orders, cart
+    -   Returns typed `CustomerDashboardData` interface
 *   **FIX**: `src/app/dashboard/customer/dashboard-client.tsx`:
-    - Added useEffect to fetch live data on mount
-    - Replaced "California Cannabis" → `liveData?.profile?.preferredDispensary`
-    - Replaced "Pickup" → `liveData?.profile?.fulfillmentType`
-    - Replaced "90210" → `liveData?.profile?.zipCode`
-    - Replaced "3 items" / "$48.50" → `liveData?.cart` values
+    -   Added useEffect to fetch live data on mount
+    -   Replaced "California Cannabis" → `liveData?.profile?.preferredDispensary`
+    -   Replaced "Pickup" → `liveData?.profile?.fulfillmentType`
+    -   Replaced "90210" → `liveData?.profile?.zipCode`
+    -   Replaced "3 items" / "$48.50" → `liveData?.cart` values
 *   **FIX**: `src/app/dashboard/customer/components/customer-kpi-grid.tsx`:
-    - Removed `// STUB` comment and hardcoded data
-    - Now accepts typed `data` prop
-    - Uses safe fallbacks when data unavailable
+    -   Removed `// STUB` comment and hardcoded data
+    -   Now accepts typed `data` prop
+    -   Uses safe fallbacks when data unavailable
 
 ### Tests Run
 *   `npm run check:types` (Passed ✅)
@@ -1718,18 +1774,16 @@ Audited Dispensary Dashboard for production readiness. Replaced extensive hardco
 
 ### Key Changes
 *   **NEW**: `src/app/dashboard/dispensary/actions.ts`:
-    - Created `getDispensaryDashboardData()` function
-    - Fetches real data: orders, revenue, compliance, alerts, operations
-    - Returns typed `DispensaryDashboardData` interface
+    -   Created `getDispensaryDashboardData()` function
+    -   Fetches real data: orders, revenue, compliance, alerts, operations
+    -   Returns typed `DispensaryDashboardData` interface
 *   **FIX**: `src/app/dashboard/dispensary/dashboard-client.tsx`:
-    - Added useEffect to fetch live data on mount
-    - Replaced "Downtown • Delivery Hub" → `liveData?.location?.name`
-    - Replaced "3 critical alerts" → `liveData?.operations?.criticalAlerts`
-    - Replaced "12 open orders" → `liveData?.operations?.openOrders`
-    - Replaced "18m fulfillment" → `liveData?.operations?.avgFulfillmentMinutes`
+    -   Added useEffect to fetch live data on mount
+    -   Replaced "Downtown • Delivery Hub" → `liveData?.location?.name`
+    -   Replaced "3 critical alerts" → `liveData?.operations?.criticalAlerts`
+    -   Replaced "12 open orders" → `liveData?.operations?.openOrders`
+    -   Replaced "18m fulfillment" → `liveData?.operations?.avgFulfillmentMinutes`
 *   **FIX**: `src/app/dashboard/dispensary/components/dispensary-kpi-grid.tsx`:
-    - Removed `// STUB` comment and hardcoded data
-    - Now accepts `data` prop with typed interface
     - Uses safe fallbacks when data unavailable
 
 ### Findings

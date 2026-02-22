@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,15 @@ import {
   AlertDialogFooter,
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, ChevronRight, AlertTriangle, CheckCircle, Copy } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Loader2, ChevronRight, AlertTriangle, CheckCircle, Copy, Zap, RefreshCw, Play } from 'lucide-react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {
@@ -29,10 +38,19 @@ import {
   runTypeCheck,
   getAiFix,
   commitFiles,
+  getDeploymentHistory,
+  triggerDeploy,
+  getBuildStatusLive,
+  listSchedulerJobs,
+  triggerSchedulerJob,
+  runSuperPower,
 } from '@/server/actions/dev-console-actions';
 import { cn } from '@/lib/utils';
 
-type Tab = 'code' | 'git' | 'typeck';
+// Lazy load PuffChat for AI Coder tab
+const PuffChat = dynamic(() => import('./puff-chat').then(m => m.PuffChat), { ssr: false });
+
+type Tab = 'code' | 'git' | 'typeck' | 'ai' | 'deployments' | 'superpowers';
 
 interface GitCommit {
   hash: string;
@@ -47,7 +65,7 @@ export function DevConsoleTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-2 border-b overflow-x-auto">
         <Button
           variant={activeTab === 'code' ? 'default' : 'ghost'}
           onClick={() => setActiveTab('code')}
@@ -69,11 +87,36 @@ export function DevConsoleTab() {
         >
           Type Check
         </Button>
+        <div className="border-l mx-1" />
+        <Button
+          variant={activeTab === 'ai' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('ai')}
+          className="rounded-b-none"
+        >
+          AI Coder
+        </Button>
+        <Button
+          variant={activeTab === 'deployments' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('deployments')}
+          className="rounded-b-none"
+        >
+          Deployments
+        </Button>
+        <Button
+          variant={activeTab === 'superpowers' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('superpowers')}
+          className="rounded-b-none"
+        >
+          Super Powers
+        </Button>
       </div>
 
       {activeTab === 'code' && <CodeFixerTab onTypeCheck={() => setActiveTab('typeck')} />}
       {activeTab === 'git' && <GitHistoryTab />}
       {activeTab === 'typeck' && <TypeCheckTab />}
+      {activeTab === 'ai' && <AiCoderTab />}
+      {activeTab === 'deployments' && <DeploymentsTab />}
+      {activeTab === 'superpowers' && <SuperPowersTab />}
     </div>
   );
 }
@@ -627,6 +670,424 @@ function TypeCheckTab() {
         {!output && !isLoading && (
           <div className="flex items-center justify-center h-[400px] text-muted-foreground">
             Click "Run Type Check" to start
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// =============================================================================
+// AI CODER TAB (7C)
+// =============================================================================
+
+function AiCoderTab() {
+  const [lastCommit, setLastCommit] = useState<GitCommit | null>(null);
+  const [currentBranch, setCurrentBranch] = useState('main');
+
+  useEffect(() => {
+    const loadContext = async () => {
+      try {
+        const commits = await getGitLog(1);
+        if (commits.length > 0) {
+          setLastCommit(commits[0]);
+        }
+      } catch (e) {
+        console.error('Failed to load context:', e);
+      }
+    };
+
+    loadContext();
+  }, []);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>AI Coder</CardTitle>
+        <CardDescription>Use natural language to write and fix code with Linus CTO</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Context Header */}
+        <div className="bg-muted/50 border rounded-lg p-3 space-y-2">
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <div className="text-xs text-muted-foreground">Branch</div>
+              <div className="font-mono font-bold">{currentBranch}</div>
+            </div>
+            {lastCommit && (
+              <div>
+                <div className="text-xs text-muted-foreground">Last Commit</div>
+                <div className="font-mono text-xs truncate">{lastCommit.message}</div>
+              </div>
+            )}
+          </div>
+          <div className="flex gap-1 flex-wrap">
+            <Button size="sm" variant="secondary" className="text-xs">
+              Fix TypeScript errors
+            </Button>
+            <Button size="sm" variant="secondary" className="text-xs">
+              Add error handling
+            </Button>
+            <Button size="sm" variant="secondary" className="text-xs">
+              Optimize performance
+            </Button>
+          </div>
+        </div>
+
+        {/* PuffChat Embedding */}
+        <div className="border rounded-lg h-[600px]">
+          <PuffChat
+            persona="linus"
+            isSuperUser={true}
+            isHired={true}
+            hideHeader={true}
+            className="h-full border-0 shadow-none"
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// =============================================================================
+// DEPLOYMENTS TAB (7D)
+// =============================================================================
+
+interface BuildRecord {
+  id: string;
+  status: 'SUCCESS' | 'FAILURE' | 'WORKING' | 'PENDING' | 'QUEUED' | 'CANCELLED';
+  commitHash: string;
+  commitMessage: string;
+  duration: number;
+  timestamp: number;
+}
+
+function DeploymentsTab() {
+  const [buildHistory, setBuildHistory] = useState<BuildRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [showDeployDialog, setShowDeployDialog] = useState(false);
+  const [deployError, setDeployError] = useState('');
+  const [refreshTimer, setRefreshTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // Load build history on mount and auto-refresh
+  useEffect(() => {
+    const loadHistory = async () => {
+      setIsLoading(true);
+      try {
+        const history = await getDeploymentHistory(10);
+        setBuildHistory(history);
+      } catch (e: any) {
+        console.error('Failed to load build history:', e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadHistory();
+
+    // Auto-refresh every 30 seconds
+    const timer = setInterval(loadHistory, 30000);
+    setRefreshTimer(timer);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleDeploy = async () => {
+    setIsDeploying(true);
+    setDeployError('');
+
+    try {
+      const result = await triggerDeploy();
+      if (result.success) {
+        setShowDeployDialog(false);
+        // Reload history
+        const history = await getDeploymentHistory(10);
+        setBuildHistory(history);
+      } else {
+        setDeployError(result.message);
+      }
+    } catch (e: any) {
+      setDeployError(e.message);
+    } finally {
+      setIsDeploying(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'SUCCESS':
+        return <span className="inline-flex items-center gap-1 text-green-600"><span className="h-2 w-2 rounded-full bg-green-600" />Success</span>;
+      case 'FAILURE':
+        return <span className="inline-flex items-center gap-1 text-red-600"><span className="h-2 w-2 rounded-full bg-red-600" />Failed</span>;
+      case 'WORKING':
+        return <span className="inline-flex items-center gap-1 text-yellow-600"><span className="h-2 w-2 rounded-full bg-yellow-600 animate-pulse" />Building</span>;
+      default:
+        return <span className="inline-flex items-center gap-1 text-gray-600"><span className="h-2 w-2 rounded-full bg-gray-600" />{status}</span>;
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Deployments</CardTitle>
+        <CardDescription>Monitor Firebase App Hosting deployments and trigger new builds</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Deploy Button */}
+        <div className="flex gap-2">
+          <AlertDialog open={showDeployDialog} onOpenChange={setShowDeployDialog}>
+            <Button
+              onClick={() => setShowDeployDialog(true)}
+              disabled={isDeploying}
+              className="gap-2"
+            >
+              {isDeploying ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Deploy to Production'}
+            </Button>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Deploy to Production?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will push your current changes to main and trigger a Firebase App Hosting build.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              {deployError && (
+                <div className="text-xs text-destructive bg-destructive/10 p-2 rounded">
+                  {deployError}
+                </div>
+              )}
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeploy} disabled={isDeploying}>
+                  {isDeploying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : ''}
+                  Deploy
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              setIsLoading(true);
+              const history = await getDeploymentHistory(10);
+              setBuildHistory(history);
+              setIsLoading(false);
+            }}
+            disabled={isLoading}
+          >
+            <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
+          </Button>
+        </div>
+
+        {/* Build History Table */}
+        <div className="border rounded-lg overflow-hidden">
+          <ScrollArea className="h-[500px]">
+            <Table>
+              <TableHeader className="sticky top-0 bg-muted/50">
+                <TableRow>
+                  <TableHead className="w-20">Status</TableHead>
+                  <TableHead className="w-24">Commit</TableHead>
+                  <TableHead>Message</TableHead>
+                  <TableHead className="w-24">Duration</TableHead>
+                  <TableHead className="w-32">Time</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8">
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                ) : buildHistory.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      No deployments found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  buildHistory.map((build) => (
+                    <TableRow key={build.id} className="hover:bg-muted/50">
+                      <TableCell className="font-mono text-sm">{getStatusBadge(build.status)}</TableCell>
+                      <TableCell className="font-mono text-xs font-bold">{build.commitHash}</TableCell>
+                      <TableCell className="text-sm truncate">{build.commitMessage}</TableCell>
+                      <TableCell className="text-sm">{build.duration}s</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {new Date(build.timestamp).toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// =============================================================================
+// SUPER POWERS TAB (7E)
+// =============================================================================
+
+function SuperPowersTab() {
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [output, setOutput] = useState('');
+  const [isRunning, setIsRunning] = useState(false);
+  const [runningPower, setRunningPower] = useState<string | null>(null);
+
+  const superPowers = [
+    { key: 'audit_indexes', label: 'Audit Indexes', icon: '📊' },
+    { key: 'fix_build', label: 'Fix Build', icon: '🔧' },
+    { key: 'test_security', label: 'Test Security', icon: '🔒' },
+    { key: 'audit_schema', label: 'Audit Schema', icon: '📋' },
+    { key: 'audit_costs', label: 'Audit Costs', icon: '💰' },
+    { key: 'seed_test_data', label: 'Seed Test Data', icon: '🌱' },
+    { key: 'setup_monitor', label: 'Setup Monitor', icon: '📈' },
+    { key: 'check_compliance', label: 'Check Compliance', icon: '✅' },
+    { key: 'generate_report', label: 'Generate Report', icon: '📄' },
+    { key: 'backup_firestore', label: 'Backup Firestore', icon: '💾' },
+    { key: 'health_check', label: 'Health Check', icon: '💊' },
+  ];
+
+  // Load scheduler jobs on mount
+  useEffect(() => {
+    const loadJobs = async () => {
+      setIsLoading(true);
+      try {
+        const schedulerJobs = await listSchedulerJobs();
+        setJobs(schedulerJobs);
+      } catch (e: any) {
+        console.error('Failed to load scheduler jobs:', e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadJobs();
+  }, []);
+
+  const handleRunPower = async (powerKey: string) => {
+    setIsRunning(true);
+    setRunningPower(powerKey);
+    setOutput('');
+
+    try {
+      const result = await runSuperPower(powerKey);
+      setOutput(result.output);
+    } catch (e: any) {
+      setOutput(`Error: ${e.message}`);
+    } finally {
+      setIsRunning(false);
+      setRunningPower(null);
+    }
+  };
+
+  const handleTriggerJob = async (jobName: string) => {
+    try {
+      const result = await triggerSchedulerJob(jobName);
+      setOutput(`Job triggered: ${jobName}\n\n${result.message}`);
+    } catch (e: any) {
+      setOutput(`Error: ${e.message}`);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Super Powers</CardTitle>
+        <CardDescription>Run developer utilities and manage Cloud Scheduler jobs</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Scheduler Jobs Section */}
+        <div>
+          <h3 className="font-semibold text-sm mb-3">Cloud Scheduler Jobs</h3>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+          ) : jobs.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-4">No scheduler jobs found</div>
+          ) : (
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead>Job Name</TableHead>
+                    <TableHead>Schedule</TableHead>
+                    <TableHead className="w-24">State</TableHead>
+                    <TableHead className="w-16">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {jobs.map((job) => (
+                    <TableRow key={job.name}>
+                      <TableCell className="font-mono text-xs">{job.name}</TableCell>
+                      <TableCell className="text-sm">{job.schedule}</TableCell>
+                      <TableCell>
+                        <span className={cn(
+                          'text-xs font-semibold',
+                          job.state === 'ENABLED' ? 'text-green-600' : 'text-gray-600'
+                        )}>
+                          {job.state}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleTriggerJob(job.name)}
+                          disabled={isRunning}
+                        >
+                          <Play className="h-3 w-3" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+
+        {/* Super Powers Section */}
+        <div>
+          <h3 className="font-semibold text-sm mb-3">Developer Super Powers</h3>
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            {superPowers.map((power) => (
+              <Button
+                key={power.key}
+                variant="outline"
+                size="sm"
+                onClick={() => handleRunPower(power.key)}
+                disabled={isRunning}
+                className="flex flex-col h-auto py-2"
+              >
+                <span className="text-lg">{power.icon}</span>
+                <span className="text-xs text-center">{power.label}</span>
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Output Terminal */}
+        {output && (
+          <div className="border rounded-lg bg-muted/50">
+            <div className="p-3 border-b bg-muted text-sm font-semibold">Output</div>
+            <pre className="p-4 overflow-auto max-h-[300px] text-xs font-mono whitespace-pre-wrap break-words">
+              {output}
+            </pre>
+          </div>
+        )}
+
+        {isRunning && !output && (
+          <div className="flex items-center justify-center py-8 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            Running {runningPower}...
           </div>
         )}
       </CardContent>
