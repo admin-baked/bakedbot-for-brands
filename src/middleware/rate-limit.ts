@@ -23,8 +23,8 @@ let rateLimit: Ratelimit | null = null;
 function initializeRateLimit() {
     if (rateLimit) return rateLimit;
 
-    const redisUrl = process.env.UPSTASH_REDIS_URL;
-    const redisToken = process.env.UPSTASH_REDIS_TOKEN;
+    const redisUrl = process.env.UPSTASH_REDIS_URL?.trim();
+    const redisToken = process.env.UPSTASH_REDIS_TOKEN?.trim();
 
     if (!redisUrl || !redisToken) {
         console.warn(
