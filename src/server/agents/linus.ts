@@ -1530,6 +1530,40 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: ['requestId']
         }
+    },
+    // ========================================================================
+    // SUPER POWERS: Developer Automation Scripts
+    // ========================================================================
+    {
+        name: 'execute_super_power',
+        description: 'Execute developer super power scripts (automated audits, generators, fixers). Use to run productivity scripts: audit-indexes, setup-secrets, audit-schema, seed-test, generate, fix-build, test-security, check-compliance, audit-consistency, setup-monitoring, audit-query-cost.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                script: {
+                    type: 'string',
+                    description: 'Super power script to execute',
+                    enum: [
+                        'audit-indexes',
+                        'setup-secrets',
+                        'audit-schema',
+                        'seed-test',
+                        'generate',
+                        'fix-build',
+                        'test-security',
+                        'check-compliance',
+                        'audit-consistency',
+                        'setup-monitoring',
+                        'audit-query-cost'
+                    ]
+                },
+                options: {
+                    type: 'string',
+                    description: 'CLI options to pass to the script (e.g., "--apply", "--deploy", "--orgId=org_thrive_syracuse", "--full")'
+                }
+            },
+            required: ['script']
+        }
     }
 ];
 
@@ -3153,6 +3187,110 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                 };
             } catch (e: any) {
                 return { success: false, error: e.message };
+            }
+        }
+
+        // ====================================================================
+        // DEVELOPER SUPER POWER SCRIPT EXECUTOR
+        // ====================================================================
+
+        case 'execute_super_power': {
+            const { script, options } = input as { script: string; options?: string };
+
+            // Validate script name - prevent arbitrary commands
+            const validScripts = [
+                'audit-indexes',
+                'setup-secrets',
+                'audit-schema',
+                'seed-test',
+                'generate',
+                'fix-build',
+                'test-security',
+                'check-compliance',
+                'audit-consistency',
+                'setup-monitoring',
+                'audit-query-cost'
+            ];
+
+            if (!validScripts.includes(script)) {
+                return {
+                    success: false,
+                    error: `Unknown super power script: ${script}`,
+                    availableScripts: validScripts
+                };
+            }
+
+            // Map script names to npm commands
+            const scriptMap: Record<string, string> = {
+                'audit-indexes': 'npm run audit:indexes',
+                'setup-secrets': 'npm run setup:secrets',
+                'audit-schema': 'npm run audit:schema',
+                'seed-test': 'npm run seed:test',
+                'generate': 'npm run generate:component',
+                'fix-build': 'npm run fix:build',
+                'test-security': 'npm run test:security',
+                'check-compliance': 'npm run check:compliance',
+                'audit-consistency': 'npm run audit:consistency',
+                'setup-monitoring': 'npm run setup:monitoring',
+                'audit-query-cost': 'npm run audit:costs'
+            };
+
+            let command = scriptMap[script];
+            if (options) {
+                command += ` ${options}`;
+            }
+
+            // SECURITY: Validate command safety
+            const cmdCheck = validateCommandSafety(command);
+            if (!cmdCheck.allowed) {
+                return {
+                    success: false,
+                    error: cmdCheck.reason,
+                    blocked: true
+                };
+            }
+
+            try {
+                const { stdout, stderr } = await execAsync(command, {
+                    cwd: PROJECT_ROOT,
+                    timeout: 600000, // 10 minutes for long-running audits
+                    maxBuffer: 10 * 1024 * 1024 // 10MB output buffer
+                });
+
+                // Extract key results for Slack reporting
+                let summary = '';
+                if (script === 'audit-indexes' && stdout.includes('Missing Indexes')) {
+                    const match = stdout.match(/Missing Indexes \((\d+) detected\)/);
+                    summary = match ? `${match[1]} missing indexes detected` : 'Audit complete';
+                } else if (script === 'fix-build' && stdout.includes('found')) {
+                    const match = stdout.match(/(\d+) errors? found/);
+                    summary = match ? `${match[1]} build errors to fix` : 'Build audit complete';
+                } else if (stdout.length > 0) {
+                    // Generic summary from first line
+                    summary = stdout.split('\n')[0].substring(0, 100);
+                }
+
+                return {
+                    success: true,
+                    script,
+                    options: options || '',
+                    command,
+                    summary,
+                    stdout: stdout.slice(-5000), // Last 5000 chars
+                    stderr: stderr ? stderr.slice(-2000) : undefined,
+                    timestamp: new Date().toISOString()
+                };
+            } catch (e: any) {
+                return {
+                    success: false,
+                    script,
+                    error: e.message,
+                    command,
+                    exitCode: e.code,
+                    stdout: e.stdout ? e.stdout.slice(-5000) : undefined,
+                    stderr: e.stderr ? e.stderr.slice(-2000) : undefined,
+                    timestamp: new Date().toISOString()
+                };
             }
         }
 
