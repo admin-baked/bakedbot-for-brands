@@ -70,8 +70,8 @@ async function checkOrgReferences(db, targetOrgId) {
     allOrgs.add(doc.id);
   });
 
-  // Check customers
-  let query = db.collection('customers');
+  // Check customers (excluding archived records)
+  let query = db.collection('customers').where('archived', '!=', true);
   if (targetOrgId) query = query.where('orgId', '==', targetOrgId);
 
   const customerSnapshot = await query.get();
@@ -105,8 +105,8 @@ async function checkPlaybookReferences(db, targetOrgId) {
     validPlaybookIds.add(doc.id);
   });
 
-  // Check assignments
-  let query = db.collection('playbook_assignments');
+  // Check assignments (excluding archived records)
+  let query = db.collection('playbook_assignments').where('archived', '!=', true);
   if (targetOrgId) query = query.where('orgId', '==', targetOrgId);
 
   const assignmentSnapshot = await query.get();
@@ -133,7 +133,7 @@ async function checkPlaybookReferences(db, targetOrgId) {
 async function checkDuplicateEmails(db, targetOrgId) {
   const violations = [];
 
-  let query = db.collection('customers');
+  let query = db.collection('customers').where('archived', '!=', true);
   if (targetOrgId) query = query.where('orgId', '==', targetOrgId);
 
   const snapshot = await query.get();
@@ -168,7 +168,7 @@ async function checkTierPoints(db, targetOrgId) {
     platinum: { min: 2000, max: Infinity }
   };
 
-  let query = db.collection('customers');
+  let query = db.collection('customers').where('archived', '!=', true);
   if (targetOrgId) query = query.where('orgId', '==', targetOrgId);
 
   const snapshot = await query.get();
@@ -196,7 +196,7 @@ async function checkTierPoints(db, targetOrgId) {
 async function checkPlaybookStatus(db, targetOrgId) {
   const violations = [];
 
-  let query = db.collection('playbook_assignments');
+  let query = db.collection('playbook_assignments').where('archived', '!=', true);
   if (targetOrgId) query = query.where('orgId', '==', targetOrgId);
 
   const snapshot = await query.get();
