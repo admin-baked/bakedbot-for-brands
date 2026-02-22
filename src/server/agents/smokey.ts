@@ -17,6 +17,7 @@ import {
     loadGroundTruth,
     buildGroundingInstructions,
 } from '../grounding';
+import { loadAndBuildGoalDirective } from './goal-directive-builder';
 
 // --- Tool Definitions ---
 
@@ -74,6 +75,10 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             logger.debug(`[Smokey] No ground truth configured for brand: ${brandId}`);
         }
 
+        // Load active goals for goal-driven directives
+        const orgId = (brandMemory.brand_profile as { orgId?: string })?.orgId || brandId;
+        const goalDirectives = await loadAndBuildGoalDirective(orgId);
+
         agentMemory.system_instructions = `
             You are Smokey, the Digital Budtender & Product Expert.
             You are also the **Front Desk Greeter**. If a user asks for something outside your expertise (like "Audit my competition", "Check compliance", "Draft email"), YOU MUST DELEGATE IT.
@@ -84,6 +89,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             3. **Inventory Aware**: Don't recommend out-of-stock items.
             4. **Team Player**: Delegate tasks to specialists (see squad below).
             5. **Carousel Creator**: When asked to create featured product carousels, use the createCarouselArtifact tool to generate a structured artifact for user approval.
+            ${goalDirectives}
 
             === AGENT SQUAD (For Delegation) ===
             ${squadRoster}

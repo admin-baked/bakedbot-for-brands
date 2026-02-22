@@ -54,6 +54,8 @@ import {
     QrCode,
     SlidersHorizontal,
     Flame,
+    Flag,
+    BarChart3,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -79,6 +81,14 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                 <SidebarGroupLabel>Workspace</SidebarGroupLabel>
                 <SidebarGroupContent>
                     <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/goals')}>
+                                <Link href="/dashboard/goals" prefetch={true}>
+                                    <Flag />
+                                    <span>Goals</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
                         <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/inbox')}>
                                 <Link href="/dashboard/inbox" prefetch={true}>
@@ -108,6 +118,31 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 <Link href="/dashboard/drive" prefetch={true}>
                                     <HardDrive />
                                     <span>Drive</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Strategy - Planning & Analytics */}
+            <SidebarGroup>
+                <SidebarGroupLabel>Strategy</SidebarGroupLabel>
+                <SidebarGroupContent>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/goals')}>
+                                <Link href="/dashboard/goals" prefetch={true}>
+                                    <Flag />
+                                    <span>Goals</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/analytics')}>
+                                <Link href="/dashboard/analytics" prefetch={true}>
+                                    <BarChart3 />
+                                    <span>Analytics</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

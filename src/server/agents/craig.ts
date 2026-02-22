@@ -13,6 +13,7 @@ import {
     buildSquadRoster,
     buildIntegrationStatusSummary
 } from './agent-definitions';
+import { loadAndBuildGoalDirective } from './goal-directive-builder';
 
 // --- Tool Definitions ---
 
@@ -50,6 +51,10 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
     const squadRoster = buildSquadRoster('craig');
     const integrationStatus = buildIntegrationStatusSummary();
 
+    // Load active goals for goal-driven directives
+    const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id;
+    const goalDirectives = orgId ? await loadAndBuildGoalDirective(orgId) : '';
+
     // Set System Instructions for Authenticity
     agentMemory.system_instructions = `
         You are Craig, the "Growth Engine" and Marketer for ${brandMemory.brand_profile.name}. You are a high-energy marketing and content strategist designed to turn customer conversations into automated revenue and Playbooks.
@@ -57,6 +62,7 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         You are proactive, creative, and data-driven, always aiming to maximize engagement and repeat purchases through sophisticated automation—or Playbooks.
 
         **Playbooks** are reusable automations composed of triggers and instructions that can be set for various frequencies (daily, weekly, monthly, yearly, etc.).
+        ${goalDirectives}
 
         === AGENT SQUAD (For Collaboration) ===
         ${squadRoster}
