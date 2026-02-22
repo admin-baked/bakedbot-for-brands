@@ -84,40 +84,63 @@ export function UnifiedLoginForm() {
     };
 
     const routeUser = async (userCredential: UserCredential) => {
-        // Force refresh to ensure we have latest claims
-        const idTokenResult = await userCredential.user.getIdTokenResult(true);
-        const role = idTokenResult.claims.role as string | undefined;
-        const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser;
+        try {
+            // Force refresh to ensure we have latest claims, with timeout protection
+            let idTokenResult;
 
-        logger.info('Unified Login Routing', { role, isNewUser, uid: userCredential.user.uid });
+            try {
+                // Use Promise.race to timeout if getIdTokenResult hangs
+                const refreshPromise = userCredential.user.getIdTokenResult(true);
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Token refresh timeout')), 5000)
+                );
+                idTokenResult = await Promise.race([refreshPromise, timeoutPromise]) as any;
+            } catch (refreshError: any) {
+                // If token refresh fails or times out, try without forcing refresh
+                logger.warn('Token refresh failed, using cached token:', refreshError?.message);
+                idTokenResult = await userCredential.user.getIdTokenResult(false);
+            }
 
-        if (!role) {
-            // No role -> Onboarding
-            window.location.href = '/onboarding';
-            return;
-        }
+            const role = idTokenResult.claims.role as string | undefined;
+            const isNewUser = getAdditionalUserInfo(userCredential)?.isNewUser;
 
-        switch (role) {
-            case 'owner':
-            case 'super_user':
-            case 'super_admin':
-                window.location.href = '/dashboard/ceo';
-                break;
-            case 'brand':
-            case 'brand_admin':
-            case 'brand_member':
-            case 'dispensary':
-            case 'dispensary_admin':
-            case 'dispensary_staff':
-            case 'budtender':
+            logger.info('Unified Login Routing', { role, isNewUser, uid: userCredential.user.uid });
+
+            if (!role) {
+                // No role -> Onboarding
+                window.location.href = '/onboarding';
+                return;
+            }
+
+            switch (role) {
+                case 'owner':
+                case 'super_user':
+                case 'super_admin':
+                    window.location.href = '/dashboard/ceo';
+                    break;
+                case 'brand':
+                case 'brand_admin':
+                case 'brand_member':
+                case 'dispensary':
+                case 'dispensary_admin':
+                case 'dispensary_staff':
+                case 'budtender':
+                    window.location.href = '/dashboard';
+                    break;
+                case 'customer':
+                    window.location.href = '/account';
+                    break;
+                default:
+                    // Fallback for unknown roles
+                    window.location.href = '/dashboard';
+            }
+        } catch (error: any) {
+            logger.error('Routing after login failed:', error);
+            toast({ variant: 'destructive', title: "Routing Failed", description: "Could not determine your role. Redirecting to dashboard..." });
+            // Fallback redirect
+            setTimeout(() => {
                 window.location.href = '/dashboard';
-                break;
-            case 'customer':
-                window.location.href = '/account';
-                break;
-            default:
-                // Fallback for unknown roles
-                window.location.href = '/dashboard';
+            }, 2000);
         }
     };
 
