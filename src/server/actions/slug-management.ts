@@ -10,22 +10,37 @@ import { createSlug } from '@/lib/utils/slug';
  */
 export async function checkSlugAvailability(slug: string): Promise<{ available: boolean; suggestion?: string }> {
     const { firestore } = await createServerClient();
-    
+    const user = await requireUser(['brand', 'super_user']).catch(() => null);
+
     // Normalize the slug
     const normalizedSlug = createSlug(slug);
-    
+
     if (!normalizedSlug || normalizedSlug.length < 3) {
         return { available: false, suggestion: undefined };
     }
-    
+
     // Check if slug exists in brands collection
     const brandDoc = await firestore.collection('brands').doc(normalizedSlug).get();
-    
+
     if (!brandDoc.exists) {
         return { available: true };
     }
-    
-    // If taken, suggest alternatives
+
+    // If doc exists, check if current user owns it
+    // (allows re-reserving their own slug)
+    const brandData = brandDoc.data();
+    if (user && brandData?.originalBrandId) {
+        // Get current user's org
+        const userDoc = await firestore.collection('users').doc(user.uid).get();
+        const userOrgId = userDoc.data()?.orgId || user.uid;
+
+        // If user owns this slug, it's available for them
+        if (brandData.originalBrandId === userOrgId) {
+            return { available: true };
+        }
+    }
+
+    // If taken by someone else, suggest alternatives
     const suggestion = `${normalizedSlug}-${Math.floor(Math.random() * 100)}`;
     return { available: false, suggestion };
 }
@@ -43,10 +58,15 @@ export async function reserveSlug(slug: string, brandId: string): Promise<{ succ
         return { success: false, error: 'Slug must be at least 3 characters' };
     }
 
-    // Check availability first
-    const { available } = await checkSlugAvailability(normalizedSlug);
-
-    if (!available) {
+    // Check if user already owns this slug
+    const existingBrand = await firestore.collection('brands').doc(normalizedSlug).get();
+    if (existingBrand.exists) {
+        const existingData = existingBrand.data();
+        // If user owns it, this is idempotent - just return success
+        if (existingData?.originalBrandId === brandId) {
+            return { success: true };
+        }
+        // If someone else owns it, reject
         return { success: false, error: 'This URL is already taken. Try a different one.' };
     }
 
