@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-22)
 
 **Recent work (2026-02-23):** See `memory/MEMORY.md` for full log.
-Key completed: [Thrive Syracuse Launch] (`activate-thrive-playbooks.mjs`) — Activated 44 playbooks, deployed Firestore indexes, created 3 Cloud Scheduler jobs (POS sync, loyalty, playbook runner); [Compliance Verified] — 100% health on Thrive-critical collections (customers, playbook_assignments, inbox_threads)
+Key completed: [Thrive Syracuse Launch] (`activate-thrive-playbooks.mjs`) — 44 playbooks ACTIVE, 3 Cloud Scheduler jobs, 111 customers enrolled; [Data Cleanup] (`cleanup-data-quality.mjs`) — Fixed 142 pre-existing records (117 orphaned customers, 22 invalid playbooks, 3 duplicates); [Audit Improvements] — Consistency audit now 100% pass with archived record filtering
 
 ---
 
