@@ -2,12 +2,12 @@
  * SP8: Compliance Pre-Publish Hook
  *
  * Server-side content gating function for campaigns, posts, and creative assets
- * Reuses InlineComplianceValidator from validation-hooks.ts for cannabis compliance
+ * Uses Claude Haiku for semantic compliance checking
  *
  * Designed to be imported directly into campaign/content publish server actions
  */
 
-import { callClaude } from '@/ai/claude';
+import Anthropic from '@anthropic-ai/sdk';
 
 export interface ComplianceCheckResult {
   allowed: boolean;
@@ -32,19 +32,36 @@ export async function prePublish(
   }
 
   try {
+    const apiKey = process.env.CLAUDE_API_KEY;
+    if (!apiKey) {
+      // Fail safe: if no API key, block content
+      return {
+        allowed: false,
+        reasons: ['Compliance service unavailable'],
+        severity: 'critical'
+      };
+    }
+
+    const client = new Anthropic({ apiKey });
+
     // Use Claude Haiku for semantic compliance checking
     // Focuses on: medical claims, age-gating violations, minors protection
-    const response = await callClaude({
-      systemPrompt: `You are a cannabis compliance validator. Check the provided content for violations:
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      system: `You are a cannabis compliance validator. Check the provided content for violations:
 1. Medical Claims: Any health benefits, curing diseases, treating conditions (BLOCK)
 2. Minors Protection: Age verification language, "kids safe", etc. (BLOCK)
 3. Age-Gating: Failure to prompt age check or disclaimer (WARN)
 4. Over-Marketing: Excessive superlatives or claims (INFO)
 
 Respond with JSON: { "compliant": boolean, "violations": string[] }`,
-      userMessage: `Check this content for compliance:\n\n${content}`,
-      model: 'claude-haiku-4-5-20251001',
-      maxTokens: 200
+      messages: [
+        {
+          role: 'user',
+          content: `Check this content for compliance:\n\n${content}`
+        }
+      ]
     });
 
     // Parse response
