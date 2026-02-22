@@ -20,8 +20,8 @@ let redis: Redis | null = null;
 function initializeRedis() {
     if (redis) return redis;
 
-    const redisUrl = process.env.UPSTASH_REDIS_URL;
-    const redisToken = process.env.UPSTASH_REDIS_TOKEN;
+    const redisUrl = process.env.UPSTASH_REDIS_URL?.trim();
+    const redisToken = process.env.UPSTASH_REDIS_TOKEN?.trim();
 
     if (!redisUrl || !redisToken) {
         logger.warn('[Cache] UPSTASH_REDIS_URL or UPSTASH_REDIS_TOKEN not configured — caching disabled');
