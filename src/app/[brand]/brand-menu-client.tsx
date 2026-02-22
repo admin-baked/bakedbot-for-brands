@@ -591,6 +591,13 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
             title="Featured Brands"
             brands={featuredBrands}
             primaryColor={primaryColor}
+            onBrandClick={(brandId) => {
+              // Find brand name from featured brands
+              const selectedBrand = featuredBrands.find(b => b.id === brandId);
+              if (selectedBrand) {
+                router.push(`/${brandSlug}/brands/${encodeURIComponent(selectedBrand.name)}`);
+              }
+            }}
           />
 
           {/* Category Grid - Dynamic from actual products */}
