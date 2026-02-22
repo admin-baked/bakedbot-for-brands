@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-02-22T07:37:41.299Z",
+  "target": "Thrive Syracuse (root products collection)",
+  "mode": "execute",
+  "before": 1386,
+  "posProducts": 1306,
+  "quarantinedProducts": 0,
+  "deleted": 80,
+  "after": 1306,
+  "expected": 331,
+  "success": false,
+  "errors": []
+}

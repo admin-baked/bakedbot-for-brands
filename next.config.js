@@ -71,6 +71,9 @@ const nextConfig = {
     ],
   },
 
+  // Turbopack configuration (silence Next.js 16 default Turbopack warning when webpack config is present)
+  turbopack: {},
+
   // Webpack configuration for aggressive memory optimization (when not using Turbopack)
   webpack: (config, { isServer }) => {
     // Aggressive code splitting to reduce chunk sizes and memory usage during compilation
