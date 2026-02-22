@@ -47,11 +47,11 @@ env:
     availability:
       - RUNTIME
   - variable: MAILJET_API_KEY
-    secret: MAILJET_API_KEY
+    secret: MAILJET_API_KEY@1
     availability:
       - RUNTIME
   - variable: MAILJET_SECRET_KEY
-    secret: MAILJET_SECRET_KEY
+    secret: MAILJET_SECRET_KEY@1
     availability:
       - RUNTIME
   # Security
@@ -108,7 +108,7 @@ env:
       - RUNTIME
   # AI/Tools
   - variable: CLAUDE_API_KEY
-    secret: CLAUDE_API_KEY
+    secret: CLAUDE_API_KEY@1
     availability:
       - RUNTIME
   # Linus CTO Agent - Service Account for autonomous cloud operations
@@ -123,7 +123,7 @@ env:
     availability:
       - RUNTIME
   - variable: FAL_API_KEY
-    secret: FAL_API_KEY
+    secret: FAL_API_KEY@1
     availability:
       - RUNTIME
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
@@ -136,16 +136,16 @@ env:
     availability:
       - RUNTIME
   - variable: OPENAI_VIDEO_API_KEY
-    secret: OPENAI_VIDEO_API_KEY
+    secret: OPENAI_VIDEO_API_KEY@1
     availability:
       - RUNTIME
   # Google OAuth
   - variable: GOOGLE_CLIENT_ID
-    secret: GOOGLE_CLIENT_ID
+    secret: GOOGLE_CLIENT_ID@1
     availability:
       - RUNTIME
   - variable: GOOGLE_CLIENT_SECRET
-    secret: GOOGLE_CLIENT_SECRET
+    secret: GOOGLE_CLIENT_SECRET@1
     availability:
       - RUNTIME
   # SMS
@@ -291,21 +291,21 @@ env:
     availability:
       - RUNTIME
   - variable: FIRECRAWL_API_KEY
-    secret: FIRECRAWL_API_KEY
+    secret: FIRECRAWL_API_KEY@1
     availability:
       - RUNTIME
   # RTRVR - Browser Automation
   - variable: RTRVR_API_KEY
-    secret: RTRVR_API_KEY
+    secret: RTRVR_API_KEY@1
     availability:
       - RUNTIME
   # OpenClaw - WhatsApp Gateway
   - variable: OPENCLAW_API_URL
-    secret: OPENCLAW_API_URL
+    secret: OPENCLAW_API_URL@1
     availability:
       - RUNTIME
   - variable: OPENCLAW_API_KEY
-    secret: OPENCLAW_API_KEY
+    secret: OPENCLAW_API_KEY@1
     availability:
       - RUNTIME
   - variable: LETTA_API_KEY
@@ -314,24 +314,24 @@ env:
       - RUNTIME
   # Alleaves POS (Thrive Syracuse) - JWT Authentication
   - variable: ALLEAVES_USERNAME
-    secret: ALLEAVES_USERNAME
+    secret: ALLEAVES_USERNAME@1
     availability:
       - RUNTIME
   - variable: ALLEAVES_PASSWORD
-    secret: ALLEAVES_PASSWORD
+    secret: ALLEAVES_PASSWORD@1
     availability:
       - RUNTIME
   - variable: ALLEAVES_PIN
-    secret: ALLEAVES_PIN
+    secret: ALLEAVES_PIN@1
     availability:
       - RUNTIME
   - variable: ALLEAVES_LOCATION_ID
-    secret: ALLEAVES_LOCATION_ID
+    secret: ALLEAVES_LOCATION_ID@1
     availability:
       - RUNTIME
   # Slack - Incoming webhook for agent notifications and heartbeat alerts
   - variable: SLACK_WEBHOOK_URL
-    secret: SLACK_WEBHOOK_URL
+    secret: SLACK_WEBHOOK_URL@1
     availability:
       - RUNTIME
   # Ecommerce Webhooks (2026-02-17) — Shopify, WooCommerce, custom platform webhook signing
@@ -339,15 +339,15 @@ env:
   # Setup: firebase apphosting:secrets:grantaccess WOOCOMMERCE_WEBHOOK_SECRET --backend=bakedbot-prod
   # Setup: firebase apphosting:secrets:grantaccess ECOMMERCE_WEBHOOK_SECRET --backend=bakedbot-prod
   - variable: SHOPIFY_WEBHOOK_SECRET
-    secret: SHOPIFY_WEBHOOK_SECRET
+    secret: SHOPIFY_WEBHOOK_SECRET@1
     availability:
       - RUNTIME
   - variable: WOOCOMMERCE_WEBHOOK_SECRET
-    secret: WOOCOMMERCE_WEBHOOK_SECRET
+    secret: WOOCOMMERCE_WEBHOOK_SECRET@1
     availability:
       - RUNTIME
   - variable: ECOMMERCE_WEBHOOK_SECRET
-    secret: ECOMMERCE_WEBHOOK_SECRET
+    secret: ECOMMERCE_WEBHOOK_SECRET@1
     availability:
       - RUNTIME
 
