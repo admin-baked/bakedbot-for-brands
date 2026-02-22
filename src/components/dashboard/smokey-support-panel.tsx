@@ -18,7 +18,6 @@ import { MessageSquare, HelpCircle, Users, Sparkles, Loader2 } from 'lucide-reac
 import { useUserRole } from '@/hooks/use-user-role';
 import { useUser } from '@/hooks/use-user';
 import { logger } from '@/lib/logger';
-import HelpDialog from './help-dialog';
 import MessageSupportDialog from './message-support-dialog';
 import { getSetupHealth } from '@/server/actions/setup-health';
 
@@ -31,10 +30,13 @@ interface QuickLink {
   badge?: string;
 }
 
-export function SmokeySupportPanel() {
+interface SmokeySupportPanelProps {
+  onHelpClick?: () => void;
+}
+
+export function SmokeySupportPanel({ onHelpClick }: SmokeySupportPanelProps) {
   const { role } = useUserRole();
   const { user } = useUser();
-  const [helpOpen, setHelpOpen] = useState(false);
   const [messagingOpen, setMessagingOpen] = useState(false);
   const [setupHealth, setSetupHealth] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -153,7 +155,7 @@ export function SmokeySupportPanel() {
             <Button
               variant="default"
               className="justify-start h-auto py-2 px-3"
-              onClick={() => setHelpOpen(true)}
+              onClick={onHelpClick}
             >
               <HelpCircle className="h-4 w-4 mr-2 flex-shrink-0" />
               <div className="text-left">
@@ -229,8 +231,7 @@ export function SmokeySupportPanel() {
         </CardContent>
       </Card>
 
-      {/* Dialogs */}
-      <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
+      {/* Message Support Dialog */}
       <MessageSupportDialog open={messagingOpen} onOpenChange={setMessagingOpen} />
     </>
   );
