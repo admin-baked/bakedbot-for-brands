@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-22)
 
 **Recent work (2026-02-23):** See `memory/MEMORY.md` for full log.
-Key completed: [Phase 1 Comprehensive Unit Tests] (`473a6ccc`) — 78 tests across slug-management (ownership fix 916a5cd3, idempotency), cron-auth (500/401 errors, fail-open), rate-limit (Redis config, Edge Runtime fix)
+Key completed: [Comprehensive Unit & Integration Tests] (6 phases, 199+ tests) — Phase 1 (`473a6ccc`, `170c4de2`), Phase 2 (`6a5a933f`), Phase 3 (`a05cee4f`), Phase 4 (`b60b0f65`), Phase 7 (`39b7cdf8`), Phase 8 (`a53ca82c`)
 
 ---
 
