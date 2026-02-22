@@ -1,11 +1,21 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+
+const mockPush = jest.fn();
+let mockSearchParams = new URLSearchParams();
 
 // Mock all heavy dependencies
 jest.mock('next/image', () => ({
     __esModule: true,
     default: (props: any) => <img {...props} />,
+}));
+
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({
+        push: mockPush,
+    }),
+    useSearchParams: () => mockSearchParams,
 }));
 
 jest.mock('lucide-react', () => ({
@@ -22,6 +32,7 @@ jest.mock('lucide-react', () => ({
     Heart: () => <div data-testid="heart-icon">Heart</div>,
     Package: () => <div data-testid="package-icon">Package</div>,
     ArrowRight: () => <div data-testid="arrow-right">Arrow</div>,
+    X: () => <div data-testid="x-icon">X</div>,
 }));
 
 jest.mock('@/hooks/use-store', () => ({
@@ -31,6 +42,8 @@ jest.mock('@/hooks/use-store', () => ({
         removeFromCart: jest.fn(),
         clearCart: jest.fn(),
         getCartItemQuantity: jest.fn(() => 0),
+        updateQuantity: jest.fn(),
+        setSelectedRetailerId: jest.fn(),
     }),
 }));
 
@@ -79,7 +92,7 @@ jest.mock('@/components/demo/brand-hero', () => ({
 }));
 
 jest.mock('@/components/demo/category-grid', () => ({
-    CategoryGrid: ({ categories, title, primaryColor }: any) => (
+    CategoryGrid: ({ categories, title, onCategoryClick }: any) => (
         <div data-testid="category-grid">
             <h2>{title}</h2>
             <div data-testid="category-count">{categories?.length || 0} categories</div>
@@ -87,6 +100,12 @@ jest.mock('@/components/demo/category-grid', () => ({
                 <div key={cat.id} data-testid={`category-${cat.id}`}>
                     <span data-testid={`category-name-${cat.id}`}>{cat.name}</span>
                     <span data-testid={`category-count-${cat.id}`}>{cat.productCount} items</span>
+                    <button
+                        data-testid={`category-button-${cat.id}`}
+                        onClick={() => onCategoryClick?.(cat.id)}
+                    >
+                        Select
+                    </button>
                 </div>
             ))}
         </div>
@@ -131,6 +150,10 @@ jest.mock('@/components/checkout/shipping-checkout-flow', () => ({
     ShippingCheckoutFlow: () => <div data-testid="shipping-checkout">Shipping</div>,
 }));
 
+jest.mock('@/components/checkout/checkout-flow', () => ({
+    CheckoutFlow: () => <div data-testid="checkout-flow">Checkout</div>,
+}));
+
 jest.mock('@/components/chatbot', () => ({
     __esModule: true,
     default: () => <div data-testid="chatbot">Chatbot</div>,
@@ -138,6 +161,12 @@ jest.mock('@/components/chatbot', () => ({
 
 // Import after all mocks
 import { BrandMenuClient } from '../brand-menu-client';
+
+beforeEach(() => {
+    mockSearchParams = new URLSearchParams();
+    mockPush.mockClear();
+    window.HTMLElement.prototype.scrollIntoView = jest.fn();
+});
 
 describe('BrandMenuClient - Dynamic Categories', () => {
     const ecstaticEdiblesBrand = {
@@ -422,5 +451,77 @@ describe('BrandMenuClient - Empty States', () => {
         );
 
         expect(screen.getByTestId('hero-brand-name')).toHaveTextContent('Empty Brand');
+    });
+});
+
+describe('BrandMenuClient - URL Filters (Phase 5A/5B)', () => {
+    const brand = {
+        id: 'brand_test',
+        name: 'Filter Brand',
+        purchaseModel: 'local_pickup' as const,
+        theme: { primaryColor: '#000000' },
+    };
+
+    const products = [
+        {
+            id: 'prod-pre-roll',
+            name: 'Pre Roll Pack',
+            price: 35,
+            category: 'Pre-Rolls',
+            effects: ['Relaxed'],
+            imageUrl: '',
+            imageHint: '',
+            description: 'Pre-roll',
+            brandId: 'brand_test',
+            likes: 1,
+        },
+        {
+            id: 'prod-edible',
+            name: 'Sleep Gummies',
+            price: 25,
+            category: 'Edibles',
+            effects: ['Sleepy'],
+            imageUrl: '',
+            imageHint: '',
+            description: 'Edible',
+            brandId: 'brand_test',
+            likes: 1,
+        },
+    ];
+
+    it('applies category and effect from URL params on initial render', () => {
+        mockSearchParams = new URLSearchParams('category=Pre-Rolls&effect=Relaxed');
+
+        render(
+            <BrandMenuClient
+                brand={brand as any}
+                products={products as any}
+                retailers={[]}
+                brandSlug="filter-brand"
+                bundles={[]}
+            />
+        );
+
+        expect(screen.getByText('1 products available')).toBeInTheDocument();
+    });
+
+    it('maps category grid id back to category name and syncs URL', () => {
+        render(
+            <BrandMenuClient
+                brand={brand as any}
+                products={products as any}
+                retailers={[]}
+                brandSlug="filter-brand"
+                bundles={[]}
+            />
+        );
+
+        fireEvent.click(screen.getByTestId('category-button-pre-rolls'));
+
+        expect(mockPush).toHaveBeenCalledWith(
+            expect.stringContaining('category=Pre-Rolls'),
+            { scroll: false }
+        );
+        expect(screen.getByText('1 products available')).toBeInTheDocument();
     });
 });
