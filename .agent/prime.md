@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-22)
 
 **Recent work (2026-02-22):** See `memory/MEMORY.md` for full log.
-Key completed: [Super Powers + Linus Integration] (`3d78ee3c`) — execute_super_power tool deployed; Linus can now autonomously run all 11 developer productivity scripts via Slack; Slack usage examples added to CLAUDE.md.
+Key completed: [Goal-Driven Directive System Phase 1-4] (`6f33a421`) — types, CRUD, AI suggestions (Gemini), agent integration, daily cron tracking
 
 ---
 
