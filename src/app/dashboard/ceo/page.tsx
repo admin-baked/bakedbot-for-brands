@@ -36,6 +36,7 @@ const AgentSandbox = nextDynamic(() => import("./components/agent-sandbox").then
 const EmailTesterTab = nextDynamic(() => import("./components/email-tester-tab"), { loading: TabLoader });
 const BoardroomTab = nextDynamic(() => import("./components/boardroom-tab"), { loading: TabLoader, ssr: false });
 const CodeEvalsTab = nextDynamic(() => import("./components/code-evals-tab"), { loading: TabLoader, ssr: false });
+const DevConsoleTab = nextDynamic(() => import("./components/dev-console-tab").then(mod => mod.DevConsoleTab), { loading: TabLoader, ssr: false });
 const TalkTracksTab = nextDynamic(() => import("./components/talk-tracks-tab"), { loading: TabLoader, ssr: false });
 const BakedBotBrowserTab = nextDynamic(() => import("./components/bakedbot-browser-tab"), { loading: TabLoader, ssr: false });
 const PilotSetupTab = nextDynamic(() => import("./components/pilot-setup-tab"), { loading: TabLoader, ssr: false });
@@ -194,6 +195,7 @@ function CeoDashboardContent() {
             case 'boardroom': return <BoardroomTab />;
             case 'code-evals': return <CodeEvalsTab />;
             case 'talk-tracks': return <TalkTracksTab />;
+            case 'dev-console': return <DevConsoleTab />;
             case 'ground-truth': return <GroundTruthTab />;
             case 'leads': return <LeadsTab />;
             case 'whatsapp': return <WhatsAppTab />;
@@ -218,6 +220,9 @@ function CeoDashboardContent() {
                     </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto">
+                    <Link href="?tab=dev-console">
+                        <Button variant="ghost" size="sm" className="w-full sm:w-auto">Dev Console</Button>
+                    </Link>
                     <Link href="?tab=health">
                         <Button variant="ghost" size="sm" className="w-full sm:w-auto">System Health</Button>
                     </Link>
