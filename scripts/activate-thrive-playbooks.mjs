@@ -128,7 +128,7 @@ async function activateThrivePlaybooksAsync() {
 }
 
 // Run the function
-activateThrivPlaybooksAsync().catch(err => {
+activateThrivePlaybooksAsync().catch(err => {
   console.error('Uncaught error:', err);
   process.exit(1);
 });
