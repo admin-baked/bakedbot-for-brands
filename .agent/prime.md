@@ -76,6 +76,36 @@ Only after Stages 1-4 are complete:
 
 ---
 
+## 🦸 Developer Super Powers (11 Ready-to-Use Automation Scripts)
+
+**Complete suite deployed 2026-02-22** — Use these for rapid development, testing, compliance, and observability.
+
+### When to Use Each Super Power:
+
+| Super Power | When to Use | Command | Output |
+|---|---|---|---|
+| **SP1: Index Auditor** | Check Firestore composite index status | `npm run audit:indexes` | Reports 81 existing indexes by collection |
+| **SP2: Secrets Provisioner** | Provision GCP secrets for Firebase App Hosting | `npm run setup:secrets --deploy` | Creates secrets from `.env.local` |
+| **SP3: Schema Validator** | Validate Firestore data types across collections | `npm run audit:schema --orgId=org_thrive_syracuse` | % valid docs per collection + field mismatches |
+| **SP4: Test Data Seeder** | Quickly seed test org with realistic data | `npm run seed:test` | 10 customers + 5 playbooks + 3 campaigns |
+| **SP5: Code Scaffolder** | Generate boilerplate for components/routes/actions | `npm run generate:component MyWidget` | React component + test file with stubs |
+| **SP6: Build Error Fixer** | Auto-fix common TypeScript errors | `npm run fix:build --apply` | Fixes import paths, console→logger calls |
+| **SP7: Security Tester** | Run role-based access control scenarios | `npm run test:security` | 12 security test results (PASS/FAIL) |
+| **SP8: Compliance Gater** | Check content for medical claims, minors protection | `npm run check:compliance --text "..."` | Compliant: yes/no + specific violations |
+| **SP9: Consistency Checker** | Validate org relationships and data integrity | `npm run audit:consistency --orgId=...` | 8 consistency rules + sample broken IDs |
+| **SP10: Monitoring Setup** | Configure Cloud Monitoring alerts for production | `npm run setup:monitoring --deploy` | Slack #ops notifications for latency/errors |
+| **SP11: Cost Analyzer** | Identify expensive Firestore queries | `npm run audit:costs` | Query cost estimates + N+1 patterns + recommendations |
+
+### Gotchas & Key Notes:
+- **SP6 (Build Fixer)** can run `--apply` to fix errors automatically — re-runs TypeScript check to verify
+- **SP8 (Compliance)** requires `CLAUDE_API_KEY` in `.env.local` for semantic checking via Claude Haiku
+- **SP9 (Consistency)** runs against all orgs by default; use `--orgId=` to scope to single org
+- **SP4 (Test Seeder)** creates `org_test_bakedbot` — use `--clean` to reset before re-seeding
+- **SP5 (Scaffolder)** generates component+test or action or route or cron based on first arg
+- All 21 scripts use `.env.local` for service account auth (base64-encoded Firebase key)
+
+---
+
 ## Agent File Map
 
 | File | Purpose | When to read |
