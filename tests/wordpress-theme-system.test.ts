@@ -9,7 +9,6 @@
  * - Public integration
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { WordPressTheme, ThemeValidationError, THEME_UPLOAD_CONSTRAINTS } from '@/types/wordpress-theme';
 
 describe('WordPress Theme System', () => {
@@ -355,3 +354,4 @@ describe('WordPress Theme System', () => {
     });
   });
 });
+

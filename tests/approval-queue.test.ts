@@ -3,7 +3,6 @@
  * Tests approval request creation, approval, rejection, and execution
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { Timestamp } from 'firebase-admin/firestore';
 import {
     createApprovalRequest,
@@ -21,65 +20,65 @@ import {
 } from '@/server/services/approval-queue';
 
 // Mock dependencies
-vi.mock('@/firebase/admin', () => ({
-    getAdminFirestore: vi.fn(() => mockFirestore),
+jest.mock('@/firebase/admin', () => ({
+    getAdminFirestore: jest.fn(() => mockFirestore),
 }));
 
-vi.mock('@/server/services/approval-notifications', () => ({
-    notifyNewApprovalRequest: vi.fn().mockResolvedValue(undefined),
-    notifyApprovalApproved: vi.fn().mockResolvedValue(undefined),
-    notifyApprovalRejected: vi.fn().mockResolvedValue(undefined),
-    notifyApprovalExecuted: vi.fn().mockResolvedValue(undefined),
+jest.mock('@/server/services/approval-notifications', () => ({
+    notifyNewApprovalRequest: jest.fn().mockResolvedValue(undefined),
+    notifyApprovalApproved: jest.fn().mockResolvedValue(undefined),
+    notifyApprovalRejected: jest.fn().mockResolvedValue(undefined),
+    notifyApprovalExecuted: jest.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('@/lib/logger', () => ({
+jest.mock('@/lib/logger', () => ({
     logger: {
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
     },
 }));
 
 // Mock Firestore
 let mockDocs: Map<string, any> = new Map();
 const mockFirestore = {
-    collection: vi.fn((name: string) => ({
-        add: vi.fn(async (data: any) => {
+    collection: jest.fn((name: string) => ({
+        add: jest.fn(async (data: any) => {
             const id = Math.random().toString(36).substr(2, 9);
             mockDocs.set(id, { id, ...data });
             return { id };
         }),
-        doc: vi.fn((id?: string) => ({
-            get: vi.fn(async () => {
+        doc: jest.fn((id?: string) => ({
+            get: jest.fn(async () => {
                 const data = mockDocs.get(id || '');
                 return {
                     exists: !!data,
                     data: () => data,
                     id: id || '',
                     ref: {
-                        update: vi.fn(async (updateData: any) => {
+                        update: jest.fn(async (updateData: any) => {
                             const existing = mockDocs.get(id || '');
                             mockDocs.set(id || '', { ...existing, ...updateData });
                         }),
                     },
                 };
             }),
-            set: vi.fn(async (data: any) => {
+            set: jest.fn(async (data: any) => {
                 mockDocs.set(id || '', { id, ...data });
             }),
-            update: vi.fn(async (updateData: any) => {
+            update: jest.fn(async (updateData: any) => {
                 const existing = mockDocs.get(id || '');
                 mockDocs.set(id || '', { ...existing, ...updateData });
             }),
         })),
-        where: vi.fn(function (field: string, op: string, value: any) {
+        where: jest.fn(function (field: string, op: string, value: any) {
             return {
-                where: vi.fn(function (f: string, o: string, v: any) {
+                where: jest.fn(function (f: string, o: string, v: any) {
                     return this;
                 }),
-                orderBy: vi.fn(function (field: string, direction?: string) {
+                orderBy: jest.fn(function (field: string, direction?: string) {
                     return {
-                        get: vi.fn(async () => {
+                        get: jest.fn(async () => {
                             const filtered = Array.from(mockDocs.values()).filter((doc: any) => {
                                 const fieldValue = doc[field];
                                 if (op === '==') return fieldValue === value;
@@ -96,9 +95,9 @@ const mockFirestore = {
                                 empty: filtered.length === 0,
                             };
                         }),
-                        limit: vi.fn(function (n: number) {
+                        limit: jest.fn(function (n: number) {
                             return {
-                                get: vi.fn(async () => ({
+                                get: jest.fn(async () => ({
                                     docs: [],
                                     empty: true,
                                 })),
@@ -106,7 +105,7 @@ const mockFirestore = {
                         }),
                     };
                 }),
-                get: vi.fn(async () => ({
+                get: jest.fn(async () => ({
                     docs: [],
                     empty: true,
                 })),
@@ -114,14 +113,14 @@ const mockFirestore = {
         }),
     })),
     FieldValue: {
-        arrayUnion: vi.fn((value: any) => ({ __arrayUnion: value })),
+        arrayUnion: jest.fn((value: any) => ({ __arrayUnion: value })),
     },
 };
 
 describe('Approval Queue Service', () => {
     beforeEach(() => {
         mockDocs.clear();
-        vi.clearAllMocks();
+        jest.clearAllMocks();
     });
 
     describe('createApprovalRequest', () => {
@@ -330,3 +329,4 @@ describe('Approval Queue Service', () => {
         });
     });
 });
+

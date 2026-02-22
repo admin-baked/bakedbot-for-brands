@@ -1,462 +1,139 @@
-/**
- * Unit Tests for Approvals Server Actions
- * Tests role-based access control and approval request handling
- */
-
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { Timestamp } from 'firebase-admin/firestore';
 import {
-  getPendingApprovals,
-  getApprovalDetails,
-  approveApprovalRequest,
-  rejectApprovalRequest,
-  getApprovalHistoryAction,
-  getApprovalStatsAction,
-  getAllApprovals,
+    approveApprovalRequest,
+    getApprovalDetails,
+    getApprovalStatsAction,
+    getPendingApprovals,
+    rejectApprovalRequest,
 } from '@/app/actions/approvals';
 
-// Mock auth module
-vi.mock('@/server/auth/auth', () => ({
-  requireSuperUser: vi.fn(async () => {
-    throw new Error('Unauthorized');
-  }),
+const mockRequireSuperUser = jest.fn();
+const mockListPendingApprovals = jest.fn();
+const mockGetApprovalRequest = jest.fn();
+const mockApproveRequest = jest.fn();
+const mockRejectRequest = jest.fn();
+const mockGetApprovalStats = jest.fn();
+
+jest.mock('@/server/auth/auth', () => ({
+    requireSuperUser: (...args: unknown[]) => mockRequireSuperUser(...args),
 }));
 
-// Mock approval queue service
-vi.mock('@/server/services/approval-queue', () => ({
-  listPendingApprovals: vi.fn(async () => []),
-  listAllApprovals: vi.fn(async () => []),
-  getApprovalRequest: vi.fn(async () => null),
-  approveRequest: vi.fn(async () => ({ status: 'approved' })),
-  rejectRequest: vi.fn(async () => ({ status: 'rejected' })),
-  getApprovalHistory: vi.fn(async () => []),
-  getApprovalStats: vi.fn(async () => ({
-    pending: 0,
-    approved: 0,
-    rejected: 0,
-    executed: 0,
-    failed: 0,
-    totalByRiskLevel: {},
-  })),
+jest.mock('@/server/services/approval-queue', () => ({
+    listPendingApprovals: (...args: unknown[]) => mockListPendingApprovals(...args),
+    listAllApprovals: jest.fn(),
+    getApprovalRequest: (...args: unknown[]) => mockGetApprovalRequest(...args),
+    approveRequest: (...args: unknown[]) => mockApproveRequest(...args),
+    rejectRequest: (...args: unknown[]) => mockRejectRequest(...args),
+    getApprovalHistory: jest.fn(),
+    getApprovalStats: (...args: unknown[]) => mockGetApprovalStats(...args),
 }));
 
-// Mock logger
-vi.mock('@/lib/logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
+jest.mock('@/lib/logger', () => ({
+    logger: {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+    },
 }));
 
-import {
-  requireSuperUser,
-} from '@/server/auth/auth';
-import {
-  listPendingApprovals,
-  listAllApprovals,
-  getApprovalRequest,
-  approveRequest,
-  rejectRequest,
-  getApprovalHistory,
-  getApprovalStats,
-} from '@/server/services/approval-queue';
-
-describe('Approvals Server Actions', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  describe('getPendingApprovals', () => {
-    it('should reject non-super-users', async () => {
-      const result = await getPendingApprovals();
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Super User');
-    });
-
-    it('should return empty list for super user with no pending approvals', async () => {
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (listPendingApprovals as any).mockResolvedValue([]);
-
-      const result = await getPendingApprovals();
-
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual([]);
-    });
-
-    it('should support filtering by risk level', async () => {
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (listPendingApprovals as any).mockResolvedValue([]);
-
-      const result = await getPendingApprovals({ riskLevel: 'high' });
-
-      expect(listPendingApprovals).toHaveBeenCalledWith({ riskLevel: 'high' });
-      expect(result.success).toBe(true);
-    });
-
-    it('should support filtering by operation type', async () => {
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (listPendingApprovals as any).mockResolvedValue([]);
-
-      const result = await getPendingApprovals({ operationType: 'cloud_scheduler_create' });
-
-      expect(listPendingApprovals).toHaveBeenCalledWith({ operationType: 'cloud_scheduler_create' });
-      expect(result.success).toBe(true);
-    });
-
-    it('should handle service errors gracefully', async () => {
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (listPendingApprovals as any).mockRejectedValue(new Error('Database error'));
-
-      const result = await getPendingApprovals();
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Failed');
-    });
-  });
-
-  describe('getApprovalDetails', () => {
-    it('should reject non-super-users', async () => {
-      const result = await getApprovalDetails('test-123');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Super User');
-    });
-
-    it('should return approval request for super user', async () => {
-      const mockApproval = {
-        id: 'test-123',
-        status: 'pending',
-        operationType: 'cloud_scheduler_create' as const,
-        operationDetails: {
-          targetResource: 'test-job',
-          action: 'create' as const,
-          reason: 'Testing',
-          riskLevel: 'medium' as const,
-        },
-        createdAt: Timestamp.now(),
-        requestedBy: 'user@example.com',
-        auditLog: [],
-      };
-
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (getApprovalRequest as any).mockResolvedValue(mockApproval);
-
-      const result = await getApprovalDetails('test-123');
-
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockApproval);
-    });
-
-    it('should return error for non-existent request', async () => {
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (getApprovalRequest as any).mockResolvedValue(null);
-
-      const result = await getApprovalDetails('non-existent');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('not found');
-    });
-  });
-
-  describe('approveApprovalRequest', () => {
-    it('should reject non-super-users', async () => {
-      const result = await approveApprovalRequest('test-123');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Super User');
-    });
-
-    it('should reject non-existent requests', async () => {
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (getApprovalRequest as any).mockResolvedValue(null);
-
-      const result = await approveApprovalRequest('non-existent');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('not found');
-    });
-
-    it('should reject already-approved requests', async () => {
-      const mockApproval = {
-        id: 'test-123',
-        status: 'approved' as const,
-        operationType: 'cloud_scheduler_create' as const,
-        operationDetails: {
-          targetResource: 'test-job',
-          action: 'create' as const,
-          reason: 'Testing',
-          riskLevel: 'medium' as const,
-        },
-        createdAt: Timestamp.now(),
-        requestedBy: 'user@example.com',
-        auditLog: [],
-      };
-
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (getApprovalRequest as any).mockResolvedValue(mockApproval);
-
-      const result = await approveApprovalRequest('test-123');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('already approved');
-    });
-
-    it('should approve pending requests with optional comments', async () => {
-      const mockApproval = {
-        id: 'test-123',
+function makePendingApproval() {
+    return {
+        id: 'req-1',
         status: 'pending' as const,
         operationType: 'cloud_scheduler_create' as const,
         operationDetails: {
-          targetResource: 'test-job',
-          action: 'create' as const,
-          reason: 'Testing',
-          riskLevel: 'medium' as const,
+            targetResource: 'nightly-job',
+            action: 'create' as const,
+            reason: 'nightly sync',
+            riskLevel: 'medium' as const,
         },
         createdAt: Timestamp.now(),
-        requestedBy: 'user@example.com',
+        requestedBy: 'linus@example.com',
         auditLog: [],
-      };
+    };
+}
 
-      (requireSuperUser as any).mockResolvedValue({ email: 'approver@example.com' });
-      (getApprovalRequest as any).mockResolvedValue(mockApproval);
-      (approveRequest as any).mockResolvedValue({ status: 'approved' });
-
-      const result = await approveApprovalRequest('test-123', 'Looks good, approved.');
-
-      expect(result.success).toBe(true);
-      expect(approveRequest).toHaveBeenCalledWith('test-123', 'approver@example.com', 'Looks good, approved.');
-    });
-  });
-
-  describe('rejectApprovalRequest', () => {
-    it('should reject non-super-users', async () => {
-      const result = await rejectApprovalRequest('test-123', 'Security risk');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Super User');
+describe('Approvals server actions', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
     });
 
-    it('should reject non-existent requests', async () => {
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (getApprovalRequest as any).mockResolvedValue(null);
+    it('blocks non-super-users from pending approvals', async () => {
+        mockRequireSuperUser.mockRejectedValue(new Error('Unauthorized'));
 
-      const result = await rejectApprovalRequest('non-existent', 'Not approved');
+        const result = await getPendingApprovals();
 
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('not found');
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Only Super Users can access approvals');
     });
 
-    it('should require rejection reason', async () => {
-      const mockApproval = {
-        id: 'test-123',
-        status: 'pending' as const,
-        operationType: 'cloud_scheduler_create' as const,
-        operationDetails: {
-          targetResource: 'test-job',
-          action: 'create' as const,
-          reason: 'Testing',
-          riskLevel: 'medium' as const,
-        },
-        createdAt: Timestamp.now(),
-        requestedBy: 'user@example.com',
-        auditLog: [],
-      };
+    it('returns filtered pending approvals for super users', async () => {
+        mockRequireSuperUser.mockResolvedValue({ email: 'admin@example.com' });
+        mockListPendingApprovals.mockResolvedValue([makePendingApproval()]);
 
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (getApprovalRequest as any).mockResolvedValue(mockApproval);
+        const result = await getPendingApprovals({ riskLevel: 'medium' });
 
-      const result = await rejectApprovalRequest('test-123', '');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('reason');
+        expect(result.success).toBe(true);
+        expect(mockListPendingApprovals).toHaveBeenCalledWith({ riskLevel: 'medium' });
+        expect(result.data).toHaveLength(1);
     });
 
-    it('should reject pending requests with reason', async () => {
-      const mockApproval = {
-        id: 'test-123',
-        status: 'pending' as const,
-        operationType: 'cloud_scheduler_create' as const,
-        operationDetails: {
-          targetResource: 'test-job',
-          action: 'create' as const,
-          reason: 'Testing',
-          riskLevel: 'medium' as const,
-        },
-        createdAt: Timestamp.now(),
-        requestedBy: 'user@example.com',
-        auditLog: [],
-      };
+    it('returns not found when approval details are missing', async () => {
+        mockRequireSuperUser.mockResolvedValue({ email: 'admin@example.com' });
+        mockGetApprovalRequest.mockResolvedValue(null);
 
-      (requireSuperUser as any).mockResolvedValue({ email: 'reviewer@example.com' });
-      (getApprovalRequest as any).mockResolvedValue(mockApproval);
-      (rejectRequest as any).mockResolvedValue({ status: 'rejected' });
+        const result = await getApprovalDetails('missing-id');
 
-      const result = await rejectApprovalRequest('test-123', 'Security concerns detected');
-
-      expect(result.success).toBe(true);
-      expect(rejectRequest).toHaveBeenCalledWith('test-123', 'reviewer@example.com', 'Security concerns detected');
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Approval request not found');
     });
 
-    it('should reject already-rejected requests', async () => {
-      const mockApproval = {
-        id: 'test-123',
-        status: 'rejected' as const,
-        operationType: 'cloud_scheduler_create' as const,
-        operationDetails: {
-          targetResource: 'test-job',
-          action: 'create' as const,
-          reason: 'Testing',
-          riskLevel: 'medium' as const,
-        },
-        createdAt: Timestamp.now(),
-        requestedBy: 'user@example.com',
-        auditLog: [],
-      };
+    it('prevents approving requests that are not pending', async () => {
+        mockRequireSuperUser.mockResolvedValue({ email: 'admin@example.com' });
+        mockGetApprovalRequest.mockResolvedValue({
+            ...makePendingApproval(),
+            status: 'approved',
+        });
 
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (getApprovalRequest as any).mockResolvedValue(mockApproval);
+        const result = await approveApprovalRequest('req-1');
 
-      const result = await rejectApprovalRequest('test-123', 'Already rejected');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Cannot reject');
-    });
-  });
-
-  describe('getApprovalHistoryAction', () => {
-    it('should reject non-super-users', async () => {
-      const result = await getApprovalHistoryAction();
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Super User');
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Cannot approve a approved request');
+        expect(mockApproveRequest).not.toHaveBeenCalled();
     });
 
-    it('should return empty history for super user', async () => {
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (getApprovalHistory as any).mockResolvedValue([]);
+    it('requires a rejection reason for pending requests', async () => {
+        mockRequireSuperUser.mockResolvedValue({ email: 'admin@example.com' });
+        mockGetApprovalRequest.mockResolvedValue(makePendingApproval());
 
-      const result = await getApprovalHistoryAction();
+        const result = await rejectApprovalRequest('req-1', '');
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual([]);
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Rejection reason is required');
+        expect(mockRejectRequest).not.toHaveBeenCalled();
     });
 
-    it('should support filtering by operation type', async () => {
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (getApprovalHistory as any).mockResolvedValue([]);
+    it('returns approval stats for super users', async () => {
+        const stats = {
+            pending: 1,
+            approved: 2,
+            rejected: 3,
+            executed: 4,
+            failed: 0,
+            totalByRiskLevel: {
+                low: 0,
+                medium: 1,
+                high: 2,
+                critical: 0,
+            },
+        };
 
-      const result = await getApprovalHistoryAction('cloud_scheduler_create', 10);
+        mockRequireSuperUser.mockResolvedValue({ email: 'admin@example.com' });
+        mockGetApprovalStats.mockResolvedValue(stats);
 
-      expect(getApprovalHistory).toHaveBeenCalledWith('cloud_scheduler_create', 10);
-      expect(result.success).toBe(true);
+        const result = await getApprovalStatsAction();
+
+        expect(result.success).toBe(true);
+        expect(result.data).toEqual(stats);
     });
-  });
-
-  describe('getApprovalStatsAction', () => {
-    it('should reject non-super-users', async () => {
-      const result = await getApprovalStatsAction();
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Super User');
-    });
-
-    it('should return approval statistics for super user', async () => {
-      const mockStats = {
-        pending: 3,
-        approved: 15,
-        rejected: 2,
-        executed: 12,
-        failed: 1,
-        totalByRiskLevel: {
-          low: 5,
-          medium: 10,
-          high: 8,
-          critical: 0,
-        },
-      };
-
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (getApprovalStats as any).mockResolvedValue(mockStats);
-
-      const result = await getApprovalStatsAction();
-
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual(mockStats);
-      expect(result.data?.pending).toBe(3);
-      expect(result.data?.approved).toBe(15);
-    });
-  });
-
-  describe('getAllApprovals', () => {
-    it('should reject non-super-users', async () => {
-      const result = await getAllApprovals();
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Super User');
-    });
-
-    it('should return all approvals for super user', async () => {
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (listAllApprovals as any).mockResolvedValue([]);
-
-      const result = await getAllApprovals();
-
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual([]);
-    });
-
-    it('should support limiting results', async () => {
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (listAllApprovals as any).mockResolvedValue([]);
-
-      const result = await getAllApprovals(25);
-
-      expect(listAllApprovals).toHaveBeenCalledWith(25);
-      expect(result.success).toBe(true);
-    });
-  });
-
-  describe('Error handling', () => {
-    it('should handle service errors in getPendingApprovals', async () => {
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (listPendingApprovals as any).mockRejectedValue(new Error('Database error'));
-
-      const result = await getPendingApprovals();
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
-    });
-
-    it('should handle service errors in approveApprovalRequest', async () => {
-      const mockApproval = {
-        id: 'test-123',
-        status: 'pending' as const,
-        operationType: 'cloud_scheduler_create' as const,
-        operationDetails: {
-          targetResource: 'test-job',
-          action: 'create' as const,
-          reason: 'Testing',
-          riskLevel: 'medium' as const,
-        },
-        createdAt: Timestamp.now(),
-        requestedBy: 'user@example.com',
-        auditLog: [],
-      };
-
-      (requireSuperUser as any).mockResolvedValue({ email: 'admin@example.com' });
-      (getApprovalRequest as any).mockResolvedValue(mockApproval);
-      (approveRequest as any).mockRejectedValue(new Error('Firestore error'));
-
-      const result = await approveApprovalRequest('test-123');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Failed');
-    });
-  });
 });

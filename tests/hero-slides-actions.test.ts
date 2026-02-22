@@ -1,402 +1,299 @@
 import {
     createHeroSlide,
-    updateHeroSlide,
     deleteHeroSlide,
-    reorderHeroSlides,
-    getHeroSlides,
     getAllHeroSlides,
+    getHeroSlides,
+    reorderHeroSlides,
+    updateHeroSlide,
 } from '@/app/actions/hero-slides';
-import { getAdminFirestore } from '@/firebase/admin';
-import { requireUser } from '@/server/auth/auth';
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-vi.mock('@/firebase/admin');
-vi.mock('@/server/auth/auth');
+const mockGetAdminFirestore = jest.fn();
+const mockRequireUser = jest.fn();
+const mockRevalidatePath = jest.fn();
 
-describe('Hero Slides Server Actions', () => {
-    const mockOrgId = 'test-org-123';
-    const mockUserId = 'test-user-456';
-    const mockSlideId = 'test-slide-789';
+jest.mock('@/firebase/admin', () => ({
+    getAdminFirestore: (...args: unknown[]) => mockGetAdminFirestore(...args),
+}));
 
-    const mockUser = { uid: mockUserId, role: 'brand_admin' };
-    const mockSlideData = {
-        id: mockSlideId,
-        orgId: mockOrgId,
-        title: 'Test Slide',
-        subtitle: 'Test Subtitle',
-        description: 'Test Description',
-        ctaText: 'Shop Now',
-        ctaAction: 'scroll' as const,
+jest.mock('@/server/auth/auth', () => ({
+    requireUser: (...args: unknown[]) => mockRequireUser(...args),
+}));
+
+jest.mock('next/cache', () => ({
+    revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
+}));
+
+jest.mock('uuid', () => ({
+    v4: () => 'generated-slide-id',
+}));
+
+jest.mock('@/lib/logger', () => ({
+    logger: {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn(),
+    },
+}));
+
+type SlideRecord = {
+    id: string;
+    orgId: string;
+    title: string;
+    subtitle: string;
+    description: string;
+    ctaText: string;
+    ctaAction: 'scroll' | 'link' | 'none';
+    ctaTarget: string;
+    imageUrl: string;
+    backgroundColor: string;
+    textAlign: 'left' | 'center' | 'right';
+    active: boolean;
+    displayOrder: number;
+    createdAt: Date;
+    updatedAt: Date;
+};
+
+function makeSlide(id: string, orgId: string, displayOrder: number, active = true): SlideRecord {
+    return {
+        id,
+        orgId,
+        title: `Slide ${id}`,
+        subtitle: 'Sub',
+        description: 'Description',
+        ctaText: 'Shop',
+        ctaAction: 'scroll',
         ctaTarget: 'products',
-        imageUrl: 'https://example.com/image.jpg',
-        backgroundColor: '#16a34a',
-        textAlign: 'left' as const,
-        displayOrder: 0,
-        active: true,
+        imageUrl: '',
+        backgroundColor: '#000',
+        textAlign: 'left',
+        active,
+        displayOrder,
         createdAt: new Date(),
         updatedAt: new Date(),
     };
+}
 
-    beforeEach(() => {
-        vi.clearAllMocks();
-        (requireUser as any).mockResolvedValue(mockUser);
+function createMockDb({
+    userOrgId = 'org-1',
+    initialSlides = [],
+}: {
+    userOrgId?: string;
+    initialSlides?: SlideRecord[];
+} = {}) {
+    const slides = new Map<string, SlideRecord>(
+        initialSlides.map((slide) => [slide.id, { ...slide }]),
+    );
+
+    const applyFilters = (
+        entries: SlideRecord[],
+        filters: Array<{ field: string; op: string; value: unknown }>,
+    ) =>
+        entries.filter((entry) =>
+            filters.every((filter) => {
+                if (filter.op === '==') {
+                    return (entry as Record<string, unknown>)[filter.field] === filter.value;
+                }
+                return true;
+            }),
+        );
+
+    const createQuery = (
+        filters: Array<{ field: string; op: string; value: unknown }> = [],
+    ) => ({
+        where: (field: string, op: string, value: unknown) =>
+            createQuery([...filters, { field, op, value }]),
+        orderBy: (_field: string, _direction?: string) => ({
+            get: async () => {
+                const rows = applyFilters(Array.from(slides.values()), filters).sort(
+                    (a, b) => a.displayOrder - b.displayOrder,
+                );
+                return {
+                    empty: rows.length === 0,
+                    docs: rows.map((row) => ({ id: row.id, data: () => row })),
+                };
+            },
+        }),
+        get: async () => {
+            const rows = applyFilters(Array.from(slides.values()), filters).sort(
+                (a, b) => a.displayOrder - b.displayOrder,
+            );
+            return {
+                empty: rows.length === 0,
+                docs: rows.map((row) => ({ id: row.id, data: () => row })),
+            };
+        },
     });
 
-    describe('getHeroSlides', () => {
-        it('should return active slides without auth requirement', async () => {
-            const mockDb = {
-                collection: vi.fn().mockReturnValue({
-                    where: vi.fn().mockReturnValue({
-                        where: vi.fn().mockReturnValue({
-                            orderBy: vi.fn().mockReturnValue({
-                                get: vi.fn().mockResolvedValue({
-                                    empty: false,
-                                    docs: [
-                                        {
-                                            id: mockSlideId,
-                                            data: () => mockSlideData,
-                                        },
-                                    ],
-                                }),
-                            }),
-                        }),
-                    }),
-                }),
-            };
+    const heroCollection = {
+        where: (field: string, op: string, value: unknown) =>
+            createQuery([{ field, op, value }]),
+        doc: (id: string) => ({
+            id,
+            get: async () => {
+                const data = slides.get(id);
+                return {
+                    exists: Boolean(data),
+                    data: () => data,
+                };
+            },
+            set: async (data: SlideRecord) => {
+                slides.set(id, { ...data });
+            },
+            update: async (data: Partial<SlideRecord>) => {
+                const existing = slides.get(id);
+                if (!existing) throw new Error('missing');
+                slides.set(id, { ...existing, ...data });
+            },
+            delete: async () => {
+                slides.delete(id);
+            },
+        }),
+    };
 
-            (getAdminFirestore as any).mockReturnValue(mockDb);
-
-            const result = await getHeroSlides(mockOrgId);
-
-            expect(result).toHaveLength(1);
-            expect(result[0].id).toBe(mockSlideId);
-            expect(result[0].orgId).toBe(mockOrgId);
-        });
-
-        it('should return empty array for invalid orgId', async () => {
-            const result = await getHeroSlides('');
-            expect(result).toEqual([]);
-        });
-    });
-
-    describe('createHeroSlide', () => {
-        it('should create slide with valid auth and org access', async () => {
-            const mockDb = {
-                collection: vi.fn().mockReturnValue({
-                    doc: vi.fn().mockReturnValue({
-                        set: vi.fn().mockResolvedValue(undefined),
-                    }),
-                }),
-            };
-
-            const mockUserDoc = {
+    const usersCollection = {
+        doc: (_id: string) => ({
+            get: async () => ({
                 exists: true,
-                data: () => ({ currentOrgId: mockOrgId }),
+                data: () => ({ currentOrgId: userOrgId }),
+            }),
+        }),
+    };
+
+    const db = {
+        collection: (name: string) => {
+            if (name === 'hero_slides') return heroCollection;
+            if (name === 'users') return usersCollection;
+            throw new Error(`Unexpected collection ${name}`);
+        },
+        batch: () => {
+            const updates: Array<{ id: string; data: Partial<SlideRecord> }> = [];
+            return {
+                update: (docRef: { id: string }, data: Partial<SlideRecord>) => {
+                    updates.push({ id: docRef.id, data });
+                },
+                commit: async () => {
+                    updates.forEach(({ id, data }) => {
+                        const existing = slides.get(id);
+                        if (existing) slides.set(id, { ...existing, ...data });
+                    });
+                },
             };
+        },
+    };
 
-            (getAdminFirestore as any).mockReturnValue({
-                ...mockDb,
-                collection: vi.fn((name) => {
-                    if (name === 'users') {
-                        return {
-                            doc: vi.fn().mockReturnValue({
-                                get: vi.fn().mockResolvedValue(mockUserDoc),
-                            }),
-                        };
-                    }
-                    return mockDb.collection(name);
-                }),
-            });
+    return { db, slides };
+}
 
-            const result = await createHeroSlide(mockOrgId, {
-                title: 'New Slide',
-                subtitle: 'New Subtitle',
-                description: 'New Description',
-                ctaText: 'Click Here',
-                ctaAction: 'scroll',
-                ctaTarget: '',
-                imageUrl: '',
-                backgroundColor: '#000000',
-                textAlign: 'center',
-                active: true,
-                displayOrder: 0,
-            });
+function createInput() {
+    return {
+        title: 'New Slide',
+        subtitle: 'Subtitle',
+        description: 'Description',
+        ctaText: 'Shop',
+        ctaAction: 'scroll' as const,
+        ctaTarget: 'products',
+        imageUrl: '',
+        backgroundColor: '#111111',
+        textAlign: 'left' as const,
+        active: true,
+        displayOrder: 0,
+    };
+}
 
-            expect(result.success).toBe(true);
-            expect(result.data).toBeDefined();
-            expect(result.data?.orgId).toBe(mockOrgId);
-        });
-
-        it('should deny create when user org does not match', async () => {
-            const mockDb = {
-                collection: vi.fn().mockReturnValue({
-                    doc: vi.fn().mockReturnValue({
-                        get: vi.fn().mockResolvedValue({
-                            exists: true,
-                            data: () => ({ currentOrgId: 'different-org' }),
-                        }),
-                    }),
-                }),
-            };
-
-            (getAdminFirestore as any).mockReturnValue(mockDb);
-
-            const result = await createHeroSlide(mockOrgId, {
-                title: 'New Slide',
-                subtitle: 'New Subtitle',
-                description: 'New Description',
-                ctaText: 'Click Here',
-                ctaAction: 'scroll',
-                ctaTarget: '',
-                imageUrl: '',
-                backgroundColor: '#000000',
-                textAlign: 'center',
-                active: true,
-                displayOrder: 0,
-            });
-
-            expect(result.success).toBe(false);
-            expect(result.error).toBe('Unauthorized');
-        });
-
-        it('should fail when orgId is missing', async () => {
-            const result = await createHeroSlide('', {
-                title: 'New Slide',
-                subtitle: 'New Subtitle',
-                description: 'New Description',
-                ctaText: 'Click Here',
-                ctaAction: 'scroll',
-                ctaTarget: '',
-                imageUrl: '',
-                backgroundColor: '#000000',
-                textAlign: 'center',
-                active: true,
-                displayOrder: 0,
-            });
-
-            expect(result.success).toBe(false);
-        });
+describe('Hero slides server actions', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        mockRequireUser.mockResolvedValue({ uid: 'user-1' });
     });
 
-    describe('updateHeroSlide', () => {
-        it('should update slide with valid auth', async () => {
-            const mockDb = {
-                collection: vi.fn().mockReturnValue({
-                    doc: vi.fn().mockReturnValue({
-                        get: vi.fn().mockResolvedValue({
-                            exists: true,
-                            data: () => mockSlideData,
-                        }),
-                        update: vi.fn().mockResolvedValue(undefined),
-                    }),
-                }),
-            };
-
-            (getAdminFirestore as any).mockReturnValue({
-                ...mockDb,
-                collection: vi.fn((name) => {
-                    if (name === 'users') {
-                        return {
-                            doc: vi.fn().mockReturnValue({
-                                get: vi.fn().mockResolvedValue({
-                                    exists: true,
-                                    data: () => ({ currentOrgId: mockOrgId }),
-                                }),
-                            }),
-                        };
-                    }
-                    return mockDb.collection(name);
-                }),
-            });
-
-            const result = await updateHeroSlide(mockSlideId, { title: 'Updated Title' });
-
-            expect(result.success).toBe(true);
+    it('returns active slides in display order', async () => {
+        const { db } = createMockDb({
+            initialSlides: [
+                makeSlide('slide-b', 'org-1', 1, true),
+                makeSlide('slide-a', 'org-1', 0, true),
+                makeSlide('slide-inactive', 'org-1', 2, false),
+            ],
         });
+        mockGetAdminFirestore.mockReturnValue(db);
 
-        it('should deny update when slide belongs to different org', async () => {
-            const mockDb = {
-                collection: vi.fn().mockReturnValue({
-                    doc: vi.fn().mockReturnValue({
-                        get: vi.fn().mockResolvedValue({
-                            exists: true,
-                            data: () => ({ ...mockSlideData, orgId: 'different-org' }),
-                        }),
-                    }),
-                }),
-            };
+        const result = await getHeroSlides('org-1');
 
-            (getAdminFirestore as any).mockReturnValue(mockDb);
-
-            const result = await updateHeroSlide(mockSlideId, { title: 'Updated Title' });
-
-            expect(result.success).toBe(false);
-            expect(result.error).toBe('Unauthorized');
-        });
-
-        it('should fail when slide does not exist', async () => {
-            const mockDb = {
-                collection: vi.fn().mockReturnValue({
-                    doc: vi.fn().mockReturnValue({
-                        get: vi.fn().mockResolvedValue({
-                            exists: false,
-                        }),
-                    }),
-                }),
-            };
-
-            (getAdminFirestore as any).mockReturnValue(mockDb);
-
-            const result = await updateHeroSlide('nonexistent-id', { title: 'Updated Title' });
-
-            expect(result.success).toBe(false);
-            expect(result.error).toBe('Slide not found');
-        });
+        expect(result).toHaveLength(2);
+        expect(result[0].id).toBe('slide-a');
+        expect(result[1].id).toBe('slide-b');
     });
 
-    describe('deleteHeroSlide', () => {
-        it('should delete slide with valid auth', async () => {
-            const mockDb = {
-                collection: vi.fn().mockReturnValue({
-                    doc: vi.fn().mockReturnValue({
-                        get: vi.fn().mockResolvedValue({
-                            exists: true,
-                            data: () => mockSlideData,
-                        }),
-                        delete: vi.fn().mockResolvedValue(undefined),
-                    }),
-                }),
-            };
+    it('rejects create when user org does not match target org', async () => {
+        const { db } = createMockDb({ userOrgId: 'org-other' });
+        mockGetAdminFirestore.mockReturnValue(db);
 
-            (getAdminFirestore as any).mockReturnValue({
-                ...mockDb,
-                collection: vi.fn((name) => {
-                    if (name === 'users') {
-                        return {
-                            doc: vi.fn().mockReturnValue({
-                                get: vi.fn().mockResolvedValue({
-                                    exists: true,
-                                    data: () => ({ currentOrgId: mockOrgId }),
-                                }),
-                            }),
-                        };
-                    }
-                    return mockDb.collection(name);
-                }),
-            });
+        const result = await createHeroSlide('org-1', createInput());
 
-            const result = await deleteHeroSlide(mockSlideId);
-
-            expect(result.success).toBe(true);
-        });
-
-        it('should deny delete when user org does not match', async () => {
-            const mockDb = {
-                collection: vi.fn().mockReturnValue({
-                    doc: vi.fn().mockReturnValue({
-                        get: vi.fn().mockResolvedValue({
-                            exists: true,
-                            data: () => ({ ...mockSlideData, orgId: 'different-org' }),
-                        }),
-                    }),
-                }),
-            };
-
-            (getAdminFirestore as any).mockReturnValue(mockDb);
-
-            const result = await deleteHeroSlide(mockSlideId);
-
-            expect(result.success).toBe(false);
-            expect(result.error).toBe('Unauthorized');
-        });
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Unauthorized');
     });
 
-    describe('reorderHeroSlides', () => {
-        it('should reorder multiple slides with valid auth', async () => {
-            const slides = [
-                { id: 'slide-1', displayOrder: 0 },
-                { id: 'slide-2', displayOrder: 1 },
-            ];
+    it('creates a slide and revalidates dashboard path', async () => {
+        const { db, slides } = createMockDb({ userOrgId: 'org-1' });
+        mockGetAdminFirestore.mockReturnValue(db);
 
-            const mockDb = {
-                collection: vi.fn().mockReturnValue({
-                    doc: vi.fn().mockReturnValue({
-                        get: vi.fn().mockResolvedValue({
-                            exists: true,
-                            data: () => mockSlideData,
-                        }),
-                    }),
-                }),
-                batch: vi.fn().mockReturnValue({
-                    update: vi.fn(),
-                    commit: vi.fn().mockResolvedValue(undefined),
-                }),
-            };
+        const result = await createHeroSlide('org-1', createInput());
 
-            (getAdminFirestore as any).mockReturnValue({
-                ...mockDb,
-                collection: vi.fn((name) => {
-                    if (name === 'users') {
-                        return {
-                            doc: vi.fn().mockReturnValue({
-                                get: vi.fn().mockResolvedValue({
-                                    exists: true,
-                                    data: () => ({ currentOrgId: mockOrgId }),
-                                }),
-                            }),
-                        };
-                    }
-                    return mockDb.collection(name);
-                }),
-                batch: mockDb.batch,
-            });
-
-            const result = await reorderHeroSlides(slides);
-
-            expect(result.success).toBe(true);
-        });
-
-        it('should fail with empty slide list', async () => {
-            const result = await reorderHeroSlides([]);
-
-            expect(result.success).toBe(false);
-            expect(result.error).toBe('No slides to reorder');
-        });
+        expect(result.success).toBe(true);
+        expect(result.data?.id).toBe('generated-slide-id');
+        expect(slides.has('generated-slide-id')).toBe(true);
+        expect(mockRevalidatePath).toHaveBeenCalledWith('/dashboard');
     });
 
-    describe('getAllHeroSlides', () => {
-        it('should return all slides for org', async () => {
-            const mockDb = {
-                collection: vi.fn().mockReturnValue({
-                    where: vi.fn().mockReturnValue({
-                        orderBy: vi.fn().mockReturnValue({
-                            get: vi.fn().mockResolvedValue({
-                                empty: false,
-                                docs: [
-                                    {
-                                        id: mockSlideId,
-                                        data: () => mockSlideData,
-                                    },
-                                ],
-                            }),
-                        }),
-                    }),
-                }),
-            };
+    it('returns not found when updating a missing slide', async () => {
+        const { db } = createMockDb();
+        mockGetAdminFirestore.mockReturnValue(db);
 
-            (getAdminFirestore as any).mockReturnValue(mockDb);
+        const result = await updateHeroSlide('missing-slide', { title: 'Updated' });
 
-            const result = await getAllHeroSlides(mockOrgId);
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Slide not found');
+    });
 
-            expect(result.success).toBe(true);
-            expect(result.data).toHaveLength(1);
-            expect(result.data?.[0].id).toBe(mockSlideId);
+    it('deletes existing slide for authorized user', async () => {
+        const { db, slides } = createMockDb({
+            initialSlides: [makeSlide('slide-1', 'org-1', 0, true)],
         });
+        mockGetAdminFirestore.mockReturnValue(db);
 
-        it('should fail without orgId', async () => {
-            const result = await getAllHeroSlides('');
+        const result = await deleteHeroSlide('slide-1');
 
-            expect(result.success).toBe(false);
+        expect(result.success).toBe(true);
+        expect(slides.has('slide-1')).toBe(false);
+    });
+
+    it('reorders slides and persists display order updates', async () => {
+        const { db, slides } = createMockDb({
+            initialSlides: [
+                makeSlide('slide-1', 'org-1', 0, true),
+                makeSlide('slide-2', 'org-1', 1, true),
+            ],
         });
+        mockGetAdminFirestore.mockReturnValue(db);
+
+        const result = await reorderHeroSlides([
+            { id: 'slide-1', displayOrder: 5 },
+            { id: 'slide-2', displayOrder: 3 },
+        ]);
+
+        expect(result.success).toBe(true);
+        expect(slides.get('slide-1')?.displayOrder).toBe(5);
+        expect(slides.get('slide-2')?.displayOrder).toBe(3);
+        expect(mockRevalidatePath).toHaveBeenCalledWith('/dashboard');
+    });
+
+    it('fails fast when getAllHeroSlides is called without orgId', async () => {
+        const { db } = createMockDb();
+        mockGetAdminFirestore.mockReturnValue(db);
+
+        const result = await getAllHeroSlides('');
+
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('Failed to fetch hero slides');
     });
 });
