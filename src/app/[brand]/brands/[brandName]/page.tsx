@@ -11,6 +11,7 @@ import { BrandMenuClient } from '../../brand-menu-client';
 import { getActiveBundles } from '@/app/actions/bundles';
 import { getHeroSlides } from '@/app/actions/hero-slides';
 import { getPublicMenuSettings } from '@/server/actions/loyalty-settings';
+import type { Product } from '@/types/products';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -34,7 +35,7 @@ export default async function BrandDetailPage({
 
   // Filter products to only those from the selected brand
   // Match by brandName field (from POS) or brand name
-  const products = allProducts.filter(p => {
+  const products = allProducts.filter((p: Product) => {
     const productBrandName = p.brandName?.toLowerCase() || '';
     const targetBrandName = decodedBrandName.toLowerCase();
     return productBrandName === targetBrandName;
@@ -66,7 +67,7 @@ export default async function BrandDetailPage({
     bundles = await getActiveBundles(brand.id);
     // Filter bundles that contain products from this brand
     bundles = bundles.filter(b =>
-      b.products.some(p => products.some(prod => prod.id === p.id))
+      b.products.some((p) => products.some((prod: Product) => prod.id === p.productId))
     );
   } catch (e) {
     console.error('Failed to fetch bundles:', e);
