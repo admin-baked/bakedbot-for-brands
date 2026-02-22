@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-22)
 
 **Recent work (2026-02-22):** See `memory/MEMORY.md` for full log.
-Key completed: [Goal-Driven Directive System Phase 1-4 + Tests] (`6f33a421`), Tests (`<new>`) — full implementation + 5 test suites (100+ cases)
+Key completed: [Thrive URL Slug Collision Fix] (`99e4385b`) — audit + fix script for orphaned brands/thrivesyracuse; [Goal-Driven Directive System] (`6f33a421`) — Phase 1-4 + 5 test suites (100+ cases)
 
 ---
 
