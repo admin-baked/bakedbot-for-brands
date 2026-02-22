@@ -36,6 +36,7 @@ import {
   Briefcase,
   Heart,
   Rocket,
+  Phone,
 } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
 import { DealsTicker } from './deals-ticker';
@@ -50,6 +51,7 @@ interface DemoHeaderProps {
   };
   useLogoInHeader?: boolean;
   location?: string;
+  phone?: string; // Business phone number (e.g., "(315) 207-7935")
   onSearch?: (query: string) => void;
   onCategorySelect?: (category: string) => void;
   onCartClick?: () => void;
@@ -89,6 +91,7 @@ export function DemoHeader({
   brandColors,
   useLogoInHeader,
   location = 'San Francisco, CA',
+  phone,
   onSearch,
   onCategorySelect,
   onCartClick,
@@ -135,11 +138,21 @@ export function DemoHeader({
                   </SheetTitle>
                 </SheetHeader>
                 <nav className="mt-6 space-y-1">
+                  {/* Call Button (Mobile) */}
+                  {phone && (
+                    <a href={`tel:${phone}`}>
+                      <Button className="w-full mb-4 gap-2" style={{ backgroundColor: primaryColor }} variant="default">
+                        <Phone className="h-4 w-4" />
+                        Call {phone}
+                      </Button>
+                    </a>
+                  )}
+
                   {/* Get Started CTA in mobile menu */}
                   <Link href={customerLoginUrl} onClick={() => setMobileMenuOpen(false)}>
-                    <Button className="w-full mb-4 gap-2" style={{ backgroundColor: primaryColor }}>
+                    <Button className="w-full mb-4 gap-2" style={{ backgroundColor: primaryColor }} variant="outline">
                       <Rocket className="h-4 w-4" />
-                      Get Started Free
+                      Shop Now
                     </Button>
                   </Link>
 
@@ -200,13 +213,28 @@ export function DemoHeader({
               )}
             </Link>
 
-            {/* Location Selector (Desktop) */}
-            <div className="hidden lg:flex items-center gap-2 text-sm">
-              <MapPin className="h-4 w-4" style={{ color: primaryColor }} />
-              <span className="text-muted-foreground">Location:</span>
-              <Button variant="link" className="p-0 h-auto font-medium" style={{ color: primaryColor }}>
-                {location}
-              </Button>
+            {/* Location & Phone (Desktop) */}
+            <div className="hidden lg:flex items-center gap-4 text-sm">
+              {/* Location */}
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" style={{ color: primaryColor }} />
+                <span className="text-muted-foreground">Location:</span>
+                <Button variant="link" className="p-0 h-auto font-medium" style={{ color: primaryColor }}>
+                  {location}
+                </Button>
+              </div>
+
+              {/* Phone Call Button */}
+              {phone && (
+                <div className="flex items-center gap-1 border-l pl-4">
+                  <a href={`tel:${phone}`}>
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Phone className="h-4 w-4" />
+                      {phone}
+                    </Button>
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* Search Bar (Desktop) */}
@@ -225,7 +253,7 @@ export function DemoHeader({
 
             {/* Right Actions */}
             <div className="flex items-center gap-2">
-              {/* Get Started Button (Desktop) */}
+              {/* Shop Now Button (Desktop) */}
               <Link href={customerLoginUrl} className="hidden lg:block">
                 <Button
                   size="sm"
@@ -233,7 +261,7 @@ export function DemoHeader({
                   style={{ backgroundColor: primaryColor }}
                 >
                   <Rocket className="h-4 w-4" />
-                  Get Started Free
+                  Shop Now
                 </Button>
               </Link>
 

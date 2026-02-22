@@ -7,6 +7,7 @@ import { OversizedProductCard } from './oversized-product-card';
 import type { Product } from '@/types/domain';
 
 interface ProductSectionProps {
+  id?: string; // For anchoring/scrolling to sections
   title: string;
   subtitle?: string;
   products: Product[];
@@ -24,6 +25,7 @@ interface ProductSectionProps {
 }
 
 export function ProductSection({
+  id,
   title,
   subtitle,
   products,
@@ -61,7 +63,7 @@ export function ProductSection({
   if (products.length === 0) return null;
 
   return (
-    <section className="py-8">
+    <section id={id} className="py-8 scroll-mt-20">
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

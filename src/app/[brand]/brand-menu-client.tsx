@@ -570,7 +570,8 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           brandSlug={brandSlug}
           useLogoInHeader={brand.useLogoInHeader}
           brandColors={brandColors}
-          location={brand.location ? `${brand.location.city}, ${brand.location.state}` : `${brand.city || ''}, ${brand.state || ''}`}
+          location={brand.location?.address ? `${brand.location.address}, ${brand.location.city}, ${brand.location.state} ${brand.location.zip}` : brand.location ? `${brand.location.city}, ${brand.location.state}` : `${brand.city || ''}, ${brand.state || ''}`}
+          phone={brand.contactPhone}
           onSearch={handleSearch}
           onCategorySelect={handleCategorySelect}
           onCartClick={() => setCartOpen(true)}
@@ -782,9 +783,12 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
             const categoryProducts = productsByCategory[category] || [];
             if (categoryProducts.length === 0) return null;
 
+            const categoryId = `category-${category.toLowerCase().replace(/\s+/g, '-')}`;
+
             return (
               <ProductSection
                 key={category}
+                id={categoryId}
                 title={category}
                 subtitle={`${categoryProducts.length} products`}
                 products={categoryProducts.slice(0, 8)}
