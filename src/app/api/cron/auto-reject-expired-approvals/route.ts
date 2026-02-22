@@ -94,7 +94,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Validate CRON_SECRET
     const auth = requireCronSecret(request);
     if (!auth.valid) {
-      return NextResponse.json({ error: auth.error }, { status: 401 });
+      const status = auth.error === 'Server misconfiguration' ? 500 : 401;
+      return NextResponse.json({ error: auth.error }, { status });
     }
 
     logger.info('[AutoRejectCron] Starting auto-reject job');
@@ -164,7 +165,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // Validate CRON_SECRET
     const auth = requireCronSecret(request);
     if (!auth.valid) {
-      return NextResponse.json({ error: auth.error }, { status: 401 });
+      const status = auth.error === 'Server misconfiguration' ? 500 : 401;
+      return NextResponse.json({ error: auth.error }, { status });
     }
 
     logger.info('[AutoRejectCron] Manual trigger via GET');
