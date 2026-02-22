@@ -59,7 +59,15 @@ export function CategoryGrid({
                 <Card
                   key={category.id}
                   className="group cursor-pointer hover:shadow-lg transition-all overflow-hidden flex-shrink-0 w-32 md:w-36"
-                  onClick={() => onCategoryClick?.(category.id)}
+                  onClick={() => {
+                    onCategoryClick?.(category.id);
+                    // Scroll to category section with proper offset
+                    const categoryId = `category-${category.name.toLowerCase().replace(/\s+/g, '-')}`;
+                    const element = document.getElementById(categoryId);
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
                 >
                   <div className="p-4 flex flex-col items-center text-center">
                     {/* Icon/Image */}
