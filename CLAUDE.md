@@ -31,6 +31,44 @@ npm run check:types
 
 ---
 
+## 🚀 Developer Super Powers (11 Ready-to-Use Scripts)
+
+**All 21 npm scripts deployed 2026-02-22** — Use these for automation, testing, compliance, and observability.
+
+### Tier 1: Foundational
+| Command | Purpose |
+|---------|---------|
+| `npm run audit:indexes` | Report all 81 Firestore composite indexes |
+| `npm run setup:secrets` | Audit GCP Secret Manager provisioning status |
+| `npm run audit:schema` | Validate 8 collections against schema types |
+
+### Tier 2: Acceleration
+| Command | Purpose |
+|---------|---------|
+| `npm run seed:test` | Seed org_test_bakedbot with 10 customers, 5 playbooks, 3 campaigns |
+| `npm run generate:component <Name>` | Scaffold React component + test |
+| `npm run generate:action <name>` | Scaffold server action |
+| `npm run generate:route <endpoint>` | Scaffold API route (GET/POST) |
+| `npm run generate:cron <job-name>` | Scaffold cron job endpoint |
+| `npm run fix:build` | Auto-fix TypeScript errors (import paths, console→logger) |
+
+### Tier 3: Safety
+| Command | Purpose |
+|---------|---------|
+| `npm run test:security` | Run 12 role-based security scenarios |
+| `npm run check:compliance --text "..."` | Check content for compliance violations (Claude Haiku) |
+| `npm run audit:consistency` | Validate 8 consistency rules across all orgs |
+
+### Tier 4: Observability
+| Command | Purpose |
+|---------|---------|
+| `npm run setup:monitoring` | Configure Cloud Monitoring alerts for Slack #ops |
+| `npm run audit:costs` | Analyze Firestore query costs (scans $5-15/mo, optimal $0.10-0.50/mo) |
+
+**Details:** See `.agent/specs/` for full super powers documentation.
+
+---
+
 ## Project Overview
 
 **BakedBot AI** — Agentic Commerce OS for cannabis industry
