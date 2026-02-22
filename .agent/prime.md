@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-22)
 
 **Recent work (2026-02-22):** See `memory/MEMORY.md` for full log.
-Key completed: [Goal-Driven Directive System Phase 1-4] (`6f33a421`) — types, CRUD, AI suggestions (Gemini), agent integration, daily cron tracking
+Key completed: [Goal-Driven Directive System Phase 1-4 + Tests] (`6f33a421`), Tests (`<new>`) — full implementation + 5 test suites (100+ cases)
 
 ---
 
