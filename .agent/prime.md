@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-22)
 
 **Recent work (2026-02-22):** See `memory/MEMORY.md` for full log.
-Key completed: [Thrive Enrollment] (`aaf7acce`) — 111 customers + 22 paused playbooks, **Service Account key authentication super power** (atomic Firestore bulk operations), infrastructure ready pre-Mailjet; [Infrastructure audit] — Alleaves POS verified, Cloud Scheduler jobs ready, 2 indexes added to `firestore.indexes.json`
+Key completed: [Menu Bug Fix] (`85112e27`) — Category filtering, dynamic category grid from products, ID↔name mapping; [Product Cleanup] (`cleanup-executed`) — 80 orphaned products deleted (weedmaps, pilot, unknown, manual sources), 1,306 POS products preserved, service account auth enabled
 
 ---
 
