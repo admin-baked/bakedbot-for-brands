@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-22 (Menu category filtering fixed, Thrive product cleanup executed - 80 orphaned products deleted, service account auth enabled)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-22 (Smokey Support Hub inline help + AI Budtender test tab on /dashboard/menu)
 
 ---
 

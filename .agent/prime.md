@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-22)
 
 **Recent work (2026-02-22):** See `memory/MEMORY.md` for full log.
-Key completed: [Menu Bug Fix] (`85112e27`) — Category filtering, dynamic category grid from products, ID↔name mapping; [Product Cleanup] (`cleanup-executed`) — 80 orphaned products deleted (weedmaps, pilot, unknown, manual sources), 1,306 POS products preserved, service account auth enabled
+Key completed: [Smokey Support Hub Refactor] (`2ac153be`) — Inline help panel (no modal overlay), HelpSearchEnhanced renders in-widget; [AI Budtender Test Tab] — "Ask Smokey" tab on /dashboard/menu with Chatbot integration for testing against live product catalog
 
 ---
 
