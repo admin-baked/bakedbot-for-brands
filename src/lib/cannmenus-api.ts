@@ -62,6 +62,31 @@ function calculateDistance(
 }
 
 /**
+ * Map full US state names (from Nominatim) to 2-letter abbreviations (for CannMenus API)
+ */
+const STATE_NAME_TO_ABBR: Record<string, string> = {
+    'alabama': 'AL', 'alaska': 'AK', 'arizona': 'AZ', 'arkansas': 'AR',
+    'california': 'CA', 'colorado': 'CO', 'connecticut': 'CT', 'delaware': 'DE',
+    'florida': 'FL', 'georgia': 'GA', 'hawaii': 'HI', 'idaho': 'ID',
+    'illinois': 'IL', 'indiana': 'IN', 'iowa': 'IA', 'kansas': 'KS',
+    'kentucky': 'KY', 'louisiana': 'LA', 'maine': 'ME', 'maryland': 'MD',
+    'massachusetts': 'MA', 'michigan': 'MI', 'minnesota': 'MN', 'mississippi': 'MS',
+    'missouri': 'MO', 'montana': 'MT', 'nebraska': 'NE', 'nevada': 'NV',
+    'new hampshire': 'NH', 'new jersey': 'NJ', 'new mexico': 'NM', 'new york': 'NY',
+    'north carolina': 'NC', 'north dakota': 'ND', 'ohio': 'OH', 'oklahoma': 'OK',
+    'oregon': 'OR', 'pennsylvania': 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
+    'south dakota': 'SD', 'tennessee': 'TN', 'texas': 'TX', 'utah': 'UT',
+    'vermont': 'VT', 'virginia': 'VA', 'washington': 'WA', 'west virginia': 'WV',
+    'wisconsin': 'WI', 'wyoming': 'WY',
+};
+
+/** Normalize a state string to its 2-letter abbreviation (e.g. "New York" → "NY") */
+function normalizeStateAbbr(state: string): string {
+    if (state.length === 2) return state.toUpperCase();
+    return STATE_NAME_TO_ABBR[state.toLowerCase()] || state;
+}
+
+/**
  * Search for nearby retailers/dispensaries
  */
 export async function searchNearbyRetailers(
@@ -80,8 +105,12 @@ export async function searchNearbyRetailers(
             sort: 'distance',
         });
 
-        if (state) {
-            params.append('states', state);
+        // Normalize state to abbreviation — Nominatim returns full names ("New York")
+        // but CannMenus API expects abbreviations ("NY")
+        const stateAbbr = state ? normalizeStateAbbr(state) : undefined;
+
+        if (stateAbbr) {
+            params.append('states', stateAbbr);
         }
 
         // If we have a city name, search by name as a fallback for broken geo-search
@@ -131,11 +160,11 @@ export async function searchNearbyRetailers(
         }));
 
         // Filter by state if provided (client-side backup)
+        // Normalize both sides to abbreviations so "New York" vs "NY" doesn't drop all results
         let filtered = retailers;
-        if (state) {
+        if (stateAbbr) {
             filtered = filtered.filter(r =>
-                (r.state && r.state.toLowerCase() === state.toLowerCase()) ||
-                (r.state && r.state.toLowerCase() === (state === 'CA' ? 'california' : state.toLowerCase())) // Handle basic mapping
+                r.state && normalizeStateAbbr(r.state) === stateAbbr
             );
         }
 
