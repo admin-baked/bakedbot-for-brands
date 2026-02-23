@@ -321,15 +321,34 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
     const posCustomers = await getCustomersFromAlleaves(orgId, firestore);
 
     // 2. Get customers from BakedBot orders (fallback or supplement)
+    let ordersSnap;
     let ordersQuery = firestore.collection('orders') as FirebaseFirestore.Query;
-    
-    if (locationId) {
-        ordersQuery = ordersQuery.where('retailerId', '==', locationId);
-    } else {
-        ordersQuery = ordersQuery.where('brandId', '==', orgId);
-    }
 
-    const ordersSnap = await ordersQuery.get();
+    if (locationId) {
+        // Try by retailerId first
+        let query = ordersQuery.where('retailerId', '==', locationId);
+        let snap = await query.get();
+        if (!snap.empty) {
+            ordersSnap = snap;
+        } else {
+            // Fallback: try by orgId if retailerId doesn't match
+            logger.info('[CUSTOMERS] No orders by retailerId, trying orgId fallback', { locationId, orgId });
+            ordersQuery = firestore.collection('orders') as FirebaseFirestore.Query;
+            ordersSnap = await ordersQuery.where('orgId', '==', orgId).get();
+        }
+    } else {
+        // Try by brandId first
+        let query = ordersQuery.where('brandId', '==', orgId);
+        let snap = await query.get();
+        if (!snap.empty) {
+            ordersSnap = snap;
+        } else {
+            // Fallback: try by orgId if brandId doesn't match
+            logger.info('[CUSTOMERS] No orders by brandId, trying orgId fallback', { orgId });
+            ordersQuery = firestore.collection('orders') as FirebaseFirestore.Query;
+            ordersSnap = await ordersQuery.where('orgId', '==', orgId).get();
+        }
+    }
 
     const orders = ordersSnap.docs.map((doc: any) => {
         const data = doc.data();
@@ -339,6 +358,12 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
             customer: data.customer || {},
             totals: data.totals || { total: 0 }
         };
+    });
+
+    logger.info('[CUSTOMERS] Orders loaded', {
+        orgId,
+        orderCount: orders.length,
+        fromLocationId: locationId,
     });
 
     // 3. Get any manually added customers from CRM collection
