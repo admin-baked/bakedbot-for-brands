@@ -321,6 +321,9 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
                         source: 'pos',
                         externalId: item.externalId,
                         lastSyncedAt: now.toISOString(),
+                        // COGS from POS — undefined skips field (preserves manually-entered values on merge)
+                        ...(item.cost !== undefined ? { cost: item.cost } : {}),
+                        ...(item.batchCost !== undefined ? { batchCost: item.batchCost } : {}),
                     };
                     tenantBatch.set(ref, tenantProductData, { merge: true });
                     tenantCount++;
@@ -741,15 +744,25 @@ export async function updateProductCost(
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const { firestore } = await createServerClient();
-        await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'super_user']);
+        const user = await requireUser(['dispensary', 'dispensary_admin', 'dispensary_staff', 'super_user']);
 
         const { FieldValue } = await import('firebase-admin/firestore');
-        // Use FieldValue.delete() to fully remove the field when clearing cost
-        await firestore.collection('products').doc(productId).update({
-            cost: cost !== null ? cost : FieldValue.delete(),
-        });
+        const costValue = cost !== null ? cost : FieldValue.delete();
 
-        logger.info('[MENU_ACTION] COGS updated', { productId, cost });
+        // Update legacy products collection
+        await firestore.collection('products').doc(productId).update({ cost: costValue });
+
+        // Also update tenant catalog so COGS shows on menu management and financial pages
+        const orgId = (user as any).currentOrgId || (user as any).orgId || (user as any).brandId;
+        if (orgId) {
+            const tenantRef = firestore
+                .collection('tenants').doc(orgId)
+                .collection('publicViews').doc('products')
+                .collection('items').doc(productId);
+            await tenantRef.set({ cost: costValue }, { merge: true });
+        }
+
+        logger.info('[MENU_ACTION] COGS updated', { productId, cost, orgId });
         return { success: true };
     } catch (error) {
         logger.error('[MENU_ACTION] Failed to update product cost', { productId, error });
