@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-23 (Pinky QA agent + 99 test cases seeded; robots.txt age-gate bypass fixed; goals/suggest 401; smoke tests 17/17)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-23 (Zapier-like Playbook trigger editor: TriggerEditorPanel + PlaybookEditSheet + 106 tests)
 
 ---
 
