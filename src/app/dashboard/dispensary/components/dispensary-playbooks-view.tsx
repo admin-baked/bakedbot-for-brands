@@ -12,24 +12,29 @@ import React, { useState, useEffect, useTransition } from 'react';
 import { motion } from 'framer-motion';
 import {
     Zap, Mail, MessageSquare, BarChart3, Shield, TrendingUp,
-    Users, ShoppingBag, Loader2, CheckCircle2, Clock, RefreshCw,
-    ChevronRight, Sparkles, Play, Pause, Bell,
+    Users, ShoppingBag, Loader2, CheckCircle2, Clock,
+    ChevronRight, Sparkles, Bell, Settings2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { PLAYBOOKS, getPlaybookIdsForTier } from '@/config/playbooks';
-import type { PlaybookDefinition, PlaybookAgent } from '@/config/playbooks';
+import type { PlaybookDefinition, PlaybookAgent, PlaybookTrigger as ConfigTrigger } from '@/config/playbooks';
 import type { TierId } from '@/config/tiers';
+import type { PlaybookTrigger } from '@/types/playbook';
 import {
     getDispensaryPlaybookAssignments,
     toggleDispensaryPlaybookAssignment,
     activateAllTierPlaybooks,
+    updatePlaybookAssignmentConfig,
 } from '@/server/actions/dispensary-playbooks';
+import type { PlaybookCustomConfig } from '@/server/actions/dispensary-playbooks';
+import { PlaybookEditSheet } from '../../playbooks/components/playbook-edit-sheet';
+import type { DeliveryConfig } from '../../playbooks/components/playbook-edit-sheet';
 
 // ─── Agent Display Config ────────────────────────────────────────────────────
 
@@ -111,6 +116,31 @@ function getChannelIcons(playbook: PlaybookDefinition) {
     });
 }
 
+// ─── Helpers: convert config trigger to editable PlaybookTrigger ──────────────
+
+const FREQ_TO_CRON: Record<string, string> = {
+    daily: '0 7 * * *',
+    weekly: '0 9 * * 1',
+    monthly: '0 8 1 * *',
+    quarterly: '0 8 1 1,4,7,10 *',
+    one_time: '0 7 * * *',
+};
+
+function configTriggerToPlaybookTrigger(configTrigger: ConfigTrigger): PlaybookTrigger {
+    if (configTrigger.type === 'schedule') {
+        return {
+            type: 'schedule',
+            cron: FREQ_TO_CRON[configTrigger.frequency] ?? '0 7 * * *',
+            timezone: 'America/New_York',
+        };
+    }
+    return { type: 'event', eventName: configTrigger.event };
+}
+
+function hasDeliveryChannels(playbook: PlaybookDefinition): boolean {
+    return playbook.channels.some((ch) => ch === 'email' || ch === 'sms_customer' || ch === 'sms_internal');
+}
+
 // ─── Playbook Card ────────────────────────────────────────────────────────────
 
 interface PlaybookCardProps {
@@ -118,12 +148,14 @@ interface PlaybookCardProps {
     isActive: boolean;
     onToggle: (id: string, active: boolean) => void;
     isToggling: boolean;
+    onConfigure: (playbook: PlaybookDefinition) => void;
+    customScheduleLabel?: string;
 }
 
-function PlaybookCard({ playbook, isActive, onToggle, isToggling }: PlaybookCardProps) {
+function PlaybookCard({ playbook, isActive, onToggle, isToggling, onConfigure, customScheduleLabel }: PlaybookCardProps) {
     const agent = AGENT_CONFIG[playbook.agent];
     const AgentIcon = agent.icon;
-    const triggerLabel = getTriggerLabel(playbook);
+    const triggerLabel = customScheduleLabel ?? getTriggerLabel(playbook);
     const channels = getChannelIcons(playbook);
 
     return (
@@ -171,8 +203,17 @@ function PlaybookCard({ playbook, isActive, onToggle, isToggling }: PlaybookCard
                         </div>
                     </div>
 
-                    {/* Right: Toggle */}
+                    {/* Right: Configure + Toggle */}
                     <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => { e.stopPropagation(); onConfigure(playbook); }}
+                            title="Configure trigger and delivery"
+                        >
+                            <Settings2 className="h-3.5 w-3.5" />
+                        </Button>
                         {isToggling && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
                         <Switch
                             checked={isActive}
@@ -201,6 +242,8 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
     const [isLoading, setIsLoading] = useState(true);
     const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
     const [isActivatingAll, startActivatingAll] = useTransition();
+    const [customConfigs, setCustomConfigs] = useState<Record<string, PlaybookCustomConfig>>({});
+    const [editingPlaybook, setEditingPlaybook] = useState<PlaybookDefinition | null>(null);
 
     // Load playbook assignments on mount
     useEffect(() => {
@@ -209,6 +252,7 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
                 const data = await getDispensaryPlaybookAssignments(orgId);
                 setActiveIds(new Set(data.activeIds));
                 setTierId(data.tierId);
+                setCustomConfigs(data.customConfigs);
 
                 // Get tier playbooks from config
                 const tierIds = new Set(getPlaybookIdsForTier(data.tierId));
@@ -290,6 +334,36 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
                 });
             }
         });
+    };
+
+    const handleConfigure = (playbook: PlaybookDefinition) => {
+        setEditingPlaybook(playbook);
+    };
+
+    const handleSaveConfig = async (trigger: PlaybookTrigger, delivery: DeliveryConfig) => {
+        if (!editingPlaybook) return;
+
+        const config: PlaybookCustomConfig = {
+            schedule: trigger.type === 'schedule' && trigger.cron
+                ? { cron: trigger.cron, timezone: trigger.timezone ?? 'America/New_York' }
+                : undefined,
+            delivery: {
+                channels: delivery.channels,
+                emailTo: delivery.emailTo,
+                phoneNumber: delivery.phoneNumber,
+                reportFormat: delivery.reportFormat,
+            },
+        };
+
+        const result = await updatePlaybookAssignmentConfig(orgId, editingPlaybook.id, config);
+        if (!result.success) throw new Error(result.error ?? 'Failed to save');
+
+        setCustomConfigs((prev) => ({ ...prev, [editingPlaybook.id]: config }));
+        toast({
+            title: 'Configuration saved',
+            description: 'Schedule and delivery settings updated.',
+        });
+        setEditingPlaybook(null);
     };
 
     // Group playbooks by agent
@@ -475,6 +549,12 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
                                                 isActive={activeIds.has(playbook.id)}
                                                 onToggle={handleToggle}
                                                 isToggling={togglingIds.has(playbook.id)}
+                                                onConfigure={handleConfigure}
+                                                customScheduleLabel={
+                                                    customConfigs[playbook.id]?.schedule
+                                                        ? 'Custom schedule'
+                                                        : undefined
+                                                }
                                             />
                                         </motion.div>
                                     ))}
@@ -493,6 +573,28 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
                     View Inbox <ChevronRight className="h-3 w-3 inline" />
                 </a>
             </p>
+
+            {/* ── Configure Sheet ──────────────────────────────────────────── */}
+            {editingPlaybook && (
+                <PlaybookEditSheet
+                    open={!!editingPlaybook}
+                    onOpenChange={(open) => { if (!open) setEditingPlaybook(null); }}
+                    playbookName={editingPlaybook.name}
+                    playbookDescription={editingPlaybook.description}
+                    initialTrigger={
+                        customConfigs[editingPlaybook.id]?.schedule
+                            ? {
+                                type: 'schedule',
+                                cron: customConfigs[editingPlaybook.id].schedule!.cron,
+                                timezone: customConfigs[editingPlaybook.id].schedule!.timezone,
+                            }
+                            : configTriggerToPlaybookTrigger(editingPlaybook.trigger)
+                    }
+                    hasDelivery={hasDeliveryChannels(editingPlaybook)}
+                    initialDelivery={customConfigs[editingPlaybook.id]?.delivery}
+                    onSave={handleSaveConfig}
+                />
+            )}
         </div>
     );
 }

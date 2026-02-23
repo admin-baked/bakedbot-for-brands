@@ -5,10 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
-import { Search, Play, Clock, Activity, Pencil } from 'lucide-react';
+import { Search, Play, Clock, Pencil, Settings2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { listBrandPlaybooks, togglePlaybookStatus, runPlaybookTest, updatePlaybook } from '@/server/actions/playbooks';
-import { Playbook } from '@/types/playbook';
+import type { Playbook, PlaybookTrigger } from '@/types/playbook';
 import {
     Dialog,
     DialogContent,
@@ -16,6 +16,8 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { PlaybookEditor } from '../../playbooks/components/playbook-editor';
+import { PlaybookEditSheet } from '../../playbooks/components/playbook-edit-sheet';
+import type { DeliveryConfig } from '../../playbooks/components/playbook-edit-sheet';
 
 export function BrandPlaybooksList({ brandId }: { brandId: string }) {
     const { toast } = useToast();
@@ -24,6 +26,7 @@ export function BrandPlaybooksList({ brandId }: { brandId: string }) {
     const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingPlaybook, setEditingPlaybook] = useState<Playbook | null>(null);
+    const [configuringPlaybook, setConfiguringPlaybook] = useState<Playbook | null>(null);
 
     useEffect(() => {
         async function load() {
@@ -118,6 +121,22 @@ export function BrandPlaybooksList({ brandId }: { brandId: string }) {
         }
     };
 
+    const handleSaveTrigger = async (trigger: PlaybookTrigger, delivery: DeliveryConfig) => {
+        if (!configuringPlaybook) return;
+        const result = await updatePlaybook(brandId, configuringPlaybook.id, {
+            triggers: [trigger],
+            metadata: { ...(configuringPlaybook.metadata ?? {}), delivery },
+        });
+        if (!result.success) throw new Error(result.error ?? 'Failed to save');
+        toast({ title: 'Playbook updated', description: 'Schedule and delivery settings saved.' });
+        setPlaybooks(prev => prev.map(pb =>
+            pb.id === configuringPlaybook.id
+                ? { ...pb, triggers: [trigger], metadata: { ...(pb.metadata ?? {}), delivery } }
+                : pb
+        ));
+        setConfiguringPlaybook(null);
+    };
+
     const filtered = playbooks.filter(pb => {
         const matchesSearch = pb.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             pb.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -192,8 +211,11 @@ export function BrandPlaybooksList({ brandId }: { brandId: string }) {
                                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0 hover:bg-green-50 hover:text-green-600" onClick={() => runPlaybook(pb.id, pb.name)}>
                                         <Play className="h-3 w-3" />
                                     </Button>
-                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 hover:bg-blue-50 hover:text-blue-600" onClick={() => setEditingPlaybook(pb)}>
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 hover:bg-blue-50 hover:text-blue-600" onClick={() => setEditingPlaybook(pb)} title="Edit steps">
                                         <Pencil className="h-3 w-3" />
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 hover:bg-violet-50 hover:text-violet-600" onClick={() => setConfiguringPlaybook(pb)} title="Configure trigger and delivery">
+                                        <Settings2 className="h-3 w-3" />
                                     </Button>
                                 </div>
                             </div>
@@ -202,7 +224,7 @@ export function BrandPlaybooksList({ brandId }: { brandId: string }) {
                 ))}
             </div>
 
-            {/* Edit Playbook Dialog */}
+            {/* Edit Playbook Dialog (full step editor) */}
             <Dialog open={!!editingPlaybook} onOpenChange={(open) => !open && setEditingPlaybook(null)}>
                 <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
@@ -217,6 +239,22 @@ export function BrandPlaybooksList({ brandId }: { brandId: string }) {
                     )}
                 </DialogContent>
             </Dialog>
+
+            {/* Configure trigger + delivery sheet */}
+            {configuringPlaybook && (
+                <PlaybookEditSheet
+                    open={!!configuringPlaybook}
+                    onOpenChange={(open) => { if (!open) setConfiguringPlaybook(null); }}
+                    playbookName={configuringPlaybook.name}
+                    playbookDescription={configuringPlaybook.description}
+                    initialTrigger={configuringPlaybook.triggers?.[0] ?? { type: 'manual' }}
+                    hasDelivery={configuringPlaybook.steps?.some((s) =>
+                        ['send_email', 'email.send', 'gmail.send', 'notify'].includes(s.action ?? '')
+                    )}
+                    initialDelivery={configuringPlaybook.metadata?.delivery as DeliveryConfig | undefined}
+                    onSave={handleSaveTrigger}
+                />
+            )}
         </div>
     );
 }
