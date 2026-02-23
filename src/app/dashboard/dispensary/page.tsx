@@ -25,6 +25,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { POSSyncStatus } from '@/components/dashboard/pos-sync-status';
+import { getBugs } from '@/server/actions/qa';
+import { QA_PRIORITY_CONFIG, QA_STATUS_CONFIG } from '@/types/qa';
+import type { QABug } from '@/types/qa';
 
 export default async function DispensaryDashboard() {
   // Require dispensary role
@@ -81,6 +84,11 @@ export default async function DispensaryDashboard() {
       {/* Stats Grid */}
       <Suspense fallback={<StatsGridSkeleton />}>
         <StatsGrid orgId={orgId} />
+      </Suspense>
+
+      {/* Known Issues (P0/P1 bugs for this org — hidden when clean) */}
+      <Suspense fallback={null}>
+        <OpenBugsCard orgId={orgId} />
       </Suspense>
 
       {/* Recent Orders & Quick Actions */}
@@ -347,6 +355,53 @@ function getStatusVariant(status: string): 'default' | 'secondary' | 'destructiv
       return 'destructive';
     default:
       return 'outline';
+  }
+}
+
+/**
+ * Known Issues Card — shows P0/P1 bugs affecting this org.
+ * Completely hidden when there are no active critical issues.
+ */
+async function OpenBugsCard({ orgId }: { orgId: string }) {
+  try {
+    const allBugs: QABug[] = await getBugs({ orgId, status: 'open' });
+    const criticalBugs = allBugs.filter(b => b.priority === 'P0' || b.priority === 'P1');
+
+    if (criticalBugs.length === 0) return null;
+
+    return (
+      <Card className="border-orange-200 bg-orange-50">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-orange-800">
+            <AlertCircle className="h-5 w-5 text-orange-600" />
+            Known Issues ({criticalBugs.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {criticalBugs.map((bug: QABug) => {
+            const pConfig = QA_PRIORITY_CONFIG[bug.priority];
+            const sConfig = QA_STATUS_CONFIG[bug.status];
+            return (
+              <div key={bug.id} className="flex items-center justify-between rounded-md bg-white border border-orange-100 px-3 py-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-sm">{pConfig.emoji}</span>
+                  <span className="text-sm font-medium truncate">{bug.title}</span>
+                </div>
+                <Badge variant="secondary" className={`text-xs ml-2 shrink-0 ${sConfig.color}`}>
+                  {sConfig.label}
+                </Badge>
+              </div>
+            );
+          })}
+          <p className="text-xs text-orange-700 mt-2">
+            {allBugs.length} total open issue{allBugs.length !== 1 ? 's' : ''} · Our team is aware and working on it.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  } catch {
+    // Non-fatal — don't crash the dispensary dashboard if QA fetch fails
+    return null;
   }
 }
 

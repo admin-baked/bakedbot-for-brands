@@ -48,6 +48,7 @@ const DriveTab = nextDynamic(() => import("./components/drive-tab"), { loading: 
 const CostsTab = nextDynamic(() => import("./components/costs-tab"), { loading: TabLoader, ssr: false });
 const SystemHealthTab = nextDynamic(() => import("./components/system-health-tab"), { loading: TabLoader, ssr: false });
 const GoalsCeoTab = nextDynamic(() => import("./components/goals-ceo-tab"), { loading: TabLoader, ssr: false });
+const QATab = nextDynamic(() => import("./components/qa-tab"), { loading: TabLoader, ssr: false });
 
 
 import { useUserRole } from '@/hooks/use-user-role';
@@ -204,6 +205,7 @@ function CeoDashboardContent() {
             case 'costs': return <CostsTab />;
             case 'health': return <SystemHealthTab />;
             case 'goals': return <GoalsCeoTab />;
+            case 'qa': return <QATab />;
             default: return <SuperUserPlaybooksPage />;
         }
     };
@@ -230,6 +232,9 @@ function CeoDashboardContent() {
                     </Link>
                     <Link href="?tab=email">
                         <Button variant="ghost" size="sm" className="w-full sm:w-auto">Email Tester</Button>
+                    </Link>
+                    <Link href="?tab=qa">
+                        <Button variant="ghost" size="sm" className="w-full sm:w-auto">QA</Button>
                     </Link>
                     <DataImportDropdown />
                     {process.env.NODE_ENV !== 'production' && <MockDataToggle />}

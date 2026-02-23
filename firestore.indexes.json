@@ -645,8 +645,8 @@
                     "order": "DESCENDING"
                 }
             ]
-        }
-        ,{
+        },
+        {
             "collectionGroup": "campaigns",
             "queryScope": "COLLECTION",
             "fields": [
@@ -1283,6 +1283,60 @@
                 {
                     "fieldPath": "__name__",
                     "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "qa_bugs",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "priority",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "qa_bugs",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "affectedOrgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "qa_bugs",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "assignedTo",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "status",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "createdAt",
+                    "order": "DESCENDING"
                 }
             ]
         }
