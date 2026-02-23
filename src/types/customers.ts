@@ -299,12 +299,18 @@ export interface LoyaltyCampaign {
  * Calculate customer segment based on behavior
  */
 export function calculateSegment(profile: Partial<CustomerProfile>): CustomerSegment {
-    const daysSinceOrder = profile.daysSinceLastOrder ??
-        (profile.lastOrderDate ? Math.floor((Date.now() - new Date(profile.lastOrderDate).getTime()) / (1000 * 60 * 60 * 24)) : 999);
-
     const orderCount = profile.orderCount ?? 0;
     const avgOrderValue = profile.avgOrderValue ?? 0;
     const lifetimeValue = profile.lifetimeValue ?? 0;
+
+    // No order history at all (e.g. loyalty-only enrollees from POS where spending data
+    // is not yet loaded). Cannot classify by recency — treat as 'new' rather than 'churned'.
+    if (orderCount === 0 && !profile.lastOrderDate && profile.daysSinceLastOrder === undefined) {
+        return 'new';
+    }
+
+    const daysSinceOrder = profile.daysSinceLastOrder ??
+        (profile.lastOrderDate ? Math.floor((Date.now() - new Date(profile.lastOrderDate).getTime()) / (1000 * 60 * 60 * 24)) : 999);
 
     // Churned: 90+ days
     if (daysSinceOrder >= 90) return 'churned';
