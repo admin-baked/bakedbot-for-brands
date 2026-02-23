@@ -18,6 +18,7 @@ jobs:
           fi
 
       - name: Send Heartbeat Pulse
+        id: pulse
         run: |
           echo "💓 Sending heartbeat pulse at $(date)"
 
@@ -30,11 +31,48 @@ jobs:
 
           echo "HTTP Status: $http_code"
           echo "Response: $body"
+          echo "http_code=$http_code" >> $GITHUB_OUTPUT
+          echo "body=$body" >> $GITHUB_OUTPUT
 
           if [ "$http_code" != "200" ]; then
             echo "ERROR: Heartbeat failed with status $http_code"
             exit 1
           fi
+        continue-on-error: true
+
+      - name: Escalate to Linus on failure
+        if: steps.pulse.outputs.http_code != '200'
+        run: |
+          ENDPOINT="https://bakedbot.ai/api/cron/tick"
+          HTTP_CODE="${{ steps.pulse.outputs.http_code }}"
+          BODY="${{ steps.pulse.outputs.body }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          echo "🚨 Heartbeat failed (HTTP $HTTP_CODE) — escalating to Linus"
+
+          curl -s -X POST https://bakedbot.ai/api/cron/auto-escalate \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 15 \
+            -d "{
+              \"type\": \"heartbeat\",
+              \"data\": {
+                \"httpStatus\": $HTTP_CODE,
+                \"responseBody\": \"$BODY\",
+                \"endpoint\": \"$ENDPOINT\",
+                \"failedAt\": \"$TIMESTAMP\",
+                \"githubRunUrl\": \"$RUN_URL\"
+              }
+            }" || echo "Warning: auto-escalate call failed (non-fatal)"
+
+      - name: Fail job after escalation
+        if: steps.pulse.outputs.http_code != '200'
+        run: |
+          echo "❌ Heartbeat failed with HTTP ${{ steps.pulse.outputs.http_code }}"
+          echo "Linus has been notified. Check Slack #incidents for analysis."
+          exit 1
 
       - name: Log Success
+        if: steps.pulse.outputs.http_code == '200'
         run: echo "✅ Heartbeat pulse successful - System is alive at $(date)"

@@ -1,0 +1,121 @@
+name: Synthetic Monitoring (k6)
+
+# Probes critical production endpoints every 15 minutes.
+# Enforces p95 < 600ms SLA — alerts Slack on breach or failure.
+#
+# Endpoints monitored:
+#   /api/health       → liveness + revision detection (p95 < 200ms)
+#   /thrivesyracuse   → ISR public menu — primary customer path (p95 < 600ms)
+#   /llm.txt          → agent web infrastructure (p95 < 600ms)
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # every 15 minutes
+  workflow_dispatch:         # allow manual trigger for debugging
+
+jobs:
+  synthetic:
+    name: k6 Latency Probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Run synthetic probes
+        id: k6
+        run: |
+          k6 run scripts/k6-synthetic.js \
+            --env BASE_URL=https://bakedbot.ai \
+            --out json=scripts/k6-raw.json \
+            2>&1 | tee k6-output.txt
+
+          # Capture exit code (non-zero = threshold breach)
+          echo "k6_exit=$?" >> $GITHUB_OUTPUT
+
+          # Parse summary JSON written by handleSummary()
+          if [ -f scripts/k6-summary.json ]; then
+            P95=$(cat scripts/k6-summary.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['p95_ms'])")
+            PASSED=$(cat scripts/k6-summary.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['passed'])")
+            HEALTH_P95=$(cat scripts/k6-summary.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['endpoints']['health']['p95_ms'])")
+            MENU_P95=$(cat scripts/k6-summary.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['endpoints']['menu']['p95_ms'])")
+            LLM_P95=$(cat scripts/k6-summary.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['endpoints']['llm_txt']['p95_ms'])")
+            echo "p95=$P95" >> $GITHUB_OUTPUT
+            echo "passed=$PASSED" >> $GITHUB_OUTPUT
+            echo "health_p95=$HEALTH_P95" >> $GITHUB_OUTPUT
+            echo "menu_p95=$MENU_P95" >> $GITHUB_OUTPUT
+            echo "llm_p95=$LLM_P95" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true  # don't mask the exit code; we handle it below
+
+      - name: Upload k6 artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-results-${{ github.run_id }}
+          path: |
+            k6-output.txt
+            scripts/k6-summary.json
+            scripts/k6-raw.json
+          retention-days: 7
+
+      - name: Escalate to Linus on SLA breach
+        if: steps.k6.outputs.passed == 'False' || steps.k6.outputs.k6_exit != '0'
+        run: |
+          P95="${{ steps.k6.outputs.p95 }}"
+          HEALTH="${{ steps.k6.outputs.health_p95 }}"
+          MENU="${{ steps.k6.outputs.menu_p95 }}"
+          LLM="${{ steps.k6.outputs.llm_p95 }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          echo "🟠 SLA breach (p95=${P95}ms) — escalating to Linus"
+
+          # Escalate through auto-escalate endpoint → Linus diagnoses + posts to Slack
+          curl -s -X POST https://bakedbot.ai/api/cron/auto-escalate \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            --max-time 15 \
+            -d "{
+              \"type\": \"latency\",
+              \"data\": {
+                \"overallP95\": $P95,
+                \"endpoints\": {
+                  \"health\": $HEALTH,
+                  \"menu\": $MENU,
+                  \"llmTxt\": $LLM
+                },
+                \"breachedAt\": \"$TIMESTAMP\",
+                \"githubRunUrl\": \"$RUN_URL\"
+              }
+            }" || echo "Warning: auto-escalate call failed (non-fatal)"
+
+      - name: Fail job on SLA breach
+        if: steps.k6.outputs.passed == 'False' || steps.k6.outputs.k6_exit != '0'
+        run: |
+          echo "❌ k6 thresholds breached. p95=${{ steps.k6.outputs.p95 }}ms (SLA: 600ms)"
+          echo "  /api/health:     ${{ steps.k6.outputs.health_p95 }}ms (SLA: 200ms)"
+          echo "  /thrivesyracuse: ${{ steps.k6.outputs.menu_p95 }}ms (SLA: 600ms)"
+          echo "  /llm.txt:        ${{ steps.k6.outputs.llm_p95 }}ms (SLA: 600ms)"
+          exit 1
+
+      - name: Log success
+        if: success()
+        run: |
+          echo "✅ All SLAs passing"
+          echo "  Overall p95:     ${{ steps.k6.outputs.p95 }}ms"
+          echo "  /api/health:     ${{ steps.k6.outputs.health_p95 }}ms"
+          echo "  /thrivesyracuse: ${{ steps.k6.outputs.menu_p95 }}ms"
+          echo "  /llm.txt:        ${{ steps.k6.outputs.llm_p95 }}ms"
