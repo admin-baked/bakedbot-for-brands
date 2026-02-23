@@ -7,10 +7,11 @@ import { createSlug } from '@/lib/utils/slug';
 
 /**
  * Check if a slug is available for use
+ * @param slug - The slug to check
+ * @param brandId - The brand/org ID trying to reserve this slug (optional - for ownership check)
  */
-export async function checkSlugAvailability(slug: string): Promise<{ available: boolean; suggestion?: string }> {
+export async function checkSlugAvailability(slug: string, brandId?: string): Promise<{ available: boolean; suggestion?: string }> {
     const { firestore } = await createServerClient();
-    const user = await requireUser(['brand', 'super_user']).catch(() => null);
 
     // Normalize the slug
     const normalizedSlug = createSlug(slug);
@@ -26,18 +27,12 @@ export async function checkSlugAvailability(slug: string): Promise<{ available: 
         return { available: true };
     }
 
-    // If doc exists, check if current user owns it
+    // If doc exists, check if this org already owns it
     // (allows re-reserving their own slug)
     const brandData = brandDoc.data();
-    if (user && brandData?.originalBrandId) {
-        // Get current user's org
-        const userDoc = await firestore.collection('users').doc(user.uid).get();
-        const userOrgId = userDoc.data()?.orgId || user.uid;
-
-        // If user owns this slug, it's available for them
-        if (brandData.originalBrandId === userOrgId) {
-            return { available: true };
-        }
+    if (brandId && brandData?.originalBrandId === brandId) {
+        // This org already owns the slug, so it's available for them
+        return { available: true };
     }
 
     // If taken by someone else, suggest alternatives

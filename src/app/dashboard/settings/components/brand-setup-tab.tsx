@@ -48,16 +48,16 @@ export default function BrandSetupTab() {
             setSlugStatus(slug === existingSlug ? 'available' : 'idle');
             return;
         }
-        
+
         setSlugStatus('checking');
         const timeout = setTimeout(async () => {
-            const result = await checkSlugAvailability(slug);
+            const result = await checkSlugAvailability(slug, brandId);
             setSlugStatus(result.available ? 'available' : 'taken');
             setSlugSuggestion(result.suggestion || null);
         }, 500);
-        
+
         return () => clearTimeout(timeout);
-    }, [slug, existingSlug]);
+    }, [slug, existingSlug, brandId]);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
