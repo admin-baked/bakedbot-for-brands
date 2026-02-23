@@ -29,7 +29,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Search, Store, Truck, Cookie, Shirt, Leaf, Wind, Sparkles, Droplet, Heart, Package, X } from 'lucide-react';
+import { ShoppingCart, Search, Store, Truck, Cookie, Shirt, Leaf, Wind, Sparkles, Droplet, Heart, Package, X, SlidersHorizontal } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useStore } from '@/hooks/use-store';
 import type { Product, Retailer, Brand } from '@/types/domain';
@@ -62,6 +62,8 @@ import { HeroCarousel } from '@/components/demo/hero-carousel';
 import { FeaturedBrandsCarousel } from '@/components/demo/featured-brands-carousel';
 import { MenuInfoBar } from '@/components/demo/menu-info-bar';
 import type { PublicMenuSettings } from '@/components/demo/menu-info-bar';
+import { MenuFilterSidebar, type MenuFilters, EMPTY_FILTERS } from '@/components/demo/menu-filter-sidebar';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 interface BrandMenuClientProps {
   brand: Brand;
@@ -108,6 +110,14 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
   const urlSearch = searchParams.get('q') || '';
   const urlEffect = searchParams.get('effect') || null;
 
+  // Sidebar filter URL params
+  const urlStrainTypes = searchParams.get('types')?.split(',').filter(Boolean) ?? [];
+  const urlWeights = searchParams.get('weights')?.split(',').map(Number).filter(n => !isNaN(n)) ?? [];
+  const urlBrands = searchParams.get('brands')?.split(',').filter(Boolean).map(decodeURIComponent) ?? [];
+  const urlTerpenes = searchParams.get('terpenes')?.split(',').filter(Boolean) ?? [];
+  const urlMinPrice = Number(searchParams.get('minPrice')) || 0;
+  const urlMaxPrice = Number(searchParams.get('maxPrice')) || 99999;
+
   // Check if a URL is a real product image (not a stock photo or placeholder)
   const isRealImage = (url?: string): boolean => {
     if (!url || url.trim() === '') return false;
@@ -138,6 +148,13 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [effectFilter, setEffectFilter] = useState<string | null>(urlEffect);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [sidebarFilters, setSidebarFilters] = useState<MenuFilters>({
+    strainTypes: urlStrainTypes,
+    weights: urlWeights,
+    brands: urlBrands,
+    terpenes: urlTerpenes,
+    priceRange: [urlMinPrice, urlMaxPrice],
+  });
 
   // Cart state
   const [cartOpen, setCartOpen] = useState(false);
@@ -182,13 +199,21 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     }
   }, [brand.id]);
 
-  // Sync all filters with URL params
+  // Sync all filters with URL params (re-runs whenever any query param changes)
   useEffect(() => {
     setCategoryFilter(urlCategory);
     setSortBy(urlSort);
     setSearchQuery(urlSearch);
     setEffectFilter(urlEffect);
-  }, [urlCategory, urlSort, urlSearch, urlEffect]);
+    setSidebarFilters({
+      strainTypes: searchParams.get('types')?.split(',').filter(Boolean) ?? [],
+      weights: searchParams.get('weights')?.split(',').map(Number).filter(n => !isNaN(n)) ?? [],
+      brands: searchParams.get('brands')?.split(',').filter(Boolean).map(decodeURIComponent) ?? [],
+      terpenes: searchParams.get('terpenes')?.split(',').filter(Boolean) ?? [],
+      priceRange: [Number(searchParams.get('minPrice')) || 0, Number(searchParams.get('maxPrice')) || 99999],
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.toString()]);
 
   // Show/hide back to top button on scroll
   useEffect(() => {
@@ -245,13 +270,23 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
 
   // Filter and sort products (using normalizedProducts via allProducts)
   const filteredProducts = useMemo(() => {
+    const { strainTypes, weights, brands, terpenes, priceRange } = sidebarFilters;
     return allProducts
       .filter(product => {
         const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           product.description?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
         const matchesEffect = !effectFilter || product.effects?.includes(effectFilter);
-        return matchesSearch && matchesCategory && matchesEffect;
+        // Sidebar filters
+        const matchesStrainType = strainTypes.length === 0 || strainTypes.includes(product.strainType ?? '');
+        const matchesWeight = weights.length === 0 || (product.weight != null && weights.includes(product.weight));
+        const matchesBrand = brands.length === 0 || brands.includes(product.brandName ?? '');
+        const matchesTerpene = terpenes.length === 0 || product.terpenes?.some(t => terpenes.includes(t.name)) === true;
+        const matchesPrice =
+          (priceRange[0] <= 0 || product.price >= priceRange[0]) &&
+          (priceRange[1] >= 99999 || product.price <= priceRange[1]);
+        return matchesSearch && matchesCategory && matchesEffect &&
+          matchesStrainType && matchesWeight && matchesBrand && matchesTerpene && matchesPrice;
       })
       .sort((a, b) => {
         switch (sortBy) {
@@ -279,7 +314,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           default: return a.name.localeCompare(b.name);
         }
       });
-  }, [allProducts, searchQuery, categoryFilter, sortBy, effectFilter]);
+  }, [allProducts, searchQuery, categoryFilter, sortBy, effectFilter, sidebarFilters]);
 
   // Get unique categories (normalized, for filter dropdown)
   const categories = useMemo(() => {
@@ -393,6 +428,26 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     setEffectFilter(effect);
     updateUrlParams({ effect });
   };
+
+  const handleSidebarFilterChange = (newFilters: MenuFilters) => {
+    setSidebarFilters(newFilters);
+    updateUrlParams({
+      types: newFilters.strainTypes.join(',') || null,
+      weights: newFilters.weights.join(',') || null,
+      brands: newFilters.brands.map(encodeURIComponent).join(',') || null,
+      terpenes: newFilters.terpenes.join(',') || null,
+      minPrice: newFilters.priceRange[0] > 0 ? String(newFilters.priceRange[0]) : null,
+      maxPrice: newFilters.priceRange[1] < 99999 ? String(newFilters.priceRange[1]) : null,
+    });
+  };
+
+  // Count of active sidebar filters (for mobile badge)
+  const activeSidebarFilterCount =
+    sidebarFilters.strainTypes.length +
+    sidebarFilters.weights.length +
+    sidebarFilters.brands.length +
+    sidebarFilters.terpenes.length +
+    (sidebarFilters.priceRange[0] > 0 || sidebarFilters.priceRange[1] < 99999 ? 1 : 0);
 
   // Handle dispensary selection
   const handleDispensarySelect = (dispensary: typeof selectedDispensary) => {
@@ -688,7 +743,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
             </div>
           )}
 
-          {/* All Products Section with Filters */}
+          {/* All Products Section with Sidebar Filters */}
           <section id="products" className="py-12">
             <div className="container mx-auto px-4">
               {/* Section Header */}
@@ -700,8 +755,39 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
                   </p>
                 </div>
 
-                {/* Filters */}
                 <div className="flex flex-wrap gap-3">
+                  {/* Mobile Filters Drawer */}
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <Button variant="outline" className="lg:hidden gap-2">
+                        <SlidersHorizontal className="h-4 w-4" />
+                        Filters
+                        {activeSidebarFilterCount > 0 && (
+                          <Badge
+                            className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs text-white border-0"
+                            style={{ backgroundColor: primaryColor }}
+                          >
+                            {activeSidebarFilterCount}
+                          </Badge>
+                        )}
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="w-[300px] overflow-y-auto">
+                      <SheetHeader>
+                        <SheetTitle>Filter Products</SheetTitle>
+                      </SheetHeader>
+                      <div className="mt-4">
+                        <MenuFilterSidebar
+                          products={allProducts}
+                          filters={sidebarFilters}
+                          onChange={handleSidebarFilterChange}
+                          primaryColor={primaryColor}
+                        />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+
+                  {/* Search */}
                   <div className="relative flex-1 min-w-[200px] md:w-[300px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -737,51 +823,69 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
                 </div>
               </div>
 
-              {/* Products Grid */}
-              {filteredProducts.length === 0 ? (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-16">
-                    <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
-                    <p className="text-xl font-medium mb-2">No products found</p>
-                    <p className="text-muted-foreground mb-4">
-                      Try adjusting your search or filters
-                    </p>
-                    <Button variant="outline" onClick={() => { setSearchQuery(''); setCategoryFilter('all'); }}>
-                      Clear Filters
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : isManageMode ? (
-                <ManagedProductGrid
-                  products={filteredProducts}
-                  primaryColor={primaryColor}
-                  onAddToCart={handleAddToCart}
-                  getCartQuantity={getCartItemQuantity}
-                  onProductClick={setSelectedProduct}
-                  onFavorite={toggleFavorite}
-                  favorites={favorites}
-                  getDealBadge={getDealBadge}
-                  onReorderSave={onProductReorder}
-                  onToggleFeatured={onToggleFeatured}
-                />
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {filteredProducts.map((product) => (
-                    <OversizedProductCard
-                      key={product.id}
-                      product={product}
-                      onAddToCart={handleAddToCart}
-                      inCart={getCartItemQuantity(product.id)}
+              {/* Two-column layout: sticky sidebar + product grid */}
+              <div className="flex gap-8">
+                {/* Desktop sidebar */}
+                <aside className="hidden lg:block w-52 shrink-0">
+                  <div className="sticky top-4">
+                    <MenuFilterSidebar
+                      products={allProducts}
+                      filters={sidebarFilters}
+                      onChange={handleSidebarFilterChange}
                       primaryColor={primaryColor}
-                      size="large"
-                      dealBadge={getDealBadge(product)}
-                      onClick={() => setSelectedProduct(product)}
-                      onFavorite={toggleFavorite}
-                      isFavorite={favorites.has(product.id)}
                     />
-                  ))}
+                  </div>
+                </aside>
+
+                {/* Main content */}
+                <div className="flex-1 min-w-0">
+                  {/* Products Grid */}
+                  {filteredProducts.length === 0 ? (
+                    <Card>
+                      <CardContent className="flex flex-col items-center justify-center py-16">
+                        <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
+                        <p className="text-xl font-medium mb-2">No products found</p>
+                        <p className="text-muted-foreground mb-4">
+                          Try adjusting your search or filters
+                        </p>
+                        <Button variant="outline" onClick={() => { setSearchQuery(''); setCategoryFilter('all'); setSidebarFilters(EMPTY_FILTERS); }}>
+                          Clear Filters
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ) : isManageMode ? (
+                    <ManagedProductGrid
+                      products={filteredProducts}
+                      primaryColor={primaryColor}
+                      onAddToCart={handleAddToCart}
+                      getCartQuantity={getCartItemQuantity}
+                      onProductClick={setSelectedProduct}
+                      onFavorite={toggleFavorite}
+                      favorites={favorites}
+                      getDealBadge={getDealBadge}
+                      onReorderSave={onProductReorder}
+                      onToggleFeatured={onToggleFeatured}
+                    />
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {filteredProducts.map((product) => (
+                        <OversizedProductCard
+                          key={product.id}
+                          product={product}
+                          onAddToCart={handleAddToCart}
+                          inCart={getCartItemQuantity(product.id)}
+                          primaryColor={primaryColor}
+                          size="large"
+                          dealBadge={getDealBadge(product)}
+                          onClick={() => setSelectedProduct(product)}
+                          onFavorite={toggleFavorite}
+                          isFavorite={favorites.has(product.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </section>
 
@@ -1014,7 +1118,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
           />
         )}
 
-        {/* All Products Section with Filters */}
+        {/* All Products Section with Sidebar Filters */}
         <section id="products" className="py-12">
           <div className="container mx-auto px-4">
             {/* Section Header */}
@@ -1026,8 +1130,39 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
                 </p>
               </div>
 
-              {/* Filters */}
               <div className="flex flex-wrap gap-3">
+                {/* Mobile Filters Drawer */}
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="lg:hidden gap-2">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Filters
+                      {activeSidebarFilterCount > 0 && (
+                        <Badge
+                          className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs text-white border-0"
+                          style={{ backgroundColor: primaryColor }}
+                        >
+                          {activeSidebarFilterCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[300px] overflow-y-auto">
+                    <SheetHeader>
+                      <SheetTitle>Filter Products</SheetTitle>
+                    </SheetHeader>
+                    <div className="mt-4">
+                      <MenuFilterSidebar
+                        products={allProducts}
+                        filters={sidebarFilters}
+                        onChange={handleSidebarFilterChange}
+                        primaryColor={primaryColor}
+                      />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+
+                {/* Search */}
                 <div className="relative flex-1 min-w-[200px] md:w-[300px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -1063,70 +1198,88 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
               </div>
             </div>
 
-            {/* Effect Filter Pills */}
-            {allEffects.length > 0 && (
-              <div className="mb-6 flex flex-wrap gap-2 items-center">
-                <span className="text-sm font-medium text-muted-foreground">Effects:</span>
-                {allEffects.map((effect) => (
-                  <button
-                    key={effect}
-                    onClick={() => handleEffectSelect(effectFilter === effect ? null : effect)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      effectFilter === effect
-                        ? 'text-white'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                    }`}
-                    style={{
-                      backgroundColor: effectFilter === effect ? primaryColor : undefined,
-                    }}
-                  >
-                    {effect}
-                  </button>
-                ))}
-                {effectFilter && (
-                  <button
-                    onClick={() => handleEffectSelect(null)}
-                    className="px-3 py-1.5 rounded-full text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 flex items-center gap-1"
-                  >
-                    <X className="h-3 w-3" />
-                    Clear
-                  </button>
+            {/* Two-column layout: sticky sidebar + product grid */}
+            <div className="flex gap-8">
+              {/* Desktop sidebar */}
+              <aside className="hidden lg:block w-52 shrink-0">
+                <div className="sticky top-4">
+                  <MenuFilterSidebar
+                    products={allProducts}
+                    filters={sidebarFilters}
+                    onChange={handleSidebarFilterChange}
+                    primaryColor={primaryColor}
+                  />
+                </div>
+              </aside>
+
+              {/* Main content */}
+              <div className="flex-1 min-w-0">
+                {/* Effect Filter Pills */}
+                {allEffects.length > 0 && (
+                  <div className="mb-6 flex flex-wrap gap-2 items-center">
+                    <span className="text-sm font-medium text-muted-foreground">Effects:</span>
+                    {allEffects.map((effect) => (
+                      <button
+                        key={effect}
+                        onClick={() => handleEffectSelect(effectFilter === effect ? null : effect)}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                          effectFilter === effect
+                            ? 'text-white'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                        style={{
+                          backgroundColor: effectFilter === effect ? primaryColor : undefined,
+                        }}
+                      >
+                        {effect}
+                      </button>
+                    ))}
+                    {effectFilter && (
+                      <button
+                        onClick={() => handleEffectSelect(null)}
+                        className="px-3 py-1.5 rounded-full text-sm font-medium bg-muted text-muted-foreground hover:bg-muted/80 flex items-center gap-1"
+                      >
+                        <X className="h-3 w-3" />
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Products Grid */}
+                {filteredProducts.length === 0 ? (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-16">
+                      <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
+                      <p className="text-xl font-medium mb-2">No products found</p>
+                      <p className="text-muted-foreground mb-4">
+                        Try adjusting your search or filters
+                      </p>
+                      <Button variant="outline" onClick={() => { setSearchQuery(''); setCategoryFilter('all'); setSidebarFilters(EMPTY_FILTERS); }}>
+                        Clear Filters
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {filteredProducts.map((product) => (
+                      <OversizedProductCard
+                        key={product.id}
+                        product={product}
+                        onAddToCart={handleAddToCart}
+                        inCart={getCartItemQuantity(product.id)}
+                        primaryColor={primaryColor}
+                        size="large"
+                        dealBadge={getDealBadge(product)}
+                        onClick={() => setSelectedProduct(product)}
+                        onFavorite={toggleFavorite}
+                        isFavorite={favorites.has(product.id)}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
-            )}
-
-            {/* Products Grid */}
-            {filteredProducts.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-16">
-                  <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
-                  <p className="text-xl font-medium mb-2">No products found</p>
-                  <p className="text-muted-foreground mb-4">
-                    Try adjusting your search or filters
-                  </p>
-                  <Button variant="outline" onClick={() => { setSearchQuery(''); setCategoryFilter('all'); }}>
-                    Clear Filters
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredProducts.map((product) => (
-                  <OversizedProductCard
-                    key={product.id}
-                    product={product}
-                    onAddToCart={handleAddToCart}
-                    inCart={getCartItemQuantity(product.id)}
-                    primaryColor={primaryColor}
-                    size="large"
-                    dealBadge={getDealBadge(product)}
-                    onClick={() => setSelectedProduct(product)}
-                    onFavorite={toggleFavorite}
-                    isFavorite={favorites.has(product.id)}
-                  />
-                ))}
-              </div>
-            )}
+            </div>
           </div>
         </section>
 

@@ -18,7 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ShoppingCart, Search, X, Leaf, Wind, Cookie, Sparkles, Droplet, Heart, Package, Shirt } from 'lucide-react';
+import { ShoppingCart, Search, X, Leaf, Wind, Cookie, Sparkles, Droplet, Heart, Package, Shirt, SlidersHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useStore } from '@/hooks/use-store';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -26,6 +26,8 @@ import type { Product, Retailer } from '@/types/domain';
 import type { BundleDeal } from '@/types/bundles';
 import { MenuInfoBar } from '@/components/demo/menu-info-bar';
 import type { PublicMenuSettings } from '@/components/demo/menu-info-bar';
+import { MenuFilterSidebar, type MenuFilters, EMPTY_FILTERS } from '@/components/demo/menu-filter-sidebar';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
 // Dispensary Menu Components (from demo-shop)
 import { DemoHeader } from '@/components/demo/demo-header';
@@ -66,6 +68,14 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
   const urlSearch = searchParams.get('q') || '';
   const urlEffect = searchParams.get('effect') || null;
 
+  // Sidebar filter URL params
+  const urlStrainTypes = searchParams.get('types')?.split(',').filter(Boolean) ?? [];
+  const urlWeights = searchParams.get('weights')?.split(',').map(Number).filter(n => !isNaN(n)) ?? [];
+  const urlBrands = searchParams.get('brands')?.split(',').filter(Boolean).map(decodeURIComponent) ?? [];
+  const urlTerpenes = searchParams.get('terpenes')?.split(',').filter(Boolean) ?? [];
+  const urlMinPrice = Number(searchParams.get('minPrice')) || 0;
+  const urlMaxPrice = Number(searchParams.get('maxPrice')) || 99999;
+
   // Product state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState(urlSearch);
@@ -73,6 +83,13 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
   const [sortBy, setSortBy] = useState<string>(urlSort);
   const [effectFilter, setEffectFilter] = useState<string | null>(urlEffect);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [sidebarFilters, setSidebarFilters] = useState<MenuFilters>({
+    strainTypes: urlStrainTypes,
+    weights: urlWeights,
+    brands: urlBrands,
+    terpenes: urlTerpenes,
+    priceRange: [urlMinPrice, urlMaxPrice],
+  });
 
   // Cart state
   const [cartOpen, setCartOpen] = useState(false);
@@ -95,13 +112,21 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
     }
   }, [dispensary.id]);
 
-  // Sync all filters with URL params
+  // Sync all filters with URL params (re-runs whenever any query param changes)
   useEffect(() => {
     setCategoryFilter(urlCategory);
     setSortBy(urlSort);
     setSearchQuery(urlSearch);
     setEffectFilter(urlEffect);
-  }, [urlCategory, urlSort, urlSearch, urlEffect]);
+    setSidebarFilters({
+      strainTypes: searchParams.get('types')?.split(',').filter(Boolean) ?? [],
+      weights: searchParams.get('weights')?.split(',').map(Number).filter(n => !isNaN(n)) ?? [],
+      brands: searchParams.get('brands')?.split(',').filter(Boolean).map(decodeURIComponent) ?? [],
+      terpenes: searchParams.get('terpenes')?.split(',').filter(Boolean) ?? [],
+      priceRange: [Number(searchParams.get('minPrice')) || 0, Number(searchParams.get('maxPrice')) || 99999],
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.toString()]);
 
   const toggleFavorite = (productId: string) => {
     const newFavorites = new Set(favorites);
@@ -144,13 +169,23 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
+    const { strainTypes, weights, brands, terpenes, priceRange } = sidebarFilters;
     return products
       .filter(product => {
         const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           product.description?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
         const matchesEffect = !effectFilter || product.effects?.includes(effectFilter);
-        return matchesSearch && matchesCategory && matchesEffect;
+        // Sidebar filters
+        const matchesStrainType = strainTypes.length === 0 || strainTypes.includes(product.strainType ?? '');
+        const matchesWeight = weights.length === 0 || (product.weight != null && weights.includes(product.weight));
+        const matchesBrand = brands.length === 0 || brands.includes(product.brandName ?? '');
+        const matchesTerpene = terpenes.length === 0 || product.terpenes?.some(t => terpenes.includes(t.name)) === true;
+        const matchesPrice =
+          (priceRange[0] <= 0 || product.price >= priceRange[0]) &&
+          (priceRange[1] >= 99999 || product.price <= priceRange[1]);
+        return matchesSearch && matchesCategory && matchesEffect &&
+          matchesStrainType && matchesWeight && matchesBrand && matchesTerpene && matchesPrice;
       })
       .sort((a, b) => {
         switch (sortBy) {
@@ -169,7 +204,7 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
           default: return a.name.localeCompare(b.name);
         }
       });
-  }, [products, searchQuery, categoryFilter, sortBy]);
+  }, [products, searchQuery, categoryFilter, sortBy, effectFilter, sidebarFilters]);
 
   // Group products by category
   const productsByCategory = useMemo(() => {
@@ -296,6 +331,26 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
     setEffectFilter(effect);
     updateUrlParams({ effect });
   };
+
+  const handleSidebarFilterChange = (newFilters: MenuFilters) => {
+    setSidebarFilters(newFilters);
+    updateUrlParams({
+      types: newFilters.strainTypes.join(',') || null,
+      weights: newFilters.weights.join(',') || null,
+      brands: newFilters.brands.map(encodeURIComponent).join(',') || null,
+      terpenes: newFilters.terpenes.join(',') || null,
+      minPrice: newFilters.priceRange[0] > 0 ? String(newFilters.priceRange[0]) : null,
+      maxPrice: newFilters.priceRange[1] < 99999 ? String(newFilters.priceRange[1]) : null,
+    });
+  };
+
+  // Count of active sidebar filters (for mobile badge)
+  const activeSidebarFilterCount =
+    sidebarFilters.strainTypes.length +
+    sidebarFilters.weights.length +
+    sidebarFilters.brands.length +
+    sidebarFilters.terpenes.length +
+    (sidebarFilters.priceRange[0] > 0 || sidebarFilters.priceRange[1] < 99999 ? 1 : 0);
 
   // Convert bundles for display
   const bundlesForDisplay = bundles.map(b => ({
@@ -441,7 +496,7 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
           </div>
         )}
 
-        {/* All Products Section with Filters */}
+        {/* All Products Section with Sidebar Filters */}
         <section id="products" className="py-12">
           <div className="container mx-auto px-4">
             {/* Section Header */}
@@ -453,8 +508,39 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
                 </p>
               </div>
 
-              {/* Filters */}
               <div className="flex flex-wrap gap-3">
+                {/* Mobile Filters Drawer */}
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="lg:hidden gap-2">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Filters
+                      {activeSidebarFilterCount > 0 && (
+                        <Badge
+                          className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs text-white border-0"
+                          style={{ backgroundColor: primaryColor }}
+                        >
+                          {activeSidebarFilterCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[300px] overflow-y-auto">
+                    <SheetHeader>
+                      <SheetTitle>Filter Products</SheetTitle>
+                    </SheetHeader>
+                    <div className="mt-4">
+                      <MenuFilterSidebar
+                        products={products}
+                        filters={sidebarFilters}
+                        onChange={handleSidebarFilterChange}
+                        primaryColor={primaryColor}
+                      />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+
+                {/* Search */}
                 <div className="relative flex-1 min-w-[200px] md:w-[300px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -490,67 +576,85 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
               </div>
             </div>
 
-            {/* Effect Filter Pills */}
-            {allEffects.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-6">
-                {allEffects.map((effect) => (
-                  <button
-                    key={effect}
-                    onClick={() => handleEffectSelect(effectFilter === effect ? null : effect)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                      effectFilter === effect
-                        ? 'text-white border-transparent'
-                        : 'bg-background text-muted-foreground border-border hover:border-primary hover:text-primary'
-                    }`}
-                    style={effectFilter === effect ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
-                  >
-                    {effect}
-                  </button>
-                ))}
-                {effectFilter && (
-                  <button
-                    onClick={() => handleEffectSelect(null)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm text-muted-foreground border border-border hover:border-destructive hover:text-destructive transition-all"
-                  >
-                    <X className="h-3 w-3" />
-                    Clear
-                  </button>
+            {/* Two-column layout: sticky sidebar + product grid */}
+            <div className="flex gap-8">
+              {/* Desktop sidebar */}
+              <aside className="hidden lg:block w-52 shrink-0">
+                <div className="sticky top-4">
+                  <MenuFilterSidebar
+                    products={products}
+                    filters={sidebarFilters}
+                    onChange={handleSidebarFilterChange}
+                    primaryColor={primaryColor}
+                  />
+                </div>
+              </aside>
+
+              {/* Main content */}
+              <div className="flex-1 min-w-0">
+                {/* Effect Filter Pills */}
+                {allEffects.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    {allEffects.map((effect) => (
+                      <button
+                        key={effect}
+                        onClick={() => handleEffectSelect(effectFilter === effect ? null : effect)}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                          effectFilter === effect
+                            ? 'text-white border-transparent'
+                            : 'bg-background text-muted-foreground border-border hover:border-primary hover:text-primary'
+                        }`}
+                        style={effectFilter === effect ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
+                      >
+                        {effect}
+                      </button>
+                    ))}
+                    {effectFilter && (
+                      <button
+                        onClick={() => handleEffectSelect(null)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm text-muted-foreground border border-border hover:border-destructive hover:text-destructive transition-all"
+                      >
+                        <X className="h-3 w-3" />
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Products Grid */}
+                {filteredProducts.length === 0 ? (
+                  <Card>
+                    <CardContent className="flex flex-col items-center justify-center py-16">
+                      <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
+                      <p className="text-xl font-medium mb-2">No products found</p>
+                      <p className="text-muted-foreground mb-4">
+                        Try adjusting your search or filters
+                      </p>
+                      <Button variant="outline" onClick={() => { setSearchQuery(''); setCategoryFilter('all'); setSidebarFilters(EMPTY_FILTERS); }}>
+                        Clear Filters
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {filteredProducts.map((product) => (
+                      <OversizedProductCard
+                        key={product.id}
+                        product={product}
+                        onAddToCart={handleAddToCart}
+                        inCart={getCartItemQuantity(product.id)}
+                        primaryColor={primaryColor}
+                        size="large"
+                        dealBadge={getDealBadge(product)}
+                        onClick={() => setSelectedProduct(product)}
+                        onFavorite={toggleFavorite}
+                        isFavorite={favorites.has(product.id)}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
-            )}
-
-            {/* Products Grid */}
-            {filteredProducts.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-16">
-                  <ShoppingCart className="h-16 w-16 text-muted-foreground mb-4" />
-                  <p className="text-xl font-medium mb-2">No products found</p>
-                  <p className="text-muted-foreground mb-4">
-                    Try adjusting your search or filters
-                  </p>
-                  <Button variant="outline" onClick={() => { setSearchQuery(''); setCategoryFilter('all'); }}>
-                    Clear Filters
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredProducts.map((product) => (
-                  <OversizedProductCard
-                    key={product.id}
-                    product={product}
-                    onAddToCart={handleAddToCart}
-                    inCart={getCartItemQuantity(product.id)}
-                    primaryColor={primaryColor}
-                    size="large"
-                    dealBadge={getDealBadge(product)}
-                    onClick={() => setSelectedProduct(product)}
-                    onFavorite={toggleFavorite}
-                    isFavorite={favorites.has(product.id)}
-                  />
-                ))}
-              </div>
-            )}
+            </div>
           </div>
         </section>
 
