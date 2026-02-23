@@ -47,6 +47,7 @@ const WhatsAppTab = nextDynamic(() => import("./components/whatsapp-tab"), { loa
 const DriveTab = nextDynamic(() => import("./components/drive-tab"), { loading: TabLoader, ssr: false });
 const CostsTab = nextDynamic(() => import("./components/costs-tab"), { loading: TabLoader, ssr: false });
 const SystemHealthTab = nextDynamic(() => import("./components/system-health-tab"), { loading: TabLoader, ssr: false });
+const GoalsCeoTab = nextDynamic(() => import("./components/goals-ceo-tab"), { loading: TabLoader, ssr: false });
 
 
 import { useUserRole } from '@/hooks/use-user-role';
@@ -202,6 +203,7 @@ function CeoDashboardContent() {
             case 'drive': return <DriveTab />;
             case 'costs': return <CostsTab />;
             case 'health': return <SystemHealthTab />;
+            case 'goals': return <GoalsCeoTab />;
             default: return <SuperUserPlaybooksPage />;
         }
     };

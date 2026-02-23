@@ -7,6 +7,30 @@ import type { OrgGoal, GoalMetric, SuggestedGoal } from '@/types/goals';
 import { calculateGoalProgress, determineGoalStatus } from '@/types/goals';
 
 /**
+ * Verify user has access to goals for a given org.
+ * Super Users bypass org membership check (platform-level goals).
+ */
+async function verifyGoalAccess(orgId: string): Promise<{ authorized: boolean; error?: string }> {
+  const session = await requireUser();
+  const db = getAdminFirestore();
+  const userDoc = await db.collection('users').doc(session.uid).get();
+  const userData = userDoc.data();
+
+  // Super Users can manage goals for any org (including platform goals)
+  const role = userData?.role as string | undefined;
+  if (role === 'super_user' || role === 'super_admin') {
+    return { authorized: true };
+  }
+
+  // Regular users must be org members
+  if (!userData?.orgIds?.includes(orgId)) {
+    return { authorized: false, error: 'Unauthorized: not a member of this organization' };
+  }
+
+  return { authorized: true };
+}
+
+/**
  * Create a new goal
  */
 export async function createGoal(
@@ -14,14 +38,10 @@ export async function createGoal(
   goal: Omit<OrgGoal, 'id' | 'createdAt' | 'updatedAt' | 'lastProgressUpdatedAt'>
 ): Promise<{ success: boolean; goalId?: string; error?: string }> {
   try {
-    const session = await requireUser();
     const db = getAdminFirestore();
-
-    // Verify org membership
-    const userDoc = await db.collection('users').doc(session.uid).get();
-    const userData = userDoc.data();
-    if (!userData?.orgIds?.includes(orgId)) {
-      return { success: false, error: 'Unauthorized: not a member of this organization' };
+    const access = await verifyGoalAccess(orgId);
+    if (!access.authorized) {
+      return { success: false, error: access.error };
     }
 
     const now = new Date();
@@ -67,14 +87,10 @@ export async function getOrgGoals(orgId: string): Promise<{
   error?: string;
 }> {
   try {
-    const session = await requireUser();
     const db = getAdminFirestore();
-
-    // Verify org membership
-    const userDoc = await db.collection('users').doc(session.uid).get();
-    const userData = userDoc.data();
-    if (!userData?.orgIds?.includes(orgId)) {
-      return { success: false, error: 'Unauthorized' };
+    const access = await verifyGoalAccess(orgId);
+    if (!access.authorized) {
+      return { success: false, error: access.error };
     }
 
     const snapshot = await db
@@ -112,14 +128,10 @@ export async function getActiveGoals(orgId: string): Promise<{
   error?: string;
 }> {
   try {
-    const session = await requireUser();
     const db = getAdminFirestore();
-
-    // Verify org membership
-    const userDoc = await db.collection('users').doc(session.uid).get();
-    const userData = userDoc.data();
-    if (!userData?.orgIds?.includes(orgId)) {
-      return { success: false, error: 'Unauthorized' };
+    const access = await verifyGoalAccess(orgId);
+    if (!access.authorized) {
+      return { success: false, error: access.error };
     }
 
     const snapshot = await db
@@ -157,14 +169,10 @@ export async function updateGoalProgress(
   metrics: GoalMetric[]
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const session = await requireUser();
     const db = getAdminFirestore();
-
-    // Verify org membership
-    const userDoc = await db.collection('users').doc(session.uid).get();
-    const userData = userDoc.data();
-    if (!userData?.orgIds?.includes(orgId)) {
-      return { success: false, error: 'Unauthorized' };
+    const access = await verifyGoalAccess(orgId);
+    if (!access.authorized) {
+      return { success: false, error: access.error };
     }
 
     const goalRef = db.collection('orgs').doc(orgId).collection('goals').doc(goalId);
@@ -221,14 +229,10 @@ export async function updateGoalStatus(
   status: OrgGoal['status']
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const session = await requireUser();
     const db = getAdminFirestore();
-
-    // Verify org membership
-    const userDoc = await db.collection('users').doc(session.uid).get();
-    const userData = userDoc.data();
-    if (!userData?.orgIds?.includes(orgId)) {
-      return { success: false, error: 'Unauthorized' };
+    const access = await verifyGoalAccess(orgId);
+    if (!access.authorized) {
+      return { success: false, error: access.error };
     }
 
     const goalRef = db.collection('orgs').doc(orgId).collection('goals').doc(goalId);
@@ -260,14 +264,10 @@ export async function deleteGoal(orgId: string, goalId: string): Promise<{
   error?: string;
 }> {
   try {
-    const session = await requireUser();
     const db = getAdminFirestore();
-
-    // Verify org membership
-    const userDoc = await db.collection('users').doc(session.uid).get();
-    const userData = userDoc.data();
-    if (!userData?.orgIds?.includes(orgId)) {
-      return { success: false, error: 'Unauthorized' };
+    const access = await verifyGoalAccess(orgId);
+    if (!access.authorized) {
+      return { success: false, error: access.error };
     }
 
     await db.collection('orgs').doc(orgId).collection('goals').doc(goalId).delete();
@@ -292,14 +292,10 @@ export async function activateGoal(orgId: string, goalId: string): Promise<{
   error?: string;
 }> {
   try {
-    const session = await requireUser();
     const db = getAdminFirestore();
-
-    // Verify org membership
-    const userDoc = await db.collection('users').doc(session.uid).get();
-    const userData = userDoc.data();
-    if (!userData?.orgIds?.includes(orgId)) {
-      return { success: false, error: 'Unauthorized' };
+    const access = await verifyGoalAccess(orgId);
+    if (!access.authorized) {
+      return { success: false, error: access.error };
     }
 
     const goalRef = db.collection('orgs').doc(orgId).collection('goals').doc(goalId);
@@ -341,14 +337,10 @@ export async function achieveGoal(orgId: string, goalId: string): Promise<{
   error?: string;
 }> {
   try {
-    const session = await requireUser();
     const db = getAdminFirestore();
-
-    // Verify org membership
-    const userDoc = await db.collection('users').doc(session.uid).get();
-    const userData = userDoc.data();
-    if (!userData?.orgIds?.includes(orgId)) {
-      return { success: false, error: 'Unauthorized' };
+    const access = await verifyGoalAccess(orgId);
+    if (!access.authorized) {
+      return { success: false, error: access.error };
     }
 
     const goalRef = db.collection('orgs').doc(orgId).collection('goals').doc(goalId);
