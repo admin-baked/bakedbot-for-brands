@@ -862,7 +862,7 @@ function prioritizeBySeverity(insights: InsightCard[]): InsightCard[] {
 
     return insights.sort(
         (a, b) =>
-            (severityScore[a.severity] || 2) - (severityScore[b.severity] || 2) ||
+            (severityScore[a.severity] ?? 2) - (severityScore[b.severity] ?? 2) ||
             b.lastUpdated.getTime() - a.lastUpdated.getTime()
     );
 }
