@@ -21,8 +21,8 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-02-23)
 
-**Recent work (2026-02-22):** See `memory/MEMORY.md` for full log.
-Key completed: [Agent Web Infrastructure] (`bb961092`) — llm.txt + Agent API + AI crawler positioning; [CEO Goals Tab] (`7e8c5985`) — GEO action plan for LLM visibility
+**Recent work (2026-02-23):** See `memory/MEMORY.md` for full log.
+Key completed: [Goal wizard Step 3 playbooks] (`2791e54f`), [COGS tenant catalog sync] (`d3adee36`), [84 unit/integration tests] (`3ceed129`)
 
 ---
 
