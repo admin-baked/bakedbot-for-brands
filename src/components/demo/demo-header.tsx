@@ -66,11 +66,11 @@ const navItems = [
   { label: 'DEALS', href: '#deals', icon: Gift, badge: 'HOT' },
 ];
 
-const secondaryNavItems = [
-  { label: 'Rewards', href: '#rewards', icon: Heart },
-  { label: 'About', href: '#about', icon: Building2 },
-  { label: 'Locations', href: '#locations', icon: MapPin },
-  { label: 'Careers', href: '#careers', icon: Briefcase },
+const getSecondaryNavItems = (slug?: string) => [
+  { label: 'Rewards', href: slug ? `/${slug}/rewards` : '#rewards', icon: Heart },
+  { label: 'About', href: slug ? `/${slug}/about` : '#about', icon: Building2 },
+  { label: 'Locations', href: slug ? `/${slug}/locations` : '#locations', icon: MapPin },
+  { label: 'Careers', href: slug ? `/${slug}/careers` : '#careers', icon: Briefcase },
 ];
 
 const categories = [
@@ -102,6 +102,7 @@ export function DemoHeader({
   const { cartItems } = useStore();
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const secondaryNavItems = getSecondaryNavItems(brandSlug);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

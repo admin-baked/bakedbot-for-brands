@@ -18,11 +18,6 @@ export default async function AboutPage({ params }: { params: Promise<{ brand: s
     const pageContent = await getBrandPageBySlug(brandSlug, 'about');
     const content = pageContent?.aboutContent;
 
-    // Only show if published or content exists
-    if (!pageContent?.isPublished && !content) {
-        notFound();
-    }
-
     const brandColors = {
         primary: (brand as any).primaryColor || '#16a34a',
         secondary: (brand as any).secondaryColor || '#15803d',
