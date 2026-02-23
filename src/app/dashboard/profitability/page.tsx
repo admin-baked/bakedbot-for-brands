@@ -11,8 +11,10 @@ export default async function ProfitabilityPage() {
   try {
     user = await requireUser(['dispensary', 'brand', 'super_user']);
   } catch {
-    redirect('/dispensary-login');
+    redirect('/signin');
   }
+
+  if (!user) redirect('/signin');
 
   return (
     <div className="flex flex-col gap-6 p-6">

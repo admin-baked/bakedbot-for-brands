@@ -396,6 +396,133 @@ export async function getProfitabilityDashboard(
 }
 
 // =============================================================================
+// PRODUCT COGS PROFITABILITY (POS-sourced data)
+// =============================================================================
+
+export interface ProductProfitabilityItem {
+  id: string;
+  name: string;
+  category: string;
+  retailPrice: number;
+  effectiveCost: number | null; // cost ?? batchCost from POS
+  costSource: 'cost_of_good' | 'batch_cost' | 'none';
+  marginPercent: number | null; // (price - cost) / price
+  marginAmount: number | null;  // price - cost
+  stockCount: number;
+  inventoryValue: number | null; // effectiveCost * stockCount
+}
+
+/**
+ * Get product-level profitability using Alleaves COGS data.
+ *
+ * Uses `cost` (Cost of Good) and `batchCost` (Wholesale/Batch Cost) from the
+ * tenant product catalog synced by POS. Both fields are treated as equivalent
+ * COGS signals per user specification.
+ *
+ * Data source: tenants/{orgId}/publicViews/products/items
+ */
+export async function getProductProfitabilityData(): Promise<{
+  products: ProductProfitabilityItem[];
+  summary: {
+    totalInventoryValue: number;
+    totalRevenuePotential: number;
+    avgMarginPercent: number | null;
+    productsWithCogs: number;
+    productsWithoutCogs: number;
+  };
+}> {
+  const user = await requireUser(['dispensary', 'brand', 'super_user']);
+  const orgId = getOrgId(user as any);
+
+  const { firestore } = await createServerClient();
+
+  const itemsSnap = await firestore
+    .collection('tenants')
+    .doc(orgId)
+    .collection('publicViews')
+    .doc('products')
+    .collection('items')
+    .get();
+
+  const products: ProductProfitabilityItem[] = itemsSnap.docs.map(doc => {
+    const data = doc.data();
+    const retailPrice: number = typeof data.price === 'number' ? data.price : 0;
+    const cost: number | undefined = typeof data.cost === 'number' ? data.cost : undefined;
+    const batchCost: number | undefined = typeof data.batchCost === 'number' ? data.batchCost : undefined;
+
+    // cost (Cost of Good) takes priority; fall back to batchCost (Wholesale/Batch Cost)
+    const effectiveCost = cost !== undefined ? cost : (batchCost !== undefined ? batchCost : null);
+    const costSource: 'cost_of_good' | 'batch_cost' | 'none' =
+      cost !== undefined ? 'cost_of_good' : (batchCost !== undefined ? 'batch_cost' : 'none');
+
+    const stockCount: number = typeof data.stockCount === 'number' ? data.stockCount : 0;
+
+    const marginPercent =
+      effectiveCost !== null && retailPrice > 0
+        ? (retailPrice - effectiveCost) / retailPrice
+        : null;
+    const marginAmount =
+      effectiveCost !== null && retailPrice > 0
+        ? retailPrice - effectiveCost
+        : null;
+    const inventoryValue =
+      effectiveCost !== null && stockCount > 0
+        ? effectiveCost * stockCount
+        : null;
+
+    return {
+      id: doc.id,
+      name: typeof data.name === 'string' ? data.name : 'Unknown',
+      category: typeof data.category === 'string' ? data.category : 'Other',
+      retailPrice,
+      effectiveCost,
+      costSource,
+      marginPercent,
+      marginAmount,
+      stockCount,
+      inventoryValue,
+    };
+  });
+
+  // Sort: products with COGS first (lowest margin = needs attention), no-COGS last
+  products.sort((a, b) => {
+    if (a.effectiveCost === null && b.effectiveCost === null) return 0;
+    if (a.effectiveCost === null) return 1;
+    if (b.effectiveCost === null) return -1;
+    if (a.marginPercent === null && b.marginPercent === null) return 0;
+    if (a.marginPercent === null) return 1;
+    if (b.marginPercent === null) return -1;
+    return a.marginPercent - b.marginPercent;
+  });
+
+  const productsWithCogsArr = products.filter(p => p.effectiveCost !== null);
+  const totalInventoryValue = productsWithCogsArr.reduce((sum, p) => sum + (p.inventoryValue ?? 0), 0);
+  const totalRevenuePotential = products.reduce((sum, p) => sum + p.retailPrice * p.stockCount, 0);
+  const margins = productsWithCogsArr
+    .filter(p => p.marginPercent !== null)
+    .map(p => p.marginPercent!);
+  const avgMarginPercent =
+    margins.length > 0 ? margins.reduce((a, b) => a + b, 0) / margins.length : null;
+
+  logger.info('[profitability] Fetched product COGS data', {
+    orgId,
+    totalProducts: products.length,
+    productsWithCogs: productsWithCogsArr.length,
+  });
+
+  return {
+    products,
+    summary: {
+      totalInventoryValue,
+      totalRevenuePotential,
+      avgMarginPercent,
+      productsWithCogs: productsWithCogsArr.length,
+      productsWithoutCogs: products.length - productsWithCogsArr.length,
+    },
+  };
+}
+
+// =============================================================================
 // THRIVE SYRACUSE SPECIFIC
 // =============================================================================
 
