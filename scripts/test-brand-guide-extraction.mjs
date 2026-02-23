@@ -33,7 +33,8 @@ const VERBOSE = process.argv.includes('--verbose');
 
 console.log(`\n=== Brand Guide Extraction Integration Test ===`);
 console.log(`URL: ${TARGET_URL}`);
-console.log(`Firecrawl: ${process.env.FIRECRAWL_API_KEY ? '✅' : '⚠️  missing (RTRVR fallback)'}`);
+console.log(`Firecrawl: ${process.env.FIRECRAWL_API_KEY ? '✅' : '⚠️  missing (Jina fallback)'}`);
+console.log(`Jina AI:   ${process.env.JINA_API_KEY ? '✅ (keyed, 100 RPM)' : '✅ (free, 20 RPM)'}`);
 console.log(`RTRVR:     ${process.env.RTRVR_API_KEY ? '✅' : '⚠️  missing (direct-fetch fallback)'}`);
 console.log(`Claude:    ${process.env.CLAUDE_API_KEY ? '✅' : '❌ REQUIRED — extraction will fail'}`);
 console.log('');
@@ -56,10 +57,38 @@ try {
         discoveryResult = { success: true, markdown: r.markdown, metadata: r.metadata };
         console.log('✅ Firecrawl succeeded');
       } else {
-        console.log(`⚠️  Firecrawl returned failure: ${r.error} — trying RTRVR`);
+        console.log(`⚠️  Firecrawl returned failure: ${r.error} — trying Jina`);
       }
     } catch (e) {
-      console.log(`⚠️  Firecrawl threw: ${e.message} — trying RTRVR`);
+      console.log(`⚠️  Firecrawl threw: ${e.message} — trying Jina`);
+    }
+  }
+
+  if (!discoveryResult) {
+    try {
+      const jinaHeaders = { 'Accept': 'application/json' };
+      if (process.env.JINA_API_KEY) jinaHeaders['Authorization'] = `Bearer ${process.env.JINA_API_KEY}`;
+      const jinaRes = await fetch(`https://r.jina.ai/${encodeURIComponent(TARGET_URL)}`, {
+        headers: jinaHeaders,
+        signal: AbortSignal.timeout(30000),
+      });
+      if (jinaRes.ok) {
+        const jinaData = await jinaRes.json();
+        if (jinaData.code === 200 && jinaData.data) {
+          discoveryResult = {
+            success: true,
+            markdown: jinaData.data.content || '',
+            metadata: { title: jinaData.data.title || '', description: jinaData.data.description || '' },
+          };
+          console.log(`✅ Jina AI succeeded (${discoveryResult.markdown.length} chars, ${jinaData.data.usage?.tokens || '?'} tokens)`);
+        } else {
+          console.log(`⚠️  Jina AI error: ${jinaData.status} — trying RTRVR`);
+        }
+      } else {
+        console.log(`⚠️  Jina AI HTTP ${jinaRes.status} — trying RTRVR`);
+      }
+    } catch (e) {
+      console.log(`⚠️  Jina AI threw: ${e.message} — trying RTRVR`);
     }
   }
 
