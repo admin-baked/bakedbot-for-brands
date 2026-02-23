@@ -90,7 +90,7 @@ const EVENT_OPTION_GROUPS = [
 
 // ── Cron helpers ──────────────────────────────────────────────────────────────
 
-interface ScheduleState {
+export interface ScheduleState {
     frequency: 'daily' | 'weekly' | 'monthly';
     dayOfWeek: number;   // 1=Mon … 7=Sun
     monthDay: number;    // 1–28
@@ -100,7 +100,7 @@ interface ScheduleState {
 }
 
 /** Convert a cron expression to the UI schedule state. */
-function parseCron(cron: string): ScheduleState {
+export function parseCron(cron: string): ScheduleState {
     const defaults: ScheduleState = {
         frequency: 'daily', dayOfWeek: 1, monthDay: 1,
         hour: 7, minute: '00', ampm: 'am',
@@ -155,7 +155,7 @@ export function buildCron(s: ScheduleState): string {
 }
 
 /** Human-readable description of a schedule. */
-function describeSchedule(s: ScheduleState, timezone: string): string {
+export function describeSchedule(s: ScheduleState, timezone: string): string {
     const tzLabel =
         COMMON_TIMEZONES.find((t) => t.value === timezone)?.label?.split(' ')[0] ?? 'Local';
     const timeStr = `${s.hour}:${s.minute} ${s.ampm.toUpperCase()}`;
