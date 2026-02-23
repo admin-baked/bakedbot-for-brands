@@ -21,12 +21,28 @@ export interface PlaybookAssignmentStatus {
     lastTriggered: string | null;
 }
 
+/** Per-playbook schedule/delivery overrides stored in playbook_assignments.customConfig */
+export interface PlaybookCustomConfig {
+    schedule?: {
+        cron: string;
+        timezone: string;
+    };
+    delivery?: {
+        channels: ('email' | 'sms' | 'inbox')[];
+        emailTo?: string;
+        phoneNumber?: string;
+        reportFormat?: 'brief' | 'detailed';
+    };
+}
+
 export interface DispensaryPlaybookData {
     assignments: PlaybookAssignmentStatus[];
     activeIds: string[];
     tierId: TierId;
     totalAvailable: number;
     totalActive: number;
+    /** Custom schedule/delivery overrides keyed by playbookId */
+    customConfigs: Record<string, PlaybookCustomConfig>;
 }
 
 /**
@@ -50,6 +66,15 @@ export async function getDispensaryPlaybookAssignments(orgId: string): Promise<D
             triggerCount: data.triggerCount || 0,
             lastTriggered: data.lastTriggered?.toDate?.()?.toISOString?.() || null,
         };
+    });
+
+    // Collect customConfig overrides keyed by playbookId
+    const customConfigs: Record<string, PlaybookCustomConfig> = {};
+    snap.docs.forEach((d) => {
+        const data = d.data();
+        if (data.customConfig && data.playbookId) {
+            customConfigs[data.playbookId as string] = data.customConfig as PlaybookCustomConfig;
+        }
     });
 
     // Determine org tier (default empire if not found)
@@ -80,7 +105,57 @@ export async function getDispensaryPlaybookAssignments(orgId: string): Promise<D
         tierId,
         totalAvailable: tierPlaybookIds.length,
         totalActive: activeIds.length,
+        customConfigs,
     };
+}
+
+/**
+ * Update custom schedule and/or delivery config for a single playbook assignment.
+ * Creates the assignment document if it doesn't exist yet.
+ */
+export async function updatePlaybookAssignmentConfig(
+    orgId: string,
+    playbookId: string,
+    config: PlaybookCustomConfig
+): Promise<{ success: boolean; error?: string }> {
+    await requireUser();
+    const db = getAdminFirestore();
+
+    try {
+        const existing = await db
+            .collection('playbook_assignments')
+            .where('orgId', '==', orgId)
+            .where('playbookId', '==', playbookId)
+            .limit(1)
+            .get();
+
+        if (!existing.empty) {
+            await existing.docs[0].ref.update({
+                customConfig: config,
+                updatedAt: Timestamp.now(),
+            });
+        } else {
+            // Create the assignment document with the config (paused by default)
+            await db.collection('playbook_assignments').add({
+                subscriptionId: orgId,
+                orgId,
+                playbookId,
+                status: 'paused',
+                customConfig: config,
+                lastTriggered: null,
+                triggerCount: 0,
+                createdAt: Timestamp.now(),
+                updatedAt: Timestamp.now(),
+            });
+        }
+
+        logger.info('[DispensaryPlaybooks] Updated playbook config', { orgId, playbookId });
+        return { success: true };
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('[DispensaryPlaybooks] Config update failed', { orgId, playbookId, error: message });
+        return { success: false, error: message };
+    }
 }
 
 /**

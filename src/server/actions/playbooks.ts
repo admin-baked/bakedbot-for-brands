@@ -333,7 +333,7 @@ export async function createPlaybook(
 export async function updatePlaybook(
     brandId: string,
     playbookId: string,
-    updates: Partial<Pick<Playbook, 'name' | 'description' | 'agent' | 'category' | 'triggers' | 'steps' | 'status'>>
+    updates: Partial<Pick<Playbook, 'name' | 'description' | 'agent' | 'category' | 'triggers' | 'steps' | 'status' | 'metadata'>>
 ): Promise<{ success: boolean; error?: string }> {
     try {
         const { firestore } = await createServerClient();
