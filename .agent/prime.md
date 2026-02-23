@@ -21,8 +21,8 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-02-23)
 
-**Recent work (2026-02-22):** See `memory/MEMORY.md` for full log.
-Key completed: [Advanced sidebar filters on public menu] (`0a600475`), [78 filter logic tests] (`53f40688`)
+**Recent work (2026-02-23):** See `memory/MEMORY.md` for full log.
+Key completed: [Dispense/AIQ image scraper + reusable onboarding script] (`scrape-dispense-full.mjs`), [THC%/strainType backfill from Alleaves — 878 products labeled] (`backfill-thc-straintype.mjs`)
 
 ---
 
