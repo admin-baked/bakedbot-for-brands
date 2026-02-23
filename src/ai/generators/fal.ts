@@ -107,20 +107,35 @@ export async function generateImageWithFal(
         promptPreview: safePrompt.substring(0, 80),
     });
 
-    const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Key ${apiKey}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            prompt: safePrompt,
-            image_size: imageSize,
-            num_inference_steps: numSteps,
-            seed: Math.floor(Math.random() * 9_999_999),  // explicit random seed — FLUX.1 must never reuse the same image
-            enable_safety_checker: false,  // legal cannabis business — no content restrictions
-        }),
-    });
+    // 25-second timeout — FLUX.1 Schnell is ~1-3s, Pro is ~5-10s; 25s covers retries + latency spikes
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25_000);
+
+    let res: Response;
+    try {
+        res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Key ${apiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                prompt: safePrompt,
+                image_size: imageSize,
+                num_inference_steps: numSteps,
+                seed: Math.floor(Math.random() * 9_999_999),  // explicit random seed — FLUX.1 must never reuse the same image
+                enable_safety_checker: false,  // legal cannabis business — no content restrictions
+            }),
+            signal: controller.signal,
+        });
+    } catch (fetchErr) {
+        if ((fetchErr as Error)?.name === 'AbortError') {
+            throw new Error('fal.ai image generation timed out after 25 seconds');
+        }
+        throw fetchErr;
+    } finally {
+        clearTimeout(timeoutId);
+    }
 
     if (!res.ok) {
         const errText = await res.text().catch(() => 'unknown error');
