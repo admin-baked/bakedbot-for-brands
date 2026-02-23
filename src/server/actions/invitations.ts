@@ -66,10 +66,12 @@ export async function createInvitationAction(input: z.infer<typeof CreateInvitat
         // Send Invitation Email via Mailjet/SendGrid
         const inviteLink = `https://bakedbot.ai/join/${token}`;
         const roleName = input.role.replace('_', ' ').toUpperCase();
-        
+
+        let emailSent = false;
+        let emailError: string | null = null;
         try {
             const { sendGenericEmail } = await import('@/lib/email/dispatcher');
-            await sendGenericEmail({
+            const result = await sendGenericEmail({
                 to: input.email,
                 name: input.email.split('@')[0],
                 subject: `You're invited to join BakedBot as ${roleName}`,
@@ -78,7 +80,7 @@ export async function createInvitationAction(input: z.infer<typeof CreateInvitat
                         <h2 style="color: #16a34a;">You've Been Invited! 🎉</h2>
                         <p>You've been invited to join <strong>BakedBot</strong> as a <strong>${roleName}</strong>.</p>
                         <p style="margin: 24px 0;">
-                            <a href="${inviteLink}" 
+                            <a href="${inviteLink}"
                                style="background: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                                 Accept Invitation
                             </a>
@@ -94,17 +96,34 @@ export async function createInvitationAction(input: z.infer<typeof CreateInvitat
                 `,
                 textBody: `You've been invited to join BakedBot as ${roleName}. Accept here: ${inviteLink}`
             });
-            console.log(`[createInvitationAction] Email sent to ${input.email}`);
-        } catch (emailError) {
-            console.warn('[createInvitationAction] Email sending failed, but invitation was created:', emailError);
-            // Don't fail the whole operation if email fails
+
+            if (result.success) {
+                emailSent = true;
+                logger.info('[createInvitationAction] Email sent successfully', { email: input.email });
+            } else {
+                emailError = result.error || 'Unknown error';
+                logger.warn('[createInvitationAction] Email sending failed', {
+                    email: input.email,
+                    error: emailError
+                });
+            }
+        } catch (emailException) {
+            emailError = emailException instanceof Error ? emailException.message : String(emailException);
+            logger.error('[createInvitationAction] Email exception', {
+                email: input.email,
+                error: emailError
+            });
         }
 
-        return { 
-            success: true, 
-            message: 'Invitation created and email sent.', 
+        return {
+            success: true,
+            message: emailSent
+                ? 'Invitation created and email sent successfully.'
+                : `Invitation created but email sending failed: ${emailError || 'Unknown error'}. The invite link is: ${inviteLink}`,
             invitation: newInvitation,
-            link: `/join/${token}` // Frontend can prepend domain
+            link: `/join/${token}`, // Frontend can prepend domain
+            emailSent,
+            emailError: emailError || undefined
         };
 
     } catch (error: any) {
