@@ -205,7 +205,7 @@ export function InsightCardsGrid({ className, maxCards = 5 }: InsightCardsGridPr
     const attentionCount = criticalCount + warningCount;
     const summaryLine =
         criticalCount > 0
-            ? `${criticalCount} critical item${criticalCount > 1 ? 's' : ''} need immediate attention`
+            ? `${criticalCount} critical item${criticalCount > 1 ? 's' : ''} need${criticalCount === 1 ? 's' : ''} immediate attention`
             : attentionCount > 0
               ? `${attentionCount} item${attentionCount > 1 ? 's' : ''} need${attentionCount === 1 ? 's' : ''} your attention`
               : 'All systems healthy — great day ahead';
