@@ -200,8 +200,11 @@ export async function proxy(request: NextRequest) {
     // ============================
     // Check if this is a cannabis menu route requiring age verification
     // Skip age gate for: protected routes, API, signin pages, verify-age itself, main landing page
+    const META_PATHS = ['/robots.txt', '/sitemap.xml', '/llm.txt', '/manifest.json', '/favicon.ico', '/sw.js'];
+    const isMetaPath = META_PATHS.includes(pathname) || pathname.endsWith('.xml') || pathname.endsWith('.txt');
     const isMenuRoute =
         !isProtectedRoute &&
+        !isMetaPath &&
         !pathname.startsWith('/api/') &&
         !pathname.startsWith('/signin') &&
         !pathname.startsWith('/verify-age') &&

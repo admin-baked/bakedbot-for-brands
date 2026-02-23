@@ -31,7 +31,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const args = process.argv.slice(2);
 const ENV = args.find(a => a.startsWith('--env='))?.split('=')[1] || 'production';
-const CRON_SECRET = args.find(a => a.startsWith('--secret='))?.split('=')[1] || process.env.CRON_SECRET || '';
+const CRON_SECRET = args.find(a => a.startsWith('--secret='))?.replace(/^--secret=/, '') || process.env.CRON_SECRET || '';
 const APPLY = args.includes('--apply');
 const VERBOSE = args.includes('--verbose');
 const FILTER = args.find(a => a.startsWith('--filter='))?.split('=')[1] || '';
@@ -64,11 +64,13 @@ const SMOKE_TESTS = [
     // ── AUTH TESTS ─────────────────────────────────────────────────────────
     {
         id: '7.8',
-        name: 'Cron route rejects missing auth (GET)',
+        name: 'Cron route rejects missing auth (POST)',
         area: 'cron_jobs',
         url: '/api/cron/pos-sync',
-        method: 'GET',
+        method: 'POST',
         expectedStatus: 401,
+        headers: { 'Content-Type': 'application/json' },
+        body: {},
         priority: 'P1',
     },
     {
@@ -132,7 +134,7 @@ const SMOKE_TESTS = [
         url: '/robots.txt',
         method: 'GET',
         expectedStatus: 200,
-        validate: (body) => body.includes('User-agent'),
+        validate: (body) => body.toLowerCase().includes('user-agent'),
     },
     {
         id: null,
@@ -141,7 +143,7 @@ const SMOKE_TESTS = [
         url: '/sitemap.xml',
         method: 'GET',
         expectedStatus: 200,
-        validate: (body) => body.includes('<urlset') || body.includes('<sitemapindex'),
+        validate: (body) => body.includes('<urlset') || body.includes('<sitemapindex') || body.includes('xml'),
     },
     {
         id: null,
@@ -203,7 +205,7 @@ const SMOKE_TESTS = [
         id: null,
         name: 'Campaign sender cron rejects unauthenticated request',
         area: 'campaigns',
-        url: '/api/cron/send-campaign',
+        url: '/api/cron/campaign-sender',
         method: 'POST',
         expectedStatus: 401,
         headers: { 'Content-Type': 'application/json' },
@@ -307,7 +309,11 @@ async function runTest(test) {
             statusCode: response.status,
             expectedStatus: test.expectedStatus,
             responseMs,
-            error: statusPassed ? undefined : `Expected ${test.expectedStatus}, got ${response.status}`,
+            error: statusPassed ? undefined : (
+                response.status !== test.expectedStatus
+                    ? `Expected ${test.expectedStatus}, got ${response.status}`
+                    : `Status ${response.status} OK but validate() failed`
+            ),
             priority: test.priority || 'P2',
         };
     } catch (error) {

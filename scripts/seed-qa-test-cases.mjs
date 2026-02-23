@@ -185,11 +185,11 @@ async function seedToFirestore() {
         process.exit(1);
     }
 
-    // Load .env.local
+    // Load .env.local (handle both \r\n and \n line endings)
     const env = readFileSync(envPath, 'utf-8');
     const envVars = {};
-    for (const line of env.split('\n')) {
-        const match = line.match(/^([^=]+)=(.*)$/);
+    for (const line of env.split(/\r?\n/)) {
+        const match = line.match(/^([^=]+)=(.*)/);
         if (match) {
             envVars[match[1].trim()] = match[2].trim().replace(/^["']|["']$/g, '');
         }
