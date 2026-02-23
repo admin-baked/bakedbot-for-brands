@@ -29,10 +29,11 @@ import { useDebounce } from '@/hooks/use-debounce';
 
 interface SlugConfigPanelProps {
     currentSlug: string | null;
+    brandId?: string | null;
     onSlugReserved: (slug: string) => void;
 }
 
-export function SlugConfigPanel({ currentSlug, onSlugReserved }: SlugConfigPanelProps) {
+export function SlugConfigPanel({ currentSlug, brandId, onSlugReserved }: SlugConfigPanelProps) {
     const { toast } = useToast();
     const { user } = useUser();
     const [inputSlug, setInputSlug] = useState(currentSlug || '');
@@ -62,7 +63,8 @@ export function SlugConfigPanel({ currentSlug, onSlugReserved }: SlugConfigPanel
 
             setIsChecking(true);
             try {
-                const result = await checkSlugAvailability(debouncedSlug);
+                // Pass brandId so the server can confirm ownership and avoid false "taken" errors
+                const result = await checkSlugAvailability(debouncedSlug, brandId ?? undefined);
                 setIsAvailable(result.available);
                 setSuggestion(result.suggestion || null);
             } catch (error) {
@@ -81,9 +83,10 @@ export function SlugConfigPanel({ currentSlug, onSlugReserved }: SlugConfigPanel
 
         setIsReserving(true);
         try {
+            // Use the resolved brandId from parent (covers dispensary users whose orgId !== uid)
             const profile = user as any;
-            const brandId = profile.brandId || user.uid;
-            const result = await reserveSlug(inputSlug, brandId);
+            const resolvedBrandId = brandId || profile.currentOrgId || profile.orgId || profile.brandId || user.uid;
+            const result = await reserveSlug(inputSlug, resolvedBrandId);
 
             if (result.success) {
                 onSlugReserved(inputSlug);

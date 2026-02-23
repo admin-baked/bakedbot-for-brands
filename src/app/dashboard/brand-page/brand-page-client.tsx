@@ -43,6 +43,7 @@ export function BrandPageClient() {
     const { toast } = useToast();
     const { user } = useUser();
     const [currentSlug, setCurrentSlug] = useState<string | null>(null);
+    const [brandId, setBrandId] = useState<string | null>(null);
     const [isPublished, setIsPublished] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [showLaunchDialog, setShowLaunchDialog] = useState(false);
@@ -51,11 +52,14 @@ export function BrandPageClient() {
     useEffect(() => {
         async function loadSlug() {
             if (!user) return;
-            
+
             try {
                 const profile = user as any;
-                const brandId = profile.brandId || user.uid;
-                const slug = await getBrandSlug(brandId);
+                // Resolve org ID correctly for both brand and dispensary users:
+                // currentOrgId/orgId from custom claims covers dispensary_admin users (e.g., org_thrive_syracuse)
+                const resolvedBrandId = profile.currentOrgId || profile.orgId || profile.brandId || user.uid;
+                setBrandId(resolvedBrandId);
+                const slug = await getBrandSlug(resolvedBrandId);
                 setCurrentSlug(slug);
                 // TODO: Check if published from Firestore
                 setIsPublished(!!slug);
@@ -165,6 +169,7 @@ export function BrandPageClient() {
                 <TabsContent value="url" className="space-y-6">
                     <SlugConfigPanel
                         currentSlug={currentSlug}
+                        brandId={brandId}
                         onSlugReserved={handleSlugReserved}
                     />
 
