@@ -410,7 +410,7 @@ function getByPath(obj: any, path: string): any {
  */
 export async function parseContent(
     content: string,
-    sourceType: 'html' | 'json_api',
+    sourceType: 'html' | 'json_api' | 'jina',
     profileId: string
 ): Promise<ParseResult> {
     if (sourceType === 'json_api') {

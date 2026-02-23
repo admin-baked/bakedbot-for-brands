@@ -16,6 +16,7 @@ import {
 
 // Re-export all services
 export * from './competitor-manager';
+export * from './competitor-discovery';
 export * from './discovery-scheduler';
 export * from './discovery-fetcher';
 export * from './parser-engine';
