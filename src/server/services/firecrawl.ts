@@ -100,22 +100,38 @@ export class DiscoveryService {
             throw new Error('Discovery not configured (neither Firecrawl nor RTRVR available)');
         }
 
-        // RTRVR fallback
+        // RTRVR fallback — extract markdown + metadata so callers get title/description too
         logger.info('[Discovery] Using RTRVR fallback for discoverUrl', { url });
-        const res = await extractFromUrl(url, 'Extract the full content of this page as clean readable markdown text.', {
-            type: 'object',
-            properties: {
-                markdown: { type: 'string' },
-                title: { type: 'string' }
+        const res = await extractFromUrl(
+            url,
+            'Extract the full page content as clean readable markdown text. Also extract the page title and meta description.',
+            {
+                type: 'object',
+                properties: {
+                    markdown:    { type: 'string', description: 'Full page content as markdown' },
+                    title:       { type: 'string', description: 'Page <title> or main heading' },
+                    description: { type: 'string', description: 'Meta description or first paragraph summary' },
+                }
             }
-        });
+        );
 
         if (!res.success) {
             throw new Error(`RTRVR fallback failed: ${res.error}`);
         }
 
-        const content = this.extractRTRVRContent(res.data);
-        return { success: true, markdown: content };
+        // result may be { markdown, title, description } or a plain string
+        const result = res.data?.result as any;
+        const markdown = typeof result?.markdown === 'string'
+            ? result.markdown
+            : this.extractRTRVRContent(res.data);
+        const title       = typeof result?.title       === 'string' ? result.title       : undefined;
+        const description = typeof result?.description === 'string' ? result.description : undefined;
+
+        return {
+            success: true,
+            markdown,
+            metadata: { title, description },
+        };
     }
 
     /**
