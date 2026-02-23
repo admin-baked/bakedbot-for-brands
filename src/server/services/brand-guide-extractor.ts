@@ -68,6 +68,12 @@ interface ExtractionResult {
   source: BrandGuideSource;
   confidence: number; // 0-100
   websiteTitle?: string;
+  metadata?: {
+    title?: string;
+    description?: string;
+    ogImage?: string;
+    favicon?: string;
+  };
 }
 
 // ============================================================================
@@ -174,6 +180,7 @@ export class BrandGuideExtractor {
         source,
         confidence,
         websiteTitle: websiteAnalysis.metadata.title,
+        metadata: websiteAnalysis.metadata,  // exposes title + description for client pre-fill
       };
     } catch (error) {
       logger.error('Brand guide extraction failed', { error, url: input.url });
