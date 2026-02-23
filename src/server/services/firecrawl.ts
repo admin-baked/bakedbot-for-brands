@@ -9,14 +9,16 @@ import type { AgentResult } from './rtrvr/agent';
 /**
  * BakedBot Discovery Service (Singleton)
  *
+ * Fallback chain for discoverUrl():
+ *   1. Firecrawl  — best quality, JS rendering, structured JSON (paid, credits-based)
+ *   2. Jina AI    — free (20 RPM no key / 100 RPM with JINA_API_KEY), clean markdown + metadata
+ *   3. RTRVR      — browser automation agent (RTRVR_API_KEY required)
+ *
  * Capabilities:
- * - Discovery: Get markdown/HTML from a URL (Firecrawl → RTRVR fallback)
+ * - Discovery: Get markdown/HTML from a URL
  * - Search: Find pages matching a query (Firecrawl → RTRVR fallback)
  * - Map: Crawl a site to find links (Firecrawl → RTRVR fallback)
  * - Extract: LLM-based structured data extraction (Firecrawl → RTRVR fallback)
- *
- * Note: Uses FIRECRAWL_API_KEY from env (set via Firebase Secrets).
- * Automatically falls back to RTRVR.ai if Firecrawl is unavailable.
  */
 export class DiscoveryService {
     private app: FirecrawlApp | null = null;
@@ -25,6 +27,7 @@ export class DiscoveryService {
     private constructor() {
         const firecrawlKey = process.env.FIRECRAWL_API_KEY;
         const rtrvrKey = process.env.RTRVR_API_KEY;
+        const jinaKey = process.env.JINA_API_KEY;
 
         if (firecrawlKey) {
             this.app = new FirecrawlApp({ apiKey: firecrawlKey });
@@ -32,7 +35,8 @@ export class DiscoveryService {
 
         logger.info('[Discovery] Service initialized', {
             firecrawlAvailable: !!this.app,
-            firecrawlKeyLength: firecrawlKey?.length || 0,
+            jinaAvailable: true, // always available; key optional (100 RPM with key, 20 without)
+            jinaKeyConfigured: !!jinaKey,
             rtrvrAvailable: this.isRTRVRAvailable(),
             rtrvrKeyLength: rtrvrKey?.length || 0
         });
@@ -46,7 +50,7 @@ export class DiscoveryService {
     }
 
     public isConfigured(): boolean {
-        return !!this.app || this.isRTRVRAvailable();
+        return true; // Jina AI is always available as fallback
     }
 
     private isFirecrawlAvailable(): boolean {
@@ -55,6 +59,51 @@ export class DiscoveryService {
 
     private isRTRVRAvailable(): boolean {
         return getRTRVRClient().isAvailable();
+    }
+
+    /**
+     * Jina AI Reader fallback
+     * Free tier: 20 RPM (no key) or 100 RPM (JINA_API_KEY set)
+     * Returns title + description + clean markdown — no API key required.
+     */
+    private async discoverViaJina(url: string): Promise<{ success: true; markdown: string; metadata: { title?: string; description?: string } }> {
+        const headers: Record<string, string> = {
+            'Accept': 'application/json',
+        };
+        const jinaKey = process.env.JINA_API_KEY;
+        if (jinaKey) {
+            headers['Authorization'] = `Bearer ${jinaKey}`;
+        }
+
+        const res = await fetch(`https://r.jina.ai/${encodeURIComponent(url)}`, {
+            headers,
+            signal: AbortSignal.timeout(30000),
+        });
+
+        if (!res.ok) {
+            throw new Error(`Jina AI returned ${res.status}: ${res.statusText}`);
+        }
+
+        const data = await res.json() as any;
+        if (data.code !== 200 || !data.data) {
+            throw new Error(`Jina AI error: ${data.status || JSON.stringify(data)}`);
+        }
+
+        logger.info('[Discovery] Jina AI discoverUrl succeeded', {
+            url,
+            title: data.data.title,
+            contentChars: (data.data.content || '').length,
+            tokens: data.data.usage?.tokens,
+        });
+
+        return {
+            success: true,
+            markdown: data.data.content || '',
+            metadata: {
+                title: data.data.title || undefined,
+                description: data.data.description || undefined,
+            },
+        };
     }
 
     /**
@@ -90,17 +139,23 @@ export class DiscoveryService {
                 logger.info('[Discovery] discoverUrl succeeded via Firecrawl', { url });
                 return response;
             } catch (error: any) {
-                logger.warn('[Discovery] Firecrawl discoverUrl failed, trying RTRVR fallback', { url, error: error.message });
-                if (!this.isRTRVRAvailable()) {
-                    console.error('[Discovery] Retrieval error:', error);
-                    throw error;
-                }
+                logger.warn('[Discovery] Firecrawl discoverUrl failed, trying Jina AI fallback', { url, error: error.message });
             }
-        } else if (!this.isRTRVRAvailable()) {
-            throw new Error('Discovery not configured (neither Firecrawl nor RTRVR available)');
         }
 
-        // RTRVR fallback — extract markdown + metadata so callers get title/description too
+        // Jina AI fallback — free, no setup, returns title + description + clean markdown
+        try {
+            logger.info('[Discovery] Using Jina AI fallback for discoverUrl', { url });
+            return await this.discoverViaJina(url);
+        } catch (jinaError: any) {
+            logger.warn('[Discovery] Jina AI fallback failed, trying RTRVR', { url, error: jinaError.message });
+        }
+
+        if (!this.isRTRVRAvailable()) {
+            throw new Error('Discovery failed: Firecrawl out of credits, Jina AI unavailable, RTRVR not configured');
+        }
+
+        // RTRVR fallback — browser automation agent
         logger.info('[Discovery] Using RTRVR fallback for discoverUrl', { url });
         const res = await extractFromUrl(
             url,
