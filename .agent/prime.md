@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-23)
 
 **Recent work (2026-02-23):** See `memory/MEMORY.md` for full log.
-Key completed: [Pinky QA Agent full deploy] (`33da990c`), [robots.txt age-gate + goals 401 + smoke tests 17/17] (`50d2bd28`)
+Key completed: [Zapier-like Playbook trigger editor] (`85e81ac6`), [106 unit tests for trigger/delivery logic] (`a53adae9`)
 
 ---
 
