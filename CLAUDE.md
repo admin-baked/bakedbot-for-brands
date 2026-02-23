@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-23 (Pinky QA Engineering Agent: bug tracker, smoke tests, CEO QA tab, dispensary P0/P1 widget, Linus QA tools, 80 seeded test cases)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-23 (Pinky QA agent + 99 test cases seeded; robots.txt age-gate bypass fixed; goals/suggest 401; smoke tests 17/17)
 
 ---
 
