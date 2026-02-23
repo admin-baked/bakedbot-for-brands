@@ -901,7 +901,7 @@ Return ONLY a valid JSON object (no markdown formatting):
       tagline: website.metadata.description
         ? website.metadata.description.split('.')[0].trim().substring(0, 100)
         : '',
-      positioning: website.metadata.description || `Cannabis brand based in your area`,
+      positioning: website.metadata.description || '',
       valuePropositions: website.metadata.description
         ? [website.metadata.description.substring(0, 150)]
         : [],
