@@ -18,7 +18,9 @@ export async function setupBrandAndCompetitors(formData: FormData) {
         }
 
         const brandName = formData.get('brandName') as string;
-        const brandId = formData.get('brandId') as string; // Optional, can be slugified version
+        const brandId = formData.get('brandId') as string; // Optional slug override
+        // orgId is the actual Firestore org document ID (e.g. org_thrive_syracuse)
+        const orgId = formData.get('orgId') as string;
         const zipCode = formData.get('zipCode') as string;
 
         if (!brandName || !zipCode) {
@@ -27,26 +29,38 @@ export async function setupBrandAndCompetitors(formData: FormData) {
 
         const slugifiedId = brandId || brandName.toLowerCase().replace(/[^a-z0-9]/g, '-');
 
-        // 1. Create/Update Brand Profile
+        // The tenantId for Firestore operations is the actual orgId (if provided),
+        // NOT the slugified brand name. The slug is only for URL routing.
+        const tenantId = orgId || slugifiedId;
+
+        // 1. Create/Update Brand Profile (slug doc — for URL routing)
         await firestore.collection('brands').doc(slugifiedId).set({
             name: brandName,
             id: slugifiedId,
+            originalBrandId: tenantId,
             zipCode,
             updatedAt: new Date(),
         }, { merge: true });
 
-        // 2. Link brand to user profile
+        // 2. Link brand to user profile and org doc
         await firestore.collection('users').doc(userId).update({
-            brandId: slugifiedId,
+            brandId: tenantId,
             setupComplete: true,
         });
+        if (orgId) {
+            await firestore.collection('organizations').doc(orgId).set({
+                zipCode,
+                updatedAt: new Date(),
+            }, { merge: true });
+        }
 
         // 3. Trigger Auto-Competitor discovery (Ezal Lite)
-        // We use the slugifiedId as tenantId for now
-        const discoveryResult = await autoSetupCompetitors(slugifiedId, zipCode);
+        // Use actual tenantId (org_thrive_syracuse) so competitors land in the right Firestore path
+        const discoveryResult = await autoSetupCompetitors(tenantId, zipCode);
 
         logger.info('Manual brand setup complete', {
             userId,
+            tenantId,
             brandId: slugifiedId,
             competitorsFound: discoveryResult.competitors.length
         });
@@ -71,7 +85,7 @@ export async function setupBrandAndCompetitors(formData: FormData) {
 
         return {
             success: true,
-            brandId: slugifiedId,
+            brandId: tenantId,
             competitors: discoveryResult.competitors,
             syncStatus
         };

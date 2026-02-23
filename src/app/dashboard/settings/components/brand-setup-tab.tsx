@@ -72,6 +72,9 @@ export default function BrandSetupTab() {
         const formData = new FormData(e.currentTarget);
         // setupBrandAndCompetitors requires userId for auth
         if (user?.uid) formData.set('userId', user.uid);
+        // Pass actual orgId so competitors are saved under the correct tenant path
+        // (without this, brand-setup would slugify the brand name and use it as the tenantId)
+        if (effectiveOrgId) formData.set('orgId', effectiveOrgId);
 
         try {
             // Reserve the slug if one is set and available
