@@ -9,7 +9,7 @@
  * and indexed in `tenants/{brandId}/brand_images` for fast lookup by brandId.
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { createServerClient } from '@/firebase/server-client';
 import { logger } from '@/lib/logger';
 import { generateImageFromPrompt } from '@/ai/flows/generate-social-image';
 import { DriveStorageService } from '@/server/services/drive-storage';
@@ -46,7 +46,7 @@ export async function generateBrandImagesForNewAccount(
     brandId: string,
     brandGuide: BrandGuide
 ): Promise<void> {
-    const firestore = getFirestore();
+    const { firestore } = await createServerClient();
     const driveService = new DriveStorageService();
 
     const brandName = (brandGuide as any).brandName || brandId;
@@ -144,7 +144,7 @@ export async function getBrandKitImages(
     brandId: string
 ): Promise<{ url: string; name: string; type: string }[]> {
     try {
-        const firestore = getFirestore();
+        const { firestore } = await createServerClient();
         const snapshot = await firestore
             .collection('tenants')
             .doc(brandId)
