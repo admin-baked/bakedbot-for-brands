@@ -72,6 +72,22 @@ export async function fetchBrandPageData(brandParam: string) {
 
         if (brandDoc.exists) {
             brand = { id: brandDoc.id, ...brandDoc.data() } as Brand;
+            // Enrich with org location data when brand doc links to an org via originalBrandId
+            const orgId = (brand as any).originalBrandId;
+            if (orgId && !(brand as any).location && !(brand as any).city) {
+                try {
+                    const orgDoc = await firestore.collection('organizations').doc(orgId).get();
+                    if (orgDoc.exists) {
+                        const orgData = orgDoc.data() as Record<string, unknown>;
+                        (brand as any).location = orgData.location ?? null;
+                        (brand as any).city = orgData.city ?? (orgData.location as any)?.city ?? null;
+                        (brand as any).state = orgData.state ?? (orgData.location as any)?.state ?? (brand as any).state ?? null;
+                        (brand as any).useLogoInHeader = (brand as any).useLogoInHeader ?? orgData.useLogoInHeader ?? false;
+                    }
+                } catch {
+                    // fail gracefully — location enrichment is non-critical
+                }
+            }
         } else {
             // 2. Try to query by slug in BRANDS collection
             const slugQuery = await firestore
