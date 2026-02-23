@@ -299,6 +299,11 @@ env:
     secret: RTRVR_API_KEY@1
     availability:
       - RUNTIME
+  # Jina AI Reader - free web scraping fallback (100 RPM with key)
+  - variable: JINA_API_KEY
+    secret: JINA_API_KEY@1
+    availability:
+      - RUNTIME
   # OpenClaw - WhatsApp Gateway
   - variable: OPENCLAW_API_URL
     secret: OPENCLAW_API_URL@1
