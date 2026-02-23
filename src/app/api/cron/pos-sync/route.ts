@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
 
         const successCount = results.filter(r => r.success).length;
         const failedCount = results.length - successCount;
+        const menuProductsCount = results.reduce((sum, r) => sum + (r.menuProductsCount ?? 0), 0);
 
         return NextResponse.json({
             success: true,
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
                 total: results.length,
                 successful: successCount,
                 failed: failedCount,
+                menuProductsCount,
             },
             details: results,
         });

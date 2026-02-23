@@ -12,12 +12,14 @@ import { posCache, cacheKeys } from '@/lib/cache/pos-cache';
 import { logger } from '@/lib/logger';
 import { invalidateCache, CachePrefix } from '@/lib/cache';
 import { recordProductSale } from '@/server/services/order-analytics';
+import { syncPOSProducts } from '@/server/actions/pos-sync';
 
 export interface SyncResult {
     success: boolean;
     orgId: string;
     customersCount?: number;
     ordersCount?: number;
+    menuProductsCount?: number;
     error?: string;
     duration?: number;
 }
@@ -234,7 +236,9 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
             };
         }
 
-        const locationData = locationsSnap.docs[0].data();
+        const locationDoc = locationsSnap.docs[0];
+        const locationId = locationDoc.id;
+        const locationData = locationDoc.data();
         const posConfig = locationData?.posConfig;
 
         if (!posConfig || posConfig.provider !== 'alleaves' || posConfig.status !== 'active') {
@@ -285,6 +289,18 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
             await persistOrdersToFirestore(firestore, orgId, posConfig.locationId, orders);
         }
 
+        // Sync menu/product catalog from POS (non-fatal — failure doesn't break customer/order sync)
+        let menuProductsCount = 0;
+        try {
+            menuProductsCount = await syncPOSProducts(locationId, orgId);
+            logger.info('[POS_SYNC] Menu sync completed', { orgId, menuProductsCount });
+        } catch (menuErr: any) {
+            logger.warn('[POS_SYNC] Menu sync failed (non-fatal)', {
+                orgId,
+                error: menuErr?.message || String(menuErr),
+            });
+        }
+
         // Invalidate existing cache to force refresh on next request
         posCache.invalidate(cacheKeys.customers(orgId));
         posCache.invalidate(cacheKeys.orders(orgId));
@@ -301,6 +317,7 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
             orgId,
             customersCount: customers.length,
             ordersCount: orders.length,
+            menuProductsCount,
             duration: Date.now() - startTime,
         });
 
@@ -313,6 +330,7 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
             orgId,
             customersCount: customers.length,
             ordersCount: orders.length,
+            menuProductsCount,
             duration: Date.now() - startTime,
         };
     } catch (error: any) {
