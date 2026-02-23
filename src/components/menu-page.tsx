@@ -20,17 +20,19 @@ export function MenuPage({ brandId }: { brandId?: string }) {
     // Track usage
     if (brandId) {
       trackUsageAction(brandId, 'menu_pageviews');
+      // Strip hyphens to match Firestore slug format (e.g. "thrive-syracuse" → "thrivesyracuse")
+      const normalizedSlug = brandId.replace(/-/g, '');
+      router.replace(`/${normalizedSlug}`);
+    } else {
+      router.replace('/demo-shop');
     }
-
-    // Redirect to the new Dispensary Menu Demo
-    router.replace('/demo');
   }, [router, brandId]);
 
   return (
     <div className="flex items-center justify-center min-h-[400px]">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Loading demo menu...</p>
+        <p className="text-sm text-muted-foreground">Loading menu...</p>
       </div>
     </div>
   );

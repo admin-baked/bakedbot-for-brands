@@ -24,12 +24,12 @@ function AnalyticsSkeleton() {
 export default async function DashboardAnalyticsPage() {
   let user;
   try {
-    user = await requireUser(['brand', 'super_user']);
+    user = await requireUser(['brand', 'dispensary_admin', 'super_user']);
   } catch (error) {
-    redirect('/brand-login');
+    redirect('/signin');
   }
 
-  const brandId = user.brandId;
+  const brandId = (user as any).brandId || (user as any).currentOrgId || (user as any).orgId;
   if (!brandId) {
     // This could happen if an 'owner' without a brandId lands here.
     // In a real app, you might have an org selector. For now, we'll show an empty state.

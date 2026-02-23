@@ -66,11 +66,17 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
         });
 
         if (result.success && result.goalId) {
-          // Refetch goals to get the newly created goal
-          // For now, just show success
+          const newGoal: OrgGoal = {
+            id: result.goalId,
+            ...goalData,
+            orgId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastProgressUpdatedAt: new Date(),
+          };
+          setGoals(prev => [newGoal, ...prev]);
           setDialogOpen(false);
           logger.info('Goal created successfully', { goalId: result.goalId });
-          // TODO: Refresh goals list
         }
       } catch (error: unknown) {
         logger.error('Error creating goal:', error instanceof Error ? { message: error.message, stack: error.stack } : { error });
