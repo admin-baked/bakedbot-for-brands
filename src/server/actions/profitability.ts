@@ -30,6 +30,7 @@ import type {
   Expense280E,
   ExpenseSubcategory,
   ReportPeriod,
+  NYProductCategory,
 } from '@/types/cannabis-tax';
 
 // =============================================================================
@@ -352,8 +353,61 @@ export async function saveTaxConfig(
 // DASHBOARD DATA AGGREGATION
 // =============================================================================
 
+// Zero-filled fallbacks for when Firestore queries fail (e.g. missing composite index)
+function emptyTax280E(orgId: string, start: Date, end: Date): Tax280EAnalysis {
+  return {
+    tenantId: orgId, periodStart: start, periodEnd: end,
+    grossRevenue: 0, directCOGS: 0, indirectCOGS: 0, totalCOGS: 0,
+    nonDeductibleExpenses: 0, grossProfit: 0, estimatedTaxRate: 0,
+    estimatedTaxLiability: 0, paperProfit: 0, cashReserveNeeded: 0,
+    actualCashProfit: 0, potentialCogsAllocation: 0,
+    optimizationSuggestions: ['Connect order data to see 280E analysis.'],
+    expenseBreakdown: [],
+  };
+}
+
+function emptyNYTax(orgId: string, start: Date, end: Date): NYTaxSummary {
+  return {
+    tenantId: orgId, periodStart: start, periodEnd: end,
+    grossSales: 0, potencyTaxCollected: 0, salesTaxCollected: 0,
+    totalTaxCollected: 0, potencyTaxOwed: 0, salesTaxOwed: 0,
+    totalTaxOwed: 0, netRevenueAfterTax: 0,
+    categoryBreakdown: [
+      { category: 'flower' as const, unitsSold: 0, grossSales: 0, potencyTax: 0, salesTax: 0 },
+      { category: 'concentrate' as const, unitsSold: 0, grossSales: 0, potencyTax: 0, salesTax: 0 },
+      { category: 'edible' as const, unitsSold: 0, grossSales: 0, potencyTax: 0, salesTax: 0 },
+    ],
+  };
+}
+
+function emptyWorkingCapital(orgId: string): WorkingCapitalAnalysis {
+  return {
+    tenantId: orgId, analysisDate: new Date(),
+    cashOnHand: 0, accountsReceivable: 0, inventoryValue: 0, accountsPayable: 0,
+    workingCapital: 0, currentRatio: 0, quickRatio: 0,
+    monthlyOperatingExpenses: 0, monthlyRevenue: 0, monthlyCashBurn: 0,
+    runwayMonths: 0, taxReserve: 0, bankingFees: 0,
+    liquidityRisk: 'medium' as const,
+    riskFactors: ['Configure financial settings to see working capital analysis.'],
+    recommendations: ['Enter monthly expenses and revenue targets in Settings > Tax Config.'],
+  };
+}
+
+function emptyMetrics(orgId: string, start: Date, end: Date): ProfitabilityMetrics {
+  return {
+    tenantId: orgId, periodStart: start, periodEnd: end,
+    grossRevenue: 0, cogs: 0, grossProfit: 0, grossMargin: 0,
+    operatingExpenses: 0, operatingProfit: 0, operatingMargin: 0,
+    tax280ELiability: 0, netProfitAfter280E: 0, effectiveTaxRate: 0,
+    inventoryTurnover: 0, categoryPerformance: [],
+    vsLastPeriod: { revenueChange: 0, marginChange: 0, profitChange: 0 },
+  };
+}
+
 /**
- * Get all profitability dashboard data in one call
+ * Get all profitability dashboard data in one call.
+ * Uses Promise.allSettled so a missing Firestore index on the orders collection
+ * doesn't crash the entire dashboard — financial tabs show $0 data instead.
  */
 export async function getProfitabilityDashboard(
   period: ReportPeriod = 'current_month',
@@ -373,24 +427,32 @@ export async function getProfitabilityDashboard(
 
   logger.info('[profitability] Fetching full dashboard', { orgId, period });
 
-  // Fetch config first (needed for other calculations)
   const config = await getTenantTaxConfig(orgId);
 
-  // Fetch all data in parallel
-  const [tax280E, nyTax, workingCapital] = await Promise.all([
+  // allSettled: if any calculation fails (e.g. missing Firestore composite index on orders)
+  // we fall back to zero-filled data so the rest of the page stays functional
+  const [tax280EResult, nyTaxResult, workingCapitalResult, metricsResult] = await Promise.allSettled([
     calculate280EAnalysis(orgId, start, end),
     calculateNYTaxSummary(orgId, start, end),
     calculateWorkingCapital(orgId, config || undefined),
+    calculateProfitabilityMetrics(orgId, start, end, config || undefined),
   ]);
 
-  // Calculate metrics using the fetched data
-  const metrics = await calculateProfitabilityMetrics(orgId, start, end, config || undefined);
+  if (tax280EResult.status === 'rejected') {
+    logger.error('[profitability] 280E calculation failed (likely missing Firestore index)', { error: String(tax280EResult.reason) });
+  }
+  if (nyTaxResult.status === 'rejected') {
+    logger.error('[profitability] NY tax calculation failed', { error: String(nyTaxResult.reason) });
+  }
+  if (workingCapitalResult.status === 'rejected') {
+    logger.error('[profitability] Working capital calculation failed', { error: String(workingCapitalResult.reason) });
+  }
 
   return {
-    metrics,
-    tax280E,
-    nyTax,
-    workingCapital,
+    tax280E: tax280EResult.status === 'fulfilled' ? tax280EResult.value : emptyTax280E(orgId, start, end),
+    nyTax: nyTaxResult.status === 'fulfilled' ? nyTaxResult.value : emptyNYTax(orgId, start, end),
+    workingCapital: workingCapitalResult.status === 'fulfilled' ? workingCapitalResult.value : emptyWorkingCapital(orgId),
+    metrics: metricsResult.status === 'fulfilled' ? metricsResult.value : emptyMetrics(orgId, start, end),
     config,
   };
 }
