@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-23)
 
 **Recent work (2026-02-23):** See `memory/MEMORY.md` for full log.
-Key completed: [Zapier-like Playbook trigger editor] (`85e81ac6`), [106 unit tests for trigger/delivery logic] (`a53adae9`)
+Key completed: [k6 synthetic monitoring + Linus auto-escalation loop] (`1e148108`), [Zapier-like Playbook trigger editor] (`85e81ac6`)
 
 ---
 

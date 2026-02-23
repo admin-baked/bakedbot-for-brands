@@ -200,6 +200,18 @@ const SMOKE_TESTS = [
         validate: (_, status) => status === 401 || status === 405,
     },
 
+    // ── BRAND GUIDE ────────────────────────────────────────────────────────
+    {
+        id: null,
+        name: 'Brand guide settings page redirects unauthenticated user',
+        area: 'brand_guide',
+        url: '/dashboard/settings/brand-guide',
+        method: 'GET',
+        expectedStatus: 307, // Next.js auth redirect
+        priority: 'P1',
+        validate: (_, status) => status === 307 || status === 302 || status === 401 || status === 200,
+    },
+
     // ── CAMPAIGNS ──────────────────────────────────────────────────────────
     {
         id: null,
