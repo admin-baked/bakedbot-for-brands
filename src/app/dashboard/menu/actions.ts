@@ -289,7 +289,9 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
         }
 
         // 4b. Also write to tenant catalog (used by the public-facing menu)
-        // This keeps bakedbot.ai/{slug} in sync with the latest POS data and clean images
+        // Only write products with available stock > 0 so the public menu matches the POS.
+        // Products that drop to 0 are removed from the tenant catalog but kept in the
+        // legacy products collection for dashboard/inventory tracking.
         if (orgId) {
             try {
                 const tenantBase = firestore
@@ -297,10 +299,14 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
                     .collection('publicViews').doc('products')
                     .collection('items');
 
+                // Only show items with available stock on the public menu
+                const availableItems = items.filter(item => (item.stock || 0) > 0);
+                const availableExternalIds = new Set(availableItems.map(item => item.externalId));
+
                 let tenantBatch = firestore.batch();
                 let tenantCount = 0;
 
-                for (const item of items) {
+                for (const item of availableItems) {
                     const docId = `${locationId}_${item.externalId}`;
                     const ref = tenantBase.doc(docId);
                     const tenantProductData = {
@@ -335,7 +341,29 @@ export async function syncMenu(): Promise<{ success: boolean; count?: number; er
                 if (tenantCount % 400 !== 0) {
                     await tenantBatch.commit();
                 }
-                logger.info('[SYNC_MENU] Synced tenant catalog', { orgId, count: tenantCount });
+
+                // Remove products from public catalog that are now out of stock or gone from POS
+                const tenantExisting = await tenantBase.get();
+                const tenantStale = tenantExisting.docs.filter(doc => {
+                    const externalId = doc.data().externalId;
+                    return !externalId || !availableExternalIds.has(externalId);
+                });
+                if (tenantStale.length > 0) {
+                    let staleBatch = firestore.batch();
+                    let staleCount = 0;
+                    for (const doc of tenantStale) {
+                        staleBatch.delete(doc.ref);
+                        staleCount++;
+                        if (staleCount % 400 === 0) {
+                            await staleBatch.commit();
+                            staleBatch = firestore.batch();
+                        }
+                    }
+                    if (staleCount % 400 !== 0) await staleBatch.commit();
+                    logger.info('[SYNC_MENU] Removed out-of-stock from tenant catalog', { orgId, removed: tenantStale.length });
+                }
+
+                logger.info('[SYNC_MENU] Synced tenant catalog', { orgId, available: tenantCount, total: items.length });
             } catch (tenantErr) {
                 // Non-fatal — legacy products collection is the source of truth for the dashboard
                 logger.warn('[SYNC_MENU] Failed to sync tenant catalog', { orgId, error: String(tenantErr) });
