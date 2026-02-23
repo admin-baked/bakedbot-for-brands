@@ -1564,6 +1564,45 @@ const LINUS_TOOLS: ClaudeTool[] = [
             },
             required: ['script']
         }
+    },
+    // ========================================================================
+    // QA TOOLS: Check report + file bugs (Pinky integration)
+    // ========================================================================
+    {
+        name: 'check_qa_report',
+        description: 'Check current QA health: open bug counts by priority (P0/P1/P2/P3), test coverage %, and recent failures. Use before deploying or when asked about quality.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                orgId: {
+                    type: 'string',
+                    description: 'Optional org ID to scope bugs to a specific customer (omit for platform-wide)'
+                }
+            },
+            required: []
+        }
+    },
+    {
+        name: 'file_qa_bug',
+        description: 'File a new QA bug when you discover an issue during code review, testing, or analysis. P0/P1 bugs trigger immediate Slack alerts to #qa-bugs.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                title: { type: 'string', description: 'Short, descriptive bug title' },
+                area: {
+                    type: 'string',
+                    enum: ['public_menu', 'compliance', 'auth', 'brand_guide', 'hero_carousel', 'bundle_system', 'revenue', 'redis_cache', 'competitive_intel', 'inbox', 'playbooks', 'creative_studio', 'drive', 'campaigns', 'pos_sync', 'cron_jobs', 'firebase_deploy', 'super_powers', 'goals', 'customer_segments', 'other'],
+                    description: 'Which product area this bug affects'
+                },
+                priority: { type: 'string', enum: ['P0', 'P1', 'P2', 'P3'], description: 'P0=site down, P1=critical, P2=degraded, P3=cosmetic' },
+                steps: { type: 'array', items: { type: 'string' }, description: 'Steps to reproduce (one per item)' },
+                expected: { type: 'string', description: 'What should happen' },
+                actual: { type: 'string', description: 'What actually happened' },
+                affectedOrgId: { type: 'string', description: 'Org ID if bug affects a specific customer' },
+                testCaseId: { type: 'string', description: 'Linked test case ID from MASTER_MANUAL_TEST_PLAN (e.g. "1.1")' }
+            },
+            required: ['title', 'area', 'priority', 'steps', 'expected', 'actual']
+        }
     }
 ];
 
@@ -3291,6 +3330,74 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                     stderr: e.stderr ? e.stderr.slice(-2000) : undefined,
                     timestamp: new Date().toISOString()
                 };
+            }
+        }
+
+        // ====================================================================
+        // QA TOOLS
+        // ====================================================================
+
+        case 'check_qa_report': {
+            const { orgId: qaOrgId } = input as { orgId?: string };
+            try {
+                const { getQAReport, getBugs } = await import('@/server/actions/qa');
+                const [report, p0Bugs] = await Promise.all([
+                    getQAReport(qaOrgId),
+                    getBugs({ priority: 'P0', status: 'open' }),
+                ]);
+                return {
+                    success: true,
+                    summary: report ? {
+                        openTotal: report.open,
+                        byPriority: report.byPriority,
+                        coveragePct: report.testCoverage.coveragePct,
+                        passing: report.testCoverage.passing,
+                        total: report.testCoverage.total,
+                    } : null,
+                    criticalBugs: p0Bugs.map((b: { id: string; title: string; status: string; assignedTo?: string }) => ({
+                        id: b.id,
+                        title: b.title,
+                        status: b.status,
+                        assignedTo: b.assignedTo,
+                    })),
+                    recommendation: p0Bugs.length > 0 ? 'BLOCK: P0 bugs open — do not deploy' : report && report.byPriority.P1 > 0 ? 'CAUTION: P1 bugs open — review before deploy' : 'CLEAR: No critical issues',
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        case 'file_qa_bug': {
+            const { title, area, priority, steps, expected, actual, affectedOrgId: bugOrgId, testCaseId } = input as {
+                title: string;
+                area: string;
+                priority: string;
+                steps: string[];
+                expected: string;
+                actual: string;
+                affectedOrgId?: string;
+                testCaseId?: string;
+            };
+            try {
+                const { reportBug } = await import('@/server/actions/qa');
+                const result = await reportBug({
+                    title,
+                    area: area as any,
+                    priority: priority as any,
+                    steps,
+                    expected,
+                    actual,
+                    environment: 'production',
+                    affectedOrgId: bugOrgId,
+                    testCaseId,
+                });
+                return {
+                    success: result.success,
+                    bugId: result.bugId,
+                    message: result.success ? `Bug filed: ${result.bugId} — Pinky will triage it` : result.error,
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
             }
         }
 
