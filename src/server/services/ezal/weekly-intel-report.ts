@@ -358,7 +358,7 @@ function generateRecommendations(
 // =============================================================================
 
 /**
- * Format weekly report as markdown and save to BakedBot Drive.
+ * Format daily report as markdown and save to BakedBot Drive.
  */
 async function saveReportToDrive(
     orgId: string,

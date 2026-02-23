@@ -3,11 +3,13 @@
  *
  * POST /api/cron/competitive-intel
  *
- * Directly triggers the weekly competitive intelligence report for a specific org.
+ * Triggers the daily competitive intelligence report for a specific org.
+ * Generates report covering up to 10 competitors with price changes, new products, and menu shakeups.
+ * Delivers via email and dashboard inbox. Automatically enrolls user in playbook.
  * Bypasses the playbook system for reliability.
  *
  * Usage:
- * - Cloud Scheduler: daily at 9 AM EST
+ * - Cloud Scheduler: daily at 7 AM (configurable per org)
  * - Manual: curl with CRON_SECRET
  */
 

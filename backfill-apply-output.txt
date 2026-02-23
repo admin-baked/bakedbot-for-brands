@@ -1,0 +1,913 @@
+
+🌿 Thrive Syracuse THC/StrainType Backfill
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Mode: APPLY (write Firestore)
+  Org:  org_thrive_syracuse
+
+🔐 Authenticating with Alleaves...
+(node:25296) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  ✅ Authenticated
+📦 Fetching inventory...
+  ✅ 444 inventory items fetched
+
+Alleaves categories: Category > Accessories, Category > Beverages, Category > Concentrate, Category > Edibles, Category > Flower, Category > Gift Cards, Category > Pre rolls, Category > Tinctures, Category > Topicals, Category > Vapes, Uncategorized
+
+📊 Alleaves map: 421 unique products
+   With THC > 0: 17
+   With strainType inferred: 318
+
+🔥 Reading Firestore publicViews...
+   1178 total products
+  ✅ "Jaunty - AIO - Blackberry Kush - 1.5g        " → no THC | Indica
+  ✅ "Jaunty - AIO - Blue Dream - 1.5g             " → no THC | Sativa
+  ✅ "Jaunty - Cartridge - Forbidden Fruit - 1g    " → no THC | Hybrid
+  ✅ "Jaunty - Cartridge - Jack Herer - 1g         " → no THC | Sativa
+  ✅ "Jaunty - Cartridge - Sour Diesel - 1g        " → no THC | Sativa
+  ✅ "Jaunty - Cartridge - Wedding Cake - 1g       " → no THC | Hybrid
+  ✅ "Jaunty - Cartridge - White Widow - 1g        " → no THC | Hybrid
+  ✅ "Jaunty - Cartridge - Papaya Lumina - 0.5g - L" → no THC | Hybrid
+  ✅ "Flowerhouse - Flower - Dolato - 3.5g         " → no THC | Indica
+  ✅ "Flowerhouse - Flower - Kush Pop Rocks - 3.5g " → no THC | Indica
+  ✅ "Flowerhouse - Flower - Mango Haze - 3.5g     " → no THC | Hybrid
+  ✅ "Melo - Flower - Hall of Flame - 3.5g         " → no THC | Hybrid
+  ✅ "Melo - Flower - Pressure Pack - 3.5g         " → no THC | Hybrid
+  ✅ "KOA - Infused Pre roll - 2pk - Trop Cherry - " → no THC | Hybrid
+  ✅ "NAR - Pre Roll 2pk - Mimosa OG - 1g          " → no THC | Hybrid
+  ✅ "NAR - Pre Roll 2pk - White Grape Gas - 1g    " → no THC | Hybrid
+  ✅ "Cannabals - AIO - Blue Dream - 2g - Liquid Di" → no THC | Sativa
+  ✅ "Cannabals - AIO - Apple Burst - 2g - Liquid D" → no THC | Hybrid
+  ✅ "Cannabals - AIO - Blackberry Brain - 2g - Liq" → no THC | Hybrid
+  ✅ "Cannabals - AIO - 4:1 Blueberry Dream "Get Sl" → no THC | Indica
+  ✅ "Kings Road - Pre Roll 2pk - Bosscotti x Haze " → THC 17% | Hybrid
+  ✅ "Kings Road - Pre Roll 2pk - Donny Burger x St" → THC 30% | Sativa
+  ✅ "Kings Road - Pre Roll 2pk - Rainbow Sherb 11 " → THC 30% | Hybrid
+  ✅ "TEST - Vape                                  " → THC 70% | —
+  ✅ "Revert - Infused Pre Roll - Lemon Warhead - 0" → THC 42% | Hybrid
+  ✅ "Revert - Infused Pre Roll - Cherry Rush - 0.7" → THC 46% | Hybrid
+  ✅ "Revert - Pre Roll - Sunset Sherbert - 0.5g   " → THC 25% | Hybrid
+  ✅ "The Plug Pack - Flower - Bomb Pop - 14g      " → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - Cherry Pie - 14g    " → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - Chopped Cheese - 14g" → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - Lychee Dream - 14g  " → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - Chopped Chesse - 28g" → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - PB&J - 3.5g         " → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - Tequila Sunrise - 3." → no THC | Hybrid
+  ✅ "Ayrloom - Infused Pre Roll 5pk - Pink Rozay -" → no THC | Hybrid
+  ✅ "Ayrloom - AIO - Bomb Pop - 1g                " → no THC | Hybrid
+  ✅ "Ayrloom - AIO - Cereal Milk - 1g             " → no THC | Hybrid
+  ✅ "Revert - Pre Roll - Spritzer - 0.5g          " → no THC | Hybrid
+  ✅ "Revert - Pre Roll - Pineapple Haze - 0.5g    " → no THC | Sativa
+  ✅ "Revert - Pre Roll 6pk - Variety - 3g         " → no THC | Hybrid
+  ✅ "Revert - Flower - Strawberry Amnesia - 3.5g  " → THC 22% | Hybrid
+  ✅ "Revert - Flower - Space Cake - 3.5g          " → no THC | Hybrid
+  ✅ "Bison - Cookies and Cream - 7g               " → no THC | Hybrid
+  ✅ "Bison - Flower - Nana Glue - 3.5g            " → THC 29.4% | Indica
+  ✅ "Fernway - Cartridge - Elderflower - 1g       " → no THC | Sativa
+  ✅ "Fernway - Cartridge - Red Headed Stranger - 1" → no THC | Sativa
+  ✅ "Fernway - AIO - Red Headed Stranger - 2g     " → no THC | Sativa
+  ✅ "Fernway - AIO - Sour Diesel - 1g             " → no THC | Sativa
+  ✅ "Fernway - Cartidge - Space Queen  - 1g       " → no THC | Hybrid
+  ✅ "Fernway - Cartridge - White Widow - 1g       " → no THC | Hybrid
+  ✅ "Fernway - AIO - White Widow - 2g             " → no THC | Hybrid
+  ✅ "Rolling Green - Flower - Gelato Sherbert - 3." → THC 27.6% | Hybrid
+  ✅ "Rolling Green - Flower - G41 - 3.5g          " → THC 30% | Hybrid
+  ✅ "Rolling Green - Flower - Oreoz - 3.5g        " → THC 30.5% | Hybrid
+  ✅ "Rolling Green - Pre Roll - Biscotti - 1g     " → THC 30% | Indica
+  ✅ "Rolling Green - Pre Roll - Ice Cream Cake - 1" → THC 29.1% | Indica
+  ✅ "Rolling Green - Pre Roll - Lemon Cherry Gelat" → THC 30.1% | Hybrid
+  ✅ "NY Honey - AIO - Runtz - 1g                  " → no THC | Hybrid
+  ✅ "NY Honey - AIO - Strawberry Cough - 1g       " → no THC | Sativa
+  ✅ "Space Buds - Infused Flower - Moonrocks Straw" → no THC | Hybrid
+  ✅ "Space Buds - Infused Flower - Moonrocks Blueb" → no THC | Indica
+  ✅ "Space Buds - Infused Pre Roll - Grape Bubbly " → no THC | Hybrid
+  ✅ "Pot & Head - Infused Blunt - Jack & Grape - 3" → no THC | Hybrid
+  ✅ "Pot & Head - Pre Roll - Hypnotic - 1g        " → no THC | Indica
+  ✅ "Dank - Pre Roll - Runtz Ether - 0.5g         " → no THC | Hybrid
+  ✅ "Dank - Pre Roll - Afghani - 1g               " → no THC | Indica
+  ✅ "Dank - Pre Roll - Purple Punch - 1g          " → THC 30% | Indica
+  ✅ "Dank - Infused Pre Roll - King Louis OG XIII " → no THC | Indica
+  ✅ "Dank - Infused Pre Roll - Mango Haze - 1.1g  " → no THC | Hybrid
+  ✅ "Dank - Flower - Sharpie - 3.5g               " → no THC | Hybrid
+  ✅ "Platinum Reserve - Pre Roll 5pk - Jack Herer " → THC 27.5% | Sativa
+  ✅ "Off Hours - Gummies - NV City OG "Rainbow She" → no THC | Hybrid
+  ✅ "Florist Farms - Flower - Runtz Mintz - 7g    " → no THC | Hybrid
+  ✅ "Florist Farms - Flower - Green Crack - 7g    " → no THC | Sativa
+  ✅ "Florist Farms - Flower - Gluttony - 3.5g     " → no THC | Hybrid
+  ✅ "Wyld - Gummies - 20:1 Strawberry - 10pk - 10m" → no THC | Hybrid
+  ✅ "High Peaks - Pre Roll 2pk - Ghost Dawg - 1.5g" → no THC | Hybrid
+  ✅ "High Peaks - Pre Roll 2pk - Dragon Heart - 1." → no THC | Hybrid
+  ✅ "High Peaks - Concentrate - Bubble Hash - Mayd" → no THC | Hybrid
+  ✅ "E29Labs - AIO - Bruce Banner - 1g            " → no THC | Hybrid
+  ✅ "E29Labs - AIO - Lemon Cherry Gelato - 1g     " → no THC | Hybrid
+  ✅ "E29Labs - Cartridge - White Runtz - 1g       " → no THC | Hybrid
+  ✅ "E29Labs - Cartridge 2pk - Cannalope Haze / Le" → no THC | Hybrid
+  ✅ "Rove - Specialty Pod - Pineapple Express - 1g" → no THC | Sativa
+  ✅ "Rove - Specialty Pod - Granddaddy Purp - 1g -" → no THC | Indica
+  ✅ "Rove - AIO - Watermelon Burst - 1g - Live Res" → no THC | Hybrid
+  ✅ "Rove - AIO - Maui Waui - 1g - Live Resin Diam" → no THC | Sativa
+  ✅ "DragonFly - Infused Pre roll - Blueberry Bana" → no THC | Indica
+  ✅ "Hepworth - Flower - Zkittlez x Oreoz - 3.5g  " → no THC | Hybrid
+  ✅ "Hepworth - Pre Roll 5pk - Blue Dream x Purple" → no THC | Sativa
+  ✅ "Hepworth - Pre Roll 5pk - Mimosa - 2.5g      " → no THC | Hybrid
+  ✅ "Anthem - Pre Roll 10pk - Indica Blend - 3.5g " → no THC | Indica
+  ✅ "B Noble - Flower - Mimosa Kush Mints - 3.5g  " → no THC | Hybrid
+  ✅ "B Noble - Pre Roll 2pk - Mimosa Kush Mints - " → no THC | Hybrid
+  ✅ "Find - Flower - Chemgurl - 28g               " → no THC | Sativa
+  ✅ "Find - Flower - Agent Z - 28g                " → no THC | Hybrid
+  ✅ "Find - Flower - Shocks Mints - 3.5g          " → no THC | Hybrid
+  ✅ "Grassroots - Infused Pre Roll 2pk - GMO - 2g " → no THC | Indica
+  ✅ "Tyson 2.0 - Flower - Exodus - 3.5g           " → no THC | Indica
+  ✅ "Tyson 2.0 - Flower - Dynamite Cookies - 3.5g " → no THC | Hybrid
+  ✅ "Tyson 2.0 - Flower - Brownsville Dream - 3.5g" → no THC | Hybrid
+  ✅ "Ayrloom - Balm - Restore - 1000mg            " → no THC | Hybrid
+  ✅ "Ayrloom - Balm - Rescue - 1000mg             " → no THC | Hybrid
+  ✅ "Ayrloom - Balm - Revive - 1000mg             " → no THC | Hybrid
+  ✅ "Ayrloom - Beverages - 1:1 Black Cherry - 5mg " → no THC | Hybrid
+  ✅ "Ayrloom - Gummies 10pk - 1:1 Island Time - 50" → no THC | Hybrid
+  ✅ "Ayrloom - Gummies 10pk - 1:1  Pillow Talk - 5" → no THC | Indica
+  ✅ "Ayrloom - Tincture - 1:3 Everyday Drops - 150" → no THC | Hybrid
+  ✅ "Ayrloom - Tincture - Beverage Enhancer - 300m" → no THC | Hybrid
+  ✅ "Ayrloom - Infused Pre Roll 5pk - Cereal Milk " → no THC | Hybrid
+  ✅ "Ayrloom - AIO - Pineapple Express - 0.5g     " → no THC | Sativa
+  ✅ "Ayrloom - Tincture - Pillow Talk - 300mg     " → no THC | Indica
+  ✅ "Ayrloom - Gummies 10pk - 2:1 Sol Burst - 100m" → no THC | Hybrid
+  ✅ "Ayrloom - AIO - Lime Haze - 1g               " → no THC | Hybrid
+  ✅ "Ayrloom - Beverages - 2:1 Root Beer - 10mg   " → no THC | Hybrid
+  ✅ "Kushy Punch - Cartridge - Strawnana Rozay - 1" → no THC | Sativa
+  ✅ "Kushy Punch - Cartridge - Trop Diesel - 1g   " → no THC | Sativa
+  ✅ "Kushy Punch - Cartridge - Apple Fritter - 1g " → no THC | Hybrid
+  ✅ "Kushy Punch - Cartridge - Kushy OG - 1g      " → no THC | Indica
+  ✅ "Kushy Punch - Gummies - Strawberry - 10pk - 1" → no THC | Hybrid
+  ✅ "Kushy Punch - Gummies - Kiwi Breeze - 10pk - " → no THC | Sativa
+  ✅ "Kushy Punch - Gummies - Blue Raspberry - 10pk" → no THC | Hybrid
+  ✅ "Kushy Punch - Gummies - Sour Apple - 10pk - 1" → no THC | Hybrid
+  ✅ "Wavy - Flower - Frank Rizzo - 3.5g           " → no THC | Sativa
+  ✅ "Wavy - Flower - Headband - 3.5g              " → no THC | Sativa
+  ✅ "1937 - Flower - Chem x Chocolate - 3.5g      " → no THC | Sativa
+  ✅ "1937 - Flower - Grease Bucket - 3.5g         " → no THC | Hybrid
+  ✅ "1937 - Flower - Wedding Cake - 3.5g          " → no THC | Hybrid
+  ✅ "1937 - Flower - Blue Dream - 3.5g            " → no THC | Sativa
+  ✅ "1937 - Small Bud - Biker Kush - 7g           " → no THC | Indica
+  ✅ "1937 - Small Bud - Wedding Cake - 7g         " → no THC | Hybrid
+  ✅ "Bouket - Flower - Blue Nerdz - 4g            " → no THC | Hybrid
+  ✅ "Operator - Flower - Biker Kush - 3.5g        " → no THC | Indica
+  ✅ "Operator - Flower - Fried Ice Cream - 3.5g   " → no THC | Sativa
+  ✅ "Operator - Flower - Bazooka Haze - 3.5g      " → no THC | Sativa
+  ✅ "Small A$$ Buds - Small Bud - Zourz - 14g     " → no THC | Hybrid
+  ✅ "Small A$$ Buds - Small Bud - White Runtz - 14" → no THC | Hybrid
+  ✅ "Operator - Pre Roll 5pk - Fried Ice Cream - 2" → no THC | Sativa
+  ✅ "Operator - Pre Roll 5pk - Bazooka Haze - 2.5g" → no THC | Sativa
+  ✅ "MFNY - Infused Pre Roll - Electric Lime x Can" → no THC | Hybrid
+  ✅ "MFNY - Infused Pre Roll - Rainbow Beltz 2.0 -" → no THC | Hybrid
+  ✅ "MFNY - Cartridge 2pk - Honey Banana - 1g - Li" → no THC | Hybrid
+  ✅ "MFNY - Cartridge 2pk - Hash Burger - 1g - Liv" → no THC | Hybrid
+  ✅ "MFNY - Cartridge - Rainbow Beltz 2.0 - 0.5g -" → no THC | Hybrid
+  ✅ "MFNY - Cartridge - The Belafonte - 0.5g - Liv" → no THC | Hybrid
+  ✅ "MFNY - AIO - Strawpaya - 0.5g - Live Resin   " → no THC | Hybrid
+  ✅ "MFNY - Gummies - Pink Lemonade x Lemon Cane -" → no THC | Sativa
+  ✅ "MFNY - Concentrate - Live Resin Badder - The " → no THC | Hybrid
+  ✅ "MFNY - Concentrate - Live Resin Badder - Hash" → no THC | Hybrid
+  ✅ "MFNY - Tincture - Honey Banana - Live Resin -" → no THC | Hybrid
+  ✅ "MFNY - Gummies - Blueberry x Blueberry Muffin" → no THC | Indica
+  ✅ "MFNY - Infused Pre Roll - Electric Lime - 0.7" → no THC | Hybrid
+  ✅ "Revert - Flower - Purple Gorilla - 14g       " → no THC | Indica
+  ✅ "Revert - Flower - Super Diesel - 14g         " → no THC | Hybrid
+  ✅ "Revert - Flower - Pink Punch - 3.5g          " → no THC | Hybrid
+  ✅ "Revert - Flower - Spritzer - 3.5g            " → no THC | Hybrid
+  ✅ "Revert - Flower - Sunset Sherbert - 3.5g     " → no THC | Hybrid
+  ✅ "Revert - Pre Roll - Pink Punch - 0.5g        " → no THC | Hybrid
+  ✅ "Revert - Vape - Pineapple Haze - 1g          " → no THC | Sativa
+  ✅ "Revert - Vape - Purple Thunder - 1g          " → no THC | Indica
+  ✅ "Livwell - GG#4 - 28G                         " → no THC | Hybrid
+  ✅ "Livwell - Memory Loss OG  - 28G              " → no THC | Sativa
+  ✅ "Livwell - Strawberry OG Cookies  - 14G       " → no THC | Hybrid
+  ✅ "Livwell - WOmac - 14g                        " → no THC | Hybrid
+  ✅ "Magnitude - Sour Diesel - 1G                 " → no THC | Sativa
+  ✅ "Matter - Garlicane - Pre Rolls - 1.75g       " → no THC | Indica
+  ✅ "Matter - Larry Burger - Pre Rolls - 1.75g    " → no THC | Indica
+  ✅ "Matter - Jelly Cake - 14g                    " → no THC | Hybrid
+  ✅ "Matter - Orange Cookies - 3.5g               " → no THC | Hybrid
+  ✅ "Matter - Scotties Cake - 3.5g                " → no THC | Indica
+  ✅ "Matter - Scotties Cake - 14G                 " → no THC | Indica
+  ✅ "Bonanza - Pink Mango - 2g                    " → no THC | Hybrid
+  ✅ "Bonanza - Dream Berry - 2g                   " → no THC | Hybrid
+  ✅ "Bonanza - Cranberry Kush  - 2g               " → no THC | Hybrid
+  ✅ "Mfused - Rainer Cherries - 1g 2pk            " → no THC | Hybrid
+  ✅ "Mfused - Lychee lyfe - 1g 2pk                " → no THC | Hybrid
+  ✅ "Mfused - Apple Ambush - 2g 2pk               " → no THC | Hybrid
+  ✅ "Mfused - Pink Drank - 1g 2pk                 " → no THC | Hybrid
+  ✅ "Mfused - High Biscus  - 2g 2pk               " → no THC | Hybrid
+  ✅ "Monarchy - Green Crack - 1g - Infused Pre rol" → no THC | Sativa
+  ✅ "Monarchy - Runtz - 1g - Infused Pre roll     " → no THC | Hybrid
+  ✅ "Monarchy - Skywalker - 1g - Infused Pre roll " → no THC | Indica
+  ✅ "Monarchy - Sour Diesel  - 1g - Infused Pre ro" → no THC | Sativa
+  ✅ "Leal - Sharksbreath - 1 oz                   " → no THC | Hybrid
+  ✅ "NYCE - Rosin Jar - Ice cream Zundae - 1g     " → no THC | Hybrid
+  ✅ "NYCE - Rosin Jar - PGMO - 1g                 " → no THC | Hybrid
+  ✅ "NYCE - Rosin Jar - JetFuel Gelato - 1g       " → no THC | Hybrid
+  ✅ "NYCE - Rosin Jar - Poddy Mouth  - 1g         " → no THC | Hybrid
+  ✅ "Grassroots - Foreign Kush Mints  - 3.5g      " → no THC | Hybrid
+  ✅ "Grassroots - Delphi Diesel  - 3.5g           " → no THC | Hybrid
+  ✅ "Grassroots - Lemon Berry Candy OG - 3.5g     " → no THC | Hybrid
+  ✅ "Select ACE Terpologist - Brazzy Kush - 2g    " → no THC | Hybrid
+  ✅ "Select ACE Terpologist - Durban Fizz - 2g    " → no THC | Sativa
+  ✅ "Nanticoke - Coconut Cream - 3.5g             " → no THC | Indica
+  ✅ "Nanticoke - Blue Dream  - 3.5g               " → no THC | Sativa
+  ✅ "Nanticoke - Lilac Diesel - 3.5g              " → no THC | Indica
+  ✅ "Nanticoke - Blue Dream  - 14g                " → no THC | Sativa
+  ✅ "Nanticoke - Coconut Cream - 14g              " → no THC | Indica
+  ✅ "Ready 2 Roll - Sativa - Pre ground - 7g      " → no THC | Sativa
+  ✅ "Ready 2 Roll - Hybrid - Pre ground - 7g      " → no THC | Hybrid
+  ✅ "Ready 2 Roll - Indica  - Pre ground - 7g     " → no THC | Indica
+  ✅ "Nanticoke - Coconut Cream - 0.5 - pre roll   " → no THC | Indica
+  ✅ "Nanticoke - Lemon Grab - 0.5 - pre roll      " → no THC | Hybrid
+  ✅ "Nanticoke - Sour Diesel - 0.5 - pre roll     " → no THC | Sativa
+  ✅ "5Boro - Blue Hawaiian - Dime                 " → no THC | Hybrid
+  ✅ "5Boro - Cereal Milk - Dime                   " → no THC | Hybrid
+  ✅ "5Boro - Fuel Pump - Dime                     " → no THC | Hybrid
+  ✅ "Alibi - Caramel Cream - Infused Pre roll     " → no THC | Hybrid
+  ✅ "Alibi - Cherry Diesel - Infused Pre roll     " → no THC | Hybrid
+  ✅ "Alibi - Dreamstar - Infused Pre roll         " → no THC | Hybrid
+  ✅ "Nanticoke - Acapulco Gold - 7g               " → no THC | Hybrid
+  ✅ "Nanticoke -Maui Waui - 7g                    " → no THC | Sativa
+  ✅ "Nanticoke - Larry Burger - Live Resin        " → no THC | Indica
+  ✅ "Nanticoke - Blue Dream  - Live Resin Disposab" → no THC | Sativa
+  ✅ "Nanticoke - Chemdog - Live Resin             " → no THC | Sativa
+  ✅ "Gentlemen Smugglers - Cherry Pie - 1g        " → no THC | Hybrid
+  ✅ "Pura - Mimosa - Sugar - 1g                   " → no THC | Hybrid
+  ✅ "Pura - Terp Poison - Live Resin - 1g         " → no THC | Hybrid
+  ✅ "Hepworth - Funk Fruit - Sugar - 1g           " → no THC | Hybrid
+  ✅ "Hepworth - Durban Poison X Cherry Tart - Suga" → no THC | Sativa
+  ✅ "Ayrloom - AIO - Cereal Milk - 0.5g           " → no THC | Hybrid
+  ✅ "Ayrloom - AIO - Lychee Dream - 0.5g          " → no THC | Hybrid
+  ✅ "CAM - BRuntZ - 14g                           " → no THC | Hybrid
+  ✅ "CAM - Guava Gelato OG - 3.5g                 " → no THC | Hybrid
+  ✅ "Concentrate Ea-HSH-Wax-Sugar-Sativa-Burnout C" → no THC | Sativa
+  ✅ "Concentrate Ea-HSH-Wax-Budder-Indica-GG#4-WX7" → no THC | Indica
+  ✅ "Concentrate Ea-HSH-Wax-Sugar-Indica-GG#4-WX80" → no THC | Indica
+  ✅ "Concentrate Ea-HSH-Wax-Budder-Indica-Mendo Br" → no THC | Indica
+  ✅ "Concentrate Ea-HSH-Wax-Sugar-Sativa-Orange Co" → no THC | Sativa
+  ✅ "Concentrate Ea-HSH-Wax-Budder-Indica-Strawber" → no THC | Indica
+  ✅ "Concentrate Ea-HSH-Wax-Sugar-Indica-Strawberr" → no THC | Indica
+  ✅ "Concentrate Ea-HSH-Wax-Crumble-Indica-Purple " → no THC | Indica
+  ✅ "Dragonfly | 1.25g Infused Preroll | Strawberr" → no THC | Hybrid
+  ✅ "Dragonfly | 1g Preroll  | Secret Weapon      " → no THC | Hybrid
+  ✅ "Dragonfly | 1.25g Infused Preroll | Apple Fri" → no THC | Hybrid
+  ✅ "Dragonfly | 1.25g Infused Preroll | Blackberr" → no THC | Hybrid
+  ✅ "Dragonfly | 1.25g Infused Preroll | Watermelo" → no THC | Hybrid
+  ✅ "Dragonfly | Flower | 3.5g | Trop             " → no THC | Hybrid
+  ✅ "Dragonfly | Flower | 3.5g | HDG              " → no THC | Hybrid
+  ✅ "Dragonfly | Flower | 3.5g | Blue Dream       " → no THC | Sativa
+  ✅ "Dragonfly | 1g Preroll  | Gelato             " → no THC | Hybrid
+  ✅ "Dragonfly | 1.25g Infused Preroll | Sugar Coo" → no THC | Hybrid
+  ✅ "Dragonfly | 1.25g Infused Preroll | Strawberr" → no THC | Sativa
+  ✅ "Dragonfly | 1g Preroll  | GMO                " → no THC | Indica
+  ✅ "Off hours - Euphoric (energy) - Watermelon Le" → no THC | Hybrid
+  ✅ "Off hours - Daydream (creative) Strawberry Ac" → no THC | Hybrid
+  ✅ "Snoozy - 5mg Relief Gummy (Strawberry Stress " → no THC | Hybrid
+  ✅ "LEAL - Hella Jelly - 28g Flower (25.78%)     " → no THC | Hybrid
+  ✅ "LEAL - Garlic Budder - 28g Flower (31.17%)   " → no THC | Hybrid
+  ✅ "LEAL - Grape Cake - 28g Flower - (27.39%)    " → no THC | Hybrid
+  ✅ "Afternoon Delight #4 Big Dogs (Infused) 1g - " → no THC | Hybrid
+  ✅ "Animal Face 5 Pack 1.75g - Dogwalkers (Sit)  " → no THC | Hybrid
+  ✅ "Animal Face Big Dogs .75g - Dogwalkers (Sit) " → no THC | Hybrid
+  ✅ "Animal Face Pre-Pack (Buds) 3.5g - Rythm (Ind" → no THC | Indica
+  ✅ "Brownie Scout 5 Pack 1.75g - Dogwalkers (Sit)" → no THC | Hybrid
+  ✅ "Cereal Milk Pre-Pack (Buds) 3.5g - Good Green" → no THC | Hybrid
+  ✅ "Dulce de Uva 5 Pack 1.75g - Dogwalkers (Sit) " → no THC | Hybrid
+  ✅ "Dulce de Uva Pre-Pack (Buds) 3.5g - Rythm (In" → no THC | Indica
+  ✅ "Incredibles Chocolate 100mg - Banana Pudding " → no THC | Hybrid
+  ✅ "Jacks Delight Pre-Pack (Buds) 3.5g - Rythm (S" → no THC | Sativa
+  ✅ "Kosher Kush Big Dogs (Infused) 1g - Dogwalker" → no THC | Hybrid
+  ✅ "LOrange Big Dogs .75g - Dogwalkers (Play)    " → no THC | Hybrid
+  ✅ "Rainbow Zlushie Pre-Pack (Buds) 3.5g - Good G" → no THC | Hybrid
+  ✅ "THaze 5 Pack 1.75g - Dogwalkers (Play)       " → no THC | Hybrid
+  ✅ "VelcroZ Big Dogs .75g - Dogwalkers (Stay)    " → no THC | Hybrid
+  ✅ "2:1:1 Tangelo Pearls - THC/CBC/CBG - Sativa  " → no THC | Sativa
+  ✅ "3:1 Blueberry Lemonade Pearls - CBG/THC - Day" → no THC | Sativa
+  ✅ "4:1 Pomegranate Pearls - CBD/THC - Hybrid    " → no THC | Hybrid
+  ✅ "Dark Chocolate Mini Bar - THC - Hybrid       " → no THC | Hybrid
+  ✅ "Dragon Punch Pearls Rosin - THC - Indica     " → no THC | Indica
+  ✅ "Milk Chocolate Mini Bar - THC - Hybrid       " → no THC | Hybrid
+  ✅ "Orange Yuzu Pearls Rosin - THC - Sativa      " → no THC | Sativa
+  ✅ "Raspberry Lemonade Pearls - THC - Sativa     " → no THC | Sativa
+  ✅ "Watermelon Pearls - THC - Indica             " → no THC | Indica
+  ✅ "1:1 Dark Chocolate Mini Bar - CBN/THC - Sleep" → no THC | Indica
+  ✅ "1:1 Milk Chocolate Mini Bar - CBG/THC - Dayti" → no THC | Sativa
+  ✅ "1:1:1 Blackberry Lemonade Pearls - CBN/CBD/TH" → no THC | Indica
+  ✅ "GH Space Panda 3.5g Jar                      " → no THC | Hybrid
+  ✅ "GH Hooch 3.5g Jar Lot SKXGH241               " → no THC | Hybrid
+  ✅ "Carnival 3.5g Jar AP-FE-CA0925               " → no THC | Hybrid
+  ✅ "Trainwreck 28g Bag                           " → no THC | Sativa
+  ✅ "Pineapple Donut Infused Preroll 5pk          " → no THC | Hybrid
+  ✅ "Therapy .5g Preroll- Hooch Infused           " → no THC | Hybrid
+  ✅ "Therapy .5g Preroll- Carnival Infused        " → no THC | Hybrid
+  ✅ "Therapy .5g Preroll- Banjerine               " → no THC | Hybrid
+  ✅ "Jaunty - AIO - Blackberry Kush - 1.5g        " → no THC | Indica
+  ✅ "Jaunty - AIO - Blue Dream - 1.5g             " → no THC | Sativa
+  ✅ "Jaunty - Cartridge - Forbidden Fruit - 1g    " → no THC | Hybrid
+  ✅ "Jaunty - Cartridge - Jack Herer - 1g         " → no THC | Sativa
+  ✅ "Jaunty - Cartridge - Sour Diesel - 1g        " → no THC | Sativa
+  ✅ "Jaunty - Cartridge - Wedding Cake - 1g       " → no THC | Hybrid
+  ✅ "Jaunty - Cartridge - White Widow - 1g        " → no THC | Hybrid
+  ✅ "Jaunty - Cartridge - Papaya Lumina - 0.5g - L" → no THC | Hybrid
+  ✅ "Flowerhouse - Flower - Dolato - 3.5g         " → no THC | Indica
+  ✅ "Flowerhouse - Flower - Kush Pop Rocks - 3.5g " → no THC | Indica
+  ✅ "Flowerhouse - Flower - Mango Haze - 3.5g     " → no THC | Hybrid
+  ✅ "Melo - Flower - Hall of Flame - 3.5g         " → no THC | Hybrid
+  ✅ "Melo - Flower - Pressure Pack - 3.5g         " → no THC | Hybrid
+  ✅ "KOA - Infused Pre roll - 2pk - Trop Cherry - " → no THC | Hybrid
+  ✅ "NAR - Pre Roll 2pk - Mimosa OG - 1g          " → no THC | Hybrid
+  ✅ "NAR - Pre Roll 2pk - White Grape Gas - 1g    " → no THC | Hybrid
+  ✅ "Cannabals - AIO - Blue Dream - 2g - Liquid Di" → no THC | Sativa
+  ✅ "Cannabals - AIO - Apple Burst - 2g - Liquid D" → no THC | Hybrid
+  ✅ "Cannabals - AIO - Blackberry Brain - 2g - Liq" → no THC | Hybrid
+  ✅ "Cannabals - AIO - 4:1 Blueberry Dream "Get Sl" → no THC | Indica
+  ✅ "Kings Road - Pre Roll 2pk - Bosscotti x Haze " → THC 17% | Hybrid
+  ✅ "Kings Road - Pre Roll 2pk - Donny Burger x St" → THC 30% | Sativa
+  ✅ "Kings Road - Pre Roll 2pk - Rainbow Sherb 11 " → THC 30% | Hybrid
+  ✅ "TEST - Vape                                  " → THC 70% | —
+  ✅ "Revert - Infused Pre Roll - Lemon Warhead - 0" → THC 42% | Hybrid
+  ✅ "Revert - Infused Pre Roll - Cherry Rush - 0.7" → THC 46% | Hybrid
+  ✅ "Revert - Pre Roll - Sunset Sherbert - 0.5g   " → THC 25% | Hybrid
+  ✅ "The Plug Pack - Flower - Bomb Pop - 14g      " → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - Cherry Pie - 14g    " → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - Chopped Cheese - 14g" → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - Lychee Dream - 14g  " → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - Chopped Chesse - 28g" → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - PB&J - 3.5g         " → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - Tequila Sunrise - 3." → no THC | Hybrid
+  ✅ "Ayrloom - Infused Pre Roll 5pk - Pink Rozay -" → no THC | Hybrid
+  ✅ "Ayrloom - AIO - Bomb Pop - 1g                " → no THC | Hybrid
+  ✅ "Ayrloom - AIO - Cereal Milk - 1g             " → no THC | Hybrid
+  ✅ "Revert - Pre Roll - Spritzer - 0.5g          " → no THC | Hybrid
+  ✅ "Revert - Pre Roll - Pineapple Haze - 0.5g    " → no THC | Sativa
+  ✅ "Revert - Pre Roll 6pk - Variety - 3g         " → no THC | Hybrid
+  ✅ "Revert - Flower - Strawberry Amnesia - 3.5g  " → THC 22% | Hybrid
+  ✅ "Revert - Flower - Space Cake - 3.5g          " → no THC | Hybrid
+  ✅ "Bison - Cookies and Cream - 7g               " → no THC | Hybrid
+  ✅ "Bison - Flower - Nana Glue - 3.5g            " → THC 29.4% | Indica
+  ✅ "Fernway - Cartridge - Elderflower - 1g       " → no THC | Sativa
+  ✅ "Fernway - Cartridge - Red Headed Stranger - 1" → no THC | Sativa
+  ✅ "Fernway - AIO - Red Headed Stranger - 2g     " → no THC | Sativa
+  ✅ "Fernway - AIO - Sour Diesel - 1g             " → no THC | Sativa
+  ✅ "Fernway - Cartidge - Space Queen  - 1g       " → no THC | Hybrid
+  ✅ "Fernway - Cartridge - White Widow - 1g       " → no THC | Hybrid
+  ✅ "Fernway - AIO - White Widow - 2g             " → no THC | Hybrid
+  ✅ "Rolling Green - Flower - Gelato Sherbert - 3." → THC 27.6% | Hybrid
+  ✅ "Rolling Green - Flower - G41 - 3.5g          " → THC 30% | Hybrid
+  ✅ "Rolling Green - Flower - Oreoz - 3.5g        " → THC 30.5% | Hybrid
+  ✅ "Rolling Green - Pre Roll - Biscotti - 1g     " → THC 30% | Indica
+  ✅ "Rolling Green - Pre Roll - Ice Cream Cake - 1" → THC 29.1% | Indica
+  ✅ "Rolling Green - Pre Roll - Lemon Cherry Gelat" → THC 30.1% | Hybrid
+  ✅ "NY Honey - AIO - Runtz - 1g                  " → no THC | Hybrid
+  ✅ "NY Honey - AIO - Strawberry Cough - 1g       " → no THC | Sativa
+  ✅ "Space Buds - Infused Flower - Moonrocks Straw" → no THC | Hybrid
+  ✅ "Space Buds - Infused Flower - Moonrocks Blueb" → no THC | Indica
+  ✅ "Space Buds - Infused Pre Roll - Grape Bubbly " → no THC | Hybrid
+  ✅ "Pot & Head - Infused Blunt - Jack & Grape - 3" → no THC | Hybrid
+  ✅ "Pot & Head - Pre Roll - Hypnotic - 1g        " → no THC | Indica
+  ✅ "Dank - Pre Roll - Runtz Ether - 0.5g         " → no THC | Hybrid
+  ✅ "Dank - Pre Roll - Afghani - 1g               " → no THC | Indica
+  ✅ "Dank - Pre Roll - Purple Punch - 1g          " → THC 30% | Indica
+  ✅ "Dank - Infused Pre Roll - King Louis OG XIII " → no THC | Indica
+  ✅ "Dank - Infused Pre Roll - Mango Haze - 1.1g  " → no THC | Hybrid
+  ✅ "Dank - Flower - Sharpie - 3.5g               " → no THC | Hybrid
+  ✅ "Platinum Reserve - Pre Roll 5pk - Jack Herer " → THC 27.5% | Sativa
+  ✅ "Off Hours - Gummies - NV City OG "Rainbow She" → no THC | Hybrid
+  ✅ "Florist Farms - Flower - Runtz Mintz - 7g    " → no THC | Hybrid
+  ✅ "Florist Farms - Flower - Green Crack - 7g    " → no THC | Sativa
+  ✅ "Florist Farms - Flower - Gluttony - 3.5g     " → no THC | Hybrid
+  ✅ "Wyld - Gummies - 20:1 Strawberry - 10pk - 10m" → no THC | Hybrid
+  ✅ "High Peaks - Pre Roll 2pk - Ghost Dawg - 1.5g" → no THC | Hybrid
+  ✅ "High Peaks - Pre Roll 2pk - Dragon Heart - 1." → no THC | Hybrid
+  ✅ "High Peaks - Concentrate - Bubble Hash - Mayd" → no THC | Hybrid
+  ✅ "E29Labs - AIO - Bruce Banner - 1g            " → no THC | Hybrid
+  ✅ "E29Labs - AIO - Lemon Cherry Gelato - 1g     " → no THC | Hybrid
+  ✅ "E29Labs - Cartridge - White Runtz - 1g       " → no THC | Hybrid
+  ✅ "E29Labs - Cartridge 2pk - Cannalope Haze / Le" → no THC | Hybrid
+  ✅ "Rove - Specialty Pod - Pineapple Express - 1g" → no THC | Sativa
+  ✅ "Rove - Specialty Pod - Granddaddy Purp - 1g -" → no THC | Indica
+  ✅ "Rove - AIO - Watermelon Burst - 1g - Live Res" → no THC | Hybrid
+  ✅ "Rove - AIO - Maui Waui - 1g - Live Resin Diam" → no THC | Sativa
+  ✅ "DragonFly - Infused Pre roll - Blueberry Bana" → no THC | Indica
+  ✅ "Hepworth - Flower - Zkittlez x Oreoz - 3.5g  " → no THC | Hybrid
+  ✅ "Hepworth - Pre Roll 5pk - Blue Dream x Purple" → no THC | Sativa
+  ✅ "Hepworth - Pre Roll 5pk - Mimosa - 2.5g      " → no THC | Hybrid
+  ✅ "Anthem - Pre Roll 10pk - Indica Blend - 3.5g " → no THC | Indica
+  ✅ "B Noble - Flower - Mimosa Kush Mints - 3.5g  " → no THC | Hybrid
+  ✅ "B Noble - Pre Roll 2pk - Mimosa Kush Mints - " → no THC | Hybrid
+  ✅ "Find - Flower - Chemgurl - 28g               " → no THC | Sativa
+  ✅ "Find - Flower - Agent Z - 28g                " → no THC | Hybrid
+  ✅ "Find - Flower - Shocks Mints - 3.5g          " → no THC | Hybrid
+  ✅ "Grassroots - Infused Pre Roll 2pk - GMO - 2g " → no THC | Indica
+  ✅ "Tyson 2.0 - Flower - Exodus - 3.5g           " → no THC | Indica
+  ✅ "Tyson 2.0 - Flower - Dynamite Cookies - 3.5g " → no THC | Hybrid
+  ✅ "Tyson 2.0 - Flower - Brownsville Dream - 3.5g" → no THC | Hybrid
+  ✅ "Ayrloom - Balm - Restore - 1000mg            " → no THC | Hybrid
+  ✅ "Ayrloom - Balm - Rescue - 1000mg             " → no THC | Hybrid
+  ✅ "Ayrloom - Balm - Revive - 1000mg             " → no THC | Hybrid
+  ✅ "Ayrloom - Beverages - 1:1 Black Cherry - 5mg " → no THC | Hybrid
+  ✅ "Ayrloom - Gummies 10pk - 1:1 Island Time - 50" → no THC | Hybrid
+  ✅ "Ayrloom - Gummies 10pk - 1:1  Pillow Talk - 5" → no THC | Indica
+  ✅ "Ayrloom - Tincture - 1:3 Everyday Drops - 150" → no THC | Hybrid
+  ✅ "Ayrloom - Tincture - Beverage Enhancer - 300m" → no THC | Hybrid
+  ✅ "Ayrloom - Infused Pre Roll 5pk - Cereal Milk " → no THC | Hybrid
+  ✅ "Ayrloom - AIO - Pineapple Express - 0.5g     " → no THC | Sativa
+  ✅ "Ayrloom - Tincture - Pillow Talk - 300mg     " → no THC | Indica
+  ✅ "Ayrloom - Gummies 10pk - 2:1 Sol Burst - 100m" → no THC | Hybrid
+  ✅ "Ayrloom - AIO - Lime Haze - 1g               " → no THC | Hybrid
+  ✅ "Ayrloom - Beverages - 2:1 Root Beer - 10mg   " → no THC | Hybrid
+  ✅ "Kushy Punch - Cartridge - Strawnana Rozay - 1" → no THC | Sativa
+  ✅ "Kushy Punch - Cartridge - Trop Diesel - 1g   " → no THC | Sativa
+  ✅ "Kushy Punch - Cartridge - Apple Fritter - 1g " → no THC | Hybrid
+  ✅ "Kushy Punch - Cartridge - Kushy OG - 1g      " → no THC | Indica
+  ✅ "Kushy Punch - Gummies - Strawberry - 10pk - 1" → no THC | Hybrid
+  ✅ "Kushy Punch - Gummies - Kiwi Breeze - 10pk - " → no THC | Sativa
+  ✅ "Kushy Punch - Gummies - Blue Raspberry - 10pk" → no THC | Hybrid
+  ✅ "Kushy Punch - Gummies - Sour Apple - 10pk - 1" → no THC | Hybrid
+  ✅ "Wavy - Flower - Frank Rizzo - 3.5g           " → no THC | Sativa
+  ✅ "Wavy - Flower - Headband - 3.5g              " → no THC | Sativa
+  ✅ "1937 - Flower - Chem x Chocolate - 3.5g      " → no THC | Sativa
+  ✅ "1937 - Flower - Grease Bucket - 3.5g         " → no THC | Hybrid
+  ✅ "1937 - Flower - Wedding Cake - 3.5g          " → no THC | Hybrid
+  ✅ "1937 - Flower - Blue Dream - 3.5g            " → no THC | Sativa
+  ✅ "1937 - Small Bud - Biker Kush - 7g           " → no THC | Indica
+  ✅ "1937 - Small Bud - Wedding Cake - 7g         " → no THC | Hybrid
+  ✅ "Bouket - Flower - Blue Nerdz - 4g            " → no THC | Hybrid
+  ✅ "Operator - Flower - Biker Kush - 3.5g        " → no THC | Indica
+  ✅ "Operator - Flower - Fried Ice Cream - 3.5g   " → no THC | Sativa
+  ✅ "Operator - Flower - Bazooka Haze - 3.5g      " → no THC | Sativa
+  ✅ "Small A$$ Buds - Small Bud - Zourz - 14g     " → no THC | Hybrid
+  ✅ "Small A$$ Buds - Small Bud - White Runtz - 14" → no THC | Hybrid
+  ✅ "Operator - Pre Roll 5pk - Fried Ice Cream - 2" → no THC | Sativa
+  ✅ "Operator - Pre Roll 5pk - Bazooka Haze - 2.5g" → no THC | Sativa
+  ✅ "MFNY - Infused Pre Roll - Electric Lime x Can" → no THC | Hybrid
+  ✅ "MFNY - Infused Pre Roll - Rainbow Beltz 2.0 -" → no THC | Hybrid
+  ✅ "MFNY - Cartridge 2pk - Honey Banana - 1g - Li" → no THC | Hybrid
+  ✅ "MFNY - Cartridge 2pk - Hash Burger - 1g - Liv" → no THC | Hybrid
+  ✅ "MFNY - Cartridge - Rainbow Beltz 2.0 - 0.5g -" → no THC | Hybrid
+  ✅ "MFNY - Cartridge - The Belafonte - 0.5g - Liv" → no THC | Hybrid
+  ✅ "MFNY - AIO - Strawpaya - 0.5g - Live Resin   " → no THC | Hybrid
+  ✅ "MFNY - Gummies - Pink Lemonade x Lemon Cane -" → no THC | Sativa
+  ✅ "MFNY - Concentrate - Live Resin Badder - The " → no THC | Hybrid
+  ✅ "MFNY - Concentrate - Live Resin Badder - Hash" → no THC | Hybrid
+  ✅ "MFNY - Tincture - Honey Banana - Live Resin -" → no THC | Hybrid
+  ✅ "MFNY - Gummies - Blueberry x Blueberry Muffin" → no THC | Indica
+  ✅ "MFNY - Infused Pre Roll - Electric Lime - 0.7" → no THC | Hybrid
+  ✅ "Revert - Flower - Purple Gorilla - 14g       " → no THC | Indica
+  ✅ "Revert - Flower - Super Diesel - 14g         " → no THC | Hybrid
+  ✅ "Revert - Flower - Pink Punch - 3.5g          " → no THC | Hybrid
+  ✅ "Revert - Flower - Spritzer - 3.5g            " → no THC | Hybrid
+  ✅ "Revert - Flower - Sunset Sherbert - 3.5g     " → no THC | Hybrid
+  ✅ "Revert - Pre Roll - Pink Punch - 0.5g        " → no THC | Hybrid
+  ✅ "Revert - Vape - Pineapple Haze - 1g          " → no THC | Sativa
+  ✅ "Revert - Vape - Purple Thunder - 1g          " → no THC | Indica
+  ✅ "Livwell - GG#4 - 28G                         " → no THC | Hybrid
+  ✅ "Livwell - Memory Loss OG  - 28G              " → no THC | Sativa
+  ✅ "Livwell - Strawberry OG Cookies  - 14G       " → no THC | Hybrid
+  ✅ "Livwell - WOmac - 14g                        " → no THC | Hybrid
+  ✅ "Magnitude - Sour Diesel - 1G                 " → no THC | Sativa
+  ✅ "Matter - Garlicane - Pre Rolls - 1.75g       " → no THC | Indica
+  ✅ "Matter - Larry Burger - Pre Rolls - 1.75g    " → no THC | Indica
+  ✅ "Matter - Jelly Cake - 14g                    " → no THC | Hybrid
+  ✅ "Matter - Orange Cookies - 3.5g               " → no THC | Hybrid
+  ✅ "Matter - Scotties Cake - 3.5g                " → no THC | Indica
+  ✅ "Matter - Scotties Cake - 14G                 " → no THC | Indica
+  ✅ "Bonanza - Pink Mango - 2g                    " → no THC | Hybrid
+  ✅ "Bonanza - Dream Berry - 2g                   " → no THC | Hybrid
+  ✅ "Bonanza - Cranberry Kush  - 2g               " → no THC | Hybrid
+  ✅ "Mfused - Rainer Cherries - 1g 2pk            " → no THC | Hybrid
+  ✅ "Mfused - Lychee lyfe - 1g 2pk                " → no THC | Hybrid
+  ✅ "Mfused - Apple Ambush - 2g 2pk               " → no THC | Hybrid
+  ✅ "Mfused - Pink Drank - 1g 2pk                 " → no THC | Hybrid
+  ✅ "Mfused - High Biscus  - 2g 2pk               " → no THC | Hybrid
+  ✅ "Monarchy - Green Crack - 1g - Infused Pre rol" → no THC | Sativa
+  ✅ "Monarchy - Runtz - 1g - Infused Pre roll     " → no THC | Hybrid
+  ✅ "Monarchy - Skywalker - 1g - Infused Pre roll " → no THC | Indica
+  ✅ "Monarchy - Sour Diesel  - 1g - Infused Pre ro" → no THC | Sativa
+  ✅ "Leal - Sharksbreath - 1 oz                   " → no THC | Hybrid
+  ✅ "NYCE - Rosin Jar - Ice cream Zundae - 1g     " → no THC | Hybrid
+  ✅ "NYCE - Rosin Jar - PGMO - 1g                 " → no THC | Hybrid
+  ✅ "NYCE - Rosin Jar - JetFuel Gelato - 1g       " → no THC | Hybrid
+  ✅ "NYCE - Rosin Jar - Poddy Mouth  - 1g         " → no THC | Hybrid
+  ✅ "Grassroots - Foreign Kush Mints  - 3.5g      " → no THC | Hybrid
+  ✅ "Grassroots - Delphi Diesel  - 3.5g           " → no THC | Hybrid
+  ✅ "Grassroots - Lemon Berry Candy OG - 3.5g     " → no THC | Hybrid
+  ✅ "Select ACE Terpologist - Brazzy Kush - 2g    " → no THC | Hybrid
+  ✅ "Select ACE Terpologist - Durban Fizz - 2g    " → no THC | Sativa
+  ✅ "Nanticoke - Coconut Cream - 3.5g             " → no THC | Indica
+  ✅ "Nanticoke - Blue Dream  - 3.5g               " → no THC | Sativa
+  ✅ "Nanticoke - Lilac Diesel - 3.5g              " → no THC | Indica
+  ✅ "Nanticoke - Blue Dream  - 14g                " → no THC | Sativa
+  ✅ "Nanticoke - Coconut Cream - 14g              " → no THC | Indica
+  ✅ "Ready 2 Roll - Sativa - Pre ground - 7g      " → no THC | Sativa
+  ✅ "Ready 2 Roll - Hybrid - Pre ground - 7g      " → no THC | Hybrid
+  ✅ "Ready 2 Roll - Indica  - Pre ground - 7g     " → no THC | Indica
+  ✅ "Nanticoke - Coconut Cream - 0.5 - pre roll   " → no THC | Indica
+  ✅ "Nanticoke - Lemon Grab - 0.5 - pre roll      " → no THC | Hybrid
+  ✅ "Nanticoke - Sour Diesel - 0.5 - pre roll     " → no THC | Sativa
+  ✅ "5Boro - Blue Hawaiian - Dime                 " → no THC | Hybrid
+  ✅ "5Boro - Cereal Milk - Dime                   " → no THC | Hybrid
+  ✅ "5Boro - Fuel Pump - Dime                     " → no THC | Hybrid
+  ✅ "Alibi - Caramel Cream - Infused Pre roll     " → no THC | Hybrid
+  ✅ "Alibi - Cherry Diesel - Infused Pre roll     " → no THC | Hybrid
+  ✅ "Alibi - Dreamstar - Infused Pre roll         " → no THC | Hybrid
+  ✅ "Nanticoke - Acapulco Gold - 7g               " → no THC | Hybrid
+  ✅ "Nanticoke -Maui Waui - 7g                    " → no THC | Sativa
+  ✅ "Nanticoke - Larry Burger - Live Resin        " → no THC | Indica
+  ✅ "Nanticoke - Blue Dream  - Live Resin Disposab" → no THC | Sativa
+  ✅ "Nanticoke - Chemdog - Live Resin             " → no THC | Sativa
+  ✅ "Gentlemen Smugglers - Cherry Pie - 1g        " → no THC | Hybrid
+  ✅ "Pura - Mimosa - Sugar - 1g                   " → no THC | Hybrid
+  ✅ "Pura - Terp Poison - Live Resin - 1g         " → no THC | Hybrid
+  ✅ "Hepworth - Funk Fruit - Sugar - 1g           " → no THC | Hybrid
+  ✅ "Hepworth - Durban Poison X Cherry Tart - Suga" → no THC | Sativa
+  ✅ "Ayrloom - AIO - Cereal Milk - 0.5g           " → no THC | Hybrid
+  ✅ "Ayrloom - AIO - Lychee Dream - 0.5g          " → no THC | Hybrid
+  ✅ "CAM - BRuntZ - 14g                           " → no THC | Hybrid
+  ✅ "CAM - Guava Gelato OG - 3.5g                 " → no THC | Hybrid
+  ✅ "Concentrate Ea-HSH-Wax-Sugar-Sativa-Burnout C" → no THC | Sativa
+  ✅ "Concentrate Ea-HSH-Wax-Budder-Indica-GG#4-WX7" → no THC | Indica
+  ✅ "Concentrate Ea-HSH-Wax-Sugar-Indica-GG#4-WX80" → no THC | Indica
+  ✅ "Concentrate Ea-HSH-Wax-Budder-Indica-Mendo Br" → no THC | Indica
+  ✅ "Concentrate Ea-HSH-Wax-Sugar-Sativa-Orange Co" → no THC | Sativa
+  ✅ "Concentrate Ea-HSH-Wax-Budder-Indica-Strawber" → no THC | Indica
+  ✅ "Concentrate Ea-HSH-Wax-Sugar-Indica-Strawberr" → no THC | Indica
+  ✅ "Concentrate Ea-HSH-Wax-Crumble-Indica-Purple " → no THC | Indica
+  ✅ "Dragonfly | 1.25g Infused Preroll | Strawberr" → no THC | Hybrid
+  ✅ "Dragonfly | 1g Preroll  | Secret Weapon      " → no THC | Hybrid
+  ✅ "Dragonfly | 1.25g Infused Preroll | Apple Fri" → no THC | Hybrid
+  ✅ "Dragonfly | 1.25g Infused Preroll | Blackberr" → no THC | Hybrid
+  ✅ "Dragonfly | 1.25g Infused Preroll | Watermelo" → no THC | Hybrid
+  ✅ "Dragonfly | Flower | 3.5g | Trop             " → no THC | Hybrid
+  ✅ "Dragonfly | Flower | 3.5g | HDG              " → no THC | Hybrid
+  ✅ "Dragonfly | Flower | 3.5g | Blue Dream       " → no THC | Sativa
+  ✅ "Dragonfly | 1g Preroll  | Gelato             " → no THC | Hybrid
+  ✅ "Dragonfly | 1.25g Infused Preroll | Sugar Coo" → no THC | Hybrid
+  ✅ "Dragonfly | 1.25g Infused Preroll | Strawberr" → no THC | Sativa
+  ✅ "Dragonfly | 1g Preroll  | GMO                " → no THC | Indica
+  ✅ "Off hours - Euphoric (energy) - Watermelon Le" → no THC | Hybrid
+  ✅ "Off hours - Daydream (creative) Strawberry Ac" → no THC | Hybrid
+  ✅ "Snoozy - 5mg Relief Gummy (Strawberry Stress " → no THC | Hybrid
+  ✅ "LEAL - Hella Jelly - 28g Flower (25.78%)     " → no THC | Hybrid
+  ✅ "LEAL - Garlic Budder - 28g Flower (31.17%)   " → no THC | Hybrid
+  ✅ "LEAL - Grape Cake - 28g Flower - (27.39%)    " → no THC | Hybrid
+  ✅ "Afternoon Delight #4 Big Dogs (Infused) 1g - " → no THC | Hybrid
+  ✅ "Animal Face 5 Pack 1.75g - Dogwalkers (Sit)  " → no THC | Hybrid
+  ✅ "Animal Face Big Dogs .75g - Dogwalkers (Sit) " → no THC | Hybrid
+  ✅ "Animal Face Pre-Pack (Buds) 3.5g - Rythm (Ind" → no THC | Indica
+  ✅ "Brownie Scout 5 Pack 1.75g - Dogwalkers (Sit)" → no THC | Hybrid
+  ✅ "Cereal Milk Pre-Pack (Buds) 3.5g - Good Green" → no THC | Hybrid
+  ✅ "Dulce de Uva 5 Pack 1.75g - Dogwalkers (Sit) " → no THC | Hybrid
+  ✅ "Dulce de Uva Pre-Pack (Buds) 3.5g - Rythm (In" → no THC | Indica
+  ✅ "Incredibles Chocolate 100mg - Banana Pudding " → no THC | Hybrid
+  ✅ "Jacks Delight Pre-Pack (Buds) 3.5g - Rythm (S" → no THC | Sativa
+  ✅ "Kosher Kush Big Dogs (Infused) 1g - Dogwalker" → no THC | Hybrid
+  ✅ "LOrange Big Dogs .75g - Dogwalkers (Play)    " → no THC | Hybrid
+  ✅ "Rainbow Zlushie Pre-Pack (Buds) 3.5g - Good G" → no THC | Hybrid
+  ✅ "THaze 5 Pack 1.75g - Dogwalkers (Play)       " → no THC | Hybrid
+  ✅ "VelcroZ Big Dogs .75g - Dogwalkers (Stay)    " → no THC | Hybrid
+  ✅ "2:1:1 Tangelo Pearls - THC/CBC/CBG - Sativa  " → no THC | Sativa
+  ✅ "3:1 Blueberry Lemonade Pearls - CBG/THC - Day" → no THC | Sativa
+  ✅ "4:1 Pomegranate Pearls - CBD/THC - Hybrid    " → no THC | Hybrid
+  ✅ "Dark Chocolate Mini Bar - THC - Hybrid       " → no THC | Hybrid
+  ✅ "Dragon Punch Pearls Rosin - THC - Indica     " → no THC | Indica
+  ✅ "Milk Chocolate Mini Bar - THC - Hybrid       " → no THC | Hybrid
+  ✅ "Orange Yuzu Pearls Rosin - THC - Sativa      " → no THC | Sativa
+  ✅ "Raspberry Lemonade Pearls - THC - Sativa     " → no THC | Sativa
+  ✅ "Watermelon Pearls - THC - Indica             " → no THC | Indica
+  ✅ "1:1 Dark Chocolate Mini Bar - CBN/THC - Sleep" → no THC | Indica
+  ✅ "1:1 Milk Chocolate Mini Bar - CBG/THC - Dayti" → no THC | Sativa
+  ✅ "1:1:1 Blackberry Lemonade Pearls - CBN/CBD/TH" → no THC | Indica
+  ✅ "GH Space Panda 3.5g Jar                      " → no THC | Hybrid
+  ✅ "GH Hooch 3.5g Jar Lot SKXGH241               " → no THC | Hybrid
+  ✅ "Carnival 3.5g Jar AP-FE-CA0925               " → no THC | Hybrid
+  ✅ "Trainwreck 28g Bag                           " → no THC | Sativa
+  ✅ "Pineapple Donut Infused Preroll 5pk          " → no THC | Hybrid
+  ✅ "Therapy .5g Preroll- Hooch Infused           " → no THC | Hybrid
+  ✅ "Therapy .5g Preroll- Carnival Infused        " → no THC | Hybrid
+  ✅ "Therapy .5g Preroll- Banjerine               " → no THC | Hybrid
+  ✅ "Sample Old Pal - 0.50g 2pk [1g] Pre Roll | In" → no THC | Indica
+  ✅ "Old Pal - 3.50g Bagged Flower - Gelato Kush -" → no THC | Hybrid
+  ✅ "Old Pal - 0.50g 2pk [1g] Pre Roll | Sativa - " → no THC | Sativa
+  ✅ "Sample Old Pal - 0.50g 2pk [1g] Pre Roll | Sa" → no THC | Sativa
+  ✅ "Old Pal - 0.50g 2pk [1g] Pre Roll | Indica - " → no THC | Indica
+  ✅ "Sample Grape Ice - Duo Flower - 7g - Must ord" → no THC | Indica
+  ✅ "Sample Black Cherry Gelato - Duo Flower - 7g " → no THC | Indica
+  ✅ "Sample Sunset Sherbet - Duo Flower - 7g - Ind" → no THC | Indica
+  ✅ "Sample Butterscotch Biscotti - Duo Flower - 7" → no THC | Hybrid
+  ✅ "Sample Blue Moon Punch - Premium Smalls - 28g" → no THC | Sativa
+  ✅ "Sample Guavatron - Premium Flower - 3.5g     " → no THC | Hybrid
+  ✅ "Sample Trop Cherry - Premium Smalls - 28g - H" → no THC | Hybrid
+  ✅ "Sample Sour GMO - Premium Smalls - 28g - Sati" → no THC | Sativa
+  ✅ "Sample Headbanger - Premium Smalls - 28g - Sa" → no THC | Sativa
+  ✅ "Munch Kins Fruity Pebbles - Premium Smalls - " → no THC | Indica
+  ✅ "Munch Kins Blue Moon Punch - Premium Smalls -" → no THC | Sativa
+  ✅ "Munch Kins Guava Runtz - Premium Smalls - 28g" → no THC | Hybrid
+  ✅ "Munch Kins Trop Cherry - Premium Smalls - 28g" → no THC | Hybrid
+  ✅ "Munch Kins Sour GMO - Premium Smalls - 28g - " → no THC | Sativa
+  ✅ "Munch Kins Headbanger - Premium Smalls - 28g " → no THC | Sativa
+  ✅ "Sample TTM - Flower - Joint - 1.5g - 2pk - Bl" → no THC | Hybrid
+  ✅ "Sample Tropical Trainwreck - Duo Flower - 7g " → no THC | Sativa
+  ✅ "Sample Pineapple Dream - Duo Flower - 7g - Sa" → no THC | Sativa
+  ✅ "Sample Fruity Pebbles - Premium Smalls - 28g " → no THC | Indica
+  ✅ "Sample Cherry AK47 -Duo Flower - 7g - Sativa " → no THC | Sativa
+  ✅ "Sample Lato Pop - Duo Flower - 7g - Hybrid - " → no THC | Hybrid
+  ✅ "Grape Ice - Duo Flower - 7g - Must order with" → no THC | Indica
+  ✅ "Black Cherry Gelato - Duo Flower - 7g - Must " → no THC | Indica
+  ✅ "Sunset Sherbet - Duo Flower - 7g - Indica - M" → no THC | Indica
+  ✅ "Butterscotch Biscotti - Duo Flower - 7g - Hyb" → no THC | Hybrid
+  ✅ "Tropical Trainwreck - Duo Flower - 7g - Sativ" → no THC | Sativa
+  ✅ "Pineapple Dream - Duo Flower - 7g - Sativa - " → no THC | Sativa
+  ✅ "Cherry AK47 -Duo Flower - 7g - Sativa - Must " → no THC | Sativa
+  ✅ "Lato Pop - Duo Flower - 7g - Hybrid - Must Or" → no THC | Hybrid
+  ✅ "Matter - Larry Burger - Pre Rolls - 1.75g    " → no THC | Indica
+  ✅ "Florist Farms - Flower - Runtz Mintz - 7g    " → no THC | Hybrid
+  ✅ "Gentlemen Smugglers - Cherry Pie - 1g        " → no THC | Hybrid
+  ✅ "Ayrloom - AIO - Bomb Pop - 1g                " → no THC | Hybrid
+  ✅ "Off hours - Euphoric (energy) - Watermelon Le" → no THC | Hybrid
+  ✅ "Kushy Punch - Gummies - Sour Apple - 10pk - 1" → no THC | Hybrid
+  ✅ "Pot & Head - Infused Blunt - Jack & Grape - 3" → no THC | Hybrid
+  ✅ "Rove - AIO - Watermelon Burst - 1g - Live Res" → no THC | Hybrid
+  ✅ "Fernway - Cartridge - White Widow - 1g       " → no THC | Hybrid
+  ✅ "1:1:1 Blackberry Lemonade Pearls - CBN/CBD/TH" → no THC | Indica
+  ✅ "Ayrloom - Balm - Rescue - 1000mg             " → no THC | Hybrid
+  ✅ "Flowerhouse - Flower - Mango Haze - 3.5g     " → no THC | Hybrid
+  ✅ "Ayrloom - Gummies 10pk - 1:1 Island Time - 50" → no THC | Hybrid
+  ✅ "Space Buds - Infused Flower - Moonrocks Blueb" → no THC | Indica
+  ✅ "Ready 2 Roll - Sativa - Pre ground - 7g      " → no THC | Sativa
+  ✅ "Jaunty - Cartridge - Wedding Cake - 1g       " → no THC | Hybrid
+  ✅ "Select ACE Terpologist - Brazzy Kush - 2g    " → no THC | Hybrid
+  ✅ "Dank - Infused Pre Roll - King Louis OG XIII " → no THC | Indica
+  ✅ "Ready 2 Roll - Hybrid - Pre ground - 7g      " → no THC | Hybrid
+  ✅ "Bison - Cookies and Cream - 7g               " → no THC | Hybrid
+  ✅ "Revert - Pre Roll 6pk - Variety - 3g         " → no THC | Hybrid
+  ✅ "Concentrate Ea-HSH-Wax-Sugar-Indica-Strawberr" → no THC | Indica
+  ✅ "CAM - Guava Gelato OG - 3.5g                 " → no THC | Hybrid
+  ✅ "Grassroots - Infused Pre Roll 2pk - GMO - 2g " → no THC | Indica
+  ✅ "Dragonfly | 1.25g Infused Preroll | Apple Fri" → no THC | Hybrid
+  ✅ "Kushy Punch - Cartridge - Apple Fritter - 1g " → no THC | Hybrid
+  ✅ "Jaunty - Cartridge - Sour Diesel - 1g        " → no THC | Sativa
+  ✅ "Revert - Pre Roll - Pink Punch - 0.5g        " → no THC | Hybrid
+  ✅ "Space Buds - Infused Pre Roll - Grape Bubbly " → no THC | Hybrid
+  ✅ "Dragonfly | 1g Preroll  | GMO                " → no THC | Indica
+  ✅ "Melo - Flower - Hall of Flame - 3.5g         " → no THC | Hybrid
+  ✅ "Revert - Vape - Pineapple Haze - 1g          " → no THC | Sativa
+  ✅ "1937 - Flower - Wedding Cake - 3.5g          " → no THC | Hybrid
+  ✅ "NY Honey - AIO - Runtz - 1g                  " → no THC | Hybrid
+  ✅ "Ayrloom - Gummies 10pk - 2:1 Sol Burst - 100m" → no THC | Hybrid
+  ✅ "Dank - Infused Pre Roll - Mango Haze - 1.1g  " → no THC | Hybrid
+  ✅ "Rolling Green - Pre Roll - Lemon Cherry Gelat" → THC 30.1% | Hybrid
+  ✅ "Mfused - Pink Drank - 1g 2pk                 " → no THC | Hybrid
+  ✅ "Dulce de Uva 5 Pack 1.75g - Dogwalkers (Sit) " → no THC | Hybrid
+  ✅ "Dragonfly | Flower | 3.5g | Trop             " → no THC | Hybrid
+  ✅ "Raspberry Lemonade Pearls - THC - Sativa     " → no THC | Sativa
+  ✅ "Nanticoke - Coconut Cream - 3.5g             " → no THC | Indica
+  ✅ "Platinum Reserve - Pre Roll 5pk - Jack Herer " → THC 27.5% | Sativa
+  ✅ "Kushy Punch - Gummies - Blue Raspberry - 10pk" → no THC | Hybrid
+  ✅ "Grassroots - Delphi Diesel  - 3.5g           " → no THC | Hybrid
+  ✅ "Bison - Flower - Nana Glue - 3.5g            " → THC 29.4% | Indica
+  ✅ "5Boro - Blue Hawaiian - Dime                 " → no THC | Hybrid
+  ✅ "Jaunty - AIO - Blackberry Kush - 1.5g        " → no THC | Indica
+  ✅ "Nanticoke - Larry Burger - Live Resin        " → no THC | Indica
+  ✅ "Ayrloom - AIO - Lychee Dream - 0.5g          " → no THC | Hybrid
+  ✅ "Kushy Punch - Gummies - Kiwi Breeze - 10pk - " → no THC | Sativa
+  ✅ "Incredibles Chocolate 100mg - Banana Pudding " → no THC | Hybrid
+  ✅ "Kushy Punch - Gummies - Strawberry - 10pk - 1" → no THC | Hybrid
+  ✅ "Matter - Scotties Cake - 3.5g                " → no THC | Indica
+  ✅ "Jaunty - AIO - Blue Dream - 1.5g             " → no THC | Sativa
+  ✅ "High Peaks - Pre Roll 2pk - Dragon Heart - 1." → no THC | Hybrid
+  ✅ "Nanticoke - Blue Dream  - 3.5g               " → no THC | Sativa
+  ✅ "Kings Road - Pre Roll 2pk - Bosscotti x Haze " → THC 17% | Hybrid
+  ✅ "Revert - Flower - Purple Gorilla - 14g       " → no THC | Indica
+  ✅ "Rove - Specialty Pod - Pineapple Express - 1g" → no THC | Sativa
+  ✅ "MFNY - Cartridge 2pk - Honey Banana - 1g - Li" → no THC | Hybrid
+  ✅ "Dragon Punch Pearls Rosin - THC - Indica     " → no THC | Indica
+  ✅ "Revert - Flower - Space Cake - 3.5g          " → no THC | Hybrid
+  ✅ "Kushy Punch - Cartridge - Trop Diesel - 1g   " → no THC | Sativa
+  ✅ "Watermelon Pearls - THC - Indica             " → no THC | Indica
+  ✅ "Dank - Pre Roll - Purple Punch - 1g          " → THC 30% | Indica
+  ✅ "Dragonfly | Flower | 3.5g | HDG              " → no THC | Hybrid
+  ✅ "Nanticoke - Coconut Cream - 14g              " → no THC | Indica
+  ✅ "MFNY - Cartridge 2pk - Hash Burger - 1g - Liv" → no THC | Hybrid
+  ✅ "Kings Road - Pre Roll 2pk - Rainbow Sherb 11 " → THC 30% | Hybrid
+  ✅ "1937 - Flower - Grease Bucket - 3.5g         " → no THC | Hybrid
+  ✅ "Kushy Punch - Cartridge - Strawnana Rozay - 1" → no THC | Sativa
+  ✅ "The Plug Pack - Flower - Chopped Cheese - 14g" → no THC | Hybrid
+  ✅ "Wavy - Flower - Frank Rizzo - 3.5g           " → no THC | Sativa
+  ✅ "Kosher Kush Big Dogs (Infused) 1g - Dogwalker" → no THC | Hybrid
+  ✅ "1937 - Small Bud - Wedding Cake - 7g         " → no THC | Hybrid
+  ✅ "1937 - Flower - Chem x Chocolate - 3.5g      " → no THC | Sativa
+  ✅ "Dragonfly | 1.25g Infused Preroll | Blackberr" → no THC | Hybrid
+  ✅ "Flowerhouse - Flower - Dolato - 3.5g         " → no THC | Indica
+  ✅ "Jaunty - Cartridge - White Widow - 1g        " → no THC | Hybrid
+  ✅ "Matter - Orange Cookies - 3.5g               " → no THC | Hybrid
+  ✅ "5Boro - Fuel Pump - Dime                     " → no THC | Hybrid
+  ✅ "Fernway - Cartridge - Elderflower - 1g       " → no THC | Sativa
+  ✅ "Kushy Punch - Cartridge - Kushy OG - 1g      " → no THC | Indica
+  ✅ "THaze 5 Pack 1.75g - Dogwalkers (Play)       " → no THC | Hybrid
+  ✅ "VelcroZ Big Dogs .75g - Dogwalkers (Stay)    " → no THC | Hybrid
+  ✅ "Florist Farms - Flower - Gluttony - 3.5g     " → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - Bomb Pop - 14g      " → no THC | Hybrid
+  ✅ "Ayrloom - Infused Pre Roll 5pk - Cereal Milk " → no THC | Hybrid
+  ✅ "Off hours - Daydream (creative) Strawberry Ac" → no THC | Hybrid
+  ✅ "Jacks Delight Pre-Pack (Buds) 3.5g - Rythm (S" → no THC | Sativa
+  ✅ "MFNY - Cartridge - Rainbow Beltz 2.0 - 0.5g -" → no THC | Hybrid
+  ✅ "Find - Flower - Shocks Mints - 3.5g          " → no THC | Hybrid
+  ✅ "Ayrloom - Balm - Revive - 1000mg             " → no THC | Hybrid
+  ✅ "Nanticoke - Chemdog - Live Resin             " → no THC | Sativa
+  ✅ "Hepworth - Pre Roll 5pk - Blue Dream x Purple" → no THC | Sativa
+  ✅ "The Plug Pack - Flower - Lychee Dream - 14g  " → no THC | Hybrid
+  ✅ "Matter - Garlicane - Pre Rolls - 1.75g       " → no THC | Indica
+  ✅ "Snoozy - 5mg Relief Gummy (Strawberry Stress " → no THC | Hybrid
+  ✅ "Ayrloom - AIO - Cereal Milk - 1g             " → no THC | Hybrid
+  ✅ "1937 - Small Bud - Biker Kush - 7g           " → no THC | Indica
+  ✅ "Pura - Terp Poison - Live Resin - 1g         " → no THC | Hybrid
+  ✅ "Dragonfly | 1g Preroll  | Gelato             " → no THC | Hybrid
+  ✅ "Alibi - Caramel Cream - Infused Pre roll     " → no THC | Hybrid
+  ✅ "B Noble - Pre Roll 2pk - Mimosa Kush Mints - " → no THC | Hybrid
+  ✅ "Ayrloom - Beverages - 2:1 Root Beer - 10mg   " → no THC | Hybrid
+  ✅ "Rolling Green - Flower - Gelato Sherbert - 3." → THC 27.6% | Hybrid
+  ✅ "MFNY - Concentrate - Live Resin Badder - The " → no THC | Hybrid
+  ✅ "Off Hours - Gummies - NV City OG "Rainbow She" → no THC | Hybrid
+  ✅ "5Boro - Cereal Milk - Dime                   " → no THC | Hybrid
+  ✅ "High Peaks - Pre Roll 2pk - Ghost Dawg - 1.5g" → no THC | Hybrid
+  ✅ "Cannabals - AIO - Apple Burst - 2g - Liquid D" → no THC | Hybrid
+  ✅ "MFNY - Cartridge - The Belafonte - 0.5g - Liv" → no THC | Hybrid
+  ✅ "Monarchy - Green Crack - 1g - Infused Pre rol" → no THC | Sativa
+  ✅ "Nanticoke - Blue Dream  - Live Resin Disposab" → no THC | Sativa
+  ✅ "NY Honey - AIO - Strawberry Cough - 1g       " → no THC | Sativa
+  ✅ "Space Buds - Infused Flower - Moonrocks Straw" → no THC | Hybrid
+  ✅ "Mfused - Apple Ambush - 2g 2pk               " → no THC | Hybrid
+  ✅ "Florist Farms - Flower - Green Crack - 7g    " → no THC | Sativa
+  ✅ "Animal Face Pre-Pack (Buds) 3.5g - Rythm (Ind" → no THC | Indica
+  ✅ "Livwell - WOmac - 14g                        " → no THC | Hybrid
+  ✅ "Dulce de Uva Pre-Pack (Buds) 3.5g - Rythm (In" → no THC | Indica
+  ✅ "E29Labs - Cartridge - White Runtz - 1g       " → no THC | Hybrid
+  ✅ "MFNY - Infused Pre Roll - Electric Lime - 0.7" → no THC | Hybrid
+  ✅ "Flowerhouse - Flower - Kush Pop Rocks - 3.5g " → no THC | Indica
+  ✅ "Revert - Flower - Spritzer - 3.5g            " → no THC | Hybrid
+  ✅ "Revert - Infused Pre Roll - Cherry Rush - 0.7" → THC 46% | Hybrid
+  ✅ "The Plug Pack - Flower - PB&J - 3.5g         " → no THC | Hybrid
+  ✅ "MFNY - Concentrate - Live Resin Badder - Hash" → no THC | Hybrid
+  ✅ "Fernway - AIO - Sour Diesel - 1g             " → no THC | Sativa
+  ✅ "Revert - Pre Roll - Pineapple Haze - 0.5g    " → no THC | Sativa
+  ✅ "Find - Flower - Chemgurl - 28g               " → no THC | Sativa
+  ✅ "Melo - Flower - Pressure Pack - 3.5g         " → no THC | Hybrid
+  ✅ "TEST - Vape                                  " → THC 70% | —
+  ✅ "Hepworth - Funk Fruit - Sugar - 1g           " → no THC | Hybrid
+  ✅ "LEAL - Hella Jelly - 28g Flower (25.78%)     " → no THC | Hybrid
+  ✅ "Ayrloom - Gummies 10pk - 1:1  Pillow Talk - 5" → no THC | Indica
+  ✅ "Revert - Pre Roll - Spritzer - 0.5g          " → no THC | Hybrid
+  ✅ "Brownie Scout 5 Pack 1.75g - Dogwalkers (Sit)" → no THC | Hybrid
+  ✅ "Dragonfly | 1.25g Infused Preroll | Strawberr" → no THC | Hybrid
+  ✅ "E29Labs - AIO - Bruce Banner - 1g            " → no THC | Hybrid
+  ✅ "Dragonfly | 1g Preroll  | Secret Weapon      " → no THC | Hybrid
+  ✅ "Jaunty - Cartridge - Jack Herer - 1g         " → no THC | Sativa
+  ✅ "NYCE - Rosin Jar - JetFuel Gelato - 1g       " → no THC | Hybrid
+  ✅ "Dragonfly | 1.25g Infused Preroll | Strawberr" → no THC | Sativa
+  ✅ "2:1:1 Tangelo Pearls - THC/CBC/CBG - Sativa  " → no THC | Sativa
+  ✅ "E29Labs - AIO - Lemon Cherry Gelato - 1g     " → no THC | Hybrid
+  ✅ "Fernway - AIO - White Widow - 2g             " → no THC | Hybrid
+  ✅ "Fernway - Cartridge - Red Headed Stranger - 1" → no THC | Sativa
+  ✅ "Dank - Flower - Sharpie - 3.5g               " → no THC | Hybrid
+  ✅ "Nanticoke -Maui Waui - 7g                    " → no THC | Sativa
+  ✅ "1937 - Flower - Blue Dream - 3.5g            " → no THC | Sativa
+  ✅ "Rainbow Zlushie Pre-Pack (Buds) 3.5g - Good G" → no THC | Hybrid
+  ✅ "Mfused - High Biscus  - 2g 2pk               " → no THC | Hybrid
+  ✅ "E29Labs - Cartridge 2pk - Cannalope Haze / Le" → no THC | Hybrid
+  ✅ "Pura - Mimosa - Sugar - 1g                   " → no THC | Hybrid
+  ✅ "KOA - Infused Pre roll - 2pk - Trop Cherry - " → no THC | Hybrid
+  ✅ "Jaunty - Cartridge - Papaya Lumina - 0.5g - L" → no THC | Hybrid
+  ✅ "Dark Chocolate Mini Bar - THC - Hybrid       " → no THC | Hybrid
+  ✅ "Ayrloom - Tincture - Beverage Enhancer - 300m" → no THC | Hybrid
+  ✅ "Select ACE Terpologist - Durban Fizz - 2g    " → no THC | Sativa
+  ✅ "Grassroots - Foreign Kush Mints  - 3.5g      " → no THC | Hybrid
+  ✅ "Nanticoke - Acapulco Gold - 7g               " → no THC | Hybrid
+  ✅ "Mfused - Lychee lyfe - 1g 2pk                " → no THC | Hybrid
+  ✅ "Bonanza - Pink Mango - 2g                    " → no THC | Hybrid
+  ✅ "Rolling Green - Flower - G41 - 3.5g          " → THC 30% | Hybrid
+  ✅ "LEAL - Grape Cake - 28g Flower - (27.39%)    " → no THC | Hybrid
+  ✅ "MFNY - AIO - Strawpaya - 0.5g - Live Resin   " → no THC | Hybrid
+  ✅ "Rove - Specialty Pod - Granddaddy Purp - 1g -" → no THC | Indica
+  ✅ "Concentrate Ea-HSH-Wax-Sugar-Sativa-Orange Co" → no THC | Sativa
+  ✅ "Livwell - Memory Loss OG  - 28G              " → no THC | Sativa
+  ✅ "NYCE - Rosin Jar - PGMO - 1g                 " → no THC | Hybrid
+  ✅ "Cannabals - AIO - 4:1 Blueberry Dream "Get Sl" → no THC | Indica
+  ✅ "Monarchy - Runtz - 1g - Infused Pre roll     " → no THC | Hybrid
+  ✅ "Concentrate Ea-HSH-Wax-Budder-Indica-Strawber" → no THC | Indica
+  ✅ "Wyld - Gummies - 20:1 Strawberry - 10pk - 10m" → no THC | Hybrid
+  ✅ "Wavy - Flower - Headband - 3.5g              " → no THC | Sativa
+  ✅ "Operator - Flower - Bazooka Haze - 3.5g      " → no THC | Sativa
+  ✅ "4:1 Pomegranate Pearls - CBD/THC - Hybrid    " → no THC | Hybrid
+  ✅ "Ayrloom - Balm - Restore - 1000mg            " → no THC | Hybrid
+  ✅ "Revert - Pre Roll - Sunset Sherbert - 0.5g   " → THC 25% | Hybrid
+  ✅ "NYCE - Rosin Jar - Ice cream Zundae - 1g     " → no THC | Hybrid
+  ✅ "Ayrloom - Tincture - 1:3 Everyday Drops - 150" → no THC | Hybrid
+  ✅ "DragonFly - Infused Pre roll - Blueberry Bana" → no THC | Indica
+  ✅ "MFNY - Gummies - Pink Lemonade x Lemon Cane -" → no THC | Sativa
+  ✅ "Ayrloom - AIO - Lime Haze - 1g               " → no THC | Hybrid
+  ✅ "Operator - Flower - Fried Ice Cream - 3.5g   " → no THC | Sativa
+  ✅ "Rove - AIO - Maui Waui - 1g - Live Resin Diam" → no THC | Sativa
+  ✅ "Operator - Flower - Biker Kush - 3.5g        " → no THC | Indica
+  ✅ "Monarchy - Skywalker - 1g - Infused Pre roll " → no THC | Indica
+  ✅ "Nanticoke - Lilac Diesel - 3.5g              " → no THC | Indica
+  ✅ "Revert - Infused Pre Roll - Lemon Warhead - 0" → THC 42% | Hybrid
+  ✅ "Cereal Milk Pre-Pack (Buds) 3.5g - Good Green" → no THC | Hybrid
+  ✅ "Revert - Flower - Super Diesel - 14g         " → no THC | Hybrid
+  ✅ "B Noble - Flower - Mimosa Kush Mints - 3.5g  " → no THC | Hybrid
+  ✅ "Concentrate Ea-HSH-Wax-Sugar-Indica-GG#4-WX80" → no THC | Indica
+  ✅ "Operator - Pre Roll 5pk - Bazooka Haze - 2.5g" → no THC | Sativa
+  ✅ "Magnitude - Sour Diesel - 1G                 " → no THC | Sativa
+  ✅ "NAR - Pre Roll 2pk - White Grape Gas - 1g    " → no THC | Hybrid
+  ✅ "Alibi - Dreamstar - Infused Pre roll         " → no THC | Hybrid
+  ✅ "Nanticoke - Sour Diesel - 0.5 - pre roll     " → no THC | Sativa
+  ✅ "NYCE - Rosin Jar - Poddy Mouth  - 1g         " → no THC | Hybrid
+  ✅ "Orange Yuzu Pearls Rosin - THC - Sativa      " → no THC | Sativa
+  ✅ "Revert - Flower - Sunset Sherbert - 3.5g     " → no THC | Hybrid
+  ✅ "Animal Face Big Dogs .75g - Dogwalkers (Sit) " → no THC | Hybrid
+  ✅ "Find - Flower - Agent Z - 28g                " → no THC | Hybrid
+  ✅ "NAR - Pre Roll 2pk - Mimosa OG - 1g          " → no THC | Hybrid
+  ✅ "Cannabals - AIO - Blue Dream - 2g - Liquid Di" → no THC | Sativa
+  ✅ "1:1 Dark Chocolate Mini Bar - CBN/THC - Sleep" → no THC | Indica
+  ✅ "Ayrloom - AIO - Cereal Milk - 0.5g           " → no THC | Hybrid
+  ✅ "Hepworth - Pre Roll 5pk - Mimosa - 2.5g      " → no THC | Hybrid
+  ✅ "Rolling Green - Pre Roll - Biscotti - 1g     " → THC 30% | Indica
+  ✅ "Monarchy - Sour Diesel  - 1g - Infused Pre ro" → no THC | Sativa
+  ✅ "Matter - Scotties Cake - 14G                 " → no THC | Indica
+  ✅ "Tyson 2.0 - Flower - Dynamite Cookies - 3.5g " → no THC | Hybrid
+  ✅ "Dragonfly | 1.25g Infused Preroll | Watermelo" → no THC | Hybrid
+  ✅ "Hepworth - Flower - Zkittlez x Oreoz - 3.5g  " → no THC | Hybrid
+  ✅ "MFNY - Infused Pre Roll - Electric Lime x Can" → no THC | Hybrid
+  ✅ "Alibi - Cherry Diesel - Infused Pre roll     " → no THC | Hybrid
+  ✅ "Livwell - Strawberry OG Cookies  - 14G       " → no THC | Hybrid
+  ✅ "Revert - Vape - Purple Thunder - 1g          " → no THC | Indica
+  ✅ "The Plug Pack - Flower - Cherry Pie - 14g    " → no THC | Hybrid
+  ✅ "LOrange Big Dogs .75g - Dogwalkers (Play)    " → no THC | Hybrid
+  ✅ "Operator - Pre Roll 5pk - Fried Ice Cream - 2" → no THC | Sativa
+  ✅ "Revert - Flower - Pink Punch - 3.5g          " → no THC | Hybrid
+  ✅ "MFNY - Gummies - Blueberry x Blueberry Muffin" → no THC | Indica
+  ✅ "High Peaks - Concentrate - Bubble Hash - Mayd" → no THC | Hybrid
+  ✅ "Matter - Jelly Cake - 14g                    " → no THC | Hybrid
+  ✅ "CAM - BRuntZ - 14g                           " → no THC | Hybrid
+  ✅ "Bouket - Flower - Blue Nerdz - 4g            " → no THC | Hybrid
+  ✅ "Cannabals - AIO - Blackberry Brain - 2g - Liq" → no THC | Hybrid
+  ✅ "Leal - Sharksbreath - 1 oz                   " → no THC | Hybrid
+  ✅ "Fernway - AIO - Red Headed Stranger - 2g     " → no THC | Sativa
+  ✅ "MFNY - Infused Pre Roll - Rainbow Beltz 2.0 -" → no THC | Hybrid
+  ✅ "Dragonfly | 1.25g Infused Preroll | Sugar Coo" → no THC | Hybrid
+  ✅ "Jaunty - Cartridge - Forbidden Fruit - 1g    " → no THC | Hybrid
+  ✅ "Dank - Pre Roll - Runtz Ether - 0.5g         " → no THC | Hybrid
+  ✅ "Mfused - Rainer Cherries - 1g 2pk            " → no THC | Hybrid
+  ✅ "Anthem - Pre Roll 10pk - Indica Blend - 3.5g " → no THC | Indica
+  ✅ "Ayrloom - Infused Pre Roll 5pk - Pink Rozay -" → no THC | Hybrid
+  ✅ "Rolling Green - Pre Roll - Ice Cream Cake - 1" → THC 29.1% | Indica
+  ✅ "Rolling Green - Flower - Oreoz - 3.5g        " → THC 30.5% | Hybrid
+  ✅ "Concentrate Ea-HSH-Wax-Budder-Indica-GG#4-WX7" → no THC | Indica
+  ✅ "Dragonfly | Flower | 3.5g | Blue Dream       " → no THC | Sativa
+  ✅ "Milk Chocolate Mini Bar - THC - Hybrid       " → no THC | Hybrid
+  ✅ "Small A$$ Buds - Small Bud - White Runtz - 14" → no THC | Hybrid
+  ✅ "Nanticoke - Blue Dream  - 14g                " → no THC | Sativa
+  ✅ "Afternoon Delight #4 Big Dogs (Infused) 1g - " → no THC | Hybrid
+  ✅ "Tyson 2.0 - Flower - Exodus - 3.5g           " → no THC | Indica
+  ✅ "Revert - Flower - Strawberry Amnesia - 3.5g  " → THC 22% | Hybrid
+  ✅ "Fernway - Cartidge - Space Queen  - 1g       " → no THC | Hybrid
+  ✅ "1:1 Milk Chocolate Mini Bar - CBG/THC - Dayti" → no THC | Sativa
+  ✅ "Hepworth - Durban Poison X Cherry Tart - Suga" → no THC | Sativa
+  ✅ "MFNY - Tincture - Honey Banana - Live Resin -" → no THC | Hybrid
+  ✅ "Bonanza - Dream Berry - 2g                   " → no THC | Hybrid
+  ✅ "Tyson 2.0 - Flower - Brownsville Dream - 3.5g" → no THC | Hybrid
+  ✅ "Bonanza - Cranberry Kush  - 2g               " → no THC | Hybrid
+  ✅ "Ayrloom - Beverages - 1:1 Black Cherry - 5mg " → no THC | Hybrid
+  ✅ "Kings Road - Pre Roll 2pk - Donny Burger x St" → THC 30% | Sativa
+  ✅ "Animal Face 5 Pack 1.75g - Dogwalkers (Sit)  " → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - Tequila Sunrise - 3." → no THC | Hybrid
+  ✅ "The Plug Pack - Flower - Chopped Chesse - 28g" → no THC | Hybrid
+  ✅ "Concentrate Ea-HSH-Wax-Crumble-Indica-Purple " → no THC | Indica
+  ✅ "Nanticoke - Lemon Grab - 0.5 - pre roll      " → no THC | Hybrid
+  ✅ "Ayrloom - AIO - Pineapple Express - 0.5g     " → no THC | Sativa
+  ✅ "Small A$$ Buds - Small Bud - Zourz - 14g     " → no THC | Hybrid
+  ✅ "LEAL - Garlic Budder - 28g Flower (31.17%)   " → no THC | Hybrid
+  ✅ "Ready 2 Roll - Indica  - Pre ground - 7g     " → no THC | Indica
+  ✅ "Dank - Pre Roll - Afghani - 1g               " → no THC | Indica
+  ✅ "Ayrloom - Tincture - Pillow Talk - 300mg     " → no THC | Indica
+  ✅ "Grassroots - Lemon Berry Candy OG - 3.5g     " → no THC | Hybrid
+  ✅ "Pot & Head - Pre Roll - Hypnotic - 1g        " → no THC | Indica
+  ✅ "Nanticoke - Coconut Cream - 0.5 - pre roll   " → no THC | Indica
+  ✅ "Concentrate Ea-HSH-Wax-Sugar-Sativa-Burnout C" → no THC | Sativa
+  ✅ "Concentrate Ea-HSH-Wax-Budder-Indica-Mendo Br" → no THC | Indica
+  ✅ "Livwell - GG#4 - 28G                         " → no THC | Hybrid
+  ✅ "3:1 Blueberry Lemonade Pearls - CBG/THC - Day" → no THC | Sativa
+
+📝 Writing 881 updates to Firestore...
+   Committed 400 / 881
+   Committed 800 / 881
+   Committed 881 / 881
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Done!
+   Scanned:      1178 products
+   Updated:      881
+   No change:    297
