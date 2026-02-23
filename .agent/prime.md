@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-23)
 
 **Recent work (2026-02-23):** See `memory/MEMORY.md` for full log.
-Key completed: [Dispense/AIQ image scraper + reusable onboarding script] (`scrape-dispense-full.mjs`), [THC%/strainType backfill from Alleaves — 878 products labeled] (`backfill-thc-straintype.mjs`)
+Key completed: [Firebase Storage image migration — 1007 products off Dispense/Leafly CDN] (`b1ec2b76`), [Menu sync added to pos-sync heartbeat cron] (`8b0d3722`)
 
 ---
 
