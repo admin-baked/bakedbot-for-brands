@@ -269,6 +269,16 @@ export async function extractBrandGuideFromUrl(
     const extractor = getBrandGuideExtractor();
     const result = await extractor.extractFromUrl(input);
 
+    logger.info('[extractBrandGuideFromUrl] Extraction result', {
+      url: input.url,
+      confidence: result.confidence,
+      brandName: result.messaging?.brandName || '(none)',
+      hasMetadata: !!result.metadata,
+      metadataTitle: result.metadata?.title || '(none)',
+      metadataDescription: (result.metadata?.description || '').substring(0, 120) || '(none)',
+      websiteTitle: result.websiteTitle || '(none)',
+    });
+
     return {
       success: true,
       visualIdentity: result.visualIdentity,

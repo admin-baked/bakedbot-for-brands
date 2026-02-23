@@ -99,6 +99,17 @@ export class BrandGuideExtractor {
       // Step 1: Scrape website
       const websiteAnalysis = await this.analyzeWebsite(input.url);
 
+      logger.info('[BrandGuideExtractor] Website analysis result', {
+        url: input.url,
+        hasTitle: !!websiteAnalysis.metadata.title,
+        hasDescription: !!websiteAnalysis.metadata.description,
+        title: websiteAnalysis.metadata.title || '(none)',
+        description: (websiteAnalysis.metadata.description || '').substring(0, 120) || '(none)',
+        contentChars: websiteAnalysis.content.length,
+        colorsFound: websiteAnalysis.colors.length,
+        textSamples: websiteAnalysis.textSamples.length,
+      });
+
       // Step 2: Analyze social media (if handles provided)
       const socialAnalyses: SocialMediaAnalysis[] = [];
       if (input.socialHandles) {
