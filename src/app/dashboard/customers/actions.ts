@@ -125,23 +125,30 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
             count: alleavesCustomers.length,
         });
 
-        // Conditionally load spending data based on customer count
-        // Small customer bases (< 500): Load from Firestore orders for proper segmentation
-        // Large customer bases: Skip to avoid timeouts, use async endpoint instead
+        // Load spending data from Firestore orders (synced every 30 min by pos-sync cron).
+        // Using Firestore (not Alleaves API) avoids the external-API timeout that caused the
+        // old 500-customer threshold. An 8-second budget + field projection keeps this safe
+        // for large orgs (Thrive: 2967 customers). Fails gracefully → customers fall back to 'new'.
         const customerSpending = new Map<string, { totalSpent: number; orderCount: number; lastOrderDate: Date; firstOrderDate: Date }>();
 
-        if (alleavesCustomers.length < 500) {
-            // Safe to load spending data from Firestore for small customer bases (e.g., Thrive: 111 customers)
-            try {
-                logger.info('[CUSTOMERS] Loading spending data from Firestore for small customer base', { orgId, customerCount: alleavesCustomers.length });
+        try {
+            logger.info('[CUSTOMERS] Loading spending data from Firestore orders', { orgId, customerCount: alleavesCustomers.length });
 
-                // Query BakedBot orders for this org to get spending data
-                let ordersQuery = firestore.collection('orders') as FirebaseFirestore.Query;
-                ordersQuery = ordersQuery.where('brandId', '==', orgId);
-                const ordersSnap = await ordersQuery.get();
+            // Field projection: only fetch the 3 fields needed for spending calculations.
+            // Reduces wire size ~5-10x compared to full document reads.
+            const ordersQuery = (firestore.collection('orders') as FirebaseFirestore.Query)
+                .where('brandId', '==', orgId)
+                .select('customer.email', 'totals.total', 'createdAt');
 
-                // Build spending map from orders
-                ordersSnap.forEach((doc: any) => {
+            // 8-second timeout prevents blocking the full page load.
+            // If Firestore is slow (cold start, large result set), we degrade gracefully.
+            const timeoutPromise = new Promise<null>(resolve => setTimeout(() => resolve(null), 8_000));
+            const result = await Promise.race([ordersQuery.get(), timeoutPromise]);
+
+            if (result === null) {
+                logger.warn('[CUSTOMERS] Spending data query timed out after 8s — segments will use recency only', { orgId });
+            } else {
+                result.forEach((doc: any) => {
                     const order = doc.data();
                     const email = order.customer?.email?.toLowerCase();
                     if (!email) return;
@@ -170,21 +177,16 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
 
                 logger.info('[CUSTOMERS] Spending data loaded from Firestore', {
                     orgId,
-                    ordersFound: ordersSnap.size,
-                    customersWithSpending: customerSpending.size
+                    ordersFound: result.size,
+                    customersWithSpending: customerSpending.size,
                 });
-            } catch (spendingError: any) {
-                logger.warn('[CUSTOMERS] Failed to load spending data, continuing without it', {
-                    orgId,
-                    error: spendingError.message
-                });
-                // Continue without spending data rather than failing
             }
-        } else {
-            logger.info('[CUSTOMERS] Skipping spending data for large customer base (use async endpoint)', {
+        } catch (spendingError: any) {
+            logger.warn('[CUSTOMERS] Failed to load spending data, continuing without it', {
                 orgId,
-                customerCount: alleavesCustomers.length
+                error: spendingError.message,
             });
+            // Continue without spending data — customers fall back to 'new' segment
         }
 
         // Transform Alleaves customers to CustomerProfile format
