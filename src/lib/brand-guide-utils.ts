@@ -29,6 +29,11 @@ export function cleanExtractedValue(value: string | undefined): string {
     'insufficient',
     'not found',
     'not available',
+    'cannabis brand',
+    'dispensary name',
+    'brand name',
+    'your brand',
+    'company name',
   ];
 
   // Check if value matches any placeholder pattern

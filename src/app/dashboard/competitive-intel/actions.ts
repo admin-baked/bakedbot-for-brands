@@ -110,6 +110,15 @@ export async function getCompetitors(orgId: string): Promise<CompetitorSnapshot>
         }
     });
 
+    // Deduplicate competitors by name+city+state (old and new collections can overlap)
+    const seen = new Set<string>();
+    const uniqueCompetitors = competitors.filter(c => {
+        const key = `${(c.name || '').toLowerCase()}|${(c.city || '').toLowerCase()}|${(c.state || '').toLowerCase()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+
     // Calculate next update based on plan frequency
     const updateIntervalMs = limits.frequencyMinutes * 60 * 1000;
     const nextUpdate = new Date(lastUpdated.getTime() + updateIntervalMs);
@@ -118,7 +127,7 @@ export async function getCompetitors(orgId: string): Promise<CompetitorSnapshot>
     const canRefresh = new Date() > nextUpdate;
 
     return {
-        competitors,
+        competitors: uniqueCompetitors,
         lastUpdated,
         nextUpdate,
         updateFrequency,

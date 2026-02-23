@@ -811,7 +811,7 @@ Return a JSON object with this structure:
           .split(/\s*[\|\-–]\s*/)[0]
           .replace(/\.(com|net|org|io|co|ca|us|biz|info)(\s.*)?$/i, '')
           .trim()
-      : 'Cannabis Brand';
+      : '';
 
     return {
       brandName: titleDerivedName,
