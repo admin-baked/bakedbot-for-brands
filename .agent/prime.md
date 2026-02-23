@@ -75,6 +75,34 @@ Only after Stages 1-4 are complete:
 - **Docs-only change:** Skip Stages 2-4. Commit directly with `docs()` prefix.
 - **Exploration/spike:** Produce spec marked `status: 🔬 Spike`. Code is throwaway. Do not merge to main without converting to a real spec.
 
+### 🐛 Bug Workflow (Auto-triggered on ANY mention of a bug, broken feature, or unexpected behavior)
+
+When the user says anything like "X is broken", "X isn't working", "X still broken", "bug in X", "fix X" — execute this automatically, no extra prompting needed:
+
+**Step 1 — Triage (30 seconds)**
+Determine priority based on impact:
+- **P0** — Production down, data loss, security breach, payment failure
+- **P1** — Core feature broken for a paying customer (e.g., Thrive can't onboard)
+- **P2** — Feature degraded but workaround exists
+- **P3** — Minor UI issue, cosmetic, non-blocking
+
+**Step 2 — File the bug (immediate)**
+Write directly to Firestore `qa_bugs` collection via Admin SDK script:
+```typescript
+{ id, title, steps[], expected, actual, rootCause, priority, area,
+  status: 'open', environment: 'production', affectedOrgId, reportedBy: 'claude-code',
+  createdAt, updatedAt }
+```
+P0/P1 bugs trigger Slack notification automatically via `qa-notifications.ts`.
+
+**Step 3 — Fix immediately**
+- Read the broken component/action/service
+- Identify root cause
+- Apply fix
+- Commit + push to production
+
+Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and fix in one pass.
+
 ---
 
 ## 🦸 Developer Super Powers (11 Ready-to-Use Automation Scripts)
