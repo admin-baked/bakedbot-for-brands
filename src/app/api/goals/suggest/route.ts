@@ -233,8 +233,12 @@ Return a JSON array of 3-5 goal objects:
     });
 
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.startsWith('Unauthorized') || msg.startsWith('Forbidden')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     logger.error('[goals/suggest] Error generating goal suggestions', {
-      message: error instanceof Error ? error.message : String(error),
+      message: msg,
       stack: error instanceof Error ? error.stack : undefined,
     });
     return NextResponse.json(
