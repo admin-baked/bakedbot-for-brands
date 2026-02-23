@@ -79,6 +79,10 @@ export interface QABug {
     commitFixed?: string;     // Which commit fixed the bug
     screenshotUrl?: string;   // RTRVR visual evidence (Phase 2)
 
+    // Regression tracking
+    regressionOf?: string;    // bugId of a previously-fixed bug this is a recurrence of
+    isRegression?: boolean;   // True if this bug was seen before and "fixed"
+
     // Verification
     verifiedAt?: Timestamp;
     verifiedBy?: string;

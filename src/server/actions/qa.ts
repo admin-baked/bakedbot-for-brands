@@ -422,6 +422,31 @@ export async function getTestCases(filters: {
 }
 
 // ============================================================================
+// REGRESSION HISTORY
+// Returns closed/verified bugs for an area, sorted most recent first.
+// Use this to detect when the same area keeps breaking.
+// ============================================================================
+
+export async function getRegressionHistory(area: QABugArea): Promise<QABug[]> {
+    try {
+        await requireUser();
+        const db = getAdminFirestore();
+
+        const snap = await db.collection('qa_bugs')
+            .where('area', '==', area)
+            .where('status', 'in', ['verified', 'closed', 'fixed'])
+            .orderBy('updatedAt', 'desc')
+            .limit(20)
+            .get();
+
+        return snap.docs.map(d => ({ id: d.id, ...d.data() } as QABug));
+    } catch (error) {
+        logger.error('[QA] Failed to fetch regression history', { error: (error as Error).message, area });
+        return [];
+    }
+}
+
+// ============================================================================
 // SMOKE TEST RESULTS PERSISTENCE
 // ============================================================================
 
