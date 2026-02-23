@@ -260,6 +260,7 @@ export async function extractBrandGuideFromUrl(
   visualIdentity?: any;
   voice?: any;
   messaging?: any;
+  metadata?: any;
   confidence?: number;
   websiteTitle?: string;
   error?: string;
@@ -273,6 +274,7 @@ export async function extractBrandGuideFromUrl(
       visualIdentity: result.visualIdentity,
       voice: result.voice,
       messaging: result.messaging,
+      metadata: result.metadata,        // ← was missing; client reads metadata.description
       confidence: result.confidence,
       websiteTitle: result.websiteTitle,
     };
