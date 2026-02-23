@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-22)
 
 **Recent work (2026-02-23):** See `memory/MEMORY.md` for full log.
-Key completed: [Comprehensive Unit & Integration Tests] (12 phases, 340+ tests: 1-4, 7-9, 11-12, 14-15, 17) — Commits: `473a6ccc`, `170c4de2`, `6a5a933f`, `a05cee4f`, `b60b0f65`, `39b7cdf8`, `a53ca82c`, `8109f366`, `3aed8c2f`, `46c83df7`
+Key completed: [4 Production Hotfixes] (`db8c0cca`, `7167cc24`, `ea4e433f`, `0b4f9902`) — React #310 (TypeScript), Login hang (timeout), Email failures (silent), React #310 (hooks)
 
 ---
 
