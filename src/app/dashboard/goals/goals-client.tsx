@@ -331,6 +331,7 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
         onOpenChange={setDialogOpen}
         onCreateGoal={handleCreateGoal}
         isLoading={isLoading}
+        orgId={orgId}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   MapPin,
   DollarSign,
@@ -30,6 +31,8 @@ import {
 } from 'lucide-react';
 import type { OrgGoal, GoalCategory, GoalTimeframe } from '@/types/goals';
 import { GOAL_CATEGORIES } from '@/types/goals';
+import { PLAYBOOKS } from '@/config/playbooks';
+import { getDispensaryPlaybookAssignments } from '@/server/actions/dispensary-playbooks';
 import { cn } from '@/lib/utils';
 
 interface GoalCreationDialogProps {
@@ -38,6 +41,7 @@ interface GoalCreationDialogProps {
   onCreateGoal: (goal: Omit<OrgGoal, 'id' | 'createdAt' | 'updatedAt' | 'lastProgressUpdatedAt'>) => Promise<void>;
   isLoading?: boolean;
   suggestedGoals?: any[]; // From magic button
+  orgId?: string;
 }
 
 type Step = 'category' | 'details' | 'playbooks';
@@ -60,6 +64,7 @@ export function GoalCreationDialog({
   onCreateGoal,
   isLoading = false,
   suggestedGoals = [],
+  orgId,
 }: GoalCreationDialogProps) {
   const [step, setStep] = useState<Step>('category');
   const [category, setCategory] = useState<GoalCategory | null>(null);
@@ -68,6 +73,27 @@ export function GoalCreationDialog({
   const [description, setDescription] = useState('');
   const [targetValue, setTargetValue] = useState('');
   const [selectedPlaybooks, setSelectedPlaybooks] = useState<string[]>([]);
+  const [availablePlaybooks, setAvailablePlaybooks] = useState<Array<{ id: string; name: string; description: string }>>([]);
+  const [loadingPlaybooks, setLoadingPlaybooks] = useState(false);
+
+  // Fetch active playbooks when reaching step 3
+  useEffect(() => {
+    if (step !== 'playbooks' || !orgId || availablePlaybooks.length > 0) return;
+
+    setLoadingPlaybooks(true);
+    getDispensaryPlaybookAssignments(orgId)
+      .then((data) => {
+        const active = data.activeIds.slice(0, 12).map((id) => {
+          const def = PLAYBOOKS[id];
+          return def
+            ? { id, name: def.name, description: def.description }
+            : { id, name: id.replace(/-/g, ' '), description: '' };
+        });
+        setAvailablePlaybooks(active);
+      })
+      .catch(() => setAvailablePlaybooks([]))
+      .finally(() => setLoadingPlaybooks(false));
+  }, [step, orgId, availablePlaybooks.length]);
 
   const categoryInfo = GOAL_CATEGORIES.find(c => c.id === category);
 
@@ -79,6 +105,7 @@ export function GoalCreationDialog({
     setDescription('');
     setTargetValue('');
     setSelectedPlaybooks([]);
+    setAvailablePlaybooks([]);
   };
 
   const handleClose = () => {
@@ -306,32 +333,64 @@ export function GoalCreationDialog({
             <DialogHeader>
               <DialogTitle>Playbooks (Optional)</DialogTitle>
               <DialogDescription>
-                Select playbooks to activate for this goal
+                Link active playbooks to this goal to track their impact
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4 py-4">
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-900">
-                  💡 <strong>Tip:</strong> Playbooks automate actions to help you reach your goal. You can add them now or
-                  later.
+                  💡 <strong>Tip:</strong> Linked playbooks run automatically to help you reach your goal. You can update this later.
                 </p>
               </div>
 
-              {suggestedGoals && suggestedGoals.length > 0 ? (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Suggested for your goal:</p>
-                  {/* TODO: Display suggested playbooks from magic button */}
-                  <p className="text-xs text-muted-foreground">
-                    No playbook suggestions available yet
-                  </p>
+              {loadingPlaybooks ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-sm text-muted-foreground">Loading your playbooks...</span>
+                </div>
+              ) : availablePlaybooks.length > 0 ? (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {availablePlaybooks.map((pb) => (
+                    <label
+                      key={pb.id}
+                      className={cn(
+                        'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
+                        selectedPlaybooks.includes(pb.id)
+                          ? 'border-blue-400 bg-blue-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      )}
+                    >
+                      <Checkbox
+                        checked={selectedPlaybooks.includes(pb.id)}
+                        onCheckedChange={(checked) => {
+                          setSelectedPlaybooks(prev =>
+                            checked ? [...prev, pb.id] : prev.filter(id => id !== pb.id)
+                          );
+                        }}
+                        className="mt-0.5"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{pb.name}</p>
+                        {pb.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{pb.description}</p>
+                        )}
+                      </div>
+                    </label>
+                  ))}
                 </div>
               ) : (
                 <div className="p-4 bg-gray-50 border border-dashed border-gray-300 rounded-lg">
                   <p className="text-sm text-gray-600 text-center">
-                    No playbook recommendations yet
+                    No active playbooks found. Activate playbooks in Settings → Playbooks first.
                   </p>
                 </div>
+              )}
+
+              {selectedPlaybooks.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedPlaybooks.length} playbook{selectedPlaybooks.length !== 1 ? 's' : ''} selected
+                </p>
               )}
             </div>
 
