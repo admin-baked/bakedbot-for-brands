@@ -184,6 +184,8 @@ export async function generateWeeklyIntelReport(
     try {
         await saveReportToDrive(orgId, docRef.id, report);
         await createInboxNotification(orgId, docRef.id, report);
+        // Ensure user is enrolled in the daily competitive intel playbook
+        await ensurePlaybookEnrollment(orgId);
     } catch (error) {
         logger.error('[WeeklyReport] Failed to save to Drive or create inbox notification', { error, orgId });
         // Don't fail the whole operation if Drive/Inbox fails
@@ -534,9 +536,8 @@ async function createInboxNotification(
     }
 
     // Create inbox thread for the report
-    const weekStartStr = report.weekStart.toLocaleDateString();
-    const weekEndStr = report.weekEnd.toLocaleDateString();
-    const title = `📊 Weekly Competitive Intelligence - ${weekStartStr} to ${weekEndStr}`;
+    const dateStr = report.weekStart.toLocaleDateString();
+    const title = `📊 Daily Competitive Intelligence - ${dateStr}`;
 
     const summary = generateNotificationSummary(report);
 
@@ -545,7 +546,7 @@ async function createInboxNotification(
         title,
         primaryAgent: 'ezal',
         brandId: orgId,
-        tags: ['competitive-intel', 'automated', 'weekly-report'],
+        tags: ['competitive-intel', 'automated', 'daily-report'],
         initialMessage: {
             id: `msg_${Date.now()}`,
             userId: 'agent_ezal',
@@ -607,9 +608,8 @@ async function sendReportEmail(
 
         logger.info('[WeeklyReport] Email resolved', { userEmail, adminUserId, orgId });
 
-        const weekStart = report.weekStart.toLocaleDateString();
-        const weekEnd = report.weekEnd.toLocaleDateString();
-        const subject = `📊 Weekly Competitive Intelligence Report — ${weekStart} to ${weekEnd}`;
+        const dateStr = report.weekStart.toLocaleDateString();
+        const subject = `📊 Daily Competitive Intelligence Report — ${dateStr}`;
 
         const topDeal = report.insights.topDeals[0];
         const avgPrice = report.competitors.length > 0
@@ -622,14 +622,14 @@ async function sendReportEmail(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Weekly Competitive Intelligence</title>
+  <title>Daily Competitive Intelligence</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
 
   <!-- Header -->
   <div style="background: linear-gradient(135deg, #7c3aed, #4f46e5); border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 22px;">📊 Weekly Competitive Intelligence</h1>
-    <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0 0; font-size: 14px;">${weekStart} — ${weekEnd}</p>
+    <h1 style="color: white; margin: 0; font-size: 22px;">📊 Daily Competitive Intelligence</h1>
+    <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0 0; font-size: 14px;">${dateStr}</p>
   </div>
 
   <!-- Executive Summary -->
@@ -743,11 +743,10 @@ async function sendReportEmail(
  * Format report as markdown for Drive storage.
  */
 function formatReportAsMarkdown(report: Omit<WeeklyIntelReport, 'id'>): string {
-    const weekStart = report.weekStart.toLocaleDateString();
-    const weekEnd = report.weekEnd.toLocaleDateString();
+    const dateStr = report.weekStart.toLocaleDateString();
 
-    let md = `# Weekly Competitive Intelligence Report\n\n`;
-    md += `**Report Period:** ${weekStart} - ${weekEnd}\n`;
+    let md = `# Daily Competitive Intelligence Report\n\n`;
+    md += `**Report Date:** ${dateStr}\n`;
     md += `**Generated:** ${report.generatedAt.toLocaleString()}\n\n`;
 
     md += `## Executive Summary\n\n`;
@@ -823,7 +822,7 @@ function generateNotificationSummary(report: Omit<WeeklyIntelReport, 'id'>): str
     const topDeal = report.insights.topDeals[0];
     const avgPrice = report.competitors.reduce((sum, c) => sum + c.avgDealPrice, 0) / report.competitors.length;
 
-    let summary = `Hey there! 👋 Your weekly competitive intelligence report is ready.\n\n`;
+    let summary = `Hey there! 👋 Your daily competitive intelligence report is ready.\n\n`;
     summary += `**Key Highlights:**\n\n`;
     summary += `📊 Tracked ${report.competitors.length} competitors with ${report.totalDealsTracked} active deals\n\n`;
 
@@ -853,6 +852,67 @@ function generateNotificationSummary(report: Omit<WeeklyIntelReport, 'id'>): str
     summary += `Need me to dig deeper into any competitor or analyze specific pricing strategies? Just ask! 🎯`;
 
     return summary;
+}
+
+/**
+ * Ensure org is enrolled in the 'daily-competitive-intel' playbook.
+ * This runs after each report generation to keep enrollment active.
+ */
+async function ensurePlaybookEnrollment(orgId: string): Promise<void> {
+    try {
+        const { firestore } = await createServerClient();
+
+        // Find the subscription for this org
+        const subscriptionSnap = await firestore
+            .collection('subscriptions')
+            .where('orgId', '==', orgId)
+            .limit(1)
+            .get();
+
+        if (subscriptionSnap.empty) {
+            logger.warn('[WeeklyReport] No subscription found for org', { orgId });
+            return;
+        }
+
+        const subscriptionId = subscriptionSnap.docs[0].id;
+        const playbookId = 'daily-competitive-intel';
+
+        // Check if assignment already exists
+        const existing = await firestore
+            .collection('playbook_assignments')
+            .where('subscriptionId', '==', subscriptionId)
+            .where('playbookId', '==', playbookId)
+            .limit(1)
+            .get();
+
+        if (!existing.empty) {
+            const assignment = existing.docs[0];
+            // Reactivate if paused
+            if (assignment.data().status !== 'active') {
+                await assignment.ref.update({
+                    status: 'active',
+                    updatedAt: new Date(),
+                });
+                logger.info('[WeeklyReport] Reactivated daily-competitive-intel playbook', { orgId, subscriptionId });
+            }
+        } else {
+            // Create new assignment
+            await firestore.collection('playbook_assignments').add({
+                subscriptionId,
+                orgId,
+                playbookId,
+                status: 'active',
+                lastTriggered: null,
+                triggerCount: 0,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+            logger.info('[WeeklyReport] Enrolled org in daily-competitive-intel playbook', { orgId, subscriptionId });
+        }
+    } catch (error) {
+        logger.error('[WeeklyReport] Failed to ensure playbook enrollment', { error, orgId });
+        // Don't fail the report generation if enrollment fails
+    }
 }
 
 // =============================================================================
