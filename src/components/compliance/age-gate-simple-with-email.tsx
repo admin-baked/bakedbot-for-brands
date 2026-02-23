@@ -54,9 +54,17 @@ export function AgeGateSimpleWithEmail({
         return emailRegex.test(email);
     };
 
-    const handleYes = () => {
+    const handleYes = async () => {
         logger.info('[AgeGateSimpleWithEmail] User verified as 21+');
-        setStep('email-capture');
+        // Verify immediately and let user into the site without blocking email capture
+        const verification = {
+            verified: true,
+            timestamp: Date.now(),
+            expiresAt: Date.now() + (24 * 60 * 60 * 1000)
+        };
+        localStorage.setItem('age_verified', JSON.stringify(verification));
+        await setAgeVerificationCookie();
+        onVerified();
     };
 
     const handleNo = () => {
