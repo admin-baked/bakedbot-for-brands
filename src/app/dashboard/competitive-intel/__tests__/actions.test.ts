@@ -94,6 +94,186 @@ describe('Competitive Intel Actions', () => {
 
             expect(result.updateFrequency).toBe('weekly');
         });
+
+        it('should include maxCompetitors from plan limits', async () => {
+            const result = await getCompetitors('org_123');
+            expect(typeof result.maxCompetitors).toBe('number');
+            expect(result.maxCompetitors).toBeGreaterThan(0);
+        });
+    });
+
+    describe('getCompetitors — deduplication (Feb 2026 fix)', () => {
+        /**
+         * Helper to build a mock Firestore query snapshot from an array of docs.
+         */
+        function mkSnap(docs: Array<{ id: string; data: Record<string, unknown> }>) {
+            return {
+                forEach: (cb: (doc: { id: string; data: () => Record<string, unknown> }) => void) => {
+                    docs.forEach(d => cb({ id: d.id, data: () => d.data }));
+                },
+            };
+        }
+
+        function mkCollectionQuery(snap: ReturnType<typeof mkSnap>) {
+            return {
+                orderBy: jest.fn().mockReturnThis(),
+                where: jest.fn().mockReturnThis(),
+                limit: jest.fn().mockReturnThis(),
+                get: jest.fn().mockResolvedValue(snap),
+                doc: jest.fn().mockReturnValue({ get: jest.fn(), set: jest.fn(), delete: jest.fn() }),
+            };
+        }
+
+        beforeEach(() => {
+            // Override the module-level mock with a collection-name-aware factory
+            const { createServerClient } = require('@/firebase/server-client');
+
+            const oldSnap = mkSnap([
+                {
+                    id: 'old_green_1',
+                    data: {
+                        name: 'Green Syracuse',
+                        city: 'Syracuse',
+                        state: 'NY',
+                        source: 'auto',
+                        lastUpdated: { toDate: () => new Date('2024-06-01') },
+                    },
+                },
+            ]);
+
+            // The NEW system (tenants collection) also has the same competitor
+            const newSnap = mkSnap([
+                {
+                    id: 'new_green_1',
+                    data: {
+                        name: 'Green Syracuse',
+                        city: 'Syracuse',
+                        state: 'NY',
+                        active: true,
+                        updatedAt: { toDate: () => new Date('2024-06-01') },
+                    },
+                },
+                {
+                    id: 'new_distinct_1',
+                    data: {
+                        name: 'Purple Haze',
+                        city: 'Albany',
+                        state: 'NY',
+                        active: true,
+                        updatedAt: { toDate: () => new Date('2024-06-01') },
+                    },
+                },
+            ]);
+
+            (createServerClient as jest.Mock).mockResolvedValue({
+                firestore: {
+                    collection: jest.fn().mockImplementation((col: string) => {
+                        if (col === 'organizations') {
+                            return {
+                                doc: jest.fn().mockReturnValue({
+                                    get: jest.fn().mockResolvedValue({
+                                        data: () => ({ plan: 'empire', marketState: 'NY' }),
+                                    }),
+                                    collection: jest.fn().mockReturnValue(mkCollectionQuery(oldSnap)),
+                                }),
+                            };
+                        }
+                        if (col === 'tenants') {
+                            return {
+                                doc: jest.fn().mockReturnValue({
+                                    collection: jest.fn().mockReturnValue(mkCollectionQuery(newSnap)),
+                                }),
+                            };
+                        }
+                        return { doc: jest.fn() };
+                    }),
+                    batch: jest.fn().mockReturnValue({ set: jest.fn(), commit: jest.fn() }),
+                },
+            });
+        });
+
+        it('deduplicates competitors with the same name+city+state from both Firestore collections', async () => {
+            const result = await getCompetitors('org_thrive_syracuse');
+
+            // "Green Syracuse" exists in both old + new collections — should appear exactly once
+            const greenSyracuse = result.competitors.filter(c => c.name === 'Green Syracuse');
+            expect(greenSyracuse).toHaveLength(1);
+        });
+
+        it('keeps distinct competitors from both collections', async () => {
+            const result = await getCompetitors('org_thrive_syracuse');
+
+            // "Purple Haze" only exists in the new (tenants) collection
+            const purpleHaze = result.competitors.filter(c => c.name === 'Purple Haze');
+            expect(purpleHaze).toHaveLength(1);
+        });
+
+        it('total count reflects deduplicated list (2 unique, not 3 raw entries)', async () => {
+            const result = await getCompetitors('org_thrive_syracuse');
+
+            // old: [Green Syracuse], new: [Green Syracuse, Purple Haze] → unique: 2
+            expect(result.competitors).toHaveLength(2);
+        });
+
+        it('preserves first-seen entry when deduplicating (old collection wins)', async () => {
+            const result = await getCompetitors('org_thrive_syracuse');
+            const green = result.competitors.find(c => c.name === 'Green Syracuse');
+
+            // The old-collection entry has id 'old_green_1'
+            expect(green?.id).toBe('old_green_1');
+        });
+
+        it('is case-insensitive when deduplicating', async () => {
+            // Rebuild with mixed-case duplicate
+            const { createServerClient } = require('@/firebase/server-client');
+            const oldSnap2 = mkSnap([
+                {
+                    id: 'o1',
+                    data: {
+                        name: 'green syracuse',
+                        city: 'SYRACUSE',
+                        state: 'ny',
+                        source: 'auto',
+                        lastUpdated: { toDate: () => new Date() },
+                    },
+                },
+            ]);
+            const newSnap2 = mkSnap([
+                {
+                    id: 'n1',
+                    data: {
+                        name: 'Green Syracuse',
+                        city: 'Syracuse',
+                        state: 'NY',
+                        active: true,
+                        updatedAt: { toDate: () => new Date() },
+                    },
+                },
+            ]);
+            (createServerClient as jest.Mock).mockResolvedValue({
+                firestore: {
+                    collection: jest.fn().mockImplementation((col: string) => {
+                        if (col === 'organizations') {
+                            return {
+                                doc: jest.fn().mockReturnValue({
+                                    get: jest.fn().mockResolvedValue({ data: () => ({ plan: 'free' }) }),
+                                    collection: jest.fn().mockReturnValue(mkCollectionQuery(oldSnap2)),
+                                }),
+                            };
+                        }
+                        return {
+                            doc: jest.fn().mockReturnValue({
+                                collection: jest.fn().mockReturnValue(mkCollectionQuery(newSnap2)),
+                            }),
+                        };
+                    }),
+                    batch: jest.fn(),
+                },
+            });
+
+            const result = await getCompetitors('org_test');
+            expect(result.competitors).toHaveLength(1);
+        });
     });
 
     describe('addManualCompetitor', () => {
