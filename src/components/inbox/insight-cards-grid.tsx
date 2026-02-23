@@ -196,14 +196,40 @@ export function InsightCardsGrid({ className, maxCards = 5 }: InsightCardsGridPr
         return <InsightCardsEmpty />;
     }
 
+    // Dynamic header: day name + date + urgency summary
+    const now = new Date();
+    const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
+    const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const criticalCount = prioritizedInsights.filter(i => i.severity === 'critical').length;
+    const warningCount = prioritizedInsights.filter(i => i.severity === 'warning').length;
+    const attentionCount = criticalCount + warningCount;
+    const summaryLine =
+        criticalCount > 0
+            ? `${criticalCount} critical item${criticalCount > 1 ? 's' : ''} need immediate attention`
+            : attentionCount > 0
+              ? `${attentionCount} item${attentionCount > 1 ? 's' : ''} need${attentionCount === 1 ? 's' : ''} your attention`
+              : 'All systems healthy — great day ahead';
+    const summaryColor =
+        criticalCount > 0
+            ? 'text-red-600 dark:text-red-400'
+            : attentionCount > 0
+              ? 'text-amber-600 dark:text-amber-400'
+              : 'text-emerald-600 dark:text-emerald-400';
+
     return (
         <div className={cn('space-y-3', className)}>
             {/* Header with refresh */}
-            <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-muted-foreground">
-                    Today&apos;s Briefing
-                </h3>
-                <div className="flex items-center gap-2">
+            <div className="flex items-start justify-between">
+                <div className="space-y-0.5">
+                    <h3 className="text-sm font-semibold text-foreground">
+                        {dayName}&apos;s Briefing
+                        <span className="text-muted-foreground font-normal ml-1.5">· {dateStr}</span>
+                    </h3>
+                    <p className={cn('text-xs font-medium', summaryColor)}>
+                        {summaryLine}
+                    </p>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-muted-foreground">
                         {timeAgo(lastUpdated)}
                     </span>
