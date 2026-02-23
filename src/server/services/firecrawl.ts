@@ -123,70 +123,65 @@ export class DiscoveryService {
 
     /**
      * Basic Discovery: Get content from a URL
-     * Falls back to RTRVR if Firecrawl is unavailable
+     *
+     * Priority order:
+     *   1. Jina AI  — always-on, free, fast, clean markdown (primary)
+     *   2. RTRVR    — browser automation for JS-heavy / age-gated pages
+     *   3. Firecrawl — premium JS rendering; last resort (credits-based)
      */
     public async discoverUrl(url: string, formats: ('markdown' | 'html' | 'rawHtml' | 'screenshot')[] = ['markdown']) {
+        // ── 1. Jina AI (primary) ─────────────────────────────────────────────
+        try {
+            logger.info('[Discovery] Using Jina AI for discoverUrl', { url });
+            return await this.discoverViaJina(url);
+        } catch (jinaError: any) {
+            logger.warn('[Discovery] Jina AI failed, trying RTRVR', { url, error: jinaError.message });
+        }
+
+        // ── 2. RTRVR (browser automation fallback) ────────────────────────────
+        if (this.isRTRVRAvailable()) {
+            try {
+                logger.info('[Discovery] Using RTRVR fallback for discoverUrl', { url });
+                const res = await extractFromUrl(
+                    url,
+                    'Extract the full page content as clean readable markdown text. Also extract: the page title (from <title> tag or og:title), and a description (prefer meta description, fall back to og:description, then the first meaningful paragraph from the page body).',
+                    {
+                        type: 'object',
+                        properties: {
+                            markdown:    { type: 'string', description: 'Full page content as markdown' },
+                            title:       { type: 'string', description: 'Page <title> or og:title' },
+                            description: { type: 'string', description: 'Meta description, og:description, or first paragraph' },
+                        }
+                    }
+                );
+                if (res.success) {
+                    const result = res.data?.result as any;
+                    const markdown = typeof result?.markdown === 'string'
+                        ? result.markdown
+                        : this.extractRTRVRContent(res.data);
+                    const title       = typeof result?.title       === 'string' ? result.title       : undefined;
+                    const description = typeof result?.description === 'string' ? result.description : undefined;
+                    return { success: true, markdown, metadata: { title, description } };
+                }
+                logger.warn('[Discovery] RTRVR failed, trying Firecrawl', { url, error: res.error });
+            } catch (rtrvrError: any) {
+                logger.warn('[Discovery] RTRVR threw, trying Firecrawl', { url, error: rtrvrError.message });
+            }
+        }
+
+        // ── 3. Firecrawl (last resort — JS rendering, credits-based) ──────────
         if (this.isFirecrawlAvailable()) {
             try {
-                const response = await this.app!.scrape(url, {
-                    formats: formats
-                }) as any;
-
-                if (!response.success) {
-                    throw new Error(`Discovery failed: ${response.error}`);
-                }
-
+                const response = await this.app!.scrape(url, { formats }) as any;
+                if (!response.success) throw new Error(`Firecrawl failed: ${response.error}`);
                 logger.info('[Discovery] discoverUrl succeeded via Firecrawl', { url });
                 return response;
             } catch (error: any) {
-                logger.warn('[Discovery] Firecrawl discoverUrl failed, trying Jina AI fallback', { url, error: error.message });
+                logger.warn('[Discovery] Firecrawl failed', { url, error: error.message });
             }
         }
 
-        // Jina AI fallback — free, no setup, returns title + description + clean markdown
-        try {
-            logger.info('[Discovery] Using Jina AI fallback for discoverUrl', { url });
-            return await this.discoverViaJina(url);
-        } catch (jinaError: any) {
-            logger.warn('[Discovery] Jina AI fallback failed, trying RTRVR', { url, error: jinaError.message });
-        }
-
-        if (!this.isRTRVRAvailable()) {
-            throw new Error('Discovery failed: Firecrawl out of credits, Jina AI unavailable, RTRVR not configured');
-        }
-
-        // RTRVR fallback — browser automation agent
-        logger.info('[Discovery] Using RTRVR fallback for discoverUrl', { url });
-        const res = await extractFromUrl(
-            url,
-            'Extract the full page content as clean readable markdown text. Also extract: the page title (from <title> tag or og:title), and a description (prefer meta description, fall back to og:description, then the first meaningful paragraph from the page body).',
-            {
-                type: 'object',
-                properties: {
-                    markdown:    { type: 'string', description: 'Full page content as markdown' },
-                    title:       { type: 'string', description: 'Page <title> or og:title' },
-                    description: { type: 'string', description: 'Meta description, og:description, or first paragraph' },
-                }
-            }
-        );
-
-        if (!res.success) {
-            throw new Error(`RTRVR fallback failed: ${res.error}`);
-        }
-
-        // result may be { markdown, title, description } or a plain string
-        const result = res.data?.result as any;
-        const markdown = typeof result?.markdown === 'string'
-            ? result.markdown
-            : this.extractRTRVRContent(res.data);
-        const title       = typeof result?.title       === 'string' ? result.title       : undefined;
-        const description = typeof result?.description === 'string' ? result.description : undefined;
-
-        return {
-            success: true,
-            markdown,
-            metadata: { title, description },
-        };
+        throw new Error('discoverUrl failed: Jina AI, RTRVR, and Firecrawl all unavailable or errored');
     }
 
     /**
