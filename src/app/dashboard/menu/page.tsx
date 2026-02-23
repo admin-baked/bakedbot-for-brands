@@ -25,6 +25,7 @@ import {
     type PosConfigInfo
 } from './actions';
 import { useToast } from '@/hooks/use-toast';
+import { useUserRole } from '@/hooks/use-user-role';
 import { normalizeCategoryName } from '@/lib/utils/product-image';
 import { BrandMenuClient } from '@/app/[brand]/brand-menu-client';
 import type { Product as DomainProduct, Retailer } from '@/types/domain';
@@ -138,6 +139,7 @@ function CostCell({ product, onSaved }: { product: Product; onSaved: (id: string
 
 export default function MenuPage() {
     // ── Product data (shared across tabs) ──
+    const { orgId } = useUserRole();
     const [products, setProducts] = useState<Product[]>([]);
     const [domainProducts, setDomainProducts] = useState<DomainProduct[]>([]);
     const [loading, setLoading] = useState(true);
@@ -686,7 +688,7 @@ export default function MenuPage() {
 
                 {/* Themes Tab */}
                 <TabsContent value="themes" className="mt-4">
-                  <ThemeManager orgId="" />
+                  <ThemeManager orgId={orgId || ''} />
                 </TabsContent>
 
                 {/* Ask Smokey Tab */}
