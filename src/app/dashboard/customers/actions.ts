@@ -125,61 +125,80 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
             count: alleavesCustomers.length,
         });
 
-        // Load spending data from Firestore orders (synced every 30 min by pos-sync cron).
-        // Using Firestore (not Alleaves API) avoids the external-API timeout that caused the
-        // old 500-customer threshold. An 8-second budget + field projection keeps this safe
-        // for large orgs (Thrive: 2967 customers). Fails gracefully → customers fall back to 'new'.
+        // Load spending data — two-tier strategy:
+        //   Tier 1 (fast): Read from tenants/{orgId}/customer_spending pre-computed index
+        //                  Written by pos-sync cron every 30 min → instant reads.
+        //   Tier 2 (fallback): Live orders query with 8s timeout + field projection
+        //                       Used when index is empty (first sync not yet run).
         const customerSpending = new Map<string, { totalSpent: number; orderCount: number; lastOrderDate: Date; firstOrderDate: Date }>();
 
         try {
-            logger.info('[CUSTOMERS] Loading spending data from Firestore orders', { orgId, customerCount: alleavesCustomers.length });
+            // Tier 1: pre-computed spending index
+            const spendingSnap = await firestore
+                .collection('tenants').doc(orgId)
+                .collection('customer_spending')
+                .limit(5000)
+                .get();
 
-            // Field projection: only fetch the 3 fields needed for spending calculations.
-            // Reduces wire size ~5-10x compared to full document reads.
-            const ordersQuery = (firestore.collection('orders') as FirebaseFirestore.Query)
-                .where('brandId', '==', orgId)
-                .select('customer.email', 'totals.total', 'createdAt');
-
-            // 8-second timeout prevents blocking the full page load.
-            // If Firestore is slow (cold start, large result set), we degrade gracefully.
-            const timeoutPromise = new Promise<null>(resolve => setTimeout(() => resolve(null), 8_000));
-            const result = await Promise.race([ordersQuery.get(), timeoutPromise]);
-
-            if (result === null) {
-                logger.warn('[CUSTOMERS] Spending data query timed out after 8s — segments will use recency only', { orgId });
-            } else {
-                result.forEach((doc: any) => {
-                    const order = doc.data();
-                    const email = order.customer?.email?.toLowerCase();
-                    if (!email) return;
-
-                    if (!customerSpending.has(email)) {
-                        customerSpending.set(email, {
-                            totalSpent: 0,
-                            orderCount: 0,
-                            lastOrderDate: new Date(0),
-                            firstOrderDate: new Date()
-                        });
-                    }
-
-                    const spending = customerSpending.get(email)!;
-                    spending.orderCount++;
-                    spending.totalSpent += (order.totals?.total || 0);
-
-                    const orderDate = order.createdAt?.toDate?.() || new Date();
-                    if (orderDate > spending.lastOrderDate) {
-                        spending.lastOrderDate = orderDate;
-                    }
-                    if (orderDate < spending.firstOrderDate) {
-                        spending.firstOrderDate = orderDate;
-                    }
+            if (!spendingSnap.empty) {
+                spendingSnap.forEach((doc: any) => {
+                    const email = doc.id; // doc ID is the email
+                    const s = doc.data();
+                    customerSpending.set(email, {
+                        totalSpent: s.totalSpent || 0,
+                        orderCount: s.orderCount || 0,
+                        lastOrderDate: s.lastOrderDate?.toDate?.() || new Date(0),
+                        firstOrderDate: s.firstOrderDate?.toDate?.() || new Date(),
+                    });
                 });
 
-                logger.info('[CUSTOMERS] Spending data loaded from Firestore', {
+                logger.info('[CUSTOMERS] Spending data loaded from pre-computed index', {
                     orgId,
-                    ordersFound: result.size,
                     customersWithSpending: customerSpending.size,
                 });
+            } else {
+                // Tier 2: live orders query (fallback when index not yet populated)
+                logger.info('[CUSTOMERS] Spending index empty — falling back to live orders query', { orgId });
+
+                const ordersQuery = (firestore.collection('orders') as FirebaseFirestore.Query)
+                    .where('brandId', '==', orgId)
+                    .select('customer.email', 'totals.total', 'createdAt');
+
+                const timeoutPromise = new Promise<null>(resolve => setTimeout(() => resolve(null), 8_000));
+                const result = await Promise.race([ordersQuery.get(), timeoutPromise]);
+
+                if (result === null) {
+                    logger.warn('[CUSTOMERS] Live orders query timed out after 8s — segments will use recency only', { orgId });
+                } else {
+                    result.forEach((doc: any) => {
+                        const order = doc.data();
+                        const email = order.customer?.email?.toLowerCase();
+                        if (!email) return;
+
+                        if (!customerSpending.has(email)) {
+                            customerSpending.set(email, {
+                                totalSpent: 0,
+                                orderCount: 0,
+                                lastOrderDate: new Date(0),
+                                firstOrderDate: new Date()
+                            });
+                        }
+
+                        const spending = customerSpending.get(email)!;
+                        spending.orderCount++;
+                        spending.totalSpent += (order.totals?.total || 0);
+
+                        const orderDate = order.createdAt?.toDate?.() || new Date();
+                        if (orderDate > spending.lastOrderDate) spending.lastOrderDate = orderDate;
+                        if (orderDate < spending.firstOrderDate) spending.firstOrderDate = orderDate;
+                    });
+
+                    logger.info('[CUSTOMERS] Spending data loaded from live orders query', {
+                        orgId,
+                        ordersFound: result.size,
+                        customersWithSpending: customerSpending.size,
+                    });
+                }
             }
         } catch (spendingError: any) {
             logger.warn('[CUSTOMERS] Failed to load spending data, continuing without it', {

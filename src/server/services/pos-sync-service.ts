@@ -206,6 +206,99 @@ async function persistOrdersToFirestore(
 }
 
 /**
+ * Compute per-customer spending summaries from raw Alleaves orders and write them
+ * to `tenants/{orgId}/customer_spending/{email}` so the customer list load can read
+ * pre-computed totals instead of aggregating order docs at request time.
+ *
+ * Called after every successful order sync — adds ~1-5s to the sync but makes all
+ * subsequent customer list loads instant regardless of order volume.
+ */
+async function computeAndPersistSpending(
+    firestore: FirebaseFirestore.Firestore,
+    orgId: string,
+    orders: any[]
+): Promise<void> {
+    if (orders.length === 0) return;
+
+    const { Timestamp } = await import('firebase-admin/firestore');
+
+    // Aggregate in memory — O(N) over orders already fetched, no extra API calls
+    const spending = new Map<string, {
+        totalSpent: number;
+        orderCount: number;
+        lastOrderDate: Date;
+        firstOrderDate: Date;
+    }>();
+
+    for (const ao of orders) {
+        // Same extraction logic as persistOrdersToFirestore()
+        const email = (
+            ao.customer?.email || ao.email || ao.customer_email || ''
+        ).toLowerCase().trim();
+        if (!email || email === 'no-email@alleaves.local') continue;
+
+        const amount = parseFloat(ao.total || ao.amount || 0);
+        const rawDate = ao.date_created || ao.created_at;
+        const orderDate = rawDate ? new Date(rawDate) : new Date();
+
+        if (!spending.has(email)) {
+            spending.set(email, {
+                totalSpent: 0,
+                orderCount: 0,
+                lastOrderDate: new Date(0),
+                firstOrderDate: new Date(),
+            });
+        }
+
+        const s = spending.get(email)!;
+        s.orderCount++;
+        s.totalSpent += amount;
+        if (orderDate > s.lastOrderDate) s.lastOrderDate = orderDate;
+        if (orderDate < s.firstOrderDate) s.firstOrderDate = orderDate;
+    }
+
+    // Batch-write summaries to tenants/{orgId}/customer_spending/{email}
+    // Full replacement (no merge) — summaries are always recomputed from complete history
+    const BATCH_SIZE = 400;
+    let batch = firestore.batch();
+    let count = 0;
+    const now = Timestamp.now();
+
+    for (const [email, s] of spending) {
+        const docRef = firestore
+            .collection('tenants').doc(orgId)
+            .collection('customer_spending').doc(email);
+
+        batch.set(docRef, {
+            totalSpent: s.totalSpent,
+            orderCount: s.orderCount,
+            avgOrderValue: s.orderCount > 0 ? s.totalSpent / s.orderCount : 0,
+            lastOrderDate: s.lastOrderDate.getTime() > 0
+                ? Timestamp.fromDate(s.lastOrderDate)
+                : now,
+            firstOrderDate: Timestamp.fromDate(s.firstOrderDate),
+            updatedAt: now,
+        });
+
+        count++;
+        if (count % BATCH_SIZE === 0) {
+            await batch.commit();
+            batch = firestore.batch();
+        }
+    }
+
+    if (count % BATCH_SIZE !== 0) {
+        await batch.commit();
+    }
+
+    logger.info('[POS_SYNC] Customer spending index persisted', {
+        orgId,
+        customersIndexed: spending.size,
+        ordersProcessed: orders.length,
+    });
+}
+
+/**
  * Sync customers and orders for a specific organization
  */
 export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
@@ -287,6 +380,19 @@ export async function syncOrgPOSData(orgId: string): Promise<SyncResult> {
         // Alleaves orders are NOT stored anywhere between page loads without this
         if (orders.length > 0) {
             await persistOrdersToFirestore(firestore, orgId, posConfig.locationId, orders);
+        }
+
+        // Compute and persist per-customer spending index (non-fatal)
+        // Writes to tenants/{orgId}/customer_spending/{email} for instant reads in getCustomers()
+        if (orders.length > 0) {
+            try {
+                await computeAndPersistSpending(firestore, orgId, orders);
+            } catch (spendingErr: any) {
+                logger.warn('[POS_SYNC] Spending index update failed (non-fatal)', {
+                    orgId,
+                    error: spendingErr?.message || String(spendingErr),
+                });
+            }
         }
 
         // Sync menu/product catalog from POS (non-fatal — failure doesn't break customer/order sync)
