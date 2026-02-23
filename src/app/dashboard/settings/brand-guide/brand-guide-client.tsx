@@ -335,12 +335,19 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         return stripped || undefined;
       })();
 
-      const domainFallback = websiteUrl
+      // Only use domain slug as fallback when it had separators (hyphens/underscores) that
+      // produced a multi-word result. A concatenated slug like "thrivesyracuse" → "Thrivesyracuse"
+      // is worse than an empty field — leave it blank so the user fills in the real name.
+      const rawSlug = websiteUrl
         .replace(/^https?:\/\//i, '')
         .replace(/^www\./i, '')
-        .split('.')[0]
-        .replace(/[-_]/g, ' ')
-        .replace(/\b\w/g, (c: string) => c.toUpperCase());
+        .split('.')[0];
+      const hadSeparators = /[-_]/.test(rawSlug);
+      const domainFallback = hadSeparators
+        ? rawSlug
+            .replace(/[-_]/g, ' ')
+            .replace(/\b\w/g, (c: string) => c.toUpperCase())
+        : '';
 
       // Filter out AI placeholder values that look like "Unknown - ..." or "Unable to extract..."
       const cleanExtractedValue = (value: string | undefined): string => {
@@ -362,7 +369,7 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         return value;
       };
 
-      // Clean AI-extracted brand name, falling back to title or domain
+      // Clean AI-extracted brand name, falling back to title or domain (only if slug had separators)
       const extractedBrandName: string =
         cleanExtractedValue(aiExtractedBrandName) || titleDerivedName || domainFallback;
 
