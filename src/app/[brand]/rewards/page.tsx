@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import * as Icons from 'lucide-react';
 import { getBrandPageBySlug } from '@/server/actions/brand-pages';
+import { cookies } from 'next/headers';
+import { getCurrentUser } from '@/lib/auth-helpers';
+import { PublicPageEditBar } from '@/components/brand-pages/public-page-edit-bar';
 
 export default async function RewardsPage({ params }: { params: Promise<{ brand: string }> }) {
     const { brand: brandSlug } = await params;
@@ -24,6 +27,12 @@ export default async function RewardsPage({ params }: { params: Promise<{ brand:
         primary: (brand as any).primaryColor || '#16a34a',
         secondary: (brand as any).secondaryColor || '#15803d',
     };
+
+    // Auth check — show edit bar for org admins
+    const cookieStore = await cookies();
+    const user = await getCurrentUser(cookieStore.get('session')?.value);
+    const brandOrgId = pageContent?.orgId ?? (brand as any).originalBrandId ?? null;
+    const isAdmin = !!user && !!brandOrgId && (user.orgId === brandOrgId || user.role === 'super_user');
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
@@ -261,6 +270,17 @@ export default async function RewardsPage({ params }: { params: Promise<{ brand:
                     </div>
                 </section>
             </main>
+
+            {isAdmin && brandOrgId && (
+                <PublicPageEditBar
+                    orgId={brandOrgId}
+                    pageType="loyalty"
+                    initialContent={pageContent}
+                    brandColors={brandColors}
+                    brandName={brand.name}
+                    brandSlug={brandSlug}
+                />
+            )}
 
             <DemoFooter
                 brandName={brand.name}
