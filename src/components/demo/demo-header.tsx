@@ -198,7 +198,7 @@ export function DemoHeader({
             </Sheet>
 
             {/* Logo */}
-            <Link href="/demo-shop" className="flex items-center gap-2">
+            <Link href={brandSlug ? `/${brandSlug}` : '/demo-shop'} className="flex items-center gap-2">
               {brandLogo ? (
                 <Image
                   src={brandLogo}
