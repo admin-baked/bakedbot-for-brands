@@ -20,8 +20,10 @@ import {
   Lightbulb,
   PiggyBank,
   Receipt,
+  Package,
+  Info,
 } from 'lucide-react';
-import { getProfitabilityDashboard } from '@/server/actions/profitability';
+import { getProfitabilityDashboard, getProductProfitabilityData } from '@/server/actions/profitability';
 import type {
   ProfitabilityMetrics,
   Tax280EAnalysis,
@@ -30,6 +32,7 @@ import type {
   TenantTaxConfig,
   ReportPeriod,
 } from '@/types/cannabis-tax';
+import type { ProductProfitabilityItem } from '@/server/actions/profitability';
 import { CANNABIS_BENCHMARKS } from '@/types/cannabis-tax';
 
 interface DashboardData {
@@ -40,11 +43,41 @@ interface DashboardData {
   config: TenantTaxConfig | null;
 }
 
-export function ProfitabilityDashboard({ userId }: { userId: string }) {
+interface ProductsData {
+  products: ProductProfitabilityItem[];
+  summary: {
+    totalInventoryValue: number;
+    totalRevenuePotential: number;
+    avgMarginPercent: number | null;
+    productsWithCogs: number;
+    productsWithoutCogs: number;
+  };
+}
+
+export function ProfitabilityDashboard({ userId: _userId }: { userId: string }) {
   const [period, setPeriod] = useState<ReportPeriod>('current_month');
   const [data, setData] = useState<DashboardData | null>(null);
+  const [productsData, setProductsData] = useState<ProductsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Load product COGS data (independent of period — based on current catalog)
+  useEffect(() => {
+    async function fetchProducts() {
+      setProductsLoading(true);
+      try {
+        const result = await getProductProfitabilityData();
+        setProductsData(result);
+      } catch (err) {
+        // Non-fatal — products tab will show empty state
+        console.error('[ProfitabilityDashboard] Failed to load product COGS data', err);
+      } finally {
+        setProductsLoading(false);
+      }
+    }
+    fetchProducts();
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
@@ -62,6 +95,138 @@ export function ProfitabilityDashboard({ userId }: { userId: string }) {
     fetchData();
   }, [period]);
 
+  return (
+    <div className="space-y-6">
+      {/* Tabs — Products tab is first (real POS data), financial tabs follow */}
+      <Tabs defaultValue="products" className="space-y-4">
+        <div className="flex items-center justify-between">
+          <TabsList className="grid grid-cols-5">
+            <TabsTrigger value="products" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              Products
+            </TabsTrigger>
+            <TabsTrigger value="280e" className="flex items-center gap-2">
+              <Scale className="h-4 w-4" />
+              280E Tax
+            </TabsTrigger>
+            <TabsTrigger value="ny-tax" className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              NY Tax
+            </TabsTrigger>
+            <TabsTrigger value="benchmarks" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Benchmarks
+            </TabsTrigger>
+            <TabsTrigger value="capital" className="flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              Working Capital
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Period selector only applies to financial tabs */}
+          <Select value={period} onValueChange={(v) => setPeriod(v as ReportPeriod)}>
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Select period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="current_month">Current Month</SelectItem>
+              <SelectItem value="last_month">Last Month</SelectItem>
+              <SelectItem value="current_quarter">Current Quarter</SelectItem>
+              <SelectItem value="last_quarter">Last Quarter</SelectItem>
+              <SelectItem value="ytd">Year to Date</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Products Tab — real POS COGS data */}
+        <TabsContent value="products" className="space-y-4">
+          <ProductsTab data={productsData} loading={productsLoading} />
+        </TabsContent>
+
+        {/* Financial tabs — use period-based data */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+          </div>
+        ) : error || !data ? (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error loading financial data</AlertTitle>
+            <AlertDescription>{error || 'No data available'}</AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            {/* KPI Cards */}
+            <TabsContent value="280e">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4">
+                <KPICard
+                  title="Gross Revenue"
+                  value={formatCurrency(data.metrics.grossRevenue)}
+                  subtitle="Total sales"
+                  icon={<DollarSign className="h-4 w-4" />}
+                />
+                <KPICard
+                  title="Gross Margin"
+                  value={formatPercent(data.metrics.grossMargin)}
+                  subtitle={getBenchmarkLabel(data.metrics.grossMargin, CANNABIS_BENCHMARKS.grossMargin)}
+                  icon={<Percent className="h-4 w-4" />}
+                  trend={data.metrics.grossMargin >= CANNABIS_BENCHMARKS.grossMargin.good ? 'up' : 'down'}
+                />
+                <KPICard
+                  title="280E Tax Liability"
+                  value={formatCurrency(data.tax280E.estimatedTaxLiability)}
+                  subtitle={`${formatPercent(data.tax280E.estimatedTaxRate)} effective rate`}
+                  icon={<Receipt className="h-4 w-4" />}
+                  variant="warning"
+                />
+                <KPICard
+                  title="Actual Cash Profit"
+                  value={formatCurrency(data.tax280E.actualCashProfit)}
+                  subtitle="After tax reserve"
+                  icon={<PiggyBank className="h-4 w-4" />}
+                  trend={data.tax280E.actualCashProfit > 0 ? 'up' : 'down'}
+                />
+              </div>
+              <Tax280ETab data={data.tax280E} />
+            </TabsContent>
+
+            <TabsContent value="ny-tax" className="space-y-4">
+              <NYTaxTab data={data.nyTax} />
+            </TabsContent>
+
+            <TabsContent value="benchmarks" className="space-y-4">
+              <BenchmarksTab data={data.metrics} config={data.config} />
+            </TabsContent>
+
+            <TabsContent value="capital" className="space-y-4">
+              <WorkingCapitalTab data={data.workingCapital} />
+            </TabsContent>
+          </>
+        )}
+      </Tabs>
+    </div>
+  );
+}
+
+// =============================================================================
+// PRODUCTS TAB — POS COGS DATA
+// =============================================================================
+
+interface ProductsTabProps {
+  data: {
+    products: ProductProfitabilityItem[];
+    summary: {
+      totalInventoryValue: number;
+      totalRevenuePotential: number;
+      avgMarginPercent: number | null;
+      productsWithCogs: number;
+      productsWithoutCogs: number;
+    };
+  } | null;
+  loading: boolean;
+}
+
+function ProductsTab({ data, loading }: ProductsTabProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -70,106 +235,142 @@ export function ProfitabilityDashboard({ userId }: { userId: string }) {
     );
   }
 
-  if (error || !data) {
+  if (!data || data.products.length === 0) {
     return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error || 'No data available'}</AlertDescription>
-      </Alert>
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+          <Package className="h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-lg font-medium">No products found</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Sync your POS to load product COGS data.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Period Selector */}
-      <div className="flex justify-between items-center">
-        <Select value={period} onValueChange={(v) => setPeriod(v as ReportPeriod)}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Select period" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="current_month">Current Month</SelectItem>
-            <SelectItem value="last_month">Last Month</SelectItem>
-            <SelectItem value="current_quarter">Current Quarter</SelectItem>
-            <SelectItem value="last_quarter">Last Quarter</SelectItem>
-            <SelectItem value="ytd">Year to Date</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+  const { products, summary } = data;
+  const coveragePercent =
+    summary.productsWithCogs + summary.productsWithoutCogs > 0
+      ? (summary.productsWithCogs / (summary.productsWithCogs + summary.productsWithoutCogs)) * 100
+      : 0;
 
-      {/* KPI Cards */}
+  return (
+    <div className="space-y-4">
+      {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Gross Revenue"
-          value={formatCurrency(data.metrics.grossRevenue)}
-          subtitle="Total sales"
+          title="Avg Gross Margin"
+          value={summary.avgMarginPercent !== null ? formatPercent(summary.avgMarginPercent) : 'N/A'}
+          subtitle={`${summary.productsWithCogs} products with COGS`}
+          icon={<Percent className="h-4 w-4" />}
+          trend={
+            summary.avgMarginPercent !== null
+              ? summary.avgMarginPercent >= 0.5 ? 'up' : 'down'
+              : undefined
+          }
+        />
+        <KPICard
+          title="Inventory at Cost"
+          value={formatCurrency(summary.totalInventoryValue)}
+          subtitle="Current stock × COGS/unit"
           icon={<DollarSign className="h-4 w-4" />}
         />
         <KPICard
-          title="Gross Margin"
-          value={formatPercent(data.metrics.grossMargin)}
-          subtitle={getBenchmarkLabel(data.metrics.grossMargin, CANNABIS_BENCHMARKS.grossMargin)}
-          icon={<Percent className="h-4 w-4" />}
-          trend={data.metrics.grossMargin >= CANNABIS_BENCHMARKS.grossMargin.good ? 'up' : 'down'}
+          title="Revenue Potential"
+          value={formatCurrency(summary.totalRevenuePotential)}
+          subtitle="Current stock × retail price"
+          icon={<TrendingUp className="h-4 w-4" />}
         />
         <KPICard
-          title="280E Tax Liability"
-          value={formatCurrency(data.tax280E.estimatedTaxLiability)}
-          subtitle={`${formatPercent(data.tax280E.estimatedTaxRate)} effective rate`}
-          icon={<Receipt className="h-4 w-4" />}
-          variant="warning"
-        />
-        <KPICard
-          title="Actual Cash Profit"
-          value={formatCurrency(data.tax280E.actualCashProfit)}
-          subtitle="After tax reserve"
-          icon={<PiggyBank className="h-4 w-4" />}
-          trend={data.tax280E.actualCashProfit > 0 ? 'up' : 'down'}
+          title="COGS Coverage"
+          value={`${coveragePercent.toFixed(0)}%`}
+          subtitle={`${summary.productsWithoutCogs} products missing COGS`}
+          icon={<Package className="h-4 w-4" />}
+          variant={coveragePercent < 50 ? 'warning' : 'default'}
         />
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="280e" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="280e" className="flex items-center gap-2">
-            <Scale className="h-4 w-4" />
-            280E Tax
-          </TabsTrigger>
-          <TabsTrigger value="ny-tax" className="flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
-            NY Tax
-          </TabsTrigger>
-          <TabsTrigger value="benchmarks" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Benchmarks
-          </TabsTrigger>
-          <TabsTrigger value="capital" className="flex items-center gap-2">
-            <Wallet className="h-4 w-4" />
-            Working Capital
-          </TabsTrigger>
-        </TabsList>
+      {/* Products Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Product Profitability
+          </CardTitle>
+          <CardDescription>
+            COGS from Alleaves POS · Sorted by margin (lowest first) · Cost of Good takes priority over Batch Cost
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-muted-foreground">
+                  <th className="text-left py-2 pr-4 font-medium">Product</th>
+                  <th className="text-left py-2 pr-4 font-medium">Category</th>
+                  <th className="text-right py-2 pr-4 font-medium">COGS/unit</th>
+                  <th className="text-right py-2 pr-4 font-medium">Retail</th>
+                  <th className="text-right py-2 pr-4 font-medium">Margin $</th>
+                  <th className="text-right py-2 pr-4 font-medium">Margin %</th>
+                  <th className="text-right py-2 pr-4 font-medium">Stock</th>
+                  <th className="text-right py-2 font-medium">Inv. Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((p) => (
+                  <tr key={p.id} className="border-b hover:bg-muted/30 transition-colors">
+                    <td className="py-2 pr-4 max-w-[220px]">
+                      <span className="font-medium line-clamp-1" title={p.name}>{p.name}</span>
+                      {p.costSource !== 'none' && (
+                        <span className="text-xs text-muted-foreground block">
+                          {p.costSource === 'cost_of_good' ? 'Cost of Good' : 'Batch Cost'}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2 pr-4 capitalize text-muted-foreground">{p.category}</td>
+                    <td className="py-2 pr-4 text-right font-mono">
+                      {p.effectiveCost !== null
+                        ? formatCurrency(p.effectiveCost)
+                        : <span className="text-muted-foreground flex items-center justify-end gap-1"><Info className="h-3 w-3" />N/A</span>}
+                    </td>
+                    <td className="py-2 pr-4 text-right font-mono">{formatCurrency(p.retailPrice)}</td>
+                    <td className="py-2 pr-4 text-right font-mono">
+                      {p.marginAmount !== null ? formatCurrency(p.marginAmount) : '—'}
+                    </td>
+                    <td className="py-2 pr-4 text-right">
+                      {p.marginPercent !== null ? (
+                        <span className={
+                          p.marginPercent >= 0.5 ? 'text-green-600 font-medium' :
+                          p.marginPercent >= 0.3 ? 'text-yellow-600 font-medium' :
+                          'text-red-600 font-medium'
+                        }>
+                          {formatPercent(p.marginPercent)}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className="py-2 pr-4 text-right">{p.stockCount}</td>
+                    <td className="py-2 text-right font-mono">
+                      {p.inventoryValue !== null ? formatCurrency(p.inventoryValue) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-        {/* 280E Tab */}
-        <TabsContent value="280e" className="space-y-4">
-          <Tax280ETab data={data.tax280E} />
-        </TabsContent>
-
-        {/* NY Tax Tab */}
-        <TabsContent value="ny-tax" className="space-y-4">
-          <NYTaxTab data={data.nyTax} />
-        </TabsContent>
-
-        {/* Benchmarks Tab */}
-        <TabsContent value="benchmarks" className="space-y-4">
-          <BenchmarksTab data={data.metrics} config={data.config} />
-        </TabsContent>
-
-        {/* Working Capital Tab */}
-        <TabsContent value="capital" className="space-y-4">
-          <WorkingCapitalTab data={data.workingCapital} />
-        </TabsContent>
-      </Tabs>
+          {summary.productsWithoutCogs > 0 && (
+            <div className="mt-4 p-3 bg-muted rounded-lg flex items-start gap-2">
+              <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                <strong>{summary.productsWithoutCogs} product{summary.productsWithoutCogs !== 1 ? 's' : ''}</strong>{' '}
+                {summary.productsWithoutCogs !== 1 ? 'have' : 'has'} no COGS data from Alleaves.
+                Enter "Cost of Good" or "Batch Cost" values in Alleaves and run a POS sync to populate margins.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
