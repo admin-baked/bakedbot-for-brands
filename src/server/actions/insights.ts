@@ -31,77 +31,117 @@ async function getDispensaryInsights(orgId: string): Promise<DispensaryInsights>
     };
 
     try {
+        // Fetch proactive Firestore insights (from scheduled generators) in parallel
+        // with real-time data — this is where the cron-generated data from Money Mike,
+        // Smokey, Deebo, and Ezal actually surfaces in the briefing.
+        const [proactiveResult] = await Promise.allSettled([
+            getInsightsForOrg(orgId, 20),
+        ]);
+
+        const proactiveInsights =
+            proactiveResult.status === 'fulfilled' && proactiveResult.value.success
+                ? proactiveResult.value.insights
+                : [];
+
+        // Helper: pull proactive cards for a given category
+        const fromProactive = (category: string) =>
+            proactiveInsights.filter(i => i.category === category);
+
         // 1. Velocity & Inventory (Money Mike)
-        // Try to get real inventory data from Alleaves
-        try {
-            const { monitorInventoryAge, getExpiringInventory } = await import(
-                '@/server/services/alleaves/inventory-intelligence'
-            );
+        // Proactive generator (hourly cron) takes priority; fall back to real-time Alleaves
+        const velocityProactive = fromProactive('velocity');
+        if (velocityProactive.length > 0) {
+            insights.velocity.push(...velocityProactive);
+        } else {
+            try {
+                const { monitorInventoryAge, getExpiringInventory } = await import(
+                    '@/server/services/alleaves/inventory-intelligence'
+                );
 
-            const expiringItems = await getExpiringInventory(orgId, 14); // 2 weeks
+                const expiringItems = await getExpiringInventory(orgId, 14); // 2 weeks
 
-            if (expiringItems.length > 0) {
-                const highUrgencyCount = expiringItems.filter(i => i.urgency === 'high').length;
+                if (expiringItems.length > 0) {
+                    const highUrgencyCount = expiringItems.filter(i => i.urgency === 'high').length;
+                    insights.velocity.push({
+                        id: 'expiring-inventory',
+                        category: 'velocity',
+                        agentId: 'money_mike',
+                        agentName: 'Money Mike',
+                        title: 'Expiring Soon',
+                        headline: `${expiringItems.length} items expiring`,
+                        subtext: highUrgencyCount > 0
+                            ? `${highUrgencyCount} need immediate action`
+                            : 'Within 2 weeks',
+                        value: expiringItems.length,
+                        severity: highUrgencyCount > 0 ? 'critical' : 'warning',
+                        actionable: true,
+                        ctaLabel: 'Create Clearance',
+                        threadType: 'inventory_promo',
+                        threadPrompt: `I have ${expiringItems.length} items expiring soon. Help me create clearance pricing.`,
+                        lastUpdated: new Date(),
+                        dataSource: 'alleaves-inventory',
+                    });
+                }
+
+                const inventoryReport = await monitorInventoryAge(orgId);
+                if (inventoryReport.slowMoving > 0) {
+                    insights.velocity.push({
+                        id: 'slow-moving',
+                        category: 'velocity',
+                        agentId: 'money_mike',
+                        agentName: 'Money Mike',
+                        title: 'Slow Movers',
+                        headline: `${inventoryReport.slowMoving} products stagnant`,
+                        subtext: 'Over 60 days in inventory',
+                        value: inventoryReport.slowMoving,
+                        severity: 'warning',
+                        actionable: true,
+                        ctaLabel: 'Boost Sales',
+                        threadType: 'inventory_promo',
+                        threadPrompt: `Help me move ${inventoryReport.slowMoving} slow-moving products with promotions.`,
+                        lastUpdated: new Date(),
+                        dataSource: 'alleaves-inventory',
+                    });
+                }
+
+                // If Alleaves returned nothing, still show a prompt card
+                if (insights.velocity.length === 0) {
+                    insights.velocity.push({
+                        id: 'velocity-check',
+                        category: 'velocity',
+                        agentId: 'money_mike',
+                        agentName: 'Money Mike',
+                        title: 'Inventory Health',
+                        headline: 'Check inventory status',
+                        subtext: 'Review stock levels and expiration',
+                        severity: 'info',
+                        actionable: true,
+                        ctaLabel: 'Review',
+                        threadType: 'inventory_promo',
+                        threadPrompt: 'Help me review my inventory health and identify any issues.',
+                        lastUpdated: new Date(),
+                        dataSource: 'placeholder',
+                    });
+                }
+            } catch (err) {
+                logger.warn('[Insights] Inventory intelligence unavailable', { orgId, error: err });
                 insights.velocity.push({
-                    id: 'expiring-inventory',
+                    id: 'velocity-check',
                     category: 'velocity',
                     agentId: 'money_mike',
                     agentName: 'Money Mike',
-                    title: 'Expiring Soon',
-                    headline: `${expiringItems.length} items expiring`,
-                    subtext: highUrgencyCount > 0
-                        ? `${highUrgencyCount} need immediate action`
-                        : 'Within 2 weeks',
-                    value: expiringItems.length,
-                    severity: highUrgencyCount > 0 ? 'critical' : 'warning',
+                    title: 'Inventory Health',
+                    headline: 'Check inventory status',
+                    subtext: 'Review stock levels and expiration',
+                    severity: 'info',
                     actionable: true,
-                    ctaLabel: 'Create Clearance',
+                    ctaLabel: 'Review',
                     threadType: 'inventory_promo',
-                    threadPrompt: `I have ${expiringItems.length} items expiring soon. Help me create clearance pricing.`,
+                    threadPrompt: 'Help me review my inventory health and identify any issues.',
                     lastUpdated: new Date(),
-                    dataSource: 'alleaves-inventory',
+                    dataSource: 'placeholder',
                 });
             }
-
-            const inventoryReport = await monitorInventoryAge(orgId);
-            if (inventoryReport.slowMoving > 0) {
-                insights.velocity.push({
-                    id: 'slow-moving',
-                    category: 'velocity',
-                    agentId: 'money_mike',
-                    agentName: 'Money Mike',
-                    title: 'Slow Movers',
-                    headline: `${inventoryReport.slowMoving} products stagnant`,
-                    subtext: 'Over 60 days in inventory',
-                    value: inventoryReport.slowMoving,
-                    severity: 'warning',
-                    actionable: true,
-                    ctaLabel: 'Boost Sales',
-                    threadType: 'inventory_promo',
-                    threadPrompt: `Help me move ${inventoryReport.slowMoving} slow-moving products with promotions.`,
-                    lastUpdated: new Date(),
-                    dataSource: 'alleaves-inventory',
-                });
-            }
-        } catch (err) {
-            logger.warn('[Insights] Inventory intelligence unavailable', { orgId, error: err });
-            // Add placeholder insight
-            insights.velocity.push({
-                id: 'velocity-check',
-                category: 'velocity',
-                agentId: 'money_mike',
-                agentName: 'Money Mike',
-                title: 'Inventory Health',
-                headline: 'Check inventory status',
-                subtext: 'Review stock levels and expiration',
-                severity: 'info',
-                actionable: true,
-                ctaLabel: 'Review',
-                threadType: 'inventory_promo',
-                threadPrompt: 'Help me review my inventory health and identify any issues.',
-                lastUpdated: new Date(),
-                dataSource: 'placeholder',
-            });
         }
 
         // 2. Performance & Efficiency (Pops)
@@ -145,56 +185,108 @@ async function getDispensaryInsights(orgId: string): Promise<DispensaryInsights>
             });
         }
 
-        // 3. Customer Connection (Mrs. Parker)
-        insights.customer.push({
-            id: 'customer-loyalty',
-            category: 'customer',
-            agentId: 'mrs_parker',
-            agentName: 'Mrs. Parker',
-            title: 'Customer Love',
-            headline: 'Loyalty program active',
-            subtext: 'Track customer engagement',
-            severity: 'success',
-            actionable: true,
-            ctaLabel: 'View Customers',
-            threadType: 'customer_health',
-            threadPrompt: 'Help me understand my customer loyalty and retention metrics.',
-            lastUpdated: new Date(),
-            dataSource: 'loyalty',
-        });
+        // 3. Customer Connection (Mrs. Parker / Smokey)
+        // Proactive generator data first, then real customer count, then placeholder
+        const customerProactive = fromProactive('customer');
+        if (customerProactive.length > 0) {
+            insights.customer.push(...customerProactive);
+        } else {
+            try {
+                const db = getAdminFirestore();
+                const customersSnap = await db
+                    .collection('customers')
+                    .where('orgId', '==', orgId)
+                    .where('archived', '!=', true)
+                    .count()
+                    .get();
+                const count = customersSnap.data().count;
+                const enrolled = count > 0;
+
+                insights.customer.push({
+                    id: 'customer-loyalty',
+                    category: 'customer',
+                    agentId: 'mrs_parker',
+                    agentName: 'Mrs. Parker',
+                    title: 'Loyalty Members',
+                    headline: enrolled ? `${count.toLocaleString()} enrolled customers` : 'No customers yet',
+                    subtext: enrolled
+                        ? 'Ask Mrs. Parker for retention insights'
+                        : 'Start enrolling customers in loyalty',
+                    severity: enrolled ? 'success' : 'info',
+                    actionable: true,
+                    ctaLabel: enrolled ? 'View Customers' : 'Enroll Customers',
+                    threadType: 'customer_health',
+                    threadPrompt: enrolled
+                        ? `I have ${count} enrolled customers. Help me understand loyalty and retention metrics.`
+                        : 'Help me start enrolling customers in a loyalty program.',
+                    lastUpdated: new Date(),
+                    dataSource: 'customers-collection',
+                });
+            } catch (err) {
+                logger.warn('[Insights] Customer count unavailable', { orgId, error: err });
+                insights.customer.push({
+                    id: 'customer-loyalty',
+                    category: 'customer',
+                    agentId: 'mrs_parker',
+                    agentName: 'Mrs. Parker',
+                    title: 'Customer Love',
+                    headline: 'Loyalty program active',
+                    subtext: 'Track customer engagement',
+                    severity: 'success',
+                    actionable: true,
+                    ctaLabel: 'View Customers',
+                    threadType: 'customer_health',
+                    threadPrompt: 'Help me understand my customer loyalty and retention metrics.',
+                    lastUpdated: new Date(),
+                    dataSource: 'placeholder',
+                });
+            }
+        }
 
         // 4. Compliance (Deebo)
-        insights.compliance.push({
-            id: 'compliance-status',
-            category: 'compliance',
-            agentId: 'deebo',
-            agentName: 'Deebo',
-            title: 'Compliance',
-            headline: 'All clear',
-            subtext: 'No active flags',
-            severity: 'success',
-            actionable: false,
-            lastUpdated: new Date(),
-            dataSource: 'compliance',
-        });
+        // Proactive regulatory generator first, then a neutral status card
+        const complianceProactive = fromProactive('compliance');
+        if (complianceProactive.length > 0) {
+            insights.compliance.push(...complianceProactive);
+        } else {
+            insights.compliance.push({
+                id: 'compliance-status',
+                category: 'compliance',
+                agentId: 'deebo',
+                agentName: 'Deebo',
+                title: 'Compliance',
+                headline: 'All clear',
+                subtext: 'No active flags',
+                severity: 'success',
+                actionable: false,
+                lastUpdated: new Date(),
+                dataSource: 'compliance',
+            });
+        }
 
         // 5. Market Pulse (Ezal)
-        insights.market.push({
-            id: 'competitor-watch',
-            category: 'market',
-            agentId: 'ezal',
-            agentName: 'Ezal',
-            title: 'Market Intel',
-            headline: 'Competitor watch active',
-            subtext: 'Spy on local competition',
-            severity: 'info',
-            actionable: true,
-            ctaLabel: 'Spy',
-            threadType: 'market_intel',
-            threadPrompt: 'Spy on competitor pricing near me and show me market opportunities.',
-            lastUpdated: new Date(),
-            dataSource: 'ezal',
-        });
+        // Proactive competitive intelligence first, then prompt card
+        const marketProactive = fromProactive('market');
+        if (marketProactive.length > 0) {
+            insights.market.push(...marketProactive);
+        } else {
+            insights.market.push({
+                id: 'competitor-watch',
+                category: 'market',
+                agentId: 'ezal',
+                agentName: 'Ezal',
+                title: 'Market Intel',
+                headline: 'Competitor watch active',
+                subtext: 'Spy on local competition',
+                severity: 'info',
+                actionable: true,
+                ctaLabel: 'Spy',
+                threadType: 'market_intel',
+                threadPrompt: 'Spy on competitor pricing near me and show me market opportunities.',
+                lastUpdated: new Date(),
+                dataSource: 'ezal',
+            });
+        }
 
     } catch (error) {
         logger.error('[Insights] Error fetching dispensary insights', { orgId, error });
