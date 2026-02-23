@@ -44,7 +44,7 @@ export async function checkSlugAvailability(slug: string, brandId?: string): Pro
  * Reserve a slug for a brand (set the brand document with slug field)
  */
 export async function reserveSlug(slug: string, brandId: string): Promise<{ success: boolean; error?: string }> {
-    const user = await requireUser(['brand', 'super_user']);
+    const user = await requireUser(['brand', 'dispensary', 'dispensary_admin', 'super_user']);
     const { firestore } = await createServerClient();
 
     const normalizedSlug = createSlug(slug);

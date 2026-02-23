@@ -6,14 +6,17 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { setupBrandAndCompetitors } from '@/server/actions/brand-setup';
 import { getBrandStatus } from '@/app/dashboard/products/actions';
-import { checkSlugAvailability, getBrandSlug } from '@/server/actions/slug-management';
+import { checkSlugAvailability, getBrandSlug, reserveSlug } from '@/server/actions/slug-management';
 import { Loader2, Store, Target, MapPin, CheckCircle2, Lock, Globe, AlertCircle, Check, Building2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useUserRole } from '@/hooks/use-user-role';
 import { Switch } from '@/components/ui/switch';
 
 export default function BrandSetupTab() {
-    const { role, brandId } = useUserRole();
+    const { role, brandId, orgId } = useUserRole();
+    // Use orgId which works for both brand and dispensary users
+    // (brandId is null for dispensary_admin; orgId covers currentOrgId | brandId | locationId)
+    const effectiveOrgId = orgId || brandId;
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [status, setStatus] = useState<any>(null);
@@ -30,9 +33,9 @@ export default function BrandSetupTab() {
 
     useEffect(() => {
         getBrandStatus().then(setStatus);
-        // Load existing slug if brand has one
-        if (brandId) {
-            getBrandSlug(brandId).then((s) => {
+        // Load existing slug if org has one (works for both brand and dispensary users)
+        if (effectiveOrgId) {
+            getBrandSlug(effectiveOrgId).then((s) => {
                 if (s) {
                     setExistingSlug(s);
                     setSlug(s);
@@ -40,7 +43,7 @@ export default function BrandSetupTab() {
                 }
             });
         }
-    }, [brandId]);
+    }, [effectiveOrgId]);
     
     // Debounced slug availability check
     useEffect(() => {
@@ -51,13 +54,15 @@ export default function BrandSetupTab() {
 
         setSlugStatus('checking');
         const timeout = setTimeout(async () => {
-            const result = await checkSlugAvailability(slug, brandId);
+            // Pass effectiveOrgId so the server can check ownership
+            // (avoids "taken" false-positive for users re-confirming their own slug)
+            const result = await checkSlugAvailability(slug, effectiveOrgId ?? undefined);
             setSlugStatus(result.available ? 'available' : 'taken');
             setSlugSuggestion(result.suggestion || null);
         }, 500);
 
         return () => clearTimeout(timeout);
-    }, [slug, existingSlug, brandId]);
+    }, [slug, existingSlug, effectiveOrgId]);
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
@@ -67,6 +72,12 @@ export default function BrandSetupTab() {
         const formData = new FormData(e.currentTarget);
 
         try {
+            // Reserve the slug if one is set and available
+            if (slug && slug.length >= 3 && effectiveOrgId &&
+                (slugStatus === 'available' || slug === existingSlug)) {
+                await reserveSlug(slug, effectiveOrgId);
+            }
+
             const response = await setupBrandAndCompetitors(formData);
             if (response.success) {
                 setResult(response);
