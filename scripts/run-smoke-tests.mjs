@@ -212,6 +212,68 @@ const SMOKE_TESTS = [
         validate: (_, status) => status === 307 || status === 302 || status === 401 || status === 200,
     },
 
+    // ── COMPETITIVE INTELLIGENCE ───────────────────────────────────────────
+    {
+        id: null,
+        name: 'Competitive intel cron rejects unauthenticated request',
+        area: 'competitive_intel',
+        url: '/api/cron/competitive-intel',
+        method: 'POST',
+        expectedStatus: 401,
+        headers: { 'Content-Type': 'application/json' },
+        body: {},
+        priority: 'P1',
+    },
+    {
+        id: null,
+        name: 'Competitive pricing insights cron rejects unauthenticated request',
+        area: 'competitive_intel',
+        url: '/api/cron/generate-insights-competitive-pricing',
+        method: 'POST',
+        expectedStatus: 401,
+        headers: { 'Content-Type': 'application/json' },
+        body: {},
+        priority: 'P1',
+    },
+
+    // ── PLAYBOOKS ──────────────────────────────────────────────────────────
+    {
+        id: null,
+        name: 'Playbook runner cron rejects unauthenticated request',
+        area: 'playbooks',
+        url: '/api/cron/playbook-runner',
+        method: 'POST',
+        expectedStatus: 401,
+        headers: { 'Content-Type': 'application/json' },
+        body: {},
+        priority: 'P1',
+    },
+
+    // ── LOYALTY / POS ──────────────────────────────────────────────────────
+    {
+        id: null,
+        name: 'Loyalty sync cron rejects unauthenticated request',
+        area: 'pos_sync',
+        url: '/api/cron/loyalty-sync',
+        method: 'POST',
+        expectedStatus: 401,
+        headers: { 'Content-Type': 'application/json' },
+        body: {},
+        priority: 'P1',
+    },
+
+    // ── DASHBOARD ──────────────────────────────────────────────────────────
+    {
+        id: null,
+        name: 'Dashboard home redirects unauthenticated user',
+        area: 'auth',
+        url: '/dashboard',
+        method: 'GET',
+        expectedStatus: 307,
+        priority: 'P0',
+        validate: (_, status) => status === 307 || status === 302 || status === 401,
+    },
+
     // ── CAMPAIGNS ──────────────────────────────────────────────────────────
     {
         id: null,
