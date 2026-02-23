@@ -859,7 +859,9 @@ async function generateCaption(request: GenerateContentRequest): Promise<string>
         // Use Craig's AI-powered caption generation
         const { generateSocialCaption } = await import('@/ai/flows/generate-social-caption');
 
-        const result = await generateSocialCaption({
+        // 15-second timeout — Gemini caption generation has no built-in timeout and can hang,
+        // which combined with the fal.ai 25s image timeout could exceed Cloud Run's 60s limit.
+        const captionPromise = generateSocialCaption({
             platform: request.platform,
             prompt: request.prompt,
             style: request.style || 'professional',
@@ -869,10 +871,14 @@ async function generateCaption(request: GenerateContentRequest): Promise<string>
             includeHashtags: false, // We handle hashtags separately
             includeEmojis: true,
         });
+        const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Caption generation timed out after 15s')), 15_000)
+        );
 
+        const result = await Promise.race([captionPromise, timeoutPromise]);
         return result.primaryCaption;
     } catch (error) {
-        // Fallback to simple templates if AI generation fails
+        // Fallback to simple templates if AI generation fails or times out
         logger.warn('[creative-content] AI caption generation failed, using fallback', { error });
         return generateFallbackCaption(request);
     }

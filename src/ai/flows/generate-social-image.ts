@@ -114,9 +114,11 @@ export async function generateSocialMediaImage(
 }
 
 /**
- * Generate a social image with a cannabis-friendly provider cascade.
+ * Generate a social image using fal.ai FLUX.1.
  *
- * Cascade: fal.ai FLUX.1 → Gemini → throw (caller handles placeholder)
+ * fal.ai is the sole provider — cannabis-friendly with no content restrictions.
+ * Gemini is NOT used as a fallback because it blocks cannabis content.
+ * If fal.ai fails, the error propagates to the caller which returns a placeholder image.
  *
  * @param promptText - The image description / campaign prompt
  * @param options.tier - 'free' (Schnell), 'paid'/'super' (Pro)
@@ -131,27 +133,12 @@ export async function generateImageFromPrompt(
         platform?: string;
     }
 ): Promise<string> {
-    // 1. Try fal.ai FLUX.1 first — cannabis-friendly, fast, no safety filter issues
-    try {
-        const falTier = (options?.tier === 'free' || !options?.tier) ? 'free' : 'paid';
-        return await generateImageWithFal(promptText, {
-            tier: falTier,
-            platform: options?.platform,
-        });
-    } catch (falErr) {
-        logger.warn('[image-gen] fal.ai failed, falling back to Gemini', {
-            error: String(falErr).substring(0, 200),
-        });
-    }
-
-    // 2. Fall back to Gemini (may be blocked for cannabis content)
-    const logoPlaceholder = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-    const result = await generateSocialMediaImage({
-        productName: promptText,
-        features: promptText,
-        brandVoice: 'Professional',
-        logoDataUri: logoPlaceholder,
-    }, options?.tier || 'free');
-
-    return result.imageUrl;
+    const falTier = (options?.tier === 'free' || !options?.tier) ? 'free' : 'paid';
+    return await generateImageWithFal(promptText, {
+        tier: falTier,
+        platform: options?.platform,
+    });
+    // If fal.ai fails (timeout, API error), the error propagates to the caller's .catch()
+    // which returns IMAGE_PLACEHOLDER. Do NOT fall back to Gemini — it blocks cannabis content
+    // and has no timeout, which causes Cloud Run request timeouts ("Failed to fetch").
 }
