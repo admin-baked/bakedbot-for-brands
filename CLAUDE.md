@@ -25,7 +25,9 @@ npm run check:types
 | `npm test -- path/to/file.test.ts` | Test specific file |
 | `npm run lint` | ESLint check |
 | `npm run dev` | Local dev server |
-| `git push origin main` | Deploy via Firebase App Hosting |
+| `git push origin main` | **Deploy to production** — triggers Firebase App Hosting CI/CD |
+
+> **🚀 Deploy = Push to GitHub.** `git push origin main` automatically starts a Firebase build and deploys to production. Always push after committing finished work.
 
 **Note:** Windows PowerShell — use `;` not `&&` for command chaining.
 
