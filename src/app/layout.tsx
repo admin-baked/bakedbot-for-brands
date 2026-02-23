@@ -26,7 +26,7 @@ const teko = Teko({
 
 export const metadata: Metadata = {
   title: 'BakedBot AI',
-  description: 'Agentic Commerce OS for Cannabis',
+  description: 'The first cannabis commerce platform built for both the human web and the agent web.',
   manifest: '/manifest.json',
   icons: {
     icon: '/assets/agents/smokey-main.png',
