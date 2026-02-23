@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-23 (Goal wizard Step 3 playbooks; COGS tenant catalog sync; 84 unit/integration tests for Feb 2026 fixes)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-22 (Advanced sidebar filters on public menu; 78 unit & integration tests for filter logic)
 
 ---
 
