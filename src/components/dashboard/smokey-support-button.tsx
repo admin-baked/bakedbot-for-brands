@@ -64,16 +64,26 @@ export function SmokeyFloatingButton() {
     }
   }, []);
 
-  // Handle dismiss
+  // Handle dismiss - must be declared before any conditional returns
   const handleDismiss = useCallback(() => {
     setDismissed(true);
     localStorage.setItem('smokey-support-dismissed', 'true');
   }, []);
 
-  // Handle reopen
+  // Handle reopen - must be declared before any conditional returns
   const handleReopen = useCallback(() => {
     setDismissed(false);
     localStorage.setItem('smokey-support-dismissed', 'false');
+  }, []);
+
+  // Handle help click - must be declared before any conditional returns
+  const handleHelpClick = useCallback(() => {
+    setView('help');
+  }, []);
+
+  // Handle back click - must be declared before any conditional returns
+  const handleBackClick = useCallback(() => {
+    setView('home');
   }, []);
 
   // Only show for brand/dispensary users (not customers or super users)
@@ -85,14 +95,6 @@ export function SmokeyFloatingButton() {
   if (shouldHide || dismissed) {
     return null;
   }
-
-  const handleHelpClick = useCallback(() => {
-    setView('help');
-  }, []);
-
-  const handleBackClick = useCallback(() => {
-    setView('home');
-  }, []);
 
   return (
     <>
