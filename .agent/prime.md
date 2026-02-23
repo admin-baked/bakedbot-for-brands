@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-22)
 
 **Recent work (2026-02-23):** See `memory/MEMORY.md` for full log.
-Key completed: [4 Production Hotfixes] (`db8c0cca`, `7167cc24`, `ea4e433f`, `0b4f9902`) — React #310 (TypeScript), Login hang (timeout), Email failures (silent), React #310 (hooks)
+Key completed: [Proactive Today Briefing] (`c61c7323`) — Real Firestore insights wired, dynamic header, 66 unit tests; [4 Production Hotfixes] (`0b4f9902`, `ea4e433f`, `7167cc24`, `db8c0cca`)
 
 ---
 
