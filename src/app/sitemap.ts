@@ -66,7 +66,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }));
 
-    // 5. Dynamic Brands (Index + Individual)
+    // 5. LLM.txt Routes (Agent Web Discovery)
+    const llmRoutes: MetadataRoute.Sitemap = [
+      {
+        url: `${BASE_URL}/llm.txt`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.5,
+      },
+    ];
+
+    // 6. Dynamic Brands (Index + Individual)
     let brandRoutes: MetadataRoute.Sitemap = [];
     try {
       // Brands index page
@@ -100,6 +110,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           })
           .filter((item): item is NonNullable<typeof item> => item !== null)
       );
+
+      // Generate llm.txt routes from same snapshot (no extra query)
+      for (const doc of brandsSnapshot.docs) {
+        const data = doc.data();
+        if (data.slug) {
+          llmRoutes.push({
+            url: `${BASE_URL}/${data.slug}/llm.txt`,
+            lastModified: new Date(),
+            changeFrequency: 'daily' as const,
+            priority: 0.6,
+          });
+        }
+      }
     } catch (e) {
       console.error('[Sitemap] Failed to fetch brands:', e);
     }
@@ -309,6 +332,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...conversionPages,
       ...productPages,
       ...trustPages,
+      ...llmRoutes,
       ...brandRoutes,
       ...retailerRoutes,
       ...locationRoutes,

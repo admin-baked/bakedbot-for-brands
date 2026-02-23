@@ -46,6 +46,7 @@ export const CachePrefix = {
     BRAND_GUIDE: 'brand_guide',
     ANALYTICS: 'analytics',
     POS_SYNC: 'pos_sync',
+    AGENT: 'agent',
 } as const;
 
 /**
@@ -57,6 +58,7 @@ export const CacheTTL = {
     BRAND_GUIDE: 900, // 15 minutes
     ANALYTICS: 600, // 10 minutes
     POS_SYNC: 3600, // 1 hour
+    AGENT: 300, // 5 minutes (matches product cache)
 } as const;
 
 /**
