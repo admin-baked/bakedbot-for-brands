@@ -21,8 +21,8 @@ npm run check:types
 
 **Current Status:** 🟢 Passing (verified 2026-02-23)
 
-**Recent work (2026-02-23):** See `memory/MEMORY.md` for full log.
-Key completed: [Proactive Today Briefing] (`c61c7323`) — Real Firestore insights wired, dynamic header, 66 unit tests; [4 Production Hotfixes] (`0b4f9902`, `ea4e433f`, `7167cc24`, `db8c0cca`)
+**Recent work (2026-02-22):** See `memory/MEMORY.md` for full log.
+Key completed: [Agent Web Infrastructure] (`bb961092`) — llm.txt + Agent API + AI crawler positioning; [CEO Goals Tab] (`7e8c5985`) — GEO action plan for LLM visibility
 
 ---
 
