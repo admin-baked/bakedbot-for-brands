@@ -58,13 +58,16 @@ interface DemoHeaderProps {
   onAccountClick?: () => void;
 }
 
-const navItems = [
-  { label: 'SHOP', href: '#products', icon: Leaf },
-  { label: 'CLEARANCE', href: '#clearance', icon: Percent, badge: 'SALE' },
-  { label: 'CATEGORIES', href: '#categories', icon: ChevronDown, hasDropdown: true },
-  { label: 'BRANDS', href: '#brands', icon: Sparkles },
-  { label: 'DEALS', href: '#deals', icon: Gift, badge: 'HOT' },
-];
+const getNavItems = (slug?: string) => {
+  const base = slug ? `/${slug}` : '';
+  return [
+    { label: 'SHOP', href: `${base}#products`, icon: Leaf },
+    { label: 'CLEARANCE', href: `${base}#clearance`, icon: Percent, badge: 'SALE' },
+    { label: 'CATEGORIES', href: `${base}#categories`, icon: ChevronDown, hasDropdown: true },
+    { label: 'BRANDS', href: `${base}#brands`, icon: Sparkles },
+    { label: 'DEALS', href: `${base}#deals`, icon: Gift, badge: 'HOT' },
+  ];
+};
 
 const getSecondaryNavItems = (slug?: string) => [
   { label: 'Rewards', href: slug ? `/${slug}/rewards` : '#rewards', icon: Heart },
@@ -73,16 +76,19 @@ const getSecondaryNavItems = (slug?: string) => [
   { label: 'Careers', href: slug ? `/${slug}/careers` : '#careers', icon: Briefcase },
 ];
 
-const categories = [
-  { name: 'Flower', description: 'Premium cannabis buds', href: '#flower' },
-  { name: 'Pre-Rolls', description: 'Ready to smoke joints', href: '#prerolls' },
-  { name: 'Vapes', description: 'Cartridges & disposables', href: '#vapes' },
-  { name: 'Edibles', description: 'Gummies, chocolates & more', href: '#edibles' },
-  { name: 'Concentrates', description: 'Dabs, wax & shatter', href: '#concentrates' },
-  { name: 'Tinctures', description: 'Oils & drops', href: '#tinctures' },
-  { name: 'Topicals', description: 'Creams & balms', href: '#topicals' },
-  { name: 'Accessories', description: 'Grinders, papers & more', href: '#accessories' },
-];
+const getCategories = (slug?: string) => {
+  const base = slug ? `/${slug}` : '';
+  return [
+    { name: 'Flower', description: 'Premium cannabis buds', href: `${base}#flower` },
+    { name: 'Pre-Rolls', description: 'Ready to smoke joints', href: `${base}#prerolls` },
+    { name: 'Vapes', description: 'Cartridges & disposables', href: `${base}#vapes` },
+    { name: 'Edibles', description: 'Gummies, chocolates & more', href: `${base}#edibles` },
+    { name: 'Concentrates', description: 'Dabs, wax & shatter', href: `${base}#concentrates` },
+    { name: 'Tinctures', description: 'Oils & drops', href: `${base}#tinctures` },
+    { name: 'Topicals', description: 'Creams & balms', href: `${base}#topicals` },
+    { name: 'Accessories', description: 'Grinders, papers & more', href: `${base}#accessories` },
+  ];
+};
 
 export function DemoHeader({
   brandName = 'BakedBot Demo',
@@ -102,6 +108,8 @@ export function DemoHeader({
   const { cartItems } = useStore();
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const navItems = getNavItems(brandSlug);
+  const categories = getCategories(brandSlug);
   const secondaryNavItems = getSecondaryNavItems(brandSlug);
 
   const handleSearch = (e: React.FormEvent) => {
