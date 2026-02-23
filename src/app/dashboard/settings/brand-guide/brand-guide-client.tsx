@@ -318,15 +318,22 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
       // Priority: AI-extracted brandName → website page title → URL domain fallback
       const aiExtractedBrandName = (result as any).messaging?.brandName;
       const websiteTitle: string | undefined = (result as any).websiteTitle;
-      const titleDerivedName = websiteTitle
-        ? websiteTitle
-            // Strip common suffixes like "| Dispensary" or "- Cannabis"
-            .split(/\s*[\|\-–]\s*/)[0]
-            .trim()
-            // Strip TLD suffix when the title is just the domain (e.g. "thrivesyracuse.com")
-            .replace(/\.(com|net|org|io|co|ca|us|biz|info)(\s.*)?$/i, '')
-            .trim()
-        : undefined;
+      // Smarter title-to-brand-name derivation:
+      // Handles "About Us - Thrive Syracuse" → "Thrive Syracuse"
+      //         "Thrive Syracuse | Dispensary" → "Thrive Syracuse"
+      // Filters out generic page-name segments so the brand name wins.
+      const GENERIC_PAGE_WORDS = ['home', 'about', 'contact', 'menu', 'products', 'verify', 'welcome', 'shop'];
+      const titleDerivedName = (() => {
+        if (!websiteTitle) return undefined;
+        const segments = websiteTitle.split(/\s*[\|\-–]\s*/);
+        const nonGeneric = segments.find(s => {
+          const lower = s.toLowerCase().trim();
+          return !GENERIC_PAGE_WORDS.some(w => lower.startsWith(w)) && s.trim().length >= 3;
+        });
+        const best = (nonGeneric || segments[0] || '').trim();
+        const stripped = best.replace(/\.(com|net|org|io|co|ca|us|biz|info)(\s.*)?$/i, '').trim();
+        return stripped || undefined;
+      })();
 
       const domainFallback = websiteUrl
         .replace(/^https?:\/\//i, '')

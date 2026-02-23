@@ -198,17 +198,67 @@ export class BrandGuideExtractor {
   ];
 
   /**
+   * Direct HTTP fetch as last-resort fallback when Firecrawl/RTRVR both fail.
+   * Returns plaintext content stripped of HTML tags. Useful for cannabis sites
+   * that may be blocked by Firecrawl's content policy.
+   */
+  private async fetchDirectly(url: string): Promise<string> {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; BakedBotBot/1.0; +https://bakedbot.ai/llm.txt)',
+            'Accept': 'text/html,application/xhtml+xml',
+            'Accept-Language': 'en-US,en;q=0.9',
+          },
+          signal: controller.signal,
+        });
+        if (!response.ok) return '';
+        const html = await response.text();
+        // Strip scripts, styles and HTML tags; decode common entities
+        return html
+          .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .substring(0, 8000);
+      } finally {
+        clearTimeout(timeout);
+      }
+    } catch (err) {
+      logger.debug('[BrandGuideExtractor] Direct fetch failed', { url, error: (err as Error).message });
+      return '';
+    }
+  }
+
+  /**
    * Scrape a list of subpages in parallel and return their combined markdown.
-   * Silently skips pages that 404 or fail.
+   * Falls back to direct HTTP fetch when Firecrawl/RTRVR both fail (e.g. cannabis
+   * sites blocked by content policy). Silently skips pages that are empty.
    */
   private async scrapeSubpages(baseUrl: string): Promise<string> {
     const base = baseUrl.replace(/\/$/, '');
     const candidates = BrandGuideExtractor.BRAND_SUBPAGES.map((path) => `${base}${path}`);
 
     const results = await Promise.allSettled(
-      candidates.map((subUrl) =>
-        this.discovery.discoverUrl(subUrl).then((r) => ({ subUrl, content: r.markdown || '' }))
-      )
+      candidates.map(async (subUrl) => {
+        let content = '';
+        try {
+          const r = await this.discovery.discoverUrl(subUrl);
+          content = r.markdown || '';
+        } catch {
+          // Firecrawl and RTRVR both failed — try direct HTTP fetch as last resort
+          content = await this.fetchDirectly(subUrl);
+        }
+        return { subUrl, content };
+      })
     );
 
     const parts: string[] = [];
@@ -241,8 +291,19 @@ export class BrandGuideExtractor {
         logger.warn('[BrandGuideExtractor] No markdown content returned from root scrape', { url });
       }
 
+      // If root content is minimal (likely blocked/age-gated), try direct fetch as last resort
+      let rootMarkdown = rootResult.markdown || '';
+      if (rootMarkdown.length < 300) {
+        logger.warn('[BrandGuideExtractor] Root content minimal, trying direct fetch', { url, chars: rootMarkdown.length });
+        const directContent = await this.fetchDirectly(url);
+        if (directContent.length > rootMarkdown.length) {
+          rootMarkdown = directContent;
+          logger.info('[BrandGuideExtractor] Direct fetch augmented root content', { url, chars: directContent.length });
+        }
+      }
+
       // Merge root + subpage content (root first so metadata is prioritised)
-      const combinedContent = (rootResult.markdown || '') + subpageContent;
+      const combinedContent = rootMarkdown + subpageContent;
 
       // Extract colors from content (looking for hex codes)
       const colors = this.extractColors(combinedContent);
@@ -805,13 +866,20 @@ Return a JSON object with this structure:
    * Create fallback messaging
    */
   private createFallbackMessaging(website: WebsiteAnalysis): Partial<BrandMessaging> {
-    // Extract brand name from title (strip common suffixes)
-    const titleDerivedName = website.metadata.title
-      ? website.metadata.title
-          .split(/\s*[\|\-–]\s*/)[0]
-          .replace(/\.(com|net|org|io|co|ca|us|biz|info)(\s.*)?$/i, '')
-          .trim()
-      : '';
+    // Extract brand name from title — handles both "Brand - Tagline" and "Page - Brand" patterns.
+    // Filters out generic page-name segments (About Us, Home, Verify Age, etc.) and picks the
+    // first remaining segment, which is most likely the actual brand name.
+    const GENERIC_PAGE_WORDS = ['home', 'about', 'contact', 'menu', 'products', 'verify', 'welcome', 'shop'];
+    const titleDerivedName = (() => {
+      if (!website.metadata.title) return '';
+      const segments = website.metadata.title.split(/\s*[\|\-–]\s*/);
+      const nonGeneric = segments.find(s => {
+        const lower = s.toLowerCase().trim();
+        return !GENERIC_PAGE_WORDS.some(w => lower.startsWith(w)) && s.trim().length >= 3;
+      });
+      const best = (nonGeneric || segments[0] || '').trim();
+      return best.replace(/\.(com|net|org|io|co|ca|us|biz|info)(\s.*)?$/i, '').trim();
+    })();
 
     return {
       brandName: titleDerivedName,
