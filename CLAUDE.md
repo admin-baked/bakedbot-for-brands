@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-22 (Advanced sidebar filters on public menu; 78 unit & integration tests for filter logic)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-23 (Dispense/AIQ image scraper (880 products updated, 75% coverage); THC%/strainType backfill from Alleaves (878 products labeled, 75% coverage))
 
 ---
 
