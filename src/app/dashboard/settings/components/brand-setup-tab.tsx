@@ -13,7 +13,7 @@ import { useUserRole } from '@/hooks/use-user-role';
 import { Switch } from '@/components/ui/switch';
 
 export default function BrandSetupTab() {
-    const { role, brandId, orgId } = useUserRole();
+    const { role, brandId, orgId, user } = useUserRole();
     // Use orgId which works for both brand and dispensary users
     // (brandId is null for dispensary_admin; orgId covers currentOrgId | brandId | locationId)
     const effectiveOrgId = orgId || brandId;
@@ -70,6 +70,8 @@ export default function BrandSetupTab() {
         setResult(null);
 
         const formData = new FormData(e.currentTarget);
+        // setupBrandAndCompetitors requires userId for auth
+        if (user?.uid) formData.set('userId', user.uid);
 
         try {
             // Reserve the slug if one is set and available
