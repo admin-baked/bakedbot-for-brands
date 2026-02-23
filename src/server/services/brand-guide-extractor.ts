@@ -330,7 +330,9 @@ export class BrandGuideExtractor {
         content: combinedContent,
         metadata: {
           title: rootResult.metadata?.title,
-          description: rootResult.metadata?.description,
+          // Some sites (e.g. Thrive Syracuse) have no <meta name="description"> but do have
+          // og:description — prefer whichever is non-empty
+          description: rootResult.metadata?.description || rootResult.metadata?.ogDescription,
           ogImage: rootResult.metadata?.ogImage,
           favicon: rootResult.metadata?.favicon,
         },
