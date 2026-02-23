@@ -14,8 +14,6 @@ export async function generateMetadata({ params }: { params: Promise<{ brand: st
     };
 }
 
-import { WebAgeGate } from '@/components/verification/web-age-gate';
-
 export default async function BrandLayout({
     children,
     params,
@@ -27,10 +25,10 @@ export default async function BrandLayout({
 
     // Note: Header is rendered by BrandMenuClient to support both
     // dispensary and brand menu modes with appropriate styling
+    // Note: Age verification is handled by MenuWithAgeGate in page.tsx
     return (
         <div className="min-h-screen bg-background text-foreground">
             <link rel="ai-content" href={`/${brand}/llm.txt`} />
-            <WebAgeGate />
             {children}
         </div>
     );
