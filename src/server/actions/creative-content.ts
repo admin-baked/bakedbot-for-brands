@@ -246,7 +246,15 @@ export async function generateContent(
                 });
                 return IMAGE_PLACEHOLDER;
             }),
-            generateCaption(request),
+            generateCaption(request).catch((captionErr) => {
+                // Caption generation can fail (AI service unavailable, API rate limits, etc.)
+                // Fall back gracefully — use a default caption template
+                logger.warn('[creative-content] Caption generation failed, using fallback', {
+                    error: String(captionErr),
+                    prompt: request.prompt.substring(0, 80)
+                });
+                return generateFallbackCaption(request);
+            }),
         ]);
 
         // Run Deebo compliance check on the generated caption (with fallback)
