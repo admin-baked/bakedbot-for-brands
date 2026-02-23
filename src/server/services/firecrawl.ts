@@ -104,13 +104,13 @@ export class DiscoveryService {
         logger.info('[Discovery] Using RTRVR fallback for discoverUrl', { url });
         const res = await extractFromUrl(
             url,
-            'Extract the full page content as clean readable markdown text. Also extract the page title and meta description.',
+            'Extract the full page content as clean readable markdown text. Also extract: the page title (from <title> tag or og:title), and a description (prefer meta description, fall back to og:description, then the first meaningful paragraph from the page body).',
             {
                 type: 'object',
                 properties: {
                     markdown:    { type: 'string', description: 'Full page content as markdown' },
-                    title:       { type: 'string', description: 'Page <title> or main heading' },
-                    description: { type: 'string', description: 'Meta description or first paragraph summary' },
+                    title:       { type: 'string', description: 'Page <title> or og:title' },
+                    description: { type: 'string', description: 'Meta description, og:description, or first paragraph' },
                 }
             }
         );
