@@ -125,11 +125,67 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
             count: alleavesCustomers.length,
         });
 
-        // Skip spending data on initial load to prevent timeout
-        // Spending data fetches 100k+ orders which causes server crashes
-        // TODO: Load spending data asynchronously via separate endpoint
-        const customerSpending = new Map<number, { totalSpent: number; orderCount: number; lastOrderDate: Date; firstOrderDate: Date }>();
-        logger.info('[CUSTOMERS] Skipping spending data fetch for performance', { orgId });
+        // Conditionally load spending data based on customer count
+        // Small customer bases (< 500): Load from Firestore orders for proper segmentation
+        // Large customer bases: Skip to avoid timeouts, use async endpoint instead
+        const customerSpending = new Map<string, { totalSpent: number; orderCount: number; lastOrderDate: Date; firstOrderDate: Date }>();
+
+        if (alleavesCustomers.length < 500) {
+            // Safe to load spending data from Firestore for small customer bases (e.g., Thrive: 111 customers)
+            try {
+                logger.info('[CUSTOMERS] Loading spending data from Firestore for small customer base', { orgId, customerCount: alleavesCustomers.length });
+
+                // Query BakedBot orders for this org to get spending data
+                let ordersQuery = firestore.collection('orders') as FirebaseFirestore.Query;
+                ordersQuery = ordersQuery.where('brandId', '==', orgId);
+                const ordersSnap = await ordersQuery.get();
+
+                // Build spending map from orders
+                ordersSnap.forEach((doc: any) => {
+                    const order = doc.data();
+                    const email = order.customer?.email?.toLowerCase();
+                    if (!email) return;
+
+                    if (!customerSpending.has(email)) {
+                        customerSpending.set(email, {
+                            totalSpent: 0,
+                            orderCount: 0,
+                            lastOrderDate: new Date(0),
+                            firstOrderDate: new Date()
+                        });
+                    }
+
+                    const spending = customerSpending.get(email)!;
+                    spending.orderCount++;
+                    spending.totalSpent += (order.totals?.total || 0);
+
+                    const orderDate = order.createdAt?.toDate?.() || new Date();
+                    if (orderDate > spending.lastOrderDate) {
+                        spending.lastOrderDate = orderDate;
+                    }
+                    if (orderDate < spending.firstOrderDate) {
+                        spending.firstOrderDate = orderDate;
+                    }
+                });
+
+                logger.info('[CUSTOMERS] Spending data loaded from Firestore', {
+                    orgId,
+                    ordersFound: ordersSnap.size,
+                    customersWithSpending: customerSpending.size
+                });
+            } catch (spendingError: any) {
+                logger.warn('[CUSTOMERS] Failed to load spending data, continuing without it', {
+                    orgId,
+                    error: spendingError.message
+                });
+                // Continue without spending data rather than failing
+            }
+        } else {
+            logger.info('[CUSTOMERS] Skipping spending data for large customer base (use async endpoint)', {
+                orgId,
+                customerCount: alleavesCustomers.length
+            });
+        }
 
         // Transform Alleaves customers to CustomerProfile format
         const customers = alleavesCustomers.map((ac: any, index: number) => {
@@ -138,9 +194,8 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
             const lastName = ac.name_last || '';
             const displayName = [firstName, lastName].filter(Boolean).join(' ') || ac.customer_name || email;
 
-            // Get spending data from orders
-            const customerId = ac.id_customer || ac.id;
-            const spending = customerSpending.get(customerId);
+            // Get spending data from orders (keyed by email)
+            const spending = customerSpending.get(email);
             const totalSpent = spending?.totalSpent || 0;
             const orderCount = spending?.orderCount || 0;
             const avgOrderValue = orderCount > 0 ? totalSpent / orderCount : 0;
