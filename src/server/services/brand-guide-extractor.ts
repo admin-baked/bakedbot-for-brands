@@ -397,41 +397,44 @@ export class BrandGuideExtractor {
     website: WebsiteAnalysis,
     social: SocialMediaAnalysis[]
   ): Promise<Partial<BrandVisualIdentity>> {
-    const prompt = `Analyze the following brand data and extract visual identity information.
+    const prompt = `You are a brand identity expert. Analyze the following brand website content and extract visual identity information.
 
-Website: ${website.url}
-Colors found: ${website.colors.join(', ')}
-Fonts found: ${website.fonts.join(', ')}
-Website content sample: ${website.content.substring(0, 2000)}
+IMPORTANT: The website colors, fonts, and content below may have limited color hex codes. Use your knowledge of cannabis dispensary branding and the content to intelligently infer appropriate brand colors even if not all hex codes are explicitly present.
+
+Website URL: ${website.url}
+Website Title: ${website.metadata?.title || 'Unknown'}
+Detected Colors (hex codes if found): ${website.colors.length > 0 ? website.colors.join(', ') : 'None detected in text content'}
+Detected Fonts: ${website.fonts.length > 0 ? website.fonts.join(', ') : 'Standard web fonts'}
+Logo/Image URL: ${website.metadata?.ogImage || website.metadata?.favicon || 'Not found'}
+
+Website Content (from About Us and main pages):
+${website.content.substring(0, 3000)}
 
 ${social.length > 0 ? `Social media profiles analyzed: ${social.map((s) => s.platform).join(', ')}` : ''}
 
-Extract and structure:
-1. Primary, secondary, and accent colors (hex codes)
-2. Font families used for headings and body text
-3. Visual style description
-4. Color usage guidelines
+EXTRACTION REQUIREMENTS:
+1. **Brand Colors**: Even if hex codes weren't detected in scraped content, use the website content tone/style to infer appropriate primary and secondary colors. For cannabis brands, consider earthy greens, premium blacks, or modern grays.
+2. **Logo**: Return the og:image or favicon URL if available
+3. **Font Families**: Infer from content style (premium brands → serif, modern brands → sans-serif)
+4. **Visual Style**: Describe the overall aesthetic
 
-Return a JSON object with this structure:
+Return ONLY a valid JSON object (no markdown, no code blocks) with this exact structure:
 {
   "logo": {
-    "primary": "URL if found in og:image or favicon",
-    "specifications": {}
+    "primary": "URL or null if not found"
   },
   "colors": {
-    "primary": { "hex": "#XXXXXX", "name": "Color Name", "usage": "Where it's used" },
-    "secondary": { "hex": "#XXXXXX", "name": "Color Name", "usage": "Where it's used" },
-    "accent": { "hex": "#XXXXXX", "name": "Color Name", "usage": "Where it's used" },
-    "text": { "hex": "#XXXXXX", "name": "Color Name", "usage": "Body text" },
-    "background": { "hex": "#XXXXXX", "name": "Color Name", "usage": "Backgrounds" }
+    "primary": { "hex": "#4ade80", "name": "Cannabis Green", "usage": "Primary brand color" },
+    "secondary": { "hex": "#1a1a2e", "name": "Dark Navy", "usage": "Text and accents" },
+    "accent": { "hex": "#ffffff", "name": "White", "usage": "Backgrounds and contrast" }
   },
   "typography": {
-    "headingFont": { "family": "Font Name", "weights": [400, 700], "source": "google" },
-    "bodyFont": { "family": "Font Name", "weights": [400], "source": "google" }
+    "headingFont": { "family": "Inter", "weights": [600, 700], "source": "google" },
+    "bodyFont": { "family": "Inter", "weights": [400], "source": "google" }
   },
   "imagery": {
-    "style": "lifestyle|product-focused|abstract|mixed",
-    "guidelines": "Description of photo style"
+    "style": "professional",
+    "guidelines": "Professional cannabis dispensary aesthetic"
   }
 }`;
 
@@ -439,14 +442,16 @@ Return a JSON object with this structure:
       const response = await callClaude({
         userMessage: prompt,
         systemPrompt:
-          'You are a brand identity expert. Extract visual brand elements and return valid JSON only.',
+          'You are a brand identity expert specializing in cannabis dispensary branding. Extract visual brand elements and return ONLY valid JSON, no other text.',
         maxTokens: 2000,
       });
 
-      // Parse AI response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      // Parse AI response - be flexible with whitespace and code blocks
+      let jsonStr = response.trim();
+      const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error('No JSON found in AI response');
+        logger.warn('No JSON found in visual identity response', { url: website.url, response: response.substring(0, 200) });
+        return this.createFallbackVisualIdentity(website);
       }
 
       const visualIdentity = JSON.parse(jsonMatch[0]);
@@ -544,38 +549,47 @@ Return a JSON object with this structure:
   private async extractMessaging(
     website: WebsiteAnalysis
   ): Promise<Partial<BrandMessaging>> {
-    const prompt = `Analyze the following website content and extract brand messaging.
-The content may include the homepage plus About Us / Our Story pages — prioritise those for brand story elements.
+    const prompt = `You are a cannabis industry brand strategist. Extract detailed brand messaging information from this website content.
+The content includes the homepage PLUS About Us / Our Story / Mission pages — use ALL available content for brand story elements.
 
-Website: ${website.url}
-Title: ${website.metadata.title || 'Unknown'}
-Description: ${website.metadata.description || 'Unknown'}
-Content sample: ${website.content.substring(0, 5000)}
+Website URL: ${website.url}
+Page Title: ${website.metadata.title || 'Unknown'}
+Meta Description: ${website.metadata.description || 'Unknown'}
 
-Extract and structure:
-1. **Brand Name** - The exact business name as it appears on the website (e.g., "Thrive Syracuse", not "thrivesyracuse.com")
-2. **Tagline** - Short catchphrase or slogan (usually 2-6 words, appears near the brand name or in hero sections)
-3. **Positioning statement** - How the brand describes itself (1-2 sentences)
-4. **Mission statement** - If explicitly stated (look for "Our Mission", "What We Do", etc.)
-5. **Value propositions** - Key benefits or unique selling points (usually 2-4 bullet points from About Us)
-6. **Brand story** - Origin story, values, and differentiators from About Us content
+FULL WEBSITE CONTENT (Homepage + About Us pages):
+${website.content}
 
-IMPORTANT:
-- Extract the brand name EXACTLY as written on the page (proper spacing and capitalization)
-- Tagline should be SHORT (not a full sentence) - look for text near logos or in hero sections
-- For descriptions, use the first clear sentence from About Us that explains what they do
+EXTRACTION TASK:
+Extract the following brand messaging elements from the provided content:
 
-Return a JSON object with this structure:
+1. **Brand Name** - The exact business name as written on the website (e.g., "Thrive Syracuse", not "thrivesyracuse.com" or domain variants)
+2. **Tagline** - A short slogan (2-6 words) that often appears with the brand name or in hero sections
+3. **Positioning** - 1-2 sentences describing what the company does and who they serve
+4. **Mission Statement** - If explicitly stated (look for "Our Mission", "Mission", "What We Do", "Our Purpose")
+5. **Value Propositions** - 2-4 key benefits, promises, or unique value points the company emphasizes
+6. **Brand Story** - Information from About Us pages:
+   - Origin: Founding story, how the company started
+   - Values: Principles and values the company emphasizes
+   - Differentiators: What makes them unique compared to competitors
+
+IMPORTANT NOTES:
+- Extract EXACTLY what's on the page - don't invent information
+- Use NULL or empty values if content is not found, rather than making things up
+- The website may have limited About Us content - extract what IS present
+- Focus on factual company information, not marketing fluff or placeholders
+- Pay special attention to About Us / Our Story sections for brand story elements
+
+Return ONLY a valid JSON object (no markdown formatting):
 {
-  "brandName": "Exact brand name from the page",
-  "tagline": "Short slogan or catchphrase",
-  "positioning": "How the brand positions itself (1-2 sentences)",
-  "missionStatement": "Mission statement if found",
-  "valuePropositions": ["Value prop 1", "Value prop 2", "Value prop 3"],
+  "brandName": "Exact name or null",
+  "tagline": "Short slogan or null",
+  "positioning": "1-2 sentence description or null",
+  "missionStatement": "Mission or null",
+  "valuePropositions": ["prop1", "prop2", "prop3"] or [],
   "brandStory": {
-    "origin": "Founding story if available",
-    "values": ["Value 1", "Value 2"],
-    "differentiators": ["What makes them unique"]
+    "origin": "Founding story or null",
+    "values": ["value1", "value2"] or [],
+    "differentiators": ["unique1", "unique2"] or []
   }
 }`;
 
@@ -583,8 +597,8 @@ Return a JSON object with this structure:
       const response = await callClaude({
         userMessage: prompt,
         systemPrompt:
-          'You are a brand strategist. Extract messaging elements and return valid JSON only, wrapped in a ```json code block if needed.',
-        maxTokens: 1500,
+          'You are a cannabis dispensary brand strategist. Extract messaging elements from the provided content and return ONLY valid JSON, no markdown or code blocks.',
+        maxTokens: 2000,
       });
 
       // Try to extract JSON from code block first, then fallback to direct parsing
@@ -604,8 +618,9 @@ Return a JSON object with this structure:
 
       const parsed = JSON.parse(jsonStr);
 
-      // Validate that we got meaningful data (not all placeholders)
-      if (!parsed.brandName && !parsed.positioning && !parsed.tagline && !parsed.missionStatement) {
+      // Validate that we got meaningful data (not all nulls)
+      const hasData = parsed.brandName || parsed.positioning || parsed.tagline || parsed.missionStatement;
+      if (!hasData) {
         logger.warn('Extracted messaging has no meaningful data', { url: website.url, parsed });
         return this.createFallbackMessaging(website);
       }
