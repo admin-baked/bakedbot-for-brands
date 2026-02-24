@@ -30,15 +30,58 @@ Key completed: [Brand guide enrichment pipeline — voice samples, archetype, co
 
 **Every task follows this pipeline. No shortcuts. No exceptions.**
 
-### Stage 1: Spec First
-On receiving a task prompt, FIRST produce a completed spec using `.agent/spec-template.md`.
-- Do NOT write implementation code before the spec is approved.
-- If the task is trivial (< 20 lines, single file, no boundary triggers) → produce a mini-spec inline:
+> **The AI Engineer Flow:**
+> `Prompt → PRD (human strategy doc) → AI-Executable Spec (implementation contract) → Build → Review → QA`
+> The PRD captures the *why*. The Spec captures the *exactly what and how* — every decision pre-made.
+
+---
+
+### Stage 0: PRD (Product Requirements Document)
+
+On receiving any non-trivial task prompt, FIRST produce a **PRD** — a human-readable strategy document:
+
+**PRD must include:**
+- **Problem statement** — what user pain or business goal is being addressed
+- **User stories** — who does what, and why
+- **Acceptance criteria** — observable outcomes that define "done" (no implementation details)
+- **Out of scope** — explicitly what this does NOT include
+- **Open questions** — anything requiring a human decision before spec can be written
+
+**PRD rules:**
+- Written in plain English. No code, no file paths, no implementation decisions.
+- Present to human. **Wait for explicit sign-off before proceeding.**
+- If the task is trivial (< 20 lines, single file, no boundary triggers) → skip PRD, jump to mini-spec in Stage 1.
+- If ANY boundary trigger fires (auth, payments, schema, cost, prompts, compliance, new integrations) → PRD required, no skip allowed.
+
+**PRD sign-off unlocks Stage 1.** The PRD becomes the permanent record of intent and lives in `dev/prds/YYYY-MM-DD-feature-name.md`.
+
+---
+
+### Stage 1: AI-Executable Spec (Implementation Contract)
+
+Convert the approved PRD into an **AI-Executable Spec** using `.agent/spec-template.md`.
+
+**This spec is NOT for humans — it is an execution contract for an AI engineer.** Every decision must be pre-made. No ambiguity. No "use your judgment." Linus reads this and builds it exactly as written.
+
+**AI-Executable Spec must specify (exactly):**
+- **Exact file paths** for every file created or modified (e.g., `src/server/actions/qa.ts`, `src/types/qa.ts`)
+- **Exact Firestore field names and types** for every doc written or read (e.g., `regressionOf?: string`, `isRegression?: boolean`, `updatedAt: Timestamp`)
+- **Exact component names** and their props interface (e.g., `<RegressionBadge bugId={string} area={QABugArea} />`)
+- **Exact function signatures** with parameter types and return types (e.g., `getRegressionHistory(area: QABugArea): Promise<QABug[]>`)
+- **Exact test cases** with literal inputs and expected outputs (e.g., `getRegressionHistory('brand_guide') → QABug[] where every item has status in ['verified','closed','fixed']`)
+- **Exact prompt templates** for any agent injection (full text, not summaries)
+- **Exact API contracts** — HTTP method, path, request body shape, response shape, error codes
+- **Exact Firestore index definitions** — collectionGroup, fields, order, queryScope
+
+**Spec rules:**
+- Present spec to human. **Wait for explicit approval before writing any code.**
+- If trivial task (< 20 lines, single file, no boundary triggers) → mini-spec inline:
   ```
-  Mini-spec: [what] → [why] → [files] → [test] → [rollback: revert commit]
+  Mini-spec: [what] → [why] → [exact files] → [exact test inputs+outputs] → [rollback: revert commit]
   ```
-- If ANY boundary check triggers (auth, payments, schema, cost, prompts, compliance) → full spec required, no mini-spec allowed.
-- Present spec to human. Wait for explicit approval.
+- Boundary trigger → full AI-Executable Spec, no mini-spec.
+
+---
 
 ### Stage 2: Build
 Implement strictly within the approved spec scope.
@@ -61,7 +104,7 @@ Run every item in `.agent/review-checklist.md` against your own work.
 - Report eval scores. If below threshold → do not commit. Iterate.
 
 ### Stage 5: Ship + Record
-Only after Stages 1-4 are complete:
+Only after Stages 0-4 are complete:
 1. Commit with structured message (see review-checklist.md for format).
 2. **Push to GitHub** — `git push origin main` **triggers Firebase App Hosting deployment to production**. Always push after committing finished work.
 3. Update `CLAUDE.md` line 15 — build status one-liner.
@@ -71,9 +114,9 @@ Only after Stages 1-4 are complete:
 7. If feature-flagged → note flag name and canary status.
 
 ### Escape Hatches
-- **Hotfix (production down):** Skip Stage 1 spec. Implement fix, run Stage 3-4, commit with `hotfix()` prefix. File retroactive spec within same session.
-- **Docs-only change:** Skip Stages 2-4. Commit directly with `docs()` prefix.
-- **Exploration/spike:** Produce spec marked `status: 🔬 Spike`. Code is throwaway. Do not merge to main without converting to a real spec.
+- **Hotfix (production down):** Skip Stages 0-1. Implement fix, run Stages 3-4, commit with `hotfix()` prefix. File retroactive PRD + spec within same session.
+- **Docs-only change:** Skip Stages 1-4. Commit directly with `docs()` prefix.
+- **Exploration/spike:** Produce PRD marked `status: 🔬 Spike`. Code is throwaway. Do not merge to main without promoting to full PRD → Spec → Build flow.
 
 ### 🐛 Bug Workflow (Auto-triggered on ANY mention of a bug, broken feature, or unexpected behavior)
 
