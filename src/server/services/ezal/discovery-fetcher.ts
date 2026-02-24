@@ -18,6 +18,57 @@ const COLLECTION_DISCOVERY_RUNS = 'discovery_runs';
 // User agent string for polite discovery
 const USER_AGENT = 'BakedBot-Ezal/1.0 (Competitive Intelligence; +https://bakedbot.ai)';
 
+// =============================================================================
+// JINA READER FETCH
+// =============================================================================
+
+/**
+ * Fetch a URL via Jina AI Reader and return clean markdown.
+ * Used for sourceType='jina' data sources.
+ */
+async function fetchViaJina(url: string): Promise<{
+    success: boolean;
+    content?: string;
+    contentType?: string;
+    httpStatus?: number;
+    error?: string;
+}> {
+    const jinaKey = process.env.JINA_API_KEY;
+    const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'X-Return-Format': 'markdown',
+        'X-Timeout': '20',
+    };
+    if (jinaKey) headers['Authorization'] = `Bearer ${jinaKey}`;
+
+    try {
+        const res = await fetch(`https://r.jina.ai/${encodeURIComponent(url)}`, {
+            headers,
+            signal: AbortSignal.timeout(25000),
+        });
+
+        const data = await res.json() as { code: number; status?: string; data?: { content?: string; title?: string; usage?: { tokens?: number } } };
+
+        if (data.code !== 200 || !data.data) {
+            return { success: false, error: `Jina Reader error ${data.code}: ${data.status || 'unknown'}` };
+        }
+
+        const markdown = data.data.content || '';
+        logger.info('[Ezal] Jina Reader fetch succeeded', {
+            url, chars: markdown.length, tokens: data.data.usage?.tokens,
+        });
+
+        return {
+            success: true,
+            content: markdown,
+            contentType: 'text/markdown',
+            httpStatus: 200,
+        };
+    } catch (err: any) {
+        return { success: false, error: `Jina Reader threw: ${err.message}` };
+    }
+}
+
 // Default timeout in milliseconds
 const DEFAULT_TIMEOUT_MS = 15000;
 
@@ -306,10 +357,10 @@ export async function executeDiscovery(
             }
         }
 
-        // Fetch the URL
-        const fetchResult = await fetchUrl(source.baseUrl, {
-            checkRobots: false, // Already checked
-        });
+        // Fetch the URL — use Jina Reader for 'jina' sources, raw HTTP otherwise
+        const fetchResult = source.sourceType === 'jina'
+            ? await fetchViaJina(source.baseUrl)
+            : await fetchUrl(source.baseUrl, { checkRobots: false });
 
         if (!fetchResult.success) {
             throw new Error(fetchResult.error || 'Fetch failed');
@@ -324,7 +375,7 @@ export async function executeDiscovery(
             finishedAt: new Date(),
             status: 'success',
             httpStatus: fetchResult.httpStatus,
-            contentType: fetchResult.contentType || 'text/html',
+            contentType: fetchResult.contentType || (source.sourceType === 'jina' ? 'text/markdown' : 'text/html'),
             contentHash,
             durationMs,
             // snapshotPath would be set after storing to Cloud Storage
