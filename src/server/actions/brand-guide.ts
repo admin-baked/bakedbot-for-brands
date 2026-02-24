@@ -665,6 +665,37 @@ export async function analyzeCompetitorsBatch(
 /**
  * Get list of brand guides for a brand (summary view)
  */
+/**
+ * Lightweight: fetch only the brand colors needed for dashboard theming.
+ * Called on every dashboard load — must be fast.
+ */
+export async function getOrgBrandColors(
+  orgId: string
+): Promise<{ primary?: string; secondary?: string; accent?: string }> {
+  if (!orgId) return {};
+  try {
+    const firestore = getAdminFirestore();
+    const repo = makeBrandGuideRepo(firestore);
+    // getByBrandId returns all guides for the org; pick the active/latest one
+    const guides = await repo.getByBrandId(orgId);
+    if (!guides.length) return {};
+    // Prefer active guide, then draft, then any
+    const guide =
+      guides.find(g => g.status === 'active') ||
+      guides.find(g => g.status === 'draft') ||
+      guides[0];
+    const colors = guide?.visualIdentity?.colors;
+    if (!colors) return {};
+    return {
+      primary: colors.primary?.hex || undefined,
+      secondary: colors.secondary?.hex || undefined,
+      accent: colors.accent?.hex || undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export async function getBrandGuidesList(
   brandId: string
 ): Promise<{ success: boolean; guides?: Array<{

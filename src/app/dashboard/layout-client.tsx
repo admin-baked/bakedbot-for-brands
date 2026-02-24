@@ -6,28 +6,31 @@ import { DashboardSidebar } from '@/components/dashboard/sidebar';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { NavigationProgress } from '@/components/navigation-progress';
 import SmokeyFloatingButton from '@/components/dashboard/smokey-support-button';
+import { BrandThemeProvider } from '@/components/dashboard/brand-theme-provider';
 import type { ReactNode } from 'react';
 import { withAuth } from '@/lib/with-auth';
 
 function DashboardLayoutContent({ children }: { children: ReactNode }) {
     return (
-        <SidebarProvider>
-            <NavigationProgress />
-            <DashboardSidebar />
-            <SidebarInset className="h-svh overflow-hidden">
-                <div className="flex flex-col h-full p-4 md:p-6">
-                    <DashboardHeader />
-                    <ErrorBoundary>
-                        <div className="flex-1 min-h-0 overflow-auto">
-                            {children}
-                        </div>
-                    </ErrorBoundary>
-                </div>
-            </SidebarInset>
+        <BrandThemeProvider>
+            <SidebarProvider>
+                <NavigationProgress />
+                <DashboardSidebar />
+                <SidebarInset className="h-svh overflow-hidden">
+                    <div className="flex flex-col h-full p-4 md:p-6">
+                        <DashboardHeader />
+                        <ErrorBoundary>
+                            <div className="flex-1 min-h-0 overflow-auto">
+                                {children}
+                            </div>
+                        </ErrorBoundary>
+                    </div>
+                </SidebarInset>
 
-            {/* Smokey Support Hub - Floating Action Button */}
-            <SmokeyFloatingButton />
-        </SidebarProvider>
+                {/* Smokey Support Hub - Floating Action Button */}
+                <SmokeyFloatingButton />
+            </SidebarProvider>
+        </BrandThemeProvider>
     );
 }
 
