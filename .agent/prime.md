@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-24)
 
 **Recent work (2026-02-24):** See `memory/MEMORY.md` for full log.
-Key completed: [Dynamic brand theming — dashboard adopts org colors] (`421b9dd8`), [Brand guide city/state/type extraction + IG preview] (`f310b9a9`)
+Key completed: [Brand guide enrichment pipeline — voice samples, archetype, compliance] (`7e663847`), [Dynamic brand theming] (`421b9dd8`)
 
 ---
 
