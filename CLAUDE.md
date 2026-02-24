@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (Pinky CLI for Claude Code IDE; deploy verification via /api/health + K_REVISION; regression tracking on QABug; smoke test fixes: robots.txt age-gate bypass + goals/suggest 401)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (COGS column regression fix: products table now shows cost/margin from POS with inline editing)
 
 ---
 
