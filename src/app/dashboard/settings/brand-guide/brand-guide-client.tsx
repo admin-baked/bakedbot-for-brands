@@ -375,15 +375,22 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
 
       // Only pre-fill if the user hasn't already completed step 1
       if (!step1Data) {
+        const extractedMessaging = (result as any).messaging ?? {};
         setStep1Data({
           brandName: extractedBrandName,
           // Fallback chain: positioning (clearest) → valuePropositions[0] → metadata.description
           description:
-            cleanExtractedValue((result as any).messaging?.positioning) ||
-            cleanExtractedValue((result as any).messaging?.valuePropositions?.[0]) ||
+            cleanExtractedValue(extractedMessaging.positioning) ||
+            cleanExtractedValue(extractedMessaging.valuePropositions?.[0]) ||
             cleanExtractedValue((result as any).metadata?.description) ||
             '',
-          tagline: cleanExtractedValue((result as any).messaging?.tagline),
+          tagline: cleanExtractedValue(extractedMessaging.tagline),
+          // Location + dispensary type — now extracted from the AI prompt
+          city: cleanExtractedValue(extractedMessaging.city) || undefined,
+          state: cleanExtractedValue(extractedMessaging.state) || undefined,
+          dispensaryType: (['recreational', 'medical', 'both'].includes(extractedMessaging.dispensaryType)
+            ? extractedMessaging.dispensaryType
+            : undefined) as 'recreational' | 'medical' | 'both' | undefined,
         });
       }
 

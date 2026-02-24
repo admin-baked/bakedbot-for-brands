@@ -591,6 +591,13 @@ Extract the following brand messaging elements from the provided content:
    - Origin: Founding story, how the company started
    - Values: Principles and values the company emphasizes
    - Differentiators: What makes them unique compared to competitors
+7. **City** - The city where this dispensary is located (look in address, "in Syracuse", "serving Albany", footer, contact page, meta description, etc.)
+8. **State** - The US state (full name preferred, e.g., "New York" not "NY"; look in address, footer, meta description)
+9. **Dispensary Type** - Whether this is recreational, medical, or both:
+   - "recreational" if they serve adult-use / recreational customers
+   - "medical" if they are a medical-only dispensary
+   - "both" if they serve both recreational and medical patients
+   - Look for keywords: "adult-use", "recreational", "medical", "MMJ", "rec & med"
 
 IMPORTANT NOTES:
 - Extract EXACTLY what's on the page - don't invent information
@@ -610,7 +617,10 @@ Return ONLY a valid JSON object (no markdown formatting):
     "origin": "Founding story or null",
     "values": ["value1", "value2"] or [],
     "differentiators": ["unique1", "unique2"] or []
-  }
+  },
+  "city": "City name or null",
+  "state": "Full state name or null",
+  "dispensaryType": "recreational" or "medical" or "both" or null
 }`;
 
     try {
