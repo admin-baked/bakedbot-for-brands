@@ -19,10 +19,10 @@ npm run check:types
 | 🟢 **Passing** | Proceed with task |
 | 🔴 **Failing** | STOP. Fix build errors FIRST. No exceptions. |
 
-**Current Status:** 🟢 Passing (verified 2026-02-23)
+**Current Status:** 🟢 Passing (verified 2026-02-24)
 
-**Recent work (2026-02-23):** See `memory/MEMORY.md` for full log.
-Key completed: [k6 synthetic monitoring + Linus auto-escalation loop] (`1e148108`), [Zapier-like Playbook trigger editor] (`85e81ac6`)
+**Recent work (2026-02-24):** See `memory/MEMORY.md` for full log.
+Key completed: [Jina AI + CannMenus competitive intel pipeline] (`c3a5c0b5`), [parseLeafly() overhaul + monthly freq gate for unpaid orgs] (`b0993232`)
 
 ---
 
