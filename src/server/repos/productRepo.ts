@@ -162,6 +162,7 @@ export function makeProductRepo(db: Firestore) {
                   thcPercent: data.thcPercent,
                   cbdPercent: data.cbdPercent,
                   strainType: data.strainType,
+                  cost: data.cost,
                 } as Product;
               });
             }
@@ -225,6 +226,7 @@ export function makeProductRepo(db: Firestore) {
                 thcPercent: data.thcPercent,
                 cbdPercent: data.cbdPercent,
                 strainType: data.strainType,
+                cost: data.cost,
               } as Product;
             });
           }
@@ -354,6 +356,7 @@ export function makeProductRepo(db: Firestore) {
               stockCount: data.stockCount ?? data.stock ?? 0,
               source: 'pos' as const,
               externalId: data.externalId,
+              cost: data.cost,
             } as Product;
           });
         }
