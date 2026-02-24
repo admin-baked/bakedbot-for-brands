@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (Jina tools + CI frequency toggle + Smokey search fix + brand guide IG preview + city/state/type extraction)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (dynamic brand theming: dashboard adopts org brand colors; brand guide enrichment pipeline planned)
 
 ---
 
