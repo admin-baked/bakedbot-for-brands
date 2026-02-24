@@ -19,6 +19,95 @@ const COLLECTION_DISCOVERY_RUNS = 'discovery_runs';
 const USER_AGENT = 'BakedBot-Ezal/1.0 (Competitive Intelligence; +https://bakedbot.ai)';
 
 // =============================================================================
+// CANNMENUS API FETCH
+// =============================================================================
+
+const CANNMENUS_BASE = 'https://api.cannmenus.com/v1';
+const CANNMENUS_MAX_PAGES = 60; // safety cap
+
+/**
+ * Fetch all products for a retailer from CannMenus API.
+ * Paginates automatically. Returns JSON string of flattened product array.
+ * Used for sourceType='cann_menus' data sources.
+ * Requires CANNMENUS_API_KEY env var.
+ */
+export async function fetchCannMenusProducts(
+    retailerId: string,
+    state: string = 'New York'
+): Promise<{
+    success: boolean;
+    content?: string; // JSON array of products
+    httpStatus?: number;
+    totalProducts?: number;
+    error?: string;
+}> {
+    const apiKey = process.env.CANNMENUS_API_KEY;
+    if (!apiKey) {
+        return { success: false, error: 'CANNMENUS_API_KEY not configured' };
+    }
+
+    const allProducts: unknown[] = [];
+    let page = 1;
+    let totalPages = 1;
+
+    try {
+        while (page <= Math.min(totalPages, CANNMENUS_MAX_PAGES)) {
+            const url = `${CANNMENUS_BASE}/products?states=${encodeURIComponent(state)}&retailers=${retailerId}&page=${page}&per_page=25`;
+            const res = await fetch(url, {
+                headers: {
+                    'X-Token': apiKey,
+                    'Accept': 'application/json',
+                },
+                signal: AbortSignal.timeout(20000),
+            });
+
+            if (!res.ok) {
+                return { success: false, httpStatus: res.status, error: `CannMenus API error: ${res.status}` };
+            }
+
+            const data = await res.json() as {
+                data?: Array<{ retailer_id: string; sku: string; products: unknown[] }>;
+                pagination?: { total_records: number; total_pages: number; next_page: number | null };
+            };
+
+            // Flatten two-level nesting: data[].products[]
+            const items = data.data || [];
+            for (const item of items) {
+                if (Array.isArray(item.products)) {
+                    for (const product of item.products) {
+                        allProducts.push({ ...product as object, _retailerId: retailerId, _sku: item.sku });
+                    }
+                }
+            }
+
+            // Update pagination
+            const pagination = data.pagination;
+            if (pagination) {
+                totalPages = pagination.total_pages || 1;
+                if (!pagination.next_page) break;
+            } else {
+                break;
+            }
+
+            page++;
+        }
+
+        logger.info('[Ezal] CannMenus fetch complete', {
+            retailerId, totalProducts: allProducts.length, pages: page - 1,
+        });
+
+        return {
+            success: true,
+            content: JSON.stringify(allProducts),
+            httpStatus: 200,
+            totalProducts: allProducts.length,
+        };
+    } catch (err: any) {
+        return { success: false, error: `CannMenus fetch failed: ${err.message}` };
+    }
+}
+
+// =============================================================================
 // JINA READER FETCH
 // =============================================================================
 
@@ -349,18 +438,26 @@ export async function executeDiscovery(
     await updateJobStatus(tenantId, jobId, 'running', { runId });
 
     try {
-        // Check robots.txt
-        if (!source.robotsAllowed) {
-            const allowed = await checkRobotsTxt(source.baseUrl);
-            if (!allowed) {
-                throw new Error('URL is disallowed by robots.txt');
-            }
-        }
+        // Fetch content — branch by sourceType
+        let fetchResult: { success: boolean; content?: string; contentType?: string; httpStatus?: number; error?: string };
 
-        // Fetch the URL — use Jina Reader for 'jina' sources, raw HTTP otherwise
-        const fetchResult = source.sourceType === 'jina'
-            ? await fetchViaJina(source.baseUrl)
-            : await fetchUrl(source.baseUrl, { checkRobots: false });
+        if (source.sourceType === 'cann_menus') {
+            // CannMenus API: use retailerId from metadata, state from competitor
+            const retailerId = source.metadata?.retailerId as string | undefined;
+            if (!retailerId) throw new Error('DataSource missing metadata.retailerId for cann_menus source');
+            const state = source.metadata?.state as string | undefined || 'New York';
+            fetchResult = await fetchCannMenusProducts(retailerId, state);
+            if (fetchResult.success) fetchResult.contentType = 'application/json';
+        } else if (source.sourceType === 'jina') {
+            fetchResult = await fetchViaJina(source.baseUrl);
+        } else {
+            // html / json_api — check robots first
+            if (!source.robotsAllowed) {
+                const allowed = await checkRobotsTxt(source.baseUrl);
+                if (!allowed) throw new Error('URL is disallowed by robots.txt');
+            }
+            fetchResult = await fetchUrl(source.baseUrl, { checkRobots: false });
+        }
 
         if (!fetchResult.success) {
             throw new Error(fetchResult.error || 'Fetch failed');

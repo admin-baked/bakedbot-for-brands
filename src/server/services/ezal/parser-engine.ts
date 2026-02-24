@@ -410,7 +410,7 @@ function getByPath(obj: any, path: string): any {
  */
 export async function parseContent(
     content: string,
-    sourceType: 'html' | 'json_api' | 'jina',
+    sourceType: 'html' | 'json_api' | 'jina' | 'cann_menus',
     profileId: string
 ): Promise<ParseResult> {
     if (sourceType === 'json_api') {
@@ -419,7 +419,144 @@ export async function parseContent(
     if (sourceType === 'jina') {
         return parseWithJina(content);
     }
+    if (sourceType === 'cann_menus') {
+        return parseCannMenus(content);
+    }
     return parseHtml(content, profileId);
+}
+
+// =============================================================================
+// CANNMENUS JSON PARSER
+// =============================================================================
+
+/**
+ * CannMenus product shape returned by fetchCannMenusProducts()
+ */
+interface CannMenusProduct {
+    cann_sku_id?: string;
+    brand_name?: string;
+    product_name?: string;
+    raw_product_name?: string;
+    category?: string;
+    raw_product_category?: string;
+    subcategory?: string;
+    percentage_thc?: number | null; // 0.0–1.0 decimal (multiply × 100 for %)
+    percentage_cbd?: number | null;
+    mg_thc?: number | null;
+    mg_cbd?: number | null;
+    latest_price?: number | null;
+    original_price?: number | null;
+    display_weight?: string;
+    url?: string;
+    image_url?: string;
+    _retailerId?: string;
+    _sku?: string;
+}
+
+const CANNMENUS_CATEGORY_MAP: Record<string, ProductCategory> = {
+    flower: 'flower',
+    'pre-roll': 'pre_roll',
+    preroll: 'pre_roll',
+    pre_roll: 'pre_roll',
+    vape: 'vape',
+    cartridge: 'vape',
+    edible: 'edible',
+    concentrate: 'concentrate',
+    topical: 'topical',
+    tincture: 'tincture',
+    accessory: 'accessory',
+    gear: 'accessory',
+};
+
+/**
+ * Parse CannMenus JSON product array into ParsedProduct[].
+ * Input: JSON string returned by fetchCannMenusProducts().
+ */
+function parseCannMenus(jsonContent: string): ParseResult {
+    const startTime = Date.now();
+    const products: ParsedProduct[] = [];
+    const parseErrors: string[] = [];
+
+    let rawProducts: CannMenusProduct[];
+    try {
+        rawProducts = JSON.parse(jsonContent);
+        if (!Array.isArray(rawProducts)) throw new Error('Expected array');
+    } catch (e: any) {
+        return { success: false, products: [], parseErrors: [`Invalid JSON: ${e.message}`], totalFound: 0, parseTimeMs: 0 };
+    }
+
+    const seen = new Set<string>();
+
+    for (let i = 0; i < rawProducts.length; i++) {
+        try {
+            const p = rawProducts[i];
+            const productName = p.product_name || p.raw_product_name || '';
+            const brandName = p.brand_name || '';
+            const price = typeof p.latest_price === 'number' ? p.latest_price : 0;
+
+            if (!productName || price <= 0) continue;
+
+            // Deduplicate by name+brand+price (CannMenus can return historical variants)
+            const dedupeKey = `${brandName}|${productName}|${price}`;
+            if (seen.has(dedupeKey)) continue;
+            seen.add(dedupeKey);
+
+            // Category
+            const rawCat = (p.category || p.raw_product_category || '').toLowerCase().replace(/\s+/g, '_');
+            const category: ProductCategory = CANNMENUS_CATEGORY_MAP[rawCat] ?? 'other';
+
+            // THC/CBD — CannMenus stores as 0–1 decimal fraction
+            const thcPct = typeof p.percentage_thc === 'number' ? Math.round(p.percentage_thc * 1000) / 10 : null;
+            const cbdPct = typeof p.percentage_cbd === 'number' ? Math.round(p.percentage_cbd * 1000) / 10 : null;
+
+            // Strain — not in CannMenus API; infer from name
+            const lc = productName.toLowerCase();
+            let strainType: StrainType = 'unknown';
+            if (/\bsativa\b/.test(lc)) strainType = 'sativa';
+            else if (/\bindica\b/.test(lc)) strainType = 'indica';
+            else if (/\bhybrid\b/.test(lc)) strainType = 'hybrid';
+
+            // Size in grams
+            const sizeMatch = (p.display_weight || productName).match(/(\d+(?:\.\d+)?)\s*g\b/i);
+            const sizeGrams = sizeMatch ? parseFloat(sizeMatch[1]) : undefined;
+
+            const externalProductId = p.cann_sku_id || `cann-${i}-${productName.substring(0, 30).replace(/\W/g, '')}`;
+
+            products.push({
+                externalProductId,
+                productName,
+                brandName,
+                category,
+                strainType,
+                thcPct,
+                cbdPct,
+                price,
+                regularPrice: typeof p.original_price === 'number' && p.original_price !== p.latest_price
+                    ? p.original_price
+                    : null,
+                inStock: true, // CannMenus only returns in-stock items
+                metadata: {
+                    sizeGrams,
+                    imageUrl: p.image_url || undefined,
+                    productUrl: p.url || undefined,
+                },
+            });
+        } catch (e: any) {
+            parseErrors.push(`Product ${i}: ${e.message}`);
+        }
+    }
+
+    logger.info('[Ezal] parseCannMenus complete', {
+        rawCount: rawProducts.length, parsed: products.length, parseTimeMs: Date.now() - startTime,
+    });
+
+    return {
+        success: products.length > 0,
+        products,
+        parseErrors,
+        totalFound: products.length,
+        parseTimeMs: Date.now() - startTime,
+    };
 }
 
 // =============================================================================
