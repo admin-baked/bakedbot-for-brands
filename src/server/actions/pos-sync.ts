@@ -6,6 +6,7 @@ import { ALLeavesClient, type ALLeavesConfig, type ALLeavesDiscount } from '@/li
 import { createImport } from './import-actions';
 import { logger } from '@/lib/logger';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { createHash } from 'crypto';
 
 /**
  * Syncs products from a configured POS system for a specific location.
@@ -95,10 +96,50 @@ export async function syncPOSProducts(locationId: string, orgId: string) {
         // 5. Trigger the standard import pipeline
         const sourceId = `pos_${posConfig.provider}_${locationId}`;
         const result = await createImport(orgId, sourceId, rawProducts);
-        
-        if (!result.success) {
+
+        if (!result.success && !result.importId) {
             logger.error('[POS_SYNC] Import pipeline failed', { error: result.error });
             throw new Error(result.error);
+        }
+
+        // 6. Write COGS (cost) fields separately — import pipeline doesn't carry cost data.
+        // Product doc IDs are deterministic: prod_{sha256(orgId:externalId).slice(0,20)}
+        const productsWithCost = posProducts.filter(p => p.cost != null);
+        if (productsWithCost.length > 0) {
+            logger.info('[POS_SYNC] Writing COGS to tenant catalog', { count: productsWithCost.length, orgId });
+            const COST_BATCH_SIZE = 400;
+            let costBatch = firestore.batch();
+            let costOps = 0;
+            let totalCostWritten = 0;
+
+            for (const p of productsWithCost) {
+                if (!p.externalId) continue;
+                const docId = `prod_${createHash('sha256').update(`${orgId}:${p.externalId}`).digest('hex').slice(0, 20)}`;
+                const viewRef = firestore
+                    .collection('tenants')
+                    .doc(orgId)
+                    .collection('publicViews')
+                    .doc('products')
+                    .collection('items')
+                    .doc(docId);
+
+                // Use set+merge so the update is a no-op if the doc doesn't exist yet
+                costBatch.set(viewRef, { cost: p.cost }, { merge: true });
+                costOps++;
+                totalCostWritten++;
+
+                if (costOps >= COST_BATCH_SIZE) {
+                    await costBatch.commit();
+                    costBatch = firestore.batch();
+                    costOps = 0;
+                }
+            }
+
+            if (costOps > 0) {
+                await costBatch.commit();
+            }
+
+            logger.info('[POS_SYNC] COGS write complete', { totalCostWritten, orgId });
         }
 
         logger.info('[POS_SYNC] Sync completed successfully', {
