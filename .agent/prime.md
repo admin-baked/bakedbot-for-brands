@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-24)
 
 **Recent work (2026-02-24):** See `memory/MEMORY.md` for full log.
-Key completed: [COGS column regression fix on products table] (`82498296`), [Pinky CLI for Claude Code + deploy verify] (`9c139c6b`)
+Key completed: [Jina search + Smokey web search fix + CI frequency toggle] (`cbd3afa3`), [Brand guide IG preview + city/state/type extraction] (`f310b9a9`)
 
 ---
 
