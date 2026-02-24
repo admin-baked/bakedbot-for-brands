@@ -21,6 +21,9 @@ import { updateBrandGuide } from '@/server/actions/brand-guide';
 import { validateColorAccessibility } from '@/server/actions/brand-guide';
 import { useToast } from '@/hooks/use-toast';
 import type { BrandGuide, BrandVisualIdentity } from '@/types/brand-guide';
+import { BRAND_ARCHETYPES, type ArchetypeId } from '@/constants/brand-archetypes';
+import { ArchetypeSelector } from './archetype-selector';
+import { ArchetypePreview } from './archetype-preview';
 
 interface VisualIdentityTabProps {
   brandId: string;
@@ -34,6 +37,12 @@ export function VisualIdentityTab({ brandId, brandGuide, onUpdate }: VisualIdent
   );
   const [loading, setLoading] = useState(false);
   const [accessibilityCheck, setAccessibilityCheck] = useState<any>(null);
+  const [savedPrimary, setSavedPrimary] = useState<ArchetypeId | null>(
+    brandGuide.archetype?.primary ?? null
+  );
+  const [savedSecondary, setSavedSecondary] = useState<ArchetypeId | null>(
+    brandGuide.archetype?.secondary ?? null
+  );
   const { toast } = useToast();
 
   // Validate accessibility whenever colors change
@@ -94,6 +103,37 @@ export function VisualIdentityTab({ brandId, brandGuide, onUpdate }: VisualIdent
 
   return (
     <div className="space-y-6">
+      {/* Brand Archetype Section — Brand Guide 2.0 Spec 01 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Brand Archetype</CardTitle>
+          <CardDescription>
+            The personality blueprint that shapes every agent interaction — Smokey&apos;s greeting style,
+            Craig&apos;s subject lines, and tone across all content.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_260px]">
+            <ArchetypeSelector
+              brandId={brandId}
+              initialPrimary={savedPrimary}
+              initialSecondary={savedSecondary}
+              onSaved={(primary, secondary) => {
+                setSavedPrimary(primary);
+                setSavedSecondary(secondary);
+                onUpdate({ archetype: { primary, secondary, selected_at: { seconds: Date.now() / 1000, nanoseconds: 0 } as any, suggested_by_scanner: brandGuide.archetype?.suggested_by_scanner ?? null } });
+              }}
+            />
+            {savedPrimary && (
+              <div className="hidden lg:block">
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Live Preview</div>
+                <ArchetypePreview primary={savedPrimary} secondary={savedSecondary} />
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Logo Section */}
       <Card>
         <CardHeader>

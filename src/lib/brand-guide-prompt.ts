@@ -12,6 +12,7 @@
  */
 
 import type { BrandGuide, BrandVoice, BrandMessaging } from '@/types/brand-guide';
+import { BRAND_ARCHETYPES } from '@/constants/brand-archetypes';
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -25,6 +26,10 @@ export function buildBrandBrief(brandGuide: BrandGuide | null | undefined): stri
     if (!brandGuide) return '';
 
     const sections: string[] = [];
+
+    // Brand Archetype (Spec 01 — Brand Guide 2.0)
+    const archetypeSection = buildArchetypeBlock(brandGuide);
+    if (archetypeSection) sections.push(archetypeSection);
 
     // Messaging / Positioning
     const msgSection = buildMessagingSection(brandGuide.messaging);
@@ -55,11 +60,41 @@ ${sections.join('\n\n')}
 export function buildBrandVoiceBrief(brandGuide: BrandGuide | null | undefined): string {
     if (!brandGuide?.voice) return '';
 
+    const sections: string[] = [];
+    const archetypeSection = buildArchetypeBlock(brandGuide);
+    if (archetypeSection) sections.push(archetypeSection);
     const voiceSection = buildVoiceSection(brandGuide.voice);
-    if (!voiceSection) return '';
+    if (voiceSection) sections.push(voiceSection);
+    if (sections.length === 0) return '';
 
     const brand = brandGuide.brandName || 'this brand';
-    return `=== ${brand.toUpperCase()} BRAND VOICE ===\n${voiceSection}\n=== END BRAND VOICE ===`;
+    return `=== ${brand.toUpperCase()} BRAND VOICE ===\n${sections.join('\n\n')}\n=== END BRAND VOICE ===`;
+}
+
+/**
+ * Formats the brand archetype selection into a compact agent prompt block.
+ * Returns empty string if no archetype has been selected.
+ * Max ~80 tokens.
+ */
+export function buildArchetypeBlock(brandGuide: BrandGuide | null | undefined): string {
+    const archetype = brandGuide?.archetype;
+    if (!archetype?.primary) return '';
+
+    const primary = BRAND_ARCHETYPES[archetype.primary];
+    if (!primary) return '';
+
+    const lines = ['[BRAND ARCHETYPE]'];
+    lines.push(`Primary: ${primary.icon} ${primary.label} — ${primary.description}`);
+
+    if (archetype.secondary && BRAND_ARCHETYPES[archetype.secondary]) {
+        const secondary = BRAND_ARCHETYPES[archetype.secondary];
+        lines.push(`Secondary (30% blend): ${secondary.icon} ${secondary.label}`);
+    }
+
+    lines.push(`Smokey greeting style: "${primary.smokeySample.replace('{dispensary}', brandGuide?.brandName ?? 'this dispensary')}"`);
+    lines.push(`Craig subject style: "${primary.craigSubjectSample.replace('{first_name}', '[Name]').replace('{dispensary}', brandGuide?.brandName ?? 'this dispensary')}"`);
+
+    return lines.join('\n');
 }
 
 // ---------------------------------------------------------------------------
@@ -170,10 +205,6 @@ function buildVoiceSection(voice: Partial<BrandVoice> | undefined): string {
             const termNames = vocab.cannabisTerms.slice(0, 8).map(t => t.term).join(', ');
             lines.push(`Brand's cannabis vocabulary: ${termNames}`);
         }
-    }
-
-    if ((voice as any).archetype) {
-        lines.push(`Brand archetype: ${(voice as any).archetype}`);
     }
 
     return lines.length > 1 ? lines.join('\n') : '';

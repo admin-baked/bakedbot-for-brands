@@ -27,6 +27,7 @@ import {
   checkWCAGLevel,
   type ContrastResult,
 } from '@/lib/accessibility-checker';
+import { suggestArchetype, type ArchetypeId } from '@/constants/brand-archetypes';
 import { logger } from '@/lib/logger';
 
 // ============================================================================
@@ -68,12 +69,41 @@ interface ExtractionResult {
   source: BrandGuideSource;
   confidence: number; // 0-100
   websiteTitle?: string;
+  suggestedArchetype?: ArchetypeId; // Heuristic suggestion from scan data
   metadata?: {
     title?: string;
     description?: string;
     ogImage?: string;
     favicon?: string;
   };
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Convert a CSS hex color to { hue (0-360), lightness (0-100) }.
+ * Returns null for invalid hex strings.
+ */
+function hexToHsl(hex: string): { hue: number; lightness: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return null;
+  const r = parseInt(result[1], 16) / 255;
+  const g = parseInt(result[2], 16) / 255;
+  const b = parseInt(result[3], 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return { hue: 0, lightness: Math.round(l * 100) };
+  const d = max - min;
+  let h = 0;
+  switch (max) {
+    case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+    case g: h = ((b - r) / d + 2) / 6; break;
+    case b: h = ((r - g) / d + 4) / 6; break;
+  }
+  return { hue: Math.round(h * 360), lightness: Math.round(l * 100) };
 }
 
 // ============================================================================
@@ -179,6 +209,18 @@ export class BrandGuideExtractor {
         extractionConfidence: confidence,
       };
 
+      // Step 8: Suggest an archetype from the scanned data (heuristic, non-fatal)
+      let suggestedArchetype: ArchetypeId | undefined;
+      try {
+        const primaryHex = (visualIdentity.colors as any)?.primary?.hex ?? websiteAnalysis.colors[0];
+        const dominantColor = primaryHex ? hexToHsl(primaryHex) ?? undefined : undefined;
+        const heroText = [websiteAnalysis.metadata.title, websiteAnalysis.textSamples[0]].filter(Boolean).join(' ');
+        suggestedArchetype = suggestArchetype({ dominantColor, heroText });
+        logger.info('[BrandGuideExtractor] Archetype suggestion', { url: input.url, suggestedArchetype });
+      } catch (archErr) {
+        logger.warn('[BrandGuideExtractor] Archetype suggestion failed (non-fatal)', { error: archErr });
+      }
+
       logger.info('Brand guide extraction completed', {
         url: input.url,
         confidence,
@@ -191,6 +233,7 @@ export class BrandGuideExtractor {
         source,
         confidence,
         websiteTitle: websiteAnalysis.metadata.title,
+        suggestedArchetype,
         metadata: websiteAnalysis.metadata,  // exposes title + description for client pre-fill
       };
     } catch (error) {

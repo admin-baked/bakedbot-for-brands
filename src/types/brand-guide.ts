@@ -12,6 +12,20 @@
  */
 
 import { Timestamp } from '@google-cloud/firestore';
+import type { ArchetypeId } from '@/constants/brand-archetypes';
+
+// ============================================================================
+// BRAND ARCHETYPE (Spec 01)
+// ============================================================================
+
+export type { ArchetypeId };
+
+export interface BrandArchetypeSelection {
+  primary: ArchetypeId;
+  secondary: ArchetypeId | null;
+  selected_at: Timestamp;
+  suggested_by_scanner: ArchetypeId | null;
+}
 
 // ============================================================================
 // VISUAL IDENTITY
@@ -665,6 +679,9 @@ export interface BrandGuide {
   messaging: BrandMessaging;
   compliance: BrandCompliance;
   assets: BrandAssetLibrary;
+
+  // Brand archetype (Spec 01 — Brand Guide 2.0)
+  archetype?: BrandArchetypeSelection;
 
   // Intelligence & optimization
   competitorAnalysis?: BrandCompetitorAnalysis;

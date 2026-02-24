@@ -24,6 +24,7 @@ import type {
   BrandVoiceABTest,
   BrandAuditReport,
 } from '@/types/brand-guide';
+import { BRAND_ARCHETYPES, type ArchetypeId } from '@/constants/brand-archetypes';
 import { logger } from '@/lib/logger';
 
 // ============================================================================
@@ -288,6 +289,7 @@ export async function extractBrandGuideFromUrl(
   metadata?: any;
   confidence?: number;
   websiteTitle?: string;
+  suggestedArchetype?: ArchetypeId;
   error?: string;
 }> {
   try {
@@ -302,6 +304,7 @@ export async function extractBrandGuideFromUrl(
       metadataTitle: result.metadata?.title || '(none)',
       metadataDescription: (result.metadata?.description || '').substring(0, 120) || '(none)',
       websiteTitle: result.websiteTitle || '(none)',
+      suggestedArchetype: result.suggestedArchetype || '(none)',
     });
 
     return {
@@ -312,6 +315,7 @@ export async function extractBrandGuideFromUrl(
       metadata: result.metadata,        // ← was missing; client reads metadata.description
       confidence: result.confidence,
       websiteTitle: result.websiteTitle,
+      suggestedArchetype: result.suggestedArchetype,
     };
   } catch (error) {
     logger.error('Failed to extract brand guide from URL', { error, input });
@@ -750,5 +754,77 @@ export async function getBrandGuidesList(
       success: false,
       error: error instanceof Error ? error.message : 'Failed to get brand guides list',
     };
+  }
+}
+
+// ============================================================================
+// BRAND ARCHETYPE (Spec 01 — Brand Guide 2.0)
+// ============================================================================
+
+/**
+ * Save brand archetype selection for a brand guide.
+ * Validates primary/secondary combination before writing.
+ */
+export async function saveBrandArchetype(
+  brandId: string,
+  primary: ArchetypeId,
+  secondary: ArchetypeId | null
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    if (!BRAND_ARCHETYPES[primary]) {
+      return { success: false, error: `Invalid archetype: ${primary}` };
+    }
+    if (secondary && !BRAND_ARCHETYPES[secondary]) {
+      return { success: false, error: `Invalid secondary archetype: ${secondary}` };
+    }
+    if (secondary && secondary === primary) {
+      return { success: false, error: 'Secondary must differ from primary' };
+    }
+
+    const firestore = getAdminFirestore();
+    const repo = makeBrandGuideRepo(firestore);
+
+    await repo.update(brandId, {
+      archetype: {
+        primary,
+        secondary: secondary ?? null,
+        selected_at: Timestamp.now(),
+        suggested_by_scanner: null,
+      },
+    });
+
+    logger.info('[BrandGuide] Archetype saved', { brandId, primary, secondary });
+    return { success: true };
+  } catch (error) {
+    logger.error('[BrandGuide] saveBrandArchetype failed', {
+      error: (error as Error).message,
+      brandId,
+    });
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+/**
+ * Record the website scanner's archetype suggestion without overwriting the user's selection.
+ * Called internally by the brand guide extractor after a URL scan.
+ */
+export async function recordScannerArchetypeSuggestion(
+  brandId: string,
+  suggestedArchetype: ArchetypeId
+): Promise<void> {
+  try {
+    const firestore = getAdminFirestore();
+    // Use Firestore directly to merge only the suggested_by_scanner field
+    await firestore.collection('brandGuides').doc(brandId).set(
+      { archetype: { suggested_by_scanner: suggestedArchetype } },
+      { merge: true }
+    );
+    logger.info('[BrandGuide] Scanner archetype suggestion recorded', { brandId, suggestedArchetype });
+  } catch (error) {
+    // Non-fatal — scanner suggestion is best-effort
+    logger.warn('[BrandGuide] Failed to record scanner archetype suggestion', {
+      error: (error as Error).message,
+      brandId,
+    });
   }
 }
