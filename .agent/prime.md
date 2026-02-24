@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-24)
 
 **Recent work (2026-02-24):** See `memory/MEMORY.md` for full log.
-Key completed: [Jina AI + CannMenus competitive intel pipeline] (`c3a5c0b5`), [parseLeafly() overhaul + monthly freq gate for unpaid orgs] (`b0993232`)
+Key completed: [k6 synthetic monitoring + Linus auto-escalation loop] (`1e148108`), [Jina AI + CannMenus competitive intel pipeline] (`c3a5c0b5`)
 
 ---
 
