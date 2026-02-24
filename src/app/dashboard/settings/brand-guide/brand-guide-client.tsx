@@ -646,49 +646,117 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
               </div>
 
               {/* Preview Content */}
-              <div className="p-8">
-                {/* Preview Card Graphic */}
-                <div className="relative aspect-square w-full bg-slate-900 rounded-xl p-8 flex flex-col justify-end overflow-hidden shadow-2xl">
-                  {/* Abstract Background Pattern */}
-                  <div className="absolute inset-0 opacity-20 pointer-events-none">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-baked-green rounded-full blur-[80px]" />
-                    <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full blur-[60px] opacity-10" />
-                  </div>
+              <div className="p-6">
+                {/* Instagram-ready Preview Card */}
+                {(() => {
+                  const brandColor = step2Data?.primaryColor || '#1a2e1a';
+                  const accentColor = step2Data?.secondaryColor || step2Data?.primaryColor || '#4ade80';
+                  const logoUrl = step2Data?.logoUrl || step2Data?.logoPreviewUrl;
+                  const tagline = step1Data?.tagline || 'Where Community Comes First';
+                  const shortDesc = step1Data?.description
+                    ? step1Data.description.length > 90
+                      ? step1Data.description.substring(0, 90).trimEnd() + '…'
+                      : step1Data.description
+                    : 'Premium cannabis products. Community first.';
+                  const city = step1Data?.city;
+                  const state = step1Data?.state;
+                  const locationLine = city && state ? `${city}, ${state}` : city || state || null;
+                  const typeLabel =
+                    step1Data?.dispensaryType === 'recreational' ? 'Adult-Use Cannabis' :
+                    step1Data?.dispensaryType === 'medical' ? 'Medical Dispensary' :
+                    step1Data?.dispensaryType === 'both' ? 'Rec + Medical' :
+                    'Cannabis Dispensary';
 
-                  <div className="relative z-10 space-y-4">
-                    <div className="w-16 h-4 bg-gray-700 rounded animate-pulse mb-6" />
-                    <h4 className="text-white text-3xl font-bold leading-tight uppercase tracking-tighter">
-                      {step1Data?.brandName || 'Your Brand'}
-                      <br />
-                      {step1Data?.tagline || 'Headline Here'}
-                    </h4>
-                    <p className="text-gray-300 text-lg">
-                      {step1Data?.description ||
-                        step3Data?.tone?.[0] ||
-                        'Your brand voice will appear here.'}
-                    </p>
+                  return (
                     <div
-                      className="inline-block mt-4 px-6 py-3 font-black text-sm uppercase tracking-widest"
-                      style={{
-                        backgroundColor: step2Data?.primaryColor || '#ffffff',
-                        color: step2Data?.secondaryColor || '#000000',
-                      }}
+                      className="relative aspect-square w-full rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+                      style={{ backgroundColor: brandColor }}
                     >
-                      Shop Now
-                    </div>
-                  </div>
-                </div>
+                      {/* Background glow blobs using brand color */}
+                      <div className="absolute inset-0 pointer-events-none">
+                        <div
+                          className="absolute -top-12 -right-12 w-56 h-56 rounded-full blur-[80px] opacity-40"
+                          style={{ backgroundColor: accentColor }}
+                        />
+                        <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full blur-[60px] opacity-10 bg-white" />
+                      </div>
 
-                {/* Info Box */}
-                <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-100">
-                  <div className="flex gap-3">
-                    <Info className="w-5 h-5 text-baked-green mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-green-800 leading-relaxed">
-                      Completing your brand guide helps BakedBot's AI generate{' '}
-                      <strong>higher-converting</strong> copy and visuals tailored exactly to
-                      your business.
-                    </p>
-                  </div>
+                      {/* Top bar: Logo + IG badge */}
+                      <div className="relative z-10 flex items-start justify-between p-6 pb-0">
+                        {logoUrl ? (
+                          <img
+                            src={logoUrl}
+                            alt={step1Data?.brandName || 'Brand logo'}
+                            className="h-10 w-auto object-contain max-w-[140px]"
+                            style={{ filter: 'brightness(0) invert(1)' }}
+                          />
+                        ) : (
+                          <span className="text-white/70 text-xs font-bold uppercase tracking-widest">
+                            {step1Data?.brandName || 'Brand'}
+                          </span>
+                        )}
+                        <div className="flex items-center gap-1 bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full">
+                          <span className="text-white text-[10px] font-semibold tracking-wide">📸 IG Ready</span>
+                        </div>
+                      </div>
+
+                      {/* Spacer */}
+                      <div className="flex-1" />
+
+                      {/* Bottom content */}
+                      <div className="relative z-10 p-6 pt-0 space-y-3">
+                        {/* Dispensary type + location pill */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
+                            style={{ backgroundColor: `${accentColor}33`, color: accentColor }}
+                          >
+                            {typeLabel}
+                          </span>
+                          {locationLine && (
+                            <span className="text-white/50 text-[10px] uppercase tracking-wider">
+                              📍 {locationLine}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Headline — tagline only, sized to fit */}
+                        <h4
+                          className="text-white font-black leading-[1.05] uppercase tracking-tight"
+                          style={{ fontSize: tagline.length > 30 ? '1.35rem' : tagline.length > 20 ? '1.6rem' : '1.9rem' }}
+                        >
+                          {tagline}
+                        </h4>
+
+                        {/* Short description */}
+                        <p className="text-white/60 text-xs leading-snug">
+                          {shortDesc}
+                        </p>
+
+                        {/* CTA */}
+                        <div className="pt-1">
+                          <div
+                            className="inline-block px-5 py-2 font-black text-xs uppercase tracking-widest rounded-sm"
+                            style={{ backgroundColor: accentColor, color: brandColor }}
+                          >
+                            Shop Now
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Info Box */}
+              <div className="mx-6 mb-6 p-4 bg-green-50 rounded-lg border border-green-100">
+                <div className="flex gap-3">
+                  <Info className="w-5 h-5 text-baked-green mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-green-800 leading-relaxed">
+                    Completing your brand guide helps BakedBot's AI generate{' '}
+                    <strong>higher-converting</strong> copy and visuals tailored exactly to
+                    your business.
+                  </p>
                 </div>
               </div>
 
