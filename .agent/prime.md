@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-24)
 
 **Recent work (2026-02-24):** See `memory/MEMORY.md` for full log.
-Key completed: [k6 synthetic monitoring + Linus auto-escalation loop] (`1e148108`), [Jina AI + CannMenus competitive intel pipeline] (`c3a5c0b5`)
+Key completed: [Creative Studio 'Failed to fetch' fix] (`f80b1ec4`), [Background spending sync + Segments fix] (`0f4d82f5`)
 
 ---
 
