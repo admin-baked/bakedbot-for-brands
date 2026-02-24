@@ -14,6 +14,8 @@ import {
     buildIntegrationStatusSummary
 } from './agent-definitions';
 import { loadAndBuildGoalDirective } from './goal-directive-builder';
+import { getBrandGuide } from '@/server/actions/brand-guide';
+import { buildBrandBrief } from '@/lib/brand-guide-prompt';
 
 // --- Tool Definitions ---
 
@@ -53,7 +55,13 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
 
     // Load active goals for goal-driven directives
     const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id;
-    const goalDirectives = orgId ? await loadAndBuildGoalDirective(orgId) : '';
+    const [goalDirectives, brandGuideResult] = await Promise.all([
+        orgId ? loadAndBuildGoalDirective(orgId) : Promise.resolve(''),
+        orgId ? getBrandGuide(orgId).catch(() => ({ success: false })) : Promise.resolve({ success: false }),
+    ]);
+    const brandBrief = buildBrandBrief(
+        (brandGuideResult as any).success ? (brandGuideResult as any).brandGuide : null
+    );
 
     // Set System Instructions for Authenticity
     agentMemory.system_instructions = `
@@ -63,6 +71,8 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
 
         **Playbooks** are reusable automations composed of triggers and instructions that can be set for various frequencies (daily, weekly, monthly, yearly, etc.).
         ${goalDirectives}
+
+        ${brandBrief}
 
         === AGENT SQUAD (For Collaboration) ===
         ${squadRoster}

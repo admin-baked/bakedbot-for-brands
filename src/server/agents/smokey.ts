@@ -19,6 +19,8 @@ import {
     buildGroundingInstructions,
 } from '../grounding';
 import { loadAndBuildGoalDirective } from './goal-directive-builder';
+import { getBrandGuide } from '@/server/actions/brand-guide';
+import { buildBrandVoiceBrief } from '@/lib/brand-guide-prompt';
 
 // --- Tool Definitions ---
 
@@ -78,7 +80,13 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
         // Load active goals for goal-driven directives
         const orgId = (brandMemory.brand_profile as { orgId?: string })?.orgId || brandId;
-        const goalDirectives = await loadAndBuildGoalDirective(orgId);
+        const [goalDirectives, brandGuideResult] = await Promise.all([
+            loadAndBuildGoalDirective(orgId),
+            getBrandGuide(orgId).catch(() => ({ success: false })),
+        ]);
+        const brandVoiceBrief = buildBrandVoiceBrief(
+            (brandGuideResult as any).success ? (brandGuideResult as any).brandGuide : null
+        );
 
         agentMemory.system_instructions = `
             You are Smokey, the Digital Budtender & Product Expert.
@@ -91,6 +99,8 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             4. **Team Player**: Delegate tasks to specialists (see squad below).
             5. **Carousel Creator**: When asked to create featured product carousels, use the createCarouselArtifact tool to generate a structured artifact for user approval.
             ${goalDirectives}
+
+            ${brandVoiceBrief}
 
             === AGENT SQUAD (For Delegation) ===
             ${squadRoster}
