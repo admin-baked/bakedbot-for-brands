@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-24)
 
 **Recent work (2026-02-24):** See `memory/MEMORY.md` for full log.
-Key completed: [Creative Studio 'Failed to fetch' fix] (`f80b1ec4`), [Background spending sync + Segments fix] (`0f4d82f5`)
+Key completed: [Pinky CLI for Claude Code + deploy verify + regression tracking] (`9c139c6b`), [smoke test fixes: robots.txt age-gate bypass + goals/suggest 401] (`50d2bd28`)
 
 ---
 

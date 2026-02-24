@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (Creative Studio timeout fix: remove Gemini image fallback + 15s caption timeout; background spending sync; Segments 2967 Churned fix)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (Pinky CLI for Claude Code IDE; deploy verification via /api/health + K_REVISION; regression tracking on QABug; smoke test fixes: robots.txt age-gate bypass + goals/suggest 401)
 
 ---
 
