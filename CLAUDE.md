@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (dynamic brand theming: dashboard adopts org brand colors; brand guide enrichment pipeline planned)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (brand guide enrichment pipeline: voice samples, archetype, compliance auto-pop; Craig+Smokey now get full brand brief)
 
 ---
 
