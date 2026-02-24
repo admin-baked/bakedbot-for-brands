@@ -4,9 +4,11 @@
 import { ColumnDef } from '@tanstack/react-table';
 import type { Product } from '@/types/domain';
 import Image from 'next/image';
-import { ArrowUpDown, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { ArrowUpDown, MoreHorizontal, Pencil, Trash2, Check, X, Loader2 } from 'lucide-react';
 import { calculateProductScore, getScoreColor } from '@/lib/scoring';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { getPriceTier, TIER_CONFIG } from '@/lib/product-tiers';
 import {
   DropdownMenu,
@@ -16,6 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Link from 'next/link';
 import {
   AlertDialog,
@@ -28,9 +31,91 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { deleteProduct } from '../actions';
+import { updateProductCost } from '@/app/dashboard/menu/actions';
 import { useToast } from '@/hooks/use-toast';
+
+function CostCell({ product }: { product: Product }) {
+  const [editing, setEditing] = useState(false);
+  const [savedCost, setSavedCost] = useState<number | null>(product.cost ?? null);
+  const [inputValue, setInputValue] = useState(product.cost != null ? String(product.cost) : '');
+  const [saving, setSaving] = useState(false);
+
+  const margin = savedCost != null && product.price > 0
+    ? ((product.price - savedCost) / product.price * 100).toFixed(0)
+    : null;
+
+  const save = async () => {
+    setSaving(true);
+    const parsed = inputValue.trim() === '' ? null : parseFloat(inputValue);
+    if (parsed !== null && isNaN(parsed)) { setSaving(false); return; }
+    const result = await updateProductCost(product.id, parsed);
+    setSaving(false);
+    if (result.success) {
+      setSavedCost(parsed);
+      setEditing(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1">
+        <span className="text-muted-foreground text-xs">$</span>
+        <Input
+          autoFocus
+          type="number"
+          step="0.01"
+          min="0"
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') save(); if (e.key === 'Escape') setEditing(false); }}
+          className="h-7 w-20 text-sm px-1"
+        />
+        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={save} disabled={saving}>
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3 text-emerald-600" />}
+        </Button>
+        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditing(false)}>
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+    );
+  }
+
+  if (savedCost == null) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={() => setEditing(true)} className="flex items-center gap-1 group">
+              <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50 text-xs font-normal">
+                Not Set
+              </Badge>
+              <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Click to add COGS — required for margin calculations</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <button onClick={() => setEditing(true)} className="flex items-center gap-2 group text-left">
+      <div>
+        <div className="text-sm font-medium">${savedCost.toFixed(2)}</div>
+        {margin !== null && (
+          <div className={`text-xs ${Number(margin) < 30 ? 'text-amber-600' : 'text-emerald-600'}`}>
+            {margin}% margin
+          </div>
+        )}
+      </div>
+      <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+    </button>
+  );
+}
 
 function DeleteAction({ productId, productName }: { productId: string; productName: string }) {
   const [isPending, startTransition] = useTransition();
@@ -217,6 +302,22 @@ export const columns: ColumnDef<Product>[] = [
       }).format(amount);
       return <div className="text-right font-medium">{formatted}</div>;
     },
+  },
+  {
+    id: 'cost',
+    header: () => (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="cursor-help">COGS</span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Cost of Goods Sold — synced from POS. Click any cell to edit.</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    ),
+    cell: ({ row }) => <CostCell product={row.original} />,
   },
   {
     id: 'actions',
