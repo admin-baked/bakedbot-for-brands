@@ -9,7 +9,7 @@
 // =============================================================================
 
 export type CompetitorType = 'dispensary' | 'marketplace' | 'delivery';
-export type SourceType = 'html' | 'json_api' | 'jina';
+export type SourceType = 'html' | 'json_api' | 'jina' | 'cann_menus';
 export type SourceKind = 'menu' | 'deal_page' | 'store_locator' | 'product_detail';
 
 export interface Competitor {
