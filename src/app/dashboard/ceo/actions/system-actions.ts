@@ -200,5 +200,87 @@ export async function testEmailDispatch(data: { to: string, subject: string, bod
     }
 }
 
+// =============================================================================
+// COMPETITIVE INTEL FREQUENCY MANAGEMENT
+// =============================================================================
+
+export type CIFrequencyPreset = 'empire' | 'daily' | 'weekly' | 'monthly';
+
+const CI_PRESET_MINUTES: Record<CIFrequencyPreset, number> = {
+    empire:  15,           // 15 min — empire tier
+    daily:   60 * 24,      // 1440 min
+    weekly:  60 * 24 * 7,  // 10080 min
+    monthly: 60 * 24 * 30, // 43200 min
+};
+
+/**
+ * Set competitive intel sync frequency for all data sources in an org.
+ * Used by Super User to throttle unpaid orgs or unlock empire-tier frequency.
+ */
+export async function setCompetitiveIntelFrequency(
+    orgId: string,
+    preset: CIFrequencyPreset
+): Promise<ActionResult & { updatedCount?: number }> {
+    try {
+        await requireUser(['super_user']);
+        const firestore = getAdminFirestore();
+
+        const sourcesSnap = await firestore
+            .collection('tenants').doc(orgId)
+            .collection('data_sources')
+            .get();
+
+        if (sourcesSnap.empty) {
+            return { message: `No data sources found for ${orgId}`, error: true };
+        }
+
+        const frequencyMinutes = CI_PRESET_MINUTES[preset];
+        const batch = firestore.batch();
+        for (const doc of sourcesSnap.docs) {
+            batch.update(doc.ref, { frequencyMinutes, updatedAt: new Date() });
+        }
+        await batch.commit();
+
+        return {
+            message: `Updated ${sourcesSnap.size} data source(s) to ${preset} (${frequencyMinutes} min)`,
+            updatedCount: sourcesSnap.size,
+        };
+    } catch (error: any) {
+        return { message: error.message, error: true };
+    }
+}
+
+/**
+ * Get competitive intel frequency for an org's data sources.
+ * Returns null if no sources exist.
+ */
+export async function getCompetitiveIntelFrequency(
+    orgId: string
+): Promise<{ frequencyMinutes: number | null; preset: CIFrequencyPreset | 'custom' | null; sourceCount: number }> {
+    try {
+        await requireUser(['super_user']);
+        const firestore = getAdminFirestore();
+
+        const sourcesSnap = await firestore
+            .collection('tenants').doc(orgId)
+            .collection('data_sources')
+            .get();
+
+        if (sourcesSnap.empty) return { frequencyMinutes: null, preset: null, sourceCount: 0 };
+
+        // Use the first source's frequencyMinutes as representative
+        const freq = (sourcesSnap.docs[0].data().frequencyMinutes as number) ?? null;
+
+        // Map back to preset label
+        const preset = freq === null ? null :
+            (Object.entries(CI_PRESET_MINUTES) as [CIFrequencyPreset, number][])
+                .find(([, m]) => m === freq)?.[0] ?? 'custom';
+
+        return { frequencyMinutes: freq, preset, sourceCount: sourcesSnap.size };
+    } catch {
+        return { frequencyMinutes: null, preset: null, sourceCount: 0 };
+    }
+}
+
 // Re-export types for backward compatibility
 export type { SystemPlaybook } from './types';

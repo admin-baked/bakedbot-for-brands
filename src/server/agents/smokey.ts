@@ -8,6 +8,7 @@ import { getChatbotUpsells } from '@/server/services/upsell-engine';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 import { smokeyInboxToolDefs } from '../tools/inbox-tools';
 import { smokeyCrmToolDefs } from '../tools/crm-tools';
+import { jinaToolDefs, makeJinaToolsImpl } from '@/server/tools/jina-tools';
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
@@ -226,8 +227,8 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                 }
             ];
 
-            // Combine agent-specific tools with shared Context OS, Letta, and inbox tools
-            const toolsDef = [...smokeySpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs];
+            // Combine agent-specific tools with shared Context OS, Letta, inbox, and Jina web tools
+            const toolsDef = [...smokeySpecificTools, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');
@@ -235,7 +236,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools: tools, // Harness injects 'tools'
+                    tools: { ...tools, ...makeJinaToolsImpl() },
                     model: 'claude-sonnet-4-5-20250929',
                     maxIterations: 5,
                     onStepComplete: async (step, toolName, res) => {
