@@ -11,6 +11,7 @@ import { Timestamp } from '@google-cloud/firestore';
 import { makeBrandGuideRepo } from '@/server/repos/brandGuideRepo';
 import { getBrandGuideExtractor } from '@/server/services/brand-guide-extractor';
 import { getBrandVoiceAnalyzer } from '@/server/services/brand-voice-analyzer';
+import { enrichBrandGuide } from '@/server/services/brand-guide-enricher';
 import { getTemplateById, getAllTemplates } from '@/lib/brand-guide-templates';
 import { validateBrandPalette } from '@/lib/accessibility-checker';
 import type {
@@ -131,6 +132,14 @@ export async function createBrandGuide(
       isActive: true,
     });
 
+    // Kick off async enrichment (voice samples, audience, archetype, compliance)
+    // Non-blocking — user doesn't wait; completes in background ~10-30s
+    setImmediate(() => {
+      enrichBrandGuide(input.brandId).catch(err =>
+        logger.warn('[BrandGuide] Post-create enrichment failed', { error: (err as Error).message })
+      );
+    });
+
     return { success: true, brandGuide };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -213,6 +222,13 @@ export async function updateBrandGuide(
         tags: input.reason ? [input.reason] : undefined,
       });
     }
+
+    // Re-run enrichment whenever the guide is updated (catches new fields from manual edits)
+    setImmediate(() => {
+      enrichBrandGuide(input.brandId).catch(err =>
+        logger.warn('[BrandGuide] Post-update enrichment failed', { error: (err as Error).message })
+      );
+    });
 
     return { success: true };
   } catch (error) {
