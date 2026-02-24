@@ -2,6 +2,7 @@
 
 import { EzalCompetitorList } from "./ezal-competitor-list";
 import { EzalInsightsFeed } from "./ezal-insights-feed";
+import { EzalOrgFrequency } from "./ezal-org-frequency";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Database, Globe } from 'lucide-react';
 import { useMockData } from '@/hooks/use-mock-data';
@@ -120,7 +121,8 @@ export default function EzalTab() {
                 <div className="col-span-4">
                     <EzalCompetitorList tenantId={defaultTenantId} />
                 </div>
-                <div className="col-span-3">
+                <div className="col-span-3 space-y-6">
+                    <EzalOrgFrequency />
                     <EzalInsightsFeed tenantId={defaultTenantId} />
                 </div>
             </div>

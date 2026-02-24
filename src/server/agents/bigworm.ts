@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { sidecar } from '@/server/services/python-sidecar';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 import { runResearchElaboration } from './patterns';
+import { jinaToolDefs, makeJinaToolsImpl } from '@/server/tools/jina-tools';
 
 // --- Big Worm (Deep Research) Memory ---
 // For now extending generic AgentMemory, can add specific fields later
@@ -83,8 +84,8 @@ export const bigWormAgent: AgentImplementation<BigWormMemory, BigWormTools> = {
                 }
             ];
 
-            // Combine agent-specific tools with shared Context OS and Letta tools
-            const researchTools = [...bigWormSpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
+            // Combine agent-specific tools with shared Context OS, Letta, and Jina web research tools
+            const researchTools = [...bigWormSpecificTools, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs];
 
             try {
                 // === RESEARCH-ELABORATION PATTERN ===
@@ -95,15 +96,26 @@ export const bigWormAgent: AgentImplementation<BigWormMemory, BigWormTools> = {
                         You are Big Worm, conducting deep research.
 
                         RESEARCH PHASE OBJECTIVES:
-                        1. Use pythonAnalyze to run data analysis and trend forecasting
-                        2. Use Context OS tools to gather external data sources
-                        3. Use Letta tools to check existing knowledge and save new findings
-                        4. Verify all data points - don't guess, run the numbers
+                        1. Use search_web to find current information, news, and market data
+                        2. Use read_url to read the full content of promising pages found via search
+                        3. Use pythonAnalyze to run data analysis and trend forecasting on what you find
+                        4. Use Context OS tools to gather historical context from the platform
+                        5. Use Letta tools to check existing knowledge and save new findings
+                        6. Verify all data points - don't guess, run the numbers
+
+                        RESEARCH STRATEGY:
+                        - Start with search_web to get current landscape
+                        - Use read_url to go deep on the most relevant 2-3 pages
+                        - Cross-reference web findings with Letta memory
+                        - Save verified facts with saveFinding
 
                         Be thorough. This is deep research, not surface-level.
                     `,
                     researchTools,
-                    researchToolsImpl: tools as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>,
+                    researchToolsImpl: {
+                        ...(tools as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>),
+                        ...(makeJinaToolsImpl() as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>),
+                    },
                     maxResearchIterations: 7,
                     elaboration: {
                         instructions: `
