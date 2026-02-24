@@ -416,5 +416,287 @@ export async function parseContent(
     if (sourceType === 'json_api') {
         return parseJson(content, profileId);
     }
+    if (sourceType === 'jina') {
+        return parseWithJina(content);
+    }
     return parseHtml(content, profileId);
+}
+
+// =============================================================================
+// JINA LLM EXTRACTION
+// =============================================================================
+
+// =============================================================================
+// LEAFLY REGEX PARSER (no LLM required)
+// =============================================================================
+
+/**
+ * Regex-based parser for Leafly dispensary menu pages.
+ * Leafly renders product data SSR — format is consistent enough for regex.
+ *
+ * Leafly markdown structure (per product):
+ *   Category ### Name #### by BRAND THC X% CBD Y% Strain ★rating](url)[each $XX.XX](url)
+ *
+ * Strategy: split on [each $PRICE] anchors; each segment's TAIL holds the product block.
+ */
+function parseLeafly(markdown: string): ParseResult {
+    const startTime = Date.now();
+    const products: ParsedProduct[] = [];
+    const parseErrors: string[] = [];
+
+    const CATEGORY_MAP: Record<string, ProductCategory> = {
+        preroll: 'pre_roll', 'pre-roll': 'pre_roll',
+        flower: 'flower', vape: 'vape', cartridge: 'vape',
+        edible: 'edible', gummy: 'edible', chocolate: 'edible', beverage: 'edible',
+        concentrate: 'concentrate', wax: 'concentrate', shatter: 'concentrate',
+        rosin: 'concentrate', resin: 'concentrate', hash: 'concentrate',
+        tincture: 'tincture', topical: 'topical', capsule: 'edible', accessory: 'accessory',
+    };
+
+    // Split on price anchors — everything between two anchors is one product block.
+    // parts[0] = header; parts[i>=1] = "$PRICE](url)\n...next product block..."
+    const parts = markdown.split(/\[each\s+\$/);
+
+    for (let i = 1; i < parts.length; i++) {
+        try {
+            // Price is at the start of this segment
+            const priceMatch = parts[i].match(/^([\d.]+)/);
+            if (!priceMatch) continue;
+            const price = parseFloat(priceMatch[1]);
+
+            // Product info is at the TAIL of the previous segment (last 600 chars)
+            const productBlock = parts[i - 1].slice(-600);
+
+            // Category — LAST occurrence in block (closest to price)
+            const catRx = /\b(Preroll|Pre-Roll|Flower|Vape|Cartridge|Edible|Gummy|Concentrate|Wax|Shatter|Rosin|Resin|Hash|Tincture|Topical|Capsule|Accessory)\s+###/gi;
+            let catMatch: RegExpExecArray | null;
+            let lastCat: RegExpExecArray | null = null;
+            while ((catMatch = catRx.exec(productBlock)) !== null) lastCat = catMatch;
+            if (!lastCat) continue;
+            const category: ProductCategory = CATEGORY_MAP[lastCat[1].toLowerCase()] ?? 'other';
+
+            // Narrow to just the final product's portion (after the last category keyword)
+            const tail = productBlock.substring(lastCat.index);
+
+            // Name — first ### ... #### in tail
+            const nameMatch = tail.match(/###\s+([\s\S]+?)\s*####/);
+            const rawName = nameMatch?.[1]?.trim().replace(/\s+/g, ' ') || '';
+            if (!rawName || rawName.length < 3) continue;
+
+            // Brand — after "#### by" stopping at THC, CBD%, rating, or link end
+            const brandMatch = tail.match(/####\s+by\s+([^\n]+?)(?=\s+(?:THC|CBD)\b|\s*[\d.]+[★*]|\s*\])/i);
+            const brand = brandMatch?.[1]?.trim() || '';
+
+            // THC%
+            const thcMatch = tail.match(/THC\s+([\d.]+)%/i);
+            const thcPct = thcMatch ? parseFloat(thcMatch[1]) : null;
+
+            // CBD%
+            const cbdMatch = tail.match(/CBD\s+([\d.]+)%/i);
+            const cbdPct = cbdMatch ? parseFloat(cbdMatch[1]) : null;
+
+            // Strain — Leafly explicitly labels it (Sativa/Indica/Hybrid/CBD) before ★ rating
+            // Only use this explicit label, NOT a CBD% mention
+            let strainType: StrainType = 'unknown';
+            const strainLabelMatch = tail.match(/\b(Sativa|Indica|Hybrid|CBD)\b(?=\s+[\d.]+[★*])/i);
+            if (strainLabelMatch) {
+                const sl = strainLabelMatch[1].toLowerCase();
+                if (sl === 'sativa') strainType = 'sativa';
+                else if (sl === 'indica') strainType = 'indica';
+                else if (sl === 'hybrid') strainType = 'hybrid';
+                else if (sl === 'cbd') strainType = 'cbd';
+            } else {
+                // Fallback: check name for strain keywords
+                const lc = rawName.toLowerCase();
+                if (/\bsativa\b/.test(lc)) strainType = 'sativa';
+                else if (/\bindica\b/.test(lc)) strainType = 'indica';
+                else if (/\bhybrid\b/.test(lc)) strainType = 'hybrid';
+            }
+
+            // Size in grams from name
+            const sizeMatch = rawName.match(/(\d+(?:\.\d+)?)\s*g\b/i);
+            const sizeGrams = sizeMatch ? parseFloat(sizeMatch[1]) : undefined;
+
+            const slug = rawName.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 60);
+
+            // Deduplicate by slug
+            if (products.some(p => p.externalProductId === `leafly-${slug}`)) continue;
+
+            products.push({
+                externalProductId: `leafly-${slug}`,
+                productName: rawName,
+                brandName: brand,
+                category,
+                strainType,
+                thcPct,
+                cbdPct,
+                price,
+                regularPrice: null,
+                inStock: true,
+                metadata: { sizeGrams, description: undefined },
+            });
+        } catch (e: any) {
+            parseErrors.push(`Chunk parse error: ${e.message}`);
+        }
+    }
+
+    logger.info('[Ezal] parseLeafly complete', {
+        products: products.length, parseTimeMs: Date.now() - startTime,
+    });
+
+    return {
+        success: products.length > 0,
+        products,
+        parseErrors,
+        totalFound: products.length,
+        parseTimeMs: Date.now() - startTime,
+    };
+}
+
+// =============================================================================
+// JINA LLM EXTRACTION
+// =============================================================================
+
+interface JinaExtractedProduct {
+    id?: string;
+    name?: string;
+    brand?: string;
+    category?: string;
+    strain?: string;
+    thcPct?: number | null;
+    cbdPct?: number | null;
+    price?: number | null;
+    regularPrice?: number | null;
+    inStock?: boolean;
+    sizeGrams?: number | null;
+    description?: string;
+}
+
+const VALID_CATEGORIES = new Set(['flower','pre_roll','vape','edible','concentrate','topical','tincture','accessory']);
+const VALID_STRAINS    = new Set(['indica','sativa','hybrid','cbd']);
+
+function toCategory(raw: string | undefined): ProductCategory {
+    const norm = (raw || '').toLowerCase().replace(/[-\s]/g, '_');
+    if (norm === 'pre_roll' || norm === 'preroll') return 'pre_roll';
+    if (VALID_CATEGORIES.has(norm)) return norm as ProductCategory;
+    return 'other';
+}
+
+function toStrain(raw: string | undefined): StrainType {
+    const norm = (raw || '').toLowerCase();
+    if (VALID_STRAINS.has(norm)) return norm as StrainType;
+    return 'unknown';
+}
+
+/**
+ * Extract cannabis products from Jina Reader markdown using Claude Haiku.
+ * Used when sourceType === 'jina'. Does not require a parser profile.
+ */
+async function parseWithJina(markdown: string): Promise<ParseResult> {
+    const startTime = Date.now();
+
+    if (!markdown || markdown.trim().length < 100) {
+        return { success: false, products: [], parseErrors: ['Markdown too short'], totalFound: 0, parseTimeMs: 0 };
+    }
+
+    // Auto-detect Leafly content — use fast regex parser instead of LLM
+    if (markdown.includes('leafly.com') && markdown.includes('#### by ')) {
+        logger.info('[Ezal] parseWithJina: detected Leafly format, using regex parser');
+        return parseLeafly(markdown);
+    }
+
+    const claudeKey = process.env.CLAUDE_API_KEY;
+    if (!claudeKey) {
+        logger.warn('[Ezal] parseWithJina: CLAUDE_API_KEY not set, skipping LLM extraction');
+        return { success: false, products: [], parseErrors: ['CLAUDE_API_KEY not configured'], totalFound: 0, parseTimeMs: 0 };
+    }
+
+    // Trim to where product data likely starts (skip nav/header noise)
+    const firstPrice = markdown.indexOf('$');
+    const contentStart = firstPrice > 0 ? Math.max(0, firstPrice - 500) : 0;
+    const contentSlice = markdown.substring(contentStart, contentStart + 8000);
+
+    const prompt = `You are extracting cannabis product listings from a dispensary menu page.
+
+Extract every distinct cannabis product you can find. For each product extract:
+- id: short slug (e.g. "blue-dream-35g")
+- name: product name
+- brand: brand/manufacturer (null if unknown)
+- category: one of: flower, pre_roll, vape, edible, concentrate, topical, tincture, accessory, other
+- strain: one of: sativa, indica, hybrid, cbd, or null
+- thcPct: THC percentage as a number (e.g. 22.5), or null
+- cbdPct: CBD percentage as a number, or null
+- price: current price in dollars as a number (e.g. 45.00), or null if not shown
+- regularPrice: original/regular price if on sale, or null
+- inStock: true if available, false if sold out, true if unclear
+- sizeGrams: weight in grams if shown (e.g. 3.5 for 1/8oz), or null
+- description: brief description or null
+
+Return a JSON object with a single "products" array. If no products are found, return {"products":[]}.
+Only return valid JSON, no explanation text.
+
+PAGE CONTENT:
+${contentSlice}`;
+
+    try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': claudeKey,
+                'anthropic-version': '2023-06-01',
+            },
+            body: JSON.stringify({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 4096,
+                messages: [{ role: 'user', content: prompt }],
+            }),
+            signal: AbortSignal.timeout(30000),
+        });
+
+        const aiData = await res.json() as { content?: Array<{ type: string; text: string }> };
+        const text = aiData.content?.find(b => b.type === 'text')?.text || '';
+
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            return { success: false, products: [], parseErrors: ['No JSON in LLM response'], totalFound: 0, parseTimeMs: Date.now() - startTime };
+        }
+
+        const parsed = JSON.parse(jsonMatch[0]) as { products?: JinaExtractedProduct[] };
+        const rawProducts = parsed.products || [];
+
+        const products: ParsedProduct[] = rawProducts
+            .filter(p => p.name && p.name.trim().length > 0)
+            .map((p, i): ParsedProduct => ({
+                externalProductId: p.id || `jina-${i}-${(p.name || '').toLowerCase().replace(/\s+/g, '-').substring(0, 40)}`,
+                brandName: p.brand || '',
+                productName: p.name || '',
+                category: toCategory(p.category),
+                strainType: toStrain(p.strain),
+                thcPct: typeof p.thcPct === 'number' ? p.thcPct : null,
+                cbdPct: typeof p.cbdPct === 'number' ? p.cbdPct : null,
+                price: typeof p.price === 'number' ? p.price : 0,
+                regularPrice: typeof p.regularPrice === 'number' ? p.regularPrice : null,
+                inStock: p.inStock !== false,
+                metadata: {
+                    sizeGrams: typeof p.sizeGrams === 'number' ? p.sizeGrams : undefined,
+                    description: p.description || undefined,
+                },
+            }));
+
+        logger.info('[Ezal] parseWithJina succeeded', {
+            rawCount: rawProducts.length, validCount: products.length, parseTimeMs: Date.now() - startTime,
+        });
+
+        return {
+            success: products.length > 0,
+            products,
+            parseErrors: products.length === 0 ? ['LLM found no products in content'] : [],
+            totalFound: products.length,
+            parseTimeMs: Date.now() - startTime,
+        };
+    } catch (err: any) {
+        logger.error('[Ezal] parseWithJina LLM call failed', { error: err.message });
+        return { success: false, products: [], parseErrors: [err.message], totalFound: 0, parseTimeMs: Date.now() - startTime };
+    }
 }
