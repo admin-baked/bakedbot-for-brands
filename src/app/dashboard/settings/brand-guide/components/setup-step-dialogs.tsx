@@ -20,6 +20,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Instagram, Facebook, MapPin, Building2 } from 'lucide-react';
+import type { ArchetypeId } from '@/constants/brand-archetypes';
+import { ArchetypeSelector } from './archetype-selector';
+import { ArchetypePreview } from './archetype-preview';
 
 // ============================================================================
 // STEP 1: Brand Name & Description + Location + Dispensary Type
@@ -731,6 +734,79 @@ export function Step4Dialog({ open, onOpenChange, onComplete, initialData }: Ste
           </Button>
           <Button onClick={handleSubmit} className="bg-baked-green hover:bg-baked-green/90">
             Save Advanced Settings
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============================================================================
+// ARCHETYPE STEP: Brand Archetype Selector (Brand Guide 2.0 Spec 01)
+// ============================================================================
+
+interface ArchetypeStepDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  brandId: string;
+  initialPrimary?: ArchetypeId | null;
+  initialSecondary?: ArchetypeId | null;
+  scannerSuggestion?: ArchetypeId | null;
+  onSaved?: (primary: ArchetypeId, secondary: ArchetypeId | null) => void;
+}
+
+export function ArchetypeStepDialog({
+  open,
+  onOpenChange,
+  brandId,
+  initialPrimary,
+  initialSecondary,
+  scannerSuggestion,
+  onSaved,
+}: ArchetypeStepDialogProps) {
+  const [selectedPrimary, setSelectedPrimary] = useState<ArchetypeId | null>(initialPrimary ?? null);
+  const [selectedSecondary, setSelectedSecondary] = useState<ArchetypeId | null>(initialSecondary ?? null);
+
+  function handleSaved(primary: ArchetypeId, secondary: ArchetypeId | null) {
+    setSelectedPrimary(primary);
+    setSelectedSecondary(secondary);
+    onSaved?.(primary, secondary);
+    onOpenChange(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Brand Archetype</DialogTitle>
+          <DialogDescription>
+            Choose the archetype that best represents your brand&apos;s personality. This shapes how
+            Smokey, Craig, and all AI agents communicate on your behalf.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 gap-6 py-4 lg:grid-cols-[1fr_260px]">
+          {/* Selector */}
+          <ArchetypeSelector
+            brandId={brandId}
+            initialPrimary={initialPrimary}
+            initialSecondary={initialSecondary}
+            scannerSuggestion={scannerSuggestion}
+            onSaved={handleSaved}
+          />
+
+          {/* Live preview (only shown when something is selected) */}
+          {selectedPrimary && (
+            <div className="hidden lg:block">
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">Live Preview</div>
+              <ArchetypePreview primary={selectedPrimary} secondary={selectedSecondary} />
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Skip for Now
           </Button>
         </div>
       </DialogContent>
