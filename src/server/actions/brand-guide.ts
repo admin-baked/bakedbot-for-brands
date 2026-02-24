@@ -12,6 +12,7 @@ import { makeBrandGuideRepo } from '@/server/repos/brandGuideRepo';
 import { getBrandGuideExtractor } from '@/server/services/brand-guide-extractor';
 import { getBrandVoiceAnalyzer } from '@/server/services/brand-voice-analyzer';
 import { enrichBrandGuide } from '@/server/services/brand-guide-enricher';
+import { generateBrandImagesForNewAccount } from '@/server/actions/brand-images';
 import { getTemplateById, getAllTemplates } from '@/lib/brand-guide-templates';
 import { validateBrandPalette } from '@/lib/accessibility-checker';
 import type {
@@ -137,6 +138,14 @@ export async function createBrandGuide(
     setImmediate(() => {
       enrichBrandGuide(input.brandId).catch(err =>
         logger.warn('[BrandGuide] Post-create enrichment failed', { error: (err as Error).message })
+      );
+    });
+
+    // Pre-generate brand kit images (hero, product_bg, ambient, texture)
+    // Only on first creation — idempotent, fire-and-forget
+    setImmediate(() => {
+      generateBrandImagesForNewAccount(input.brandId, brandGuide).catch(err =>
+        logger.warn('[BrandGuide] Brand image pre-generation failed', { error: (err as Error).message })
       );
     });
 
