@@ -15,15 +15,46 @@
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 
-// =============================================================================
-// HELPERS (shared with competitor-discovery.ts)
-// =============================================================================
-
 export interface JinaSearchResult {
     title: string;
     url: string;
     snippet: string;
 }
+
+// =============================================================================
+// SERPER FALLBACK (Google Search via Serper.dev — activated when Jina is empty)
+// =============================================================================
+
+/**
+ * Fallback search using Serper.dev (Google). Called automatically by search_web
+ * when Jina Search returns zero results. Converts to JinaSearchResult shape.
+ */
+async function serperSearchFallback(query: string): Promise<JinaSearchResult[]> {
+    const apiKey = process.env.SERPER_API_KEY;
+    if (!apiKey) return [];
+
+    try {
+        const res = await fetch('https://google.serper.dev/search', {
+            method: 'POST',
+            headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ q: query, num: 5 }),
+            signal: AbortSignal.timeout(15000),
+        });
+        if (!res.ok) return [];
+        const data = await res.json() as { organic?: Array<{ title: string; link: string; snippet: string }> };
+        return (data.organic ?? []).slice(0, 5).map(r => ({
+            title: r.title || '',
+            url: r.link || '',
+            snippet: (r.snippet || '').substring(0, 300),
+        })).filter(r => r.url);
+    } catch {
+        return [];
+    }
+}
+
+// =============================================================================
+// HELPERS (shared with competitor-discovery.ts)
+// =============================================================================
 
 /**
  * Jina Search — returns top web results for a query.
@@ -170,8 +201,16 @@ export const jinaToolDefs = [
 export function makeJinaToolsImpl() {
     return {
         search_web: async ({ query }: { query: string }) => {
-            const results = await jinaSearch(query);
-            if (results.length === 0) return 'No results found. Try a different query.';
+            // Try Jina first; fall back to Serper (Google) if Jina returns nothing
+            let results = await jinaSearch(query);
+            if (results.length === 0) {
+                logger.info('[JinaTools] Jina empty — trying Serper fallback', { query });
+                results = await serperSearchFallback(query);
+            }
+            if (results.length === 0) {
+                // Return neutral — don't say "failed"; let the LLM use training knowledge
+                return `No current web results available for this query.`;
+            }
             return results
                 .map((r, i) => `${i + 1}. **${r.title}**\n   URL: ${r.url}\n   ${r.snippet}`)
                 .join('\n\n');
