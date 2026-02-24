@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (k6 synthetic monitoring + Linus auto-escalation loop; SLACK_WEBHOOK_INCIDENTS + SLACK_WEBHOOK_URL wired as GitHub secrets)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (Creative Studio timeout fix: remove Gemini image fallback + 15s caption timeout; background spending sync; Segments 2967 Churned fix)
 
 ---
 
