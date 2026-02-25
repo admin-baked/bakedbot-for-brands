@@ -215,10 +215,13 @@ export async function proxy(request: NextRequest) {
     const isMetaPath = META_PATHS.includes(pathname) || pathname.endsWith('.xml') || pathname.endsWith('.txt');
     // Public executive booking pages — bypass age gate entirely
     const isBookingRoute = pathname.startsWith('/book/');
+    // Driver app routes — not a cannabis menu, no age gate needed
+    const isDriverRoute = pathname.startsWith('/driver');
     const isMenuRoute =
         !isProtectedRoute &&
         !isMetaPath &&
         !isBookingRoute &&
+        !isDriverRoute &&
         !pathname.startsWith('/api/') &&
         !pathname.startsWith('/signin') &&
         !pathname.startsWith('/verify-age') &&
