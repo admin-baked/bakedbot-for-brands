@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-24)
 
 **Recent work (2026-02-24):** See `memory/MEMORY.md` for full log.
-Key completed: [LiveKit + Felisha video — replaced Daily.co, Deepgram STT, meet.bakedbot.ai, /martez+/jack URLs] (`f08f6078`)
+Key completed: [Google Maps API key provisioned — ETA live on delivery system] (`6a66f6ff`), [Driver Mobile Parity — QR check-in, FCM, SMS, ETA] (`e9c23018`)
 
 ---
 
