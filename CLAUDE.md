@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (Executive Boardroom Calendar: Calendly clone with Daily.co video, Leo scheduling, Felisha transcript, prep briefs + follow-ups)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (Brand Guide 2.0 Specs 01-05: archetype selector, budtender staff guide, vendor brand ingestion + Smokey wire-in, NY OCM compliance rules v2, packaging intelligence architecture stub)
 
 ---
 

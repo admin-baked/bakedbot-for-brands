@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-24)
 
 **Recent work (2026-02-24):** See `memory/MEMORY.md` for full log.
-Key completed: [Executive Boardroom Calendar — Calendly clone with Daily.co video] (`bfb0fb1a`)
+Key completed: [Brand Guide 2.0 Specs 01-05] (`fff9398f`→`217bc882`), [Packaging Intelligence architecture stub] (`217bc882`)
 
 ---
 
