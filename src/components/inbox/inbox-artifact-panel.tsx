@@ -36,6 +36,7 @@ import type { BundleDeal } from '@/types/bundles';
 import type { CreativeContent } from '@/types/creative-content';
 import { approveAndPublishArtifact, deleteInboxArtifact } from '@/server/actions/inbox';
 import { ArtifactPipelineBar } from './artifact-pipeline-bar';
+import { InboxIntegrationCard } from './artifacts/integration-card';
 
 // ============ Props ============
 
@@ -359,6 +360,9 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                                     {selectedArtifact.type === 'carousel' && <CarouselDetail artifact={selectedArtifact} />}
                                     {selectedArtifact.type === 'bundle' && <BundleDetail artifact={selectedArtifact} />}
                                     {selectedArtifact.type === 'creative_content' && <CreativeDetail artifact={selectedArtifact} />}
+                                    {selectedArtifact.type === 'integration_request' && (
+                                        <InboxIntegrationCard artifact={selectedArtifact} />
+                                    )}
                                 </motion.div>
                             </AnimatePresence>
                         </>

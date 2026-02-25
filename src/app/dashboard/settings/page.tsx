@@ -19,6 +19,7 @@ import { CreditCard } from 'lucide-react';
 import { SidecarHealthCheck } from '@/components/settings/sidecar-health';
 import { NotebookLMAuth } from '@/components/settings/notebooklm-auth';
 import { GmailConnection } from './components/gmail-connection';
+import { SheetsConnection } from './components/sheets-connection';
 
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from 'lucide-react';
@@ -185,6 +186,9 @@ export default function SettingsPage() {
         <TabsContent value="integrations" className="space-y-4">
           <Suspense fallback={<Card className="p-6 animate-pulse"><div className="h-20 bg-muted rounded" /></Card>}>
             <GmailConnection />
+          </Suspense>
+          <Suspense fallback={<Card className="p-6 animate-pulse"><div className="h-20 bg-muted rounded" /></Card>}>
+            <SheetsConnection />
           </Suspense>
           <SidecarHealthCheck />
           <NotebookLMAuth />
