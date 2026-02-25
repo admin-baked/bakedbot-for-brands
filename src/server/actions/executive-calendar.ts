@@ -103,7 +103,10 @@ export async function getAvailableSlots(
         const profile = await getExecutiveProfile(profileSlug);
         if (!profile) return [];
 
-        const date = new Date(dateIso);
+        // Parse as noon UTC so the date lands on the correct day in all timezones.
+        // new Date("YYYY-MM-DD") parses as midnight UTC, which is the previous day
+        // in UTC-5 (Eastern) — causing slots to calculate for the wrong date.
+        const date = new Date(`${dateIso}T12:00:00Z`);
         const bookings = await getBookingsForDate(profileSlug, date);
 
         return calculateAvailableSlots(profile, date, bookings, durationMinutes);

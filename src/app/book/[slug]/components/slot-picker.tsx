@@ -10,6 +10,7 @@ interface Props {
     profileSlug: string;
     meetingType: MeetingType;
     timezone: string;
+    availableDows: number[]; // day-of-week indices (0=Sun) that have availability windows
     onSlotSelect: (slot: TimeSlot) => void;
 }
 
@@ -28,7 +29,7 @@ function isSameDay(a: Date, b: Date, timezone: string): boolean {
     return fmt(a) === fmt(b);
 }
 
-export function SlotPicker({ profileSlug, meetingType, timezone, onSlotSelect }: Props) {
+export function SlotPicker({ profileSlug, meetingType, timezone, availableDows, onSlotSelect }: Props) {
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [slots, setSlots] = useState<TimeSlot[]>([]);
     const [loading, setLoading] = useState(false);
@@ -71,10 +72,10 @@ export function SlotPicker({ profileSlug, meetingType, timezone, onSlotSelect }:
     }, [selectedDate, fetchSlots]);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+        <div className="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-100">
             {/* Calendar picker */}
             <div className="p-6 flex justify-center">
-                <div>
+                <div className="w-fit">
                     <h3 className="text-sm font-medium text-gray-700 mb-4">Select a date</h3>
                     <Calendar
                         mode="single"
@@ -84,8 +85,7 @@ export function SlotPicker({ profileSlug, meetingType, timezone, onSlotSelect }:
                             const today = new Date();
                             today.setHours(0, 0, 0, 0);
                             if (date < today) return true;
-                            // Disable weekends for simplicity (will refine with actual availability)
-                            return false;
+                            return !availableDows.includes(date.getDay());
                         }}
                         className="rounded-lg border-0"
                         fromDate={new Date()}
