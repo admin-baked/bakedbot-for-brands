@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-24)
 
 **Recent work (2026-02-24):** See `memory/MEMORY.md` for full log.
-Key completed: [Driver Mobile Parity — QR check-in, FCM push, SMS, ETA] (`e9c23018`), [Secret provisioning — Blackleaf/Google Maps/FCM wired] (`f61c3cd9`)
+Key completed: [COGS gap audit — 4 agent/insight fixes] (`78ab8d60`), [TS 5.9 build fix — incremental+noEmit] (`1fd41a59`)
 
 ---
 
