@@ -20,10 +20,8 @@ import {
     buildGroundingInstructions,
 } from '../grounding';
 import { loadActiveGoals, buildGoalDirectives, fetchMarginProductContext } from './goal-directive-builder';
-import { getBrandGuide } from '@/server/actions/brand-guide';
-import { buildBrandVoiceBrief } from '@/lib/brand-guide-prompt';
 import { getVendorBrandSummary } from '@/server/actions/vendor-brands';
-import { getIntentProfile, buildSmokeyIntentBlock } from '@/server/services/intent-profile';
+import { getOrgProfileWithFallback, buildSmokeyContextBlock } from '@/server/services/org-profile';
 
 // --- Tool Definitions ---
 
@@ -83,13 +81,12 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
         // Load active goals for goal-driven directives
         const orgId = (brandMemory.brand_profile as { orgId?: string })?.orgId || brandId;
-        const [activeGoals, brandGuideResult, vendorBrands, intentProfile] = await Promise.all([
+        const [activeGoals, orgProfile, vendorBrands] = await Promise.all([
             loadActiveGoals(orgId),
-            getBrandGuide(orgId).catch(() => ({ success: false })),
+            getOrgProfileWithFallback(orgId).catch(() => null),
             getVendorBrandSummary(orgId),
-            getIntentProfile(orgId).catch(() => null),
         ]);
-        const intentBlock = intentProfile ? buildSmokeyIntentBlock(intentProfile) : '';
+        const contextBlock = orgProfile ? buildSmokeyContextBlock(orgProfile) : '';
         const goalDirectives = buildGoalDirectives(activeGoals);
 
         // If a margin goal is active, load per-product margin intelligence so Smokey
@@ -98,9 +95,6 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
         const marginProductContext = marginGoal && marginGoal.metrics[0]
             ? await fetchMarginProductContext(orgId, marginGoal.metrics[0].targetValue).catch(() => '')
             : '';
-        const brandVoiceBrief = buildBrandVoiceBrief(
-            (brandGuideResult as any).success ? (brandGuideResult as any).brandGuide : null
-        );
 
         const vendorBrandsSection = vendorBrands.length > 0
             ? `\n=== BRANDS WE CARRY (${vendorBrands.length}) ===\nYou can speak knowledgeably about these brands in our store:\n${vendorBrands.map(b =>
@@ -121,9 +115,8 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             ${goalDirectives}
             ${marginProductContext}
 
-            ${brandVoiceBrief}
+            ${contextBlock}
             ${vendorBrandsSection}
-            ${intentBlock}
 
             === AGENT SQUAD (For Delegation) ===
             ${squadRoster}
