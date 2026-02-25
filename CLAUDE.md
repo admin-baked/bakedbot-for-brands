@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (booking calendar: react-day-picker v9 classNames fix + nav button positioning)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (booking calendar: v9 fix + nav positioning + empty slots Firestore query fix)
 
 ---
 
