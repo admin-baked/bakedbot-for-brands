@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (Unified OrgProfile — brand + intent single source of truth)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (OrgProfile wizard steps 5-7, unified /settings/profile page, migration script)
 
 ---
 
