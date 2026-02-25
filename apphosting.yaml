@@ -268,19 +268,16 @@ env:
   #   secret: STRIPE_WEBHOOK_SECRET
   #   availability:
   #     - RUNTIME
-  # Monitoring — Sentry error tracking (client+server configs already deployed)
-  # To enable: firebase login --reauth, then:
-  #   firebase apphosting:secrets:grantaccess SENTRY_DSN --backend=bakedbot-prod
-  #   and update references to SENTRY_DSN@1 below
-  # - variable: SENTRY_DSN
-  #   secret: SENTRY_DSN@1
-  #   availability:
-  #     - RUNTIME
-  # - variable: NEXT_PUBLIC_SENTRY_DSN
-  #   secret: SENTRY_DSN@1
-  #   availability:
-  #     - BUILD
-  #     - RUNTIME
+  # Monitoring — Sentry error tracking (client+server configs deployed)
+  - variable: SENTRY_DSN
+    secret: SENTRY_DSN@1
+    availability:
+      - RUNTIME
+  - variable: NEXT_PUBLIC_SENTRY_DSN
+    secret: SENTRY_DSN@1
+    availability:
+      - BUILD
+      - RUNTIME
   # Dev/Security
   - variable: NEXT_PUBLIC_DEV_AUTH_BYPASS
     value: "false"
