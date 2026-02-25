@@ -88,7 +88,6 @@ export function SlotPicker({ profileSlug, meetingType, timezone, availableDows, 
                             return !availableDows.includes(date.getDay());
                         }}
                         className="rounded-lg border-0"
-                        fromDate={new Date()}
                     />
                 </div>
             </div>
