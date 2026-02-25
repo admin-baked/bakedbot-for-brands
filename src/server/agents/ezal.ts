@@ -10,7 +10,7 @@ import {
     buildSquadRoster,
     buildIntegrationStatusSummary
 } from './agent-definitions';
-import { getIntentProfile, buildEzalIntentBlock } from '@/server/services/intent-profile';
+import { getOrgProfileWithFallback, buildEzalContextBlock } from '@/server/services/org-profile';
 
 // --- Tool Definitions ---
 
@@ -46,8 +46,8 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
     logger.info('[Ezal] Initializing. Checking watchlist...');
 
     const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
-    const intentProfile = await getIntentProfile(orgId).catch(() => null);
-    const intentBlock = intentProfile ? buildEzalIntentBlock(intentProfile) : '';
+    const orgProfile = await getOrgProfileWithFallback(orgId).catch(() => null);
+    const contextBlock = orgProfile ? buildEzalContextBlock(orgProfile) : '';
 
     // Build dynamic context from agent-definitions (source of truth)
     const squadRoster = buildSquadRoster('ezal');
@@ -106,7 +106,7 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
       - **NATURAL LANGUAGE**: Describe actions naturally (e.g., "I searched for vape carts...").
       - Use standard markdown headers (###) for sections.
       - Always cite the source of your intel.
-      ${intentBlock}
+      ${contextBlock}
     `;
 
     // === HIVE MIND INIT ===
