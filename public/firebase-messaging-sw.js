@@ -18,7 +18,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-comp
 // Firebase config — all public values (NEXT_PUBLIC_ prefix means they're already in browser bundle)
 // To get apiKey: gcloud secrets versions access latest --secret=NEXT_PUBLIC_FIREBASE_API_KEY --quiet
 firebase.initializeApp({
-    apiKey: 'YOUR_FIREBASE_API_KEY',
+    apiKey: 'AIzaSyAGUhtFXf_4bblJ5U6soNnEKuT_7YOavos',
     authDomain: 'studio-567050101-bc6e8.firebaseapp.com',
     projectId: 'studio-567050101-bc6e8',
     storageBucket: 'bakedbot-global-assets',
