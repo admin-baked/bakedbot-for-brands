@@ -19,10 +19,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Instagram, Facebook, MapPin, Building2 } from 'lucide-react';
+import { Instagram, Facebook, MapPin, Building2, Gem, Tag, Users, HeartPulse, Sparkles, ShieldAlert } from 'lucide-react';
 import type { ArchetypeId } from '@/constants/brand-archetypes';
 import { ArchetypeSelector } from './archetype-selector';
 import { ArchetypePreview } from './archetype-preview';
+import type {
+  BusinessArchetype,
+  GrowthStage,
+  CompetitivePosture,
+  ValueHierarchies,
+  SmokeyIntentConfig,
+  CraigIntentConfig,
+} from '@/types/dispensary-intent-profile';
+import { ARCHETYPE_METADATA, SLIDER_METADATA } from '@/types/dispensary-intent-profile';
 
 // ============================================================================
 // STEP 1: Brand Name & Description + Location + Dispensary Type
@@ -807,6 +816,499 @@ export function ArchetypeStepDialog({
         <div className="flex justify-end">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Skip for Now
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============================================================================
+// STEP 5: Business Strategy (Archetype + Growth Stage + Competitive Posture)
+// ============================================================================
+
+const ARCHETYPE_ICONS: Record<BusinessArchetype, React.ElementType> = {
+  premium_boutique: Gem,
+  value_leader: Tag,
+  community_hub: Users,
+  medical_focus: HeartPulse,
+  lifestyle_brand: Sparkles,
+};
+
+export interface Step5Data {
+  archetype: BusinessArchetype;
+  growthStage: GrowthStage;
+  competitivePosture: CompetitivePosture;
+}
+
+interface Step5DialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onComplete: (data: Step5Data) => void;
+  initialData?: Partial<Step5Data>;
+}
+
+export function Step5Dialog({ open, onOpenChange, onComplete, initialData }: Step5DialogProps) {
+  const [archetype, setArchetype] = useState<BusinessArchetype>(initialData?.archetype || 'community_hub');
+  const [growthStage, setGrowthStage] = useState<GrowthStage>(initialData?.growthStage || 'growth');
+  const [competitivePosture, setCompetitivePosture] = useState<CompetitivePosture>(
+    initialData?.competitivePosture || 'differentiator'
+  );
+
+  const archetypes = Object.values(ARCHETYPE_METADATA);
+
+  const growthStages: { value: GrowthStage; label: string; desc: string }[] = [
+    { value: 'startup', label: 'Startup', desc: '<12 months; building awareness' },
+    { value: 'growth', label: 'Growth', desc: '12-36 months; scaling loyal base' },
+    { value: 'established', label: 'Established', desc: '36+ months; defending market share' },
+    { value: 'expansion', label: 'Expanding', desc: 'Multi-location or new markets' },
+  ];
+
+  const postures: { value: CompetitivePosture; label: string; desc: string }[] = [
+    { value: 'aggressive', label: 'Aggressive', desc: 'Match or beat competitors on price' },
+    { value: 'defensive', label: 'Defensive', desc: 'Protect loyal customers; avoid price wars' },
+    { value: 'differentiator', label: 'Differentiator', desc: 'Compete on experience and brand value' },
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Business Strategy</DialogTitle>
+          <DialogDescription>
+            Choose your archetype to seed default AI behaviors. You can fine-tune everything in Step 6.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6 py-2">
+          {/* Archetype Cards */}
+          <div>
+            <Label className="text-sm font-semibold mb-3 block">Business Archetype</Label>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {archetypes.map((meta) => {
+                const Icon = ARCHETYPE_ICONS[meta.archetype];
+                const selected = archetype === meta.archetype;
+                return (
+                  <button
+                    key={meta.archetype}
+                    type="button"
+                    onClick={() => setArchetype(meta.archetype)}
+                    className={`text-left p-3 rounded-lg border-2 transition-all ${
+                      selected
+                        ? 'border-baked-green bg-green-50'
+                        : 'border-gray-200 hover:border-green-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <Icon className={`w-4 h-4 ${selected ? 'text-baked-green' : 'text-gray-400'}`} />
+                      <span className="font-semibold text-sm">{meta.label}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-snug">{meta.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+            {archetype && (
+              <ul className="mt-2 text-xs text-muted-foreground space-y-0.5 pl-1">
+                {ARCHETYPE_METADATA[archetype].defaultHighlights.map((h) => (
+                  <li key={h} className="flex items-center gap-1.5">
+                    <span className="text-baked-green">✓</span> {h}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Growth Stage */}
+          <div>
+            <Label className="text-sm font-semibold mb-3 block">Growth Stage</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {growthStages.map((g) => (
+                <button
+                  key={g.value}
+                  type="button"
+                  onClick={() => setGrowthStage(g.value)}
+                  className={`text-left p-3 rounded-lg border-2 transition-all ${
+                    growthStage === g.value
+                      ? 'border-baked-green bg-green-50'
+                      : 'border-gray-200 hover:border-green-200'
+                  }`}
+                >
+                  <div className="font-semibold text-sm">{g.label}</div>
+                  <div className="text-xs text-muted-foreground">{g.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Competitive Posture */}
+          <div>
+            <Label className="text-sm font-semibold mb-3 block">Competitive Posture</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {postures.map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setCompetitivePosture(p.value)}
+                  className={`text-left p-3 rounded-lg border-2 transition-all ${
+                    competitivePosture === p.value
+                      ? 'border-baked-green bg-green-50'
+                      : 'border-gray-200 hover:border-green-200'
+                  }`}
+                >
+                  <div className="font-semibold text-sm">{p.label}</div>
+                  <div className="text-xs text-muted-foreground">{p.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button
+            onClick={() => { onComplete({ archetype, growthStage, competitivePosture }); onOpenChange(false); }}
+            className="bg-baked-green hover:bg-baked-green/90"
+          >
+            Save Strategy
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============================================================================
+// STEP 6: Agent Behavior (Value Hierarchy Sliders + Smokey/Craig Configs)
+// ============================================================================
+
+export interface Step6Data {
+  valueHierarchies: ValueHierarchies;
+  smokeyConfig: SmokeyIntentConfig;
+  craigConfig: CraigIntentConfig;
+}
+
+const DEFAULT_VALUE_HIERARCHIES: ValueHierarchies = {
+  speedVsEducation: 0.5,
+  volumeVsMargin: 0.5,
+  acquisitionVsRetention: 0.5,
+  complianceConservatism: 0.5,
+  automationVsHumanTouch: 0.5,
+  brandVoiceFormality: 0.5,
+};
+
+const DEFAULT_SMOKEY_CONFIG: SmokeyIntentConfig = {
+  recommendationPhilosophy: 'effect_first',
+  upsellAggressiveness: 0.5,
+  newUserProtocol: 'guided',
+  productEducationDepth: 'moderate',
+};
+
+const DEFAULT_CRAIG_CONFIG: CraigIntentConfig = {
+  campaignFrequencyCap: 2,
+  preferredChannels: ['sms', 'email'],
+  toneArchetype: 'sage',
+  promotionStrategy: 'value_led',
+};
+
+interface Step6DialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onComplete: (data: Step6Data) => void;
+  initialData?: Partial<Step6Data>;
+}
+
+export function Step6Dialog({ open, onOpenChange, onComplete, initialData }: Step6DialogProps) {
+  const [sliders, setSliders] = useState<ValueHierarchies>(
+    initialData?.valueHierarchies || DEFAULT_VALUE_HIERARCHIES
+  );
+  const [smokey, setSmokey] = useState<SmokeyIntentConfig>(
+    initialData?.smokeyConfig || DEFAULT_SMOKEY_CONFIG
+  );
+  const [craig, setCraig] = useState<CraigIntentConfig>(
+    initialData?.craigConfig || DEFAULT_CRAIG_CONFIG
+  );
+
+  const sliderKeys = Object.keys(SLIDER_METADATA) as (keyof ValueHierarchies)[];
+
+  function updateSlider(key: keyof ValueHierarchies, value: number) {
+    setSliders((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function toggleChannel(ch: 'sms' | 'email' | 'push') {
+    setCraig((prev) => {
+      const has = prev.preferredChannels.includes(ch);
+      const updated = has
+        ? prev.preferredChannels.filter((c) => c !== ch)
+        : [...prev.preferredChannels, ch];
+      return { ...prev, preferredChannels: updated.length ? updated : [ch] };
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Agent Behavior</DialogTitle>
+          <DialogDescription>
+            Fine-tune how your AI agents make decisions when situations are ambiguous.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6 py-2">
+          {/* Value Hierarchy Sliders */}
+          <div>
+            <Label className="text-sm font-semibold mb-3 block">AI Decision Trade-offs</Label>
+            <div className="space-y-4">
+              {sliderKeys.map((key) => {
+                const meta = SLIDER_METADATA[key];
+                const value = sliders[key];
+                return (
+                  <div key={key}>
+                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                      <span className="font-medium">{meta.leftLabel}</span>
+                      <span className="font-medium">{meta.rightLabel}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.1}
+                      value={value}
+                      onChange={(e) => updateSlider(key, parseFloat(e.target.value))}
+                      className="w-full accent-baked-green h-2 cursor-pointer"
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {value < 0.4 ? meta.leftDescription : value > 0.6 ? meta.rightDescription : 'Balanced'}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Smokey Config */}
+          <div>
+            <Label className="text-sm font-semibold mb-3 block">Smokey (Budtender)</Label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <Label className="text-xs mb-1 block">Recommendation Style</Label>
+                <select
+                  value={smokey.recommendationPhilosophy}
+                  onChange={(e) => setSmokey((p) => ({ ...p, recommendationPhilosophy: e.target.value as SmokeyIntentConfig['recommendationPhilosophy'] }))}
+                  className="w-full text-sm border rounded-md px-3 py-2 bg-background"
+                >
+                  <option value="effect_first">Effect-first</option>
+                  <option value="chemistry_first">Chemistry-first</option>
+                  <option value="price_first">Price-first</option>
+                  <option value="popularity_first">Popularity-first</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">New Customer Protocol</Label>
+                <select
+                  value={smokey.newUserProtocol}
+                  onChange={(e) => setSmokey((p) => ({ ...p, newUserProtocol: e.target.value as SmokeyIntentConfig['newUserProtocol'] }))}
+                  className="w-full text-sm border rounded-md px-3 py-2 bg-background"
+                >
+                  <option value="guided">Guided (intake questions)</option>
+                  <option value="express">Express (top picks)</option>
+                  <option value="discover">Discover (conversational)</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Product Education Depth</Label>
+                <select
+                  value={smokey.productEducationDepth}
+                  onChange={(e) => setSmokey((p) => ({ ...p, productEducationDepth: e.target.value as SmokeyIntentConfig['productEducationDepth'] }))}
+                  className="w-full text-sm border rounded-md px-3 py-2 bg-background"
+                >
+                  <option value="minimal">Minimal</option>
+                  <option value="moderate">Moderate</option>
+                  <option value="comprehensive">Comprehensive</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Craig Config */}
+          <div>
+            <Label className="text-sm font-semibold mb-3 block">Craig (Marketer)</Label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <Label className="text-xs mb-1 block">Tone Archetype</Label>
+                <select
+                  value={craig.toneArchetype}
+                  onChange={(e) => setCraig((p) => ({ ...p, toneArchetype: e.target.value as CraigIntentConfig['toneArchetype'] }))}
+                  className="w-full text-sm border rounded-md px-3 py-2 bg-background"
+                >
+                  <option value="sage">Sage (wise, educational)</option>
+                  <option value="hero">Hero (empowering, community)</option>
+                  <option value="rebel">Rebel (bold, disruptive)</option>
+                  <option value="creator">Creator (innovative)</option>
+                  <option value="jester">Jester (playful, fun)</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Campaign Strategy</Label>
+                <select
+                  value={craig.promotionStrategy}
+                  onChange={(e) => setCraig((p) => ({ ...p, promotionStrategy: e.target.value as CraigIntentConfig['promotionStrategy'] }))}
+                  className="w-full text-sm border rounded-md px-3 py-2 bg-background"
+                >
+                  <option value="education_led">Education-led</option>
+                  <option value="value_led">Value/Community-led</option>
+                  <option value="discount_led">Discount-led</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1 block">Max Campaigns/Week per Customer</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={7}
+                  value={craig.campaignFrequencyCap}
+                  onChange={(e) => setCraig((p) => ({ ...p, campaignFrequencyCap: Math.max(1, Math.min(7, parseInt(e.target.value) || 2)) }))}
+                  className="text-sm"
+                />
+              </div>
+              <div>
+                <Label className="text-xs mb-2 block">Preferred Channels</Label>
+                <div className="flex gap-2">
+                  {(['sms', 'email', 'push'] as const).map((ch) => (
+                    <button
+                      key={ch}
+                      type="button"
+                      onClick={() => toggleChannel(ch)}
+                      className={`px-3 py-1.5 text-xs rounded-md border-2 font-medium transition-all ${
+                        craig.preferredChannels.includes(ch)
+                          ? 'border-baked-green bg-green-50 text-baked-green'
+                          : 'border-gray-200 text-muted-foreground'
+                      }`}
+                    >
+                      {ch.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button
+            onClick={() => { onComplete({ valueHierarchies: sliders, smokeyConfig: smokey, craigConfig: craig }); onOpenChange(false); }}
+            className="bg-baked-green hover:bg-baked-green/90"
+          >
+            Save Agent Behavior
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ============================================================================
+// STEP 7: Hard Limits (Never-Do List + Escalation Triggers)
+// ============================================================================
+
+export interface Step7Data {
+  neverDoList: string[];
+  escalationTriggers: string[];
+}
+
+interface Step7DialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onComplete: (data: Step7Data) => void;
+  initialData?: Partial<Step7Data>;
+}
+
+const DEFAULT_NEVER_DO_LIST = [
+  'Never compare prices to competitors by name',
+  'Never make medical claims or promise specific health outcomes',
+  'Never recommend products to minors',
+].join('\n');
+
+const DEFAULT_ESCALATION_LIST = [
+  'Customer mentions a medical emergency',
+  'Customer asks about driving after consumption',
+  'Customer expresses intent to harm themselves or others',
+].join('\n');
+
+export function Step7Dialog({ open, onOpenChange, onComplete, initialData }: Step7DialogProps) {
+  const [neverDo, setNeverDo] = useState(
+    initialData?.neverDoList?.join('\n') || DEFAULT_NEVER_DO_LIST
+  );
+  const [escalation, setEscalation] = useState(
+    initialData?.escalationTriggers?.join('\n') || DEFAULT_ESCALATION_LIST
+  );
+
+  useEffect(() => {
+    if (open && initialData) {
+      if (initialData.neverDoList) setNeverDo(initialData.neverDoList.join('\n'));
+      if (initialData.escalationTriggers) setEscalation(initialData.escalationTriggers.join('\n'));
+    }
+  }, [open, initialData]);
+
+  function toLines(text: string) {
+    return text.split('\n').map((l) => l.trim()).filter(Boolean);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ShieldAlert className="w-5 h-5 text-orange-500" />
+            Hard Limits
+          </DialogTitle>
+          <DialogDescription>
+            Define absolute rules for your AI agents. These are enforced at every interaction.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-5 py-2">
+          <div>
+            <Label className="text-sm font-semibold mb-1 block">Never-Do List</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Things agents must never do or say on your behalf. One rule per line.
+            </p>
+            <Textarea
+              value={neverDo}
+              onChange={(e) => setNeverDo(e.target.value)}
+              placeholder="Never compare prices to competitors by name&#10;Never make medical claims..."
+              className="min-h-[140px] text-sm font-mono"
+            />
+            <p className="text-xs text-muted-foreground mt-1">{toLines(neverDo).length} rules</p>
+          </div>
+
+          <div>
+            <Label className="text-sm font-semibold mb-1 block">Escalation Triggers</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Conditions that must trigger an immediate human handoff. One trigger per line.
+            </p>
+            <Textarea
+              value={escalation}
+              onChange={(e) => setEscalation(e.target.value)}
+              placeholder="Customer mentions a medical emergency&#10;Customer asks about driving..."
+              className="min-h-[120px] text-sm font-mono"
+            />
+            <p className="text-xs text-muted-foreground mt-1">{toLines(escalation).length} triggers</p>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Skip for Now</Button>
+          <Button
+            onClick={() => {
+              onComplete({ neverDoList: toLines(neverDo), escalationTriggers: toLines(escalation) });
+              onOpenChange(false);
+            }}
+            className="bg-baked-green hover:bg-baked-green/90"
+          >
+            Save Hard Limits
           </Button>
         </div>
       </DialogContent>
