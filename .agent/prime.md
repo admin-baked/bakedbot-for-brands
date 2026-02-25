@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-24)
 
 **Recent work (2026-02-24):** See `memory/MEMORY.md` for full log.
-Key completed: [Google Maps API key provisioned — ETA live on delivery system] (`6a66f6ff`), [Driver Mobile Parity — QR check-in, FCM, SMS, ETA] (`e9c23018`)
+Key completed: [DIPF Phase 1 — Dispensary Intent Profile Framework] (`21f23d8a`), [YouTube transcript tool — all agents] (`ec116e12`)
 
 ---
 
