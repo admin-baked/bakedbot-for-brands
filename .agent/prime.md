@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-24)
 
 **Recent work (2026-02-24):** See `memory/MEMORY.md` for full log.
-Key completed: [Brand Guide 2.0 Spec 01 archetype selector] (`fff9398f`), [Budtender staff guide] (`bb6051c0`), [Vendor brand ingestion + Smokey] (`699d8085`), [NY compliance rules v2] (`685cd1bf`)
+Key completed: [Executive Boardroom Calendar — Calendly clone with Daily.co video] (`bfb0fb1a`)
 
 ---
 
