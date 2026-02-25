@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-25):** See `memory/MEMORY.md` for full log.
-Key completed: [DIPF Phase 2 — Pops/Ezal/MoneyMike/MrsParker wired + full archetype defaults + 81 tests] (`ebc49333`), [driver age gate bypass + root redirect] (`976f1905`)
+Key completed: [Felisha Cloud Run deploy — LiveKit agent live, wss connected, DEEPGRAM key provisioned] (`b75d49f3`), [DIPF Phase 2 — 81 tests, 6 agents wired] (`ebc49333`)
 
 ---
 

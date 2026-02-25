@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (DIPF Phase 2 — all 6 agents wired; driver age gate bypass)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (Felisha deployed to Cloud Run; LiveKit webhook + DNS live; react-day-picker v9 calendar fix)
 
 ---
 
