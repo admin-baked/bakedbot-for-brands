@@ -20,6 +20,9 @@ interface ProductSalesData {
   salesLast7Days: number;
   salesPrevious7Days: number;
   trend: number; // percentage change
+  price: number | null;
+  cost: number | null;
+  marginPercent: number | null; // gross margin % or null if no COGS data
 }
 
 interface ALLeavesConfig_ {
@@ -53,6 +56,14 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
       if (topSellers && topSellers.length > 0) {
         const topSellerInsight = this.createTopSellerInsight(topSellers[0]);
         insights.push(topSellerInsight);
+
+        // 1b. Margin Drain alert — high-velocity products with thin margins
+        const marginDrains = topSellers.filter(
+          p => p.marginPercent !== null && p.marginPercent < 15 && p.salesLast7Days >= 3
+        );
+        if (marginDrains.length > 0) {
+          insights.push(this.createMarginDrainInsight(marginDrains));
+        }
       }
 
       // 2. Expiring Inventory insight
@@ -139,9 +150,16 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
         });
       });
 
-      // Fetch product names
+      // Fetch product names + cost data
       const menu = await client.fetchMenu();
-      const productMap = new Map(menu.map((p) => [p.externalId, p.name]));
+      const productMap = new Map(menu.map((p) => [
+        p.externalId,
+        {
+          name: p.name,
+          price: (p as any).price ?? null,
+          cost: (p as any).cost ?? null,
+        },
+      ]));
 
       // Calculate trends and sort by last week sales
       const topSellers: ProductSalesData[] = Array.from(lastWeekSales.entries())
@@ -154,12 +172,23 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
                 ? 100
                 : 0;
 
+          const info = productMap.get(productId) || { name: productId, price: null, cost: null };
+          const price = info.price;
+          const cost = info.cost;
+          const marginPercent =
+            price != null && price > 0 && cost != null && cost > 0
+              ? Math.round(((price - cost) / price) * 1000) / 10
+              : null;
+
           return {
             productId,
-            productName: productMap.get(productId) || productId,
+            productName: info.name,
             salesLast7Days: lastWeekCount,
             salesPrevious7Days: previousWeekCount,
             trend,
+            price,
+            cost,
+            marginPercent,
           };
         })
         .sort((a, b) => b.salesLast7Days - a.salesLast7Days)
@@ -244,10 +273,14 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
           ? '0%'
           : `${Math.round(product.trend)}%`;
 
+    const marginNote = product.marginPercent !== null
+      ? ` | ${product.marginPercent.toFixed(0)}% margin`
+      : '';
+
     return this.createInsight({
       title: 'TOP SELLER THIS WEEK',
       headline: `${product.productName} ${trendValue}`,
-      subtext: `${product.salesLast7Days} units sold | +${product.salesLast7Days - product.salesPrevious7Days} vs last week`,
+      subtext: `${product.salesLast7Days} units sold | +${product.salesLast7Days - product.salesPrevious7Days} vs last week${marginNote}`,
       value: product.salesLast7Days,
       unit: 'units',
       trend: product.trend > 0 ? 'up' : product.trend < 0 ? 'down' : 'stable',
@@ -258,6 +291,31 @@ export class InventoryVelocityGenerator extends InsightGeneratorBase {
       threadType: 'bundle',
       threadPrompt: `Create a bundle featuring ${product.productName}, our top seller this week with ${product.salesLast7Days} units sold (${trendValue} vs last week).`,
       dataSource: 'POS orders (Alleaves)',
+    });
+  }
+
+  /**
+   * Create margin drain alert — products selling fast but at thin margins
+   */
+  private createMarginDrainInsight(products: ProductSalesData[]): InsightCard {
+    const worst = products[0];
+    const listStr = products
+      .slice(0, 3)
+      .map(p => `${p.productName} (${p.marginPercent?.toFixed(0)}% margin, ${p.salesLast7Days} sold)`)
+      .join('; ');
+
+    return this.createInsight({
+      title: 'MARGIN DRAIN ALERT',
+      headline: `${products.length} top seller${products.length > 1 ? 's' : ''} at thin margins (<15%)`,
+      subtext: listStr,
+      value: products.length,
+      unit: 'products',
+      severity: 'warning',
+      actionable: true,
+      ctaLabel: 'Review Pricing',
+      threadType: 'bundle',
+      threadPrompt: `Our top seller "${worst.productName}" is moving ${worst.salesLast7Days} units this week but has only ${worst.marginPercent?.toFixed(0)}% gross margin. Help me review pricing or create higher-margin bundles to protect profitability.`,
+      dataSource: 'POS orders + COGS (Alleaves)',
     });
   }
 

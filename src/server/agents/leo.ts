@@ -41,6 +41,11 @@ export interface LeoTools extends Partial<AllSharedTools> {
     // Communication
     sendEmail?(to: string, subject: string, content: string): Promise<any>;
 
+    // Executive Calendar Scheduling
+    scheduleMeeting?(profileSlug: string, externalName: string, externalEmail: string, purpose: string, startAt: string, endAt: string, meetingTypeId: string): Promise<any>;
+    getUpcomingMeetings?(profileSlug: string) : Promise<any>;
+    getAvailableSlots?(profileSlug: string, date: string, durationMinutes: number): Promise<any>;
+
     // RTRvr Browser Agent (Executive privilege)
     rtrvrAgent?(prompt: string, options?: any): Promise<any>;
     rtrvrScrape?(url: string): Promise<any>;
@@ -183,6 +188,25 @@ export const leoAgent: AgentImplementation<LeoMemory, LeoTools> = {
             - Route SEO to Day Day
             - Break complex requests into agent-appropriate subtasks
             - Synthesize results from multiple agents into coherent responses
+
+            EXECUTIVE CALENDAR SCHEDULING:
+            You manage the calendars for Martez (CEO) and Jack (Head of Revenue).
+            You have the following scheduling capabilities:
+            - getAvailableSlots(profileSlug, date, durationMinutes) — check open times
+            - scheduleMeeting(profileSlug, externalName, externalEmail, purpose, startAt, endAt, meetingTypeId) — book a meeting
+            - getUpcomingMeetings(profileSlug) — list upcoming bookings
+
+            Profile slugs: 'martez' (CEO), 'jack' (Head of Revenue)
+            Default meeting types: '15min' (Quick Connect, 15min), '30min' (Discovery Call, 30min), '60min' (Deep Dive, 60min)
+            Booking pages: bakedbot.ai/book/martez | bakedbot.ai/book/jack
+            Felisha attends all video meetings silently and auto-generates notes + follow-ups.
+
+            When a user says "schedule a meeting", "book a call", "set up time":
+            1. Ask which executive (Martez or Jack) if not specified
+            2. Ask for guest name, email, purpose, preferred date/time if not provided
+            3. Use getAvailableSlots to find open times near the requested time
+            4. Use scheduleMeeting to confirm the booking
+            5. Confirm back with the video room URL and meeting details
         `;
 
         // Connect to Hive Mind

@@ -44,15 +44,22 @@ export async function generateCompetitorReport(tenantId: string): Promise<string
     md += `### :moneybag: Top 3 Margin Opportunities:\n`;
     if (riskOpportunities.length > 0) {
         riskOpportunities.forEach(g => {
-            md += `- **${g.brandName || 'Product'}**: ${g.competitorName} offers ${g.productName} ($${g.competitorPrice.toFixed(2)}) vs our $${g.ourPrice.toFixed(2)} - **RISK:** Undercut on price\n`;
+            // Compute how much margin we'd sacrifice if we matched competitor price
+            const priceReductionPct = g.ourPrice > 0
+                ? Math.round(((g.ourPrice - g.competitorPrice) / g.ourPrice) * 100)
+                : 0;
+            const marginWarning = priceReductionPct >= 10
+                ? ` ⚠️ Matching their price cuts our revenue/unit by ${priceReductionPct}% — verify COGS before discounting.`
+                : ` Consider targeted promotions rather than blanket price cuts.`;
+            md += `- **${g.brandName || 'Product'}**: ${g.competitorName} offers ${g.productName} ($${g.competitorPrice.toFixed(2)}) vs our $${g.ourPrice.toFixed(2)} - **RISK:** Undercut on price.${marginWarning}\n`;
         });
     } else {
         md += `- No significant price undercutting detected today.\n`;
     }
-    
+
     if (segmentationOpportunities.length > 0) {
          segmentationOpportunities.forEach(g => {
-            md += `- **${g.brandName || 'Product'}**: We are priced lower on ${g.productName} ($${g.ourPrice.toFixed(2)}) vs ${g.competitorPrice.toFixed(2)} - **Opportunity:** Check margins or advertise value.\n`;
+            md += `- **${g.brandName || 'Product'}**: We are priced lower on ${g.productName} ($${g.ourPrice.toFixed(2)}) vs ${g.competitorPrice.toFixed(2)} - **Opportunity:** Advertise value advantage or review if margin allows a premium repositioning.\n`;
         });
     }
     md += `\n`;
