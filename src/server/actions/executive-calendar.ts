@@ -20,7 +20,7 @@ import {
     BookingStatus,
 } from '@/types/executive-calendar';
 import { calculateAvailableSlots } from '@/server/services/executive-calendar/availability';
-import { createMeetingRoom, buildRoomName } from '@/server/services/executive-calendar/daily-co';
+import { createMeetingRoom, buildRoomName } from '@/server/services/executive-calendar/livekit';
 import { sendConfirmationEmail } from '@/server/services/executive-calendar/booking-emails';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ function firestoreToBooking(id: string, data: Record<string, unknown>): MeetingB
         endAt: (data.endAt as Timestamp)?.toDate() ?? new Date(),
         status: data.status as BookingStatus,
         videoRoomUrl: data.videoRoomUrl as string,
-        dailyRoomName: data.dailyRoomName as string,
+        livekitRoomName: (data.livekitRoomName ?? data.dailyRoomName) as string,
         prepBriefGenerated: Boolean(data.prepBriefGenerated),
         prepBriefSentAt: data.prepBriefSentAt ? (data.prepBriefSentAt as Timestamp).toDate() : null,
         followUpSentAt: data.followUpSentAt ? (data.followUpSentAt as Timestamp).toDate() : null,
@@ -185,7 +185,7 @@ export async function createBooking(
         endAt: Timestamp.fromDate(endAt),
         status: 'confirmed',
         videoRoomUrl,
-        dailyRoomName: roomName,
+        livekitRoomName: roomName,
         prepBriefGenerated: false,
         prepBriefSentAt: null,
         followUpSentAt: null,

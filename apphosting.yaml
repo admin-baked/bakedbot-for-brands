@@ -111,9 +111,22 @@ env:
     secret: CLAUDE_API_KEY@1
     availability:
       - RUNTIME
-  # Daily.co — Video conferencing for executive meetings
-  - variable: DAILY_API_KEY
-    secret: DAILY_API_KEY@1
+  # LiveKit Cloud — Video conferencing for executive meetings (replaces Daily.co)
+  - variable: LIVEKIT_API_KEY
+    secret: LIVEKIT_API_KEY@1
+    availability:
+      - RUNTIME
+  - variable: LIVEKIT_API_SECRET
+    secret: LIVEKIT_API_SECRET@1
+    availability:
+      - RUNTIME
+  - variable: LIVEKIT_URL
+    secret: LIVEKIT_URL@1
+    availability:
+      - RUNTIME
+  # Deepgram — Speech-to-text for Felisha meeting transcription (12k free min/month)
+  - variable: DEEPGRAM_API_KEY
+    secret: DEEPGRAM_API_KEY@1
     availability:
       - RUNTIME
   # Linus CTO Agent - Service Account for autonomous cloud operations
