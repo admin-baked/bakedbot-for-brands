@@ -56,6 +56,7 @@ import {
     Flame,
     Flag,
     BarChart3,
+    Store,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -291,6 +292,14 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                                 <Link href="/dashboard/settings/brand-guide" prefetch={true}>
                                     <BookOpenCheck />
                                     <span>Brand Guide</span>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive={isActive('/dashboard/settings/vendor-brands')}>
+                                <Link href="/dashboard/settings/vendor-brands" prefetch={true}>
+                                    <Store />
+                                    <span>Brands We Carry</span>
                                 </Link>
                             </SidebarMenuButton>
                         </SidebarMenuItem>

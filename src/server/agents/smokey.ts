@@ -21,6 +21,7 @@ import {
 import { loadAndBuildGoalDirective } from './goal-directive-builder';
 import { getBrandGuide } from '@/server/actions/brand-guide';
 import { buildBrandVoiceBrief } from '@/lib/brand-guide-prompt';
+import { getVendorBrandSummary } from '@/server/actions/vendor-brands';
 
 // --- Tool Definitions ---
 
@@ -80,13 +81,20 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
         // Load active goals for goal-driven directives
         const orgId = (brandMemory.brand_profile as { orgId?: string })?.orgId || brandId;
-        const [goalDirectives, brandGuideResult] = await Promise.all([
+        const [goalDirectives, brandGuideResult, vendorBrands] = await Promise.all([
             loadAndBuildGoalDirective(orgId),
             getBrandGuide(orgId).catch(() => ({ success: false })),
+            getVendorBrandSummary(orgId),
         ]);
         const brandVoiceBrief = buildBrandVoiceBrief(
             (brandGuideResult as any).success ? (brandGuideResult as any).brandGuide : null
         );
+
+        const vendorBrandsSection = vendorBrands.length > 0
+            ? `\n=== BRANDS WE CARRY (${vendorBrands.length}) ===\nYou can speak knowledgeably about these brands in our store:\n${vendorBrands.map(b =>
+                `• ${b.name}${b.description ? `: ${b.description}` : ''}${b.voiceKeywords?.length ? ` | Voice: ${b.voiceKeywords.slice(0, 3).join(', ')}` : ''}${b.productLines?.length ? ` | Lines: ${b.productLines.slice(0, 3).join(', ')}` : ''}`
+            ).join('\n')}\n=== END BRANDS ===`
+            : '';
 
         agentMemory.system_instructions = `
             You are Smokey, the Digital Budtender & Product Expert.
@@ -101,6 +109,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             ${goalDirectives}
 
             ${brandVoiceBrief}
+            ${vendorBrandsSection}
 
             === AGENT SQUAD (For Delegation) ===
             ${squadRoster}
