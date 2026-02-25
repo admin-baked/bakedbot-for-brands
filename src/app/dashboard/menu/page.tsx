@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Loader2, Search, ShoppingBag, RefreshCw, DollarSign, AlertTriangle,
     Pencil, Check, X, Tag, Package, MessageSquare, Zap, ExternalLink,
-    Eye, Maximize2, Minimize2, LayoutGrid, Table2, Bot
+    Eye, Maximize2, Minimize2, LayoutGrid, Table2, Bot, BookOpen
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -162,7 +162,7 @@ export default function MenuPage() {
     } | null>(null);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [fullScreen, setFullScreen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'preview' | 'products' | 'themes' | 'budtender'>('preview');
+    const [activeTab, setActiveTab] = useState<'preview' | 'products' | 'themes' | 'budtender' | 'staff-guide'>('preview');
     const [budtenderOpen, setBudtenderOpen] = useState(false);
     const previewFetchedRef = useRef(false);
 
@@ -393,7 +393,7 @@ export default function MenuPage() {
             )}
 
             {/* Tabs: Preview / Products / Themes / Budtender */}
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'preview' | 'products' | 'themes' | 'budtender')}>
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'preview' | 'products' | 'themes' | 'budtender' | 'staff-guide')}>
                 <div className="flex items-center justify-between">
                     <TabsList>
                         <TabsTrigger value="preview" className="gap-2">
@@ -411,6 +411,12 @@ export default function MenuPage() {
                         <TabsTrigger value="budtender" className="gap-2">
                             <Bot className="h-4 w-4" />
                             Ask Smokey
+                        </TabsTrigger>
+                        <TabsTrigger value="staff-guide" className="gap-2" asChild>
+                            <Link href="/dashboard/menu/staff-guide">
+                                <BookOpen className="h-4 w-4" />
+                                Staff Guide
+                            </Link>
                         </TabsTrigger>
                     </TabsList>
 
