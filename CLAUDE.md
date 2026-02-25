@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (Gmail + Sheets + Drive OAuth connectors + natural language inbox setup card)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (Unified OrgProfile all 7 phases complete + test mock fixes for agent Firestore isolation)
 
 ---
 
