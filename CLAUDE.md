@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (YouTube transcript tool + DIPF client/server boundary build fix)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (LiveKit + Felisha deploy, meet.bakedbot.ai DNS, booking date picker fix)
 
 ---
 
