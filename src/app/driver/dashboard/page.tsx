@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useUser } from '@/firebase/auth/use-user';
 import { getDriverDeliveries } from '@/server/actions/delivery-driver';
 import type { Delivery } from '@/types/delivery';
+import { DriverFcmRegistrar } from '@/components/driver/fcm-registrar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -138,6 +139,8 @@ export default function DriverDashboardPage() {
 
             {/* Main Content */}
             <div className="container mx-auto px-4 py-8 space-y-6">
+                {/* Push Notification Opt-In */}
+                <DriverFcmRegistrar />
                 {/* Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Card>

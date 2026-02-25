@@ -170,13 +170,34 @@ env:
   #   secret: LEAFBUYER_API_URL
   #   availability:
   #     - RUNTIME
-  # - variable: BLACKLEAF_API_KEY
-  #   secret: BLACKLEAF_API_KEY
-  #   availability:
-  #     - RUNTIME
+  - variable: BLACKLEAF_API_KEY
+    secret: BLACKLEAF_API_KEY@1
+    availability:
+      - RUNTIME
   - variable: BLACKLEAF_BASE_URL
     value: "https://api.blackleaf.io"
     availability:
+      - RUNTIME
+  # Google Maps — ETA calculation for delivery routing
+  - variable: GOOGLE_MAPS_API_KEY
+    secret: GOOGLE_MAPS_API_KEY@1
+    availability:
+      - RUNTIME
+  # FCM Push Notifications — Driver assignment alerts (VAPID for web push)
+  - variable: NEXT_PUBLIC_FIREBASE_VAPID_KEY
+    value: "BLxhouB8p6CFWpL5Wr3GSFL3uSwgXLPWf3eLCGUnnYWDtHuKrdiJzIhhSN6KaEM1AuiBFvm2iA1jm1SxjKGTYo0"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "1016399212569"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:1016399212569:web:d9c43842ea4d824e13ba88"
+    availability:
+      - BUILD
       - RUNTIME
   # CanPay
   - variable: CANPAY_MODE

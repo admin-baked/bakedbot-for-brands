@@ -26,7 +26,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Loader2, MapPin, Clock, User, Truck, RefreshCw } from 'lucide-react';
+import { Loader2, MapPin, Clock, User, Truck, RefreshCw, QrCode } from 'lucide-react';
+import { buildQrImageUrl } from '@/lib/delivery-qr';
 import { useToast } from '@/hooks/use-toast';
 
 export function ActiveDeliveriesTab({ locationId }: { locationId: string }) {
@@ -314,6 +315,29 @@ export function ActiveDeliveriesTab({ locationId }: { locationId: string }) {
                                                 ? formatTime(delivery.driverLocation.updatedAt)
                                                 : 'N/A'}
                                         </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Pickup QR Code (show for assigned deliveries so dispatcher can display at counter) */}
+                            {delivery.status === 'assigned' && delivery.pickupQrCode && (
+                                <div className="border rounded-lg p-3">
+                                    <div className="flex items-center gap-2 text-sm font-medium mb-2">
+                                        <QrCode className="h-4 w-4" />
+                                        Pickup QR — Show to driver at counter
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={buildQrImageUrl(delivery.pickupQrCode, 80)}
+                                            alt="Pickup QR Code"
+                                            width={80}
+                                            height={80}
+                                            className="rounded border"
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            Driver scans this at pickup to confirm receipt and start delivery automatically.
+                                        </p>
                                     </div>
                                 </div>
                             )}

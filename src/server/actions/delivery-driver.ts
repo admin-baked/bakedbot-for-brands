@@ -12,6 +12,173 @@ import { requireUser } from '@/lib/auth-helpers';
 import { logger } from '@/lib/monitoring';
 import type { Delivery } from '@/types/delivery';
 import { Timestamp, FieldValue } from 'firebase-admin/firestore';
+import { sendEnRouteSms, sendDeliveredSms } from '@/server/services/delivery-sms';
+
+// ============================================================
+// ETA Calculation (Google Maps Directions API)
+// ============================================================
+
+async function calculateEta(
+    driverLat: number,
+    driverLng: number,
+    deliveryAddress: { street: string; city: string; state: string; zip: string }
+): Promise<Timestamp | null> {
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) return null;
+
+    const origin = `${driverLat},${driverLng}`;
+    const destination = encodeURIComponent(
+        `${deliveryAddress.street}, ${deliveryAddress.city}, ${deliveryAddress.state} ${deliveryAddress.zip}`
+    );
+
+    try {
+        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&mode=driving&key=${apiKey}`;
+        const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+        const data = await response.json();
+
+        if (data.status === 'OK' && data.routes?.[0]?.legs?.[0]?.duration?.value) {
+            const durationSeconds: number = data.routes[0].legs[0].duration.value;
+            return Timestamp.fromMillis(Date.now() + durationSeconds * 1000);
+        }
+    } catch (err) {
+        logger.warn('Google Maps ETA failed (non-fatal)', { err });
+    }
+
+    return null;
+}
+
+// ============================================================
+// QR Check-In Validation
+// ============================================================
+
+/**
+ * Validate pickup QR code scanned by driver at dispensary.
+ * Advances delivery status from 'assigned' → 'in_transit'.
+ */
+export async function validatePickupQr(deliveryId: string, scannedToken: string) {
+    try {
+        const currentUser = await requireUser(['delivery_driver']);
+        const { firestore } = await createServerClient();
+
+        const deliveryRef = firestore.collection('deliveries').doc(deliveryId);
+        const deliveryDoc = await deliveryRef.get();
+
+        if (!deliveryDoc.exists) {
+            return { success: false, error: 'Delivery not found' };
+        }
+
+        const delivery = deliveryDoc.data() as Delivery;
+
+        // Verify driver owns this delivery
+        const userDoc = await firestore.collection('users').doc(currentUser.uid).get();
+        const driverId = userDoc.data()?.driverId;
+        if (delivery.driverId !== driverId) {
+            return { success: false, error: 'Access denied' };
+        }
+
+        if (delivery.status !== 'assigned') {
+            return { success: false, error: 'Delivery is not in assigned state' };
+        }
+
+        // Validate QR token
+        if (!delivery.pickupQrCode || scannedToken !== delivery.pickupQrCode) {
+            return { success: false, error: "QR code doesn't match this order" };
+        }
+
+        // Advance to in_transit
+        await deliveryRef.update({
+            status: 'in_transit',
+            pickupScannedAt: FieldValue.serverTimestamp(),
+            departedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        logger.info('Pickup QR scanned — delivery started', { deliveryId, driverId });
+
+        // Calculate ETA + send SMS asynchronously
+        setImmediate(async () => {
+            try {
+                const orgName = 'Thrive'; // fallback; ideally fetched from org doc
+                // ETA: read driver location and call Maps API
+                const driverDoc = await firestore.collection('drivers').doc(driverId!).get();
+                const loc = driverDoc.data()?.currentLocation;
+                if (loc?.lat && loc?.lng) {
+                    const eta = await calculateEta(loc.lat, loc.lng, delivery.deliveryAddress);
+                    if (eta) {
+                        await deliveryRef.update({ estimatedArrival: eta });
+                    }
+                }
+                // En-route SMS
+                if (delivery.deliveryAddress.phone) {
+                    await sendEnRouteSms(delivery.deliveryAddress.phone, orgName, deliveryId);
+                }
+            } catch (err) {
+                logger.warn('Post-pickup ETA/SMS failed (non-fatal)', { err, deliveryId });
+            }
+        });
+
+        return { success: true };
+    } catch (error) {
+        logger.error('Validate pickup QR failed', { error, deliveryId });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'QR validation failed',
+        };
+    }
+}
+
+/**
+ * Validate delivery QR code scanned by driver at customer's door.
+ * Advances delivery status from 'in_transit' → 'arrived'.
+ */
+export async function validateDeliveryQr(deliveryId: string, scannedToken: string) {
+    try {
+        const currentUser = await requireUser(['delivery_driver']);
+        const { firestore } = await createServerClient();
+
+        const deliveryRef = firestore.collection('deliveries').doc(deliveryId);
+        const deliveryDoc = await deliveryRef.get();
+
+        if (!deliveryDoc.exists) {
+            return { success: false, error: 'Delivery not found' };
+        }
+
+        const delivery = deliveryDoc.data() as Delivery;
+
+        // Verify driver
+        const userDoc = await firestore.collection('users').doc(currentUser.uid).get();
+        const driverId = userDoc.data()?.driverId;
+        if (delivery.driverId !== driverId) {
+            return { success: false, error: 'Access denied' };
+        }
+
+        if (delivery.status !== 'in_transit') {
+            return { success: false, error: 'Delivery must be in transit' };
+        }
+
+        // Validate QR token
+        if (!delivery.deliveryQrCode || scannedToken !== delivery.deliveryQrCode) {
+            return { success: false, error: "QR code doesn't match this order" };
+        }
+
+        // Advance to arrived
+        await deliveryRef.update({
+            status: 'arrived',
+            deliveryScannedAt: FieldValue.serverTimestamp(),
+            arrivedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        logger.info('Delivery QR scanned — driver arrived', { deliveryId, driverId });
+        return { success: true };
+    } catch (error) {
+        logger.error('Validate delivery QR failed', { error, deliveryId });
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'QR validation failed',
+        };
+    }
+}
 
 /**
  * Get deliveries assigned to the current driver
@@ -227,15 +394,30 @@ export async function startDelivery(deliveryId: string) {
             updatedAt: FieldValue.serverTimestamp(),
         });
 
-        logger.info('Delivery started', {
-            deliveryId,
-            driverId,
-            userId: currentUser.uid,
+        logger.info('Delivery started', { deliveryId, driverId, userId: currentUser.uid });
+
+        // Calculate ETA + send en-route SMS asynchronously (non-blocking)
+        setImmediate(async () => {
+            try {
+                // ETA: read driver's last known GPS position
+                const driverDoc = await firestore.collection('drivers').doc(driverId!).get();
+                const loc = driverDoc.data()?.currentLocation;
+                if (loc?.lat && loc?.lng) {
+                    const eta = await calculateEta(loc.lat, loc.lng, delivery.deliveryAddress);
+                    if (eta) {
+                        await deliveryRef.update({ estimatedArrival: eta });
+                    }
+                }
+                // En-route SMS with QR link
+                if (delivery.deliveryAddress.phone) {
+                    await sendEnRouteSms(delivery.deliveryAddress.phone, 'Thrive', deliveryId);
+                }
+            } catch (err) {
+                logger.warn('Post-start ETA/SMS failed (non-fatal)', { err, deliveryId });
+            }
         });
 
-        return {
-            success: true,
-        };
+        return { success: true };
     } catch (error) {
         logger.error('Start delivery failed', { error });
         return {
@@ -398,9 +580,18 @@ export async function completeDelivery(deliveryId: string, proofData: {
             userId: currentUser.uid,
         });
 
-        return {
-            success: true,
-        };
+        // Send delivered SMS (non-blocking)
+        setImmediate(async () => {
+            try {
+                if (delivery.deliveryAddress?.phone) {
+                    await sendDeliveredSms(delivery.deliveryAddress.phone, 'Thrive');
+                }
+            } catch (err) {
+                logger.warn('Delivered SMS failed (non-fatal)', { err, deliveryId });
+            }
+        });
+
+        return { success: true };
     } catch (error) {
         logger.error('Complete delivery failed', { error });
         return {
