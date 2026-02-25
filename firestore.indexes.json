@@ -1,6 +1,20 @@
 {
     "indexes": [
         {
+            "collectionGroup": "org_intent_profiles",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "orgId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "updatedAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+        {
             "collectionGroup": "projects",
             "queryScope": "COLLECTION",
             "fields": [

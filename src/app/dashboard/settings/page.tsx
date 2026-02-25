@@ -4,7 +4,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, Code, Download, Store, Users, Palette, Bot, Plug, Sparkles } from 'lucide-react';
+import { Globe, Code, Download, Store, Users, Palette, Bot, Plug, Sparkles, Target } from 'lucide-react';
 import DomainSettingsTab from './components/domain-tab';
 import EmbedGeneratorTab from './components/embed-tab';
 import WordPressPluginTab from './components/wordpress-tab';
@@ -114,6 +114,10 @@ export default function SettingsPage() {
             <Plug className="mr-2 h-4 w-4" />
             Integrations
           </TabsTrigger>
+          <TabsTrigger value="intent">
+            <Target className="mr-2 h-4 w-4" />
+            Intent Profile
+          </TabsTrigger>
           {(hasBrandAdminAccess || hasDispensaryAdminAccess) && (
             <TabsTrigger value="team">
               <Users className="mr-2 h-4 w-4" />
@@ -142,6 +146,25 @@ export default function SettingsPage() {
 
         <TabsContent value="ai" className="space-y-4">
           <AISettingsTab />
+        </TabsContent>
+
+        <TabsContent value="intent" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-primary" />
+                Dispensary Intent Profile
+              </CardTitle>
+              <CardDescription>
+                Configure how your AI agents behave — their recommendation philosophy, campaign tone, trade-off preferences, and hard boundaries. The more you define, the more aligned your agents become.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild>
+                <Link href="/dashboard/settings/intent-profile">Configure Intent Profile →</Link>
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="embeds" className="space-y-4">
