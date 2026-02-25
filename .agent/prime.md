@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-25):** See `memory/MEMORY.md` for full log.
-Key completed: [LiveKit + Felisha deploy + meet.bakedbot.ai DNS] (`f08f6078`), [Booking date picker fix — empty slots + layout] (`323e9eb6`)
+Key completed: [DIPF Phase 2 — Pops/Ezal/MoneyMike/MrsParker wired + full archetype defaults + 81 tests] (`ebc49333`), [driver age gate bypass + root redirect] (`976f1905`)
 
 ---
 
