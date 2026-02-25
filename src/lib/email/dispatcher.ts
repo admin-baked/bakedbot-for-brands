@@ -2,6 +2,8 @@
 import { sendOrderConfirmationEmail as sendSG } from './sendgrid';
 import { sendOrderConfirmationEmail as sendMJ } from './mailjet';
 import { getAdminFirestore } from '@/firebase/admin';
+import { getGmailToken } from '@/server/integrations/gmail/token-storage';
+import { sendGmail } from '@/server/integrations/gmail/send';
 
 // Simple in-memory cache for provider setting to avoid Firestore hit on every email
 // invalidates every 60 seconds
@@ -56,7 +58,27 @@ export async function sendGenericEmail(data: {
     communicationType?: 'campaign' | 'transactional' | 'welcome' | 'winback' | 'birthday' | 'order_update' | 'loyalty' | 'manual';
     agentName?: string;
     campaignId?: string;
+    // Optional: if provided and user has Gmail connected, send via Gmail
+    userId?: string;
 }): Promise<{ success: boolean; error?: string }> {
+    // Try Gmail first if the user has connected their account
+    if (data.userId) {
+        try {
+            const gmailToken = await getGmailToken(data.userId);
+            if (gmailToken?.refresh_token) {
+                await sendGmail({
+                    userId: data.userId,
+                    to: [data.to],
+                    subject: data.subject,
+                    html: data.htmlBody,
+                });
+                return { success: true };
+            }
+        } catch {
+            // Gmail failed — fall through to Mailjet/SendGrid
+        }
+    }
+
     const provider = await getProvider();
 
     // Helper to attempt SendGrid

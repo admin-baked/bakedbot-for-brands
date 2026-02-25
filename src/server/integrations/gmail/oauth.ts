@@ -33,8 +33,8 @@ const SCOPES_MAP = {
 // Redirect URI - use env var for flexibility
 const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ||
     (process.env.NODE_ENV === 'production'
-        ? 'https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app/api/auth/google/callback'
-        : 'http://localhost:9000/api/auth/google/callback');
+        ? 'https://bakedbot.ai/api/auth/google/callback'
+        : 'http://localhost:3000/api/auth/google/callback');
 
 /**
  * Creates an OAuth2 client with credentials from Secret Manager
