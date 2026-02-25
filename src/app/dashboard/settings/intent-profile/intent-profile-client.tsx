@@ -22,7 +22,6 @@ import {
   updateOrgIntentProfile,
   createOrgIntentProfileFromArchetype,
 } from '@/server/actions/intent-profile';
-import { calculateCompletionPct } from '@/server/services/intent-profile';
 import type {
   DispensaryIntentProfile,
   BusinessArchetype,
@@ -32,7 +31,7 @@ import type {
   StrategicFoundation,
   HardBoundaries,
 } from '@/types/dispensary-intent-profile';
-import { SLIDER_METADATA } from '@/types/dispensary-intent-profile';
+import { SLIDER_METADATA, calculateCompletionPct } from '@/types/dispensary-intent-profile';
 
 interface Props {
   orgId: string;

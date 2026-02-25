@@ -378,3 +378,53 @@ export const SLIDER_METADATA: Record<
     rightDescription: 'Precise terminology, formal register, no slang',
   },
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Completion Scoring (pure utility — safe to import in client components)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function calculateCompletionPct(profile: Partial<DispensaryIntentProfile>): number {
+  let score = 0;
+
+  // Strategic Foundation — 30 points
+  const sf = profile.strategicFoundation;
+  if (sf && sf.archetype && sf.weightedObjectives && sf.weightedObjectives.length >= 1) {
+    score += 30;
+  }
+
+  // Value Hierarchies — 30 points
+  const vh = profile.valueHierarchies;
+  if (
+    vh &&
+    vh.speedVsEducation !== undefined &&
+    vh.volumeVsMargin !== undefined &&
+    vh.acquisitionVsRetention !== undefined &&
+    vh.complianceConservatism !== undefined &&
+    vh.automationVsHumanTouch !== undefined &&
+    vh.brandVoiceFormality !== undefined
+  ) {
+    score += 30;
+  }
+
+  // Agent Configs — 25 points
+  const ac = profile.agentConfigs;
+  if (
+    ac &&
+    ac.smokey &&
+    ac.smokey.recommendationPhilosophy &&
+    ac.smokey.newUserProtocol &&
+    ac.smokey.productEducationDepth &&
+    ac.craig &&
+    ac.craig.toneArchetype &&
+    ac.craig.promotionStrategy
+  ) {
+    score += 25;
+  }
+
+  // Hard Boundaries — 15 points (object presence is enough)
+  if (profile.hardBoundaries !== undefined) {
+    score += 15;
+  }
+
+  return Math.round(score);
+}
