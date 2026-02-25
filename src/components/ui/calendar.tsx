@@ -22,18 +22,20 @@ function Calendar({
       className={cn("p-3", className)}
       classNames={{
         // react-day-picker v9 classNames
-        months: "flex flex-col sm:flex-row gap-4",
+        // 'months' is the relative anchor for the nav buttons
+        months: "relative flex flex-col sm:flex-row gap-4",
         month: "flex flex-col gap-4",
-        month_caption: "flex justify-center pt-1 relative items-center",
+        month_caption: "flex justify-center py-1 items-center",
         caption_label: "text-sm font-medium",
-        nav: "space-x-1 flex items-center",
+        // nav is a sibling of month in v9 — position it absolutely within 'months'
+        nav: "absolute top-1 left-1 right-1 flex justify-between items-center pointer-events-none",
         button_previous: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-1"
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 pointer-events-auto"
         ),
         button_next: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-1"
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 pointer-events-auto"
         ),
         month_grid: "w-full border-collapse space-y-1",
         weekdays: "flex",
