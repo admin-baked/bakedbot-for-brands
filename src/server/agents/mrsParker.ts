@@ -17,6 +17,7 @@ import {
     buildSquadRoster,
     buildIntegrationStatusSummary
 } from './agent-definitions';
+import { getIntentProfile, buildMrsParkerIntentBlock } from '@/server/services/intent-profile';
 
 // ... (Existing Event Handling Code remains unchanged, replacing AgentImplementation)
 
@@ -39,6 +40,10 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
 
   async initialize(brandMemory, agentMemory) {
     logger.info('[MrsParker] Initializing. Syncing segments...');
+
+    const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
+    const intentProfile = await getIntentProfile(orgId).catch(() => null);
+    const intentBlock = intentProfile ? buildMrsParkerIntentBlock(intentProfile) : '';
 
     const brandName = (brandMemory as any)?.brand_profile?.name || 'your brand';
     if (!(brandMemory as any)?.brand_profile?.name) {
@@ -86,6 +91,7 @@ export const mrsParkerAgent: AgentImplementation<MrsParkerMemory, MrsParkerTools
         OUTPUT RULES:
         - Use standard markdown headers (###) for sections.
         - Always be honest about data limitations.
+        ${intentBlock}
     `;
 
     // === HIVE MIND INIT ===
