@@ -9,6 +9,7 @@ import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 import { smokeyInboxToolDefs } from '../tools/inbox-tools';
 import { smokeyCrmToolDefs } from '../tools/crm-tools';
 import { jinaToolDefs, makeJinaToolsImpl } from '@/server/tools/jina-tools';
+import { youtubeToolDefs, makeYouTubeToolsImpl } from '@/server/tools/youtube-tools';
 import {
     buildSquadRoster,
     getDelegatableAgentIds,
@@ -22,6 +23,7 @@ import { loadActiveGoals, buildGoalDirectives, fetchMarginProductContext } from 
 import { getBrandGuide } from '@/server/actions/brand-guide';
 import { buildBrandVoiceBrief } from '@/lib/brand-guide-prompt';
 import { getVendorBrandSummary } from '@/server/actions/vendor-brands';
+import { getIntentProfile, buildSmokeyIntentBlock } from '@/server/services/intent-profile';
 
 // --- Tool Definitions ---
 
@@ -81,11 +83,13 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
         // Load active goals for goal-driven directives
         const orgId = (brandMemory.brand_profile as { orgId?: string })?.orgId || brandId;
-        const [activeGoals, brandGuideResult, vendorBrands] = await Promise.all([
+        const [activeGoals, brandGuideResult, vendorBrands, intentProfile] = await Promise.all([
             loadActiveGoals(orgId),
             getBrandGuide(orgId).catch(() => ({ success: false })),
             getVendorBrandSummary(orgId),
+            getIntentProfile(orgId).catch(() => null),
         ]);
+        const intentBlock = intentProfile ? buildSmokeyIntentBlock(intentProfile) : '';
         const goalDirectives = buildGoalDirectives(activeGoals);
 
         // If a margin goal is active, load per-product margin intelligence so Smokey
@@ -119,6 +123,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
             ${brandVoiceBrief}
             ${vendorBrandsSection}
+            ${intentBlock}
 
             === AGENT SQUAD (For Delegation) ===
             ${squadRoster}
@@ -203,6 +208,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
     },
 
     async act(brandMemory, agentMemory, targetId, tools: SmokeyTools, stimulus?: string) {
+        const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
         // === SCENARIO A: User Request (The "Planner" Flow) ===
         if (targetId === 'user_request' && stimulus) {
             const userQuery = stimulus;
@@ -261,8 +267,8 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                 }
             ];
 
-            // Combine agent-specific tools with shared Context OS, Letta, inbox, and Jina web tools
-            const toolsDef = [...smokeySpecificTools, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs];
+            // Combine agent-specific tools with shared Context OS, Letta, inbox, Jina, and YouTube tools
+            const toolsDef = [...smokeySpecificTools, ...jinaToolDefs, ...youtubeToolDefs, ...contextOsToolDefs, ...lettaToolDefs, ...smokeyInboxToolDefs, ...smokeyCrmToolDefs];
 
             try {
                 const { runMultiStepTask } = await import('./harness');
@@ -270,7 +276,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
                     userQuery,
                     systemInstructions: (agentMemory.system_instructions as string) || '',
                     toolsDef,
-                    tools: { ...tools, ...makeJinaToolsImpl() },
+                    tools: { ...tools, ...makeJinaToolsImpl(), ...makeYouTubeToolsImpl(orgId) },
                     model: 'claude-sonnet-4-5-20250929',
                     maxIterations: 5,
                     onStepComplete: async (step, toolName, res) => {

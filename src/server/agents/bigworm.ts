@@ -8,6 +8,7 @@ import { sidecar } from '@/server/services/python-sidecar';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 import { runResearchElaboration } from './patterns';
 import { jinaToolDefs, makeJinaToolsImpl } from '@/server/tools/jina-tools';
+import { youtubeToolDefs, makeYouTubeToolsImpl } from '@/server/tools/youtube-tools';
 
 // --- Big Worm (Deep Research) Memory ---
 // For now extending generic AgentMemory, can add specific fields later
@@ -84,8 +85,8 @@ export const bigWormAgent: AgentImplementation<BigWormMemory, BigWormTools> = {
                 }
             ];
 
-            // Combine agent-specific tools with shared Context OS, Letta, and Jina web research tools
-            const researchTools = [...bigWormSpecificTools, ...jinaToolDefs, ...contextOsToolDefs, ...lettaToolDefs];
+            // Combine agent-specific tools with shared Context OS, Letta, Jina, and YouTube tools
+            const researchTools = [...bigWormSpecificTools, ...jinaToolDefs, ...youtubeToolDefs, ...contextOsToolDefs, ...lettaToolDefs];
 
             try {
                 // === RESEARCH-ELABORATION PATTERN ===
@@ -115,6 +116,7 @@ export const bigWormAgent: AgentImplementation<BigWormMemory, BigWormTools> = {
                     researchToolsImpl: {
                         ...(tools as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>),
                         ...(makeJinaToolsImpl() as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>),
+                        ...(makeYouTubeToolsImpl() as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>),
                     },
                     maxResearchIterations: 7,
                     elaboration: {
