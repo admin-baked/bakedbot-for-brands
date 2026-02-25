@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (Driver Mobile Parity — QR pickup/delivery check-in, FCM push notifications, SMS en-route alerts, ETA display; secret provisioning playbook added to prime.md)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (COGS gap audit — 4 fixes across goals/suggest, Smokey, Money Mike, Ezal; TS 5.9 incremental+noEmit build fix)
 
 ---
 
