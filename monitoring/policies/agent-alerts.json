@@ -1,0 +1,101 @@
+{
+  "displayName": "BakedBot Agent Alert Policies",
+  "description": "Cloud Monitoring alert policies for AI agent health. Deploy via: gcloud monitoring policies create --policy-from-file=monitoring/policies/agent-alerts.json",
+  "version": "1.0.0",
+  "updatedAt": "2026-02-25",
+  "alerts": [
+    {
+      "name": "agent-error-rate-high",
+      "displayName": "Agent Error Rate > 5%",
+      "description": "Triggers when any agent's error rate exceeds 5% over a 5-minute window. Check agent_telemetry collection for success=false records.",
+      "metric": "custom.googleapis.com/agent/error_rate",
+      "threshold": 0.05,
+      "duration": "300s",
+      "comparison": "COMPARISON_GT",
+      "severity": "WARNING",
+      "notificationChannels": ["slack-linus-incidents"],
+      "documentation": "See runbook: .agent/runbooks/agent-incidents.md — Incident 5 (Quality Degradation)"
+    },
+    {
+      "name": "agent-latency-p95-high",
+      "displayName": "Agent P95 Latency > 30s",
+      "description": "Triggers when any agent's P95 response latency exceeds 30 seconds. May indicate model routing issues, slow tool execution, or infinite loops.",
+      "metric": "custom.googleapis.com/agent/latency_p95",
+      "threshold": 30000,
+      "duration": "300s",
+      "comparison": "COMPARISON_GT",
+      "severity": "WARNING",
+      "notificationChannels": ["slack-infrastructure"],
+      "documentation": "See runbook: .agent/runbooks/agent-incidents.md — Incident 2 (Infinite Loop)"
+    },
+    {
+      "name": "agent-daily-cost-high",
+      "displayName": "Agent Daily Cost > $50",
+      "description": "Triggers when total daily agent token cost across all agents exceeds $50. Usually caused by Opus over-selection or excessive tool calling loops.",
+      "metric": "custom.googleapis.com/agent/daily_cost_usd",
+      "threshold": 50.0,
+      "duration": "3600s",
+      "comparison": "COMPARISON_GT",
+      "severity": "WARNING",
+      "notificationChannels": ["slack-infrastructure"],
+      "documentation": "See runbook: .agent/runbooks/agent-incidents.md — Incident 3 (Cost Spike)"
+    },
+    {
+      "name": "agent-zero-invocations",
+      "displayName": "Zero Agent Invocations (Business Hours)",
+      "description": "Triggers when no agent invocations are recorded for 2+ hours during business hours (9 AM - 9 PM ET). May indicate agent infrastructure is down.",
+      "metric": "custom.googleapis.com/agent/invocation_count",
+      "threshold": 0,
+      "duration": "7200s",
+      "comparison": "COMPARISON_EQ",
+      "severity": "CRITICAL",
+      "notificationChannels": ["slack-linus-incidents", "slack-infrastructure"],
+      "documentation": "Check: Is Claude API key valid? Is the agent endpoint returning 500s? Check Cloud Run logs."
+    },
+    {
+      "name": "cron-job-failure",
+      "displayName": "Cron Job Failure",
+      "description": "Triggers when any /api/cron/* endpoint returns a non-2xx status code. BakedBot has 47 active cron endpoints.",
+      "metric": "run.googleapis.com/request_count",
+      "filter": "resource.type=\"cloud_run_revision\" AND metric.labels.response_code_class!=\"2xx\" AND resource.labels.service_name=\"bakedbot-prod\" AND metric.labels.path=~\"/api/cron/.*\"",
+      "threshold": 1,
+      "duration": "300s",
+      "comparison": "COMPARISON_GT",
+      "severity": "WARNING",
+      "notificationChannels": ["slack-infrastructure"],
+      "documentation": "Check Cloud Run logs for the specific cron route. Most cron failures are CRON_SECRET misconfiguration or downstream API timeouts."
+    },
+    {
+      "name": "agent-capability-utilization-low",
+      "displayName": "Agent Capability Utilization < 10% (7-day)",
+      "description": "Triggers when an agent's capability utilization drops below 10% over a 7-day window. This quantifies the 'forgetting super powers' problem — the agent isn't using most of its available tools.",
+      "metric": "custom.googleapis.com/agent/capability_utilization_7d",
+      "threshold": 0.10,
+      "duration": "604800s",
+      "comparison": "COMPARISON_LT",
+      "severity": "WARNING",
+      "notificationChannels": ["slack-infrastructure"],
+      "documentation": "See runbook: .agent/runbooks/agent-incidents.md — Incident 4 (Ignoring Super Powers). Check system prompt injection and agentContext."
+    }
+  ],
+  "notificationChannels": {
+    "slack-linus-incidents": {
+      "type": "slack",
+      "channel": "#linus-incidents",
+      "description": "Critical agent incidents — auto-dispatches Linus for investigation"
+    },
+    "slack-infrastructure": {
+      "type": "slack",
+      "channel": "#infrastructure",
+      "description": "Infrastructure warnings — reviewed by Linus + Leo daily"
+    }
+  },
+  "deployment": {
+    "instructions": [
+      "1. Create custom metrics in Cloud Monitoring (agent/* namespace)",
+      "2. Set up a Cloud Function or cron job to compute metrics from agent_telemetry collection",
+      "3. Deploy alert policies: gcloud monitoring policies create --policy-from-file=monitoring/policies/agent-alerts.json",
+      "4. Verify notification channels are configured in GCP Console → Monitoring → Alerting → Notification Channels"
+    ]
+  }
+}
