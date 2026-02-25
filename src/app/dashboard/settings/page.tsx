@@ -20,6 +20,7 @@ import { SidecarHealthCheck } from '@/components/settings/sidecar-health';
 import { NotebookLMAuth } from '@/components/settings/notebooklm-auth';
 import { GmailConnection } from './components/gmail-connection';
 import { SheetsConnection } from './components/sheets-connection';
+import { DriveConnection } from './components/drive-connection';
 
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from 'lucide-react';
@@ -189,6 +190,9 @@ export default function SettingsPage() {
           </Suspense>
           <Suspense fallback={<Card className="p-6 animate-pulse"><div className="h-20 bg-muted rounded" /></Card>}>
             <SheetsConnection />
+          </Suspense>
+          <Suspense fallback={<Card className="p-6 animate-pulse"><div className="h-20 bg-muted rounded" /></Card>}>
+            <DriveConnection />
           </Suspense>
           <SidecarHealthCheck />
           <NotebookLMAuth />
