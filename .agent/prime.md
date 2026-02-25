@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-24)
 
 **Recent work (2026-02-24):** See `memory/MEMORY.md` for full log.
-Key completed: [Brand Guide 2.0 Specs 01-05] (`fff9398f`→`217bc882`), [Packaging Intelligence architecture stub] (`217bc882`)
+Key completed: [Driver Mobile Parity — QR check-in, FCM push, SMS, ETA] (`e9c23018`), [Secret provisioning — Blackleaf/Google Maps/FCM wired] (`f61c3cd9`)
 
 ---
 
@@ -498,6 +498,35 @@ echo -n "secret-value" | gcloud secrets create SECRET_NAME --data-file=- --proje
 # Grant access
 firebase apphosting:secrets:grantaccess SECRET_NAME --backend=bakedbot-prod
 # Reference in apphosting.yaml as SECRET_NAME@1
+```
+
+**Diagnosing existing secrets (before adding to apphosting.yaml):**
+```bash
+# 1. Check which secrets exist
+gcloud secrets list --project=studio-567050101-bc6e8
+
+# 2. Check if a specific secret has versions
+gcloud secrets versions list SECRET_NAME --project=studio-567050101-bc6e8
+# "Listed 0 items." → add a version. Shows "1 enabled" → just need IAM grant.
+
+# 3. Grant IAM (even if secret already exists)
+firebase apphosting:secrets:grantaccess SECRET_NAME --backend=bakedbot-prod
+```
+
+**Reading a secret value when you only have the service account (not user creds):**
+The firebase-adminsdk service account does NOT have `secretmanager.versions.access`. Two workarounds:
+- For `NEXT_PUBLIC_*` secrets (already public): read from `.env.local` via Node.js:
+  ```bash
+  node -e "const fs=require('fs'); const lines=fs.readFileSync('.env.local','utf8').split(/\r?\n/); console.log(lines.find(l=>l.startsWith('MY_VAR')).split('=').slice(1).join('='));"
+  ```
+- For other secrets: use `gcloud auth login` (user account) or grant the service account `roles/secretmanager.secretAccessor`
+
+**Placeholder strategy for optional features:**
+When a feature is optional (code already handles missing key gracefully), create a placeholder secret to prevent `fah/misconfigured-secret` build failure:
+```bash
+echo -n "PLACEHOLDER_ADD_REAL_KEY" | gcloud secrets create OPTIONAL_API_KEY --data-file=- --project=studio-567050101-bc6e8
+firebase apphosting:secrets:grantaccess OPTIONAL_API_KEY --backend=bakedbot-prod
+# Feature silently no-ops at runtime; replace with real key when ready
 ```
 
 ### Firebase App Hosting URL Gotcha: NOT `.web.app`
