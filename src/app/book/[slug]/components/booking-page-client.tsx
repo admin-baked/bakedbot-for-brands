@@ -120,6 +120,7 @@ export function BookingPageClient({ profile }: Props) {
                             profileSlug={profile.profileSlug}
                             meetingType={selectedType}
                             timezone={profile.availability.timezone}
+                            availableDows={profile.availability.windows.map(w => w.dayOfWeek)}
                             onSlotSelect={handleSlotSelect}
                         />
                     </div>
