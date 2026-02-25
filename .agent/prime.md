@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-25):** See `memory/MEMORY.md` for full log.
-Key completed: [Gmail + Sheets + Drive OAuth connectors] (`9ab1cb6e`, `bd2ecc66`), [Gmail not-connected → auto inbox card] (`cd97ef8f`)
+Key completed: [Unified OrgProfile 7-phase plan] (`350fbe8b`, `fff3e411`), [Agent test mock fixes] (`eb60543b`)
 
 ---
 
