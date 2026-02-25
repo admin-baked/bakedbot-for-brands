@@ -260,11 +260,94 @@ export function getDefaultProfile(archetype: BusinessArchetype, orgId: string): 
         },
       };
 
-    // TODO Phase 2: Add medical_focus and lifestyle_brand defaults
     case 'medical_focus':
+      return {
+        ...base,
+        strategicFoundation: {
+          archetype: 'medical_focus',
+          growthStage: 'established',
+          competitivePosture: 'differentiator',
+          geographicStrategy: 'hyperlocal',
+          weightedObjectives: [
+            { objective: 'improve_retention', weight: 0.45 },
+            { objective: 'build_brand_authority', weight: 0.35 },
+            { objective: 'grow_loyalty_enrollment', weight: 0.20 },
+          ],
+        },
+        valueHierarchies: {
+          speedVsEducation: 0.9,      // Deep education — patients need full information
+          volumeVsMargin: 0.5,        // Balanced — patients are price-sensitive but quality matters
+          acquisitionVsRetention: 0.8, // Retention-first — patient trust is earned over time
+          complianceConservatism: 0.9, // Maximum caution — medical context demands conservatism
+          automationVsHumanTouch: 0.9, // Human-in-the-loop — medical questions need staff judgment
+          brandVoiceFormality: 0.8,    // Clinical and professional
+        },
+        agentConfigs: {
+          smokey: {
+            recommendationPhilosophy: 'chemistry_first',
+            upsellAggressiveness: 0.1, // Nearly no upsell — let patients choose
+            newUserProtocol: 'guided',
+            productEducationDepth: 'comprehensive',
+          },
+          craig: {
+            campaignFrequencyCap: 2,
+            preferredChannels: ['email'],
+            toneArchetype: 'sage',
+            promotionStrategy: 'education_led',
+          },
+        },
+        feedbackConfig: {
+          captureNegativeFeedback: true,
+          requestExplicitFeedback: true,
+          minimumInteractionsForAdjustment: 100,
+        },
+      };
+
     case 'lifestyle_brand':
+      return {
+        ...base,
+        strategicFoundation: {
+          archetype: 'lifestyle_brand',
+          growthStage: 'growth',
+          competitivePosture: 'differentiator',
+          geographicStrategy: 'regional',
+          weightedObjectives: [
+            { objective: 'build_brand_authority', weight: 0.40 },
+            { objective: 'increase_foot_traffic', weight: 0.35 },
+            { objective: 'grow_loyalty_enrollment', weight: 0.25 },
+          ],
+        },
+        valueHierarchies: {
+          speedVsEducation: 0.4,       // Lean toward education — culture sells
+          volumeVsMargin: 0.5,         // Balanced — brand quality vs accessibility
+          acquisitionVsRetention: 0.3, // Acquisition-first — brand is still growing its audience
+          complianceConservatism: 0.5, // Balanced — creative but responsible
+          automationVsHumanTouch: 0.4, // Lean toward automation — scale the brand message
+          brandVoiceFormality: 0.1,    // Casual and friendly — culture brand voice
+        },
+        agentConfigs: {
+          smokey: {
+            recommendationPhilosophy: 'effect_first',
+            upsellAggressiveness: 0.5,
+            newUserProtocol: 'discover',
+            productEducationDepth: 'moderate',
+          },
+          craig: {
+            campaignFrequencyCap: 4,
+            preferredChannels: ['sms', 'email'],
+            toneArchetype: 'rebel',
+            promotionStrategy: 'education_led',
+          },
+        },
+        feedbackConfig: {
+          captureNegativeFeedback: true,
+          requestExplicitFeedback: false,
+          minimumInteractionsForAdjustment: 30,
+        },
+      };
+
     default: {
-      // Fall back to community_hub with archetype override
+      // Unknown archetype — fall back to community_hub with archetype override
       const fallback = getDefaultProfile('community_hub', orgId);
       fallback.strategicFoundation.archetype = archetype;
       return fallback;
@@ -458,4 +541,124 @@ CUSTOMER FOCUS: ${getAcquisitionRetentionDescription(vh.acquisitionVsRetention)}
 COMPLIANCE STANCE: ${getComplianceStanceDescription(vh.complianceConservatism)}
 ${neverDoBlock}
 === END CAMPAIGN INTENT ===`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 2 Block Builders
+// ─────────────────────────────────────────────────────────────────────────────
+
+function getVolumeMarginDescription(value: number): string {
+  if (value < 0.33) return 'Volume-first: maximize transaction count; recommend accessible, high-velocity products.';
+  if (value <= 0.67) return 'Balanced: weigh both transaction volume and margin per sale equally.';
+  return 'Margin-first: prioritize premium products and upsells; fewer transactions at higher revenue per ticket.';
+}
+
+function getAutomationDescription(value: number): string {
+  if (value < 0.33) return 'Full automation: let AI handle end-to-end. Maximize throughput with minimal human intervention.';
+  if (value <= 0.67) return 'Hybrid: automate routine tasks; escalate judgment calls and edge cases to humans.';
+  return 'Human-in-the-loop: prefer human sign-off on important decisions; automation supports, not replaces, staff judgment.';
+}
+
+function getPostureDescription(posture: string): string {
+  switch (posture) {
+    case 'aggressive': return 'Aggressive — actively pursue competitor customers; price match and promote heavily.';
+    case 'defensive': return 'Defensive — protect market share; focus on loyalty over conquest.';
+    case 'differentiator': return 'Differentiator — compete on quality, selection, and experience rather than price.';
+    default: return posture;
+  }
+}
+
+export function buildPopsIntentBlock(profile: DispensaryIntentProfile): string {
+  const sf = profile.strategicFoundation;
+  const vh = profile.valueHierarchies;
+
+  const objectivesBlock = [...sf.weightedObjectives]
+    .sort((a, b) => b.weight - a.weight)
+    .map(o => `• ${OBJECTIVE_LABELS[o.objective] ?? o.objective} (${Math.round(o.weight * 100)}%)`)
+    .join('\n');
+
+  return `
+=== DISPENSARY INTENT PROFILE ===
+Archetype: ${ARCHETYPE_LABELS[sf.archetype] ?? sf.archetype} | Stage: ${sf.growthStage}
+
+ANALYTICS PRIORITIES:
+${objectivesBlock}
+
+BUSINESS FOCUS:
+Customer Strategy: ${getAcquisitionRetentionDescription(vh.acquisitionVsRetention)}
+Revenue Strategy: ${getVolumeMarginDescription(vh.volumeVsMargin)}
+
+Frame all reports and recommendations around these priorities. Highlight metrics that are most relevant to the current growth stage.
+=== END INTENT PROFILE ===`;
+}
+
+export function buildEzalIntentBlock(profile: DispensaryIntentProfile): string {
+  const sf = profile.strategicFoundation;
+  const vh = profile.valueHierarchies;
+
+  const objectivesBlock = [...sf.weightedObjectives]
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, 2)
+    .map(o => `• ${OBJECTIVE_LABELS[o.objective] ?? o.objective}`)
+    .join('\n');
+
+  return `
+=== DISPENSARY INTENT PROFILE ===
+Archetype: ${ARCHETYPE_LABELS[sf.archetype] ?? sf.archetype} | Stage: ${sf.growthStage}
+
+COMPETITIVE STANCE: ${getPostureDescription(sf.competitivePosture)}
+COMPLIANCE POSTURE: ${getComplianceStanceDescription(vh.complianceConservatism)}
+
+TOP BUSINESS GOALS:
+${objectivesBlock}
+
+When analyzing competitors, focus on gaps relevant to these goals and this competitive stance.
+=== END INTENT PROFILE ===`;
+}
+
+export function buildMoneyMikeIntentBlock(profile: DispensaryIntentProfile): string {
+  const sf = profile.strategicFoundation;
+  const vh = profile.valueHierarchies;
+
+  const objectivesBlock = [...sf.weightedObjectives]
+    .sort((a, b) => b.weight - a.weight)
+    .map(o => `• ${OBJECTIVE_LABELS[o.objective] ?? o.objective} (${Math.round(o.weight * 100)}%)`)
+    .join('\n');
+
+  return `
+=== DISPENSARY INTENT PROFILE ===
+Archetype: ${ARCHETYPE_LABELS[sf.archetype] ?? sf.archetype} | Stage: ${sf.growthStage}
+
+FINANCIAL PRIORITIES:
+${objectivesBlock}
+
+PRICING PHILOSOPHY: ${getVolumeMarginDescription(vh.volumeVsMargin)}
+COMPLIANCE POSTURE: ${getComplianceStanceDescription(vh.complianceConservatism)}
+
+All pricing recommendations, bundle structures, and margin analyses should align with these priorities.
+=== END INTENT PROFILE ===`;
+}
+
+export function buildMrsParkerIntentBlock(profile: DispensaryIntentProfile): string {
+  const sf = profile.strategicFoundation;
+  const vh = profile.valueHierarchies;
+
+  const objectivesBlock = [...sf.weightedObjectives]
+    .sort((a, b) => b.weight - a.weight)
+    .map(o => `• ${OBJECTIVE_LABELS[o.objective] ?? o.objective} (${Math.round(o.weight * 100)}%)`)
+    .join('\n');
+
+  return `
+=== DISPENSARY INTENT PROFILE ===
+Archetype: ${ARCHETYPE_LABELS[sf.archetype] ?? sf.archetype} | Stage: ${sf.growthStage}
+
+RETENTION PRIORITIES:
+${objectivesBlock}
+
+CUSTOMER STRATEGY: ${getAcquisitionRetentionDescription(vh.acquisitionVsRetention)}
+ENGAGEMENT STYLE: ${getAutomationDescription(vh.automationVsHumanTouch)}
+VOICE: ${getFormalityDescription(vh.brandVoiceFormality)}
+
+Personalize all retention campaigns and re-engagement messages to match these priorities and voice.
+=== END INTENT PROFILE ===`;
 }

@@ -18,6 +18,7 @@ import {
     buildSquadRoster,
     buildIntegrationStatusSummary
 } from './agent-definitions';
+import { getIntentProfile, buildMoneyMikeIntentBlock } from '@/server/services/intent-profile';
 
 // ... (Existing Event Handling Code remains unchanged, we only replace the AgentImplementation part)
 
@@ -41,6 +42,10 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
 
   async initialize(brandMemory, agentMemory) {
     logger.info('[MoneyMike] Initializing. Reviewing margin floors...');
+
+    const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
+    const intentProfile = await getIntentProfile(orgId).catch(() => null);
+    const intentBlock = intentProfile ? buildMoneyMikeIntentBlock(intentProfile) : '';
 
     // Build dynamic context from agent-definitions (source of truth)
     const squadRoster = buildSquadRoster('money_mike');
@@ -96,6 +101,7 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
         OUTPUT RULES:
         - Use standard markdown headers (###) for sections.
         - Always cite the source of your financial data.
+        ${intentBlock}
     `;
 
     // === HIVE MIND INIT ===

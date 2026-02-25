@@ -10,6 +10,7 @@ import {
     buildSquadRoster,
     buildIntegrationStatusSummary
 } from './agent-definitions';
+import { getIntentProfile, buildPopsIntentBlock } from '@/server/services/intent-profile';
 
 // --- Tool Definitions ---
 
@@ -31,6 +32,10 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
 
   async initialize(brandMemory, agentMemory) {
     logger.info('[Pops] Initializing. Checking data freshness...');
+
+    const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
+    const intentProfile = await getIntentProfile(orgId).catch(() => null);
+    const intentBlock = intentProfile ? buildPopsIntentBlock(intentProfile) : '';
 
     // Build dynamic context from agent-definitions (source of truth)
     const squadRoster = buildSquadRoster('pops');
@@ -77,6 +82,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
         - Use standard markdown headers (###) to separate sections like "Data Insight", "Trend Analysis", and "Actionable Opportunity".
         - This enables rich card rendering in the dashboard.
         - Always cite the source of your data (tool call or database query).
+        ${intentBlock}
     `;
 
     // === HIVE MIND INIT ===
