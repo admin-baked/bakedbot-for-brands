@@ -59,6 +59,17 @@ export async function proxy(request: NextRequest) {
         if (hasSubdomain) {
             const subdomain = hostParts[0].toLowerCase();
 
+            // meet.bakedbot.ai/{roomId} → /meet/{roomId}  (executive video rooms)
+            if (subdomain === 'meet') {
+                if (pathname !== '/') {
+                    const url = request.nextUrl.clone();
+                    url.pathname = `/meet${pathname}`;
+                    return NextResponse.rewrite(url);
+                }
+                // meet.bakedbot.ai/ root → redirect to bakedbot.ai
+                return NextResponse.redirect(new URL('https://bakedbot.ai'));
+            }
+
             // Skip reserved subdomains (including lead magnets with custom backends)
             const reservedSubdomains = ['www', 'api', 'app', 'dashboard', 'admin', 'mail', 'cdn', 'static', 'academy', 'vibe', 'training'];
             if (!reservedSubdomains.includes(subdomain)) {

@@ -60,7 +60,7 @@ export interface MeetingBooking {
     endAt: Date;
     status: BookingStatus;
     videoRoomUrl: string;
-    dailyRoomName: string;
+    livekitRoomName: string;
     prepBriefGenerated: boolean;
     prepBriefSentAt: Date | null;
     followUpSentAt: Date | null;
