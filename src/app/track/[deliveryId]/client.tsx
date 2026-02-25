@@ -182,6 +182,16 @@ export function TrackDeliveryPageClient({ deliveryId }: { deliveryId: string }) 
                                                 : 'Driver is on the way'
                                             : 'Not started yet'}
                                     </div>
+                                    {currentStep === 2 && delivery.estimatedArrival && (
+                                        <div className="mt-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-2 rounded-lg">
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <Clock className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                                <span className="font-medium text-green-800 dark:text-green-200">
+                                                    Estimated arrival: {formatTime(delivery.estimatedArrival)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
                                     {currentStep === 2 && delivery.driverLocation && (
                                         <div className="mt-2 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-2 rounded-lg">
                                             <div className="flex items-center gap-2 text-sm">

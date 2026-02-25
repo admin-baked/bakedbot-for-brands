@@ -50,6 +50,10 @@ export interface Driver {
     isAvailable: boolean; // On/off duty toggle
     currentLocation?: GPSLocation; // Real-time GPS (updated every 30s)
 
+    // Push Notifications (FCM)
+    fcmToken?: string; // Firebase Cloud Messaging push token
+    fcmTokenUpdatedAt?: Timestamp;
+
     // Timestamps
     createdAt: Timestamp;
     updatedAt: Timestamp;
@@ -154,6 +158,20 @@ export interface Delivery {
     driverLocation?: GPSLocation; // Updated every 30 seconds
     route?: any; // google.maps.DirectionsResult - full route data
     distanceMiles?: number;
+
+    // QR Check-In (AIQ competitive parity — scan-to-confirm at pickup and delivery)
+    pickupQrCode?: string; // UUID scanned by driver at dispensary counter
+    deliveryQrCode?: string; // UUID scanned by driver at customer's door
+    pickupScannedAt?: Timestamp; // When driver scanned pickup QR
+    deliveryScannedAt?: Timestamp; // When driver scanned customer QR
+
+    // SMS Log (transactional notifications)
+    smsLog?: Array<{
+        type: 'en_route' | 'delivered';
+        sentAt: Timestamp;
+        success: boolean;
+        error?: string;
+    }>;
 
     // OCM Compliance Documentation
     manifestNumber?: string; // Unique manifest ID for OCM reporting

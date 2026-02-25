@@ -20,7 +20,10 @@ import {
     startDelivery,
     markArrived,
     completeDelivery,
+    validatePickupQr,
+    validateDeliveryQr,
 } from '@/server/actions/delivery-driver';
+import { QrScanner } from '@/components/driver/qr-scanner';
 import type { Delivery } from '@/types/delivery';
 import { IDVerificationForm } from '@/components/delivery/id-verification-form';
 import { SignaturePad } from '@/components/delivery/signature-pad';
@@ -39,6 +42,7 @@ import {
     ArrowLeft,
     PenLine,
     Camera,
+    ScanLine,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -177,6 +181,32 @@ export function DriverDeliveryDetailsClient({ deliveryId }: { deliveryId: string
         setTimeout(() => router.push('/driver/dashboard'), 2000);
     };
 
+    const handlePickupScan = async (token: string) => {
+        if (!delivery) return;
+        setActionLoading(true);
+        const result = await validatePickupQr(delivery.id, token);
+        if (result.success) {
+            toast({ title: 'Pickup Confirmed!', description: 'En route to customer — GPS tracking active' });
+            await loadDelivery();
+        } else {
+            toast({ variant: 'destructive', title: 'Invalid QR', description: result.error || 'QR code not recognized' });
+        }
+        setActionLoading(false);
+    };
+
+    const handleDeliveryScan = async (token: string) => {
+        if (!delivery) return;
+        setActionLoading(true);
+        const result = await validateDeliveryQr(delivery.id, token);
+        if (result.success) {
+            toast({ title: 'Arrival Confirmed!', description: 'Complete ID verification to finish delivery' });
+            await loadDelivery();
+        } else {
+            toast({ variant: 'destructive', title: 'Invalid QR', description: result.error || 'QR code not recognized' });
+        }
+        setActionLoading(false);
+    };
+
     const openNavigation = () => {
         if (!delivery) return;
         const a = delivery.deliveryAddress;
@@ -292,6 +322,62 @@ export function DriverDeliveryDetailsClient({ deliveryId }: { deliveryId: string
                                 onClick={() => window.open(`tel:${delivery.deliveryAddress.phone}`)}>
                                 <Phone className="mr-2 h-4 w-4" /> {delivery.deliveryAddress.phone}
                             </Button>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* ETA Display (in_transit only) */}
+                {delivery.status === 'in_transit' && delivery.estimatedArrival && (
+                    <Card className="border-blue-500 bg-blue-50 dark:bg-blue-950">
+                        <CardContent className="py-3">
+                            <div className="flex items-center gap-2 text-sm">
+                                <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                <span className="font-medium text-blue-800 dark:text-blue-200">
+                                    ETA: {formatTime(delivery.estimatedArrival)}
+                                </span>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Pickup QR Scanner (assigned = at dispensary counter) */}
+                {delivery.status === 'assigned' && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base flex items-center gap-2">
+                                <ScanLine className="h-4 w-4" /> Scan Pickup QR
+                            </CardTitle>
+                            <CardDescription>
+                                Scan the QR code at the dispensary counter to confirm pickup and start delivery
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <QrScanner
+                                onScan={handlePickupScan}
+                                disabled={actionLoading}
+                                label="Scan Pickup QR Code"
+                            />
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Customer QR Scanner (in_transit = at customer door) */}
+                {delivery.status === 'in_transit' && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base flex items-center gap-2">
+                                <ScanLine className="h-4 w-4" /> Scan Customer QR
+                            </CardTitle>
+                            <CardDescription>
+                                Ask customer to open their BakedBot link and show the QR code
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <QrScanner
+                                onScan={handleDeliveryScan}
+                                disabled={actionLoading}
+                                label="Scan Customer QR Code"
+                            />
                         </CardContent>
                     </Card>
                 )}

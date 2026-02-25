@@ -11,6 +11,8 @@ import { getAdminFirestore } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 import { requireUser } from '@/server/auth/auth';
 import { Timestamp, FieldValue } from '@google-cloud/firestore';
+import { generateQrToken } from '@/lib/delivery-qr';
+import { sendDriverAssignmentPush } from '@/server/services/delivery-fcm';
 import { DISPENSARY_ADMIN_ROLES } from '@/types/roles';
 import { revalidatePath } from 'next/cache';
 import type {
@@ -258,6 +260,10 @@ export async function createDelivery(input: CreateDeliveryInput) {
         // Generate manifest number (required for NY OCM)
         const manifestNumber = `MAN-${input.locationId.toUpperCase()}-${Date.now()}`;
 
+        // Generate QR tokens for pickup (dispensary) and delivery (customer door) check-ins
+        const pickupQrCode = generateQrToken();
+        const deliveryQrCode = generateQrToken();
+
         const deliveryData: Delivery = {
             id: deliveryId,
             orderId: input.orderId,
@@ -268,6 +274,8 @@ export async function createDelivery(input: CreateDeliveryInput) {
             deliveryFee: input.deliveryFee,
             zoneId: input.zoneId,
             idVerification: { verified: false },
+            pickupQrCode,
+            deliveryQrCode,
             manifestNumber,
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now(),
@@ -401,6 +409,30 @@ export async function assignDriver(deliveryId: string, driverId: string) {
         });
 
         logger.info('Driver assigned to delivery', { deliveryId, driverId });
+
+        // Send FCM push notification to driver (non-blocking)
+        setImmediate(async () => {
+            try {
+                const db = getAdminFirestore();
+                const [driverDoc, deliveryDoc] = await Promise.all([
+                    db.collection('drivers').doc(driverId).get(),
+                    db.collection('deliveries').doc(deliveryId).get(),
+                ]);
+                const driver = driverDoc.data();
+                const delivery = deliveryDoc.data();
+                if (driver?.fcmToken && delivery) {
+                    const address = `${delivery.deliveryAddress?.street || ''}, ${delivery.deliveryAddress?.city || ''}`;
+                    await sendDriverAssignmentPush(
+                        driver.fcmToken,
+                        deliveryId,
+                        delivery.orderId || '',
+                        address
+                    );
+                }
+            } catch (err) {
+                logger.warn('FCM push after assignment failed (non-fatal)', { err, deliveryId });
+            }
+        });
 
         revalidatePath('/dashboard/delivery');
 
