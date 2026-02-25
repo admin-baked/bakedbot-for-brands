@@ -22,6 +22,11 @@ import {
 import { calculateAvailableSlots } from '@/server/services/executive-calendar/availability';
 import { createMeetingRoom, buildRoomName } from '@/server/services/executive-calendar/livekit';
 import { sendConfirmationEmail } from '@/server/services/executive-calendar/booking-emails';
+import {
+    getGoogleCalendarBusyTimes,
+    createGoogleCalendarEvent,
+    deleteGoogleCalendarEvent,
+} from '@/server/services/executive-calendar/google-calendar';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -37,6 +42,7 @@ function firestoreToProfile(data: Record<string, unknown>): ExecutiveProfile {
         availability: data.availability as ExecutiveProfile['availability'],
         meetingTypes: data.meetingTypes as ExecutiveProfile['meetingTypes'],
         themeColor: (data.themeColor as string) || '#16a34a',
+        googleCalendarTokens: data.googleCalendarTokens as ExecutiveProfile['googleCalendarTokens'] | undefined,
         createdAt: (data.createdAt as Timestamp)?.toDate() ?? new Date(),
         updatedAt: (data.updatedAt as Timestamp)?.toDate() ?? new Date(),
     };
@@ -63,6 +69,7 @@ function firestoreToBooking(id: string, data: Record<string, unknown>): MeetingB
         transcript: (data.transcript as string) || null,
         meetingNotes: (data.meetingNotes as string) || null,
         actionItems: (data.actionItems as string[]) || [],
+        calendarEventId: (data.calendarEventId as string) || null,
         confirmationEmailSentAt: data.confirmationEmailSentAt
             ? (data.confirmationEmailSentAt as Timestamp).toDate()
             : null,
@@ -109,7 +116,46 @@ export async function getAvailableSlots(
         const date = new Date(`${dateIso}T12:00:00Z`);
         const bookings = await getBookingsForDate(profileSlug, date);
 
-        return calculateAvailableSlots(profile, date, bookings, durationMinutes);
+        // Merge Google Calendar freebusy — gracefully degrades if not connected
+        let allBookings = bookings;
+        if (profile.googleCalendarTokens?.refresh_token) {
+            const startOfDay = new Date(`${dateIso}T00:00:00Z`);
+            const endOfDay = new Date(`${dateIso}T23:59:59Z`);
+            const busyTimes = await getGoogleCalendarBusyTimes(
+                profile.googleCalendarTokens,
+                startOfDay,
+                endOfDay,
+            );
+            // Convert Google busy intervals to fake bookings so hasConflict() reuses existing logic
+            const googleBlocks: MeetingBooking[] = busyTimes.map((b, i) => ({
+                id: `gcal-block-${i}`,
+                profileSlug: profileSlug as ExecProfileSlug,
+                meetingTypeId: 'gcal-block',
+                meetingTypeName: 'Busy (Google Calendar)',
+                durationMinutes: Math.round((b.end.getTime() - b.start.getTime()) / 60000),
+                externalName: '',
+                externalEmail: '',
+                purpose: '',
+                startAt: b.start,
+                endAt: b.end,
+                status: 'confirmed' as BookingStatus,
+                videoRoomUrl: '',
+                livekitRoomName: '',
+                prepBriefGenerated: false,
+                prepBriefSentAt: null,
+                followUpSentAt: null,
+                transcript: null,
+                meetingNotes: null,
+                actionItems: [],
+                calendarEventId: null,
+                confirmationEmailSentAt: null,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            }));
+            allBookings = [...bookings, ...googleBlocks];
+        }
+
+        return calculateAvailableSlots(profile, date, allBookings, durationMinutes);
     } catch (err) {
         logger.error('[ExecCalendar] getAvailableSlots error:', err instanceof Error ? { message: err.message } : { error: String(err) });
         return [];
@@ -221,6 +267,29 @@ export async function createBooking(
         }
     });
 
+    // Create Google Calendar event (non-blocking — booking confirmed regardless)
+    if (profile.googleCalendarTokens?.refresh_token) {
+        setImmediate(async () => {
+            try {
+                const eventId = await createGoogleCalendarEvent(profile.googleCalendarTokens!, {
+                    summary: `${meetingType.name} with ${input.externalName}`,
+                    description: input.purpose || `Meeting booked via BakedBot — ${meetingType.name}`,
+                    startAt,
+                    endAt,
+                    timezone: profile.availability.timezone,
+                    attendeeEmails: [input.externalEmail, profile.emailAddress],
+                    videoRoomUrl,
+                });
+                if (eventId) {
+                    await bookingRef.update({ calendarEventId: eventId, updatedAt: Timestamp.now() });
+                    logger.info(`[ExecCalendar] Google Calendar event linked: ${eventId} → ${bookingId}`);
+                }
+            } catch (err) {
+                logger.error(`[ExecCalendar] Google Calendar event creation failed for ${bookingId}: ${String(err)}`);
+            }
+        });
+    }
+
     return {
         bookingId,
         videoRoomUrl,
@@ -297,11 +366,33 @@ export async function cancelBooking(bookingId: string): Promise<void> {
     try {
         const firestore = getAdminFirestore();
         const ref = firestore.collection('meeting_bookings').doc(bookingId);
+
+        // Read before cancellation to capture calendarEventId + profileSlug
+        const snap = await ref.get();
+        const bookingData = snap.exists ? (snap.data() as Record<string, unknown>) : null;
+
         await ref.update({
             status: 'cancelled',
             updatedAt: Timestamp.now(),
         });
         logger.info(`[ExecCalendar] Booking cancelled: ${bookingId}`);
+
+        // Delete Google Calendar event (non-blocking)
+        if (bookingData?.calendarEventId && bookingData?.profileSlug) {
+            setImmediate(async () => {
+                try {
+                    const profile = await getExecutiveProfile(bookingData.profileSlug as string);
+                    if (profile?.googleCalendarTokens?.refresh_token) {
+                        await deleteGoogleCalendarEvent(
+                            profile.googleCalendarTokens,
+                            bookingData.calendarEventId as string,
+                        );
+                    }
+                } catch (err) {
+                    logger.error(`[ExecCalendar] Google Calendar delete failed for ${bookingId}: ${String(err)}`);
+                }
+            });
+        }
     } catch (err) {
         logger.error('[ExecCalendar] cancelBooking error:', err instanceof Error ? { message: err.message } : { error: String(err) });
         throw err;

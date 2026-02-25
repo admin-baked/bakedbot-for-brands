@@ -29,6 +29,13 @@ export interface AvailabilityConfig {
     windows: AvailabilityWindow[];
 }
 
+export interface GoogleCalendarTokens {
+    access_token: string | null;
+    refresh_token: string | null;
+    expiry_date: number | null;
+    token_type: string | null;
+}
+
 export interface ExecutiveProfile {
     profileSlug: ExecProfileSlug;
     userId?: string;
@@ -41,6 +48,8 @@ export interface ExecutiveProfile {
     meetingTypes: MeetingType[];
     /** Hex color for calendar display */
     themeColor: string;
+    /** OAuth2 tokens for Google Calendar 2-way sync. Set after exec completes OAuth flow. */
+    googleCalendarTokens?: GoogleCalendarTokens;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -61,6 +70,8 @@ export interface MeetingBooking {
     status: BookingStatus;
     videoRoomUrl: string;
     livekitRoomName: string;
+    /** Google Calendar event ID — stored after successful calendar event creation */
+    calendarEventId?: string | null;
     prepBriefGenerated: boolean;
     prepBriefSentAt: Date | null;
     followUpSentAt: Date | null;

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle2, ExternalLink, Video } from 'lucide-react';
+import { Loader2, CheckCircle2, ExternalLink, Video, CalendarCheck2, Link } from 'lucide-react';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -122,14 +122,53 @@ export function ExecutiveAvailabilityForm({ profileSlug }: Props) {
                 <CardContent className="p-4 flex items-center gap-3">
                     <Video className="h-5 w-5 text-blue-600 shrink-0" />
                     <div>
-                        <p className="text-sm font-medium text-blue-900">Video meetings via Daily.co</p>
+                        <p className="text-sm font-medium text-blue-900">Video meetings via LiveKit</p>
                         <p className="text-xs text-blue-700 mt-0.5">
                             Rooms are auto-created on booking. Felisha attends silently and generates post-meeting notes.
-                            Register webhook at: <code className="bg-blue-100 px-1 rounded text-xs">https://bakedbot.ai/api/calendar/webhooks/daily</code>
                         </p>
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Google Calendar sync */}
+            {profile.googleCalendarTokens?.refresh_token ? (
+                <Card className="border-green-100 bg-green-50">
+                    <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <CalendarCheck2 className="h-5 w-5 text-green-600 shrink-0" />
+                            <div>
+                                <p className="text-sm font-medium text-green-900">Google Calendar connected</p>
+                                <p className="text-xs text-green-700 mt-0.5">
+                                    Bookings sync to {displayName}&apos;s calendar. Busy times block new slots.
+                                </p>
+                            </div>
+                        </div>
+                        <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                            Active
+                        </Badge>
+                    </CardContent>
+                </Card>
+            ) : (
+                <Card className="border-dashed">
+                    <CardContent className="p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Link className="h-5 w-5 text-muted-foreground shrink-0" />
+                            <div>
+                                <p className="text-sm font-medium">Connect Google Calendar</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    2-way sync: blocks busy times, creates events on booking.
+                                </p>
+                            </div>
+                        </div>
+                        <a href={`/api/calendar/google/connect?profileSlug=${profileSlug}`}>
+                            <Button variant="outline" size="sm" className="gap-1.5 shrink-0">
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                Connect
+                            </Button>
+                        </a>
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Availability settings */}
             <Card>
