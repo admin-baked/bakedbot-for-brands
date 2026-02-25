@@ -193,7 +193,7 @@ env:
       - RUNTIME
   # Google Maps — ETA calculation for delivery routing
   - variable: GOOGLE_MAPS_API_KEY
-    secret: GOOGLE_MAPS_API_KEY@1
+    secret: GOOGLE_MAPS_API_KEY@2
     availability:
       - RUNTIME
   # FCM Push Notifications — Driver assignment alerts (VAPID for web push)
