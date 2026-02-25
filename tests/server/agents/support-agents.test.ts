@@ -63,6 +63,27 @@ jest.mock('@/server/services/growth/sitemap-manager', () => ({
     }
 }));
 
+jest.mock('@/server/services/org-profile', () => ({
+    getOrgProfileWithFallback: jest.fn().mockResolvedValue(null),
+    buildSmokeyContextBlock: jest.fn().mockReturnValue(''),
+    buildCraigContextBlock: jest.fn().mockReturnValue(''),
+    buildPopsContextBlock: jest.fn().mockReturnValue(''),
+    buildEzalContextBlock: jest.fn().mockReturnValue(''),
+    buildMoneyMikeContextBlock: jest.fn().mockReturnValue(''),
+    buildMrsParkerContextBlock: jest.fn().mockReturnValue(''),
+}));
+
+jest.mock('@/server/agents/goal-directive-builder', () => ({
+    loadActiveGoals: jest.fn().mockResolvedValue([]),
+    buildGoalDirectives: jest.fn().mockReturnValue(''),
+    fetchMarginProductContext: jest.fn().mockResolvedValue(''),
+    loadAndBuildGoalDirective: jest.fn().mockResolvedValue(''),
+}));
+
+jest.mock('@/server/actions/vendor-brands', () => ({
+    getVendorBrandSummary: jest.fn().mockResolvedValue([]),
+}));
+
 // Require agents AFTER mocks (static imports are hoisted and will bypass mocks in our Jest + SWC setup)
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { smokeyAgent } = require('@/server/agents/smokey');
