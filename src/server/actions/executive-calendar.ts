@@ -172,15 +172,19 @@ async function getBookingsForDate(
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
+    // Note: avoid 'status != cancelled' in the Firestore query — combining inequality
+    // on status with range on startAt triggers multi-field inequality errors in some
+    // SDK versions. Filter cancelled bookings in memory instead.
     const snap = await firestore
         .collection('meeting_bookings')
         .where('profileSlug', '==', profileSlug)
         .where('startAt', '>=', Timestamp.fromDate(startOfDay))
         .where('startAt', '<=', Timestamp.fromDate(endOfDay))
-        .where('status', '!=', 'cancelled')
         .get();
 
-    return snap.docs.map(d => firestoreToBooking(d.id, d.data() as Record<string, unknown>));
+    return snap.docs
+        .map(d => firestoreToBooking(d.id, d.data() as Record<string, unknown>))
+        .filter(b => b.status !== 'cancelled');
 }
 
 /**
