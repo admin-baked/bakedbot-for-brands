@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-24)
 
 **Recent work (2026-02-24):** See `memory/MEMORY.md` for full log.
-Key completed: [Brand guide enrichment + agent wiring] (`7e663847`), [Brand image pre-gen on create] (`7b9cc992`), [Dynamic brand theming] (`421b9dd8`)
+Key completed: [Brand Guide 2.0 Spec 01 archetype selector] (`fff9398f`), [Budtender staff guide] (`bb6051c0`), [Vendor brand ingestion + Smokey] (`699d8085`), [NY compliance rules v2] (`685cd1bf`)
 
 ---
 

@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (brand guide enrichment pipeline + agent wiring + brand image pre-gen on first guide creation)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (Brand Guide 2.0 Specs 01-04: archetype selector, budtender staff guide, vendor brand ingestion + Smokey wire-in, NY OCM compliance rules v2)
 
 ---
 
