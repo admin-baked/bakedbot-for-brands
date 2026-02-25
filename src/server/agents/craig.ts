@@ -16,6 +16,7 @@ import {
 import { loadAndBuildGoalDirective, loadActiveGoals, fetchMarginProductContext } from './goal-directive-builder';
 import { getBrandGuide } from '@/server/actions/brand-guide';
 import { buildBrandBrief } from '@/lib/brand-guide-prompt';
+import { getIntentProfile, buildCraigIntentBlock } from '@/server/services/intent-profile';
 
 // --- Tool Definitions ---
 
@@ -55,13 +56,15 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
 
     // Load active goals for goal-driven directives
     const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id;
-    const [goalDirectives, brandGuideResult] = await Promise.all([
+    const [goalDirectives, brandGuideResult, intentProfile] = await Promise.all([
         orgId ? loadAndBuildGoalDirective(orgId) : Promise.resolve(''),
         orgId ? getBrandGuide(orgId).catch(() => ({ success: false })) : Promise.resolve({ success: false }),
+        orgId ? getIntentProfile(orgId).catch(() => null) : Promise.resolve(null),
     ]);
     const brandBrief = buildBrandBrief(
         (brandGuideResult as any).success ? (brandGuideResult as any).brandGuide : null
     );
+    const intentBlock = intentProfile ? buildCraigIntentBlock(intentProfile) : '';
 
     // Set System Instructions for Authenticity
     agentMemory.system_instructions = `
@@ -73,6 +76,7 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         ${goalDirectives}
 
         ${brandBrief}
+        ${intentBlock}
 
         === AGENT SQUAD (For Collaboration) ===
         ${squadRoster}
