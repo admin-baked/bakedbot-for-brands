@@ -34,6 +34,9 @@ import {
   ChevronRight,
   Info,
   CheckCircle2,
+  Brain,
+  ShieldAlert,
+  TrendingUp as StrategyIcon,
 } from 'lucide-react';
 import type { BrandGuide } from '@/types/brand-guide';
 import { VisualIdentityTab } from './components/visual-identity-tab';
@@ -51,9 +54,17 @@ import {
   Step2Dialog,
   Step3Dialog,
   Step4Dialog,
+  Step5Dialog,
+  Step6Dialog,
+  Step7Dialog,
+  type Step5Data,
+  type Step6Data,
+  type Step7Data,
 } from './components/setup-step-dialogs';
 import { extractBrandGuideFromUrl, createBrandGuide } from '@/server/actions/brand-guide';
 import { generateBrandImagesForNewAccount } from '@/server/actions/brand-images';
+import { createOrgProfileFromWizard } from '@/server/actions/org-profile';
+import type { OrgProfile } from '@/types/org-profile';
 import { useToast } from '@/hooks/use-toast';
 
 interface BrandGuideClientProps {
@@ -256,6 +267,9 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
   const [step2Data, setStep2Data] = useState<any>(null);
   const [step3Data, setStep3Data] = useState<any>(null);
   const [step4Data, setStep4Data] = useState<any>(null);
+  const [step5Data, setStep5Data] = useState<Step5Data | null>(null);
+  const [step6Data, setStep6Data] = useState<Step6Data | null>(null);
+  const [step7Data, setStep7Data] = useState<Step7Data | null>(null);
 
   const setupSteps = [
     {
@@ -289,6 +303,30 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
       subtitle: 'Optional • Recommended',
       color: 'text-gray-500 group-hover:text-baked-green',
       completed: !!step4Data,
+    },
+    {
+      id: 5,
+      icon: StrategyIcon,
+      title: 'Business Strategy',
+      subtitle: 'Step 5 • Recommended',
+      color: 'text-gray-500 group-hover:text-baked-green',
+      completed: !!step5Data,
+    },
+    {
+      id: 6,
+      icon: Brain,
+      title: 'Agent Behavior',
+      subtitle: 'Step 6 • Recommended',
+      color: 'text-gray-500 group-hover:text-baked-green',
+      completed: !!step6Data,
+    },
+    {
+      id: 7,
+      icon: ShieldAlert,
+      title: 'Hard Limits',
+      subtitle: 'Step 7 • Recommended',
+      color: 'text-gray-500 group-hover:text-baked-green',
+      completed: !!step7Data,
     },
   ];
 
@@ -505,6 +543,71 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
       }
 
       onComplete(result.brandGuide);
+
+      // Fire-and-forget: write unified OrgProfile if step 5+ completed
+      if (step5Data) {
+        const brandData: OrgProfile['brand'] = {
+          name: step1Data.brandName,
+          tagline: step1Data.tagline,
+          city: step1Data.city,
+          state: step1Data.state,
+          dispensaryType: step1Data.dispensaryType,
+          instagramHandle: step4Data?.instagramHandle,
+          facebookHandle: step4Data?.facebookHandle,
+          visualIdentity: {
+            colors: {
+              primary: { hex: step2Data?.primaryColor || '#4ade80', name: 'Primary', usage: 'Main brand color' },
+              secondary: step2Data?.secondaryColor
+                ? { hex: step2Data.secondaryColor, name: 'Secondary', usage: 'Supporting color' }
+                : undefined,
+            },
+            logo: step2Data?.logoUrl ? { primary: step2Data.logoUrl } : undefined,
+          },
+          voice: {
+            tone: step3Data?.tone || [],
+            personality: step3Data?.personality || [],
+            doWrite: step3Data?.doWrite || [],
+            dontWrite: step3Data?.dontWrite || [],
+          },
+          messaging: { tagline: step1Data.tagline },
+          compliance: { state: step1Data.state },
+        };
+        const intentData: OrgProfile['intent'] = {
+          strategicFoundation: {
+            archetype: step5Data.archetype,
+            growthStage: step5Data.growthStage,
+            competitivePosture: step5Data.competitivePosture,
+            geographicStrategy: 'regional',
+            weightedObjectives: [],
+          },
+          valueHierarchies: step6Data?.valueHierarchies || {
+            speedVsEducation: 0.5, volumeVsMargin: 0.5, acquisitionVsRetention: 0.5,
+            complianceConservatism: 0.5, automationVsHumanTouch: 0.5, brandVoiceFormality: 0.5,
+          },
+          agentConfigs: {
+            smokey: step6Data?.smokeyConfig || {
+              recommendationPhilosophy: 'effect_first', upsellAggressiveness: 0.5,
+              newUserProtocol: 'guided', productEducationDepth: 'moderate',
+            },
+            craig: step6Data?.craigConfig || {
+              campaignFrequencyCap: 2, preferredChannels: ['sms', 'email'],
+              toneArchetype: 'sage', promotionStrategy: 'value_led',
+            },
+          },
+          hardBoundaries: {
+            neverDoList: step7Data?.neverDoList || [],
+            escalationTriggers: step7Data?.escalationTriggers || [],
+          },
+          feedbackConfig: {
+            captureNegativeFeedback: true,
+            requestExplicitFeedback: false,
+            minimumInteractionsForAdjustment: 5,
+          },
+        };
+        createOrgProfileFromWizard(brandId, brandData, intentData).catch(() => {
+          // Background op — OrgProfile will fall back to legacy bridge if this fails
+        });
+      }
 
       // Fire-and-forget: generate brand kit images in background
       // Images will appear in Creative Studio Media panel once ready (~30-60s)
@@ -829,6 +932,33 @@ function BrandGuideOnboarding({ brandId, onComplete }: BrandGuideOnboardingProps
         initialData={step4Data || undefined}
         onComplete={(data) => {
           setStep4Data(data);
+          setCurrentStep(null);
+        }}
+      />
+      <Step5Dialog
+        open={currentStep === 5}
+        onOpenChange={(open) => !open && setCurrentStep(null)}
+        initialData={step5Data || undefined}
+        onComplete={(data) => {
+          setStep5Data(data);
+          setCurrentStep(null);
+        }}
+      />
+      <Step6Dialog
+        open={currentStep === 6}
+        onOpenChange={(open) => !open && setCurrentStep(null)}
+        initialData={step6Data || undefined}
+        onComplete={(data) => {
+          setStep6Data(data);
+          setCurrentStep(null);
+        }}
+      />
+      <Step7Dialog
+        open={currentStep === 7}
+        onOpenChange={(open) => !open && setCurrentStep(null)}
+        initialData={step7Data || undefined}
+        onComplete={(data) => {
+          setStep7Data(data);
           setCurrentStep(null);
         }}
       />

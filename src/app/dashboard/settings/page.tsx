@@ -116,7 +116,7 @@ export default function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="intent">
             <Target className="mr-2 h-4 w-4" />
-            Intent Profile
+            Agent Profile
           </TabsTrigger>
           {(hasBrandAdminAccess || hasDispensaryAdminAccess) && (
             <TabsTrigger value="team">
@@ -153,15 +153,18 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5 text-primary" />
-                Dispensary Intent Profile
+                Brand &amp; Agent Profile
               </CardTitle>
               <CardDescription>
-                Configure how your AI agents behave — their recommendation philosophy, campaign tone, trade-off preferences, and hard boundaries. The more you define, the more aligned your agents become.
+                Single source of truth for your brand identity and AI agent behavior. Configure how agents recommend products, write campaigns, handle compliance, and respond to customers.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex gap-3">
               <Button asChild>
-                <Link href="/dashboard/settings/intent-profile">Configure Intent Profile →</Link>
+                <Link href="/dashboard/settings/profile">Open Brand &amp; Agent Profile →</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/dashboard/settings/intent-profile" className="text-muted-foreground text-xs">Legacy intent profile</Link>
               </Button>
             </CardContent>
           </Card>
