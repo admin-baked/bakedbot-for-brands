@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { Sparkles, Plus, TrendingUp, Loader2, Check } from 'lucide-react';
-import type { OrgGoal, GoalTimeframe, SuggestedGoal } from '@/types/goals';
+import { Sparkles, Plus, TrendingUp, Loader2, RefreshCw } from 'lucide-react';
+import type { OrgGoal, SuggestedGoal } from '@/types/goals';
 import { GoalCard } from '@/components/dashboard/goals/goal-card';
 import { GoalCreationDialog } from '@/components/dashboard/goals/goal-creation-dialog';
 import { SuggestedGoalCard } from '@/components/dashboard/goals/suggested-goal-card';
@@ -29,6 +29,7 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
   const [suggestedGoals, setSuggestedGoals] = useState<SuggestedGoal[]>([]);
   const [isSuggestingGoals, setIsSuggestingGoals] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const hasFetchedRef = useRef(false);
 
   const handleSuggestGoals = useCallback(async () => {
     setIsSuggestingGoals(true);
@@ -54,6 +55,14 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
       setIsSuggestingGoals(false);
     }
   }, []);
+
+  // Auto-fetch suggestions on first mount when org has no goals yet
+  useEffect(() => {
+    if (initialGoals.length === 0 && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      handleSuggestGoals();
+    }
+  }, [initialGoals.length, handleSuggestGoals]);
 
   const handleCreateGoal = useCallback(
     async (goalData: Omit<OrgGoal, 'id' | 'createdAt' | 'updatedAt' | 'lastProgressUpdatedAt'>) => {
@@ -187,40 +196,32 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
         </Button>
       </div>
 
-      {/* Magic Button (Phase 2) */}
-      {!hasAnyGoals && !showSuggestions && (
+      {/* Proactive AI analysis — auto-loads on first visit with no goals */}
+      {!hasAnyGoals && isSuggestingGoals && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 flex items-start gap-4">
-          <Sparkles className="h-6 w-6 text-blue-600 flex-shrink-0 mt-0.5" />
+          <Loader2 className="h-6 w-6 text-blue-600 flex-shrink-0 mt-0.5 animate-spin" />
           <div className="flex-1">
-            <h3 className="font-semibold text-blue-900 mb-1">Get AI Goal Suggestions</h3>
-            <p className="text-sm text-blue-800 mb-3">
-              Our agents will analyze your data and suggest 3-5 strategic goals tailored to your business.
+            <h3 className="font-semibold text-blue-900 mb-1">Analyzing your business data…</h3>
+            <p className="text-sm text-blue-700">
+              Reviewing customers, revenue, inventory, and margins to suggest goals that move the needle.
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSuggestGoals}
-              disabled={isSuggestingGoals}
-            >
-              {isSuggestingGoals ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analyzing your data...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" /> Suggest Goals From My Data
-                </>
-              )}
-            </Button>
           </div>
         </div>
       )}
 
-      {/* Suggested Goals Display */}
+      {/* AI-Recommended Goals — shown automatically or on refresh */}
       {showSuggestions && suggestedGoals.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-lg">Suggested Goals</h3>
+            <div>
+              <h3 className="font-semibold text-lg flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-blue-500" />
+                Recommended for Your Business
+              </h3>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Based on your customers, revenue, and inventory data
+              </p>
+            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -307,6 +308,29 @@ export function GoalsClient({ orgId, initialGoals }: GoalsClientProps) {
             <TabContent goals={grouped.yearly} />
           </TabsContent>
         </Tabs>
+      )}
+
+      {/* Refresh recommendations when goals already exist */}
+      {hasAnyGoals && !showSuggestions && (
+        <div className="flex justify-center pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSuggestGoals}
+            disabled={isSuggestingGoals}
+            className="text-muted-foreground"
+          >
+            {isSuggestingGoals ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analyzing data…
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2" /> Refresh AI Recommendations
+              </>
+            )}
+          </Button>
+        </div>
       )}
 
       {/* Archived Goals */}

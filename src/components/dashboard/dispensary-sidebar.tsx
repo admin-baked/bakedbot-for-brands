@@ -83,14 +83,6 @@ export const DispensarySidebar = memo(function DispensarySidebar() {
                 <SidebarGroupContent>
                     <SidebarMenu>
                         <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive={isActive('/dashboard/goals')}>
-                                <Link href="/dashboard/goals" prefetch={true}>
-                                    <Flag />
-                                    <span>Goals</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
                             <SidebarMenuButton asChild isActive={isActive('/dashboard/inbox')}>
                                 <Link href="/dashboard/inbox" prefetch={true}>
                                     <Inbox />
