@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-25):** See `memory/MEMORY.md` for full log.
-Key completed: [Unified OrgProfile — brand+intent, 6 agents, wizard steps 5-7, /settings/profile, migration script] (`350fbe8b`, `fff3e411`)
+Key completed: [meet.bakedbot.ai DNS (A+TXT)] + [Booking calendar v9 fix — Su column + nav buttons] (`b75d49f3`, `5098d10d`)
 
 ---
 
