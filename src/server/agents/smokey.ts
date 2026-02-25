@@ -18,7 +18,7 @@ import {
     loadGroundTruth,
     buildGroundingInstructions,
 } from '../grounding';
-import { loadAndBuildGoalDirective } from './goal-directive-builder';
+import { loadActiveGoals, buildGoalDirectives, fetchMarginProductContext } from './goal-directive-builder';
 import { getBrandGuide } from '@/server/actions/brand-guide';
 import { buildBrandVoiceBrief } from '@/lib/brand-guide-prompt';
 import { getVendorBrandSummary } from '@/server/actions/vendor-brands';
@@ -81,11 +81,19 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
 
         // Load active goals for goal-driven directives
         const orgId = (brandMemory.brand_profile as { orgId?: string })?.orgId || brandId;
-        const [goalDirectives, brandGuideResult, vendorBrands] = await Promise.all([
-            loadAndBuildGoalDirective(orgId),
+        const [activeGoals, brandGuideResult, vendorBrands] = await Promise.all([
+            loadActiveGoals(orgId),
             getBrandGuide(orgId).catch(() => ({ success: false })),
             getVendorBrandSummary(orgId),
         ]);
+        const goalDirectives = buildGoalDirectives(activeGoals);
+
+        // If a margin goal is active, load per-product margin intelligence so Smokey
+        // can prioritize high-margin products in upsell / recommendation flows.
+        const marginGoal = activeGoals.find(g => g.category === 'margin');
+        const marginProductContext = marginGoal && marginGoal.metrics[0]
+            ? await fetchMarginProductContext(orgId, marginGoal.metrics[0].targetValue).catch(() => '')
+            : '';
         const brandVoiceBrief = buildBrandVoiceBrief(
             (brandGuideResult as any).success ? (brandGuideResult as any).brandGuide : null
         );
@@ -107,6 +115,7 @@ export const smokeyAgent: AgentImplementation<SmokeyMemory, SmokeyTools> = {
             4. **Team Player**: Delegate tasks to specialists (see squad below).
             5. **Carousel Creator**: When asked to create featured product carousels, use the createCarouselArtifact tool to generate a structured artifact for user approval.
             ${goalDirectives}
+            ${marginProductContext}
 
             ${brandVoiceBrief}
             ${vendorBrandsSection}
