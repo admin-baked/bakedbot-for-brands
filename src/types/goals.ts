@@ -12,6 +12,7 @@ export type GoalCategory =
   | 'loyalty'        // tier advancement, points redemption, loyalty enrollment
   | 'marketing'      // campaign open rates, engagement metrics
   | 'compliance'     // license renewal, audit readiness
+  | 'margin'         // gross margin %, product profitability
   | 'custom';        // freeform goal
 
 export type GoalStatus = 'active' | 'achieved' | 'at_risk' | 'behind' | 'paused' | 'archived';
@@ -160,6 +161,18 @@ export const GOAL_CATEGORIES: GoalCategoryInfo[] = [
       'Complete license renewal by deadline',
       'Pass compliance audit',
       'Maintain 100% compliance score',
+    ],
+  },
+  {
+    id: 'margin',
+    label: 'Profitability',
+    description: 'Improve gross margin and product profitability',
+    icon: 'TrendingUp',
+    defaultTimeframe: 'monthly',
+    exampleGoals: [
+      'Achieve 20% gross margin this month',
+      'Improve average product margin to 25%',
+      'Reduce below-cost product exposure by 50%',
     ],
   },
   {

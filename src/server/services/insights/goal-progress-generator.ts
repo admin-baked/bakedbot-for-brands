@@ -181,6 +181,35 @@ export class GoalProgressGenerator {
               const totalOpenRate = campaigns.reduce((sum, c) => sum + (c.performance?.openRate || 0), 0);
               currentValue = Math.round((totalOpenRate / campaigns.length) * 100) / 100;
             }
+          } else if (goal.category === 'margin') {
+            // Calculate portfolio gross margin from products with COGS data
+            // Formula: (sum(price) - sum(cost)) / sum(price) * 100
+            const productsSnapshot = await db
+              .collection('tenants')
+              .doc(this.orgId)
+              .collection('publicViews')
+              .doc('products')
+              .collection('items')
+              .where('cost', '>', 0)
+              .limit(500)
+              .get();
+
+            let totalRevenue = 0;
+            let totalCost = 0;
+            for (const doc of productsSnapshot.docs) {
+              const data = doc.data() as Record<string, any>;
+              const price = data.price || 0;
+              const cost = data.cost || 0;
+              if (price > 0 && cost > 0) {
+                totalRevenue += price;
+                totalCost += cost;
+              }
+            }
+
+            if (totalRevenue > 0) {
+              // Round to one decimal: e.g. 18.3
+              currentValue = Math.round(((totalRevenue - totalCost) / totalRevenue) * 1000) / 10;
+            }
           }
         } catch (error) {
           logger.warn('[GoalProgressGenerator] Failed to update metric, keeping current value', {
