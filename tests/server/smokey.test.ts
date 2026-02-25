@@ -39,6 +39,22 @@ jest.mock('@/server/grounding/dynamic-loader', () => ({
     getGroundTruthSource: jest.fn().mockResolvedValue('none'),
 }));
 
+jest.mock('@/server/services/org-profile', () => ({
+    getOrgProfileWithFallback: jest.fn().mockResolvedValue(null),
+    buildSmokeyContextBlock: jest.fn().mockReturnValue(''),
+}));
+
+jest.mock('@/server/agents/goal-directive-builder', () => ({
+    loadActiveGoals: jest.fn().mockResolvedValue([]),
+    buildGoalDirectives: jest.fn().mockReturnValue(''),
+    fetchMarginProductContext: jest.fn().mockResolvedValue(''),
+    loadAndBuildGoalDirective: jest.fn().mockResolvedValue(''),
+}));
+
+jest.mock('@/server/actions/vendor-brands', () => ({
+    getVendorBrandSummary: jest.fn().mockResolvedValue([]),
+}));
+
 // NOTE: require after mocks so smokey doesn't initialize Firebase via ground truth loading.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { smokeyAgent } = require('@/server/agents/smokey');
