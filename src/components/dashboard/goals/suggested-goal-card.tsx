@@ -29,6 +29,7 @@ export function SuggestedGoalCard({ goal, onAdopt, isLoading = false }: Suggeste
     loyalty: '⭐',
     marketing: '📢',
     compliance: '✅',
+    margin: '📈',
     custom: '🎯',
   }[categoryInfo.id];
 

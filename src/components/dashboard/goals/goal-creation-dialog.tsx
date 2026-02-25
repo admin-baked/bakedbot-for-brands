@@ -24,6 +24,7 @@ import {
   Megaphone,
   ShieldCheck,
   Target,
+  TrendingUp,
   ChevronRight,
   ChevronLeft,
   Sparkles,
@@ -163,6 +164,7 @@ export function GoalCreationDialog({
         return '#';
       case 'retention':
       case 'marketing':
+      case 'margin':
         return '%';
       default:
         return '#';
@@ -176,6 +178,7 @@ export function GoalCreationDialog({
     loyalty: <Star className="h-8 w-8" />,
     marketing: <Megaphone className="h-8 w-8" />,
     compliance: <ShieldCheck className="h-8 w-8" />,
+    margin: <TrendingUp className="h-8 w-8" />,
     custom: <Target className="h-8 w-8" />,
   };
 

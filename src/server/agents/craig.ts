@@ -13,7 +13,7 @@ import {
     buildSquadRoster,
     buildIntegrationStatusSummary
 } from './agent-definitions';
-import { loadAndBuildGoalDirective } from './goal-directive-builder';
+import { loadAndBuildGoalDirective, loadActiveGoals, fetchMarginProductContext } from './goal-directive-builder';
 import { getBrandGuide } from '@/server/actions/brand-guide';
 import { buildBrandBrief } from '@/lib/brand-guide-prompt';
 
@@ -138,6 +138,25 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
         Tone:
         High-energy, confident, creative. Provide 3 variations (Professional, Hype, Educational).
     `;
+
+    // === MARGIN GOAL PRODUCT CONTEXT ===
+    // If an active margin/profitability goal exists, inject product cost data so Craig
+    // can enforce margin constraints when recommending campaigns and bundles.
+    if (orgId) {
+        try {
+            const activeGoals = await loadActiveGoals(orgId);
+            const marginGoal = activeGoals.find(g => g.category === 'margin');
+            if (marginGoal && marginGoal.metrics[0]) {
+                const targetMarginPct = marginGoal.metrics[0].targetValue;
+                const marginContext = await fetchMarginProductContext(orgId, targetMarginPct);
+                if (marginContext) {
+                    agentMemory.system_instructions += marginContext;
+                }
+            }
+        } catch (e) {
+            logger.warn(`[Craig:MarginContext] Failed to load margin product context: ${e}`);
+        }
+    }
 
     // === HIVE MIND INIT ===
     try {
