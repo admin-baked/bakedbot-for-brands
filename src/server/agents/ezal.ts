@@ -5,6 +5,7 @@ import { calculateGapScore } from '../algorithms/ezal-algo';
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
+import { youtubeToolDefs, makeYouTubeToolsImpl } from '@/server/tools/youtube-tools';
 import {
     buildSquadRoster,
     buildIntegrationStatusSummary
@@ -182,12 +183,18 @@ export const ezalAgent: AgentImplementation<EzalMemory, EzalTools> = {
             }
         ];
 
-        // Combine agent-specific tools with shared Context OS and Letta tools
-        const toolsDef = [...ezalSpecificTools, ...contextOsToolDefs, ...lettaToolDefs];
+        // Combine agent-specific tools with shared Context OS, Letta, and YouTube tools
+        const toolsDef = [...ezalSpecificTools, ...youtubeToolDefs, ...contextOsToolDefs, ...lettaToolDefs];
+
+        // Resolve orgId for Drive auto-save
+        const brandId = (brandMemory.brand_profile as { id?: string })?.id || 'unknown';
+        const ezalOrgId = (brandMemory.brand_profile as { orgId?: string })?.orgId || brandId;
+        const youtubeTools = makeYouTubeToolsImpl(ezalOrgId);
 
         // === SHIM: Implement new tools locally (Keep It Simple) ===
         const shimmedTools = {
             ...tools,
+            ...youtubeTools,
             scanCompetitors: async (location: string) => {
                 logger.info(`[Ezal] Scanning competitors in ${location}...`);
                 // Use getCompetitiveIntel which is defined on EzalTools

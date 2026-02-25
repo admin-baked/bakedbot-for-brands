@@ -144,6 +144,9 @@ export interface DriveFile {
   description?: string;
   metadata?: Record<string, string>;
 
+  // Source — identifies what created this file
+  source?: 'youtube_transcript' | 'meeting_transcript' | 'ai_generated' | 'user_upload';
+
   // Sharing
   isShared: boolean;
   shareIds: string[];
@@ -399,6 +402,7 @@ export interface DriveFileDoc {
   tags: string[];
   description?: string;
   metadata?: Record<string, string>;
+  source?: 'youtube_transcript' | 'meeting_transcript' | 'ai_generated' | 'user_upload';
   isShared: boolean;
   shareIds: string[];
   viewCount: number;

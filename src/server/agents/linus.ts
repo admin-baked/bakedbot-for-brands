@@ -1532,6 +1532,31 @@ const LINUS_TOOLS: ClaudeTool[] = [
         }
     },
     // ========================================================================
+    // YOUTUBE TRANSCRIPT
+    // ========================================================================
+    {
+        name: 'fetch_youtube_transcript',
+        description: 'Fetch the full transcript from any public YouTube video. Useful for researching competitor announcements, conference talks, or technical demos. Auto-saves to Drive.',
+        input_schema: {
+            type: 'object' as const,
+            properties: {
+                url: {
+                    type: 'string',
+                    description: 'YouTube URL in any format (youtu.be, youtube.com/watch, /embed/, /shorts/)',
+                },
+                includeTimestamps: {
+                    type: 'boolean',
+                    description: 'Include [M:SS] timestamps in output',
+                },
+                saveNote: {
+                    type: 'string',
+                    description: 'Optional research note to append to the Drive file',
+                },
+            },
+            required: ['url'],
+        },
+    },
+    // ========================================================================
     // SUPER POWERS: Developer Automation Scripts
     // ========================================================================
     {
@@ -3395,6 +3420,37 @@ test('${scenario.slice(0, 50)}', async ({ page }) => {
                     success: result.success,
                     bugId: result.bugId,
                     message: result.success ? `Bug filed: ${result.bugId} — Pinky will triage it` : result.error,
+                };
+            } catch (e: any) {
+                return { success: false, error: e.message };
+            }
+        }
+
+        // ====================================================================
+        // YOUTUBE TRANSCRIPT
+        // ====================================================================
+
+        case 'fetch_youtube_transcript': {
+            const { url, includeTimestamps, saveNote } = input as {
+                url: string;
+                includeTimestamps?: boolean;
+                saveNote?: string;
+            };
+            try {
+                const { makeYouTubeToolsImpl } = await import('@/server/tools/youtube-tools');
+                const impl = makeYouTubeToolsImpl(); // Linus has no org context — Drive save skipped
+                const result = await impl.fetch_youtube_transcript({ url, includeTimestamps, saveNote });
+                if ('error' in result) {
+                    return { success: false, error: result.error, message: result.message };
+                }
+                return {
+                    success: true,
+                    videoId: result.videoId,
+                    title: result.title,
+                    channel: result.channel,
+                    wordCount: result.wordCount,
+                    segmentCount: result.segmentCount,
+                    transcript: result.transcript,
                 };
             } catch (e: any) {
                 return { success: false, error: e.message };
