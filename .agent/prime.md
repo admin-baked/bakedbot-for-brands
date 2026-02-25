@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-25):** See `memory/MEMORY.md` for full log.
-Key completed: [Felisha Cloud Run deploy — LiveKit agent live, wss connected, DEEPGRAM key provisioned] (`b75d49f3`), [DIPF Phase 2 — 81 tests, 6 agents wired] (`ebc49333`)
+Key completed: [Google Calendar 2-way sync — OAuth flow, freebusy blocking, event create/delete] (`f03c3046`)
 
 ---
 
