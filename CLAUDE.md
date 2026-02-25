@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (booking calendar: v9 fix + nav positioning + empty slots Firestore query fix)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (goals: remove duplicate nav item + proactive AI suggestions on mount)
 
 ---
 

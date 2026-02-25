@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-25):** See `memory/MEMORY.md` for full log.
-Key completed: [Booking calendar v9 classNames + nav fix] (`b75d49f3`, `5098d10d`), [Empty slots Firestore multi-field inequality fix] (`575c1a0f`)
+Key completed: [Goals duplicate nav removed + proactive AI suggestions on mount] (`acadc93d`)
 
 ---
 
