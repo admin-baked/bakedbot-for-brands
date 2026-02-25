@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-25):** See `memory/MEMORY.md` for full log.
-Key completed: [YouTube transcript tool + test fix] (`ec116e12`), [DIPF client/server build fix] (`0be3ba89`)
+Key completed: [LiveKit + Felisha deploy + meet.bakedbot.ai DNS] (`f08f6078`), [Booking date picker fix — empty slots + layout] (`323e9eb6`)
 
 ---
 
