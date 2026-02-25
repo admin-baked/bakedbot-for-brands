@@ -27,6 +27,7 @@ import { browserAction, BrowserActionParams } from '@/server/tools/browser';
 import { scheduleTask, ScheduleParams } from '@/server/tools/scheduler';
 import { manageWebhooks, WebhookParams } from '@/server/tools/webhooks';
 import { gmailAction, GmailParams } from '@/server/tools/gmail';
+import { requestIntegration } from '@/server/tools/integration-tools';
 import { calendarAction, CalendarParams } from '@/server/tools/calendar';
 import { sheetsAction, SheetsParams } from '@/server/tools/sheets';
 import { leaflinkAction, LeafLinkParams } from '@/server/tools/leaflink';
@@ -1161,6 +1162,30 @@ All agents are online and ready. Type an agent name or describe your task to get
 
                     executedTools[executedTools.length - 1].status = result.success ? 'success' : 'error';
                     executedTools[executedTools.length - 1].result = result.success ? (params.action === 'list' ? `Found ${(result.data || []).length} emails` : 'Success') : result.error || 'Error';
+
+                    // If Gmail not connected, create an integration_request artifact in the inbox
+                    if (!result.success && result.error?.toLowerCase().includes('not connected') && user?.uid) {
+                        const threadId = extraOptions?.context?.threadId as string | undefined;
+                        const orgId = userBrandId;
+                        if (threadId && orgId) {
+                            try {
+                                await requestIntegration({
+                                    userId: user.uid,
+                                    orgId,
+                                    threadId,
+                                    provider: 'gmail',
+                                    reason: 'To send emails directly from your Gmail account',
+                                    enablesAction: 'send_gmail',
+                                });
+                            } catch {
+                                // non-blocking — don't fail the response
+                            }
+                        }
+                        return {
+                            content: `📬 **Gmail Setup Required**\n\nI need to connect to your Gmail account to send emails. I've added a setup card to this conversation — click **Connect Gmail** to authorize in about 1 minute.\n\nOnce connected, just ask me again and I'll send the email from your account.`,
+                            toolCalls: executedTools
+                        };
+                    }
 
                     return {
                         content: result.success ? `✅ **Gmail Action Complete**\n\n${JSON.stringify(result.data, null, 2)}` : `⚠️ **Gmail Error**: ${result.error}`,
