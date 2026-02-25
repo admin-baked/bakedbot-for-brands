@@ -202,9 +202,12 @@ export async function proxy(request: NextRequest) {
     // Skip age gate for: protected routes, API, signin pages, verify-age itself, main landing page
     const META_PATHS = ['/robots.txt', '/sitemap.xml', '/llm.txt', '/manifest.json', '/favicon.ico', '/sw.js'];
     const isMetaPath = META_PATHS.includes(pathname) || pathname.endsWith('.xml') || pathname.endsWith('.txt');
+    // Public executive booking pages — bypass age gate entirely
+    const isBookingRoute = pathname.startsWith('/book/');
     const isMenuRoute =
         !isProtectedRoute &&
         !isMetaPath &&
+        !isBookingRoute &&
         !pathname.startsWith('/api/') &&
         !pathname.startsWith('/signin') &&
         !pathname.startsWith('/verify-age') &&

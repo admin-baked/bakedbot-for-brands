@@ -111,6 +111,11 @@ env:
     secret: CLAUDE_API_KEY@1
     availability:
       - RUNTIME
+  # Daily.co — Video conferencing for executive meetings
+  - variable: DAILY_API_KEY
+    secret: DAILY_API_KEY@1
+    availability:
+      - RUNTIME
   # Linus CTO Agent - Service Account for autonomous cloud operations
   # Setup: Created with gcloud iam service-accounts keys create + firebase apphosting:secrets:grantaccess
   # Linus uses this to authenticate gcloud/firebase CLI for Cloud Scheduler, IAM, Secrets, etc.

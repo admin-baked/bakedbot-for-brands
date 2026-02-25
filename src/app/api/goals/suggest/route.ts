@@ -114,6 +114,54 @@ export async function POST(_request: NextRequest) {
       .get();
     const hasPOS = !locationSnap.empty && locationSnap.docs[0].data()?.posConfig?.status === 'active';
 
+    // 5. Load COGS/margin data for profitability-aware suggestions
+    let portfolioMargin: number | null = null;
+    let lowestMarginCategory: string | null = null;
+    let cogsProductCount = 0;
+
+    try {
+      const productsWithCost = await db
+        .collection('tenants').doc(resolvedOrgId)
+        .collection('publicViews').doc('products').collection('items')
+        .where('cost', '>', 0)
+        .limit(300)
+        .get();
+
+      if (!productsWithCost.empty) {
+        let totalRevenue = 0;
+        let totalCost = 0;
+        const categoryMargins = new Map<string, { revenue: number; cost: number }>();
+
+        productsWithCost.docs.forEach(doc => {
+          const d = doc.data() as Record<string, any>;
+          const price = d.price || 0;
+          const cost = d.cost || 0;
+          if (price > 0 && cost > 0) {
+            cogsProductCount++;
+            totalRevenue += price;
+            totalCost += cost;
+            const cat = (d.category as string) || 'Other';
+            const existing = categoryMargins.get(cat) || { revenue: 0, cost: 0 };
+            categoryMargins.set(cat, { revenue: existing.revenue + price, cost: existing.cost + cost });
+          }
+        });
+
+        if (totalRevenue > 0) {
+          portfolioMargin = Math.round(((totalRevenue - totalCost) / totalRevenue) * 1000) / 10;
+        }
+
+        let lowestMarginPct = Infinity;
+        categoryMargins.forEach((vals, cat) => {
+          if (vals.revenue > 0) {
+            const m = ((vals.revenue - vals.cost) / vals.revenue) * 100;
+            if (m < lowestMarginPct) { lowestMarginPct = m; lowestMarginCategory = cat; }
+          }
+        });
+      }
+    } catch {
+      // Non-fatal — COGS data is optional for goal suggestions
+    }
+
     // Build analysis prompt
     const analysisPrompt = `You are an AI business advisor for a cannabis dispensary. Based on the following data, suggest 3-5 strategic business goals.
 
@@ -135,6 +183,9 @@ Business Metrics:
 - Estimated monthly revenue: $${monthlyRevenue.toFixed(2)}
 - POS Integration active: ${hasPOS ? 'Yes' : 'No'}
 
+Profitability Context:
+- COGS data available: ${cogsProductCount > 0 ? `Yes (${cogsProductCount} products)` : 'No'}${portfolioMargin !== null ? `\n- Portfolio gross margin: ${portfolioMargin}% (cannabis industry healthy range: 40-60%)` : ''}${portfolioMargin !== null && portfolioMargin < 30 ? `\n- ⚠️ MARGIN ALERT: Portfolio margin is below 30% — profitability goal is strongly recommended` : ''}${lowestMarginCategory ? `\n- Lowest-margin category: ${lowestMarginCategory}` : ''}
+
 Currently Active Goals (avoid duplicating these):
 ${activeGoals.length > 0 ? activeGoals.map((g: any) => `- ${g.title} (${g.category}/${g.timeframe})`).join('\n') : 'None yet'}
 
@@ -142,15 +193,15 @@ Suggest goals that:
 1. Address the biggest business gaps based on the segment data
 2. Are specific and measurable with realistic targets
 3. Include a mix of timeframes (weekly, monthly, yearly)
-4. Cover different categories: foot_traffic, revenue, retention, loyalty, marketing, compliance
-5. Explain WHY each goal matters based on the actual data above
+4. Cover different categories: foot_traffic, revenue, retention, loyalty, marketing, compliance, margin
+5. Explain WHY each goal matters based on the actual data above${portfolioMargin !== null && portfolioMargin < 35 ? '\n6. IMPORTANT: Include a margin/profitability goal given the below-target portfolio margin' : ''}
 
 Return a JSON array of 3-5 goal objects:
 [
   {
     "title": "Specific, actionable goal title",
     "description": "2-3 sentence description",
-    "category": "foot_traffic" | "revenue" | "retention" | "loyalty" | "marketing" | "compliance",
+    "category": "foot_traffic" | "revenue" | "retention" | "loyalty" | "marketing" | "compliance" | "margin",
     "timeframe": "weekly" | "monthly" | "yearly",
     "targetValue": <number>,
     "unit": "$" | "#" | "%",

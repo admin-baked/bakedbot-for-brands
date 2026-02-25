@@ -1375,6 +1375,48 @@
                     "order": "DESCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "meeting_bookings",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "profileSlug", "order": "ASCENDING" },
+                { "fieldPath": "startAt", "order": "ASCENDING" },
+                { "fieldPath": "status", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "meeting_bookings",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "profileSlug", "order": "ASCENDING" },
+                { "fieldPath": "startAt", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "meeting_bookings",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "prepBriefGenerated", "order": "ASCENDING" },
+                { "fieldPath": "startAt", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "meeting_bookings",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "followUpSentAt", "order": "ASCENDING" },
+                { "fieldPath": "endAt", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "meeting_bookings",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "dailyRoomName", "order": "ASCENDING" }
+            ]
         }
     ],
     "fieldOverrides": []

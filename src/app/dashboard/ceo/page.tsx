@@ -49,6 +49,7 @@ const CostsTab = nextDynamic(() => import("./components/costs-tab"), { loading: 
 const SystemHealthTab = nextDynamic(() => import("./components/system-health-tab"), { loading: TabLoader, ssr: false });
 const GoalsCeoTab = nextDynamic(() => import("./components/goals-ceo-tab"), { loading: TabLoader, ssr: false });
 const QATab = nextDynamic(() => import("./components/qa-tab"), { loading: TabLoader, ssr: false });
+const CalendarTab = nextDynamic(() => import("./components/calendar-tab"), { loading: TabLoader, ssr: false });
 
 
 import { useUserRole } from '@/hooks/use-user-role';
@@ -206,6 +207,7 @@ function CeoDashboardContent() {
             case 'health': return <SystemHealthTab />;
             case 'goals': return <GoalsCeoTab />;
             case 'qa': return <QATab />;
+            case 'calendar': return <CalendarTab />;
             default: return <SuperUserPlaybooksPage />;
         }
     };
@@ -235,6 +237,9 @@ function CeoDashboardContent() {
                     </Link>
                     <Link href="?tab=qa">
                         <Button variant="ghost" size="sm" className="w-full sm:w-auto">QA</Button>
+                    </Link>
+                    <Link href="?tab=calendar">
+                        <Button variant="ghost" size="sm" className="w-full sm:w-auto">📅 Calendar</Button>
                     </Link>
                     <DataImportDropdown />
                     {process.env.NODE_ENV !== 'production' && <MockDataToggle />}
