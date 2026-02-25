@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (COGS gap audit — 4 fixes across goals/suggest, Smokey, Money Mike, Ezal; TS 5.9 incremental+noEmit build fix)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-24 (LiveKit + Felisha video: replaced Daily.co, Deepgram STT, meet.bakedbot.ai, /martez + /jack short URLs)
 
 ---
 

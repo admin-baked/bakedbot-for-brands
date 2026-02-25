@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-24)
 
 **Recent work (2026-02-24):** See `memory/MEMORY.md` for full log.
-Key completed: [COGS gap audit — 4 agent/insight fixes] (`78ab8d60`), [TS 5.9 build fix — incremental+noEmit] (`1fd41a59`)
+Key completed: [LiveKit + Felisha video — replaced Daily.co, Deepgram STT, meet.bakedbot.ai, /martez+/jack URLs] (`f08f6078`)
 
 ---
 
