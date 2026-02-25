@@ -26,6 +26,37 @@ Key completed: [Unified OrgProfile 7-phase plan] (`350fbe8b`, `fff3e411`), [Agen
 
 ---
 
+## 🦸 SUPER POWERS — ALWAYS AVAILABLE, USE THESE FIRST
+
+> **Before spending 5+ tool calls investigating an issue, check if a super power solves it in ONE step.**
+
+| # | Script | Command | When To Use |
+|---|--------|---------|-------------|
+| SP1 | Index Auditor | `npm run audit:indexes` | Check Firestore composite index status |
+| SP2 | Secrets Provisioner | `npm run setup:secrets --deploy` | Provision GCP secrets for Firebase App Hosting |
+| SP3 | Schema Validator | `npm run audit:schema --orgId=org_thrive_syracuse` | Validate Firestore data types across collections |
+| SP4 | Test Data Seeder | `npm run seed:test` | Seed test org with 10 customers, 5 playbooks, 3 campaigns |
+| SP5 | Code Scaffolder | `npm run generate:component MyWidget` | Generate boilerplate for components/routes/actions |
+| SP6 | Build Error Fixer | `npm run fix:build --apply` | Auto-fix common TypeScript errors (import paths, console→logger) |
+| SP7 | Security Tester | `npm run test:security` | Run 12 role-based access control scenarios |
+| SP8 | Compliance Gater | `npm run check:compliance --text "..."` | Check content for medical claims, minors protection |
+| SP9 | Consistency Checker | `npm run audit:consistency --orgId=...` | Validate org relationships and data integrity |
+| SP10 | Monitoring Setup | `npm run setup:monitoring --deploy` | Configure Cloud Monitoring alerts for production |
+| SP11 | Cost Analyzer | `npm run audit:costs` | Identify expensive Firestore queries |
+
+**Quick-fire guide — when you're stuck:**
+- Build broken? → **SP6** `npm run fix:build --apply` then `npm run check:types`
+- Data looks wrong? → **SP3** `npm run audit:schema` + **SP9** `npm run audit:consistency`
+- Need test data? → **SP4** `npm run seed:test`
+- Security concern? → **SP7** `npm run test:security`
+- Content compliance? → **SP8** `npm run check:compliance --text "..."`
+- Slow queries? → **SP11** `npm run audit:costs`
+- New scaffold needed? → **SP5** `npm run generate:component|action|route|cron <name>`
+
+**Notes:** All scripts use `.env.local` for auth. SP8 requires `CLAUDE_API_KEY`. SP4 creates `org_test_bakedbot` (use `--clean` to reset).
+
+---
+
 ## Workflow Protocol
 
 **Every task follows this pipeline. No shortcuts. No exceptions.**
@@ -145,36 +176,6 @@ P0/P1 bugs trigger Slack notification automatically via `qa-notifications.ts`.
 - Commit + push to production
 
 Do NOT wait for the user to say "P1" or "file a bug first" — triage, file, and fix in one pass.
-
----
-
-## 🦸 Developer Super Powers (11 Ready-to-Use Automation Scripts)
-
-**Complete suite deployed 2026-02-22** — Use these for rapid development, testing, compliance, and observability.
-
-### When to Use Each Super Power:
-
-| Super Power | When to Use | Command | Output |
-|---|---|---|---|
-| **SP1: Index Auditor** | Check Firestore composite index status | `npm run audit:indexes` | Reports 81 existing indexes by collection |
-| **SP2: Secrets Provisioner** | Provision GCP secrets for Firebase App Hosting | `npm run setup:secrets --deploy` | Creates secrets from `.env.local` |
-| **SP3: Schema Validator** | Validate Firestore data types across collections | `npm run audit:schema --orgId=org_thrive_syracuse` | % valid docs per collection + field mismatches |
-| **SP4: Test Data Seeder** | Quickly seed test org with realistic data | `npm run seed:test` | 10 customers + 5 playbooks + 3 campaigns |
-| **SP5: Code Scaffolder** | Generate boilerplate for components/routes/actions | `npm run generate:component MyWidget` | React component + test file with stubs |
-| **SP6: Build Error Fixer** | Auto-fix common TypeScript errors | `npm run fix:build --apply` | Fixes import paths, console→logger calls |
-| **SP7: Security Tester** | Run role-based access control scenarios | `npm run test:security` | 12 security test results (PASS/FAIL) |
-| **SP8: Compliance Gater** | Check content for medical claims, minors protection | `npm run check:compliance --text "..."` | Compliant: yes/no + specific violations |
-| **SP9: Consistency Checker** | Validate org relationships and data integrity | `npm run audit:consistency --orgId=...` | 8 consistency rules + sample broken IDs |
-| **SP10: Monitoring Setup** | Configure Cloud Monitoring alerts for production | `npm run setup:monitoring --deploy` | Slack #ops notifications for latency/errors |
-| **SP11: Cost Analyzer** | Identify expensive Firestore queries | `npm run audit:costs` | Query cost estimates + N+1 patterns + recommendations |
-
-### Gotchas & Key Notes:
-- **SP6 (Build Fixer)** can run `--apply` to fix errors automatically — re-runs TypeScript check to verify
-- **SP8 (Compliance)** requires `CLAUDE_API_KEY` in `.env.local` for semantic checking via Claude Haiku
-- **SP9 (Consistency)** runs against all orgs by default; use `--orgId=` to scope to single org
-- **SP4 (Test Seeder)** creates `org_test_bakedbot` — use `--clean` to reset before re-seeding
-- **SP5 (Scaffolder)** generates component+test or action or route or cron based on first arg
-- All 21 scripts use `.env.local` for service account auth (base64-encoded Firebase key)
 
 ---
 
@@ -462,16 +463,20 @@ BakedBot AI utilizes the **Gemini 2.5** family for all core reasoning and creati
 
 ## ⚠️ Common Pitfalls
 
-| Pitfall | Prevention |
-|---------|------------|
-| Editing code without reading it | Always use Read tool first |
-| Skipping build check | Run `npm run check:types` before and after |
-| Large changes without plan | Break into smaller increments |
-| Forgetting to archive | Use `archive_work` after significant changes |
-| Assuming file structure | Use Glob/Grep to verify |
-| Using `&&` in PowerShell | Use `;` instead |
-| Runtime-only env vars at module level | Use lazy initialization (see Next.js Build Gotcha below) |
-| Using `latest` for secrets in apphosting.yaml | **Always use explicit version numbers** (e.g. `@6`) |
+| Pitfall | Prevention | Super Power |
+|---------|------------|-------------|
+| Editing code without reading it | Always use Read tool first | — |
+| Skipping build check | Run `npm run check:types` before and after | — |
+| Build errors piling up | Auto-fix first, then manual review | **SP6** `fix:build --apply` |
+| Large changes without plan | Break into smaller increments | — |
+| Forgetting to archive | Use `archive_work` after significant changes | — |
+| Assuming file structure | Use Glob/Grep to verify | — |
+| Data integrity issues | Validate schemas and cross-org consistency | **SP3** + **SP9** |
+| Security gaps in new routes | Run role-based access control tests | **SP7** `test:security` |
+| Expensive queries shipping | Check query cost before/after changes | **SP11** `audit:costs` |
+| Using `&&` in PowerShell | Use `;` instead | — |
+| Runtime-only env vars at module level | Use lazy initialization (see Next.js Build Gotcha below) | — |
+| Using `latest` for secrets in apphosting.yaml | **Always use explicit version numbers** (e.g. `@6`) | **SP2** `setup:secrets` |
 
 ### Firebase Secret Manager Gotcha: Explicit Version Numbers Required
 
@@ -642,6 +647,57 @@ if (authHeader !== `Bearer ${cronSecret}`) {
 - Full audit trail (Firestore `linus-audit` collection)
 - Hive Mind learning (Letta memory prevents recurrence)
 - Incident auto-recovery (2-minute response SLA)
+
+---
+
+## 🛠️ DevOps & Operational Awareness
+
+> Every agent should understand the production infrastructure they operate within.
+
+### Deployment Architecture
+```
+git push origin main → GitHub Actions CI → Firebase App Hosting → Cloud Run (0-10 auto-scaling instances)
+Build: npm test → tsup (embed widget) → next build --webpack → Firebase deploy --force
+URL: https://bakedbot-prod--studio-567050101-bc6e8.us-central1.hosted.app
+```
+
+### Monitoring Stack
+| Layer | Tool | Frequency | What It Checks |
+|-------|------|-----------|----------------|
+| Synthetic | k6 (GitHub Actions) | Every 15 min | /api/health, /thrivesyracuse, /llm.txt — SLA: p95 < 600ms |
+| Heartbeat | Pulse system | Every 10 min | 60+ domain-specific checks (POS, inventory, loyalty, compliance) |
+| System Health | Cron job | Every 30 min | Memory, CPU, latency, error rates, DB connectivity |
+| Agent Telemetry | Firestore | Per invocation | Token usage, tool calls, latency, cost, capability utilization |
+| Error Tracking | Sentry | Real-time | Client + server errors, session replays |
+
+### Active Cron Jobs (47 endpoints)
+Key schedules: POS sync (30 min), loyalty sync (daily 2 AM), playbook execution (daily + weekly), system health (30 min), pricing alerts, usage alerts, QA smoke tests.
+
+### Alert Escalation Path
+```
+Cloud Monitoring alert → Slack #infrastructure
+  ↓ (if P0/P1)
+Auto-escalator → QA bug filed → Linus auto-dispatched → Slack #linus-incidents
+  ↓ (if unresolved > 2 min)
+Human escalation
+```
+
+### Agent Incident Runbooks
+**Location:** `.agent/runbooks/agent-incidents.md`
+
+Covers: hallucinated tools, infinite loops, cost spikes, forgetting super powers, quality degradation, cross-agent failures.
+
+### Agent SLOs
+**Location:** `.agent/specs/agent-slos.md`
+
+Key targets: Linus P95 < 30s, error rate < 2%, super power utilization > 15%. Craig compliance > 99%. Smokey recommendation P95 < 5s.
+
+### Cost Awareness
+- Sonnet 4.5: $3/M input, $15/M output (default for all agents)
+- Opus 4.5: $15/M input, $75/M output (auto-routed for strategic tasks only)
+- Daily budget: $200 total across all agents
+- Track via: `agent_telemetry` collection (costEstimateUsd field)
+- Alert at: $50/day per agent, $200/day total
 
 ---
 

@@ -11,10 +11,24 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import type { MessageParam, Tool, ContentBlock, ToolUseBlock, ToolResultBlockParam } from '@anthropic-ai/sdk/resources/messages';
+import { buildTelemetryEvent, recordAgentTelemetry } from '@/server/services/agent-telemetry';
 
 // Re-export types for convenience
 export type ClaudeTool = Tool;
 export type ClaudeToolUse = ToolUseBlock;
+
+/**
+ * Agent context injected into Claude's system prompt for persistent identity.
+ * This is the highest-priority context — Claude reads system prompts first.
+ * Use this to prevent agents from "forgetting" their capabilities in long sessions.
+ */
+export interface AgentContext {
+    name: string;           // e.g., "Linus"
+    role: string;           // e.g., "CTO"
+    capabilities: string[]; // Tool category summaries
+    groundingRules: string[]; // Anti-hallucination rules
+    superPowers?: string;   // Quick-reference automation scripts block
+}
 
 export interface ClaudeContext {
     userId?: string;
@@ -24,6 +38,7 @@ export interface ClaudeContext {
     model?: string; // Allow model override
     autoRouteModel?: boolean; // Auto-select Opus for complex tasks (default: true)
     contextTokens?: number; // Estimated context size for model selection
+    agentContext?: AgentContext; // Agent identity + capabilities for system prompt
 }
 
 export interface ToolExecution {
@@ -240,6 +255,7 @@ export async function executeWithTools(
 ): Promise<ClaudeResult> {
     const client = getClient();
     const maxIterations = context.maxIterations || MAX_ITERATIONS;
+    const invocationStart = Date.now();
 
     // Auto-select model based on task complexity (unless explicitly specified)
     const { model: selectedModel, complexity } = selectModel(prompt, {
@@ -337,38 +353,133 @@ export async function executeWithTools(
         
         // Add assistant's response and tool results to conversation
         messages.push({ role: 'assistant', content: response.content });
+
+        // Inject capability reminder every 4 iterations to prevent context dilution.
+        // Appends to the last tool result content so it arrives naturally in the conversation.
+        const REMINDER_INTERVAL = 4;
+        if (context.agentContext && (iteration + 1) % REMINDER_INTERVAL === 0 && toolResults.length > 0) {
+            const reminder = buildCapabilityReminder(context, tools.length);
+            if (reminder) {
+                const lastResult = toolResults[toolResults.length - 1];
+                const existingContent = typeof lastResult.content === 'string' ? lastResult.content : '';
+                toolResults[toolResults.length - 1] = {
+                    ...lastResult,
+                    content: `${existingContent}\n\n${reminder}`,
+                };
+            }
+        }
+
         messages.push({ role: 'user', content: toolResults });
     }
     
-    return {
+    const result: ClaudeResult = {
         content: finalContent,
         toolExecutions,
         model: selectedModel,
         inputTokens: totalInputTokens,
         outputTokens: totalOutputTokens,
     };
+
+    // Record telemetry when agent context is present (fire-and-forget)
+    if (context.agentContext) {
+        const totalLatencyMs = Date.now() - invocationStart;
+        const telemetryEvent = buildTelemetryEvent({
+            agentName: context.agentContext.name,
+            model: selectedModel,
+            inputTokens: totalInputTokens,
+            outputTokens: totalOutputTokens,
+            toolExecutions: toolExecutions.map(t => ({
+                name: t.name,
+                durationMs: t.durationMs,
+                status: t.status,
+            })),
+            totalLatencyMs,
+            success: toolExecutions.every(t => t.status === 'success'),
+            availableToolCount: tools.length,
+        });
+        // Don't await — fire and forget to avoid slowing down agent responses
+        recordAgentTelemetry(telemetryEvent).catch(() => {});
+    }
+
+    return result;
 }
 
 /**
- * Build system prompt with context
+ * Build system prompt with context.
+ *
+ * When agentContext is provided, the system prompt carries the agent's full identity,
+ * capabilities, grounding rules, and super powers. This is injected into Claude's
+ * `system:` parameter — the highest-priority context that persists across all turns.
+ *
+ * This prevents the "forgetting super powers" problem where agent instructions
+ * buried in user messages lose salience in long multi-turn conversations.
  */
 function buildSystemPrompt(context: ClaudeContext): string {
-    const parts = [
-        'You are an AI assistant for BakedBot, a cannabis commerce platform.',
-        'You have access to tools to help complete tasks.',
-        'Always use tools when they can help accomplish the user\'s request.',
-        'After executing tools, summarize what was done in a clear, friendly manner.',
-    ];
-    
+    const parts: string[] = [];
+
+    if (context.agentContext) {
+        const ac = context.agentContext;
+        parts.push(`You are ${ac.name}, ${ac.role} of BakedBot — the Agentic Commerce OS for cannabis.`);
+        parts.push('');
+
+        // Capabilities block — always visible at top of system prompt
+        if (ac.capabilities.length > 0) {
+            parts.push('=== YOUR CAPABILITIES ===');
+            for (const cap of ac.capabilities) {
+                parts.push(`• ${cap}`);
+            }
+            parts.push('');
+        }
+
+        // Grounding rules — anti-hallucination guardrails
+        if (ac.groundingRules.length > 0) {
+            parts.push('=== GROUNDING RULES (MANDATORY) ===');
+            for (let i = 0; i < ac.groundingRules.length; i++) {
+                parts.push(`${i + 1}. ${ac.groundingRules[i]}`);
+            }
+            parts.push('');
+        }
+
+        // Super powers — automation scripts available to this agent
+        if (ac.superPowers) {
+            parts.push('=== SUPER POWERS (ALWAYS AVAILABLE — USE THESE FIRST) ===');
+            parts.push(ac.superPowers);
+            parts.push('');
+        }
+
+        parts.push('Always use tools when they can help accomplish the request.');
+        parts.push('After executing tools, summarize what was done in a clear, friendly manner.');
+    } else {
+        // Generic fallback for non-agent callers
+        parts.push('You are an AI assistant for BakedBot, a cannabis commerce platform.');
+        parts.push('You have access to tools to help complete tasks.');
+        parts.push('Always use tools when they can help accomplish the user\'s request.');
+        parts.push('After executing tools, summarize what was done in a clear, friendly manner.');
+    }
+
     if (context.brandId) {
         parts.push(`Current brand context: ${context.brandId}`);
     }
-    
+
     if (context.role) {
         parts.push(`User role: ${context.role}`);
     }
-    
+
     return parts.join('\n');
+}
+
+/**
+ * Build a brief capability reminder for injection in long tool-calling loops.
+ * After N iterations, Claude may lose track of available capabilities.
+ * This reminder is injected as a user message to refresh context.
+ */
+function buildCapabilityReminder(context: ClaudeContext, toolCount: number): string | null {
+    if (!context.agentContext) return null;
+    const ac = context.agentContext;
+    const capList = ac.capabilities.slice(0, 5).join(', ');
+    return `[System Reminder] ${ac.name}, you have ${toolCount} tools available including: ${capList}. ` +
+        (ac.superPowers ? 'You also have 11 super power automation scripts — use them proactively. ' : '') +
+        'Check your tool list before claiming a capability is unavailable.';
 }
 
 /**
