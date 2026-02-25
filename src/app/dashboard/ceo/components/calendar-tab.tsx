@@ -1,13 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarDays, Settings2, User } from 'lucide-react';
+import { CalendarDays, User } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { MeetingsCalendarView } from './meetings-calendar-view';
 import { ExecutiveAvailabilityForm } from './executive-availability-form';
 
 export default function CalendarTab() {
     const [subTab, setSubTab] = useState('overview');
+    const searchParams = useSearchParams();
+    const { toast } = useToast();
+
+    // Show feedback from Google Calendar OAuth redirect
+    useEffect(() => {
+        const calendarSync = searchParams.get('calendarSync');
+        if (!calendarSync) return;
+        if (calendarSync === 'success') {
+            toast({ title: 'Google Calendar connected', description: 'Bookings will now sync 2-way with Google Calendar.' });
+            setSubTab('martez'); // Jump to settings so user sees the Connected badge
+        } else if (calendarSync === 'error') {
+            toast({ title: 'Connection failed', description: 'Could not connect Google Calendar. Please try again.', variant: 'destructive' });
+        } else if (calendarSync === 'invalid') {
+            toast({ title: 'Invalid request', description: 'OAuth flow failed — missing profile or code.', variant: 'destructive' });
+        }
+        // Remove the param from URL without reloading
+        const url = new URL(window.location.href);
+        url.searchParams.delete('calendarSync');
+        window.history.replaceState({}, '', url.toString());
+    }, [searchParams, toast]);
 
     return (
         <div className="space-y-6">
