@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-25):** See `memory/MEMORY.md` for full log.
-Key completed: [Google Calendar 2-way sync] (`f03c3046`), [Unified OrgProfile — brand+intent consolidation, 6 agents updated] (`350fbe8b`)
+Key completed: [Unified OrgProfile — brand+intent, 6 agents, wizard steps 5-7, /settings/profile, migration script] (`350fbe8b`, `fff3e411`)
 
 ---
 
