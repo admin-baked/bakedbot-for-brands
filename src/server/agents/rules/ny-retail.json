@@ -1,41 +1,146 @@
 {
   "jurisdiction": "NY",
   "channel": "retail",
-  "version": 1,
+  "version": 2,
   "status": "passing",
-  "source": "NY OCM Cannabis Advertising Guidelines — cannabis.ny.gov",
-  "last_reviewed": "2026-02-19",
-  "notes": "Fast-path regex rules. LLM fallback handles edge cases not caught here.",
+  "source": "NY OCM Cannabis Advertising Guidelines — cannabis.ny.gov/advertising-marketing; NY Cannabis Law §128",
+  "last_reviewed": "2026-02-24",
+  "notes": "Fast-path regex rules (15 patterns). LLM fallback handles edge cases not caught here. Key gaps: required disclaimer ABSENCE is not regex-detectable — LLM handles that check.",
   "rules": [
     {
       "id": "ban_medical_claims_ny",
       "type": "regex",
-      "pattern": "(cure|treat|prevent|heal).*(pain|anxiety|depression|insomnia|cancer|disease|nausea|inflammation|seizure|ptsd|arthritis|disorder|symptom)",
-      "description": "Medical claim: implies the product cures, treats, prevents, or heals a condition. NY OCM prohibits all unapproved therapeutic claims."
+      "pattern": "(cure|treat|prevent|heal).{0,30}(pain|anxiety|depression|insomnia|cancer|disease|nausea|inflammation|seizure|ptsd|arthritis|disorder|symptom)",
+      "flags": "i",
+      "description": "Medical claim: implies the product cures, treats, prevents, or heals a condition. NY OCM prohibits all unapproved therapeutic claims.",
+      "example_violation": "Our gummies cure insomnia naturally",
+      "severity": "fail"
     },
     {
       "id": "ban_prescription_language_ny",
       "type": "regex",
       "pattern": "\\bprescri(be|bed|ption)s?\\b",
-      "description": "Prescription language: cannabis is not an FDA-approved prescription drug. Use of prescription framing is prohibited."
+      "flags": "i",
+      "description": "Prescription language: cannabis is not an FDA-approved prescription drug. Use of prescription framing is prohibited.",
+      "example_violation": "As prescribed by your doctor",
+      "severity": "fail"
     },
     {
       "id": "ban_clinical_claims_ny",
       "type": "regex",
-      "pattern": "\\bclinically\\s+(proven|tested|shown|studied)\\b",
-      "description": "Clinical claim: implying clinical validation without approved trials is false advertising under NY OCM rules."
+      "pattern": "\\bclinically\\s+(proven|tested|shown|studied|validated|effective)\\b",
+      "flags": "i",
+      "description": "Clinical claim: implying clinical validation without approved trials is false advertising under NY OCM rules.",
+      "example_violation": "Clinically proven to reduce stress",
+      "severity": "fail"
     },
     {
       "id": "ban_doctor_endorsement_ny",
       "type": "regex",
-      "pattern": "\\bdoctors?\\s+(recommend|prescribed?|approved?)\\b",
-      "description": "Medical professional endorsement: claims of doctor recommendation imply therapeutic use. Prohibited by NY OCM."
+      "pattern": "\\b(doctor|physician|medical professional)s?\\s+(recommend|prescribed?|approved?|endorse)\\b",
+      "flags": "i",
+      "description": "Medical professional endorsement: claims of doctor recommendation imply therapeutic use. Prohibited by NY OCM.",
+      "example_violation": "Doctors recommend our CBD tinctures",
+      "severity": "fail"
     },
     {
       "id": "ban_minors_appeal_ny",
       "type": "regex",
-      "pattern": "\\b(cartoon\\s+character|gummy\\s+bears?|kids?\\s+(love|enjoy|can)|children\\s+(love|enjoy|can)|candy-?like)\\b",
-      "description": "Appeal to minors: imagery or language that could attract underage individuals is prohibited under NY Cannabis Law §128."
+      "pattern": "\\b(cartoon\\s+character|gummy\\s+bears?|kids?\\s+(love|enjoy|can)|children\\s+(love|enjoy|can)|candy-?like|fun for the whole family|family friendly)\\b",
+      "flags": "i",
+      "description": "Appeal to minors: imagery or language that could attract underage individuals is prohibited under NY Cannabis Law §128.",
+      "example_violation": "Fun for the whole family! Gummy bears from our edibles line",
+      "severity": "fail"
+    },
+    {
+      "id": "ban_non_addictive_claim_ny",
+      "type": "regex",
+      "pattern": "\\b(non[- ]?addictive|not habit[- ]?forming|no addiction risk|won.{0,5}t get addicted|zero addiction|addiction[- ]?free cannabis)\\b",
+      "flags": "i",
+      "description": "Addiction claim: NY OCM prohibits claiming cannabis is non-addictive or not habit-forming without clinical substantiation.",
+      "example_violation": "Our flower is completely non-addictive",
+      "severity": "fail"
+    },
+    {
+      "id": "ban_unqualified_safe_claim_ny",
+      "type": "regex",
+      "pattern": "\\b(completely safe|totally safe|100%\\s+safe|perfectly safe|entirely safe|always safe|absolutely safe)\\b",
+      "flags": "i",
+      "description": "Unqualified safety claim: NY OCM requires all cannabis products to carry risk disclosures. Claiming 'completely safe' without qualification is prohibited.",
+      "example_violation": "Our products are completely safe for daily use",
+      "severity": "fail"
+    },
+    {
+      "id": "ban_free_cannabis_ny",
+      "type": "regex",
+      "pattern": "\\bfree\\s+(cannabis|weed|thc|cbd|edible|gummy|vape|flower|pre[- ]?roll|concentrate|cartridge)\\b",
+      "flags": "i",
+      "description": "Free cannabis giveaway: NY Cannabis Law §134 prohibits giving away free cannabis products as promotional incentives.",
+      "example_violation": "Buy 3 get 1 free vape cartridge",
+      "severity": "fail"
+    },
+    {
+      "id": "ban_wellness_therapy_ny",
+      "type": "regex",
+      "pattern": "\\b(therapeutic benefit|wellness remedy|health benefit|medicinal benefit|pharmaceutical grade cannabis|medical grade cannabis|herbal medicine|natural medicine)\\b",
+      "flags": "i",
+      "description": "Wellness/therapy claim: presenting cannabis as a natural medicine or wellness remedy without clinical evidence is prohibited by NY OCM.",
+      "example_violation": "Experience the therapeutic benefits of our tinctures",
+      "severity": "fail"
+    },
+    {
+      "id": "ban_glorify_intoxication_ny",
+      "type": "regex",
+      "pattern": "\\b(get (wrecked|smashed|blazed|ripped|blasted|lit af)|maximum high|strongest high|most intense buzz|extreme intoxication|get completely stoned)\\b",
+      "flags": "i",
+      "description": "Glorified intoxication: NY OCM prohibits language that glorifies intoxication as the primary benefit of cannabis products.",
+      "example_violation": "Get completely blazed with our new batch",
+      "severity": "fail"
+    },
+    {
+      "id": "ban_alcohol_comparison_ny",
+      "type": "regex",
+      "pattern": "(safer than|healthier than|better than|no hangover like).{0,40}(alcohol|beer|wine|liquor|spirits|drinking)",
+      "flags": "i",
+      "description": "Misleading substance comparison: NY OCM prohibits claiming cannabis is safer or healthier than alcohol as it implies diminished risk.",
+      "example_violation": "No hangover like alcohol — try our edibles instead",
+      "severity": "warning"
+    },
+    {
+      "id": "ban_minors_age_language_ny",
+      "type": "regex",
+      "pattern": "\\b(under 21|under age 21|minors|teenagers?|teens?|high school|middle school|school[- ]?age)\\b.{0,60}(cannabis|weed|thc|cbd|edible|vape|flower)",
+      "flags": "i",
+      "description": "Age-targeting: any mention of individuals under 21 in proximity to cannabis product descriptions violates NY §128.",
+      "example_violation": "Teens are asking about our gummies",
+      "severity": "fail"
+    },
+    {
+      "id": "ban_celebrity_youth_appeal_ny",
+      "type": "regex",
+      "pattern": "\\b(as seen on tv|influencer|tiktok|snapchat|instagram story|youtube).{0,60}(cannabis|weed|thc|cbd|edible|vape|gummy|flower)",
+      "flags": "i",
+      "description": "Youth-platform marketing: NY OCM prohibits cannabis advertising on platforms primarily used by individuals under 21, including TikTok and Snapchat.",
+      "example_violation": "Check our TikTok for the best cannabis content",
+      "severity": "fail"
+    },
+    {
+      "id": "ban_false_origin_claim_ny",
+      "type": "regex",
+      "pattern": "\\b(fda[- ]?approved|fda cleared|federally approved|federally legal|legal everywhere)\\b",
+      "flags": "i",
+      "description": "False regulatory claim: cannabis is not FDA-approved or federally legal. Making such claims is false advertising under NY General Business Law.",
+      "example_violation": "Our products are FDA-approved and legal everywhere",
+      "severity": "fail"
+    },
+    {
+      "id": "ban_guaranteed_effects_ny",
+      "type": "regex",
+      "pattern": "\\b(guaranteed to|will definitely|100%\\s+(effective|work|relief)|always works|certain to)\\b.{0,50}(relax|sleep|calm|focus|pain|anxiety|stress|energy|mood)",
+      "flags": "i",
+      "description": "Guaranteed effects claim: promising specific outcomes combines both a medical claim and a false guarantee. NY OCM prohibits both.",
+      "example_violation": "Guaranteed to relieve your anxiety in 30 minutes",
+      "severity": "fail"
     }
   ]
 }
