@@ -273,7 +273,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
     const { strainTypes, weights, brands, terpenes, priceRange } = sidebarFilters;
     return allProducts
       .filter(product => {
-        const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        const matchesSearch = (product.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
           product.description?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
         const matchesEffect = !effectFilter || product.effects?.includes(effectFilter);
@@ -311,7 +311,7 @@ export function BrandMenuClient({ brand, products, retailers, brandSlug, bundles
             return (b.likes || 0) - (a.likes || 0);
           }
           case 'thc-high': return (b.thcPercent || 0) - (a.thcPercent || 0);
-          default: return a.name.localeCompare(b.name);
+          default: return (a.name ?? '').localeCompare(b.name ?? '');
         }
       });
   }, [allProducts, searchQuery, categoryFilter, sortBy, effectFilter, sidebarFilters]);

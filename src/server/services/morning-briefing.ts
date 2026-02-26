@@ -161,6 +161,7 @@ function buildMetrics(
         title: 'Net Sales Yesterday',
         value: `$${Math.round(yesterdayRevenue).toLocaleString()}`,
         trend: netSalesTrend,
+        vsLabel: 'vs. 7-day avg',
         status: 'good',
         actionable: netSalesTrend === 'down' ? 'Review peak hour performance' : undefined,
     });
@@ -177,6 +178,7 @@ function buildMetrics(
         title: 'Discount Rate (7-day avg)',
         value: `${(discountRate7d * 100).toFixed(1)}%`,
         trend: discountRate7d > target ? 'up' : 'down',
+        vsLabel: `vs. ${(target * 100).toFixed(0)}% market target`,
         status: discountStatus,
         actionable:
             discountStatus !== 'good'
@@ -201,6 +203,7 @@ function buildMetrics(
             title: 'Top Margin Drain',
             value: worst.name ? `${worst.name} (${margin}% margin)` : 'Unknown SKU',
             trend: 'down',
+            vsLabel: '<15% margin threshold',
             status: 'warning',
             actionable: 'Reprice or discontinue this SKU',
         });
@@ -209,6 +212,7 @@ function buildMetrics(
             title: 'Top Margin Drain',
             value: 'No drains detected',
             trend: 'flat',
+            vsLabel: '30-day lookback',
             status: 'good',
         });
     }
@@ -226,6 +230,7 @@ function buildMetrics(
         title: 'Inventory At Risk',
         value: `$${Math.round(atRiskValue).toLocaleString()} (${atRisk.length} SKUs)`,
         trend: atRiskValue > 0 ? 'down' : 'flat',
+        vsLabel: '60+ days no sale',
         status: atRiskValue > 5000 ? 'warning' : 'good',
         actionable: atRiskValue > 0 ? 'Consider markdown or liquidation' : undefined,
     });
@@ -236,6 +241,7 @@ function buildMetrics(
         title: 'Active SKU Count',
         value: `${activeSku}`,
         trend: 'flat',
+        vsLabel: 'in stock',
         status: 'good',
     });
 

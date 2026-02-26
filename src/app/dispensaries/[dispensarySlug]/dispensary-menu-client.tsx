@@ -172,7 +172,7 @@ export function DispensaryMenuClient({ dispensary, products, bundles = [], publi
     const { strainTypes, weights, brands, terpenes, priceRange } = sidebarFilters;
     return products
       .filter(product => {
-        const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        const matchesSearch = (product.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
           product.description?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
         const matchesEffect = !effectFilter || product.effects?.includes(effectFilter);
