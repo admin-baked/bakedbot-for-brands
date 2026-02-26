@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-26):** See `memory/MEMORY.md` for full log.
-Key completed: [14-agent Engineering Squad] (committed), [Inbox outreach_draft Phase 1] (`003b0267`), [AI campaign wizard] (`04e7e786`)
+Key completed: [Engineering Agent Squad memory + eval CI] (`04e7e786`), [Inbox outreach_draft Phase 1] (`003b0267`), [AI campaign wizard] (`04e7e786`)
 
 ---
 
