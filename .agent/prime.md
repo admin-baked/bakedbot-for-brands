@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-26):** See `memory/MEMORY.md` for full log.
-Key completed: [Analytics tabs — products/orders/menu dashboards] (`167cf7bf`), [Morning Briefing cron — AnalyticsBriefing → inbox] (`3461ff48`)
+Key completed: [P0 public menu null crash + TS build fixes] (`cca52a6e`), [Brand guide completeness score on update] (`f5af57a7`)
 
 ---
 
