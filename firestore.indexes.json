@@ -1,6 +1,15 @@
 {
     "indexes": [
         {
+            "collectionGroup": "playbooks",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "orgId", "order": "ASCENDING" },
+                { "fieldPath": "isCustom", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
             "collectionGroup": "org_intent_profiles",
             "queryScope": "COLLECTION",
             "fields": [
