@@ -6,6 +6,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 import { analyticsToolDefs, analyticsToolImplementations } from './tools/analytics-tools';
+import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl, executeDispensaryAnalyticsTool } from '@/server/tools/analytics-tools';
 import {
     buildSquadRoster,
     buildIntegrationStatusSummary
@@ -128,6 +129,8 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
   },
 
   async act(brandMemory, agentMemory, targetId, tools: PopsTools, stimulus?: string) {
+    const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
+
     // === SCENARIO A: User Request (The "Planner" Flow) ===
     if (targetId === 'user_request' && stimulus) {
         const userQuery = stimulus;
@@ -154,9 +157,10 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
 
         // Combine agent-specific tools with shared Context OS, Letta tools, AND Analytics tools
         const toolsDef = [
-            ...popsSpecificTools, 
+            ...popsSpecificTools,
             ...analyticsToolDefs,
-            ...contextOsToolDefs, 
+            ...dispensaryAnalyticsToolDefs,
+            ...contextOsToolDefs,
             ...lettaToolDefs
         ];
 
@@ -185,7 +189,7 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
                 output: {
                     schema: z.object({
                         thought: z.string(),
-                        toolName: z.enum(['analyzeData', 'detectAnomalies', 'lettaSaveFact', 'lettaUpdateCoreMemory', 'lettaMessageAgent', 'getSearchConsoleStats', 'getGA4Traffic', 'findSEOOpportunities', 'null']),
+                        toolName: z.enum(['analyzeData', 'detectAnomalies', 'lettaSaveFact', 'lettaUpdateCoreMemory', 'lettaMessageAgent', 'getSearchConsoleStats', 'getGA4Traffic', 'findSEOOpportunities', 'promotion_scorecard', 'sku_profitability_view', 'inventory_health_score', 'vendor_scorecard', 'null']),
                         args: z.record(z.any())
                     })
                 }
@@ -228,6 +232,13 @@ export const popsAgent: AgentImplementation<PopsMemory, PopsTools> = {
             } else if (decision.toolName === 'findSEOOpportunities') {
                 // @ts-ignore - dynamic mixin
                 output = await allTools.findSEOOpportunities(decision.args);
+            } else if (
+                decision.toolName === 'promotion_scorecard' ||
+                decision.toolName === 'sku_profitability_view' ||
+                decision.toolName === 'inventory_health_score' ||
+                decision.toolName === 'vendor_scorecard'
+            ) {
+                output = await executeDispensaryAnalyticsTool(orgId, decision.toolName, decision.args);
             }
 
             // 4. SYNTHESIZE

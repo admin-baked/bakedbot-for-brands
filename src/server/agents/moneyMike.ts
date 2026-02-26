@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { contextOsToolDefs, lettaToolDefs } from './shared-tools';
 import { moneyMikeInboxToolDefs } from '../tools/inbox-tools';
 import { profitabilityToolDefs } from '../tools/profitability-tools';
+import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl } from '@/server/tools/analytics-tools';
 import { moneyMikeCrmToolDefs } from '../tools/crm-tools';
 import {
     buildSquadRoster,
@@ -158,8 +159,20 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
             }
         ];
 
-        // Combine agent-specific tools with shared Context OS, Letta, inbox, and profitability tools
-        const toolsDef = [...moneyMikeSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...moneyMikeInboxToolDefs, ...profitabilityToolDefs, ...moneyMikeCrmToolDefs];
+        // Combine agent-specific tools with shared Context OS, Letta, inbox, profitability, and dispensary analytics tools
+        const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
+        const dispensaryImpl = makeAnalyticsToolsImpl(orgId);
+        const toolsDef = [
+            ...moneyMikeSpecificTools,
+            ...contextOsToolDefs,
+            ...lettaToolDefs,
+            ...moneyMikeInboxToolDefs,
+            ...profitabilityToolDefs,
+            ...moneyMikeCrmToolDefs,
+            ...dispensaryAnalyticsToolDefs,
+        ];
+        // Merge dispensary analytics implementations into tools object
+        const allToolsWithAnalytics = { ...tools, ...dispensaryImpl };
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Claude) ===
@@ -169,7 +182,7 @@ export const moneyMikeAgent: AgentImplementation<MoneyMikeMemory, MoneyMikeTools
                 userQuery,
                 systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
-                tools,
+                tools: allToolsWithAnalytics,
                 model: 'claude-sonnet-4-5-20250929', // Triggers harness routing to Claude 4.5 Opus
                 maxIterations: 5
             });
