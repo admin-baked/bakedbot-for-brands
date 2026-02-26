@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (Unified OrgProfile all 7 phases complete + test mock fixes for agent Firestore isolation)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (Sentry enabled + PR #13 agent DevOps infrastructure merged)
 
 ---
 
