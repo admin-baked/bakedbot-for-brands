@@ -38,7 +38,7 @@ export function ResearchDialog({ userId, brandId, children }: ResearchDialogProp
 
         setLoading(true);
         try {
-            const result = await createResearchTaskAction(userId, brandId, query.trim());
+            const result = await createResearchTaskAction(query.trim());
 
             if (result.success) {
                 toast.success('Research task created! Smokey is on it.');
