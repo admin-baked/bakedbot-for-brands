@@ -11,6 +11,7 @@ export enum PaymentMethod {
     CANNPAY = 'CANNPAY', // SmokeyPay (Loyalty/Bank)
     AEROPAY = 'AEROPAY', // Aeropay (Bank Transfer)
     CREDIT_CARD = 'CREDIT_CARD', // Authorize.net
+    USDC = 'USDC', // USDC on Base (x402 / cannabis-compliant)
 }
 
 export enum ProductType {
@@ -39,7 +40,7 @@ export interface PaymentOption {
  */
 export function getAvailablePaymentMethods(
     cartHasCannabis: boolean,
-    retailerConfig: { hasCannPay: boolean; hasAeropay: boolean; hasCreditCard: boolean }
+    retailerConfig: { hasCannPay: boolean; hasAeropay: boolean; hasCreditCard: boolean; hasUsdc?: boolean }
 ): PaymentOption[] {
     const options: PaymentOption[] = [
         {
@@ -66,6 +67,16 @@ export function getAvailablePaymentMethods(
             label: 'Aeropay',
             description: 'Secure bank transfer powered by Aeropay.',
             isAvailable: true, // Valid for both Cannabis and Non-Cannabis
+        });
+    }
+
+    // USDC is cannabis-compliant — available for all cart types when dispensary has a wallet
+    if (retailerConfig.hasUsdc) {
+        options.push({
+            id: PaymentMethod.USDC,
+            label: 'Pay with USDC',
+            description: 'Instant stablecoin payment on Base network. Any wallet accepted.',
+            isAvailable: true,
         });
     }
 

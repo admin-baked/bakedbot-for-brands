@@ -44,7 +44,7 @@ export interface PaymentConfig {
 
 const UpdatePaymentMethodSchema = z.object({
   locationId: z.string(),
-  method: z.enum(['cannpay', 'aeropay', 'credit_card', 'dispensary_direct']),
+  method: z.enum(['cannpay', 'aeropay', 'credit_card', 'dispensary_direct', 'usdc']),
   enabled: z.boolean(),
 });
 
@@ -145,6 +145,10 @@ export async function updatePaymentMethod(input: z.infer<typeof UpdatePaymentMet
 
       case 'dispensary_direct':
         // Dispensary direct is always enabled, but we can update the enabledMethods array
+        break;
+
+      case 'usdc':
+        // USDC enabled via x402 wallet provisioning — no extra config needed
         break;
     }
 
