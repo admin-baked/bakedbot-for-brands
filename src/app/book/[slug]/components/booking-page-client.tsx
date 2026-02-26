@@ -52,9 +52,17 @@ export function BookingPageClient({ profile }: Props) {
         <div className="max-w-5xl mx-auto px-4 py-10">
             {/* Header */}
             <div className="text-center mb-10">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-black text-white text-xl font-bold mb-4">
-                    {profile.displayName.slice(0, 1)}
-                </div>
+                {profile.avatarUrl ? (
+                    <img
+                        src={profile.avatarUrl}
+                        alt={profile.displayName}
+                        className="w-24 h-24 rounded-full object-cover mx-auto mb-4 shadow-md"
+                    />
+                ) : (
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-black text-white text-xl font-bold mb-4">
+                        {profile.displayName.slice(0, 1)}
+                    </div>
+                )}
                 <h1 className="text-2xl font-bold text-gray-900">{profile.displayName}</h1>
                 <p className="text-gray-500 mt-1">{profile.title}</p>
                 {profile.bio && (
