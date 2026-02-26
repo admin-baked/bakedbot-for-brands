@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-25):** See `memory/MEMORY.md` for full log.
-Key completed: [Jack CRM 25→0 bug + signupAfter filter] (`a8df6587`), [Research action caller fix + TS1261 casing] (`4e7d64e1`)
+Key completed: [Boardroom UX redesign — HUD strip + right agent sidebar] (`d5305add`)
 
 ---
 

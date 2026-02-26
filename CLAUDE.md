@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (Jack CRM bug fix + research action caller fix + TS1261 casing fix)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (Boardroom UX redesign — HUD metrics + right agent sidebar)
 
 ---
 
