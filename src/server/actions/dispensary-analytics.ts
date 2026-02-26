@@ -336,7 +336,7 @@ export async function getProductsAnalytics(
                 priceTierData: tiers,
                 benchmarks: benchmarks
                     ? { financial: benchmarks.financial, context: benchmarks.context }
-                    : { financial: { avgBasketSize: 45, avgUnitsPerTransaction: 2.8, grossMarginPct: 0.48, discountRate: 0.15, loyaltyEnrollmentRate: 0.32, repeatPurchaseRate30d: 0.41, avgTransactionsPerMonth: 1.9, revenuePerSqFt: 850, onlineOrderPct: 0.22 }, context: { state: 'NY', licenseType: 'adult_use', maturity: 'established', competitorCount: 'high', priceEnvironment: 'competitive', lastUpdated: new Date().toISOString() } },
+                    : { financial: { discountRateNationalAvg: 0.219, discountRateTarget: 0.12, grossMarginTarget: 0.48, shrinkTarget: 0.02, discountElasticity: -0.4, accessoriesMarginNote: 'Accessories typically carry 60-80% margins' }, context: { state: 'NY', stateCode: 'NY', licenseType: 'limited', marketMaturity: 'developing', competitionDensity: 'high', notes: 'NY limited license market, high competition' } },
                 generatedAt: new Date().toISOString(),
             },
         };
@@ -361,9 +361,9 @@ export async function getOrdersAnalytics(
             getMarketBenchmarks(orgId).catch(() => null),
         ]);
 
-        const industryDiscountBenchmark = benchmarks?.financial?.discountRate ?? 0.219;
-        // Market-adjusted target: tighter if competitive market
-        const marketDiscountTarget = benchmarks?.context?.priceEnvironment === 'competitive'
+        const industryDiscountBenchmark = benchmarks?.financial?.discountRateNationalAvg ?? 0.219;
+        // Market-adjusted target: tighter in high-competition markets
+        const marketDiscountTarget = benchmarks?.context?.competitionDensity === 'high'
             ? industryDiscountBenchmark * 0.55
             : industryDiscountBenchmark * 0.65;
 
