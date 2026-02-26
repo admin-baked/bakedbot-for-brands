@@ -443,16 +443,16 @@ export function Step3Dialog({ open, onOpenChange, onComplete, initialData }: Ste
   // Auto-select extracted or smart-default tones/personality when dialog opens
   useEffect(() => {
     if (open && initialData) {
-      if (initialData.tone && initialData.tone.length > 0) {
+      if (Array.isArray(initialData.tone) && initialData.tone.length > 0) {
         // Match case-insensitively against our options list
         const matched = toneOptions.filter((opt) =>
-          initialData.tone!.some((t) => t.toLowerCase() === opt.toLowerCase())
+          (initialData.tone as string[]).some((t) => t.toLowerCase() === opt.toLowerCase())
         );
         if (matched.length > 0) setSelectedTones(matched.slice(0, 3));
       }
-      if (initialData.personality && initialData.personality.length > 0) {
+      if (Array.isArray(initialData.personality) && initialData.personality.length > 0) {
         const matched = personalityOptions.filter((opt) =>
-          initialData.personality!.some((p) => p.toLowerCase() === opt.toLowerCase())
+          (initialData.personality as string[]).some((p) => p.toLowerCase() === opt.toLowerCase())
         );
         if (matched.length > 0) setSelectedPersonality(matched.slice(0, 4));
       }
@@ -488,7 +488,8 @@ export function Step3Dialog({ open, onOpenChange, onComplete, initialData }: Ste
   };
 
   const hasAutoFill = initialData && (
-    (initialData.tone?.length ?? 0) > 0 || (initialData.personality?.length ?? 0) > 0
+    (Array.isArray(initialData.tone) && initialData.tone.length > 0) ||
+    (Array.isArray(initialData.personality) && initialData.personality.length > 0)
   );
 
   return (

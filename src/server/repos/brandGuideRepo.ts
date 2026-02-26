@@ -69,17 +69,36 @@ export function makeBrandGuideRepo(firestore: Firestore): BrandGuideRepo {
   }
 
   /**
+   * Recursively convert Firestore Timestamp objects to plain JS Dates.
+   * Prevents RSC serialization failures when passing BrandGuide as a prop
+   * from a Server Component to a Client Component.
+   */
+  function convertTimestamps(val: unknown): unknown {
+    if (val === null || val === undefined) return val;
+    // Firestore Timestamp — convert to Date
+    if (typeof val === 'object' && typeof (val as { toDate?: unknown }).toDate === 'function') {
+      return (val as { toDate(): Date }).toDate();
+    }
+    if (val instanceof Date) return val;
+    if (Array.isArray(val)) return val.map(convertTimestamps);
+    if (typeof val === 'object') {
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+        out[k] = convertTimestamps(v);
+      }
+      return out;
+    }
+    return val;
+  }
+
+  /**
    * Convert Firestore data to BrandGuide
    */
   function fromFirestore(doc: FirebaseFirestore.DocumentSnapshot): BrandGuide | null {
     if (!doc.exists) return null;
 
     const data = doc.data() as BrandGuideFirestore;
-    return {
-      ...data,
-      createdAt: data.createdAt.toDate(),
-      lastUpdatedAt: data.lastUpdatedAt.toDate(),
-    };
+    return convertTimestamps(data) as BrandGuide;
   }
 
   /**
