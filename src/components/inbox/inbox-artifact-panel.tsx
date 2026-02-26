@@ -24,6 +24,7 @@ import {
     FolderOpen,
     BarChart2,
     Newspaper,
+    Mail,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -41,6 +42,7 @@ import { ArtifactPipelineBar } from './artifact-pipeline-bar';
 import { InboxIntegrationCard } from './artifacts/integration-card';
 import { AnalyticsChartArtifact } from './artifacts/analytics-chart-artifact';
 import { AnalyticsBriefingArtifact } from './artifacts/analytics-briefing-artifact';
+import { OutreachDraftCard } from './artifacts/outreach-draft-card';
 
 // ============ Props ============
 
@@ -57,6 +59,7 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
     creative_content: Palette,
     analytics_chart: BarChart2,
     analytics_briefing: Newspaper,
+    outreach_draft: Mail,
 };
 
 // ============ Detail Views ============
@@ -375,6 +378,9 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                                     {selectedArtifact.type === 'analytics_briefing' && (
                                         <AnalyticsBriefingArtifact artifact={selectedArtifact} />
                                     )}
+                                    {selectedArtifact.type === 'outreach_draft' && (
+                                        <OutreachDraftCard artifact={selectedArtifact} />
+                                    )}
                                 </motion.div>
                             </AnimatePresence>
                         </>
@@ -388,7 +394,8 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
             </ScrollArea>
 
             {/* Actions - HitL Approval Workflow */}
-            {selectedArtifact && selectedArtifact.status !== 'published' && (
+            {/* outreach_draft has its own inline Send/Schedule/Playbook actions — skip generic workflow */}
+            {selectedArtifact && selectedArtifact.status !== 'published' && selectedArtifact.type !== 'outreach_draft' && (
                 <div className="p-4 border-t border-white/5 space-y-3">
                     {/* Primary Approve Button - Green Check EMPHASIZED per Technical Brief */}
                     {(selectedArtifact.status === 'draft' || selectedArtifact.status === 'pending_review') && (

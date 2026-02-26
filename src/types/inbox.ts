@@ -12,6 +12,7 @@ import type { CreativeContent } from './creative-content';
 import type { QRCode } from './qr-code';
 import type { IntegrationRequest } from './service-integrations';
 import type { ChatMessage } from '@/lib/store/agent-chat-store';
+import type { CustomerSegment } from './customers';
 
 // ============ Thread Types ============
 
@@ -245,6 +246,44 @@ export interface ResearchReportArtifactData {
 }
 
 // =============================================================================
+// Outreach Draft Artifact Type (Phase 1 — Campaign Inbox Fast Path)
+// =============================================================================
+
+/**
+ * Data payload for outreach_draft artifacts.
+ * Created by Craig when writing email/SMS copy in the inbox.
+ * Supports fast-path send (self-approve) without leaving the inbox.
+ */
+export interface OutreachDraftData {
+    /** Primary channel — email-first per product decision */
+    channel: 'email' | 'sms';
+    /** Email subject line */
+    subject?: string;
+    /** Plain text body (used as both SMS text and email fallback) */
+    body: string;
+    /** HTML email body (optional, falls back to body) */
+    htmlBody?: string;
+    /** Target customer segments for audience resolution */
+    targetSegments: CustomerSegment[];
+    /** Estimated recipient count shown in UI before send */
+    estimatedRecipients?: number;
+    /** UI send state — controls button states and status display */
+    sendStatus?: 'idle' | 'checking' | 'sending' | 'sent' | 'failed' | 'scheduled';
+    /** ISO string — set when sendStatus === 'sent' */
+    sentAt?: string;
+    /** ISO string — set when sendStatus === 'scheduled' */
+    scheduledAt?: string;
+    /** Actual resolved recipient count after audience resolution */
+    recipientCount?: number;
+    /** Campaign document ID created in Firestore after send */
+    campaignId?: string;
+    /** Compliance check result from Deebo */
+    complianceStatus?: 'pending' | 'passed' | 'failed' | 'warning';
+    complianceViolations?: string[];
+    complianceSuggestions?: string[];
+}
+
+// =============================================================================
 // Analytics Artifact Types (Phase 5)
 // =============================================================================
 
@@ -320,7 +359,7 @@ export interface InboxArtifact {
     status: InboxArtifactStatus;
 
     // The actual data (polymorphic based on type)
-    data: Carousel | BundleDeal | CreativeContent | QRCode | IntegrationRequest | ResearchReportArtifactData | AnalyticsChart | AnalyticsBriefing;
+    data: Carousel | BundleDeal | CreativeContent | QRCode | IntegrationRequest | ResearchReportArtifactData | AnalyticsChart | AnalyticsBriefing | OutreachDraftData;
 
     // Agent rationale for the suggestion
     rationale?: string;
