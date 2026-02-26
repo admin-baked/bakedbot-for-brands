@@ -1,0 +1,9 @@
+{
+  "agent": "boardroom-bob",
+  "version": "1.0",
+  "description": "Behavioral regression tests for Boardroom domain",
+  "threshold": {
+    "overall": 0.90
+  },
+  "test_cases": []
+}

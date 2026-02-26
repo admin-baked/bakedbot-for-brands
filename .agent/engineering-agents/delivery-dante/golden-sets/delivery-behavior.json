@@ -1,0 +1,9 @@
+{
+  "agent": "delivery-dante",
+  "version": "1.0",
+  "description": "Behavioral regression tests for Delivery domain",
+  "threshold": {
+    "overall": 0.90
+  },
+  "test_cases": []
+}
