@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BarChart2 } from 'lucide-react';
+import { OrdersAnalyticsTab } from './components/analytics-tab';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -85,6 +87,7 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
     const [autoRefresh, setAutoRefresh] = useState(false);
     const [isRealtime, setIsRealtime] = useState(false);
     const [isPOSSource, setIsPOSSource] = useState(false);
+    const [pageTab, setPageTab] = useState<'orders' | 'analytics'>('orders');
     const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
     const [refreshing, setRefreshing] = useState(false);
     const [dateRangeStart, setDateRangeStart] = useState('');
@@ -569,6 +572,30 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
         setSelectedOrders(new Set());
     };
 
+    const PageTabSwitcher = () => (
+        <Tabs value={pageTab} onValueChange={(v) => setPageTab(v as 'orders' | 'analytics')}>
+            <TabsList>
+                <TabsTrigger value="orders" className="gap-2">
+                    <ShoppingCart className="h-4 w-4" />
+                    Orders
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="gap-2">
+                    <BarChart2 className="h-4 w-4" />
+                    Analytics
+                </TabsTrigger>
+            </TabsList>
+        </Tabs>
+    );
+
+    if (pageTab === 'analytics') {
+        return (
+            <div className="space-y-4">
+                <PageTabSwitcher />
+                <OrdersAnalyticsTab orgId={orgId} />
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -577,6 +604,9 @@ export default function OrdersPageClient({ orgId, initialOrders }: OrdersPageCli
                     <p className="text-muted-foreground">
                         Manage and track customer orders{isRealtime ? ' — updates appear instantly' : isPOSSource ? ' — synced from POS' : ''}.
                     </p>
+                    <div className="mt-2">
+                        <PageTabSwitcher />
+                    </div>
                 </div>
                 <div className="flex gap-2 items-center">
                     {isPOSSource && (
