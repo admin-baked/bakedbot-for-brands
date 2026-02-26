@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-26):** See `memory/MEMORY.md` for full log.
-Key completed: [P0 price .toFixed() crash demo components] (`e7c0e76b`), [P1 segments all-new: Alleaves userId matching] (`99f205f0`)
+Key completed: [x402 USDC 3-phase payment infra] (`bdf2e6fe`), [P1 segments+brand-guide fixes] (`99f205f0`, `9ed46f00`)
 
 ---
 
