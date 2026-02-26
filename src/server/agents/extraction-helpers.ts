@@ -41,6 +41,11 @@ export function extractGmailParams(message: string): GmailParams {
         };
     }
 
+    // Detect connection/setup intent — user wants to authorize Gmail, not perform an action
+    if (/\b(connect|setup|authorize|authenticate|enable|link|add)\b/i.test(message) && /gmail/i.test(message)) {
+        return { action: 'list', query: '__connect__' };
+    }
+
     // Default to list
     let query = 'is:unread';
     if (/unread/i.test(message)) query = 'is:unread';

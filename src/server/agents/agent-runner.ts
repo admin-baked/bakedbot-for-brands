@@ -1149,6 +1149,33 @@ All agents are online and ready. Type an agent name or describe your task to get
                 try {
                     // Structured extraction (no LLM needed)
                     const params = extractGmailParams(userMessage);
+
+                    // Connect intent: user said "connect gmail" / "setup gmail" — skip API, show setup card immediately
+                    if (params.query === '__connect__') {
+                        const threadId = extraOptions?.context?.threadId as string | undefined;
+                        const orgId = userBrandId;
+                        if (threadId && orgId && user?.uid) {
+                            try {
+                                await requestIntegration({
+                                    userId: user.uid,
+                                    orgId,
+                                    threadId,
+                                    provider: 'gmail',
+                                    reason: 'To send emails directly from your Gmail account',
+                                    enablesAction: 'send_gmail',
+                                });
+                            } catch {
+                                // non-blocking — don't fail the response
+                            }
+                        }
+                        executedTools[executedTools.length - 1].status = 'success';
+                        executedTools[executedTools.length - 1].result = 'Setup card added';
+                        return {
+                            content: `📬 **Let's Connect Gmail!**\n\nI've added a setup card to this conversation — click **Connect Gmail** to authorize in about 1 minute.\n\nOnce connected, I can send personalized outreach emails directly from your account.`,
+                            toolCalls: executedTools
+                        };
+                    }
+
                     executedTools[executedTools.length - 1].result = `${params.action.toUpperCase()} email`;
 
                     // PASS USER CONTEXT
@@ -1190,6 +1217,11 @@ All agents are online and ready. Type an agent name or describe your task to get
                 } catch (e: any) {
                     executedTools[executedTools.length - 1].status = 'error';
                     executedTools[executedTools.length - 1].result = 'Failed: ' + e.message;
+                    // Early return — never let exceptions fall through to the LLM
+                    return {
+                        content: `⚠️ **Gmail Error**: ${(e as Error).message || 'Unable to access Gmail'}. Try reconnecting in Settings > Integrations.`,
+                        toolCalls: executedTools
+                    };
                 }
             }
         }
