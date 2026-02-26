@@ -13,7 +13,7 @@ import { motion } from 'framer-motion';
 import {
     Zap, Mail, MessageSquare, BarChart3, Shield, TrendingUp,
     Users, ShoppingBag, Loader2, CheckCircle2, Clock,
-    ChevronRight, Sparkles, Bell, Settings2,
+    ChevronRight, Sparkles, Bell, Settings2, Plus, Pencil, Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -35,6 +35,13 @@ import {
 import type { PlaybookCustomConfig } from '@/server/actions/dispensary-playbooks';
 import { PlaybookEditSheet } from '../../playbooks/components/playbook-edit-sheet';
 import type { DeliveryConfig } from '../../playbooks/components/playbook-edit-sheet';
+import { CustomPlaybookEditorSheet } from '../../playbooks/components/custom-playbook-editor-sheet';
+import {
+    listCustomPlaybooks,
+    deleteCustomPlaybook,
+    toggleCustomPlaybookStatus,
+} from '@/server/actions/custom-playbooks';
+import type { Playbook } from '@/types/playbook';
 
 // ─── Agent Display Config ────────────────────────────────────────────────────
 
@@ -245,11 +252,20 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
     const [customConfigs, setCustomConfigs] = useState<Record<string, PlaybookCustomConfig>>({});
     const [editingPlaybook, setEditingPlaybook] = useState<PlaybookDefinition | null>(null);
 
+    // Custom playbooks state
+    const [customPlaybooks, setCustomPlaybooks] = useState<Playbook[]>([]);
+    const [editorOpen, setEditorOpen] = useState(false);
+    const [editingCustomPlaybook, setEditingCustomPlaybook] = useState<Playbook | undefined>(undefined);
+
     // Load playbook assignments on mount
     useEffect(() => {
         async function load() {
             try {
-                const data = await getDispensaryPlaybookAssignments(orgId);
+                const [data, customResult] = await Promise.all([
+                    getDispensaryPlaybookAssignments(orgId),
+                    listCustomPlaybooks(orgId),
+                ]);
+
                 setActiveIds(new Set(data.activeIds));
                 setTierId(data.tierId);
                 setCustomConfigs(data.customConfigs);
@@ -258,6 +274,10 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
                 const tierIds = new Set(getPlaybookIdsForTier(data.tierId));
                 const playbooks = Object.values(PLAYBOOKS).filter((p) => tierIds.has(p.id));
                 setTierPlaybooks(playbooks);
+
+                if (customResult.success) {
+                    setCustomPlaybooks(customResult.playbooks);
+                }
             } catch (error) {
                 toast({
                     title: 'Could not load playbooks',
@@ -270,6 +290,43 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
         }
         load();
     }, [orgId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const handleCustomPlaybookSaved = async (playbookId: string) => {
+        // Reload custom playbooks
+        const result = await listCustomPlaybooks(orgId);
+        if (result.success) setCustomPlaybooks(result.playbooks);
+        toast({
+            title: editingCustomPlaybook ? 'Playbook updated' : 'Playbook created',
+            description: 'Your custom playbook has been saved.',
+        });
+        setEditingCustomPlaybook(undefined);
+    };
+
+    const handleDeleteCustomPlaybook = async (pb: Playbook) => {
+        if (!confirm(`Delete "${pb.name}"? This cannot be undone.`)) return;
+        const result = await deleteCustomPlaybook(orgId, pb.id);
+        if (result.success) {
+            setCustomPlaybooks((prev) => prev.filter((p) => p.id !== pb.id));
+            toast({ title: 'Playbook deleted' });
+        } else {
+            toast({ title: 'Failed to delete', description: result.error, variant: 'destructive' });
+        }
+    };
+
+    const handleToggleCustomPlaybook = async (pb: Playbook, active: boolean) => {
+        // Optimistic
+        setCustomPlaybooks((prev) =>
+            prev.map((p) => p.id === pb.id ? { ...p, status: active ? 'active' : 'paused' } : p)
+        );
+        const result = await toggleCustomPlaybookStatus(orgId, pb.id, active);
+        if (!result.success) {
+            // Revert
+            setCustomPlaybooks((prev) =>
+                prev.map((p) => p.id === pb.id ? { ...p, status: pb.status } : p)
+            );
+            toast({ title: 'Failed to update', description: result.error, variant: 'destructive' });
+        }
+    };
 
     const handleToggle = async (playbookId: string, active: boolean) => {
         // Optimistic update
@@ -565,6 +622,125 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
                 </Tabs>
             </motion.div>
 
+            {/* ── Custom Playbooks ──────────────────────────────────────────── */}
+            <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+            >
+                <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h2 className="text-sm font-semibold">Custom Playbooks</h2>
+                            <p className="text-xs text-muted-foreground">
+                                Automations you've built from scratch
+                            </p>
+                        </div>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5"
+                            onClick={() => { setEditingCustomPlaybook(undefined); setEditorOpen(true); }}
+                        >
+                            <Plus className="h-3.5 w-3.5" /> New Playbook
+                        </Button>
+                    </div>
+
+                    {customPlaybooks.length === 0 ? (
+                        <Card className="border-dashed">
+                            <CardContent className="p-6 text-center">
+                                <Zap className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                                <p className="text-sm font-medium">No custom playbooks yet</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Create a reusable automation for tasks specific to your business.
+                                </p>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="mt-3 gap-1.5"
+                                    onClick={() => { setEditingCustomPlaybook(undefined); setEditorOpen(true); }}
+                                >
+                                    <Plus className="h-3.5 w-3.5" /> Create Your First Playbook
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            {customPlaybooks.map((pb) => (
+                                <Card
+                                    key={pb.id}
+                                    className={cn(
+                                        'group transition-all duration-200 hover:shadow-md border',
+                                        pb.status === 'active'
+                                            ? 'border-primary/30 bg-primary/5'
+                                            : 'border-border bg-card hover:border-muted-foreground/30'
+                                    )}
+                                >
+                                    <CardContent className="p-4">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <p className="text-sm font-semibold leading-tight">{pb.name}</p>
+                                                    {pb.status === 'active' && (
+                                                        <Badge variant="default" className="text-xs h-4 px-1.5 bg-green-500 hover:bg-green-500">
+                                                            Active
+                                                        </Badge>
+                                                    )}
+                                                    <Badge variant="outline" className="text-xs h-4 px-1.5">
+                                                        Custom
+                                                    </Badge>
+                                                </div>
+                                                {pb.description && (
+                                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                                        {pb.description}
+                                                    </p>
+                                                )}
+                                                <div className="flex items-center gap-3 mt-2">
+                                                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                        <Clock className="h-3 w-3" />
+                                                        {pb.triggers?.[0]?.type === 'schedule'
+                                                            ? 'Scheduled'
+                                                            : 'Manual'}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {pb.agent}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1 shrink-0">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => { setEditingCustomPlaybook(pb); setEditorOpen(true); }}
+                                                    title="Edit"
+                                                >
+                                                    <Pencil className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                                                    onClick={() => handleDeleteCustomPlaybook(pb)}
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Switch
+                                                    checked={pb.status === 'active'}
+                                                    onCheckedChange={(checked) => handleToggleCustomPlaybook(pb, checked)}
+                                                    className="data-[state=checked]:bg-green-500"
+                                                />
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </motion.div>
+
             {/* ── Footer tip ────────────────────────────────────────────────── */}
             <p className="text-xs text-center text-muted-foreground pb-4">
                 Playbooks run automatically — no action needed after activation.
@@ -573,6 +749,18 @@ export function DispensaryPlaybooksView({ orgId }: DispensaryPlaybooksViewProps)
                     View Inbox <ChevronRight className="h-3 w-3 inline" />
                 </a>
             </p>
+
+            {/* ── Custom Playbook Editor Sheet ─────────────────────────────── */}
+            <CustomPlaybookEditorSheet
+                open={editorOpen}
+                onOpenChange={(open) => {
+                    setEditorOpen(open);
+                    if (!open) setEditingCustomPlaybook(undefined);
+                }}
+                orgId={orgId}
+                playbook={editingCustomPlaybook}
+                onSaved={handleCustomPlaybookSaved}
+            />
 
             {/* ── Configure Sheet ──────────────────────────────────────────── */}
             {editingPlaybook && (
