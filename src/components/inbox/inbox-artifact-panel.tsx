@@ -22,6 +22,8 @@ import {
     Loader2,
     Sparkles,
     FolderOpen,
+    BarChart2,
+    Newspaper,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -37,6 +39,8 @@ import type { CreativeContent } from '@/types/creative-content';
 import { approveAndPublishArtifact, deleteInboxArtifact } from '@/server/actions/inbox';
 import { ArtifactPipelineBar } from './artifact-pipeline-bar';
 import { InboxIntegrationCard } from './artifacts/integration-card';
+import { AnalyticsChartArtifact } from './artifacts/analytics-chart-artifact';
+import { AnalyticsBriefingArtifact } from './artifacts/analytics-briefing-artifact';
 
 // ============ Props ============
 
@@ -51,6 +55,8 @@ const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
     carousel: Images,
     bundle: PackagePlus,
     creative_content: Palette,
+    analytics_chart: BarChart2,
+    analytics_briefing: Newspaper,
 };
 
 // ============ Detail Views ============
@@ -362,6 +368,12 @@ export function InboxArtifactPanel({ artifacts, className }: InboxArtifactPanelP
                                     {selectedArtifact.type === 'creative_content' && <CreativeDetail artifact={selectedArtifact} />}
                                     {selectedArtifact.type === 'integration_request' && (
                                         <InboxIntegrationCard artifact={selectedArtifact} />
+                                    )}
+                                    {selectedArtifact.type === 'analytics_chart' && (
+                                        <AnalyticsChartArtifact artifact={selectedArtifact} />
+                                    )}
+                                    {selectedArtifact.type === 'analytics_briefing' && (
+                                        <AnalyticsBriefingArtifact artifact={selectedArtifact} />
                                     )}
                                 </motion.div>
                             </AnimatePresence>
