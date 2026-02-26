@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (Boardroom UX redesign — HUD metrics + right agent sidebar)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-25 (Gmail OAuth natural language fix — connect intent + proactive task card)
 
 ---
 
