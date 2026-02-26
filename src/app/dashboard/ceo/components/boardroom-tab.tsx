@@ -192,10 +192,10 @@ export default function BoardroomTab() {
     };
 
     return (
-        <div className="flex flex-col gap-0 animate-in fade-in duration-500 -mt-2">
+        <div className="flex flex-col gap-0 animate-in fade-in duration-500 -mt-2 xl:h-[calc(100svh-200px)] xl:overflow-hidden">
 
             {/* HUD Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/50 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/50 mb-4 xl:shrink-0">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
                         <h2 className="text-xl font-bold tracking-tight">Executive Boardroom</h2>
@@ -229,11 +229,11 @@ export default function BoardroomTab() {
             </div>
 
             {/* Main 2-Column Layout: Chat + Agent Directory */}
-            <div className="flex gap-4 items-start">
+            <div className="flex gap-4 items-start xl:flex-1 xl:min-h-0 xl:items-stretch">
 
                 {/* Chat Canvas — takes all remaining width */}
-                <div className="flex-1 min-w-0">
-                    <Card className="shadow-lg border-border/50 overflow-hidden h-[80vh] flex flex-col bg-background">
+                <div className="flex-1 min-w-0 xl:flex xl:flex-col xl:min-h-0">
+                    <Card className="shadow-lg border-border/50 overflow-hidden h-[80vh] xl:h-full flex flex-col bg-background">
                         <CardHeader className="bg-background border-b py-3 px-5 flex flex-row items-center justify-between shadow-sm z-10 shrink-0">
                             <div className="flex items-center gap-3">
                                 {currentAgent && (
@@ -273,7 +273,7 @@ export default function BoardroomTab() {
                 </div>
 
                 {/* Agent Directory Sidebar */}
-                <aside className="hidden xl:flex flex-col w-64 shrink-0 gap-3">
+                <aside className="hidden xl:flex flex-col w-64 shrink-0 gap-3 xl:overflow-y-auto xl:min-h-0">
 
                     {/* Executive Team */}
                     <div className="bg-background border border-border/50 rounded-xl overflow-hidden shadow-sm">
