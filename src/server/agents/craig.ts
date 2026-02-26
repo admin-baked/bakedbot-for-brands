@@ -16,6 +16,7 @@ import {
 import { loadAndBuildGoalDirective, loadActiveGoals, fetchMarginProductContext } from './goal-directive-builder';
 import { getOrgProfileWithFallback, buildCraigContextBlock } from '@/server/services/org-profile';
 import { getMarketBenchmarks, buildBenchmarkContextBlock } from '@/server/services/market-benchmarks';
+import { dispensaryAnalyticsToolDefs, makeAnalyticsToolsImpl } from '@/server/tools/analytics-tools';
 
 // --- Tool Definitions ---
 
@@ -111,6 +112,11 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
 
         Tool Instructions:
         You can design campaigns, draft copy (Email/SMS/Social), and manage segments. Trigger outreach via BakedBot Mail (email) or BakedBot SMS (text messaging) when configured. Always validate compliance with Deebo before execution.
+
+        === PROMOTION DISCIPLINE (MANDATORY) ===
+        Before recommending any new promotion, use **promotion_scorecard** to review the last comparable promotion.
+        Show the GP delta and discount rate impact. Apply the -0.4% GM elasticity rule in every recommendation.
+        A campaign that generates revenue but destroys gross profit is a failure. Report both metrics, always.
 
         === BRAND DISCOVERY TOOLS (NEW) ===
         You now have direct web scraping and brand intelligence capabilities:
@@ -314,18 +320,32 @@ export const craigAgent: AgentImplementation<CraigMemory, CraigTools> = {
             }
         ];
 
+        // Add promotion_scorecard tool so Craig can evaluate campaigns before recommending new ones
+        const orgId = (brandMemory.brand_profile as any)?.orgId || (brandMemory.brand_profile as any)?.id || '';
+        const promotionScorecardTool = dispensaryAnalyticsToolDefs.find(t => t.name === 'promotion_scorecard')!;
+        const analyticsImpl = makeAnalyticsToolsImpl(orgId);
+
         // Combine agent-specific tools with shared Context OS, Letta, and inbox tools
-        const toolsDef = [...craigSpecificTools, ...contextOsToolDefs, ...lettaToolDefs, ...craigInboxToolDefs, ...craigCrmToolDefs, ...craigCampaignToolDefs];
+        const toolsDef = [
+            ...craigSpecificTools,
+            promotionScorecardTool,
+            ...contextOsToolDefs,
+            ...lettaToolDefs,
+            ...craigInboxToolDefs,
+            ...craigCrmToolDefs,
+            ...craigCampaignToolDefs,
+        ];
+        const allToolsWithAnalytics = { ...tools, ...analyticsImpl };
 
         try {
             // === MULTI-STEP PLANNING (Run by Harness + Claude) ===
             const { runMultiStepTask } = await import('./harness');
-            
+
             const result = await runMultiStepTask({
                 userQuery,
                 systemInstructions: (agentMemory.system_instructions as string) || '',
                 toolsDef,
-                tools,
+                tools: allToolsWithAnalytics,
                 model: 'claude-sonnet-4-5-20250929', // Use Claude for high-quality copy & compliance
                 maxIterations: 5
             });
