@@ -12,7 +12,7 @@ npm run check:types
 
 **If failing, fix build errors before any other work. No exceptions.**
 
-**Current Status:** 🟢 Passing | **Last update:** 2026-02-26 (Campaign AI NL mode + custom playbooks for dispensary admins)
+**Current Status:** 🟢 Passing | **Last update:** 2026-02-26 (Booking 500 fix + avatar images for Martez/Jack/Smokey)
 
 ---
 
