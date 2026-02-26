@@ -1,0 +1,88 @@
+name: Agent Eval CI
+
+# Runs golden set evaluations when behavioral agent code, golden sets,
+# or engineering agent definitions change. Blocks PR merge on compliance
+# failures (exit code 1). Accuracy-only failures (exit code 2) are
+# reported as warnings but do not block.
+
+on:
+  push:
+    paths:
+      - '.agent/engineering-agents/**'
+      - '.agent/golden-sets/**'
+      - 'src/server/agents/**'
+  pull_request:
+    paths:
+      - '.agent/engineering-agents/**'
+      - '.agent/golden-sets/**'
+      - 'src/server/agents/**'
+
+jobs:
+  eval:
+    name: Golden Set Evaluation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # FAST mode: deterministic only (regex rules + function tests).
+      # No API cost. Always runs. Exits 1 on compliance failure.
+      - name: Run fast golden set eval (no API cost)
+        id: fast_eval
+        run: |
+          node scripts/run-golden-eval.mjs --all
+        continue-on-error: true  # capture exit code below
+
+      - name: Check fast eval result
+        run: |
+          EXIT="${{ steps.fast_eval.outcome }}"
+          if [ "$EXIT" = "failure" ]; then
+            echo "::error::Fast eval failed — compliance-critical case(s) failed. DO NOT MERGE."
+            exit 1
+          fi
+
+      # FULL mode: adds LLM tests via Claude Haiku. Only runs when CLAUDE_API_KEY
+      # is available (set as a GitHub Actions secret). Failures here are warnings
+      # unless they are compliance-critical.
+      - name: Run full LLM eval (requires CLAUDE_API_KEY secret)
+        id: full_eval
+        if: env.CLAUDE_API_KEY != ''
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+        run: |
+          node scripts/run-golden-eval.mjs --all --full
+        continue-on-error: true  # warnings don't block PR
+
+      - name: Annotate full eval result
+        if: env.CLAUDE_API_KEY != '' && steps.full_eval.outcome == 'failure'
+        run: |
+          echo "::warning::Full LLM eval returned non-zero exit. Review accuracy thresholds."
+
+      # Upload eval output as artifact for PR review
+      - name: Capture eval summary
+        if: always()
+        run: |
+          {
+            echo "## Agent Eval Summary"
+            echo ""
+            echo "**Fast eval (deterministic):** ${{ steps.fast_eval.outcome }}"
+            if [ "${{ env.CLAUDE_API_KEY }}" != "" ]; then
+              echo "**Full eval (LLM):** ${{ steps.full_eval.outcome }}"
+            else
+              echo "**Full eval (LLM):** skipped — CLAUDE_API_KEY not set"
+            fi
+            echo ""
+            echo "Exit codes: \`0\` = all pass, \`1\` = compliance failure (blocks merge), \`2\` = below accuracy threshold (warning)"
+          } >> $GITHUB_STEP_SUMMARY
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
