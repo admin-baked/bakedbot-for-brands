@@ -215,8 +215,12 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
             const lastName = ac.name_last || '';
             const displayName = [firstName, lastName].filter(Boolean).join(' ') || ac.customer_name || email;
 
-            // Get spending data from orders (keyed by email)
-            const spending = customerSpending.get(email);
+            // Get spending data — try email first, then 'cid_{id_customer}' fallback.
+            // The spending index uses 'cid_X' keys for in-store orders with no email
+            // (matches the key written by computeAndPersistSpending in pos-sync-service.ts).
+            const alleavesCustId = (ac.id_customer || ac.id)?.toString();
+            const spending = customerSpending.get(email)
+                ?? (alleavesCustId ? customerSpending.get(`cid_${alleavesCustId}`) : undefined);
             const totalSpent = spending?.totalSpent || 0;
             const orderCount = spending?.orderCount || 0;
             const avgOrderValue = orderCount > 0 ? totalSpent / orderCount : 0;
@@ -228,7 +232,6 @@ async function getCustomersFromAlleaves(orgId: string, firestore: FirebaseFirest
             const preferences = inferPreferencesFromAlleaves(ac);
 
             // Generate truly unique ID: Use Alleaves ID if available, otherwise create unique ID
-            const alleavesCustId = ac.id_customer || ac.id;
             const uniqueCustomerId = alleavesCustId ? `alleaves_${alleavesCustId}` : `${orgId}_${email}_${index}`;
 
             const profile: CustomerProfile = {
@@ -401,6 +404,7 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
     // 3. Build customer profiles - start with POS customers if available
     const customerMap = new Map<string, CustomerProfile>();
     const emailToIdMap = new Map<string, string>(); // Secondary lookup: email -> customer ID
+    const alleavesIdToCustomerIdMap = new Map<string, string>(); // Alleaves userId -> BakedBot customer.id
 
     // Add POS customers first (primary source)
     if (posCustomers.length > 0) {
@@ -415,8 +419,17 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
             customerMap.set(customer.id, customer);
 
             // Build secondary email lookup (for matching orders)
-            // Note: If multiple customers share an email, this will point to the last one
-            emailToIdMap.set(customer.email.toLowerCase(), customer.id);
+            // Skip synthetic placeholder emails (@alleaves.local) — they can't match real orders
+            const lowerEmail = customer.email.toLowerCase();
+            if (!lowerEmail.includes('@alleaves.local')) {
+                emailToIdMap.set(lowerEmail, customer.id);
+            }
+
+            // Build Alleaves customer ID lookup for email-less in-store orders.
+            // POS customer IDs follow the format 'alleaves_{id_customer}'.
+            if (customer.id.startsWith('alleaves_')) {
+                alleavesIdToCustomerIdMap.set(customer.id.slice('alleaves_'.length), customer.id);
+            }
         });
 
         logger.info('[CUSTOMERS] CustomerMap after adding POS customers', {
@@ -428,13 +441,29 @@ export async function getCustomers(params: GetCustomersParams | string = {}): Pr
     // 4. Merge/supplement with BakedBot orders
     orders.forEach(order => {
         const email = order.customer?.email?.toLowerCase();
-        if (!email) return;
+        // Placeholder emails from Alleaves in-store orders can't be used for matching
+        const isPlaceholderEmail = !email || email.includes('@alleaves.local');
 
         const orderDate = order.createdAt?.toDate?.() || new Date();
         const orderTotal = order.totals?.total || 0;
 
-        // Try to find existing customer by email
-        const customerId = emailToIdMap.get(email);
+        // Try email match first, then fall back to Alleaves customer ID.
+        // In-store Alleaves orders use 'no-email@alleaves.local' but always have a userId
+        // set to the Alleaves customer ID — use that to link the order to the right customer.
+        let customerId: string | undefined;
+        if (!isPlaceholderEmail) {
+            customerId = emailToIdMap.get(email!);
+        }
+        if (!customerId) {
+            const userId = order.userId;
+            if (userId && userId !== 'alleaves_customer') {
+                customerId = alleavesIdToCustomerIdMap.get(userId);
+            }
+        }
+        // If the order has a placeholder email and no matching POS customer, skip it.
+        // Don't create a ghost 'no-email@alleaves.local' customer record.
+        if (isPlaceholderEmail && !customerId) return;
+
         const existing = customerId ? customerMap.get(customerId) : undefined;
 
         if (existing) {

@@ -235,14 +235,20 @@ async function computeAndPersistSpending(
         const email = (
             ao.customer?.email || ao.email || ao.customer_email || ''
         ).toLowerCase().trim();
-        if (!email || email === 'no-email@alleaves.local') continue;
+        const hasValidEmail = email && email !== 'no-email@alleaves.local';
+
+        // Key by email when valid; fall back to 'cid_{id_customer}' for in-store orders
+        // that don't carry a customer email. This mirrors the lookup in getCustomersFromAlleaves.
+        const customerId = (ao.id_customer || ao.customer?.id)?.toString();
+        const key = hasValidEmail ? email : (customerId ? `cid_${customerId}` : null);
+        if (!key) continue;
 
         const amount = parseFloat(ao.total || ao.amount || 0);
         const rawDate = ao.date_created || ao.created_at;
         const orderDate = rawDate ? new Date(rawDate) : new Date();
 
-        if (!spending.has(email)) {
-            spending.set(email, {
+        if (!spending.has(key)) {
+            spending.set(key, {
                 totalSpent: 0,
                 orderCount: 0,
                 lastOrderDate: new Date(0),
@@ -250,7 +256,7 @@ async function computeAndPersistSpending(
             });
         }
 
-        const s = spending.get(email)!;
+        const s = spending.get(key)!;
         s.orderCount++;
         s.totalSpent += amount;
         if (orderDate > s.lastOrderDate) s.lastOrderDate = orderDate;
