@@ -22,6 +22,12 @@ export interface ResearchTask {
   resultReportId?: string; // ID of the generated report
   progress?: ResearchTaskProgress; // Real-time progress tracking
   error?: string; // Error message if failed
+  // ChatGPT-style plan — 5 research subtopics generated before execution
+  plan?: string[];
+  // Set after Drive auto-save completes
+  driveFileId?: string;
+  // Stored at create time for Drive attribution
+  userEmail?: string;
 }
 
 export interface ResearchReport {
@@ -34,6 +40,8 @@ export interface ResearchReport {
   content: string; // Markdown content
   sources: ResearchSource[];
   createdAt: Date;
+  // Drive file ID — set after auto-save; shows "Saved to Drive" badge in UI
+  driveFileId?: string;
   metadata?: {
     total_tokens?: number;
     execution_time_ms?: number;

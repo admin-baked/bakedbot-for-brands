@@ -23,12 +23,13 @@ export class ResearchService {
   /**
    * Creates a new research task to be picked up by the Python Sidecar
    */
-  async createTask(userId: string, brandId: string, query: string): Promise<string> {
+  async createTask(userId: string, brandId: string, query: string, userEmail?: string): Promise<string> {
     const taskRef = this.tasksCollection.doc();
     const taskData: Omit<ResearchTask, 'id'> = {
       userId,
       brandId,
       query,
+      userEmail,
       depth: 3, // Default for now
       breadth: 3,
       status: 'pending',

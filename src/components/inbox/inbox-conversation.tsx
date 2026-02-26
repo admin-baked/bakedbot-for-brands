@@ -62,6 +62,7 @@ import { InboxCarouselCard } from './artifacts/carousel-card';
 import { InboxBundleCard } from './artifacts/bundle-card';
 import { InboxCreativeCard } from './artifacts/creative-card';
 import { InboxIntegrationCard } from './artifacts/integration-card';
+import { InboxResearchCard } from './artifacts/inbox-research-card';
 import { InboxTaskFeed, AGENT_PULSE_CONFIG } from './inbox-task-feed';
 import { QRCodeGeneratorInline } from './qr-code-generator-inline';
 import { CarouselGeneratorInline } from './carousel-generator-inline';
@@ -353,6 +354,8 @@ function ArtifactPreviewCard({ artifact }: { artifact: InboxArtifact }) {
             return <InboxCreativeCard artifact={artifact} />;
         case 'integration_request':
             return <InboxIntegrationCard artifact={artifact} />;
+        case 'research_report':
+            return <InboxResearchCard artifact={artifact} />;
         default:
             return null;
     }
