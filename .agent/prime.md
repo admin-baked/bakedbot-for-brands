@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-26):** See `memory/MEMORY.md` for full log.
-Key completed: [Boardroom UX redesign + viewport fix] (`d5305add`, `0415d339`), [Deebo State Compliance Matrix NY/MA/CA/CO/IL] (`77f692ac`), [Inbox analytics_chart + analytics_briefing artifacts] (`c1e8a393`)
+Key completed: [Analytics tabs — products/orders/menu dashboards] (`167cf7bf`), [Morning Briefing cron — AnalyticsBriefing → inbox] (`3461ff48`)
 
 ---
 
