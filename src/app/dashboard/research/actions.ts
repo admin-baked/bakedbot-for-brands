@@ -1,26 +1,58 @@
 'use server';
 
 import { researchService } from "@/server/services/research-service";
+import { requireUser } from "@/server/auth/auth";
 import { revalidatePath } from "next/cache";
+import { logger } from "@/lib/logger";
 
-export async function createResearchTaskAction(userId: string, brandId: string, query: string) {
+export async function createResearchTaskAction(query: string) {
+  const user = await requireUser();
+  const brandId = user.currentOrgId || user.brandId || user.uid;
+
   try {
-      const taskId = await researchService.createTask(userId, brandId, query);
+      const taskId = await researchService.createTask(user.uid, brandId, query, user.email);
       revalidatePath('/dashboard/research');
+
+      // Self-trigger: fire-and-forget so research starts in seconds (not waiting for Cloud Scheduler)
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://bakedbot.ai';
+      const cronSecret = process.env.CRON_SECRET;
+      if (cronSecret) {
+          setImmediate(() => {
+              fetch(`${appUrl}/api/jobs/research`, {
+                  method: 'POST',
+                  headers: { Authorization: `Bearer ${cronSecret}` },
+              }).catch((err) => {
+                  logger.warn('[Research] Self-trigger fetch failed (Cloud Scheduler is fallback)', {
+                      error: String(err),
+                  });
+              });
+          });
+      }
+
       return { success: true, taskId };
-  } catch (error: any) {
-      console.error("Failed to create research task:", error);
-      return { success: false, error: error.message };
+  } catch (error: unknown) {
+      const err = error as Error;
+      logger.error(`[Research] Failed to create research task: ${err.message}`);
+      return { success: false, error: err.message };
   }
 }
 
-export async function getResearchTasksAction(brandId: string) {
+export async function getResearchTasksAction() {
+    const user = await requireUser();
+    const brandId = user.currentOrgId || user.brandId;
+
     try {
-        const tasks = await researchService.getTasksByBrand(brandId);
+        let tasks;
+        if (brandId) {
+            tasks = await researchService.getTasksByBrand(brandId);
+        } else {
+            tasks = await researchService.getTasksByUser(user.uid);
+        }
         return { success: true, tasks };
-    } catch (error: any) {
-        console.error("Failed to fetch research tasks:", error);
-        return { success: false, error: error.message };
+    } catch (error: unknown) {
+        const err = error as Error;
+        logger.error(`[Research] Failed to fetch research tasks: ${err.message}`);
+        return { success: false, error: err.message };
     }
 }
 
@@ -33,16 +65,19 @@ export async function getResearchTaskStatusAction(taskId: string) {
         if (!task) {
             return { success: false, error: 'Task not found' };
         }
-        return { 
-            success: true, 
+        return {
+            success: true,
             status: task.status,
             progress: task.progress,
+            plan: task.plan,
+            driveFileId: task.driveFileId,
             resultReportId: task.resultReportId,
             error: task.error
         };
-    } catch (error: any) {
-        console.error("Failed to fetch research task status:", error);
-        return { success: false, error: error.message };
+    } catch (error: unknown) {
+        const err = error as Error;
+        logger.error(`[Research] Failed to fetch research task status: ${err.message}`);
+        return { success: false, error: err.message };
     }
 }
 
@@ -56,8 +91,9 @@ export async function getResearchReportAction(reportId: string) {
             return { success: false, error: 'Report not found' };
         }
         return { success: true, report };
-    } catch (error: any) {
-        console.error("Failed to fetch research report:", error);
-        return { success: false, error: error.message };
+    } catch (error: unknown) {
+        const err = error as Error;
+        logger.error(`[Research] Failed to fetch research report: ${err.message}`);
+        return { success: false, error: err.message };
     }
 }

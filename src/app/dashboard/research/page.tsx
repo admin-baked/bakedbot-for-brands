@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Globe, AlertCircle } from "lucide-react";
 import { researchService } from "@/server/services/research-service";
 import { requireUser } from "@/server/auth/auth";
+import { logger } from "@/lib/logger";
 import { ResearchTaskList } from "./components/research-task-list";
 import { ResearchDialog } from "./components/research-dialog";
 import { ResearchTask } from "@/types/research";
@@ -23,16 +24,17 @@ export default async function ResearchPage() {
     } else {
       tasks = await researchService.getTasksByUser(user.uid);
     }
-  } catch (e: any) {
-    console.error('[ResearchPage] Failed to fetch tasks:', e);
-    error = e.message || 'Failed to load research tasks';
+  } catch (e: unknown) {
+    const err = e as Error;
+    logger.error(`[ResearchPage] Failed to fetch tasks: ${String(err)}`);
+    error = err.message || 'Failed to load research tasks';
   }
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Smokey Deep Research</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Big Worm Deep Research</h1>
           <p className="text-muted-foreground">Comprehensive web analysis and market intelligence reports.</p>
         </div>
         <ResearchDialog userId={user.uid} brandId={brandId}>

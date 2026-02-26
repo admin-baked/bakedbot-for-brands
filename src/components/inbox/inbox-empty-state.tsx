@@ -28,6 +28,7 @@ import {
     Maximize2,
     X,
 } from 'lucide-react';
+import { ResearchQueryDialog } from './research-query-dialog';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -125,6 +126,7 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
 
     const [customText, setCustomText] = useState('');
     const [isCreating, setIsCreating] = useState(false);
+    const [queryDialogAction, setQueryDialogAction] = useState<InboxQuickAction | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const hasCustomText = customText.trim().length > 0;
@@ -132,6 +134,13 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
     // Handle preset selection (with optional custom text)
     const handlePresetSelect = async (action: InboxQuickAction) => {
         if (isCreating) return;
+
+        // Presets that need a query first (e.g. Big Worm Deep Research)
+        if (action.requiresQueryDialog) {
+            setQueryDialogAction(action);
+            return;
+        }
+
         setIsCreating(true);
 
         let localThread = null;
@@ -342,6 +351,11 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
 
     // === EMPTY STATE (NO ACTIVE THREAD) ===
     return (
+        <>
+        <ResearchQueryDialog
+            action={queryDialogAction}
+            onClose={() => setQueryDialogAction(null)}
+        />
         <div className={cn('flex items-center justify-center h-full p-8', className)}>
             <div className="max-w-4xl w-full space-y-8">
                 {/* Daily Briefing - Insight Cards */}
@@ -438,6 +452,7 @@ export function InboxEmptyState({ isLoading, className }: InboxEmptyStateProps) 
                 </div>
             </div>
         </div>
+        </>
     );
 }
 

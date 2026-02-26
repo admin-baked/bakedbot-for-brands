@@ -34,6 +34,7 @@ import {
 import type { Carousel } from '@/types/carousels';
 import type { BundleDeal } from '@/types/bundles';
 import type { CreativeContent } from '@/types/creative-content';
+import type { ResearchReportArtifactData } from '@/types/inbox';
 
 // ============ Firestore Collections ============
 
@@ -485,7 +486,7 @@ export async function deleteInboxThread(
 export async function createInboxArtifact(input: {
     threadId: string;
     type: InboxArtifactType;
-    data: Carousel | BundleDeal | CreativeContent;
+    data: Carousel | BundleDeal | CreativeContent | ResearchReportArtifactData;
     rationale?: string;
 }): Promise<{ success: boolean; artifact?: InboxArtifact; error?: string }> {
     try {

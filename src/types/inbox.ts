@@ -216,6 +216,8 @@ export type InboxArtifactType =
     | 'job_spec'          // Role description, requirements
     | 'research_brief'    // Deep research findings
     | 'compliance_brief'  // Compliance research document
+    // ---- Research Artifacts ----
+    | 'research_report'   // Big Worm deep research task (live progress card + completed report)
     // ---- Integration Artifacts ----
     | 'integration_request'; // Request to connect third-party service (OAuth, API key, etc.)
 
@@ -228,6 +230,16 @@ export type InboxArtifactStatus =
     | 'approved'        // Approved, ready to publish
     | 'published'       // Live/active
     | 'rejected';       // Not approved
+
+/**
+ * Data payload for research_report artifacts (live polling card + completed report)
+ */
+export interface ResearchReportArtifactData {
+    taskId: string;
+    reportTitle: string;
+    plan?: string[];
+    driveFileId?: string;
+}
 
 /**
  * An artifact created through inbox conversation
@@ -244,7 +256,7 @@ export interface InboxArtifact {
     status: InboxArtifactStatus;
 
     // The actual data (polymorphic based on type)
-    data: Carousel | BundleDeal | CreativeContent | QRCode | IntegrationRequest;
+    data: Carousel | BundleDeal | CreativeContent | QRCode | IntegrationRequest | ResearchReportArtifactData;
 
     // Agent rationale for the suggestion
     rationale?: string;
@@ -275,6 +287,8 @@ export interface InboxQuickAction {
     defaultAgent: InboxAgentPersona;
     promptTemplate: string;
     roles: string[]; // Allowed roles
+    // When true, clicking shows a query dialog instead of immediately creating a thread
+    requiresQueryDialog?: boolean;
 }
 
 /** Role constants for cleaner action definitions */
@@ -710,16 +724,17 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         roles: ['super_user'],
     },
 
-    // ============ Super User: Research ============
+    // ============ Research (all business roles) ============
     {
         id: 'deep-research',
         label: 'Deep Research',
-        description: 'Conduct comprehensive research with Big Worm',
+        description: 'Comprehensive market, product, or competitor research by Big Worm',
         icon: 'BookOpen',
         threadType: 'deep_research',
         defaultAgent: 'big_worm',
-        promptTemplate: 'I need deep research for BakedBot on:',
-        roles: ['super_user'],
+        promptTemplate: '',
+        roles: ['super_user', 'brand_admin', 'brand', 'dispensary_admin', 'dispensary'],
+        requiresQueryDialog: true,
     },
     {
         id: 'compliance-brief',
@@ -728,8 +743,9 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'Scale',
         threadType: 'compliance_research',
         defaultAgent: 'roach',
-        promptTemplate: 'Research compliance requirements for BakedBot regarding:',
-        roles: ['super_user'],
+        promptTemplate: 'Research compliance requirements regarding:',
+        roles: ['super_user', 'brand_admin', 'dispensary_admin'],
+        requiresQueryDialog: true,
     },
     {
         id: 'market-analysis',
@@ -738,8 +754,9 @@ export const INBOX_QUICK_ACTIONS: InboxQuickAction[] = [
         icon: 'BarChart3',
         threadType: 'market_research',
         defaultAgent: 'big_worm',
-        promptTemplate: 'Analyze the market for BakedBot around:',
-        roles: ['super_user'],
+        promptTemplate: 'Analyze the market around:',
+        roles: ['super_user', 'brand_admin', 'dispensary_admin'],
+        requiresQueryDialog: true,
     },
 
     // ============ CRM / Customer Intelligence ============
