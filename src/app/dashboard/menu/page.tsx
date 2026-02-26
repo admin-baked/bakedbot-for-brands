@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Loader2, Search, ShoppingBag, RefreshCw, DollarSign, AlertTriangle,
     Pencil, Check, X, Tag, Package, MessageSquare, Zap, ExternalLink,
-    Eye, Maximize2, Minimize2, LayoutGrid, Table2, Bot, BookOpen
+    Eye, Maximize2, Minimize2, LayoutGrid, Table2, Bot, BookOpen, BarChart2
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -31,6 +31,7 @@ import { BrandMenuClient } from '@/app/[brand]/brand-menu-client';
 import type { Product as DomainProduct, Retailer } from '@/types/domain';
 import { ThemeManager } from '@/components/dashboard/theme-manager';
 import Chatbot from '@/components/chatbot';
+import { MenuAnalyticsTab } from './components/analytics-tab';
 
 interface Product {
     id: string;
@@ -162,7 +163,7 @@ export default function MenuPage() {
     } | null>(null);
     const [previewLoading, setPreviewLoading] = useState(false);
     const [fullScreen, setFullScreen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'preview' | 'products' | 'themes' | 'budtender' | 'staff-guide'>('preview');
+    const [activeTab, setActiveTab] = useState<'preview' | 'products' | 'themes' | 'budtender' | 'staff-guide' | 'analytics'>('preview');
     const [budtenderOpen, setBudtenderOpen] = useState(false);
     const previewFetchedRef = useRef(false);
 
@@ -392,8 +393,8 @@ export default function MenuPage() {
                 </div>
             )}
 
-            {/* Tabs: Preview / Products / Themes / Budtender */}
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'preview' | 'products' | 'themes' | 'budtender' | 'staff-guide')}>
+            {/* Tabs: Preview / Products / Analytics / Themes / Budtender */}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'preview' | 'products' | 'themes' | 'budtender' | 'staff-guide' | 'analytics')}>
                 <div className="flex items-center justify-between">
                     <TabsList>
                         <TabsTrigger value="preview" className="gap-2">
@@ -407,6 +408,10 @@ export default function MenuPage() {
                         <TabsTrigger value="themes" className="gap-2">
                             <Zap className="h-4 w-4" />
                             Themes
+                        </TabsTrigger>
+                        <TabsTrigger value="analytics" className="gap-2">
+                            <BarChart2 className="h-4 w-4" />
+                            Analytics
                         </TabsTrigger>
                         <TabsTrigger value="budtender" className="gap-2">
                             <Bot className="h-4 w-4" />
@@ -695,6 +700,11 @@ export default function MenuPage() {
                 {/* Themes Tab */}
                 <TabsContent value="themes" className="mt-4">
                   <ThemeManager orgId={orgId || ''} />
+                </TabsContent>
+
+                {/* Analytics Tab */}
+                <TabsContent value="analytics" className="mt-4">
+                    <MenuAnalyticsTab orgId={orgId || ''} />
                 </TabsContent>
 
                 {/* Ask Smokey Tab */}

@@ -4,8 +4,7 @@ import { cookies } from 'next/headers';
 import { makeProductRepo } from '@/server/repos/productRepo';
 import type { Product } from '@/types/domain';
 import { demoProducts } from '@/lib/demo/demo-data';
-import { ProductsDataTable } from './components/products-data-table';
-import { columns } from './components/products-table-columns';
+import { ProductsTabsWrapper } from './components/products-tabs-wrapper';
 import { PlusCircle, Import } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -44,10 +43,12 @@ export default async function DashboardProductsPage() {
     let showPosAlert = false;
     let showNoBrandAlert = false;
     let user: any = null;
+    let resolvedOrgId = '';
 
     if (isDemo) {
         products = demoProducts;
         user = { role: 'brand', brandId: DEMO_BRAND_ID };
+        resolvedOrgId = DEMO_BRAND_ID;
     } else {
         try {
             user = await requireUser(['brand', 'brand_admin', 'brand_member', 'super_user', 'dispensary', 'dispensary_admin', 'dispensary_staff', 'budtender']);
@@ -64,6 +65,7 @@ export default async function DashboardProductsPage() {
             if (isDispensaryRole) {
                 // Dispensary Logic - resolve locationId/orgId
                 const orgId = (user as any).orgId || (user as any).currentOrgId || user.locationId || user.uid;
+                resolvedOrgId = orgId;
 
                 // Find location by orgId
                 let locationId = user.locationId;
@@ -98,6 +100,7 @@ export default async function DashboardProductsPage() {
                 // Owner sees all products
                 products = await productRepo.getAll();
             } else if (brandId) {
+                resolvedOrgId = brandId;
                 products = await productRepo.getAllByBrand(brandId);
             } else {
                 // Brand user without a brandId - show helpful alert
@@ -159,7 +162,7 @@ export default async function DashboardProductsPage() {
                     </Link>
                 </div>
             </div>
-            <ProductsDataTable columns={columns} data={serializeProducts(products)} />
+            <ProductsTabsWrapper products={serializeProducts(products)} orgId={resolvedOrgId} />
         </div>
     );
 }
