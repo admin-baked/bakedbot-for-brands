@@ -22,7 +22,7 @@ npm run check:types
 **Current Status:** 🟢 Passing (verified 2026-02-25)
 
 **Recent work (2026-02-25):** See `memory/MEMORY.md` for full log.
-Key completed: [Boardroom UX redesign — HUD strip + right agent sidebar] (`d5305add`)
+Key completed: [Gmail OAuth connect intent + proactive task card] (`86cb942b`, `28d5fc96`)
 
 ---
 
