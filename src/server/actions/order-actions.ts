@@ -8,6 +8,7 @@ import { sendOrderNotification } from './order-notifications';
 import { BundleRedemptionService } from '@/server/services/bundle-redemption';
 import { LoyaltySyncService } from '@/server/services/loyalty-sync';
 import { TierAdvancementService } from '@/server/services/tier-advancement';
+import { BrandSettlementService } from '@/server/services/brand-settlement';
 import type { LoyaltySettings } from '@/types/customers';
 
 /**
@@ -199,6 +200,19 @@ export async function fulfillOrder(orderId: string): Promise<{ success: boolean;
                     error: loyaltyError.message,
                 });
             }
+        }
+
+        // 3. Brand settlement (non-blocking — never fails the fulfillment)
+        if (orderData?.orgId || orderData?.retailerId) {
+            const dispensaryOrgId = orderData.orgId || orderData.retailerId;
+            setImmediate(async () => {
+                try {
+                    const settlementService = new BrandSettlementService();
+                    await settlementService.settleOrder(orderId, dispensaryOrgId);
+                } catch (err) {
+                    logger.error(`[Brand Settlement] Failed for order ${orderId}: ${String(err)}`);
+                }
+            });
         }
 
         return { success: true };

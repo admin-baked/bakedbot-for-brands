@@ -4,7 +4,7 @@
 
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, Code, Download, Store, Users, Palette, Bot, Plug, Sparkles, Target } from 'lucide-react';
+import { Globe, Code, Download, Store, Users, Palette, Bot, Plug, Sparkles, Target, Wallet } from 'lucide-react';
 import DomainSettingsTab from './components/domain-tab';
 import EmbedGeneratorTab from './components/embed-tab';
 import WordPressPluginTab from './components/wordpress-tab';
@@ -31,6 +31,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/firebase/client';
 import { logger } from '@/lib/logger';
+import { PaymentsTab } from './components/payments-tab';
 
 export default function SettingsPage() {
   const { role, isBrandRole, isDispensaryRole, hasBrandAdminAccess, hasDispensaryAdminAccess, isSuperUser } = useUserRole();
@@ -132,6 +133,12 @@ export default function SettingsPage() {
               Billing
             </TabsTrigger>
           )}
+          {(hasBrandAdminAccess || hasDispensaryAdminAccess) && (
+            <TabsTrigger value="payments">
+              <Wallet className="mr-2 h-4 w-4" />
+              USDC
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="brand" className="space-y-4">
@@ -217,6 +224,10 @@ export default function SettingsPage() {
               />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="payments" className="space-y-4">
+          <PaymentsTab />
         </TabsContent>
 
         <TabsContent value="billing" className="space-y-4">

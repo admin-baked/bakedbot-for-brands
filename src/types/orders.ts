@@ -15,7 +15,7 @@ export type CartItem = Product & { quantity: number };
 export type OrderStatus = 'pending' | 'submitted' | 'confirmed' | 'preparing' | 'ready' | 'completed' | 'cancelled';
 
 // Payment method types
-export type PaymentMethod = 'dispensary_direct' | 'cannpay' | 'credit_card' | 'aeropay';
+export type PaymentMethod = 'dispensary_direct' | 'cannpay' | 'credit_card' | 'aeropay' | 'usdc';
 export type PaymentStatus = 'pending_pickup' | 'pending' | 'paid' | 'failed' | 'voided' | 'refunded';
 
 // Shipping address for e-commerce orders
@@ -49,6 +49,10 @@ export type OrderDoc = {
         qty: number;
         price: number;
         category?: string;
+        brandId?: string;
+        brandOrgId?: string;         // BakedBot org ID for brand (if on platform)
+        wholesale?: number;           // COGS / wholesale price
+        settlementEligible?: boolean; // brand has USDC wallet + opted in
     }>;
     totals: {
         subtotal: number;
@@ -72,7 +76,7 @@ export type OrderDoc = {
     // Payment fields
     paymentMethod?: PaymentMethod;
     paymentStatus?: PaymentStatus;
-    paymentProvider?: 'authorize_net' | 'cannpay' | 'aeropay';
+    paymentProvider?: 'authorize_net' | 'cannpay' | 'aeropay' | 'x402';
     paymentIntentId?: string;
     transactionId?: string;
     lastPaymentEvent?: any;
@@ -93,6 +97,15 @@ export type OrderDoc = {
 
     // Aeropay payment data
     aeropay?: OrderAeropayData;
+
+    // USDC payment data (x402 / Base network)
+    usdc?: {
+        paymentAddress: string;   // dispensary wallet that received USDC
+        amountUsdc: number;       // USDC amount (= USD amount, 1:1)
+        intentId?: string;        // Firestore x402_deposits doc ID
+        txHash?: string;
+        confirmedAt?: string;
+    };
 
     // Shipping fields for e-commerce orders
     purchaseModel?: PurchaseModel;
