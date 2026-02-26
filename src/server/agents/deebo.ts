@@ -5,6 +5,11 @@ import waRetailRules from './rules/wa-retail.json';
 import nyRetailRules from './rules/ny-retail.json';
 import caRetailRules from './rules/ca-retail.json';
 import ilRetailRules from './rules/il-retail.json';
+import {
+  getStateMarketingRules,
+  buildStateComplianceBlock,
+  checkMarketingCompliance as structuralMarketingCheck,
+} from '@/server/data/state-marketing-rules';
 
 export const ComplianceResultSchema = z.object({
   status: z.enum(['pass', 'fail', 'warning']),
@@ -105,24 +110,49 @@ export const deebo = {
     }
 
     try {
+      // Load state-specific marketing rules for this jurisdiction
+      const stateRules = getStateMarketingRules(jurisdiction);
+      const channelRule = stateRules.channels[channel.toLowerCase()] ?? stateRules.channels['digital'];
+
+      const channelStatus =
+        channelRule?.allowed === true ? 'ALLOWED' :
+        channelRule?.allowed === false ? 'BLOCKED — this channel is not permitted in this state' :
+        `CONDITIONAL — ${channelRule?.condition ?? 'requirements apply'}`;
+
+      const audienceNote = channelRule?.audienceCompositionRequired
+        ? `\n• AUDIENCE: ${Math.round(channelRule.audienceCompositionRequired * 100)}%+ of audience MUST be 21+.`
+        : '';
+
+      const channelProhibited = (channelRule?.prohibitedContent ?? [])
+        .map(p => `• Prohibited in ${channel}: ${p}`).join('\n');
+      const generalProhibited = stateRules.generalProhibitions.slice(0, 6)
+        .map(p => `• ${p}`).join('\n');
+      const requiredDisclosures = (channelRule?.requiredDisclosures ?? [])
+        .map(d => `• Required: ${d}`).join('\n');
+
       // Prompt for Genkit (Semantic Check)
       // Use Gemini 2.5 Pro for compliance checking (fast and accurate)
       const prompt = `
-            You are Deebo, the "Shield" and Chief Compliance Officer for jurisdiction: ${jurisdiction}.
-            Channel: ${channel}.
+You are Deebo, the "Shield" and Chief Compliance Officer for ${stateRules.stateName} (${jurisdiction}).
+Channel: ${channel.toUpperCase()} — Status: ${channelStatus}${audienceNote}
 
-            MISSION: 100% Risk Mitigation.
+MISSION: 100% Risk Mitigation. Zero tolerance for compliance violations.
 
-            Analyze the following content for compliance violations:
-            "${content}"
+=== ${stateRules.stateName.toUpperCase()} CHANNEL RULES ===
+${channelProhibited || '• (No channel-specific prohibitions listed — apply general rules below)'}
 
-            Rules to enforce:
-            1. No medical claims (cure, treat, prevent, health benefits).
-            2. No appeal to minors (cartoons, candy-like imagery).
-            3. No false or misleading statements.
+=== GENERAL PROHIBITIONS ===
+${generalProhibited}
 
-            Return JSON: { "status": "pass" | "fail" | "warning", "violations": [], "suggestions": [] }
-            `;
+=== REQUIRED DISCLOSURES ===
+${requiredDisclosures || '• Age disclaimer for adults 21+ only.'}
+
+Analyze the following content for compliance violations:
+"${content}"
+
+Return JSON: { "status": "pass" | "fail" | "warning", "violations": [], "suggestions": [] }
+Citations: ${channelRule?.citations?.slice(0, 2).join(', ') || 'State cannabis advertising regulations'}
+`;
 
       const result = await ai.generate({
         prompt: prompt,
@@ -149,7 +179,44 @@ export const deebo = {
         suggestions: ['Retry later.']
       };
     }
-  }
+  },
+
+  /**
+   * Check marketing channel compliance for a state.
+   * Runs structural check first (fast, no LLM), then semantic check (Gemini).
+   * Used by agents via check_marketing_compliance tool.
+   */
+  async checkMarketingCompliance(
+    stateCode: string,
+    channel: string,
+    contentDescription: string
+  ): Promise<ComplianceResult & { verdict: string; citations: string[] }> {
+    // 1. Fast structural check based on state rules (no LLM)
+    const structural = structuralMarketingCheck(stateCode, channel, contentDescription);
+    if (!structural.compliant && structural.issues.length > 0) {
+      return {
+        status: 'fail',
+        violations: structural.issues,
+        suggestions: structural.citations.length > 0
+          ? [`See: ${structural.citations.slice(0, 2).join(', ')}`]
+          : ['Review state marketing rules and revise content.'],
+        verdict: structural.verdict,
+        citations: structural.citations,
+      };
+    }
+
+    // 2. Semantic LLM check for nuanced violations
+    const result = await this.checkContent(stateCode, channel, contentDescription);
+    const stateRules = getStateMarketingRules(stateCode);
+    const channelCitations = stateRules.channels[channel.toLowerCase()]?.citations ?? [];
+    return {
+      ...result,
+      verdict: result.status === 'pass'
+        ? `COMPLIANT — ${stateRules.stateName} ${channel} rules`
+        : `NON-COMPLIANT — ${result.violations[0] ?? 'semantic violation detected'}`,
+      citations: channelCitations,
+    };
+  },
 };
 
 // --- Legacy / Specific Compliance Checks (imported by other modules) ---
@@ -188,4 +255,73 @@ export function deeboCheckStateAllowed(state: string) {
 export function deeboCheckCheckout(cart: any) {
   // Stub
   return { allowed: true, violations: [], warnings: [], errors: [] };
+}
+
+// =============================================================================
+// STATE COMPLIANCE HELPERS (for agent system prompt injection)
+// =============================================================================
+
+/**
+ * Returns a formatted compliance block for injection into agent system prompts.
+ * Callers resolve stateCode from the org profile before calling.
+ *
+ * Usage in agents:
+ *   const block = getStateComplianceBlock(profile?.state ?? '');
+ *   if (block) systemInstructions += '\n\n' + block;
+ */
+export function getStateComplianceBlock(stateCode: string): string {
+  if (!stateCode) return '';
+  return buildStateComplianceBlock(stateCode);
+}
+
+// Re-export state rule utilities so agents can import from one place
+export { getStateMarketingRules, buildStateComplianceBlock } from '@/server/data/state-marketing-rules';
+
+// =============================================================================
+// check_marketing_compliance TOOL DEFINITION (for agent runMultiStepTask)
+// =============================================================================
+
+/**
+ * Tool definition for check_marketing_compliance.
+ * Wire into agent toolsDef to let the agent call Deebo's compliance check
+ * for a specific state + channel combination.
+ *
+ * Usage in agent:
+ *   import { checkMarketingComplianceTool, makeCheckMarketingComplianceImpl } from '@/server/agents/deebo';
+ *   const toolsDef = [...existingTools, checkMarketingComplianceTool];
+ *   const tools = { ...existingImpl, ...makeCheckMarketingComplianceImpl(stateCode) };
+ */
+export const checkMarketingComplianceTool = {
+  name: 'check_marketing_compliance',
+  description:
+    'Check whether a proposed marketing campaign or message is compliant with the dispensary\'s state cannabis advertising regulations. Provide the channel (sms, email, paid_social, organic_social, ooh, digital, website, loyalty) and a description of the content. Returns verdict: COMPLIANT | CONDITIONAL | NON-COMPLIANT with specific rule citations.',
+  inputSchema: z.object({
+    stateCode: z.string().describe('Two-letter US state code (NY, CA, CO, MA, IL, etc.)'),
+    channel: z
+      .enum(['sms', 'email', 'paid_social', 'organic_social', 'ooh', 'digital', 'website', 'loyalty'])
+      .describe('Marketing channel for the campaign'),
+    contentDescription: z
+      .string()
+      .describe(
+        'Description of the campaign content and key messages (not the full copy text). ' +
+        'Include the type of offer, tone, imagery references, and any claim types used.'
+      ),
+  }),
+};
+
+/**
+ * Creates the implementation for check_marketing_compliance tool.
+ * Pass stateCode from the org's state field (e.g., from org profile).
+ */
+export function makeCheckMarketingComplianceImpl(defaultStateCode: string) {
+  return {
+    async check_marketing_compliance(input: {
+      stateCode?: string;
+      channel: string;
+      contentDescription: string;
+    }) {
+      const state = input.stateCode || defaultStateCode || 'NY';
+      return deebo.checkMarketingCompliance(state, input.channel, input.contentDescription);
+    },
+  };
 }
