@@ -217,6 +217,17 @@ export function makeBrandGuideRepo(firestore: Firestore): BrandGuideRepo {
       );
     }
 
+    // Recalculate completeness score by merging updates with current doc
+    try {
+      const currentDoc = await firestore.collection(COLLECTION).doc(brandId).get();
+      if (currentDoc.exists) {
+        const merged = { ...currentDoc.data(), ...updates } as Partial<BrandGuide>;
+        updateData.completenessScore = calculateCompleteness(merged);
+      }
+    } catch {
+      // Non-fatal — skip recalculation if read fails
+    }
+
     await firestore.collection(COLLECTION).doc(brandId).update(updateData);
 
     logger.info('Brand guide updated', { brandId });
