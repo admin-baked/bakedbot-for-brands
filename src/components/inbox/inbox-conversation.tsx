@@ -94,7 +94,7 @@ const AGENT_NAMES: Record<InboxAgentPersona, {
     ringColor: string;
 }> = {
     // Field Agents
-    smokey: { name: 'Smokey', avatar: '🌿', color: 'text-emerald-500', bgColor: 'bg-emerald-500/10', ringColor: 'ring-emerald-500/50' },
+    smokey: { name: 'Smokey', avatar: 'https://storage.googleapis.com/bakedbot-global-assets/avatars/smokey-mascot.png', color: 'text-emerald-500', bgColor: 'bg-emerald-500/10', ringColor: 'ring-emerald-500/50' },
     money_mike: { name: 'Money Mike', avatar: '💰', color: 'text-amber-500', bgColor: 'bg-amber-500/10', ringColor: 'ring-amber-500/50' },
     craig: { name: 'Craig', avatar: '📣', color: 'text-blue-500', bgColor: 'bg-blue-500/10', ringColor: 'ring-blue-500/50' },
     ezal: { name: 'Ezal', avatar: '🔍', color: 'text-purple-500', bgColor: 'bg-purple-500/10', ringColor: 'ring-purple-500/50' },
@@ -179,7 +179,7 @@ function MessageBubble({
                                     : cn(agent.bgColor, agent.ringColor)
                             )}
                         >
-                            {isUser ? <User className="h-4 w-4" /> : <span className="text-base">{agent.avatar}</span>}
+                            {isUser ? <User className="h-4 w-4" /> : agent.avatar.startsWith('http') ? <img src={agent.avatar} alt={agent.name} className="w-6 h-6 object-contain rounded" /> : <span className="text-base">{agent.avatar}</span>}
                         </div>
                     </TooltipTrigger>
                     {(message.thinking || message.metadata) && (
@@ -376,7 +376,7 @@ function ThreadHeader({ thread }: { thread: InboxThread }) {
                     agent.bgColor,
                     agent.ringColor
                 )}>
-                    <span className="text-xl">{agent.avatar}</span>
+                    {agent.avatar.startsWith('http') ? <img src={agent.avatar} alt={agent.name} className="w-6 h-6 object-contain rounded" /> : <span className="text-xl">{agent.avatar}</span>}
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
