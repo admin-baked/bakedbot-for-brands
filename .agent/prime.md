@@ -443,6 +443,37 @@ BakedBot AI utilizes the **Gemini 2.5** family for all core reasoning and creati
 
 ---
 
+## 🛠️ Engineering Agent Squad
+
+> Specialized agents that build and maintain the codebase. All report to Linus. All governed by this prime.md — same workflow protocol, same golden set gates, same super powers.
+
+**IDE Integration:** Engineering agents auto-load via directory-level `CLAUDE.md` files. Open any file in their domain and their full context is available automatically. No manual switching.
+
+**Invocation:** Open a file in their domain, or explicitly: `Working as [Agent Name]. [task description]`
+
+| Agent | Domain | Auto-loads from | Memory |
+|-------|--------|-----------------|--------|
+| **Inbox Mike** | `agent-runner.ts`, inbox artifacts, thread types, message pipeline | `src/app/dashboard/inbox/` | `.agent/engineering-agents/inbox-mike/` |
+| **Onboarding Jen** | Brand guide wizard, settings pages, OrgProfile, brand extraction, slug mgmt | `src/app/dashboard/settings/` | `.agent/engineering-agents/onboarding-jen/` |
+| **Sync Sam** | Alleaves POS sync, customer segmentation, spending index, cron data pipeline | `src/server/services/alleaves/` | `.agent/engineering-agents/sync-sam/` |
+| **Creative Larry** | Creative Studio, fal.ai/FLUX.1 pipeline, brand image pre-gen, campaign templates | `src/app/dashboard/creative/` | `.agent/engineering-agents/creative-larry/` |
+| **Brand Pages Willie** | Public brand/dispensary menus, ISR, proxy middleware, age gate, AI crawlers | `src/app/[brand]/` | `.agent/engineering-agents/brand-pages-willie/` |
+| **Menu Maya** | Menu Command Center, products table, COGS, drag-reorder, staff guide | `src/app/dashboard/menu/` | `.agent/engineering-agents/menu-maya/` |
+| **Campaign Carlos** | Campaign wizard, Craig tools, SMS/Email dispatch, Deebo gate, TCPA dedup | `src/app/dashboard/campaigns/` | `.agent/engineering-agents/campaign-carlos/` |
+| **Loyalty Luis** | Loyalty dashboard, points engine, tier advancement, spending index | `src/app/dashboard/loyalty/` | `.agent/engineering-agents/loyalty-luis/` |
+| **Intel Ivan** | Competitive intelligence, Ezal, CannMenus, Jina tools, weekly CI reports | `src/app/dashboard/intelligence/` | `.agent/engineering-agents/intel-ivan/` |
+| **Platform Pat** | All 47+ cron endpoints, heartbeat, auto-escalation, Firebase App Hosting, secrets | `src/app/api/cron/` | `.agent/engineering-agents/platform-pat/` |
+| **Playbook Pablo** | Playbook templates (23), Zapier trigger editor, execution cron, cron utilities | `src/app/dashboard/playbooks/` | `.agent/engineering-agents/playbook-pablo/` |
+| **Drive Dana** | BakedBot Drive UI, file viewer/editor, AI Magic Button, Drive-inbox bridge | `src/app/dashboard/drive/` | `.agent/engineering-agents/drive-dana/` |
+| **Delivery Dante** | Delivery dashboard, driver app, QR check-in, ETA calc, NY OCM compliance | `src/app/dashboard/delivery/` | `.agent/engineering-agents/delivery-dante/` |
+| **Boardroom Bob** | CEO boardroom, executive agents (Leo/Linus/Jack), CRM, QA, morning briefing | `src/app/dashboard/ceo/` | `.agent/engineering-agents/boardroom-bob/` |
+
+**Full roster + details:** `.agent/engineering-agents/README.md`
+
+**Critical cross-domain rule:** Any change touching 2+ engineering agent domains requires Linus arbitration before implementation. File it as a cross-domain spec and tag both agents.
+
+---
+
 ## 🔌 Key Integrations
 
 | Service | Used By | Purpose |

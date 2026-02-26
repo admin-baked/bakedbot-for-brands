@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
     Check, ChevronLeft, ChevronRight, Loader2,
-    Mail, MessageSquare, Users,
+    Mail, MessageSquare, Users, Sparkles, PenLine,
 } from 'lucide-react';
 import { createCampaign } from '@/server/actions/campaigns';
 import {
@@ -21,6 +21,7 @@ import {
 } from '@/types/campaign';
 import type { CustomerSegment } from '@/types/customers';
 import { getSegmentInfo } from '@/types/customers';
+import { generateCampaignFromNL } from '@/server/actions/campaign-nlp';
 
 const SEGMENT_OPTIONS: CustomerSegment[] = [
     'vip', 'loyal', 'frequent', 'high_value', 'new', 'slipping', 'at_risk', 'churned',
@@ -38,6 +39,12 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
     const [step, setStep] = useState(0);
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // AI mode state
+    const [wizardMode, setWizardMode] = useState<'manual' | 'ai'>('manual');
+    const [nlPrompt, setNlPrompt] = useState('');
+    const [generating, setGenerating] = useState(false);
+    const [nlError, setNlError] = useState<string | null>(null);
 
     // Form state
     const [goal, setGoal] = useState<CampaignGoal | null>(null);
@@ -77,6 +84,36 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
         setSegments(prev =>
             prev.includes(seg) ? prev.filter(s => s !== seg) : [...prev, seg]
         );
+    };
+
+    const handleGenerate = async () => {
+        if (!nlPrompt.trim()) return;
+        setGenerating(true);
+        setNlError(null);
+        try {
+            const result = await generateCampaignFromNL(nlPrompt);
+            if (!result.success) {
+                setNlError(result.error);
+                return;
+            }
+            const d = result.data;
+            setName(d.name);
+            setDescription(d.description);
+            setGoal(d.goal);
+            setChannels(d.channels);
+            setSegments(d.targetSegments);
+            setAudienceType(d.audienceType);
+            setEmailSubject(d.emailSubject);
+            setEmailBody(d.emailBody);
+            setSmsBody(d.smsBody);
+            // Jump to Review step
+            setWizardMode('manual');
+            setStep(3);
+        } catch (err) {
+            setNlError(err instanceof Error ? err.message : 'An error occurred');
+        } finally {
+            setGenerating(false);
+        }
     };
 
     const handleCreate = async () => {
@@ -137,7 +174,64 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                     <DialogTitle>New Campaign</DialogTitle>
                 </DialogHeader>
 
-                {/* Progress bar */}
+                {/* Mode switcher */}
+                <div className="flex items-center gap-2 mb-4 border rounded-lg p-1 bg-muted/40 w-fit">
+                    <Button
+                        variant={wizardMode === 'manual' ? 'default' : 'ghost'}
+                        size="sm"
+                        className="h-7 gap-1.5"
+                        onClick={() => setWizardMode('manual')}
+                    >
+                        <PenLine className="h-3.5 w-3.5" /> Manual
+                    </Button>
+                    <Button
+                        variant={wizardMode === 'ai' ? 'default' : 'ghost'}
+                        size="sm"
+                        className="h-7 gap-1.5"
+                        onClick={() => setWizardMode('ai')}
+                    >
+                        <Sparkles className="h-3.5 w-3.5" /> AI
+                    </Button>
+                </div>
+
+                {/* AI mode panel */}
+                {wizardMode === 'ai' && (
+                    <div className="space-y-4 mb-4">
+                        <div>
+                            <Label htmlFor="nl-prompt">Describe your campaign</Label>
+                            <Textarea
+                                id="nl-prompt"
+                                placeholder="e.g. Send a win-back email to churned customers with a 20% off coupon to bring them back"
+                                value={nlPrompt}
+                                onChange={(e) => setNlPrompt(e.target.value)}
+                                rows={4}
+                                className="mt-1"
+                            />
+                        </div>
+                        {nlError && (
+                            <Alert variant="destructive">
+                                <AlertDescription>{nlError}</AlertDescription>
+                            </Alert>
+                        )}
+                        <Button
+                            onClick={handleGenerate}
+                            disabled={generating || !nlPrompt.trim()}
+                            className="w-full gap-2"
+                        >
+                            {generating ? (
+                                <><Loader2 className="h-4 w-4 animate-spin" /> Generating campaign…</>
+                            ) : (
+                                <><Sparkles className="h-4 w-4" /> Generate Campaign</>
+                            )}
+                        </Button>
+                        <p className="text-xs text-muted-foreground text-center">
+                            AI will fill out all the fields and take you straight to Review.
+                        </p>
+                    </div>
+                )}
+
+                {/* Progress bar + step content — hidden in AI mode */}
+                {wizardMode === 'manual' && (
                 <div className="flex items-center gap-2 mb-4">
                     {STEPS.map((s, i) => (
                         <div key={s} className="flex items-center gap-2 flex-1">
@@ -157,9 +251,10 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                         </div>
                     ))}
                 </div>
+                )}
 
                 {/* Step 0: Goal */}
-                {step === 0 && (
+                {wizardMode === 'manual' && step === 0 && (
                     <div className="space-y-4">
                         <div>
                             <Label htmlFor="campaign-name">Campaign Name</Label>
@@ -233,7 +328,7 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                 )}
 
                 {/* Step 1: Audience */}
-                {step === 1 && (
+                {wizardMode === 'manual' && step === 1 && (
                     <div className="space-y-4">
                         <div className="flex gap-2">
                             <Badge
@@ -291,7 +386,7 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                 )}
 
                 {/* Step 2: Content */}
-                {step === 2 && (
+                {wizardMode === 'manual' && step === 2 && (
                     <div className="space-y-4">
                         <p className="text-sm text-muted-foreground">
                             Use variables like {'{{firstName}}'}, {'{{segment}}'}, {'{{totalSpent}}'} for personalization.
@@ -336,7 +431,7 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                 )}
 
                 {/* Step 3: Review */}
-                {step === 3 && (
+                {wizardMode === 'manual' && step === 3 && (
                     <div className="space-y-4">
                         <Card>
                             <CardContent className="p-4 space-y-3">
@@ -394,8 +489,8 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                     </div>
                 )}
 
-                {/* Navigation */}
-                <div className="flex justify-between mt-4 pt-4 border-t">
+                {/* Navigation — manual mode only */}
+                {wizardMode === 'manual' && <div className="flex justify-between mt-4 pt-4 border-t">
                     <Button
                         variant="outline"
                         onClick={() => step > 0 ? setStep(step - 1) : onClose()}
@@ -421,7 +516,7 @@ export function CampaignWizardV2({ open, onClose, onCreated }: CampaignWizardV2P
                             )}
                         </Button>
                     )}
-                </div>
+                </div>}
             </DialogContent>
         </Dialog>
     );
