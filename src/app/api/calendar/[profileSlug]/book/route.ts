@@ -42,7 +42,9 @@ export async function POST(
 
         return NextResponse.json(confirmation, { status: 201 });
     } catch (err) {
-        logger.error(`[API] /api/calendar/book error: ${String(err)}`);
-        return NextResponse.json({ error: 'Booking failed. Please try again.' }, { status: 500 });
+        const errMsg = String(err);
+        logger.error(`[API] /api/calendar/book error: ${errMsg}`);
+        // TODO: remove debug detail before final production — temporary for diagnosis
+        return NextResponse.json({ error: 'Booking failed. Please try again.', _debug: errMsg }, { status: 500 });
     }
 }
