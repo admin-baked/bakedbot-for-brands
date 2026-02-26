@@ -1,62 +1,35 @@
 'use client';
 
-import { useState, useCallback, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-    Users,
     Rocket,
     Briefcase,
     Wrench,
     Sparkles,
     DollarSign,
     BarChart3,
-    ShieldAlert,
     Zap,
     TrendingUp,
-    CheckCircle2,
-    MessageSquare,
-    Send,
     BookOpen,
     Scale,
     Heart,
     Megaphone,
     Eye,
     Shield,
-    UserCheck
+    ChevronRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PuffChat } from '@/app/dashboard/ceo/components/puff-chat';
 import { useUser } from '@/firebase/auth/use-user';
 import { getPlatformAnalytics } from '../actions/data-actions';
 import type { PlatformAnalyticsData } from '../actions/types';
-import { useEffect } from 'react';
 import { AgentDebugPanel, useAgentDebug } from './agent-debug-panel';
 import { InboxThreadType } from '@/types/inbox';
 import { useSearchParams } from 'next/navigation';
 
-// Mock KPI Widgets
-function BoardroomWidget({ title, value, subtext, icon: Icon, trend, color }: any) {
-    return (
-        <Card className="overflow-hidden border-border/40 bg-background shadow-sm hover:shadow-md transition-all">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                <div className={cn("p-1.5 rounded-lg", color)}>
-                    <Icon className="h-4 w-4" />
-                </div>
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{value}</div>
-                <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground font-medium">
-                    {trend && <TrendingUp className="h-3 w-3 text-green-500" />}
-                    {subtext}
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
+// --- Agent Definitions ---
 
 const EXECUTIVE_TEAM = [
     { id: 'leo', name: 'Leo', role: 'COO', icon: Briefcase, color: 'bg-blue-100 text-blue-700' },
@@ -78,11 +51,65 @@ const SUPPORT_STAFF = [
     { id: 'deebo', name: 'Deebo', role: 'Compliance', icon: Shield, color: 'bg-red-100 text-red-700' },
 ];
 
+const ALL_AGENTS = [...EXECUTIVE_TEAM, ...SUPPORT_STAFF];
+
+// --- Sub-components ---
+
+function HudMetric({ label, value, className }: { label: string; value: string; className?: string }) {
+    return (
+        <div className="flex items-center gap-1.5">
+            <span className="text-muted-foreground text-xs">{label}:</span>
+            <span className={cn("font-mono font-bold text-sm", className)}>{value}</span>
+        </div>
+    );
+}
+
+function AgentDirectoryItem({
+    agent,
+    isSelected,
+    onClick,
+}: {
+    agent: typeof ALL_AGENTS[number];
+    isSelected: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            onClick={onClick}
+            className={cn(
+                "group w-full flex items-center gap-3 p-2.5 rounded-lg transition-all text-left",
+                isSelected
+                    ? "bg-primary/10 border border-primary/20"
+                    : "hover:bg-accent/60 border border-transparent"
+            )}
+        >
+            <div className={cn("w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center", agent.color)}>
+                <agent.icon className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+                <p className={cn("text-sm font-semibold truncate leading-tight", isSelected && "text-primary")}>
+                    {agent.name}
+                </p>
+                <p className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">{agent.role}</p>
+            </div>
+            <ChevronRight
+                className={cn(
+                    "h-3.5 w-3.5 flex-shrink-0 transition-opacity",
+                    isSelected ? "text-primary opacity-100" : "text-muted-foreground opacity-0 group-hover:opacity-100"
+                )}
+            />
+        </button>
+    );
+}
+
+// --- Main Component ---
+
 export default function BoardroomTab() {
     const { user } = useUser();
     const searchParams = useSearchParams();
     const [selectedAgent, setSelectedAgent] = useState('leo');
     const [analytics, setAnalytics] = useState<PlatformAnalyticsData | null>(null);
+    const [initialPermissions, setInitialPermissions] = useState<any[]>([]);
 
     // Debug mode for testing agents
     const { isDebugVisible, toggleDebug, setDebugContext } = useAgentDebug();
@@ -97,21 +124,15 @@ export default function BoardroomTab() {
         if (!agentParam) return;
 
         const normalized = agentParam.replace(/-/g, '_');
-        const allowed = new Set<string>([
-            ...EXECUTIVE_TEAM.map(a => a.id),
-            ...SUPPORT_STAFF.map(a => a.id),
-        ]);
+        const allowed = new Set<string>(ALL_AGENTS.map(a => a.id));
 
         if (allowed.has(normalized) && normalized !== selectedAgent) {
             setSelectedAgent(normalized);
         }
     }, [searchParams, selectedAgent]);
 
-    const [initialPermissions, setInitialPermissions] = useState<any[]>([]);
-
     // Update debug context when agent changes
     useEffect(() => {
-        // Map selected agent to a default thread type for debugging
         const threadTypeMap: Record<string, InboxThreadType> = {
             leo: 'daily_standup',
             jack: 'pipeline',
@@ -129,9 +150,6 @@ export default function BoardroomTab() {
 
     // Check for existing Gmail capability
     useEffect(() => {
-        // Dynamic import to avoid bundling server code if possible, though 'use server' handles it.
-        // Actually, for client components calling server actions, we import directly often.
-        // But here we use dynamic import as per previous pattern.
         import('@/server/actions/gmail').then(({ checkGmailConnection }) => {
             checkGmailConnection().then(result => {
                 if (result.isConnected) {
@@ -149,6 +167,7 @@ export default function BoardroomTab() {
         });
     }, []);
 
+    // Analytics derived values
     const mrr = analytics?.revenue.mrr || 0;
     const arr = analytics?.revenue.arr || 0;
     const arpu = analytics?.revenue.arpu || 0;
@@ -158,162 +177,196 @@ export default function BoardroomTab() {
     const goalPct = (mrr / 100000) * 100;
     const activePct = totalUsers > 0 ? ((activeUsers / totalUsers) * 100).toFixed(0) : 0;
 
+    const currentAgent = ALL_AGENTS.find(a => a.id === selectedAgent);
+    const threadTypeMap: Record<string, InboxThreadType> = {
+        leo: 'daily_standup',
+        jack: 'pipeline',
+        linus: 'sprint_planning',
+        glenda: 'content_calendar',
+        mike_exec: 'budget_planning',
+        mrs_parker: 'customer_onboarding',
+        big_worm: 'deep_research',
+        roach: 'compliance_research',
+        deebo: 'compliance_audit',
+        day_day: 'seo_sprint',
+    };
+
     return (
-        <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-            {/* Roundtable Header */}
-            <div className="flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                        <h2 className="text-2xl font-bold tracking-tight">Executive Boardroom</h2>
-                        <div className="text-muted-foreground flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-0.5">
-                            <Badge variant="outline" className="bg-green-500/5 text-green-600 border-green-500/20 gap-1 w-fit">
-                                <Zap className="h-3 w-3 fill-green-600 animate-[heartbeat_1.5s_ease-in-out_infinite]" />
-                                <span className="animate-pulse">Roundtable Active</span>
-                            </Badge>
-                            <style jsx>{`
-                                @keyframes heartbeat {
-                                    0%, 100% { transform: scale(1); opacity: 1; }
-                                    10% { transform: scale(1.3); opacity: 0.7; }
-                                    20% { transform: scale(1); opacity: 1; }
-                                    30% { transform: scale(1.3); opacity: 0.7; }
-                                    40% { transform: scale(1); opacity: 1; }
-                                }
-                            `}</style>
-                            <span className="hidden sm:inline">•</span>
-                            <span className="text-sm sm:text-base line-clamp-2">BakedBot growth strategy: Outcompete AlpineIQ, Dutchie, agencies • $100k MRR by Jan 2027</span>
-                        </div>
+        <div className="flex flex-col gap-0 animate-in fade-in duration-500 -mt-2">
+
+            {/* HUD Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border/50 mb-4">
+                <div>
+                    <div className="flex items-center gap-2 mb-1">
+                        <h2 className="text-xl font-bold tracking-tight">Executive Boardroom</h2>
+                        <Badge variant="outline" className="bg-green-500/5 text-green-600 border-green-500/20 gap-1">
+                            <Zap className="h-2.5 w-2.5 fill-green-600 animate-[heartbeat_1.5s_ease-in-out_infinite]" />
+                            <span className="text-[10px]">Roundtable Active</span>
+                        </Badge>
+                        <style jsx>{`
+                            @keyframes heartbeat {
+                                0%, 100% { transform: scale(1); opacity: 1; }
+                                10% { transform: scale(1.3); opacity: 0.7; }
+                                20% { transform: scale(1); opacity: 1; }
+                                30% { transform: scale(1.3); opacity: 0.7; }
+                                40% { transform: scale(1); opacity: 1; }
+                            }
+                        `}</style>
                     </div>
+                    <p className="text-xs text-muted-foreground line-clamp-1">
+                        BakedBot growth strategy: Outcompete AlpineIQ, Dutchie, agencies • $100k MRR by Jan 2027
+                    </p>
                 </div>
 
-                {/* Executive Team */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
-                    {EXECUTIVE_TEAM.map((agent) => (
-                        <Card
-                            key={agent.id}
-                            className={cn(
-                                "cursor-pointer transition-all hover:scale-105 active:scale-95",
-                                selectedAgent === agent.id ? "ring-2 ring-primary ring-offset-2 border-primary/50 shadow-lg" : "hover:border-primary/30"
-                            )}
-                            onClick={() => setSelectedAgent(agent.id)}
-                        >
-                            <CardContent className="flex flex-col items-center justify-center p-3 sm:p-4 gap-2 sm:gap-3">
-                                <div className={cn("p-2 sm:p-3 rounded-full shadow-inner", agent.color)}>
-                                    <agent.icon className="h-5 w-5 sm:h-6 sm:w-6" />
-                                </div>
-                                <div className="text-center">
-                                    <p className="font-bold text-sm leading-tight">{agent.name}</p>
-                                    <p className="text-[10px] uppercase tracking-wider font-semibold opacity-60 leading-tight mt-1">{agent.role}</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-
-                {/* Support Staff */}
-                <div className="flex items-center gap-4 mt-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest shrink-0">Support Staff</p>
-                    <div className="h-px bg-border flex-1" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:flex sm:flex-wrap">
-                    {SUPPORT_STAFF.map((agent) => (
-                        <Card
-                            key={agent.id}
-                            className={cn(
-                                "cursor-pointer transition-all hover:bg-accent/50 active:scale-95 sm:w-48",
-                                selectedAgent === agent.id ? "ring-2 ring-slate-400 ring-offset-1 border-slate-400 shadow-md bg-accent" : "border-border/60"
-                            )}
-                            onClick={() => setSelectedAgent(agent.id)}
-                        >
-                            <CardContent className="flex flex-row items-center p-3 gap-3">
-                                <div className={cn("p-2 rounded-lg shrink-0", agent.color)}>
-                                    <agent.icon className="h-4 w-4" />
-                                </div>
-                                <div className="text-left">
-                                    <p className="font-semibold text-sm leading-none">{agent.name}</p>
-                                    <p className="text-[10px] text-muted-foreground mt-1 leading-none">{agent.role}</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                {/* Inline KPI HUD */}
+                <div className="flex items-center gap-4 sm:gap-6 shrink-0 border-l border-border/50 pl-4 sm:pl-6">
+                    <HudMetric label="MRR" value={`$${mrr.toLocaleString()}`} className="text-green-600" />
+                    <HudMetric label="ARR" value={`$${arr.toLocaleString()}`} />
+                    <HudMetric label="ARPU" value={`$${arpu}`} />
+                    <HudMetric label="Users" value={totalUsers.toLocaleString()} />
+                    <HudMetric label="DAU" value={dailyActiveUsers.toLocaleString()} />
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                {/* Left Sidebar: KPIs */}
-                <div className="lg:col-span-4 lg:order-1 grid grid-cols-1 gap-4 hidden lg:grid">
-                    <BoardroomWidget
-                        title="Monthly Recurring Revenue"
-                        value={`$${mrr.toLocaleString()}`}
-                        subtext={`${goalPct.toFixed(1)}% of $100k Goal`}
-                        icon={TrendingUp}
-                        trend={mrr > 0}
-                        color="bg-green-100 text-green-700"
-                    />
-                    <BoardroomWidget
-                        title="Annual Run Rate"
-                        value={`$${arr.toLocaleString()}`}
-                        subtext={`ARPU: $${arpu}`}
-                        icon={DollarSign}
-                        trend={arr > 0}
-                        color="bg-amber-100 text-amber-700"
-                    />
-                    <BoardroomWidget
-                        title="Active Users"
-                        value={`${activeUsers.toLocaleString()}`}
-                        subtext={`${activePct}% of ${totalUsers} total (${dailyActiveUsers} DAU)`}
-                        icon={UserCheck}
-                        trend={activeUsers > 0}
-                        color="bg-blue-100 text-blue-700"
-                    />
-                    <BoardroomWidget
-                        title="Total Signups"
-                        value={`${totalUsers.toLocaleString()}`}
-                        subtext="Registered Accounts"
-                        icon={Users}
-                        color="bg-purple-100 text-purple-700"
-                    />
+            {/* Main 2-Column Layout: Chat + Agent Directory */}
+            <div className="flex gap-4 items-start">
+
+                {/* Chat Canvas — takes all remaining width */}
+                <div className="flex-1 min-w-0">
+                    <Card className="shadow-lg border-border/50 overflow-hidden h-[80vh] flex flex-col bg-background">
+                        <CardHeader className="bg-background border-b py-3 px-5 flex flex-row items-center justify-between shadow-sm z-10 shrink-0">
+                            <div className="flex items-center gap-3">
+                                {currentAgent && (
+                                    <div className={cn("p-1.5 rounded-lg", currentAgent.color)}>
+                                        <currentAgent.icon className="h-4 w-4" />
+                                    </div>
+                                )}
+                                <div>
+                                    <CardTitle className="text-sm font-semibold">Roundtable Discussion</CardTitle>
+                                    <CardDescription className="text-[10px] font-medium text-primary leading-tight">
+                                        Current Speaker: {currentAgent?.name} ({currentAgent?.role})
+                                    </CardDescription>
+                                </div>
+                            </div>
+                            <Badge variant="secondary" className="text-[10px] hidden sm:flex">
+                                Universal Delegation Enabled
+                            </Badge>
+                        </CardHeader>
+                        <CardContent className="flex-1 p-0 overflow-visible relative min-h-0">
+                            <PuffChat
+                                persona={selectedAgent as any}
+                                hideHeader={true}
+                                isSuperUser={true}
+                                isHired={true}
+                                initialPermissions={initialPermissions}
+                                promptSuggestions={[
+                                    "Run Weekly KPI Report",
+                                    "Check System Health Status",
+                                    "Review Recent Signups",
+                                    "Generate Competitive Intel Summary",
+                                    "Draft Weekly Team Update Email"
+                                ]}
+                                className="h-full border-0 shadow-none"
+                            />
+                        </CardContent>
+                    </Card>
                 </div>
 
-                {/* Main: Unified Chat */}
-                <Card className="lg:col-span-8 lg:order-2 shadow-xl border-border/50 overflow-hidden h-[85vh] lg:h-[700px] flex flex-col bg-slate-50/30 backdrop-blur-sm order-first">
-                    <CardHeader className="bg-background border-b py-3 px-6 flex flex-row items-center justify-between shadow-sm z-10">
-                        <div className="flex items-center gap-3">
-                            <div className={cn("p-1.5 rounded-lg", EXECUTIVE_TEAM.find(a => a.id === selectedAgent)?.color)}>
-                                {(() => {
-                                    const AgentIcon = EXECUTIVE_TEAM.find(a => a.id === selectedAgent)?.icon || Briefcase;
-                                    return <AgentIcon className="h-5 w-5" />;
-                                })()}
-                            </div>
-                            <div>
-                                <CardTitle className="text-base">Roundtable Discussion</CardTitle>
-                                <CardDescription className="text-[11px] font-medium text-primary">
-                                    Current Speaker: {EXECUTIVE_TEAM.find(a => a.id === selectedAgent)?.name} ({EXECUTIVE_TEAM.find(a => a.id === selectedAgent)?.role})
-                                </CardDescription>
-                            </div>
+                {/* Agent Directory Sidebar */}
+                <aside className="hidden xl:flex flex-col w-64 shrink-0 gap-3">
+
+                    {/* Executive Team */}
+                    <div className="bg-background border border-border/50 rounded-xl overflow-hidden shadow-sm">
+                        <div className="px-3 py-2.5 border-b border-border/50 bg-muted/30">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Executives</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-[10px] hidden sm:flex">Universal Delegation Enabled</Badge>
+                        <div className="p-2 space-y-0.5">
+                            {EXECUTIVE_TEAM.map((agent) => (
+                                <AgentDirectoryItem
+                                    key={agent.id}
+                                    agent={agent}
+                                    isSelected={selectedAgent === agent.id}
+                                    onClick={() => setSelectedAgent(agent.id)}
+                                />
+                            ))}
                         </div>
-                    </CardHeader>
-                    <CardContent className="flex-1 p-0 overflow-visible relative min-h-0">
-                        <PuffChat
-                            persona={selectedAgent as any}
-                            hideHeader={true}
-                            isSuperUser={true}
-                            isHired={true}
-                            initialPermissions={initialPermissions}
-                            promptSuggestions={[
-                                "Run Weekly KPI Report",
-                                "Check System Health Status",
-                                "Review Recent Signups",
-                                "Generate Competitive Intel Summary",
-                                "Draft Weekly Team Update Email"
-                            ]}
-                            className="h-full border-0 shadow-none"
-                        />
-                    </CardContent>
-                </Card>
+                    </div>
+
+                    {/* Support Staff */}
+                    <div className="bg-background border border-border/50 rounded-xl overflow-hidden shadow-sm">
+                        <div className="px-3 py-2.5 border-b border-border/50 bg-muted/30">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Support Staff</p>
+                        </div>
+                        <div className="p-2 space-y-0.5">
+                            {SUPPORT_STAFF.map((agent) => (
+                                <AgentDirectoryItem
+                                    key={agent.id}
+                                    agent={agent}
+                                    isSelected={selectedAgent === agent.id}
+                                    onClick={() => setSelectedAgent(agent.id)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Online Status */}
+                    <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground py-1">
+                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                        {ALL_AGENTS.length} Agents Online
+                    </div>
+                </aside>
+            </div>
+
+            {/* Mobile Agent Picker — shown below chat on small screens */}
+            <div className="xl:hidden mt-4 space-y-3">
+                <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">Executives</p>
+                    <div className="grid grid-cols-5 gap-2">
+                        {EXECUTIVE_TEAM.map((agent) => (
+                            <button
+                                key={agent.id}
+                                onClick={() => setSelectedAgent(agent.id)}
+                                className={cn(
+                                    "flex flex-col items-center p-2.5 rounded-xl border transition-all",
+                                    selectedAgent === agent.id
+                                        ? "ring-2 ring-primary ring-offset-1 border-primary/50 bg-primary/5"
+                                        : "border-border/50 hover:border-primary/30 hover:bg-accent/50"
+                                )}
+                            >
+                                <div className={cn("p-2 rounded-full mb-1.5", agent.color)}>
+                                    <agent.icon className="h-4 w-4" />
+                                </div>
+                                <p className="text-[10px] font-bold leading-tight">{agent.name}</p>
+                                <p className="text-[9px] text-muted-foreground leading-tight">{agent.role}</p>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2 px-1">Support Staff</p>
+                    <div className="grid grid-cols-2 gap-2">
+                        {SUPPORT_STAFF.map((agent) => (
+                            <button
+                                key={agent.id}
+                                onClick={() => setSelectedAgent(agent.id)}
+                                className={cn(
+                                    "flex items-center gap-2.5 p-2.5 rounded-xl border transition-all text-left",
+                                    selectedAgent === agent.id
+                                        ? "ring-2 ring-slate-400 ring-offset-1 border-slate-300 bg-slate-50"
+                                        : "border-border/50 hover:bg-accent/50"
+                                )}
+                            >
+                                <div className={cn("p-1.5 rounded-lg shrink-0", agent.color)}>
+                                    <agent.icon className="h-3.5 w-3.5" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold leading-tight">{agent.name}</p>
+                                    <p className="text-[9px] text-muted-foreground leading-tight">{agent.role}</p>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
 
             {/* Agent Debug Panel - Test Mode */}
@@ -321,21 +374,7 @@ export default function BoardroomTab() {
                 isVisible={isDebugVisible}
                 onToggle={toggleDebug}
                 currentAgent={selectedAgent as any}
-                threadType={(() => {
-                    const threadTypeMap: Record<string, InboxThreadType> = {
-                        leo: 'daily_standup',
-                        jack: 'pipeline',
-                        linus: 'sprint_planning',
-                        glenda: 'content_calendar',
-                        mike_exec: 'budget_planning',
-                        mrs_parker: 'customer_onboarding',
-                        big_worm: 'deep_research',
-                        roach: 'compliance_research',
-                        deebo: 'compliance_audit',
-                        day_day: 'seo_sprint',
-                    };
-                    return threadTypeMap[selectedAgent];
-                })()}
+                threadType={threadTypeMap[selectedAgent]}
             />
         </div>
     );
