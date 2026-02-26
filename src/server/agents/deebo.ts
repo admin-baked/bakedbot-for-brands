@@ -274,8 +274,8 @@ export function getStateComplianceBlock(stateCode: string): string {
   return buildStateComplianceBlock(stateCode);
 }
 
-// Re-export state rule utilities so agents can import from one place
-export { getStateMarketingRules, buildStateComplianceBlock } from '@/server/data/state-marketing-rules';
+// Note: getStateMarketingRules and buildStateComplianceBlock are available
+// by importing from '@/server/data/state-marketing-rules' directly.
 
 // =============================================================================
 // check_marketing_compliance TOOL DEFINITION (for agent runMultiStepTask)
