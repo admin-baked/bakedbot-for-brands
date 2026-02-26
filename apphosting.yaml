@@ -383,16 +383,16 @@ env:
   # Setup: gcloud secrets create CDP_API_KEY_NAME --data-file=- --project=studio-567050101-bc6e8
   # Setup: firebase apphosting:secrets:grantaccess CDP_API_KEY_NAME --backend=bakedbot-prod
   - variable: CDP_API_KEY_NAME
-    secret: CDP_API_KEY_NAME@1
+    secret: CDP_API_KEY_NAME@2
     availability:
       - RUNTIME
   - variable: CDP_API_KEY_PRIVATE_KEY
-    secret: CDP_API_KEY_PRIVATE_KEY@1
+    secret: CDP_API_KEY_PRIVATE_KEY@2
     availability:
       - RUNTIME
   # BakedBot USDC wallet (already exists — user has this address)
   - variable: X402_BAKEDBOT_WALLET_ADDRESS
-    secret: X402_BAKEDBOT_WALLET_ADDRESS@1
+    secret: X402_BAKEDBOT_WALLET_ADDRESS@2
     availability:
       - RUNTIME
   # Settlement fee in basis points (200 = 2%)
