@@ -167,24 +167,27 @@ async function getBookingsForDate(
     date: Date,
 ): Promise<MeetingBooking[]> {
     const firestore = getAdminFirestore();
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
 
-    // Note: avoid 'status != cancelled' in the Firestore query — combining inequality
-    // on status with range on startAt triggers multi-field inequality errors in some
-    // SDK versions. Filter cancelled bookings in memory instead.
+    // Query by profileSlug only (single-field index — always available, no composite needed).
+    // The (profileSlug, startAt) range query requires a composite index that Firestore
+    // won't auto-create when a 3-field index already exists. Filter by date range in
+    // memory instead — executive calendars have at most a few dozen bookings.
     const snap = await firestore
         .collection('meeting_bookings')
         .where('profileSlug', '==', profileSlug)
-        .where('startAt', '>=', Timestamp.fromDate(startOfDay))
-        .where('startAt', '<=', Timestamp.fromDate(endOfDay))
         .get();
+
+    const startOfDay = new Date(date);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setUTCHours(23, 59, 59, 999);
 
     return snap.docs
         .map(d => firestoreToBooking(d.id, d.data() as Record<string, unknown>))
-        .filter(b => b.status !== 'cancelled');
+        .filter(b => {
+            if (b.status === 'cancelled') return false;
+            return b.startAt >= startOfDay && b.startAt <= endOfDay;
+        });
 }
 
 /**
